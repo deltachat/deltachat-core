@@ -1,0 +1,46 @@
+# ignore backup files
+*~
+
+# ignore build temporary files
+*.o
+.deps
+.dirstamp
+
+# ignore codeblocks project files and build directories
+*.depend
+*.layout
+/bin/
+/obj/
+
+# ignore autotools temporaries
+autoscan.log
+cleanup.sh
+config.log
+config.status
+configure.scan
+Makefile
+/autom4te.cache/
+/config.h
+/stamp-*
+/silverjuke
+silverjuke*.tar.gz
+silverjuke*.tar.xz
+
+# ignore generated files
+Makefile.in
+/aclocal.m4
+/compile
+/configure
+/install-sh
+/missing
+po/*\.gmo
+po/stamp-po
+po/POTFILES
+po/remove-potcdate.sed
+po/*.gmo
+po/*.insert-header
+silverjuke.1
+
+# ignore other files
+.DS_Store
+
