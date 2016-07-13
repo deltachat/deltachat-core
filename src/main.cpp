@@ -27,11 +27,18 @@
 
 
 #include <iostream>
+#include "mrbackend.h"
 
 
 int main()
 {
+	MrBackend obj;
+
+	obj.Init();
+
     std::cout << "Hello world!" << std::endl;
+
+
     return 0;
 }
 

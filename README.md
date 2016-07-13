@@ -35,6 +35,19 @@ Build
 This repository contains only the messenger backend that is used by all 
 frontends.
 
+The backend requires _LibEtPan_ and _SQLite_ - the usage at a glance on unix
+systems:
+
+- _LibEtPan_ is available at https://github.com/dinhviethoa/libetpan ; for
+  compilation, use eg. the following commands: `./autogen.sh; make; 
+  sudo make install prefix=/usr`  
+  To link against LibEtPan, add `libetpan-config --libs` in backticks to your
+  project.
+  
+- _SQLite_ ( http://sqlite.org/ ) is available on most systems, however, you
+  will also need the headers, please look for packages as `libsqlite3-dev`.  
+  To link against SQLite, add `-lsqlite3` to your project.
+
 Information about how to build the frontends can be found in the corresponding
 repositories as https://github.com/r10s/messenger-android .
 

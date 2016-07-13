@@ -30,5 +30,17 @@
 #define __MRBACKEND_H__
 
 
-#endif // __MRBACKEND_H__
+struct sqlite3;
 
+
+class MrBackend
+{
+public:
+	void        Init        ();
+
+private:
+	sqlite3*    m_sqlite;
+};
+
+
+#endif // __MRBACKEND_H__

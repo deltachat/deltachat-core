@@ -26,6 +26,30 @@
  ******************************************************************************/
 
 
+#include <iostream>
+#include <string.h>
+#include <libetpan/libetpan.h>
+#include <sqlite3.h>
 #include "mrbackend.h"
+
+
+void MrBackend::Init()
+{
+	// test LibEtPan
+	struct mailimf_mailbox * mb;
+	char * display_name;
+	char * address;
+
+	display_name = strdup("DINH =?iso-8859-1?Q?Vi=EAt_Ho=E0?=");
+	address = strdup("dinh.viet.hoa@free.fr");
+	mb = mailimf_mailbox_new(display_name, address); // mailimf_mailbox_new() takes ownership of the given strings!
+	mailimf_mailbox_free(mb);
+
+	// test sqlite
+	if( sqlite3_open("~/temp/foobar.db", &m_sqlite) == SQLITE_OK ) {
+		sqlite3_close(m_sqlite);
+	}
+}
+
 
 
