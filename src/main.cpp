@@ -26,24 +26,90 @@
  ******************************************************************************/
 
 
-#include <iostream>
+#include <stdio.h>
+#include <string.h>
 #include "mrmailbox.h"
 
 
+
+char* readcmd()
+{
+	printf("> ");
+	static char cmdbuffer[1024];
+	fgets(cmdbuffer, 1000, stdin);
+    if ((strlen(cmdbuffer)>0) && (cmdbuffer[strlen(cmdbuffer) - 1] == '\n'))
+        cmdbuffer[strlen(cmdbuffer) - 1] = '\0';
+	return cmdbuffer;
+}
+
 int main()
 {
-	MrMailbox obj;
+	MrMailbox* mailbox = new MrMailbox();
 
-	obj.Init("/home/bpetersen/temp/foobar.db");
+	mailbox->Open("/home/bpetersen/temp/foobar.db");
 
+	printf("*************************************************\n");
+	printf("Messenger Backend v%i.%i.%i\n", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+	printf("*************************************************\n");
+	while(1)
+	{
+		// read command
+		const char* cmd = readcmd();
 
-	obj.SetConfig("afterrewrite", "justfine2");
-	char* test = obj.GetConfig("just-a-test", "xx");
+		if( strcmp(cmd, "help")==0 || cmd[0] == '?' )
+		{
+			printf("?                 : show this help\n");
+			printf("open <file>       : open database\n");
+			printf("close             : close database\n");
+			printf("set <key> <value> : set configuration value\n");
+			printf("get <key>         : show configuration value\n");
+			printf("connect           : connect to mailbox server\n");
+			printf("info              : show database information\n");
+			printf("quit              : quit\n");
+		}
+		else if( strncmp(cmd, "open", 4)==0 )
+		{
+			const char* p1 = strstr(cmd, " ");
+			if( p1 ) {
+				p1++;
+				mailbox->Close();
+				mailbox->Open(p1);
+			}
+			else {
+				printf("Argument missing.\n");
+			}
+		}
+		else if( strcmp(cmd, "close")==0 )
+		{
+			mailbox->Close();
+		}
+		else if( strcmp(cmd, "info")==0 )
+		{
+			char* filename = mailbox->GetDbFile();
+			if( filename )
+			{
+				printf("Database file: %s\n", filename);
+				free(filename);
+			}
+			else
+			{
+				printf("Database file: none\n");
+				free(filename);
+			}
+		}
+		else if( strcmp(cmd, "exit")==0 )
+		{
+			printf("Bye!\n");
+			break;
+		}
+		else
+		{
+			printf("Unknown command \"%s\", type ? for help.\n", cmd);
+		}
+	}
 
-    std::cout << "Hello world!" << test << std::endl;
-
-	free(test);
-
+	mailbox->Close();
+	delete mailbox;
     return 0;
 }
 

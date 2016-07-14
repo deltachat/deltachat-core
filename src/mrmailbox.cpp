@@ -41,6 +41,7 @@
 MrMailbox::MrMailbox()
 {
 	m_sqlite = NULL;
+	m_dbfile = NULL;
 	m_stmt_SELECT_value_FROM_config_k = NULL;
 	m_stmt_INSERT_INTO_config_kv = NULL;
 	m_stmt_UPDATE_config_vk = NULL;
@@ -49,18 +50,27 @@ MrMailbox::MrMailbox()
 
 MrMailbox::~MrMailbox()
 {
-	Exit();
+	Close();
 }
 
 
-bool MrMailbox::Init(const char* dbname)
+bool MrMailbox::Open(const char* dbfile)
 {
-	// Init() sets up the object and connects to the given database
+	// Open() sets up the object and connects to the given database
 	// from which all configuration is read/written to.
 
 	// Create/open sqlite database
-	if( sqlite3_open(dbname, &m_sqlite) != SQLITE_OK ) {
-		goto Init_Error;
+	if( dbfile == NULL || m_dbfile/*already a file opened?*/ ) {
+		goto Open_Error;
+	}
+
+	m_dbfile = strdup(dbfile);
+	if( m_dbfile == NULL ) {
+		goto Open_Error;
+	}
+
+	if( sqlite3_open(dbfile, &m_sqlite) != SQLITE_OK ) {
+		goto Open_Error;
 	}
 
 	// Init the tables, if not yet done
@@ -70,7 +80,7 @@ bool MrMailbox::Init(const char* dbname)
 		sqlite3_execute_("CREATE INDEX configindex01 ON config (keyname);");
 
 		if( !sqlite3_table_exists_("config") ) {
-			goto Init_Error; // cannot create the tables - maybe we cannot write?
+			goto Open_Error; // cannot create the tables - maybe we cannot write?
 		}
 
 
@@ -82,7 +92,7 @@ bool MrMailbox::Init(const char* dbname)
 	m_stmt_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
 
 	if( m_stmt_SELECT_value_FROM_config_k==NULL || m_stmt_INSERT_INTO_config_kv==NULL || m_stmt_UPDATE_config_vk==NULL ) {
-		goto Init_Error;
+		goto Open_Error;
 	}
 
 	// test LibEtPan
@@ -101,13 +111,13 @@ bool MrMailbox::Init(const char* dbname)
 	return true;
 
 	// error
-Init_Error:
-	Exit();
+Open_Error:
+	Close();
 	return false;
 }
 
 
-void MrMailbox::Exit()
+void MrMailbox::Close()
 {
 	#define SQLITE3_FINALIZE_(a) \
 	if((a)) { \
@@ -124,6 +134,12 @@ void MrMailbox::Exit()
 		sqlite3_close(m_sqlite);
 		m_sqlite = NULL;
 	}
+
+	if( m_dbfile )
+	{
+		free(m_dbfile);
+		m_dbfile = NULL;
+	}
 }
 
 
@@ -132,9 +148,8 @@ void MrMailbox::Exit()
  ******************************************************************************/
 
 
-bool MrMailbox::Connect()
+void MrMailbox::Connect()
 {
-	return false;
 }
 
 
@@ -233,7 +248,22 @@ char* MrMailbox::GetConfig(const char* key, const char* def) // the returned str
 
 
 /*******************************************************************************
- * Tools
+ * Misc.
+ ******************************************************************************/
+
+
+char* MrMailbox::GetDbFile()
+{
+	if( m_dbfile == NULL ) {
+		return NULL;
+	}
+
+	return strdup(m_dbfile);
+}
+
+
+/*******************************************************************************
+ * Internal tools
  ******************************************************************************/
 
 

@@ -42,21 +42,25 @@ class MrChat;
 class MrContact;
 
 
+#define MR_VERSION_MAJOR    0
+#define MR_VERSION_MINOR    1
+#define MR_VERSION_REVISION 2
+
+
 class MrMailbox
 {
 public:
 	              MrMailbox            ();
 	              ~MrMailbox           ();
 
-	// init/exit a mailbox object, if the given file does not exist, it is created
+	// open/close a mailbox object, if the given file does not exist, it is created
 	// and can be set up using SetConfig() and Connect() afterwards.
 	// sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
-	bool          Init                 (const char* dbfile);
-	void          Exit                 ();
+	bool          Open                 (const char* dbfile);
+	void          Close                ();
 
-	// connect to the mailbox. the return value `true` only indicates, the parameters are correct -
-	// even if `true` is returned, an connection error may be received asynchronously.
-	bool          Connect              ();
+	// connect to the mailbox: error are be received asynchronously.
+	void          Connect              ();
 
 	// iterate contacts
 	size_t        GetContactCnt        ();
@@ -70,8 +74,12 @@ public:
 	bool          SetConfig            (const char* key, const char* value);
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 
+	// misc
+	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
+
 private:
-	// m_sqlite is the database given as dbfile to Init()
+	// m_sqlite is the database given as dbfile to Open()
+	char*         m_dbfile;
 	sqlite3*      m_sqlite;
 	sqlite3_stmt  *m_stmt_SELECT_value_FROM_config_k,
 	              *m_stmt_INSERT_INTO_config_kv,
