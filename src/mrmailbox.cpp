@@ -41,6 +41,9 @@
 MrMailbox::MrMailbox()
 {
 	m_sqlite = NULL;
+	m_stmt_SELECT_value_FROM_config_k = NULL;
+	m_stmt_INSERT_INTO_config_kv = NULL;
+	m_stmt_UPDATE_config_vk = NULL;
 }
 
 
