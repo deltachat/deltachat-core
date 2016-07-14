@@ -66,7 +66,7 @@ Some hints:
 
 - Strings in function arguments or return values are usually UTF-8 encoded
 
-- Returned `const char*`-strings must be freed using `free()` - we leave it up
+- Returned `char*`-strings must be freed using `free()` - we leave it up
   to the next level (Android, Java, iOS, Qt, ...) to use smarter strings and do
   not add overhead here.
 

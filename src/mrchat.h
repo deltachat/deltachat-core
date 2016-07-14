@@ -19,32 +19,39 @@
  *
  *******************************************************************************
  *
- * File:    main.cpp
+ * File:    mrchat.h
  * Authors: Björn Petersen
- * Purpose: Testing frame; if used as a lib, this file is obsolete.
+ * Purpose: MrChat represents a single chat - this is a conversation with
+ *          a single user or a group
  *
  ******************************************************************************/
 
 
-#include <iostream>
-#include "mrmailbox.h"
+#ifndef __MRCHAT_H__
+#define __MRCHAT_H__
 
 
-int main()
+class MrMailbox;
+
+
+class MrChat
 {
-	MrMailbox obj;
+public:
+	// if a chat object is no longer needed, they should be Release()'d, to destroy a chat physically,
+	// call Destroy() (an additional Release() is needed even in this case)
+	void         Release     () { delete this; }
+	void         Destroy     ();
 
-	obj.Init("/home/bpetersen/temp/foobar.db");
+private:
+	// as chat objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
+	             MrChat      (MrMailbox*);
+	             ~MrChat     ();
+	friend class MrMailbox;
+
+	// the mailbox, the chat belongs to
+	MrMailbox*   m_mailbox;
+};
 
 
-	obj.SetConfig("afterrewrite", "justfine2");
-	char* test = obj.GetConfig("just-a-test", "xx");
-
-    std::cout << "Hello world!" << test << std::endl;
-
-	free(test);
-
-    return 0;
-}
-
+#endif // __MRCHAT_H__
 

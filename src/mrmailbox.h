@@ -34,31 +34,55 @@
 #define __MRMAILBOX_H__
 
 
+#include <stdlib.h> // eg. for size_t
+
+struct sqlite3;
+struct sqlite3_stmt;
+class MrChat;
+class MrContact;
+
+
 class MrMailbox
 {
 public:
-	            MrMailbox   ();
-	            ~MrMailbox  ();
+	              MrMailbox            ();
+	              ~MrMailbox           ();
 
 	// init/exit a mailbox object, if the given file does not exist, it is created
 	// and can be set up using SetConfig() and Connect() afterwards.
 	// sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
-	bool        Init        (const char* dbfile);
-	void        Exit        ();
+	bool          Init                 (const char* dbfile);
+	void          Exit                 ();
+
+	// connect to the mailbox. the return value `true` only indicates, the parameters are correct -
+	// even if `true` is returned, an connection error may be received asynchronously.
+	bool          Connect              ();
+
+	// iterate contacts
+	size_t        GetContactCnt        ();
+	MrContact*    GetContact           (size_t i); // the returned objects must be Release()'d, returns NULL on errors
+
+	// iterate chats
+	size_t        GetChatCnt           ();
+	MrChat*       GetChat              (size_t i); // the returned objects must be Release()'d, returns NULL on errors
 
 	// handle configurations
-	bool        SetConfig   (const char* key, const char* value);
-	const char* GetConfig   (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
+	bool          SetConfig            (const char* key, const char* value);
+	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 
 private:
 	// m_sqlite is the database given as dbfile to Init()
-	struct sqlite3*  m_sqlite;
+	sqlite3*      m_sqlite;
+	sqlite3_stmt  *m_stmt_SELECT_value_FROM_config_k,
+	              *m_stmt_INSERT_INTO_config_kv,
+	              *m_stmt_UPDATE_config_vk;
 
 	// database tools
-	struct sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
-	bool                 sqlite3_execute_     (const char* sql);
-	bool                 sqlite3_table_exists_(const char* name);
+	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
+	bool          sqlite3_execute_     (const char* sql);
+	bool          sqlite3_table_exists_(const char* name);
 };
 
 
-#endif // __MRBACKEND_H__
+#endif // __MRMAILBOX_H__
+

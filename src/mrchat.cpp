@@ -6,7 +6,7 @@
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
+ * Foundation, either version 3 of the License, or (at your option) any laterMrChat
  * version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
@@ -19,32 +19,23 @@
  *
  *******************************************************************************
  *
- * File:    main.cpp
+ * File:    mrchat.cpp
  * Authors: Björn Petersen
- * Purpose: Testing frame; if used as a lib, this file is obsolete.
+ * Purpose: MrChat represents a single chat, see header for details.
  *
  ******************************************************************************/
 
 
-#include <iostream>
 #include "mrmailbox.h"
+#include "mrchat.h"
 
 
-int main()
+MrChat::MrChat(MrMailbox* mailbox)
 {
-	MrMailbox obj;
-
-	obj.Init("/home/bpetersen/temp/foobar.db");
-
-
-	obj.SetConfig("afterrewrite", "justfine2");
-	char* test = obj.GetConfig("just-a-test", "xx");
-
-    std::cout << "Hello world!" << test << std::endl;
-
-	free(test);
-
-    return 0;
+	m_mailbox = mailbox;
 }
 
 
+MrChat::~MrChat()
+{
+}
