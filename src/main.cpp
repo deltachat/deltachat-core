@@ -27,14 +27,14 @@
 
 
 #include <iostream>
-#include "mrbackend.h"
+#include "mrmailbox.h"
 
 
 int main()
 {
-	MrBackend obj;
+	MrMailbox obj;
 
-	obj.Init();
+	obj.Init("/home/bpetersen/temp/foobar.db");
 
     std::cout << "Hello world!" << std::endl;
 
