@@ -124,7 +124,7 @@ char* MrSqlite3::GetDbFile()
 		return NULL;
 	}
 
-	return strdup(m_dbfile);
+	return strdup(m_dbfile); // the caller should free() the returned string
 }
 
 
