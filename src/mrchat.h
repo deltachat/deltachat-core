@@ -34,6 +34,15 @@
 class MrMailbox;
 
 
+enum MrChatType
+{
+	 MR_CHAT_UNDEFINED=0
+	,MR_CHAT_CONTACT=1
+	,MR_CHAT_PRIVATE=2
+	,MR_CHAT_GROUP=3
+};
+
+
 class MrChat
 {
 public:
@@ -41,6 +50,10 @@ public:
 	// call Destroy() (an additional Release() is needed even in this case)
 	void         Release     () { delete this; }
 	void         Destroy     ();
+
+	// the data should be read only and are valid until the chat object is Release()'d
+	MrChatType   m_type;
+	char*        m_name;
 
 private:
 	// as chat objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
