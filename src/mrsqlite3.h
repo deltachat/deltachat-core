@@ -41,15 +41,10 @@ public:
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
 
-	// tools, these functions are compatible to the corresponding sqlite3_* functions
-	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
-	bool          sqlite3_execute_     (const char* sql);
-	bool          sqlite3_table_exists_(const char* name);
-
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 
-	// prepared statements
+	// prepared statements - this is the favourite way for the caller to use SQLite
 	sqlite3_stmt  *m_SELECT_value_FROM_config_k,
 	              *m_INSERT_INTO_config_kv,
 	              *m_UPDATE_config_vk;
@@ -57,6 +52,11 @@ private:
 	// m_sqlite is the database given as dbfile to Open()
 	char*         m_dbfile;
 	sqlite3*      m_cobj;
+
+	// tools, these functions are compatible to the corresponding sqlite3_* functions
+	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
+	bool          sqlite3_execute_     (const char* sql);
+	bool          sqlite3_table_exists_(const char* name);
 };
 
 
