@@ -36,8 +36,9 @@ static char* read_cmd()
 	printf("> ");
 	static char cmdbuffer[1024];
 	fgets(cmdbuffer, 1000, stdin);
-    if ((strlen(cmdbuffer)>0) && (cmdbuffer[strlen(cmdbuffer) - 1] == '\n'))
-        cmdbuffer[strlen(cmdbuffer) - 1] = '\0';
+	if ((strlen(cmdbuffer)>0) && (cmdbuffer[strlen(cmdbuffer) - 1] == '\n')) {
+		cmdbuffer[strlen(cmdbuffer) - 1] = '\0';
+	}
 	return cmdbuffer;
 }
 
@@ -168,7 +169,7 @@ int main()
 
 	mailbox->Close();
 	delete mailbox;
-    return 0;
+	return 0;
 }
 
 
