@@ -95,11 +95,13 @@ void MrMailbox::Close()
 
 void MrMailbox::Connect()
 {
+	m_imap.Connect();
 }
 
 
 void MrMailbox::Disconnect()
 {
+	m_imap.Disconnect();
 }
 
 

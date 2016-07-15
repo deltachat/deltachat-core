@@ -38,7 +38,7 @@ class MrImap
 public:
 	              MrImap               (MrMailbox* mailbox);
 	              ~MrImap              ();
-	bool          Connect              ();
+	void          Connect              ();
 	void          Disconnect           ();
 
 private:
