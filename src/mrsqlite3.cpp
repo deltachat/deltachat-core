@@ -38,6 +38,7 @@ MrSqlite3::MrSqlite3()
 	m_SELECT_value_FROM_config_k = NULL;
 	m_INSERT_INTO_config_kv      = NULL;
 	m_UPDATE_config_vk           = NULL;
+	m_DELETE_FROM_config_k       = NULL;
 }
 
 
@@ -77,6 +78,7 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_SELECT_value_FROM_config_k = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
 	m_INSERT_INTO_config_kv      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
 	m_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
+	m_DELETE_FROM_config_k       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
 
 	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL ) {
 		goto Open_Error;
@@ -105,6 +107,7 @@ void MrSqlite3::Close()
 		SQLITE3_FINALIZE_(m_SELECT_value_FROM_config_k)
 		SQLITE3_FINALIZE_(m_INSERT_INTO_config_kv)
 		SQLITE3_FINALIZE_(m_UPDATE_config_vk)
+		SQLITE3_FINALIZE_(m_DELETE_FROM_config_k)
 
 		sqlite3_close(m_cobj);
 		m_cobj = NULL;

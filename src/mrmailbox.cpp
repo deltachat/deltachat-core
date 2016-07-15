@@ -145,28 +145,39 @@ bool MrMailbox::SetConfig(const char* key, const char* value)
 {
 	int state;
 
-	sqlite3_reset     (m_sql.m_SELECT_value_FROM_config_k);
-	sqlite3_bind_text (m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-	state=sqlite3_step(m_sql.m_SELECT_value_FROM_config_k);
-
-	if( state == SQLITE_DONE )
-	{
-		sqlite3_reset     (m_sql.m_INSERT_INTO_config_kv);
-		sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
-		sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
-		state=sqlite3_step(m_sql.m_INSERT_INTO_config_kv);
-
+	if( key == NULL || !m_sql.Ok() ) {
+		return false;
 	}
-	else if( state == SQLITE_ROW )
+
+	if( value )
 	{
-		sqlite3_reset     (m_sql.m_UPDATE_config_vk);
-		sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
-		sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(m_sql.m_UPDATE_config_vk);
+		// insert/update key=value
+		sqlite3_reset     (m_sql.m_SELECT_value_FROM_config_k);
+		sqlite3_bind_text (m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
+		state=sqlite3_step(m_sql.m_SELECT_value_FROM_config_k);
+		if( state == SQLITE_DONE ) {
+			sqlite3_reset     (m_sql.m_INSERT_INTO_config_kv);
+			sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
+			sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
+			state=sqlite3_step(m_sql.m_INSERT_INTO_config_kv);
+
+		}
+		else if( state == SQLITE_ROW ) {
+			sqlite3_reset     (m_sql.m_UPDATE_config_vk);
+			sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
+			sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
+			state=sqlite3_step(m_sql.m_UPDATE_config_vk);
+		}
+		else {
+			return false;
+		}
 	}
 	else
 	{
-		return false;
+		// delete key
+		sqlite3_reset     (m_sql.m_DELETE_FROM_config_k);
+		sqlite3_bind_text (m_sql.m_DELETE_FROM_config_k, 1, key,   -1, SQLITE_STATIC);
+		state=sqlite3_step(m_sql.m_DELETE_FROM_config_k);
 	}
 
 	if( state != SQLITE_DONE )  {
@@ -179,6 +190,10 @@ bool MrMailbox::SetConfig(const char* key, const char* value)
 
 char* MrMailbox::GetConfig(const char* key, const char* def) // the returned string must be free()'d
 {
+	if( key == NULL || !m_sql.Ok() ) {
+		return false;
+	}
+
 	sqlite3_reset    (m_sql.m_SELECT_value_FROM_config_k);
 	sqlite3_bind_text(m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(m_sql.m_SELECT_value_FROM_config_k) == SQLITE_ROW )
@@ -192,8 +207,9 @@ char* MrMailbox::GetConfig(const char* key, const char* def) // the returned str
 	}
 
 	// return the default value
-	return strdup(def);
+	if( def ) {
+		return strdup(def);
+	}
+	return NULL;
 }
-
-
 

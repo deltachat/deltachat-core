@@ -36,9 +36,8 @@
 
 #include <stdlib.h> // eg. for size_t
 #include "mrsqlite3.h"
-
-class MrChat;
-class MrContact;
+#include "mrchat.h"
+#include "mrcontact.h"
 
 
 #define MR_VERSION_MAJOR    0

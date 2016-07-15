@@ -31,8 +31,7 @@
 #include "mrmailbox.h"
 
 
-
-char* readcmd()
+static char* read_cmd()
 {
 	printf("> ");
 	static char cmdbuffer[1024];
@@ -41,6 +40,13 @@ char* readcmd()
         cmdbuffer[strlen(cmdbuffer) - 1] = '\0';
 	return cmdbuffer;
 }
+
+
+static void print_error()
+{
+	printf("ERROR.\n");
+}
+
 
 int main()
 {
@@ -54,18 +60,19 @@ int main()
 	while(1)
 	{
 		// read command
-		const char* cmd = readcmd();
+		const char* cmd = read_cmd();
 
 		if( strcmp(cmd, "help")==0 || cmd[0] == '?' )
 		{
-			printf("?                 : show this help\n");
-			printf("open <file>       : open database\n");
-			printf("close             : close database\n");
-			printf("set <key> <value> : set configuration value\n");
-			printf("get <key>         : show configuration value\n");
-			printf("connect           : connect to mailbox server\n");
-			printf("info              : show database information\n");
-			printf("quit              : quit\n");
+			printf("?                   show this help\n");
+			printf("open <file>         open database\n");
+			printf("close               close database\n");
+			printf("set <key> [<value>] set/delete configuration value\n");
+			printf("get <key>           show configuration value\n");
+			printf("connect             connect to mailbox server\n");
+			printf("disconnect          disconnect from mailbox server\n");
+			printf("info                show database information\n");
+			printf("quit                quit\n");
 		}
 		else if( strncmp(cmd, "open", 4)==0 )
 		{
@@ -73,38 +80,89 @@ int main()
 			if( p1 ) {
 				p1++;
 				mailbox->Close();
-				mailbox->Open(p1);
+				if( !mailbox->Open(p1) ) {
+					print_error();
+				}
 			}
 			else {
-				printf("Argument missing.\n");
+				printf("ERROR: Argument <file> missing.\n");
 			}
 		}
 		else if( strcmp(cmd, "close")==0 )
 		{
-			mailbox->Close();
+			char* filename;
+			if( (filename=mailbox->GetDbFile()) != NULL ) {
+				free(filename);
+				mailbox->Close();
+			}
+			else {
+				printf("ERROR: no database opened.\n");
+			}
+		}
+		else if( strcmp(cmd, "connect")==0 )
+		{
+			mailbox->Connect();
+		}
+		else if( strcmp(cmd, "disconnect")==0 )
+		{
+			mailbox->Disconnect();
+		}
+		else if( strncmp(cmd, "set", 3)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) {
+				arg1++;
+				char* arg2 = strstr(arg1, " ");
+				if( arg2 ) {
+					*arg2 = 0;
+					arg2++;
+				}
+				if( !mailbox->SetConfig(arg1, arg2) ) {
+					print_error();
+				}
+			}
+			else {
+				printf("ERROR: Argument <key> missing.\n");
+			}
+		}
+		else if( strncmp(cmd, "get", 3)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) {
+				arg1++;
+				char* ret = mailbox->GetConfig(arg1, "<unset>");
+				if( ret ) {
+					printf("%s=%s\n", arg1, ret);
+					free(ret);
+				}
+				else {
+					print_error();
+				}
+			}
+			else {
+				printf("ERROR: Argument <key> missing.\n");
+			}
 		}
 		else if( strcmp(cmd, "info")==0 )
 		{
 			char* filename = mailbox->GetDbFile();
-			if( filename )
-			{
+			if( filename ) {
 				printf("Database file: %s\n", filename);
 				free(filename);
 			}
-			else
-			{
+			else {
 				printf("Database file: none\n");
 				free(filename);
 			}
 		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
-			printf("Bye!\n");
+			printf("Bye.\n");
 			break;
 		}
 		else
 		{
-			printf("Unknown command \"%s\", type ? for help.\n", cmd);
+			printf("ERROR: Unknown command \"%s\", type ? for help.\n", cmd);
 		}
 	}
 

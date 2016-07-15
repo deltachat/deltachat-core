@@ -40,6 +40,7 @@ public:
 	              ~MrSqlite3           ();
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
+	bool          Ok                   () const { return (m_cobj!=NULL); }
 
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
@@ -47,7 +48,8 @@ public:
 	// prepared statements - this is the favourite way for the caller to use SQLite
 	sqlite3_stmt  *m_SELECT_value_FROM_config_k,
 	              *m_INSERT_INTO_config_kv,
-	              *m_UPDATE_config_vk;
+	              *m_UPDATE_config_vk,
+	              *m_DELETE_FROM_config_k;
 private:
 	// m_sqlite is the database given as dbfile to Open()
 	char*         m_dbfile;
