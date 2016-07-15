@@ -39,18 +39,23 @@ public:
 	              MrLoginParam          (MrMailbox* mailbox);
 	              ~MrLoginParam         ();
 
+	// clears all data and frees its memory. All pointers are NULL after this function is called.
 	void          Clear                 ();
+
+	// read all data from database, unset values are still NULL after calling ReadFromSql()
 	void          ReadFromSql           ();
+
+	// tries to set missing parameters from at least m_email and m_mail_pw
 	void          Complete              ();
 
-	// IMAP/POP3
+	// IMAP/POP3 - all pointers may be NULL if unset
 	char*         m_email;
 	char*         m_mail_server;
 	char*         m_mail_user;
 	char*         m_mail_pw;
 	uint16_t      m_mail_port;
 
-	// SMTP
+	// SMTP - all pointers may be NULL if unset
 	char*         m_send_server;
 	char*         m_send_user;
 	char*         m_send_pw;

@@ -38,14 +38,16 @@ MrLoginParam::MrLoginParam(MrMailbox* mailbox)
 
 	// init pointers (this cannot be done by Clear() as this function checks against NULL pointers)
 	m_email      = NULL;
+
 	m_mail_server = NULL;
+	m_mail_port   = 0;
 	m_mail_user   = NULL;
 	m_mail_pw     = NULL;
-	m_mail_port   = 0;
+
 	m_send_server = NULL;
+	m_send_port   = 0;
 	m_send_user   = NULL;
 	m_send_pw     = NULL;
-	m_send_port   = 0;
 }
 
 
@@ -58,26 +60,32 @@ MrLoginParam::~MrLoginParam()
 void MrLoginParam::Clear()
 {
 	#define FREE_(a) if((a)) { free((a)); (a) = NULL; }
+
 	FREE_(m_email)
+
 	FREE_(m_mail_server)
+	m_mail_port = 0;
 	FREE_(m_mail_user)
 	FREE_(m_mail_pw)
-	m_mail_port = 0;
+
 	FREE_(m_send_server)
+	m_send_port = 0;
 	FREE_(m_send_user)
 	FREE_(m_send_pw)
-	m_send_port = 0;
 }
 
 
 void MrLoginParam::ReadFromSql()
 {
 	Clear();
+
     m_email       = m_mailbox->GetConfig   ("email",       NULL);
+
     m_mail_server = m_mailbox->GetConfig   ("mail_server", NULL);
     m_mail_port   = m_mailbox->GetConfigInt("mail_port",   0);
     m_mail_user   = m_mailbox->GetConfig   ("mail_user",   NULL);
     m_mail_pw     = m_mailbox->GetConfig   ("mail_pw",     NULL);
+
     m_send_server = m_mailbox->GetConfig   ("send_server", NULL);
     m_send_port   = m_mailbox->GetConfigInt("send_port",   0);
     m_send_user   = m_mailbox->GetConfig   ("send_user",   NULL);
