@@ -38,6 +38,7 @@
 #include "mrsqlite3.h"
 #include "mrchat.h"
 #include "mrcontact.h"
+#include "mrimap.h"
 
 
 #define MR_VERSION_MAJOR    0
@@ -79,6 +80,8 @@ public:
 private:
 	// private stuff
 	MrSqlite3     m_sql;
+	MrImap        m_imap;
+	friend class  MrImap;
 };
 
 

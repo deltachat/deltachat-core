@@ -39,6 +39,7 @@
 
 
 MrMailbox::MrMailbox()
+	: m_sql(), m_imap(this)
 {
 }
 
