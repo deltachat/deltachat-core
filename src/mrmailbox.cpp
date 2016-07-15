@@ -40,11 +40,6 @@
 
 MrMailbox::MrMailbox()
 {
-	m_sqlite = NULL;
-	m_dbfile = NULL;
-	m_stmt_SELECT_value_FROM_config_k = NULL;
-	m_stmt_INSERT_INTO_config_kv = NULL;
-	m_stmt_UPDATE_config_vk = NULL;
 }
 
 
@@ -60,38 +55,7 @@ bool MrMailbox::Open(const char* dbfile)
 	// from which all configuration is read/written to.
 
 	// Create/open sqlite database
-	if( dbfile == NULL || m_dbfile/*already a file opened?*/ ) {
-		goto Open_Error;
-	}
-
-	m_dbfile = strdup(dbfile);
-	if( m_dbfile == NULL ) {
-		goto Open_Error;
-	}
-
-	if( sqlite3_open(dbfile, &m_sqlite) != SQLITE_OK ) {
-		goto Open_Error;
-	}
-
-	// Init the tables, if not yet done
-	if( !sqlite3_table_exists_("config") )
-	{
-		sqlite3_execute_("CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		sqlite3_execute_("CREATE INDEX configindex01 ON config (keyname);");
-
-		if( !sqlite3_table_exists_("config") ) {
-			goto Open_Error; // cannot create the tables - maybe we cannot write?
-		}
-
-
-	}
-
-	// prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this)
-	m_stmt_SELECT_value_FROM_config_k = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
-	m_stmt_INSERT_INTO_config_kv      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
-	m_stmt_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
-
-	if( m_stmt_SELECT_value_FROM_config_k==NULL || m_stmt_INSERT_INTO_config_kv==NULL || m_stmt_UPDATE_config_vk==NULL ) {
+	if( !m_sql.Open(dbfile) ) {
 		goto Open_Error;
 	}
 
@@ -119,27 +83,7 @@ Open_Error:
 
 void MrMailbox::Close()
 {
-	#define SQLITE3_FINALIZE_(a) \
-	if((a)) { \
-		sqlite3_finalize((a)); \
-		(a) = NULL; \
-	}
-
-	if( m_sqlite )
-	{
-		SQLITE3_FINALIZE_(m_stmt_SELECT_value_FROM_config_k)
-		SQLITE3_FINALIZE_(m_stmt_INSERT_INTO_config_kv)
-		SQLITE3_FINALIZE_(m_stmt_UPDATE_config_vk)
-
-		sqlite3_close(m_sqlite);
-		m_sqlite = NULL;
-	}
-
-	if( m_dbfile )
-	{
-		free(m_dbfile);
-		m_dbfile = NULL;
-	}
+	m_sql.Close();
 }
 
 
@@ -201,24 +145,24 @@ bool MrMailbox::SetConfig(const char* key, const char* value)
 {
 	int state;
 
-	sqlite3_reset     (m_stmt_SELECT_value_FROM_config_k);
-	sqlite3_bind_text (m_stmt_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-	state=sqlite3_step(m_stmt_SELECT_value_FROM_config_k);
+	sqlite3_reset     (m_sql.m_SELECT_value_FROM_config_k);
+	sqlite3_bind_text (m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
+	state=sqlite3_step(m_sql.m_SELECT_value_FROM_config_k);
 
 	if( state == SQLITE_DONE )
 	{
-		sqlite3_reset     (m_stmt_INSERT_INTO_config_kv);
-		sqlite3_bind_text (m_stmt_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
-		sqlite3_bind_text (m_stmt_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
-		state=sqlite3_step(m_stmt_INSERT_INTO_config_kv);
+		sqlite3_reset     (m_sql.m_INSERT_INTO_config_kv);
+		sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
+		sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
+		state=sqlite3_step(m_sql.m_INSERT_INTO_config_kv);
 
 	}
 	else if( state == SQLITE_ROW )
 	{
-		sqlite3_reset     (m_stmt_UPDATE_config_vk);
-		sqlite3_bind_text (m_stmt_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
-		sqlite3_bind_text (m_stmt_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(m_stmt_UPDATE_config_vk);
+		sqlite3_reset     (m_sql.m_UPDATE_config_vk);
+		sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
+		sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
+		state=sqlite3_step(m_sql.m_UPDATE_config_vk);
 	}
 	else
 	{
@@ -235,11 +179,11 @@ bool MrMailbox::SetConfig(const char* key, const char* value)
 
 char* MrMailbox::GetConfig(const char* key, const char* def) // the returned string must be free()'d
 {
-	sqlite3_reset    (m_stmt_SELECT_value_FROM_config_k);
-	sqlite3_bind_text(m_stmt_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(m_stmt_SELECT_value_FROM_config_k) == SQLITE_ROW )
+	sqlite3_reset    (m_sql.m_SELECT_value_FROM_config_k);
+	sqlite3_bind_text(m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
+	if( sqlite3_step(m_sql.m_SELECT_value_FROM_config_k) == SQLITE_ROW )
 	{
-		const unsigned char* ptr = sqlite3_column_text(m_stmt_SELECT_value_FROM_config_k, 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
+		const unsigned char* ptr = sqlite3_column_text(m_sql.m_SELECT_value_FROM_config_k, 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
 		if( ptr )
 		{
 			// success, fall through below to free objects
@@ -252,109 +196,4 @@ char* MrMailbox::GetConfig(const char* key, const char* def) // the returned str
 }
 
 
-/*******************************************************************************
- * Misc.
- ******************************************************************************/
-
-
-char* MrMailbox::GetDbFile()
-{
-	if( m_dbfile == NULL ) {
-		return NULL;
-	}
-
-	return strdup(m_dbfile);
-}
-
-
-/*******************************************************************************
- * Internal tools
- ******************************************************************************/
-
-
-sqlite3_stmt* MrMailbox::sqlite3_prepare_v2_(const char* querystr)
-{
-	sqlite3_stmt* retStmt = NULL;
-
-	if( m_sqlite == NULL )
-	{
-		return NULL; // error
-	}
-
-	if( sqlite3_prepare_v2(m_sqlite,
-	         querystr, -1 /*read `sql` up to the first null-byte*/,
-	         &retStmt,
-	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
-	{
-		return NULL; // error
-	}
-
-	// success - the result mus be freed using sqlite3_finalize()
-	return retStmt;
-}
-
-
-bool MrMailbox::sqlite3_execute_(const char* querystr)
-{
-	bool          ret = false;
-	sqlite3_stmt* stmt = NULL;
-	int           sqlState;
-
-	stmt = sqlite3_prepare_v2_(querystr);
-	if( stmt == NULL ) {
-		goto sqlite3_execute_Error;
-	}
-
-	sqlState = sqlite3_step(stmt);
-	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		goto sqlite3_execute_Error;
-	}
-
-	// success - fall through to free objects
-	ret = true;
-
-	// error
-sqlite3_execute_Error:
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
-	return ret;
-}
-
-
-bool MrMailbox::sqlite3_table_exists_(const char* name)
-{
-	bool          ret = false;
-	char*         querystr = NULL;
-	sqlite3_stmt* stmt = NULL;
-	int           sqlState;
-
-	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { // this statement cannot be used with binded variables
-		goto table_exists_Error;
-	}
-
-	if( (stmt=sqlite3_prepare_v2_(querystr)) == NULL ) {
-		goto table_exists_Error;
-	}
-
-	sqlState = sqlite3_step(stmt);
-	if( sqlState == SQLITE_ROW ) {
-		ret = true; // the table exists. Other states are SQLITE_DONE or SQLITE_ERROR in both cases we return false.
-	}
-
-	// success - fall through to free allocated objects
-	;
-
-	// error
-table_exists_Error:
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
-
-	if( querystr ) {
-		sqlite3_free(querystr);
-	}
-
-	return ret;
-}
 

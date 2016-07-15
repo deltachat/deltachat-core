@@ -35,9 +35,8 @@
 
 
 #include <stdlib.h> // eg. for size_t
+#include "mrsqlite3.h"
 
-struct sqlite3;
-struct sqlite3_stmt;
 class MrChat;
 class MrContact;
 
@@ -76,20 +75,11 @@ public:
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 
 	// misc
-	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
+	char*         GetDbFile            () { return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open
 
 private:
-	// m_sqlite is the database given as dbfile to Open()
-	char*         m_dbfile;
-	sqlite3*      m_sqlite;
-	sqlite3_stmt  *m_stmt_SELECT_value_FROM_config_k,
-	              *m_stmt_INSERT_INTO_config_kv,
-	              *m_stmt_UPDATE_config_vk;
-
-	// database tools
-	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
-	bool          sqlite3_execute_     (const char* sql);
-	bool          sqlite3_table_exists_(const char* name);
+	// private stuff
+	MrSqlite3     m_sql;
 };
 
 
