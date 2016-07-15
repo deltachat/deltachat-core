@@ -19,33 +19,47 @@
  *
  *******************************************************************************
  *
- * File:    mrimap.h
+ * File:    mrloginparam.h
  * Authors: Björn Petersen
- * Purpose: Reading from IMAP servers
+ * Purpose: Handle IMAP parameters
  *
  ******************************************************************************/
 
 
-#ifndef __MRIMAP_H__
-#define __MRIMAP_H__
+#ifndef __MRLOGINPARAM_H__
+#define __MRLOGINPARAM_H__
 
 
-#include "mrloginparam.h"
 class MrMailbox;
 
 
-class MrImap
+class MrLoginParam
 {
 public:
-	              MrImap               (MrMailbox* mailbox);
-	              ~MrImap              ();
-	bool          Connect              (const MrLoginParam*);
-	void          Disconnect           ();
+	              MrLoginParam          (MrMailbox* mailbox);
+	              ~MrLoginParam         ();
+
+	void          Clear                 ();
+	void          ReadFromSql           ();
+	void          Complete              ();
+
+	// IMAP/POP3
+	char*         m_email;
+	char*         m_mail_server;
+	char*         m_mail_user;
+	char*         m_mail_pw;
+	uint16_t      m_mail_port;
+
+	// SMTP
+	char*         m_send_server;
+	char*         m_send_user;
+	char*         m_send_pw;
+	uint16_t      m_send_port;
 
 private:
 	MrMailbox*    m_mailbox;
 };
 
 
-#endif // __MRIMAP_H__
+#endif // __MRLOGINPARAM_H__
 

@@ -34,7 +34,7 @@
 #define __MRMAILBOX_H__
 
 
-#include <stdlib.h> // eg. for size_t
+#include <libetpan/libetpan.h> // defines uint16_t etc.
 #include "mrsqlite3.h"
 #include "mrchat.h"
 #include "mrcontact.h"
@@ -73,6 +73,7 @@ public:
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value);
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
+	int32_t       GetConfigInt         (const char* key, int32_t def);
 
 	// misc
 	char*         GetDbFile            () { return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open

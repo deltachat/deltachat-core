@@ -26,9 +26,8 @@
  ******************************************************************************/
 
 
-#include <iostream>
+#include <stdlib.h>
 #include <string.h>
-#include <libetpan/libetpan.h>
 #include <sqlite3.h>
 #include "mrmailbox.h"
 
@@ -95,7 +94,12 @@ void MrMailbox::Close()
 
 void MrMailbox::Connect()
 {
-	m_imap.Connect();
+	MrLoginParam param(this);
+
+	param.ReadFromSql();
+	param.Complete();
+
+	m_imap.Connect(&param);
 }
 
 
@@ -214,5 +218,15 @@ char* MrMailbox::GetConfig(const char* key, const char* def) // the returned str
 		return strdup(def);
 	}
 	return NULL;
+}
+
+
+int32_t MrMailbox::GetConfigInt(const char* key, int32_t def)
+{
+    char* str = GetConfig(key, NULL);
+    if( str == NULL ) {
+		return def;
+    }
+    return atol(str);
 }
 

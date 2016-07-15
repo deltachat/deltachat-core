@@ -26,6 +26,7 @@
  ******************************************************************************/
 
 
+#include <stdlib.h>
 #include <libetpan/libetpan.h>
 #include <sys/stat.h>
 
@@ -33,17 +34,17 @@
 #include "mrimap.h"
 
 
-static void check_error(int r, const char * msg)
+static bool is_error(int r, const char* msg)
 {
-	if (r == MAILIMAP_NO_ERROR)
-		return;
-  if (r == MAILIMAP_NO_ERROR_AUTHENTICATED)
-		return;
-  if (r == MAILIMAP_NO_ERROR_NON_AUTHENTICATED)
-		return;
+	if(r == MAILIMAP_NO_ERROR)
+		return false;
+	if(r == MAILIMAP_NO_ERROR_AUTHENTICATED)
+		return false;
+	if(r == MAILIMAP_NO_ERROR_NON_AUTHENTICATED)
+		return false;
 
-	printf("%s\n", msg);
-	exit(EXIT_FAILURE);
+	printf("ERROR: %s\n", msg);
+	return true;
 }
 
 static char * get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t * p_msg_size)
@@ -107,7 +108,7 @@ static void fetch_msg(struct mailimap * imap, uint32_t uid)
 	clist * fetch_result;
 	struct stat stat_info;
 
-	snprintf(filename, sizeof(filename), "download/%u.eml", (unsigned int) uid);
+	snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int) uid);
 	r = stat(filename, &stat_info);
 	if (r == 0) {
 		// already cached
@@ -122,7 +123,9 @@ static void fetch_msg(struct mailimap * imap, uint32_t uid)
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
 	r = mailimap_uid_fetch(imap, set, fetch_type, &fetch_result);
-	check_error(r, "could not fetch");
+	if( is_error(r, "could not fetch") ) {
+		return;
+	}
 	printf("fetch %u\n", (unsigned int) uid);
 
 	msg_content = get_msg_content(fetch_result, &msg_len);
@@ -188,7 +191,9 @@ static void fetch_messages(struct mailimap * imap)
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
 	r = mailimap_fetch(imap, set, fetch_type, &fetch_result);
-	check_error(r, "could not fetch");
+	if( is_error(r, "could not fetch") ) {
+		return;
+	}
 
   /* for each message */
 	for(cur = clist_begin(fetch_result) ; cur != NULL ; cur = clist_next(cur)) {
@@ -206,37 +211,6 @@ static void fetch_messages(struct mailimap * imap)
 	mailimap_fetch_list_free(fetch_result);
 }
 
-static int local_main(const char* gmailaddr_, const char* password_)
-{
-	struct mailimap * imap;
-	int r;
-
-	/*
-	./imap-sample mygmailaccount@gmail.com mygmailpassword
-	*/
-
-
-	mkdir("download", 0700);
-
-	imap = mailimap_new(0, NULL);
-	r = mailimap_ssl_connect(imap, "imap.gmail.com", 993);
-	fprintf(stderr, "connect: %i\n", r);
-	check_error(r, "could not connect to server");
-
-	r = mailimap_login(imap, gmailaddr_, password_);
-	check_error(r, "could not login");
-
-	r = mailimap_select(imap, "INBOX");
-	check_error(r, "could not select INBOX");
-
-	fetch_messages(imap);
-
-	mailimap_logout(imap);
-	mailimap_free(imap);
-
-	exit(EXIT_SUCCESS);
-}
-
 
 MrImap::MrImap(MrMailbox* mailbox)
 {
@@ -249,9 +223,37 @@ MrImap::~MrImap()
 }
 
 
-void MrImap::Connect()
+bool MrImap::Connect(const MrLoginParam* param)
 {
-	local_main("", "");
+	struct mailimap * imap;
+	int r;
+
+	if( param->m_mail_server == NULL || param->m_mail_user == NULL || param->m_mail_pw == NULL ) {
+		return false;
+	}
+
+	imap = mailimap_new(0, NULL);
+	r = mailimap_ssl_connect(imap, param->m_mail_server, param->m_mail_port);
+	if( is_error(r, "could not connect to server") ) {
+		return false;
+	}
+
+	r = mailimap_login(imap, param->m_mail_user, param->m_mail_pw);
+	if( is_error(r, "could not login") ) {
+		return false;
+	}
+
+	r = mailimap_select(imap, "INBOX");
+	if( is_error(r, "could not select INBOX") ) {
+		return false;
+	}
+
+	fetch_messages(imap);
+
+	mailimap_logout(imap);
+	mailimap_free(imap);
+
+	return true;
 }
 
 
