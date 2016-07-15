@@ -21,7 +21,7 @@
  *
  * File:    mrloginparam.h
  * Authors: Björn Petersen
- * Purpose: Handle IMAP parameters, see header for details.
+ * Purpose: Handle IMAP/POP3/SMTP parameters, see header for details.
  *
  ******************************************************************************/
 
@@ -106,10 +106,11 @@ void MrLoginParam::Complete()
 	adr_server++;
 
 	// set servers, ports etc. for well-known and frequently used services
+	// TODO: We should add values for gmx.net, web.de etc.
 	if( strcmp(adr_server, "gmail.com")==0
 	 || strcmp(adr_server, "googlemail.com")==0 )
 	{
-		// GOOGLE
+		// Google
 		if( m_mail_server == NULL )          { m_mail_server = strdup("imap.gmail.com"); }
 		if( m_mail_port == 0 )               { m_mail_port   = 993; } // IMAPS
 		if( m_mail_user == NULL )            { m_mail_user = strdup(m_email); }
