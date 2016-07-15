@@ -86,7 +86,7 @@ bool MrMailbox::Open(const char* dbfile)
 
 	}
 
-	// prepare statements
+	// prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this)
 	m_stmt_SELECT_value_FROM_config_k = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
 	m_stmt_INSERT_INTO_config_kv      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
 	m_stmt_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
@@ -149,6 +149,11 @@ void MrMailbox::Close()
 
 
 void MrMailbox::Connect()
+{
+}
+
+
+void MrMailbox::Disconnect()
 {
 }
 
@@ -324,7 +329,7 @@ bool MrMailbox::sqlite3_table_exists_(const char* name)
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
-	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) {
+	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { // this statement cannot be used with binded variables
 		goto table_exists_Error;
 	}
 
@@ -352,3 +357,4 @@ table_exists_Error:
 
 	return ret;
 }
+

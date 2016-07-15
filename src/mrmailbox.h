@@ -61,6 +61,7 @@ public:
 
 	// connect to the mailbox: error are be received asynchronously.
 	void          Connect              ();
+	void          Disconnect           ();
 
 	// iterate contacts
 	size_t        GetContactCnt        ();
