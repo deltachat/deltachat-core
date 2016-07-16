@@ -230,3 +230,84 @@ int32_t MrMailbox::GetConfigInt(const char* key, int32_t def)
     return atol(str);
 }
 
+
+/*******************************************************************************
+ * Misc.
+ ******************************************************************************/
+
+
+char* MrMailbox::GetInfo()
+{
+	const char  unset[] = "<unset>";
+	const char  set[] = "<set>";
+	#define BUF_BYTES 4096
+	char* buf = (char*)malloc(BUF_BYTES+1);
+	if( buf == NULL ) {
+		return NULL; // error
+	}
+
+	// read data (all pointers may be NULL!)
+	char* dbfile      = GetDbFile();
+	char* email       = GetConfig("email", NULL);
+
+	char* mail_server = GetConfig("mail_server", NULL);
+	char* mail_port   = GetConfig("mail_port", NULL);
+	char* mail_user   = GetConfig("mail_user", NULL);
+	char* mail_pw     = GetConfig("mail_pw", NULL);
+
+	char* send_server = GetConfig("send_server", NULL);
+	char* send_port   = GetConfig("send_port", NULL);
+	char* send_user   = GetConfig("send_user", NULL);
+	char* send_pw     = GetConfig("send_pw", NULL);
+
+	// create info
+    snprintf(buf, BUF_BYTES,
+		"Backend version  %i.%i.%i\n"
+		"SQLite version   %s, threadsafe=%i\n"
+		"libEtPan version %i.%i\n"
+		"Database file    %s\n"
+
+		"mail_server      %s\n"
+		"mail_port        %s\n"
+		"mail_user        %s\n"
+		"mail_pw          %s\n"
+
+		"send_server      %s\n"
+		"send_port        %s\n"
+		"send_user        %s\n"
+		"send_pw          %s\n"
+		"If possible, unset values are filled by the program with typical values.\n"
+
+		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
+		, SQLITE_VERSION, sqlite3_threadsafe()
+		, libetpan_get_version_major(), libetpan_get_version_minor()
+		, dbfile? dbfile : unset
+
+		, mail_server? mail_server : unset
+		, mail_port? mail_port : unset
+		, mail_user? mail_user : unset
+		, mail_pw? set : unset // we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
+
+		, send_server? send_server : unset
+		, send_port? send_port : unset
+		, send_user? send_user : unset
+		, send_pw? set : unset // we do not display the password here; in the cli-utility, you can see it using `get send_pw`
+		);
+
+	// free data
+	#define GI_FREE_(a) if((a)) { free((a)); }
+	GI_FREE_(dbfile);
+	GI_FREE_(email);
+
+	GI_FREE_(mail_server);
+	GI_FREE_(mail_port);
+	GI_FREE_(mail_user);
+	GI_FREE_(mail_pw);
+
+	GI_FREE_(send_server);
+	GI_FREE_(send_port);
+	GI_FREE_(send_user);
+	GI_FREE_(send_pw);
+	return buf; // must be freed by the caller
+}
+

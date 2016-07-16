@@ -77,6 +77,7 @@ public:
 
 	// misc
 	char*         GetDbFile            () { return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open
+	char*         GetInfo              (); // multi-line output; the returned string must be free()'d, returns NULL on errors
 
 private:
 	// private stuff

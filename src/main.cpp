@@ -161,21 +161,14 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "info")==0 )
 		{
-			#define PRINT_N_FREE_(m, v) printf((m)); if((v)) { printf("%s\n", (v)); free((v)); } else { printf("<unset>\n"); }
-			char* str;
-			str = mailbox->GetDbFile();                    PRINT_N_FREE_("Datebase file  ", str);
-			str = mailbox->GetConfig("email", NULL);       PRINT_N_FREE_("email          ", str);
-
-			str = mailbox->GetConfig("mail_server", NULL); PRINT_N_FREE_("mail_server    ", str);
-			str = mailbox->GetConfig("mail_port", NULL);   PRINT_N_FREE_("mail_port      ", str);
-			str = mailbox->GetConfig("mail_user", NULL);   PRINT_N_FREE_("mail_user      ", str);
-			str = mailbox->GetConfig("mail_pw", NULL);     PRINT_N_FREE_("mail_pw        ", str);
-
-			str = mailbox->GetConfig("send_server", NULL); PRINT_N_FREE_("send_server    ", str);
-			str = mailbox->GetConfig("send_port", NULL);   PRINT_N_FREE_("send_port      ", str);
-			str = mailbox->GetConfig("send_user", NULL);   PRINT_N_FREE_("send_user      ", str);
-			str = mailbox->GetConfig("send_pw", NULL);     PRINT_N_FREE_("send_pw        ", str);
-			printf("If possible, unset values are filled by the program with typical values.\n");
+			char* buf = mailbox->GetInfo();
+			if( buf ) {
+				printf("%s", buf);
+				free(buf);
+			}
+			else {
+				print_error();
+			}
 		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
