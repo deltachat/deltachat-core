@@ -60,9 +60,7 @@ int main(int argc, char ** argv)
 {
 	MrMailbox* mailbox = new MrMailbox();
 
-	printf("*************************************************\n");
 	printf("Messenger Backend v%i.%i.%i\n", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
-	printf("*************************************************\n");
 
 	// open database from the commandline (if omitted, it can be opened using the `open`-command)
 	if( argc == 2 ) {
@@ -90,7 +88,7 @@ int main(int argc, char ** argv)
 			printf("connect             connect to mailbox server\n");
 			printf("disconnect          disconnect from mailbox server\n");
 			printf("info                show database information\n");
-			printf("quit                quit\n");
+			printf("exit                exit program\n");
 		}
 		else if( strncmp(cmd, "open", 4)==0 )
 		{
@@ -163,19 +161,24 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "info")==0 )
 		{
-			char* filename = mailbox->GetDbFile();
-			if( filename ) {
-				printf("Database file: %s\n", filename);
-				free(filename);
-			}
-			else {
-				printf("Database file: none\n");
-				free(filename);
-			}
+			#define PRINT_N_FREE_(m, v) printf((m)); if((v)) { printf("%s\n", (v)); free((v)); } else { printf("<unset>\n"); }
+			char* str;
+			str = mailbox->GetDbFile();                    PRINT_N_FREE_("Datebase file  ", str);
+			str = mailbox->GetConfig("email", NULL);       PRINT_N_FREE_("email          ", str);
+
+			str = mailbox->GetConfig("mail_server", NULL); PRINT_N_FREE_("mail_server    ", str);
+			str = mailbox->GetConfig("mail_port", NULL);   PRINT_N_FREE_("mail_port      ", str);
+			str = mailbox->GetConfig("mail_user", NULL);   PRINT_N_FREE_("mail_user      ", str);
+			str = mailbox->GetConfig("mail_pw", NULL);     PRINT_N_FREE_("mail_pw        ", str);
+
+			str = mailbox->GetConfig("send_server", NULL); PRINT_N_FREE_("send_server    ", str);
+			str = mailbox->GetConfig("send_port", NULL);   PRINT_N_FREE_("send_port      ", str);
+			str = mailbox->GetConfig("send_user", NULL);   PRINT_N_FREE_("send_user      ", str);
+			str = mailbox->GetConfig("send_pw", NULL);     PRINT_N_FREE_("send_pw        ", str);
+			printf("If possible, unset values are filled by the program with typical values.\n");
 		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
-			printf("Bye.\n");
 			break;
 		}
 		else
