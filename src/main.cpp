@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
 	printf("Messenger Backend v%i.%i.%i\n", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
 	printf("*************************************************\n");
 
-	// open database from the commandline (if ommited, it can be opened using the `open`-command)
+	// open database from the commandline (if omitted, it can be opened using the `open`-command)
 	if( argc == 2 ) {
 		if( !mailbox->Open(argv[1]) ) {
 			print_error();
