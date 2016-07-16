@@ -60,7 +60,7 @@ int main(int argc, char ** argv)
 {
 	MrMailbox* mailbox = new MrMailbox();
 
-	printf("Messenger Backend v%i.%i.%i\n", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+	printf("LibreChat is awaiting your commands.\n");
 
 	// open database from the commandline (if omitted, it can be opened using the `open`-command)
 	if( argc == 2 ) {

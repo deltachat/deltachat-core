@@ -51,6 +51,8 @@ MrMailbox::~MrMailbox()
 
 bool MrMailbox::Open(const char* dbfile)
 {
+	MrSqlite3Locker locker(m_sql);
+
 	// Open() sets up the object and connects to the given database
 	// from which all configuration is read/written to.
 
@@ -83,6 +85,8 @@ Open_Error:
 
 void MrMailbox::Close()
 {
+	MrSqlite3Locker locker(m_sql);
+
 	m_sql.Close();
 }
 
@@ -97,6 +101,7 @@ void MrMailbox::Connect()
 	MrLoginParam param(this);
 
 	param.ReadFromSql();
+
 	param.Complete();
 
 	m_imap.Connect(&param);
@@ -143,6 +148,12 @@ MrChat* MrMailbox::GetChat(size_t i)
 }
 
 
+size_t MrMailbox::GetMsgCnt()
+{
+	return 0;
+}
+
+
 /*******************************************************************************
  * Handle configuration
  ******************************************************************************/
@@ -150,6 +161,7 @@ MrChat* MrMailbox::GetChat(size_t i)
 
 bool MrMailbox::SetConfig(const char* key, const char* value)
 {
+	MrSqlite3Locker locker(m_sql);
 	int state;
 
 	if( key == NULL || !m_sql.Ok() ) {
@@ -197,6 +209,8 @@ bool MrMailbox::SetConfig(const char* key, const char* value)
 
 char* MrMailbox::GetConfig(const char* key, const char* def) // the returned string must be free()'d
 {
+	MrSqlite3Locker locker(m_sql);
+
 	if( key == NULL || !m_sql.Ok() ) {
 		return false;
 	}
@@ -259,6 +273,9 @@ char* MrMailbox::GetInfo()
 	char* send_port   = GetConfig("send_port", NULL);
 	char* send_user   = GetConfig("send_user", NULL);
 	char* send_pw     = GetConfig("send_pw", NULL);
+	int   chats       = GetChatCnt();
+	int   messages    = GetMsgCnt();
+	int   contacts    = GetContactCnt();
 
 	// create info
     snprintf(buf, BUF_BYTES,
@@ -266,6 +283,8 @@ char* MrMailbox::GetInfo()
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
+		"Chats/Messages   %i/%i\n"
+		"Contacts         %i\n"
 
 		"mail_server      %s\n"
 		"mail_port        %s\n"
@@ -282,6 +301,9 @@ char* MrMailbox::GetInfo()
 		, SQLITE_VERSION, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, dbfile? dbfile : unset
+
+		, chats, messages
+		, contacts
 
 		, mail_server? mail_server : unset
 		, mail_port? mail_port : unset

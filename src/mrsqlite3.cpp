@@ -39,12 +39,16 @@ MrSqlite3::MrSqlite3()
 	m_INSERT_INTO_config_kv      = NULL;
 	m_UPDATE_config_vk           = NULL;
 	m_DELETE_FROM_config_k       = NULL;
+
+	pthread_mutex_init(&m_critical, NULL);
 }
 
 
 MrSqlite3::~MrSqlite3()
 {
 	Close();
+
+	pthread_mutex_destroy(&m_critical);
 }
 
 

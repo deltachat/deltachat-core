@@ -69,6 +69,7 @@ public:
 	// iterate chats
 	size_t        GetChatCnt           ();
 	MrChat*       GetChat              (size_t i); // the returned objects must be Release()'d, returns NULL on errors
+	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
 
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value);
