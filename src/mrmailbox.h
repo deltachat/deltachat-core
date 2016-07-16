@@ -72,12 +72,12 @@ public:
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
 
 	// handle configurations
-	bool          SetConfig            (const char* key, const char* value);
-	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
-	int32_t       GetConfigInt         (const char* key, int32_t def);
+	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker l(m_sql); return m_sql.SetConfig(key, value); }
+	char*         GetConfig            (const char* key, const char* def)   { MrSqlite3Locker l(m_sql); return m_sql.GetConfig(key, def); } // the returned string must be free()'d, returns NULL on errors
+	int32_t       GetConfigInt         (const char* key, int32_t def)       { MrSqlite3Locker l(m_sql); return m_sql.GetConfigInt(key, def); }
 
 	// misc
-	char*         GetDbFile            () { return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open
+	char*         GetDbFile            () { MrSqlite3Locker l(m_sql); return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open
 	char*         GetInfo              (); // multi-line output; the returned string must be free()'d, returns NULL on errors
 
 private:

@@ -155,97 +155,6 @@ size_t MrMailbox::GetMsgCnt()
 
 
 /*******************************************************************************
- * Handle configuration
- ******************************************************************************/
-
-
-bool MrMailbox::SetConfig(const char* key, const char* value)
-{
-	MrSqlite3Locker locker(m_sql);
-	int state;
-
-	if( key == NULL || !m_sql.Ok() ) {
-		return false;
-	}
-
-	if( value )
-	{
-		// insert/update key=value
-		sqlite3_reset     (m_sql.m_SELECT_value_FROM_config_k);
-		sqlite3_bind_text (m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-		state=sqlite3_step(m_sql.m_SELECT_value_FROM_config_k);
-		if( state == SQLITE_DONE ) {
-			sqlite3_reset     (m_sql.m_INSERT_INTO_config_kv);
-			sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_sql.m_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
-			state=sqlite3_step(m_sql.m_INSERT_INTO_config_kv);
-
-		}
-		else if( state == SQLITE_ROW ) {
-			sqlite3_reset     (m_sql.m_UPDATE_config_vk);
-			sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_sql.m_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
-			state=sqlite3_step(m_sql.m_UPDATE_config_vk);
-		}
-		else {
-			return false;
-		}
-	}
-	else
-	{
-		// delete key
-		sqlite3_reset     (m_sql.m_DELETE_FROM_config_k);
-		sqlite3_bind_text (m_sql.m_DELETE_FROM_config_k, 1, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(m_sql.m_DELETE_FROM_config_k);
-	}
-
-	if( state != SQLITE_DONE )  {
-		return false;
-	}
-
-	return true;
-}
-
-
-char* MrMailbox::GetConfig(const char* key, const char* def) // the returned string must be free()'d
-{
-	MrSqlite3Locker locker(m_sql);
-
-	if( key == NULL || !m_sql.Ok() ) {
-		return false;
-	}
-
-	sqlite3_reset    (m_sql.m_SELECT_value_FROM_config_k);
-	sqlite3_bind_text(m_sql.m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(m_sql.m_SELECT_value_FROM_config_k) == SQLITE_ROW )
-	{
-		const unsigned char* ptr = sqlite3_column_text(m_sql.m_SELECT_value_FROM_config_k, 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
-		if( ptr )
-		{
-			// success, fall through below to free objects
-			return strdup((const char*)ptr);
-		}
-	}
-
-	// return the default value
-	if( def ) {
-		return strdup(def);
-	}
-	return NULL;
-}
-
-
-int32_t MrMailbox::GetConfigInt(const char* key, int32_t def)
-{
-    char* str = GetConfig(key, NULL);
-    if( str == NULL ) {
-		return def;
-    }
-    return atol(str);
-}
-
-
-/*******************************************************************************
  * Misc.
  ******************************************************************************/
 
@@ -254,25 +163,31 @@ char* MrMailbox::GetInfo()
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
-	#define BUF_BYTES 4096
+	#define BUF_BYTES 10000
 	char* buf = (char*)malloc(BUF_BYTES+1);
 	if( buf == NULL ) {
 		return NULL; // error
 	}
 
 	// read data (all pointers may be NULL!)
-	char* dbfile      = GetDbFile();
-	char* email       = GetConfig("email", NULL);
+	char *dbfile, *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw;
+	{
+		MrSqlite3Locker locker(m_sql);
 
-	char* mail_server = GetConfig("mail_server", NULL);
-	char* mail_port   = GetConfig("mail_port", NULL);
-	char* mail_user   = GetConfig("mail_user", NULL);
-	char* mail_pw     = GetConfig("mail_pw", NULL);
+		dbfile      = m_sql.GetDbFile();
+		email       = m_sql.GetConfig("email", NULL);
 
-	char* send_server = GetConfig("send_server", NULL);
-	char* send_port   = GetConfig("send_port", NULL);
-	char* send_user   = GetConfig("send_user", NULL);
-	char* send_pw     = GetConfig("send_pw", NULL);
+		mail_server = m_sql.GetConfig("mail_server", NULL);
+		mail_port   = m_sql.GetConfig("mail_port", NULL);
+		mail_user   = m_sql.GetConfig("mail_user", NULL);
+		mail_pw     = m_sql.GetConfig("mail_pw", NULL);
+
+		send_server = m_sql.GetConfig("send_server", NULL);
+		send_port   = m_sql.GetConfig("send_port", NULL);
+		send_user   = m_sql.GetConfig("send_user", NULL);
+		send_pw     = m_sql.GetConfig("send_pw", NULL);
+	}
+
 	int   chats       = GetChatCnt();
 	int   messages    = GetMsgCnt();
 	int   contacts    = GetContactCnt();

@@ -43,6 +43,11 @@ public:
 	void          Close                ();
 	bool          Ok                   () const { return (m_cobj!=NULL); }
 
+	// handle configurations
+	bool          SetConfig            (const char* key, const char* value);
+	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
+	int32_t       GetConfigInt         (const char* key, int32_t def);
+
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 
