@@ -23,6 +23,12 @@
  * Authors: Björn Petersen
  * Purpose: Testing frame; if used as a lib, this file is obsolete.
  *
+ *******************************************************************************
+ *
+ * Usage:  messenger-backend <databasefile>
+ * (for "Code::Blocks, use Project / Set programs' arguments")
+ * all further options can be set using the set-command (type ? for help).
+ *
  ******************************************************************************/
 
 
@@ -50,15 +56,25 @@ static void print_error()
 }
 
 
-int main()
+int main(int argc, char ** argv)
 {
 	MrMailbox* mailbox = new MrMailbox();
-
-	mailbox->Open("/home/bpetersen/temp/foobar.db");
 
 	printf("*************************************************\n");
 	printf("Messenger Backend v%i.%i.%i\n", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
 	printf("*************************************************\n");
+
+	// open database from the commandline (if ommited, it can be opened using the `open`-command)
+	if( argc == 2 ) {
+		if( !mailbox->Open(argv[1]) ) {
+			print_error();
+		}
+	}
+	else if( argc != 1 ) {
+		printf("Error: Bad arguments\n");
+	}
+
+	// wait for command
 	while(1)
 	{
 		// read command
