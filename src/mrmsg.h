@@ -19,53 +19,58 @@
  *
  *******************************************************************************
  *
- * File:    mrchat.h
+ * File:    mrmsg.h
  * Authors: Björn Petersen
- * Purpose: MrChat represents a single chat - this is a conversation with
- *          a single user or a group
+ * Purpose: MrMsg represents a single message in a chat.  One E-Mail can
+ *          result in different messages!
  *
  ******************************************************************************/
 
 
-#ifndef __MRCHAT_H__
-#define __MRCHAT_H__
+#ifndef __MRMSG_H__
+#define __MRMSG_H__
 
 
 class MrMailbox;
 
 
-enum MrChatType
+enum MrMsgType
 {
-	 MR_CHAT_UNDEFINED =  0
-	,MR_CHAT_CONTACT   = 10
-	,MR_CHAT_PRIVATE   = 20
-	,MR_CHAT_GROUP     = 30
+	 MR_MSG_UNDEFINED =  0
+	,MR_MSG_TEXT      = 10
+	,MR_MSG_IMAGE     = 20
+	,MR_MSG_STICKER   = 30
+	,MR_MSG_AUDIO     = 40
+	,MR_MSG_VIDEO     = 50
+	,MR_MSG_FILE      = 60
+	,MR_MSG_CONTACT   = 70
+	,MR_MSG_LOCATION  = 80
 };
 
 
-class MrChat
+class MrMsg
 {
 public:
-	// if a chat object is no longer needed, they should be Release()'d, to destroy a chat physically,
+	// if an object is no longer needed, it should be Release()'d, to destroy a message physically,
 	// call Destroy() (an additional Release() is needed even in this case)
-	void         Release     () { delete this; }
-	void         Destroy     ();
+	void          Release     () { delete this; }
+	void          Destroy     ();
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
-	MrChatType   m_type;
-	char*        m_name;
+	MrMsgType m_type;
+	char*         m_msg; // meaning dedpends on m_type
 
 private:
-	// as chat objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
-	             MrChat      (MrMailbox*);
-	             ~MrChat     ();
-	friend class MrMailbox;
+	// as message objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
+	              MrMsg       (MrMailbox*);
+	              ~MrMsg      ();
+	friend class  MrMailbox;
 
-	// the mailbox, the chat belongs to
-	MrMailbox*   m_mailbox;
+	// the mailbox, the message belongs to
+	MrMailbox*    m_mailbox;
 };
 
 
-#endif // __MRCHAT_H__
+#endif // __MRMSG_H__
 

@@ -19,30 +19,29 @@
  *
  *******************************************************************************
  *
- * File:    mrcontact.h
+ * File:    mrmsg.cpp
  * Authors: Björn Petersen
- * Purpose: MrContactrepresents a single contact, see header for details.
+ * Purpose: MrMsg represents a single message, see header for details.
  *
  ******************************************************************************/
 
 
 #include <stdlib.h>
 #include "mrmailbox.h"
-#include "mrcontact.h"
+#include "mrmsg.h"
 
 
-MrContact::MrContact(MrMailbox* mailbox)
+MrMsg::MrMsg(MrMailbox* mailbox)
 {
 	m_mailbox = mailbox;
-	m_name    = NULL;
-	m_email   = NULL;
+	m_type    = MR_MSG_UNDEFINED;
+	m_msg     = NULL;
 }
 
 
-MrContact::~MrContact()
+MrMsg::~MrMsg()
 {
 	#define FREE_(a) if((a)) { free((a)); (a)=NULL; }
-	FREE_(m_name);
-	FREE_(m_email);
+	FREE_(m_msg)
 }
 

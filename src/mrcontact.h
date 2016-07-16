@@ -42,6 +42,11 @@ public:
 	void         Release     () { delete this; }
 	void         Destroy     ();
 
+	// the data should be read only and are valid until the object is Release()'d.
+	// unset strings are set to NULL.
+	char*        m_name;
+	char*        m_email;
+
 private:
 	// as contact objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
 	             MrContact   (MrMailbox*);

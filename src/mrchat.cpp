@@ -34,8 +34,8 @@
 MrChat::MrChat(MrMailbox* mailbox)
 {
 	m_mailbox = mailbox;
-	m_type = MR_CHAT_UNDEFINED;
-	m_name = NULL;
+	m_type    = MR_CHAT_UNDEFINED;
+	m_name    = NULL;
 }
 
 
