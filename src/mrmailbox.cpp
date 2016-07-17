@@ -63,18 +63,6 @@ bool MrMailbox::Open(const char* dbfile)
 		}
 	}
 
-	// test LibEtPan
-	#if 0
-	struct mailimf_mailbox * mb;
-	char * display_name;
-	char * address;
-
-	display_name = strdup("DINH =?iso-8859-1?Q?Vi=EAt_Ho=E0?=");
-	address = strdup("dinh.viet.hoa@free.fr");
-	mb = mailimf_mailbox_new(display_name, address); // mailimf_mailbox_new() takes ownership of the given strings!
-	mailimf_mailbox_free(mb);
-	#endif
-
 	// success
 	return true;
 
@@ -98,21 +86,48 @@ void MrMailbox::Close()
  ******************************************************************************/
 
 
-void MrMailbox::Connect()
+bool MrMailbox::Connect()
 {
-	MrLoginParam param(this);
+	if( m_imap.IsConnected() ) {
+		return true;
+	}
 
-	param.ReadFromSql();
+	// read parameter, unset parameters are still NULL afterwards
+	{
+		MrSqlite3Locker locker(m_sql);
 
-	param.Complete();
+		m_loginParam.Clear();
 
-	m_imap.Connect(&param);
+		m_loginParam.m_email       = m_sql.GetConfig   ("email",       NULL);
+
+		m_loginParam.m_mail_server = m_sql.GetConfig   ("mail_server", NULL);
+		m_loginParam.m_mail_port   = m_sql.GetConfigInt("mail_port",   0);
+		m_loginParam.m_mail_user   = m_sql.GetConfig   ("mail_user",   NULL);
+		m_loginParam.m_mail_pw     = m_sql.GetConfig   ("mail_pw",     NULL);
+
+		m_loginParam.m_send_server = m_sql.GetConfig   ("send_server", NULL);
+		m_loginParam.m_send_port   = m_sql.GetConfigInt("send_port",   0);
+		m_loginParam.m_send_user   = m_sql.GetConfig   ("send_user",   NULL);
+		m_loginParam.m_send_pw     = m_sql.GetConfig   ("send_pw",     NULL);
+	}
+
+	// try to suggest unset parameters
+	m_loginParam.Complete();
+
+	// connect
+	return m_imap.Connect(&m_loginParam);
 }
 
 
 void MrMailbox::Disconnect()
 {
 	m_imap.Disconnect();
+}
+
+
+bool MrMailbox::Fetch()
+{
+	return m_imap.Fetch();
 }
 
 

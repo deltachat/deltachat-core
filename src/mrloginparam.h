@@ -36,14 +36,11 @@ class MrMailbox;
 class MrLoginParam
 {
 public:
-	              MrLoginParam          (MrMailbox* mailbox);
+	              MrLoginParam          ();
 	              ~MrLoginParam         ();
 
 	// clears all data and frees its memory. All pointers are NULL after this function is called.
 	void          Clear                 ();
-
-	// read all data from database, unset values are still NULL after calling ReadFromSql()
-	void          ReadFromSql           ();
 
 	// tries to set missing parameters from at least m_email and m_mail_pw
 	void          Complete              ();
@@ -60,9 +57,6 @@ public:
 	char*         m_send_user;
 	char*         m_send_pw;
 	uint16_t      m_send_port;
-
-private:
-	MrMailbox*    m_mailbox;
 };
 
 

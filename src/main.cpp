@@ -87,6 +87,7 @@ int main(int argc, char ** argv)
 			printf("get <key>           show configuration value\n");
 			printf("connect             connect to mailbox server\n");
 			printf("disconnect          disconnect from mailbox server\n");
+			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
 			printf("exit                exit program\n");
 		}
@@ -117,11 +118,19 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "connect")==0 )
 		{
-			mailbox->Connect();
+			if( !mailbox->Connect() ) {
+				print_error();
+			}
 		}
 		else if( strcmp(cmd, "disconnect")==0 )
 		{
 			mailbox->Disconnect();
+		}
+		else if( strcmp(cmd, "fetch")==0 )
+		{
+			if( !mailbox->Fetch() ) {
+				print_error();
+			}
 		}
 		else if( strncmp(cmd, "set", 3)==0 )
 		{

@@ -23,6 +23,11 @@
  * Authors: Björn Petersen
  * Purpose: Reading from IMAP servers, see header for details.
  *
+ *******************************************************************************
+ *
+ * TODO: On Android, I think, the thread must be marked using
+ *       AttachCurrentThread(), see MailCore2 code
+ *
  ******************************************************************************/
 
 
@@ -46,6 +51,7 @@ static bool is_error(int r, const char* msg)
 	printf("ERROR: %s\n", msg);
 	return true;
 }
+
 
 static char * get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t * p_msg_size)
 {
@@ -182,6 +188,11 @@ static void fetch_messages(struct mailimap * imap)
 	clistiter * cur;
 	int r;
 
+	r = mailimap_select(imap, "INBOX");
+	if( is_error(r, "could not select INBOX") ) {
+		return;
+	}
+
 	/* as improvement UIDVALIDITY should be read and the message cache should be cleaned
 	   if the UIDVALIDITY is not the same */
 
@@ -211,52 +222,127 @@ static void fetch_messages(struct mailimap * imap)
 	mailimap_fetch_list_free(fetch_result);
 }
 
+/*******************************************************************************
+ * The working thread
+ ******************************************************************************/
+
+
+void MrImap::WorkingThread()
+{
+	// connect to server
+	struct mailimap*    imap;
+
+	int r;
+	imap = mailimap_new(0, NULL);
+	r = mailimap_ssl_connect(imap, m_loginParam->m_mail_server, m_loginParam->m_mail_port);
+	if( is_error(r, "could not connect to server") ) {
+		goto WorkingThread_Exit;
+	}
+
+	r = mailimap_login(imap, m_loginParam->m_mail_user, m_loginParam->m_mail_pw);
+	if( is_error(r, "could not login") ) {
+		goto WorkingThread_Exit;
+	}
+
+	// endless look
+	while( 1 )
+	{
+		// wait for condition
+		pthread_mutex_lock(&m_condmutex);
+			pthread_cond_wait(&m_cond, &m_condmutex); // wait unlocks the mutex and waits for signal, if it returns, the mutex is locked again
+			int dowhat = m_dowhat;
+		pthread_mutex_unlock(&m_condmutex);
+
+		switch( dowhat )
+		{
+			case DO_FETCH:
+                fetch_messages(imap);
+                break;
+
+			case DO_EXIT:
+                goto WorkingThread_Exit;
+		}
+
+	}
+
+WorkingThread_Exit:
+	if( imap ) {
+		mailimap_logout(imap);
+		mailimap_free(imap);
+		imap = NULL;
+	}
+	m_threadRunning = false;
+}
+
+
+/*******************************************************************************
+ * Connect/disconnect by start/stop the working thread
+ ******************************************************************************/
+
 
 MrImap::MrImap(MrMailbox* mailbox)
 {
-	m_mailbox = mailbox;
+	m_mailbox       = mailbox;
+	m_threadRunning = false;
+	m_loginParam    = NULL;
+
+	pthread_mutex_init(&m_condmutex, NULL);
+    pthread_cond_init(&m_cond, NULL);
 }
 
 
 MrImap::~MrImap()
 {
+	Disconnect();
+
+	pthread_cond_destroy(&m_cond);
+	pthread_mutex_destroy(&m_condmutex);
 }
 
 
 bool MrImap::Connect(const MrLoginParam* param)
 {
-	struct mailimap * imap;
-	int r;
-
-	if( param->m_mail_server == NULL || param->m_mail_user == NULL || param->m_mail_pw == NULL ) {
-		return false;
+	if( param==NULL || param->m_mail_server==NULL || param->m_mail_user==NULL || param->m_mail_pw==NULL ) {
+		return false; // error, bad parameters
 	}
 
-	imap = mailimap_new(0, NULL);
-	r = mailimap_ssl_connect(imap, param->m_mail_server, param->m_mail_port);
-	if( is_error(r, "could not connect to server") ) {
-		return false;
+	if( m_threadRunning ) {
+		return true; // already trying to connect
 	}
 
-	r = mailimap_login(imap, param->m_mail_user, param->m_mail_pw);
-	if( is_error(r, "could not login") ) {
-		return false;
-	}
+	m_loginParam = param;
+	m_threadRunning = true;
+	pthread_create(&m_thread, NULL, (void * (*)(void *)) MrImap::StartupHelper, this);
 
-	r = mailimap_select(imap, "INBOX");
-	if( is_error(r, "could not select INBOX") ) {
-		return false;
-	}
-
-	fetch_messages(imap);
-
-	mailimap_logout(imap);
-	mailimap_free(imap);
-
+	// success, so far, the real connection takes place in the working thread
 	return true;
 }
 
 
 void MrImap::Disconnect()
 {
+	if( !m_threadRunning ) {
+		return; // already disconnected
+	}
+
+	pthread_mutex_lock(&m_condmutex);
+		m_dowhat = DO_EXIT;
+	pthread_mutex_unlock(&m_condmutex);
+	pthread_cond_signal(&m_cond);
+}
+
+
+bool MrImap::Fetch()
+{
+	if( !m_threadRunning ) {
+		return false; // not connected
+	}
+
+	pthread_mutex_lock(&m_condmutex);
+		m_dowhat = DO_FETCH;
+	pthread_mutex_unlock(&m_condmutex);
+	pthread_cond_signal(&m_cond);
+
+	// success, so far
+	return true;
 }

@@ -59,8 +59,9 @@ public:
 	void          Close                ();
 
 	// connect to the mailbox: error are be received asynchronously.
-	void          Connect              ();
+	bool          Connect              ();
 	void          Disconnect           ();
+	bool          Fetch                ();
 
 	// iterate contacts
 	size_t        GetContactCnt        () { MrSqlite3Locker l(m_sql); return m_sql.GetContactCnt(); }
@@ -82,6 +83,7 @@ public:
 private:
 	// private stuff
 	MrSqlite3     m_sql;
+	MrLoginParam  m_loginParam;
 	MrImap        m_imap;
 	friend class  MrImap;
 };
