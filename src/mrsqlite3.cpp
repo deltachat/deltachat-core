@@ -106,7 +106,7 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_SELECT_COUNT_FROM_msg      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
 
 	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL || m_DELETE_FROM_config_k==NULL
-	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL || m_SELECT_COUNT_FROM_msg ) {
+	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL || m_SELECT_COUNT_FROM_msg==NULL ) {
 		goto Open_Error;
 	}
 
