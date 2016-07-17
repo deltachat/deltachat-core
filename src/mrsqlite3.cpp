@@ -35,10 +35,15 @@ MrSqlite3::MrSqlite3()
 {
 	m_cobj                       = NULL;
 	m_dbfile                     = NULL;
+
 	m_SELECT_value_FROM_config_k = NULL;
 	m_INSERT_INTO_config_kv      = NULL;
 	m_UPDATE_config_vk           = NULL;
 	m_DELETE_FROM_config_k       = NULL;
+
+	m_SELECT_COUNT_FROM_contacts = NULL;
+	m_SELECT_COUNT_FROM_chats    = NULL;
+	m_SELECT_COUNT_FROM_msg      = NULL;
 
 	pthread_mutex_init(&m_critical, NULL);
 }
@@ -74,29 +79,18 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE INDEX config_index1 ON config (keyname);");
 
 		sqlite3_execute_("CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
-		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (email);");
+		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (name);");
 
 		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
-		sqlite3_execute_("CREATE INDEX chats_index1 ON chats (email);");
-
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chat_contacts (chat_id);");
 
 		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, time INTEGER, type INTEGER, msg TEXT);");
-		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (email);");
+		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (time);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
 		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
 		 || !sqlite3_table_exists_("msg") ) {
-			goto Open_Error; // cannot create the tables - maybe we cannot write?
-		}
-	}
-
-
-	if( !sqlite3_table_exists_("contacts") )
-	{
-
-		if( !sqlite3_table_exists_("contacts") ) {
 			goto Open_Error; // cannot create the tables - maybe we cannot write?
 		}
 	}
@@ -107,7 +101,12 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
 	m_DELETE_FROM_config_k       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
 
-	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL ) {
+	m_SELECT_COUNT_FROM_contacts = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
+	m_SELECT_COUNT_FROM_chats    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
+	m_SELECT_COUNT_FROM_msg      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
+
+	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL || m_DELETE_FROM_config_k==NULL
+	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL || m_SELECT_COUNT_FROM_msg ) {
 		goto Open_Error;
 	}
 
@@ -135,6 +134,10 @@ void MrSqlite3::Close()
 		SQLITE3_FINALIZE_(m_INSERT_INTO_config_kv)
 		SQLITE3_FINALIZE_(m_UPDATE_config_vk)
 		SQLITE3_FINALIZE_(m_DELETE_FROM_config_k)
+
+		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_contacts);
+		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_chats);
+		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_msg);
 
 		sqlite3_close(m_cobj);
 		m_cobj = NULL;
@@ -330,4 +333,42 @@ int32_t MrSqlite3::GetConfigInt(const char* key, int32_t def)
 		return def;
     }
     return atol(str);
+}
+
+
+/*******************************************************************************
+ * Handle tables
+ ******************************************************************************/
+
+
+size_t MrSqlite3::GetContactCnt()
+{
+	sqlite3_reset (m_SELECT_COUNT_FROM_contacts);
+	if( sqlite3_step(m_SELECT_COUNT_FROM_contacts) != SQLITE_ROW ) {
+		return 0; // error
+	}
+
+	return sqlite3_column_int(m_SELECT_COUNT_FROM_contacts, 0); // success
+}
+
+
+size_t MrSqlite3::GetChatCnt()
+{
+	sqlite3_reset (m_SELECT_COUNT_FROM_chats);
+	if( sqlite3_step(m_SELECT_COUNT_FROM_chats) != SQLITE_ROW ) {
+		return 0; // error
+	}
+
+	return sqlite3_column_int(m_SELECT_COUNT_FROM_chats, 0); // success
+}
+
+
+size_t MrSqlite3::GetMsgCnt()
+{
+	sqlite3_reset (m_SELECT_COUNT_FROM_msg);
+	if( sqlite3_step(m_SELECT_COUNT_FROM_msg) != SQLITE_ROW ) {
+		return 0; // error
+	}
+
+	return sqlite3_column_int(m_SELECT_COUNT_FROM_msg, 0); // success
 }

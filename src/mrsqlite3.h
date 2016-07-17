@@ -48,6 +48,11 @@ public:
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 	int32_t       GetConfigInt         (const char* key, int32_t def);
 
+	// get counts
+	size_t        GetContactCnt        ();
+	size_t        GetChatCnt           ();
+	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
+
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 
@@ -55,7 +60,10 @@ public:
 	sqlite3_stmt  *m_SELECT_value_FROM_config_k,
 	              *m_INSERT_INTO_config_kv,
 	              *m_UPDATE_config_vk,
-	              *m_DELETE_FROM_config_k;
+	              *m_DELETE_FROM_config_k,
+	              *m_SELECT_COUNT_FROM_contacts,
+	              *m_SELECT_COUNT_FROM_chats,
+	              *m_SELECT_COUNT_FROM_msg;
 
 private:
 	// m_sqlite is the database given as dbfile to Open()

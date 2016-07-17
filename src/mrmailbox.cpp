@@ -51,14 +51,16 @@ MrMailbox::~MrMailbox()
 
 bool MrMailbox::Open(const char* dbfile)
 {
-	MrSqlite3Locker locker(m_sql);
+	{
+		MrSqlite3Locker locker(m_sql);
 
-	// Open() sets up the object and connects to the given database
-	// from which all configuration is read/written to.
+		// Open() sets up the object and connects to the given database
+		// from which all configuration is read/written to.
 
-	// Create/open sqlite database
-	if( !m_sql.Open(dbfile) ) {
-		goto Open_Error;
+		// Create/open sqlite database
+		if( !m_sql.Open(dbfile) ) {
+			goto Open_Error;
+		}
 	}
 
 	// test LibEtPan
@@ -119,16 +121,7 @@ void MrMailbox::Disconnect()
  ******************************************************************************/
 
 
-size_t MrMailbox::GetContactCnt()
-{
-	return 0;
-}
-
-
-MrContact* MrMailbox::GetContact(size_t i)
-{
-	return NULL;
-}
+// ...
 
 
 /*******************************************************************************
@@ -136,21 +129,9 @@ MrContact* MrMailbox::GetContact(size_t i)
  ******************************************************************************/
 
 
-size_t MrMailbox::GetChatCnt()
-{
-	return 0;
-}
-
-
 MrChat* MrMailbox::GetChat(size_t i)
 {
 	return NULL;
-}
-
-
-size_t MrMailbox::GetMsgCnt()
-{
-	return 0;
 }
 
 
@@ -171,6 +152,7 @@ char* MrMailbox::GetInfo()
 
 	// read data (all pointers may be NULL!)
 	char *dbfile, *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw;
+	int contacts, chats, messages;
 	{
 		MrSqlite3Locker locker(m_sql);
 
@@ -186,11 +168,11 @@ char* MrMailbox::GetInfo()
 		send_port   = m_sql.GetConfig("send_port", NULL);
 		send_user   = m_sql.GetConfig("send_user", NULL);
 		send_pw     = m_sql.GetConfig("send_pw", NULL);
-	}
 
-	int   chats       = GetChatCnt();
-	int   messages    = GetMsgCnt();
-	int   contacts    = GetContactCnt();
+		contacts    = m_sql.GetContactCnt();
+		chats       = m_sql.GetChatCnt();
+		messages    = m_sql.GetMsgCnt();
+	}
 
 	// create info
     snprintf(buf, BUF_BYTES,

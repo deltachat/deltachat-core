@@ -63,13 +63,12 @@ public:
 	void          Disconnect           ();
 
 	// iterate contacts
-	size_t        GetContactCnt        ();
+	size_t        GetContactCnt        () { MrSqlite3Locker l(m_sql); return m_sql.GetContactCnt(); }
 	MrContact*    GetContact           (size_t i); // the returned objects must be Release()'d, returns NULL on errors
 
 	// iterate chats
-	size_t        GetChatCnt           ();
+	size_t        GetChatCnt           () { MrSqlite3Locker l(m_sql); return m_sql.GetChatCnt(); }
 	MrChat*       GetChat              (size_t i); // the returned objects must be Release()'d, returns NULL on errors
-	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
 
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker l(m_sql); return m_sql.SetConfig(key, value); }
