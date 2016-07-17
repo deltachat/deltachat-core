@@ -33,9 +33,10 @@
 
 MrMsg::MrMsg(MrMailbox* mailbox)
 {
-	m_mailbox = mailbox;
-	m_type    = MR_MSG_UNDEFINED;
-	m_msg     = NULL;
+	m_mailbox  = mailbox;
+	m_type     = MR_MSG_UNDEFINED;
+	m_msg      = NULL;
+	m_time     = 0;
 }
 
 

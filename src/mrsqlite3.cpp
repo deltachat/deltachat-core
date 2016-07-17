@@ -76,13 +76,13 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
 		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (email);");
 
-		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, lastdate INTEGER, name TEXT);");
+		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
 		sqlite3_execute_("CREATE INDEX chats_index1 ON chats (email);");
 
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chat_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, senddate INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, time INTEGER, type INTEGER, msg TEXT);");
 		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (email);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")

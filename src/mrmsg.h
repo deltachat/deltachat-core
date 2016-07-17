@@ -59,7 +59,8 @@ public:
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
 	MrMsgType m_type;
-	char*         m_msg; // meaning dedpends on m_type
+	char*         m_msg;  // meaning dedpends on m_type
+	time_t        m_time; // unix time the message was sended
 
 private:
 	// as message objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
