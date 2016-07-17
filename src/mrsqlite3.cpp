@@ -68,12 +68,35 @@ bool MrSqlite3::Open(const char* dbfile)
 	}
 
 	// Init the tables, if not yet done
-	if( !sqlite3_table_exists_("config") )
+	if( !sqlite3_table_exists_("contacts") )
 	{
 		sqlite3_execute_("CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		sqlite3_execute_("CREATE INDEX configindex01 ON config (keyname);");
+		sqlite3_execute_("CREATE INDEX config_index1 ON config (keyname);");
 
-		if( !sqlite3_table_exists_("config") ) {
+		sqlite3_execute_("CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
+		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (email);");
+
+		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, lastdate INTEGER, name TEXT);");
+		sqlite3_execute_("CREATE INDEX chats_index1 ON chats (email);");
+
+		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
+		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chat_contacts (chat_id);");
+
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, senddate INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (email);");
+
+		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
+		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
+		 || !sqlite3_table_exists_("msg") ) {
+			goto Open_Error; // cannot create the tables - maybe we cannot write?
+		}
+	}
+
+
+	if( !sqlite3_table_exists_("contacts") )
+	{
+
+		if( !sqlite3_table_exists_("contacts") ) {
 			goto Open_Error; // cannot create the tables - maybe we cannot write?
 		}
 	}
