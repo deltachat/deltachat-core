@@ -70,6 +70,10 @@ public:
 	              *m_SELECT_COUNT_FROM_msg,
 	              *m_SELECT_id_FROM_msg_i;
 
+	// the caller must make sure, only one thread uses sqlite at the same time!
+	// for this purpose, all calls must be enclosed by a locked m_critical - to simplify this, you can alse use MrSqlite3Locker
+	pthread_mutex_t m_critical;
+
 private:
 	// m_sqlite is the database given as dbfile to Open()
 	char*         m_dbfile;
@@ -79,10 +83,6 @@ private:
 	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
 	bool          sqlite3_execute_     (const char* sql);
 	bool          sqlite3_table_exists_(const char* name);
-
-	pthread_mutex_t m_critical;
-	friend class    MrSqlite3Locker;
-	friend class    MrImap;
 };
 
 
