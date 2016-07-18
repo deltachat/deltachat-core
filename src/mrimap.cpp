@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-static uint32_t get_uid(struct mailimap_msg_att * msg_att)
+static uint32_t get_uid(struct mailimap_msg_att* msg_att)
 {
 	clistiter * cur;
 
@@ -65,7 +65,7 @@ static uint32_t get_uid(struct mailimap_msg_att * msg_att)
 }
 
 
-static char* get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t * p_msg_size)
+static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p_msg_size)
 {
 	clistiter* cur;
 
@@ -91,7 +91,7 @@ static char* get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t *
 }
 
 
-static char* get_msg_content(clist * fetch_result, size_t * p_msg_size)
+static char* get_msg_content(clist* fetch_result, size_t* p_msg_size)
 {
 	clistiter* cur;
 
@@ -118,19 +118,19 @@ static char* get_msg_content(clist * fetch_result, size_t * p_msg_size)
 
 void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 {
-	struct mailimap_set * set;
-	struct mailimap_section * section;
-	char filename[512];
-	size_t msg_len;
-	char * msg_content;
-	FILE * f;
-	struct mailimap_fetch_type * fetch_type;
-	struct mailimap_fetch_att * fetch_att;
-	int r;
-	clist * fetch_result;
-	struct stat stat_info;
+	struct mailimap_set*        set;
+	struct mailimap_section*    section;
+	char                        filename[512];
+	size_t                      msg_len;
+	char*                       msg_content;
+	FILE*                       f;
+	struct mailimap_fetch_type* fetch_type;
+	struct mailimap_fetch_att*  fetch_att;
+	int                         r;
+	clist*                      fetch_result;
+	struct stat                 stat_info;
 
-	snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int) uid);
+	snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int)uid);
 	r = stat(filename, &stat_info);
 	if (r == 0) {
 		// already cached
@@ -138,10 +138,10 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 		return;
 	}
 
-	set = mailimap_set_new_single(uid);
+	set        = mailimap_set_new_single(uid);
 	fetch_type = mailimap_fetch_type_new_fetch_att_list_empty();
-	section = mailimap_section_new(NULL);
-	fetch_att = mailimap_fetch_att_new_body_peek_section(section);
+	section    = mailimap_section_new(NULL);
+	fetch_att  = mailimap_fetch_att_new_body_peek_section(section);
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
 	r = mailimap_uid_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
@@ -176,12 +176,12 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 
 void MrImap::FetchMessages(MrImapThreadVal& threadval)
 {
-	struct mailimap_set * set;
-	struct mailimap_fetch_type * fetch_type;
-	struct mailimap_fetch_att * fetch_att;
-	clist * fetch_result;
-	clistiter * cur;
-	int r;
+	struct mailimap_set*        set;
+	struct mailimap_fetch_type* fetch_type;
+	struct mailimap_fetch_att*  fetch_att;
+	clist*                      fetch_result;
+	clistiter*                  cur;
+	int                         r;
 
 	r = mailimap_select(threadval.m_imap, "INBOX");
 	if( IsError(r) ) {
@@ -192,9 +192,9 @@ void MrImap::FetchMessages(MrImapThreadVal& threadval)
 	/* as improvement UIDVALIDITY should be read and the message cache should be cleaned
 	   if the UIDVALIDITY is not the same */
 
-	set = mailimap_set_new_interval(1, 0); /* fetch in interval 1:* */
+	set        = mailimap_set_new_interval(1, 0); /* fetch in interval 1:* */
 	fetch_type = mailimap_fetch_type_new_fetch_att_list_empty();
-	fetch_att = mailimap_fetch_att_new_uid();
+	fetch_att  = mailimap_fetch_att_new_uid();
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
 	r = mailimap_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
@@ -203,9 +203,10 @@ void MrImap::FetchMessages(MrImapThreadVal& threadval)
 		return;
 	}
 
-  /* for each message */
-	for(cur = clist_begin(fetch_result) ; cur != NULL ; cur = clist_next(cur)) {
-		struct mailimap_msg_att * msg_att;
+	/* for each message */
+	for( cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
+	{
+		struct mailimap_msg_att* msg_att;
 		uint32_t uid;
 
 		msg_att = (mailimap_msg_att*)clist_content(cur);
@@ -219,6 +220,7 @@ void MrImap::FetchMessages(MrImapThreadVal& threadval)
 	mailimap_fetch_list_free(fetch_result);
 }
 
+
 /*******************************************************************************
  * The working thread
  ******************************************************************************/
@@ -226,12 +228,12 @@ void MrImap::FetchMessages(MrImapThreadVal& threadval)
 
 void MrImap::WorkingThread()
 {
+	MrImapThreadVal threadval;
+	int             r;
+
 	// connect to server
 	m_threadState = MR_THREAD_CONNECT;
 
-	MrImapThreadVal threadval;
-
-	int r;
 	threadval.m_imap = mailimap_new(0, NULL);
 	r = mailimap_ssl_connect(threadval.m_imap, m_loginParam->m_mail_server, m_loginParam->m_mail_port);
 	if( IsError(r) ) {
