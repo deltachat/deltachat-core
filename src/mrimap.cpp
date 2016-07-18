@@ -39,20 +39,22 @@
  * Fetching Messages
  ******************************************************************************/
 
+
 static uint32_t get_uid(struct mailimap_msg_att * msg_att)
 {
 	clistiter * cur;
 
 	/* iterate on each result of one given message */
-	for(cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur)) {
+	for(cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur))
+	{
 		struct mailimap_msg_att_item * item;
 
 		item = (mailimap_msg_att_item*)clist_content(cur);
-		if (item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC) {
+		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
 			continue;
 		}
 
-		if (item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_UID) {
+		if( item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_UID ) {
 			continue;
 		}
 
@@ -62,52 +64,57 @@ static uint32_t get_uid(struct mailimap_msg_att * msg_att)
 	return 0;
 }
 
-static char * get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t * p_msg_size)
-{
-	clistiter * cur;
 
-  /* iterate on each result of one given message */
-	for(cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur)) {
+static char* get_msg_att_msg_content(struct mailimap_msg_att * msg_att, size_t * p_msg_size)
+{
+	clistiter* cur;
+
+	/* iterate on each result of one given message */
+	for( cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur) )
+	{
 		struct mailimap_msg_att_item * item;
 
 		item = (mailimap_msg_att_item*)clist_content(cur);
-		if (item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC) {
+		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
 			continue;
 		}
 
-    if (item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_BODY_SECTION) {
+		if( item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_BODY_SECTION ) {
 			continue;
-    }
+		}
 
-		* p_msg_size = item->att_data.att_static->att_data.att_body_section->sec_length;
+		*p_msg_size = item->att_data.att_static->att_data.att_body_section->sec_length;
 		return item->att_data.att_static->att_data.att_body_section->sec_body_part;
 	}
 
 	return NULL;
 }
 
-static char * get_msg_content(clist * fetch_result, size_t * p_msg_size)
-{
-	clistiter * cur;
 
-  /* for each message (there will be probably only on message) */
-	for(cur = clist_begin(fetch_result) ; cur != NULL ; cur = clist_next(cur)) {
+static char* get_msg_content(clist * fetch_result, size_t * p_msg_size)
+{
+	clistiter* cur;
+
+	/* for each message (there will be probably only on message) */
+	for( cur = clist_begin(fetch_result) ; cur != NULL ; cur = clist_next(cur) )
+	{
 		struct mailimap_msg_att * msg_att;
 		size_t msg_size;
 		char * msg_content;
 
 		msg_att = (mailimap_msg_att*)clist_content(cur);
 		msg_content = get_msg_att_msg_content(msg_att, &msg_size);
-		if (msg_content == NULL) {
+		if( msg_content == NULL ) {
 			continue;
 		}
 
-		* p_msg_size = msg_size;
+		*p_msg_size = msg_size;
 		return msg_content;
 	}
 
 	return NULL;
 }
+
 
 void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 {
@@ -139,20 +146,20 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 
 	r = mailimap_uid_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
 	if( IsError(r) ) {
-		MrLogError("Could not fetch");
+		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.");
 		return;
 	}
 	printf("fetch %u\n", (unsigned int) uid);
 
 	msg_content = get_msg_content(fetch_result, &msg_len);
-	if (msg_content == NULL) {
-		fprintf(stderr, "no content\n");
+	if( msg_content == NULL ) {
+		MrLogWarning("MrImap::FetchSingleMsg(): No content found for a message.");
 		mailimap_fetch_list_free(fetch_result);
 		return;
 	}
 
 	f = fopen(filename, "w");
-	if (f == NULL) {
+	if( f == NULL ) {
 		fprintf(stderr, "could not write\n");
 		mailimap_fetch_list_free(fetch_result);
 		return;
