@@ -39,6 +39,18 @@
 #include "mrimap.h"
 
 
+class MrImapThreadVal
+{
+public:
+	MrImapThreadVal()
+	{
+		m_imap = NULL;
+	}
+
+	mailimap*    m_imap;
+};
+
+
 static bool is_error(int r, const char* msg)
 {
 	if(r == MAILIMAP_NO_ERROR)
@@ -100,7 +112,7 @@ static char * get_msg_content(clist * fetch_result, size_t * p_msg_size)
 	return NULL;
 }
 
-static void fetch_msg(struct mailimap * imap, uint32_t uid)
+static void fetch_single_msg(MrImapThreadVal& threadval, uint32_t uid)
 {
 	struct mailimap_set * set;
 	struct mailimap_section * section;
@@ -128,7 +140,7 @@ static void fetch_msg(struct mailimap * imap, uint32_t uid)
 	fetch_att = mailimap_fetch_att_new_body_peek_section(section);
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
-	r = mailimap_uid_fetch(imap, set, fetch_type, &fetch_result);
+	r = mailimap_uid_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
 	if( is_error(r, "could not fetch") ) {
 		return;
 	}
@@ -179,7 +191,7 @@ static uint32_t get_uid(struct mailimap_msg_att * msg_att)
 	return 0;
 }
 
-static void fetch_messages(struct mailimap * imap)
+static void fetch_messages(MrImapThreadVal& threadval)
 {
 	struct mailimap_set * set;
 	struct mailimap_fetch_type * fetch_type;
@@ -188,7 +200,7 @@ static void fetch_messages(struct mailimap * imap)
 	clistiter * cur;
 	int r;
 
-	r = mailimap_select(imap, "INBOX");
+	r = mailimap_select(threadval.m_imap, "INBOX");
 	if( is_error(r, "could not select INBOX") ) {
 		return;
 	}
@@ -201,7 +213,7 @@ static void fetch_messages(struct mailimap * imap)
 	fetch_att = mailimap_fetch_att_new_uid();
 	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
 
-	r = mailimap_fetch(imap, set, fetch_type, &fetch_result);
+	r = mailimap_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
 	if( is_error(r, "could not fetch") ) {
 		return;
 	}
@@ -216,7 +228,7 @@ static void fetch_messages(struct mailimap * imap)
 		if (uid == 0)
 			continue;
 
-		fetch_msg(imap, uid);
+		fetch_single_msg(threadval, uid);
 	}
 
 	mailimap_fetch_list_free(fetch_result);
@@ -230,16 +242,16 @@ static void fetch_messages(struct mailimap * imap)
 void MrImap::WorkingThread()
 {
 	// connect to server
-	struct mailimap*    imap;
+	MrImapThreadVal threadval;
 
 	int r;
-	imap = mailimap_new(0, NULL);
-	r = mailimap_ssl_connect(imap, m_loginParam->m_mail_server, m_loginParam->m_mail_port);
+	threadval.m_imap = mailimap_new(0, NULL);
+	r = mailimap_ssl_connect(threadval.m_imap, m_loginParam->m_mail_server, m_loginParam->m_mail_port);
 	if( is_error(r, "could not connect to server") ) {
 		goto WorkingThread_Exit;
 	}
 
-	r = mailimap_login(imap, m_loginParam->m_mail_user, m_loginParam->m_mail_pw);
+	r = mailimap_login(threadval.m_imap, m_loginParam->m_mail_user, m_loginParam->m_mail_pw);
 	if( is_error(r, "could not login") ) {
 		goto WorkingThread_Exit;
 	}
@@ -256,7 +268,7 @@ void MrImap::WorkingThread()
 		switch( dowhat )
 		{
 			case DO_FETCH:
-                fetch_messages(imap);
+                fetch_messages(threadval);
                 break;
 
 			case DO_EXIT:
@@ -266,10 +278,10 @@ void MrImap::WorkingThread()
 	}
 
 WorkingThread_Exit:
-	if( imap ) {
-		mailimap_logout(imap);
-		mailimap_free(imap);
-		imap = NULL;
+	if( threadval.m_imap ) {
+		mailimap_logout(threadval.m_imap);
+		mailimap_free(threadval.m_imap);
+		threadval.m_imap = NULL;
 	}
 	m_threadRunning = false;
 }
@@ -338,11 +350,11 @@ bool MrImap::Fetch()
 		return false; // not connected
 	}
 
-	pthread_mutex_lock(&m_condmutex);
+	pthread_mutex_lock(&m_condmutex); // if needed, we can use pthread_mutex_trylock() to avoid signalling if the thread is busy
 		m_dowhat = DO_FETCH;
 	pthread_mutex_unlock(&m_condmutex);
 	pthread_cond_signal(&m_cond);
 
-	// success, so far
+	// signal successfully raised; when and if fetching is started cannot be determinated by the return value
 	return true;
 }
