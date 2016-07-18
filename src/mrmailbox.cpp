@@ -195,8 +195,8 @@ char* MrMailbox::GetInfo()
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
-		"Chats/Messages   %i/%i\n"
 		"Contacts         %i\n"
+		"Chats/Messages   %i/%i\n"
 
 		"mail_server      %s\n"
 		"mail_port        %s\n"
@@ -214,8 +214,8 @@ char* MrMailbox::GetInfo()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, dbfile? dbfile : unset
 
-		, chats, messages
 		, contacts
+		, chats, messages
 
 		, mail_server? mail_server : unset
 		, mail_port? mail_port : unset

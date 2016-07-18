@@ -26,7 +26,7 @@
  *******************************************************************************
  *
  * TODO: On Android, I think, the thread must be marked using
- *       AttachCurrentThread(), see MailCore2 code
+ *       AttachCurrentThread(), see MailCore2 code and https://developer.android.com/training/articles/perf-jni.html
  *
  ******************************************************************************/
 
@@ -242,6 +242,8 @@ static void fetch_messages(MrImapThreadVal& threadval)
 void MrImap::WorkingThread()
 {
 	// connect to server
+	m_threadState = MR_THREAD_CONNECT;
+
 	MrImapThreadVal threadval;
 
 	int r;
@@ -261,18 +263,24 @@ void MrImap::WorkingThread()
 	{
 		// wait for condition
 		pthread_mutex_lock(&m_condmutex);
+			m_threadState = MR_THREAD_WAIT;
 			pthread_cond_wait(&m_cond, &m_condmutex); // wait unlocks the mutex and waits for signal, if it returns, the mutex is locked again
-			int dowhat = m_dowhat;
+			MrImapThreadCmd cmd = m_threadCmd;
+			m_threadState = cmd; // make sure state or cmd blocks eg. Fetch()
+			m_threadCmd = MR_THREAD_WAIT;
 		pthread_mutex_unlock(&m_condmutex);
 
-		switch( dowhat )
+		switch( cmd )
 		{
-			case DO_FETCH:
+			case MR_THREAD_FETCH:
                 fetch_messages(threadval);
                 break;
 
-			case DO_EXIT:
+			case MR_THREAD_EXIT:
                 goto WorkingThread_Exit;
+
+			default:
+				break; // bad command
 		}
 
 	}
@@ -283,7 +291,7 @@ WorkingThread_Exit:
 		mailimap_free(threadval.m_imap);
 		threadval.m_imap = NULL;
 	}
-	m_threadRunning = false;
+	m_threadState = MR_THREAD_NOTALLOCATED;
 }
 
 
@@ -295,7 +303,8 @@ WorkingThread_Exit:
 MrImap::MrImap(MrMailbox* mailbox)
 {
 	m_mailbox       = mailbox;
-	m_threadRunning = false;
+	m_threadState   = MR_THREAD_NOTALLOCATED;
+	m_threadCmd     = MR_THREAD_WAIT;
 	m_loginParam    = NULL;
 
 	pthread_mutex_init(&m_condmutex, NULL);
@@ -318,12 +327,12 @@ bool MrImap::Connect(const MrLoginParam* param)
 		return false; // error, bad parameters
 	}
 
-	if( m_threadRunning ) {
+	if( m_threadState!=MR_THREAD_NOTALLOCATED ) {
 		return true; // already trying to connect
 	}
 
 	m_loginParam = param;
-	m_threadRunning = true;
+	m_threadState = MR_THREAD_INIT;
 	pthread_create(&m_thread, NULL, (void * (*)(void *)) MrImap::StartupHelper, this);
 
 	// success, so far, the real connection takes place in the working thread
@@ -333,26 +342,32 @@ bool MrImap::Connect(const MrLoginParam* param)
 
 void MrImap::Disconnect()
 {
-	if( !m_threadRunning ) {
+	if( m_threadState==MR_THREAD_NOTALLOCATED ) {
 		return; // already disconnected
 	}
 
-	pthread_mutex_lock(&m_condmutex);
-		m_dowhat = DO_EXIT;
-	pthread_mutex_unlock(&m_condmutex);
+	if( m_threadState==MR_THREAD_EXIT || m_threadCmd==MR_THREAD_EXIT ) {
+		return; // already exiting/about to exit
+	}
+
+	// raise exit signal
+	m_threadCmd = MR_THREAD_EXIT;
 	pthread_cond_signal(&m_cond);
 }
 
 
 bool MrImap::Fetch()
 {
-	if( !m_threadRunning ) {
+	if( m_threadState==MR_THREAD_NOTALLOCATED ) {
 		return false; // not connected
 	}
 
-	pthread_mutex_lock(&m_condmutex); // if needed, we can use pthread_mutex_trylock() to avoid signalling if the thread is busy
-		m_dowhat = DO_FETCH;
-	pthread_mutex_unlock(&m_condmutex);
+	if( m_threadState==MR_THREAD_FETCH || m_threadCmd==MR_THREAD_FETCH ) {
+		return true; // already fetching/about to fetch
+	}
+
+	// raise fetch signal
+	m_threadCmd = MR_THREAD_FETCH;
 	pthread_cond_signal(&m_cond);
 
 	// signal successfully raised; when and if fetching is started cannot be determinated by the return value
