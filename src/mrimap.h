@@ -83,7 +83,6 @@ private:
 
 	void                FetchMessages       (MrImapThreadVal&);
 	void                FetchSingleMsg      (MrImapThreadVal&, uint32_t uid);
-	bool                IsError             (int imapCode);
 };
 
 

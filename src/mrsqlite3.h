@@ -31,6 +31,7 @@
 
 
 #include <sqlite3.h>
+#include <libetpan.h>
 #include <pthread.h>
 
 
@@ -51,7 +52,10 @@ public:
 	// get counts
 	size_t        GetContactCnt        ();
 	size_t        GetChatCnt           ();
+
+	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
+	bool          MsgExists            (uint32_t uid);
 
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
@@ -63,7 +67,8 @@ public:
 	              *m_DELETE_FROM_config_k,
 	              *m_SELECT_COUNT_FROM_contacts,
 	              *m_SELECT_COUNT_FROM_chats,
-	              *m_SELECT_COUNT_FROM_msg;
+	              *m_SELECT_COUNT_FROM_msg,
+	              *m_SELECT_id_FROM_msg_i;
 
 private:
 	// m_sqlite is the database given as dbfile to Open()
@@ -77,6 +82,7 @@ private:
 
 	pthread_mutex_t m_critical;
 	friend class    MrSqlite3Locker;
+	friend class    MrImap;
 };
 
 

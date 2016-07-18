@@ -36,20 +36,29 @@
 
 
 /*******************************************************************************
- * Fetching Messages
+ * Tools
  ******************************************************************************/
 
 
-static uint32_t get_uid(struct mailimap_msg_att* msg_att)
+static bool Mr_is_error(int imapCode)
 {
-	clistiter * cur;
-
-	/* iterate on each result of one given message */
-	for(cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur))
+	if( imapCode == MAILIMAP_NO_ERROR
+	 || imapCode == MAILIMAP_NO_ERROR_AUTHENTICATED
+	 || imapCode == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
 	{
-		struct mailimap_msg_att_item * item;
+		return false; // no error - success
+	}
 
-		item = (mailimap_msg_att_item*)clist_content(cur);
+	return true; // yes, the code is an error
+}
+
+
+static uint32_t Mr_get_uid(mailimap_msg_att* msg_att) // search the UID in a list of attributes
+{
+	for( clistiter* cur=clist_begin(msg_att->att_list); cur!=NULL; cur=clist_next(cur) )
+	{
+		mailimap_msg_att_item* item = (mailimap_msg_att_item*)clist_content(cur);
+
 		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
 			continue;
 		}
@@ -65,16 +74,12 @@ static uint32_t get_uid(struct mailimap_msg_att* msg_att)
 }
 
 
-static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p_msg_size)
+static char* Mr_get_msg_att_msg_content(mailimap_msg_att* msg_att, size_t* p_msg_size) // search content in a list of attributes
 {
-	clistiter* cur;
-
-	/* iterate on each result of one given message */
-	for( cur = clist_begin(msg_att->att_list) ; cur != NULL ; cur = clist_next(cur) )
+	for( clistiter* cur=clist_begin(msg_att->att_list); cur!=NULL; cur=clist_next(cur) )
 	{
-		struct mailimap_msg_att_item * item;
+		mailimap_msg_att_item* item = (mailimap_msg_att_item*)clist_content(cur);
 
-		item = (mailimap_msg_att_item*)clist_content(cur);
 		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
 			continue;
 		}
@@ -91,84 +96,73 @@ static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p
 }
 
 
-static char* get_msg_content(clist* fetch_result, size_t* p_msg_size)
-{
-	clistiter* cur;
-
-	/* for each message (there will be probably only on message) */
-	for( cur = clist_begin(fetch_result) ; cur != NULL ; cur = clist_next(cur) )
-	{
-		struct mailimap_msg_att * msg_att;
-		size_t msg_size;
-		char * msg_content;
-
-		msg_att = (mailimap_msg_att*)clist_content(cur);
-		msg_content = get_msg_att_msg_content(msg_att, &msg_size);
-		if( msg_content == NULL ) {
-			continue;
-		}
-
-		*p_msg_size = msg_size;
-		return msg_content;
-	}
-
-	return NULL;
-}
+/*******************************************************************************
+ * Fetching Messages
+ ******************************************************************************/
 
 
 void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 {
-	struct mailimap_set*        set;
-	struct mailimap_section*    section;
-	char                        filename[512];
-	size_t                      msg_len;
-	char*                       msg_content;
-	FILE*                       f;
-	struct mailimap_fetch_type* fetch_type;
-	struct mailimap_fetch_att*  fetch_att;
-	int                         r;
-	clist*                      fetch_result;
-	struct stat                 stat_info;
+	size_t      msg_len;
+	char*       msg_content;
+	FILE*       f;
+	int         r;
+	clist*      fetch_result;
 
-	snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int)uid);
-	r = stat(filename, &stat_info);
-	if (r == 0) {
-		// already cached
-		printf("%u is already fetched\n", (unsigned int) uid);
-		return;
+	// call mailimap_uid_fetch() with some options; the result goes to fetch_result
+	{
+		// create an object defining the set set to fetch
+		mailimap_set* set = mailimap_set_new_single(uid);
+
+		// create an object describing the type of information to be retrieved
+		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
+		{
+		 mailimap_section*    section = mailimap_section_new(NULL);
+		 mailimap_fetch_att*  att     = mailimap_fetch_att_new_body_peek_section(section);
+		 mailimap_fetch_type_new_fetch_att_list_add(type, att);
+		}
+
+		r = mailimap_uid_fetch(threadval.m_imap,
+			set,            // set of message uid, mailimap_fetch() takes ownership of the object
+			type,           // type of information to be retrieved, mailimap_fetch() takes ownership of the object
+			&fetch_result); // result as a clist of mailimap_msg_att*
 	}
 
-	set        = mailimap_set_new_single(uid);
-	fetch_type = mailimap_fetch_type_new_fetch_att_list_empty();
-	section    = mailimap_section_new(NULL);
-	fetch_att  = mailimap_fetch_att_new_body_peek_section(section);
-	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
-
-	r = mailimap_uid_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
-	if( IsError(r) ) {
+	if( Mr_is_error(r) ) {
 		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.");
 		return;
 	}
-	printf("fetch %u\n", (unsigned int) uid);
 
-	msg_content = get_msg_content(fetch_result, &msg_len);
-	if( msg_content == NULL ) {
-		MrLogWarning("MrImap::FetchSingleMsg(): No content found for a message.");
-		mailimap_fetch_list_free(fetch_result);
-		return;
+	// get message content (fetch_result should be only one message)
+	{
+		clistiter* cur = clist_begin(fetch_result);
+		if( cur == NULL ) {
+			MrLogError("MrImap::FetchSingleMsg(): Empty message.");
+			return;
+		}
+
+		mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur);
+		msg_content = Mr_get_msg_att_msg_content(msg_att, &msg_len);
+		if( msg_content == NULL ) {
+			MrLogWarning("MrImap::FetchSingleMsg(): No content found for a message.");
+			mailimap_fetch_list_free(fetch_result);
+			return;
+		}
 	}
 
-	f = fopen(filename, "w");
-	if( f == NULL ) {
-		fprintf(stderr, "could not write\n");
-		mailimap_fetch_list_free(fetch_result);
-		return;
+	// write the mail for debugging purposes to a directory
+	{
+		char filename[512];
+		snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int)uid);
+		f = fopen(filename, "w");
+		if( f ) {
+			fwrite(msg_content, 1, msg_len, f);
+			fclose(f);
+		}
 	}
 
-	fwrite(msg_content, 1, msg_len, f);
-	fclose(f);
-
-	printf("%u has been fetched\n", (unsigned int) uid);
+	// add to our respository
+	m_mailbox->ReceiveEml(uid, msg_content);
 
 	mailimap_fetch_list_free(fetch_result);
 }
@@ -176,46 +170,56 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 
 void MrImap::FetchMessages(MrImapThreadVal& threadval)
 {
-	struct mailimap_set*        set;
-	struct mailimap_fetch_type* fetch_type;
-	struct mailimap_fetch_att*  fetch_att;
-	clist*                      fetch_result;
-	clistiter*                  cur;
-	int                         r;
-
-	r = mailimap_select(threadval.m_imap, "INBOX");
-	if( IsError(r) ) {
+	// select the folder
+	int r = mailimap_select(threadval.m_imap, "INBOX");
+	if( Mr_is_error(r) ) {
 		MrLogError("could not select INBOX.");
 		return;
 	}
 
-	/* as improvement UIDVALIDITY should be read and the message cache should be cleaned
-	   if the UIDVALIDITY is not the same */
+	// call mailimap_fetch() with some options; the result goes to fetch_result
+	clist* fetch_result;
+	{
+		// create an object defining the set set to fetch
+		mailimap_set* set = mailimap_set_new_interval(1, 0); // fetch in interval 1:*
 
-	set        = mailimap_set_new_interval(1, 0); /* fetch in interval 1:* */
-	fetch_type = mailimap_fetch_type_new_fetch_att_list_empty();
-	fetch_att  = mailimap_fetch_att_new_uid();
-	mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
+		// create an object describing the type of information to be retrieved
+		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
+		{
+		 mailimap_fetch_att*  att = mailimap_fetch_att_new_uid();
+		 mailimap_fetch_type_new_fetch_att_list_add(type, att);
+		}
 
-	r = mailimap_fetch(threadval.m_imap, set, fetch_type, &fetch_result);
-	if( IsError(r) ) {
+		// do fetch!
+		r = mailimap_fetch(threadval.m_imap,
+			set,            // set of message numbers, mailimap_fetch() takes ownership of the object
+			type,           // type of information to be retrieved, mailimap_fetch() takes ownership of the object
+			&fetch_result); // result as a clist of mailimap_msg_att*
+	}
+
+	if( Mr_is_error(r) )
+	{
 		MrLogError("could not fetch");
 		return;
 	}
 
-	/* for each message */
-	for( cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
-	{
-		struct mailimap_msg_att* msg_att;
-		uint32_t uid;
-
-		msg_att = (mailimap_msg_att*)clist_content(cur);
-		uid = get_uid(msg_att);
-		if (uid == 0)
-			continue;
-
-		FetchSingleMsg(threadval, uid);
-	}
+	// go through all mails in folder (this is typically _fast_ as we already have the whole list)
+	pthread_mutex_lock(&m_mailbox->m_sql.m_critical); // for speed reasons, we lock the whole loop and unlock on fetching
+		for( clistiter* cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
+		{
+			mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur); // mailimap_msg_att is a list of attributes: list is a list of message attributes
+			uint32_t  uid = Mr_get_uid(msg_att);
+			if( uid )
+			{
+				if( !m_mailbox->m_sql.MsgExists(uid) )
+				{
+					pthread_mutex_unlock(&m_mailbox->m_sql.m_critical);
+						FetchSingleMsg(threadval, uid);
+					pthread_mutex_lock(&m_mailbox->m_sql.m_critical);
+				}
+			}
+		}
+	pthread_mutex_unlock(&m_mailbox->m_sql.m_critical);
 
 	mailimap_fetch_list_free(fetch_result);
 }
@@ -236,13 +240,13 @@ void MrImap::WorkingThread()
 
 	threadval.m_imap = mailimap_new(0, NULL);
 	r = mailimap_ssl_connect(threadval.m_imap, m_loginParam->m_mail_server, m_loginParam->m_mail_port);
-	if( IsError(r) ) {
+	if( Mr_is_error(r) ) {
 		MrLogError("could not connect to server");
 		goto WorkingThread_Exit;
 	}
 
 	r = mailimap_login(threadval.m_imap, m_loginParam->m_mail_user, m_loginParam->m_mail_pw);
-	if( IsError(r) ) {
+	if( Mr_is_error(r) ) {
 		MrLogError("could not login");
 		goto WorkingThread_Exit;
 	}
@@ -379,20 +383,3 @@ bool MrImap::Fetch()
 	return true;
 }
 
-
-/*******************************************************************************
- * Tools
- ******************************************************************************/
-
-
-bool MrImap::IsError(int imapCode)
-{
-	if( imapCode == MAILIMAP_NO_ERROR
-	 || imapCode == MAILIMAP_NO_ERROR_AUTHENTICATED
-	 || imapCode == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
-	{
-		return false; // no error - success
-	}
-
-	return true; // yes, the code is an error
-}

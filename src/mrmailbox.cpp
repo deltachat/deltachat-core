@@ -132,6 +132,16 @@ bool MrMailbox::Fetch()
 
 
 /*******************************************************************************
+ * Receive an EML as an result to calling Fetch()
+ * the new EML may be old or new and should be parsed, contacts created etc.
+ ******************************************************************************/
+
+void MrMailbox::ReceiveEml(uint32_t uid, const char* eml)
+{
+}
+
+
+/*******************************************************************************
  * Handle contacts
  ******************************************************************************/
 

@@ -44,7 +44,9 @@ MrSqlite3::MrSqlite3()
 
 	m_SELECT_COUNT_FROM_contacts = NULL;
 	m_SELECT_COUNT_FROM_chats    = NULL;
+
 	m_SELECT_COUNT_FROM_msg      = NULL;
+	m_SELECT_id_FROM_msg_i       = NULL;
 
 	pthread_mutex_init(&m_critical, NULL);
 }
@@ -93,9 +95,9 @@ bool MrSqlite3::Open(const char* dbfile)
 
 		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
-		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chat_contacts (chat_id);");
+		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, time INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, time INTEGER, type INTEGER, msg TEXT, raw TEXT);");
 		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (time);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
@@ -116,10 +118,13 @@ bool MrSqlite3::Open(const char* dbfile)
 
 	m_SELECT_COUNT_FROM_contacts = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
 	m_SELECT_COUNT_FROM_chats    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
+
 	m_SELECT_COUNT_FROM_msg      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
+	m_SELECT_id_FROM_msg_i       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE id=?;");
 
 	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL || m_DELETE_FROM_config_k==NULL
-	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL || m_SELECT_COUNT_FROM_msg==NULL )
+	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL
+	 || m_SELECT_COUNT_FROM_msg==NULL || m_SELECT_id_FROM_msg_i==NULL )
 	{
 		MrLogSqliteError(m_cobj);
 		MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.", dbfile);
@@ -153,7 +158,9 @@ void MrSqlite3::Close()
 
 		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_contacts);
 		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_chats);
+
 		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_msg);
+		SQLITE3_FINALIZE_(m_SELECT_id_FROM_msg_i);
 
 		sqlite3_close(m_cobj);
 		m_cobj = NULL;
@@ -170,8 +177,7 @@ void MrSqlite3::Close()
 char* MrSqlite3::GetDbFile()
 {
 	if( m_dbfile == NULL ) {
-		MrLogError("MrSqlite3::GetDbFile(): Out of memory.");
-		return NULL;
+		return NULL; // none
 	}
 
 	return strdup(m_dbfile); // the caller should free() the returned string
@@ -374,6 +380,10 @@ int32_t MrSqlite3::GetConfigInt(const char* key, int32_t def)
 
 size_t MrSqlite3::GetContactCnt()
 {
+	if( m_cobj==NULL ) {
+		return 0; // no database, no contacts - this is no error (needed eg. for information)
+	}
+
 	sqlite3_reset (m_SELECT_COUNT_FROM_contacts);
 	if( sqlite3_step(m_SELECT_COUNT_FROM_contacts) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
@@ -387,6 +397,10 @@ size_t MrSqlite3::GetContactCnt()
 
 size_t MrSqlite3::GetChatCnt()
 {
+	if( m_cobj==NULL ) {
+		return 0; // no database, no chats - this is no error (needed eg. for information)
+	}
+
 	sqlite3_reset (m_SELECT_COUNT_FROM_chats);
 	if( sqlite3_step(m_SELECT_COUNT_FROM_chats) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
@@ -400,6 +414,10 @@ size_t MrSqlite3::GetChatCnt()
 
 size_t MrSqlite3::GetMsgCnt()
 {
+	if( m_cobj==NULL ) {
+		return 0; // no database, no messages - this is no error (needed eg. for information)
+	}
+
 	sqlite3_reset (m_SELECT_COUNT_FROM_msg);
 	if( sqlite3_step(m_SELECT_COUNT_FROM_msg) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
@@ -408,4 +426,16 @@ size_t MrSqlite3::GetMsgCnt()
 	}
 
 	return sqlite3_column_int(m_SELECT_COUNT_FROM_msg, 0); // success
+}
+
+
+bool MrSqlite3::MsgExists(uint32_t uid)
+{
+	sqlite3_reset (m_SELECT_id_FROM_msg_i);
+	sqlite3_bind_int(m_SELECT_id_FROM_msg_i, 1, (int)uid);
+	if( sqlite3_step(m_SELECT_id_FROM_msg_i) != SQLITE_ROW ) {
+		return false; // record does not exist
+	}
+
+	return true; // record does exist
 }

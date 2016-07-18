@@ -86,6 +86,11 @@ private:
 	MrSqlite3     m_sql;
 	MrLoginParam  m_loginParam;
 	MrImap        m_imap;
+
+	// when fetching messages, this will result in a call to AddMsg().
+	// CAVE: AddEml() may be called from within a working thread!
+	void          ReceiveEml           (uint32_t uid, const char* eml);
+
 	friend class  MrImap;
 };
 
