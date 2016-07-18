@@ -23,11 +23,6 @@
  * Authors: Björn Petersen
  * Purpose: Reading from IMAP servers, see header for details.
  *
- *******************************************************************************
- *
- * TODO: On Android, I think, the thread must be marked using
- *       AttachCurrentThread(), see MailCore2 code and https://developer.android.com/training/articles/perf-jni.html
- *
  ******************************************************************************/
 
 
@@ -37,6 +32,7 @@
 
 #include "mrmailbox.h"
 #include "mrimap.h"
+#include "mrosnative.h"
 
 
 class MrImapThreadVal
@@ -297,7 +293,15 @@ WorkingThread_Exit:
 
 void MrImap::StartupHelper(MrImap* imap) // static function
 {
+	#if defined(__ANDROID) || defined(ANDROID)
+		MrAndroidSetupThread();
+	#endif
+
 	imap->WorkingThread();
+
+	#if defined(__ANDROID) || defined(ANDROID)
+		MrAndroidUnsetupThread();
+	#endif
 }
 
 
