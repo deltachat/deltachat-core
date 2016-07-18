@@ -295,6 +295,12 @@ WorkingThread_Exit:
 }
 
 
+void MrImap::StartupHelper(MrImap* imap) // static function
+{
+	imap->WorkingThread();
+}
+
+
 /*******************************************************************************
  * Connect/disconnect by start/stop the working thread
  ******************************************************************************/

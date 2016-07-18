@@ -61,13 +61,12 @@ private:
 	const MrLoginParam* m_loginParam;
 
 	pthread_t           m_thread;
+	MrImapThreadCmd     m_threadState; // set by the working thread, the main thread can read this
+	MrImapThreadCmd     m_threadCmd;   // set by the main thread, read and reset by the working thread
 	pthread_cond_t      m_cond;
 	pthread_mutex_t     m_condmutex;
 
-	MrImapThreadCmd     m_threadState; // set by the working thread, the main thread can read this
-	MrImapThreadCmd     m_threadCmd;   // set by the main thread, read and reset by the working thread
-
-	static void         StartupHelper       (MrImap* imap) { imap->WorkingThread(); }
+	static void         StartupHelper       (MrImap*);
 	void                WorkingThread       ();
 };
 
