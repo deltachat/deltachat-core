@@ -59,7 +59,7 @@ bool MrMailbox::Open(const char* dbfile)
 
 		// Create/open sqlite database
 		if( !m_sql.Open(dbfile) ) {
-			goto Open_Error;
+			goto Open_Error; // error already logged
 		}
 	}
 
@@ -162,6 +162,7 @@ char* MrMailbox::GetInfo()
 	#define BUF_BYTES 10000
 	char* buf = (char*)malloc(BUF_BYTES+1);
 	if( buf == NULL ) {
+		MrLogError("MrMailbox::GetInfo(): Out of memory.");
 		return NULL; // error
 	}
 

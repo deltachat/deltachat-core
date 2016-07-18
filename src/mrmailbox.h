@@ -39,6 +39,7 @@
 #include "mrchat.h"
 #include "mrcontact.h"
 #include "mrimap.h"
+#include "mrerror.h"
 
 
 #define MR_VERSION_MAJOR    0

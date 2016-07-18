@@ -45,6 +45,18 @@ enum MrImapThreadCmd
 };
 
 
+class MrImapThreadVal
+{
+public:
+	MrImapThreadVal()
+	{
+		m_imap = NULL;
+	}
+
+	mailimap*    m_imap;
+};
+
+
 class MrImap
 {
 public:
@@ -68,6 +80,10 @@ private:
 
 	static void         StartupHelper       (MrImap*);
 	void                WorkingThread       ();
+
+	void                FetchMessages       (MrImapThreadVal&);
+	void                FetchSingleMsg      (MrImapThreadVal&, uint32_t uid);
+	bool                IsError             (int imapCode);
 };
 
 
