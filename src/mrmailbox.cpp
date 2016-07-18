@@ -199,6 +199,7 @@ char* MrMailbox::GetInfo()
 		"Contacts         %i\n"
 		"Chats/Messages   %i/%i\n"
 
+		"email            %s\n"
 		"mail_server      %s\n"
 		"mail_port        %s\n"
 		"mail_user        %s\n"
@@ -218,6 +219,7 @@ char* MrMailbox::GetInfo()
 		, contacts
 		, chats, messages
 
+		, email? email : unset
 		, mail_server? mail_server : unset
 		, mail_port? mail_port : unset
 		, mail_user? mail_user : unset
