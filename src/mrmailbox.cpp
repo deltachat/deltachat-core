@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #include "mrmailbox.h"
+#include "mrimfparser.h"
 
 
 /*******************************************************************************
@@ -132,12 +133,20 @@ bool MrMailbox::Fetch()
 
 
 /*******************************************************************************
- * Receive an EML as an result to calling Fetch()
- * the new EML may be old or new and should be parsed, contacts created etc.
+ * Receive an IMF as an result to calling Fetch()
+ * the new IMF may be old or new and should be parsed, contacts created etc.
+ * However, the caller should make sure, it does not exist in the database.
  ******************************************************************************/
 
-void MrMailbox::ReceiveEml(uint32_t uid, const char* eml)
+void MrMailbox::ReceiveImf(uint32_t uid, const char* imf)
 {
+	MrImfParser parser(this);
+
+	if( !parser.Parse(uid, imf) ) {
+		return; // error already logged
+	}
+
+
 }
 
 

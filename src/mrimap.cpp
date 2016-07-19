@@ -162,7 +162,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 	}
 
 	// add to our respository
-	m_mailbox->ReceiveEml(uid, msg_content);
+	m_mailbox->ReceiveImf(uid, msg_content);
 
 	mailimap_fetch_list_free(fetch_result);
 }

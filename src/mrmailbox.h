@@ -87,9 +87,9 @@ private:
 	MrLoginParam  m_loginParam;
 	MrImap        m_imap;
 
-	// when fetching messages, this will result in a call to AddMsg().
-	// CAVE: AddEml() may be called from within a working thread!
-	void          ReceiveEml           (uint32_t uid, const char* eml);
+	// when fetching messages, this normally results in calls to ReceiveImf().
+	// CAVE: ReceiveImf() may be called from within a working thread!
+	void          ReceiveImf           (uint32_t uid, const char* imf);
 
 	friend class  MrImap;
 };
