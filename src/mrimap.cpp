@@ -208,13 +208,13 @@ void MrImap::FetchMessages(MrImapThreadVal& threadval)
 		for( clistiter* cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
 		{
 			mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur); // mailimap_msg_att is a list of attributes: list is a list of message attributes
-			uint32_t  uid = Mr_get_uid(msg_att);
-			if( uid )
+			uint32_t server_id = Mr_get_uid(msg_att);
+			if( server_id )
 			{
-				if( !m_mailbox->m_sql.MsgExists(uid) )
+				if( !m_mailbox->m_sql.ServerIdExists(server_id) )
 				{
 					pthread_mutex_unlock(&m_mailbox->m_sql.m_critical);
-						FetchSingleMsg(threadval, uid);
+						FetchSingleMsg(threadval, server_id);
 					pthread_mutex_lock(&m_mailbox->m_sql.m_critical);
 				}
 			}

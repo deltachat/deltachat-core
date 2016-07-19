@@ -36,7 +36,10 @@ class MrImfParser
 public:
 	                    MrImfParser          (MrMailbox* mailbox);
 	                    ~MrImfParser         ();
-	bool                Parse                (uint32_t uid, const char* imf);
+
+	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
+	// the function returns the number of new created messages.
+	int32_t             Imf2Msg              (uint32_t server_id, const char* imf);
 
 private:
 	MrMailbox*          m_mailbox;

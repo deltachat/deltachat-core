@@ -46,7 +46,7 @@ MrSqlite3::MrSqlite3()
 	m_SELECT_COUNT_FROM_chats    = NULL;
 
 	m_SELECT_COUNT_FROM_msg      = NULL;
-	m_SELECT_id_FROM_msg_i       = NULL;
+	m_SELECT_id_FROM_msg_s       = NULL;
 
 	pthread_mutex_init(&m_critical, NULL);
 }
@@ -97,8 +97,9 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, chat INTEGER, time INTEGER, type INTEGER, msg TEXT, raw TEXT);");
-		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (time);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, server_id INTEGER, chat INTEGER, time INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (server_id);"); // the server ID is the ID of the message on the server; each server_id may create several message records
+		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (time);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
 		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
@@ -120,11 +121,11 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_SELECT_COUNT_FROM_chats    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
 
 	m_SELECT_COUNT_FROM_msg      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
-	m_SELECT_id_FROM_msg_i       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE id=?;");
+	m_SELECT_id_FROM_msg_s       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE server_id=?;");
 
 	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL || m_DELETE_FROM_config_k==NULL
 	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL
-	 || m_SELECT_COUNT_FROM_msg==NULL || m_SELECT_id_FROM_msg_i==NULL )
+	 || m_SELECT_COUNT_FROM_msg==NULL || m_SELECT_id_FROM_msg_s==NULL )
 	{
 		MrLogSqliteError(m_cobj);
 		MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.", dbfile);
@@ -160,7 +161,7 @@ void MrSqlite3::Close()
 		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_chats);
 
 		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_msg);
-		SQLITE3_FINALIZE_(m_SELECT_id_FROM_msg_i);
+		SQLITE3_FINALIZE_(m_SELECT_id_FROM_msg_s);
 
 		sqlite3_close(m_cobj);
 		m_cobj = NULL;
@@ -429,11 +430,13 @@ size_t MrSqlite3::GetMsgCnt()
 }
 
 
-bool MrSqlite3::MsgExists(uint32_t uid)
+bool MrSqlite3::ServerIdExists(uint32_t server_id)
 {
-	sqlite3_reset (m_SELECT_id_FROM_msg_i);
-	sqlite3_bind_int(m_SELECT_id_FROM_msg_i, 1, (int)uid);
-	if( sqlite3_step(m_SELECT_id_FROM_msg_i) != SQLITE_ROW ) {
+	// check, if the given server_id exists in the database (if not, the message is normally downloaded from the server and parsed,
+	// so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space)
+	sqlite3_reset (m_SELECT_id_FROM_msg_s);
+	sqlite3_bind_int(m_SELECT_id_FROM_msg_s, 1, (int)server_id);
+	if( sqlite3_step(m_SELECT_id_FROM_msg_s) != SQLITE_ROW ) {
 		return false; // record does not exist
 	}
 

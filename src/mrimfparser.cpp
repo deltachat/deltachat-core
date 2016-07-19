@@ -42,7 +42,7 @@ MrImfParser::~MrImfParser()
 }
 
 
-bool MrImfParser::Parse(uint32_t uid, const char* imf)
+int32_t MrImfParser::Imf2Msg(uint32_t uid, const char* imf)
 {
-	return true;
+	return 0;
 }

@@ -138,11 +138,11 @@ bool MrMailbox::Fetch()
  * However, the caller should make sure, it does not exist in the database.
  ******************************************************************************/
 
-void MrMailbox::ReceiveImf(uint32_t uid, const char* imf)
+void MrMailbox::ReceiveImf(uint32_t server_id, const char* imf)
 {
 	MrImfParser parser(this);
 
-	if( !parser.Parse(uid, imf) ) {
+	if( !parser.Imf2Msg(server_id, imf) ) {
 		return; // error already logged
 	}
 
