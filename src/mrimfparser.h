@@ -42,6 +42,10 @@ public:
 	int32_t             Imf2Msg              (uint32_t server_id, const char* imf, size_t imf_len);
 
 private:
+	void                AddOrLookupContact   (const char* display_name /*can be NULL*/, const char* addr_spec);
+	void                AddOrLookupContacts  (mailimf_mailbox_list*);
+	void                AddOrLookupContacts  (mailimf_address_list*); // an address is a mailbox or a group
+
 	MrMailbox*          m_mailbox;
 };
 
