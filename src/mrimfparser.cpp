@@ -44,13 +44,39 @@ MrImfParser::~MrImfParser()
 
 int32_t MrImfParser::Imf2Msg(uint32_t uid, const char* imf_raw, size_t imf_len)
 {
-	size_t imf_start = 0; // in/out: pointer to the current/next message
+	size_t imf_start = 0; // in/out: pointer to the current/next message; we assume, we only get one IMF at once.
 	mailimf_message* imf;
 
+	// parse the imf to mailimf_message {
+	//		mailimf_fields* msg_fields;
+	//		mailimf_body* msg_body;
+	// };
 	int r = mailimf_message_parse(imf_raw, imf_len, &imf_start, &imf);
 	if( r!=MAILIMF_NO_ERROR ) {
 		return 0; // error
 	}
+
+	// iterate through the parsed fields
+	for( clistiter* cur = clist_begin(imf->msg_fields->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	{
+		mailimf_field* field = (mailimf_field*)clist_content(cur);
+		if( field->fld_type == MAILIMF_FIELD_FROM )
+		{
+			mailimf_from* fld_from = field->fld_data.fld_from;
+		}
+		else if( field->fld_type == MAILIMF_FIELD_TO )
+		{
+			mailimf_to* fld_to = field->fld_data.fld_to;
+		}
+		else if( field->fld_type == MAILIMF_FIELD_CC ) // CC: is treated the same way as the normal receivers by us
+		{
+			mailimf_cc* fld_cc = field->fld_data.fld_cc;
+		}
+		else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
+		{
+			mailimf_orig_date* fld_orig_date = field->fld_data.fld_orig_date;
+		}
+    }
 
 	mailimf_message_free(imf);
 	return 0;
