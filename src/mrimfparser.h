@@ -39,7 +39,7 @@ public:
 
 	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
 	// the function returns the number of new created messages.
-	int32_t             Imf2Msg              (uint32_t server_id, const char* imf);
+	int32_t             Imf2Msg              (uint32_t server_id, const char* imf, size_t imf_len);
 
 private:
 	MrMailbox*          m_mailbox;

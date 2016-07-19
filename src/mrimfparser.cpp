@@ -42,7 +42,16 @@ MrImfParser::~MrImfParser()
 }
 
 
-int32_t MrImfParser::Imf2Msg(uint32_t uid, const char* imf)
+int32_t MrImfParser::Imf2Msg(uint32_t uid, const char* imf_raw, size_t imf_len)
 {
+	size_t imf_start = 0; // in/out: pointer to the current/next message
+	mailimf_message* imf;
+
+	int r = mailimf_message_parse(imf_raw, imf_len, &imf_start, &imf);
+	if( r!=MAILIMF_NO_ERROR ) {
+		return 0; // error
+	}
+
+	mailimf_message_free(imf);
 	return 0;
 }
