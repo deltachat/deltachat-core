@@ -33,14 +33,16 @@
 int carray_search(carray* haystack, void* needle, unsigned int* indx)
 {
 	void** data = carray_data(haystack);
-    unsigned int  cnt = carray_count(haystack);
-    for( unsigned int i=0; i<cnt; i++ ) {
+	unsigned int  cnt = carray_count(haystack);
+	for( unsigned int i=0; i<cnt; i++ )
+	{
 		if( data[i] == needle ) {
 			if( indx ) {
 				*indx = i;
 			}
 			return true;
 		}
-    }
-    return false;
+	}
+
+	return false;
 }
