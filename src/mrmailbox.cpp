@@ -174,6 +174,16 @@ MrChat* MrMailbox::GetChat(size_t i)
  ******************************************************************************/
 
 
+char* MrMailbox::GetDbFile()
+{
+	if( m_sql.m_dbfile == NULL ) {
+		return NULL; // database not opened
+	}
+
+	return strdup(m_sql.m_dbfile); // must be freed by the caller
+}
+
+
 char* MrMailbox::GetInfo()
 {
 	const char  unset[] = "<unset>";
@@ -186,12 +196,11 @@ char* MrMailbox::GetInfo()
 	}
 
 	// read data (all pointers may be NULL!)
-	char *dbfile, *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw;
+	char *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw;
 	int contacts, chats, messages;
 	{
 		MrSqlite3Locker locker(m_sql);
 
-		dbfile      = m_sql.GetDbFile();
 		email       = m_sql.GetConfig("email", NULL);
 
 		mail_server = m_sql.GetConfig("mail_server", NULL);
@@ -233,7 +242,7 @@ char* MrMailbox::GetInfo()
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
-		, dbfile? dbfile : unset
+		, m_sql.m_dbfile? m_sql.m_dbfile : unset
 
 		, contacts
 		, chats, messages
@@ -252,7 +261,6 @@ char* MrMailbox::GetInfo()
 
 	// free data
 	#define GI_FREE_(a) if((a)) { free((a)); }
-	GI_FREE_(dbfile);
 	GI_FREE_(email);
 
 	GI_FREE_(mail_server);

@@ -19,38 +19,28 @@
  *
  *******************************************************************************
  *
- * File:    mrimfparser.h
+ * File:    mrtools.cpp
  * Authors: Björn Petersen
- * Purpose: Parse IMF (Internet Message Format) as stored eg in .eml files,
- *          see https://tools.ietf.org/html/rfc5322
+ * Purpose: Some tools, see header for details.
  *
  ******************************************************************************/
 
 
-#ifndef __MRIMFPARSER_H__
-#define __MRIMFPARSER_H__
+#include <stdlib.h>
+#include <libetpan.h>
 
 
-class MrImfParser
+int carray_search(carray* haystack, void* needle, unsigned int* indx)
 {
-public:
-	                    MrImfParser          (MrMailbox* mailbox);
-	                    ~MrImfParser         ();
-
-	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
-	// the function returns the number of new created messages.
-	int32_t             Imf2Msg              (uint32_t server_id, const char* imf, size_t imf_len);
-
-private:
-	char*               DecodeHeaderString   (const char* in); // can e NULL, result must be free()'s by the caller
-
-	void                AddOrLookupContact   (const char* display_name /*can be NULL*/, const char* addr_spec, carray* ret_ids);
-	void                AddOrLookupContacts  (mailimf_mailbox_list*, carray* ret_ids);
-	void                AddOrLookupContacts  (mailimf_address_list*, carray* ret_ids); // an address is a mailbox or a group
-
-	MrMailbox*          m_mailbox;
-};
-
-
-#endif // __MRIMFPARSER_H__
-
+	void** data = carray_data(haystack);
+    unsigned int  cnt = carray_count(haystack);
+    for( unsigned int i=0; i<cnt; i++ ) {
+		if( data[i] == needle ) {
+			if( indx ) {
+				*indx = i;
+			}
+			return true;
+		}
+    }
+    return false;
+}

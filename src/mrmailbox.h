@@ -78,7 +78,7 @@ public:
 	int32_t       GetConfigInt         (const char* key, int32_t def)       { MrSqlite3Locker l(m_sql); return m_sql.GetConfigInt(key, def); }
 
 	// misc
-	char*         GetDbFile            () { MrSqlite3Locker l(m_sql); return m_sql.GetDbFile(); } // the returned string must be free()'d, returns NULL on errors or if no database is open
+	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 	char*         GetInfo              (); // multi-line output; the returned string must be free()'d, returns NULL on errors
 
 private:
@@ -92,6 +92,7 @@ private:
 	void          ReceiveImf           (uint32_t uid, const char* imf, size_t imf_len);
 
 	friend class  MrImap;
+	friend class  MrImfParser;
 };
 
 

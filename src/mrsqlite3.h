@@ -35,22 +35,27 @@
 #include <pthread.h>
 
 
-// predified statements
+// predefined statements
 enum
 {
-	 SELECT_value_FROM_config_k = 0
+	 SELECT_value_FROM_config_k = 0 // must be first
 	,INSERT_INTO_config_kv
 	,UPDATE_config_vk
 	,DELETE_FROM_config_k
 
 	,SELECT_COUNT_FROM_contacts
+	,SELECT_FROM_contacts_e
+	,INSERT_INTO_contacts_ne
+	,UPDATE_contacts_ni
 
 	,SELECT_COUNT_FROM_chats
 
 	,SELECT_COUNT_FROM_msg
 	,SELECT_id_FROM_msg_s
+	,INSERT_INTO_msg_scm
+	,INSERT_INTO_msg_to_mc
 
-	,PREDEFINED_CNT
+	,PREDEFINED_CNT // must be last
 };
 
 
@@ -76,9 +81,6 @@ public:
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
 	bool          ServerIdExists       (uint32_t server_id);
 
-	// misc
-	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
-
 	// prepared statements - this is the favourite way for the caller to use SQLite
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 
@@ -86,9 +88,8 @@ public:
 	// for this purpose, all calls must be enclosed by a locked m_critical - to simplify this, you can alse use MrSqlite3Locker
 	pthread_mutex_t m_critical;
 
-private:
 	// m_sqlite is the database given as dbfile to Open()
-	char*         m_dbfile;
+	char*         m_dbfile; // may be NULL
 	sqlite3*      m_cobj;
 
 	// tools, these functions are compatible to the corresponding sqlite3_* functions

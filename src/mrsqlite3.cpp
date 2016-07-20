@@ -78,21 +78,25 @@ bool MrSqlite3::Open(const char* dbfile)
 	}
 
 	// Init the tables, if not yet done
+	// NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
+	// `INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html
 	if( !sqlite3_table_exists_("contacts") )
 	{
 		sqlite3_execute_("CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 		sqlite3_execute_("CREATE INDEX config_index1 ON config (keyname);");
 
 		sqlite3_execute_("CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
-		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (name);");
+		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (email);");
 
 		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, server_id INTEGER, chat INTEGER, time INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, server_id INTEGER, chat INTEGER, from_contact_id INTEGER, time INTEGER, type INTEGER, msg TEXT);");
 		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (server_id);"); // the server ID is the ID of the message on the server; each server_id may create several message records
 		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (time);");
+		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id);");
+		sqlite3_execute_("CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
 		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
@@ -111,11 +115,16 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_pd[DELETE_FROM_config_k]       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
 
 	m_pd[SELECT_COUNT_FROM_contacts] = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
+	m_pd[SELECT_FROM_contacts_e]     = sqlite3_prepare_v2_("SELECT id, name FROM contacts WHERE email=?;");
+	m_pd[INSERT_INTO_contacts_ne]    = sqlite3_prepare_v2_("INSERT INTO contacts (name, email) VALUES(?, ?);");
+	m_pd[UPDATE_contacts_ni]         = sqlite3_prepare_v2_("UPDATE contacts SET name=? WHERE id=?;");
 
 	m_pd[SELECT_COUNT_FROM_chats]    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
 
 	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
 	m_pd[SELECT_id_FROM_msg_s]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE server_id=?;");
+	m_pd[INSERT_INTO_msg_scm]        = sqlite3_prepare_v2_("INSERT INTO msg (server_id, from_contact_id, msg) VALUES (?,?,?);");
+	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
 		if( m_pd[i] == NULL ) {
@@ -161,16 +170,6 @@ void MrSqlite3::Close()
 		free(m_dbfile);
 		m_dbfile = NULL;
 	}
-}
-
-
-char* MrSqlite3::GetDbFile()
-{
-	if( m_dbfile == NULL ) {
-		return NULL; // none
-	}
-
-	return strdup(m_dbfile); // the caller should free() the returned string
 }
 
 
