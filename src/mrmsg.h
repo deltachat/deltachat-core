@@ -58,7 +58,7 @@ public:
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
-	MrMsgType m_type;
+	MrMsgType     m_type;
 	char*         m_msg;  // meaning dedpends on m_type
 	time_t        m_time; // unix time the message was sended
 

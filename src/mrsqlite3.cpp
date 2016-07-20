@@ -37,16 +37,9 @@ MrSqlite3::MrSqlite3()
 	m_cobj                       = NULL;
 	m_dbfile                     = NULL;
 
-	m_SELECT_value_FROM_config_k = NULL;
-	m_INSERT_INTO_config_kv      = NULL;
-	m_UPDATE_config_vk           = NULL;
-	m_DELETE_FROM_config_k       = NULL;
-
-	m_SELECT_COUNT_FROM_contacts = NULL;
-	m_SELECT_COUNT_FROM_chats    = NULL;
-
-	m_SELECT_COUNT_FROM_msg      = NULL;
-	m_SELECT_id_FROM_msg_s       = NULL;
+	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
+		m_pd[i] = NULL;
+	}
 
 	pthread_mutex_init(&m_critical, NULL);
 }
@@ -112,24 +105,24 @@ bool MrSqlite3::Open(const char* dbfile)
 	}
 
 	// prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this)
-	m_SELECT_value_FROM_config_k = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
-	m_INSERT_INTO_config_kv      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
-	m_UPDATE_config_vk           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
-	m_DELETE_FROM_config_k       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
+	m_pd[SELECT_value_FROM_config_k] = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
+	m_pd[INSERT_INTO_config_kv]      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
+	m_pd[UPDATE_config_vk]           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
+	m_pd[DELETE_FROM_config_k]       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
 
-	m_SELECT_COUNT_FROM_contacts = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
-	m_SELECT_COUNT_FROM_chats    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
+	m_pd[SELECT_COUNT_FROM_contacts] = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
 
-	m_SELECT_COUNT_FROM_msg      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
-	m_SELECT_id_FROM_msg_s       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE server_id=?;");
+	m_pd[SELECT_COUNT_FROM_chats]    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
 
-	if( m_SELECT_value_FROM_config_k==NULL || m_INSERT_INTO_config_kv==NULL || m_UPDATE_config_vk==NULL || m_DELETE_FROM_config_k==NULL
-	 || m_SELECT_COUNT_FROM_contacts==NULL || m_SELECT_COUNT_FROM_chats==NULL
-	 || m_SELECT_COUNT_FROM_msg==NULL || m_SELECT_id_FROM_msg_s==NULL )
-	{
-		MrLogSqliteError(m_cobj);
-		MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.", dbfile);
-		goto Open_Error;
+	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
+	m_pd[SELECT_id_FROM_msg_s]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE server_id=?;");
+
+	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
+		if( m_pd[i] == NULL ) {
+			MrLogSqliteError(m_cobj);
+			MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.", dbfile);
+			goto Open_Error;
+		}
 	}
 
 	// success
@@ -152,16 +145,12 @@ void MrSqlite3::Close()
 
 	if( m_cobj )
 	{
-		SQLITE3_FINALIZE_(m_SELECT_value_FROM_config_k)
-		SQLITE3_FINALIZE_(m_INSERT_INTO_config_kv)
-		SQLITE3_FINALIZE_(m_UPDATE_config_vk)
-		SQLITE3_FINALIZE_(m_DELETE_FROM_config_k)
-
-		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_contacts);
-		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_chats);
-
-		SQLITE3_FINALIZE_(m_SELECT_COUNT_FROM_msg);
-		SQLITE3_FINALIZE_(m_SELECT_id_FROM_msg_s);
+		for( int i = 0; i < PREDEFINED_CNT; i++ ) {
+			if( m_pd[i] ) {
+				sqlite3_finalize(m_pd[i]);
+				m_pd[i] = NULL;
+			}
+		}
 
 		sqlite3_close(m_cobj);
 		m_cobj = NULL;
@@ -300,21 +289,21 @@ bool MrSqlite3::SetConfig(const char* key, const char* value)
 	if( value )
 	{
 		// insert/update key=value
-		sqlite3_reset     (m_SELECT_value_FROM_config_k);
-		sqlite3_bind_text (m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-		state=sqlite3_step(m_SELECT_value_FROM_config_k);
+		sqlite3_reset     (m_pd[SELECT_value_FROM_config_k]);
+		sqlite3_bind_text (m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
+		state=sqlite3_step(m_pd[SELECT_value_FROM_config_k]);
 		if( state == SQLITE_DONE ) {
-			sqlite3_reset     (m_INSERT_INTO_config_kv);
-			sqlite3_bind_text (m_INSERT_INTO_config_kv, 1, key,   -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_INSERT_INTO_config_kv, 2, value, -1, SQLITE_STATIC);
-			state=sqlite3_step(m_INSERT_INTO_config_kv);
+			sqlite3_reset     (m_pd[INSERT_INTO_config_kv]);
+			sqlite3_bind_text (m_pd[INSERT_INTO_config_kv], 1, key,   -1, SQLITE_STATIC);
+			sqlite3_bind_text (m_pd[INSERT_INTO_config_kv], 2, value, -1, SQLITE_STATIC);
+			state=sqlite3_step(m_pd[INSERT_INTO_config_kv]);
 
 		}
 		else if( state == SQLITE_ROW ) {
-			sqlite3_reset     (m_UPDATE_config_vk);
-			sqlite3_bind_text (m_UPDATE_config_vk, 1, value, -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_UPDATE_config_vk, 2, key,   -1, SQLITE_STATIC);
-			state=sqlite3_step(m_UPDATE_config_vk);
+			sqlite3_reset     (m_pd[UPDATE_config_vk]);
+			sqlite3_bind_text (m_pd[UPDATE_config_vk], 1, value, -1, SQLITE_STATIC);
+			sqlite3_bind_text (m_pd[UPDATE_config_vk], 2, key,   -1, SQLITE_STATIC);
+			state=sqlite3_step(m_pd[UPDATE_config_vk]);
 		}
 		else {
 			MrLogError("MrSqlite3::SetConfig(): Cannot read value.");
@@ -324,9 +313,9 @@ bool MrSqlite3::SetConfig(const char* key, const char* value)
 	else
 	{
 		// delete key
-		sqlite3_reset     (m_DELETE_FROM_config_k);
-		sqlite3_bind_text (m_DELETE_FROM_config_k, 1, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(m_DELETE_FROM_config_k);
+		sqlite3_reset     (m_pd[DELETE_FROM_config_k]);
+		sqlite3_bind_text (m_pd[DELETE_FROM_config_k], 1, key,   -1, SQLITE_STATIC);
+		state=sqlite3_step(m_pd[DELETE_FROM_config_k]);
 	}
 
 	if( state != SQLITE_DONE )  {
@@ -344,11 +333,11 @@ char* MrSqlite3::GetConfig(const char* key, const char* def) // the returned str
 		return NULL;
 	}
 
-	sqlite3_reset    (m_SELECT_value_FROM_config_k);
-	sqlite3_bind_text(m_SELECT_value_FROM_config_k, 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(m_SELECT_value_FROM_config_k) == SQLITE_ROW )
+	sqlite3_reset    (m_pd[SELECT_value_FROM_config_k]);
+	sqlite3_bind_text(m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
+	if( sqlite3_step(m_pd[SELECT_value_FROM_config_k]) == SQLITE_ROW )
 	{
-		const unsigned char* ptr = sqlite3_column_text(m_SELECT_value_FROM_config_k, 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
+		const unsigned char* ptr = sqlite3_column_text(m_pd[SELECT_value_FROM_config_k], 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
 		if( ptr )
 		{
 			// success, fall through below to free objects
@@ -385,14 +374,14 @@ size_t MrSqlite3::GetContactCnt()
 		return 0; // no database, no contacts - this is no error (needed eg. for information)
 	}
 
-	sqlite3_reset (m_SELECT_COUNT_FROM_contacts);
-	if( sqlite3_step(m_SELECT_COUNT_FROM_contacts) != SQLITE_ROW ) {
+	sqlite3_reset (m_pd[SELECT_COUNT_FROM_contacts]);
+	if( sqlite3_step(m_pd[SELECT_COUNT_FROM_contacts]) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
 		MrLogError("MrSqlite3::GetContactCnt() failed.");
 		return 0; // error
 	}
 
-	return sqlite3_column_int(m_SELECT_COUNT_FROM_contacts, 0); // success
+	return sqlite3_column_int(m_pd[SELECT_COUNT_FROM_contacts], 0); // success
 }
 
 
@@ -402,14 +391,14 @@ size_t MrSqlite3::GetChatCnt()
 		return 0; // no database, no chats - this is no error (needed eg. for information)
 	}
 
-	sqlite3_reset (m_SELECT_COUNT_FROM_chats);
-	if( sqlite3_step(m_SELECT_COUNT_FROM_chats) != SQLITE_ROW ) {
+	sqlite3_reset (m_pd[SELECT_COUNT_FROM_chats]);
+	if( sqlite3_step(m_pd[SELECT_COUNT_FROM_chats]) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
 		MrLogError("MrSqlite3::GetChatCnt() failed.");
 		return 0; // error
 	}
 
-	return sqlite3_column_int(m_SELECT_COUNT_FROM_chats, 0); // success
+	return sqlite3_column_int(m_pd[SELECT_COUNT_FROM_chats], 0); // success
 }
 
 
@@ -419,14 +408,14 @@ size_t MrSqlite3::GetMsgCnt()
 		return 0; // no database, no messages - this is no error (needed eg. for information)
 	}
 
-	sqlite3_reset (m_SELECT_COUNT_FROM_msg);
-	if( sqlite3_step(m_SELECT_COUNT_FROM_msg) != SQLITE_ROW ) {
+	sqlite3_reset (m_pd[SELECT_COUNT_FROM_msg]);
+	if( sqlite3_step(m_pd[SELECT_COUNT_FROM_msg]) != SQLITE_ROW ) {
 		MrLogSqliteError(m_cobj);
 		MrLogError("MrSqlite3::GetMsgCnt() failed.");
 		return 0; // error
 	}
 
-	return sqlite3_column_int(m_SELECT_COUNT_FROM_msg, 0); // success
+	return sqlite3_column_int(m_pd[SELECT_COUNT_FROM_msg], 0); // success
 }
 
 
@@ -434,9 +423,9 @@ bool MrSqlite3::ServerIdExists(uint32_t server_id)
 {
 	// check, if the given server_id exists in the database (if not, the message is normally downloaded from the server and parsed,
 	// so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space)
-	sqlite3_reset (m_SELECT_id_FROM_msg_s);
-	sqlite3_bind_int(m_SELECT_id_FROM_msg_s, 1, (int)server_id);
-	if( sqlite3_step(m_SELECT_id_FROM_msg_s) != SQLITE_ROW ) {
+	sqlite3_reset (m_pd[SELECT_id_FROM_msg_s]);
+	sqlite3_bind_int(m_pd[SELECT_id_FROM_msg_s], 1, (int)server_id);
+	if( sqlite3_step(m_pd[SELECT_id_FROM_msg_s]) != SQLITE_ROW ) {
 		return false; // record does not exist
 	}
 

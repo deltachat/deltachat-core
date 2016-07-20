@@ -35,6 +35,25 @@
 #include <pthread.h>
 
 
+// predified statements
+enum
+{
+	 SELECT_value_FROM_config_k = 0
+	,INSERT_INTO_config_kv
+	,UPDATE_config_vk
+	,DELETE_FROM_config_k
+
+	,SELECT_COUNT_FROM_contacts
+
+	,SELECT_COUNT_FROM_chats
+
+	,SELECT_COUNT_FROM_msg
+	,SELECT_id_FROM_msg_s
+
+	,PREDEFINED_CNT
+};
+
+
 class MrSqlite3
 {
 public:
@@ -61,14 +80,7 @@ public:
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 
 	// prepared statements - this is the favourite way for the caller to use SQLite
-	sqlite3_stmt  *m_SELECT_value_FROM_config_k,
-	              *m_INSERT_INTO_config_kv,
-	              *m_UPDATE_config_vk,
-	              *m_DELETE_FROM_config_k,
-	              *m_SELECT_COUNT_FROM_contacts,
-	              *m_SELECT_COUNT_FROM_chats,
-	              *m_SELECT_COUNT_FROM_msg,
-	              *m_SELECT_id_FROM_msg_s;
+	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 
 	// the caller must make sure, only one thread uses sqlite at the same time!
 	// for this purpose, all calls must be enclosed by a locked m_critical - to simplify this, you can alse use MrSqlite3Locker
