@@ -89,7 +89,7 @@ private:
 
 	// when fetching messages, this normally results in calls to ReceiveImf().
 	// CAVE: ReceiveImf() may be called from within a working thread!
-	void          ReceiveImf           (uint32_t uid, const char* imf, size_t imf_len);
+	void          ReceiveImf           (const char* imf, size_t imf_len);
 
 	friend class  MrImap;
 	friend class  MrImfParser;

@@ -92,9 +92,9 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, server_id INTEGER, chat INTEGER, from_contact_id INTEGER, time INTEGER, type INTEGER, msg TEXT);");
-		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (server_id);"); // the server ID is the ID of the message on the server; each server_id may create several message records
-		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (time);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat INTEGER, from_contact_id INTEGER, timestamp INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (message_id);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
+		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (timestamp);");
 		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
 
@@ -122,8 +122,8 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_pd[SELECT_COUNT_FROM_chats]    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
 
 	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
-	m_pd[SELECT_id_FROM_msg_s]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE server_id=?;");
-	m_pd[INSERT_INTO_msg_scm]        = sqlite3_prepare_v2_("INSERT INTO msg (server_id, from_contact_id, msg) VALUES (?,?,?);");
+	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE message_id=?;");
+	m_pd[INSERT_INTO_msg_mctm]       = sqlite3_prepare_v2_("INSERT INTO msg (message_id, from_contact_id, timestamp, msg) VALUES (?,?,?,?);");
 	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
@@ -418,13 +418,13 @@ size_t MrSqlite3::GetMsgCnt()
 }
 
 
-bool MrSqlite3::ServerIdExists(uint32_t server_id)
+bool MrSqlite3::MessageIdExists(const char* message_id)
 {
-	// check, if the given server_id exists in the database (if not, the message is normally downloaded from the server and parsed,
+	// check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	// so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space)
-	sqlite3_reset (m_pd[SELECT_id_FROM_msg_s]);
-	sqlite3_bind_int(m_pd[SELECT_id_FROM_msg_s], 1, (int)server_id);
-	if( sqlite3_step(m_pd[SELECT_id_FROM_msg_s]) != SQLITE_ROW ) {
+	sqlite3_reset (m_pd[SELECT_id_FROM_msg_m]);
+	sqlite3_bind_text(m_pd[SELECT_id_FROM_msg_m], 1, message_id, -1, SQLITE_STATIC);
+	if( sqlite3_step(m_pd[SELECT_id_FROM_msg_m]) != SQLITE_ROW ) {
 		return false; // record does not exist
 	}
 

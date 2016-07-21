@@ -30,7 +30,12 @@
 #define __MRTOOLS_H__
 
 
+// carray tools
 bool carray_search     (carray*, void* needle, unsigned int* indx); // returns true/false and the index if `indx` is not NULL
+
+// date/time tools
+#define INVALID_TIMESTAMP    (-1)
+time_t timestampFromDate(struct mailimf_date_time * date_time); // the result is UTC or INVALID_TIMESTAMP
 
 
 #endif // __MRTOOLS_H__

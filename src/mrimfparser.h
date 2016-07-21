@@ -39,7 +39,7 @@ public:
 
 	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
 	// the function returns the number of new created messages.
-	int32_t             Imf2Msg              (uint32_t server_id, const char* imf, size_t imf_len);
+	int32_t             Imf2Msg              (const char* imf, size_t imf_len);
 
 private:
 	char*               DecodeHeaderString   (const char* in); // can e NULL, result must be free()'s by the caller
@@ -47,6 +47,8 @@ private:
 	void                AddOrLookupContact   (const char* display_name /*can be NULL*/, const char* addr_spec, carray* ret_ids);
 	void                AddOrLookupContacts  (mailimf_mailbox_list*, carray* ret_ids);
 	void                AddOrLookupContacts  (mailimf_address_list*, carray* ret_ids); // an address is a mailbox or a group
+
+	char*               CreateStubMessageId  (time_t, carray* contact_ids_to);
 
 	MrMailbox*          m_mailbox;
 };

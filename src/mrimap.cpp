@@ -101,7 +101,9 @@ static char* Mr_get_msg_att_msg_content(mailimap_msg_att* msg_att, size_t* p_msg
  ******************************************************************************/
 
 
-void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
+void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
+							const char* folder, // only needed for statistical/debugging purposes, the correct folder is already selected when this function is called
+                            uint32_t flocal_uid)
 {
 	size_t      msg_len;
 	char*       msg_content;
@@ -112,7 +114,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 	// call mailimap_uid_fetch() with some options; the result goes to fetch_result
 	{
 		// create an object defining the set set to fetch
-		mailimap_set* set = mailimap_set_new_single(uid);
+		mailimap_set* set = mailimap_set_new_single(flocal_uid);
 
 		// create an object describing the type of information to be retrieved
 		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
@@ -153,7 +155,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 	// write the mail for debugging purposes to a directory
 	{
 		char filename[512];
-		snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%u.eml", (unsigned int)uid);
+		snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%s-%u.eml", folder, (unsigned int)flocal_uid);
 		f = fopen(filename, "w");
 		if( f ) {
 			fwrite(msg_content, 1, msg_len, f);
@@ -162,7 +164,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 	}
 
 	// add to our respository
-	m_mailbox->ReceiveImf(uid, msg_content, msg_len);
+	m_mailbox->ReceiveImf(msg_content, msg_len);
 
 	mailimap_fetch_list_free(fetch_result);
 }
@@ -204,22 +206,15 @@ void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 	}
 
 	// go through all mails in folder (this is typically _fast_ as we already have the whole list)
-	pthread_mutex_lock(&m_mailbox->m_sql.m_critical); // for speed reasons, we lock the whole loop and unlock on fetching
-		for( clistiter* cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
+	for( clistiter* cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
+	{
+		mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur); // mailimap_msg_att is a list of attributes: list is a list of message attributes
+		uint32_t flocal_uid = Mr_get_uid(msg_att);
+		if( flocal_uid )
 		{
-			mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur); // mailimap_msg_att is a list of attributes: list is a list of message attributes
-			uint32_t server_id = Mr_get_uid(msg_att);
-			if( server_id )
-			{
-				if( !m_mailbox->m_sql.ServerIdExists(server_id) )
-				{
-					pthread_mutex_unlock(&m_mailbox->m_sql.m_critical);
-						FetchSingleMsg(threadval, server_id);
-					pthread_mutex_lock(&m_mailbox->m_sql.m_critical);
-				}
-			}
+			FetchSingleMsg(threadval, folder, flocal_uid);
 		}
-	pthread_mutex_unlock(&m_mailbox->m_sql.m_critical);
+	}
 
 	mailimap_fetch_list_free(fetch_result);
 }
@@ -266,7 +261,7 @@ void MrImap::WorkingThread()
 		switch( cmd )
 		{
 			case MR_THREAD_FETCH:
-                FetchFromFolder(threadval, "INBOX");
+                FetchFromFolder(threadval, "Gesendet"); // INBOX, Gesendet
                 break;
 
 			case MR_THREAD_EXIT:

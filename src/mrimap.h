@@ -82,7 +82,7 @@ private:
 	void                WorkingThread       ();
 
 	void                FetchFromFolder     (MrImapThreadVal&, const char* folder);
-	void                FetchSingleMsg      (MrImapThreadVal&, uint32_t uid);
+	void                FetchSingleMsg      (MrImapThreadVal&, const char* folder, uint32_t uid);
 };
 
 

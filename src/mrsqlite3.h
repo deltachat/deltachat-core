@@ -51,8 +51,8 @@ enum
 	,SELECT_COUNT_FROM_chats
 
 	,SELECT_COUNT_FROM_msg
-	,SELECT_id_FROM_msg_s
-	,INSERT_INTO_msg_scm
+	,SELECT_id_FROM_msg_m
+	,INSERT_INTO_msg_mctm
 	,INSERT_INTO_msg_to_mc
 
 	,PREDEFINED_CNT // must be last
@@ -79,7 +79,7 @@ public:
 
 	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
-	bool          ServerIdExists       (uint32_t server_id);
+	bool          MessageIdExists      (const char* message_id); // check existance of a Message-ID
 
 	// prepared statements - this is the favourite way for the caller to use SQLite
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];

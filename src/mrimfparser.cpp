@@ -77,6 +77,35 @@ MrImfParser::~MrImfParser()
  ******************************************************************************/
 
 
+char* MrImfParser::CreateStubMessageId(time_t message_timestamp, carray* contact_ids_to)
+{
+	if( message_timestamp == INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
+		return NULL; // cannot create a unique timestamp
+	}
+
+	// find out the largets receiver ID (we could also take the smallest, but it should be unique)
+	int icnt = carray_count(contact_ids_to), largest_id = 0;
+	for( int i = 0; i < icnt; i++ ) {
+		int cur_id = (int)(uintptr_t)carray_get(contact_ids_to, i);
+		if( cur_id > largest_id ) {
+			largest_id = cur_id;
+		}
+	}
+
+
+	// build a more or less unique string based on the timestamp and one receiver -
+	// for our purposes, this seems "good enough" for the moment, esp. as clients may a Message-ID on sent.
+	char* ret = NULL;
+	char* buf = sqlite3_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id); // todo: we should also recard from: and to: here!
+	if( buf ) {
+		ret = strdup(buf);
+		sqlite3_free(buf);
+	}
+
+	return ret; // must be free()'d by the caller
+}
+
+
 char* MrImfParser::DecodeHeaderString(const char* in)
 {
 	// decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
@@ -192,7 +221,7 @@ void MrImfParser::AddOrLookupContacts(mailimf_address_list* adr_list, carray* id
  ******************************************************************************/
 
 
-int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf_len)
+int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 {
 	size_t           imf_start = 0; // in/out: pointer to the current/next message; we assume, we only get one IMF at once.
 	mailimf_message* imf = NULL;
@@ -200,7 +229,9 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 	carray*          contact_ids_to = NULL;
 	sqlite3_stmt*    s;
 	int              r, i, icnt;
-	uint32_t         msg_id = 0;
+	uint32_t         dblocal_id = 0;    // databaselocal message id
+	char*            message_id = NULL; // Message-ID from the header
+	time_t           message_timestamp = INVALID_TIMESTAMP;
 
 	// create arrays that will hold from: and to: lists
 	contact_ids_from = carray_new(16); // may be NULL, we check this later
@@ -232,7 +263,14 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 				mailimf_field* field = (mailimf_field*)clist_content(cur1);
 				if( field )
 				{
-					if( field->fld_type == MAILIMF_FIELD_FROM )
+					if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+					{
+						mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
+						if( fld_message_id ) {
+							message_id = strdup(fld_message_id->mid_value); // != NULL
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_FROM )
 					{
 						mailimf_from* fld_from = field->fld_data.fld_from; // can be NULL
 						if( fld_from ) {
@@ -257,11 +295,28 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 					{
 						mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 						if( orig_date ) {
-							mailimf_date_time* dt = orig_date->dt_date_time;
+							message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
 						}
 					}
 				}
 			}
+		}
+
+		// check, if the mail is already in our database - if so, there's nothing more to do
+		// (we may get a mail twice eg. it it is moved between folders)
+		if( message_id == NULL ) {
+			// header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail clien
+			// the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
+			// in these cases, we build a message ID based on some useful header fields that do never change (date, to)
+			// we do not use the folder-local id, as this will change if the mail is moved to another folder.
+			message_id = CreateStubMessageId(message_timestamp, contact_ids_to);
+			if( message_id == NULL ) {
+				goto Imf2Msg_Done;
+			}
+		}
+
+		if( m_mailbox->m_sql.MessageIdExists(message_id) ) {
+			goto Imf2Msg_Done; // success - the message is already added to our database
 		}
 
 		// check, if the given message can be used as chat
@@ -270,24 +325,24 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 		// TODO
 
 		// add new message record to database
-		// (MrImap checks that the record does not yet exist using ServerIdExists() before calling Imf2Msg())
-		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_scm];
+		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mctm];
 		sqlite3_reset(s);
-		sqlite3_bind_int (s, 1, server_id);
-		sqlite3_bind_int (s, 2, (contact_ids_from&&carray_count(contact_ids_from)>0)? (int)(uintptr_t)carray_get(contact_ids_from, 0) : 0);
-		sqlite3_bind_text(s, 3, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
+		sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (s, 2, (contact_ids_from&&carray_count(contact_ids_from)>0)? (int)(uintptr_t)carray_get(contact_ids_from, 0) : 0);
+		sqlite3_bind_int64(s, 3, message_timestamp);
+		sqlite3_bind_text (s, 4, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
 		if( sqlite3_step(s) != SQLITE_DONE ) {
 			goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
 		}
 
-		msg_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
+		dblocal_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
 
 		if( contact_ids_to ) {
 			s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_to_mc];
 			icnt = carray_count(contact_ids_to);
 			for( i = 0; i < icnt; i++ ) {
 				sqlite3_reset(s);
-				sqlite3_bind_int(s, 1, msg_id);
+				sqlite3_bind_int(s, 1, dblocal_id);
 				sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
 				if( sqlite3_step(s) != SQLITE_DONE ) {
 					goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
@@ -299,6 +354,10 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 
 	// done
 Imf2Msg_Done:
+	if( message_id ) {
+		free(message_id);
+	}
+
 	if( contact_ids_from ) {
 		carray_free(contact_ids_from);
 	}
