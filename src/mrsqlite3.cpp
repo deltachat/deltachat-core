@@ -362,6 +362,18 @@ int32_t MrSqlite3::GetConfigInt(const char* key, int32_t def)
 }
 
 
+bool MrSqlite3::SetConfigInt(const char* key, int32_t value)
+{
+    char* value_str = sqlite3_mprintf("%i", (int)value);
+    if( value_str == NULL ) {
+		return false;
+    }
+    bool ret = SetConfig(key, value_str);
+    sqlite3_free(value_str);
+    return ret;
+}
+
+
 /*******************************************************************************
  * Handle tables
  ******************************************************************************/

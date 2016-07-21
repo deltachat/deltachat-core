@@ -101,10 +101,11 @@ static char* Mr_get_msg_att_msg_content(mailimap_msg_att* msg_att, size_t* p_msg
  ******************************************************************************/
 
 
-void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
+bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 							const char* folder, // only needed for statistical/debugging purposes, the correct folder is already selected when this function is called
                             uint32_t flocal_uid)
 {
+	// the function returns false if the caller should try over fetch message again, else true.
 	size_t      msg_len;
 	char*       msg_content;
 	FILE*       f;
@@ -132,7 +133,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 
 	if( Mr_is_error(r) ) {
 		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.");
-		return;
+		return false; // this is an error that should be recovered; the caller should try over later to fetch the message again
 	}
 
 	// get message content (fetch_result should be only one message)
@@ -140,7 +141,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 		clistiter* cur = clist_begin(fetch_result);
 		if( cur == NULL ) {
 			MrLogError("MrImap::FetchSingleMsg(): Empty message.");
-			return;
+			return true; // error, however, do not try to fetch the message again
 		}
 
 		mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur);
@@ -148,7 +149,7 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 		if( msg_content == NULL ) {
 			MrLogWarning("MrImap::FetchSingleMsg(): No content found for a message.");
 			mailimap_fetch_list_free(fetch_result);
-			return;
+			return true; // error, however, do not try to fetch the message again
 		}
 	}
 
@@ -168,23 +169,43 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 	m_mailbox->ReceiveImf(msg_content, msg_len);
 
 	mailimap_fetch_list_free(fetch_result);
+
+	return true; // success, message fetched
 }
 
 
 void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 {
+	int      r;
+	clist*   fetch_result = NULL;
+	uint32_t largetst_uid = 0, first_uid;
+	bool     read_errors = false;
+	char*    config_key = NULL;
+
+	// read the last index used for the given folder
+	config_key = sqlite3_mprintf("folder.lastuid.%s", folder);
+	if( config_key == NULL ) {
+		MrLogError("out of memory.");
+		goto FetchFromFolder_Done;
+	}
+
+	{
+		MrSqlite3Locker locker(m_mailbox->m_sql);
+		first_uid = m_mailbox->m_sql.GetConfigInt(config_key, 0);
+		first_uid++;
+	}
+
 	// select the folder
-	int r = mailimap_select(threadval.m_imap, folder);
+	r = mailimap_select(threadval.m_imap, folder);
 	if( Mr_is_error(r) ) {
 		MrLogError("could not select folder.", folder);
-		return;
+		goto FetchFromFolder_Done;
 	}
 
 	// call mailimap_fetch() with some options; the result goes to fetch_result
-	clist* fetch_result;
 	{
 		// create an object defining the set set to fetch
-		mailimap_set* set = mailimap_set_new_interval(1, 0); // fetch in interval 1:*
+		mailimap_set* set = mailimap_set_new_interval(first_uid, 0); // fetch in interval 1:*
 
 		// create an object describing the type of information to be retrieved
 		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
@@ -200,10 +221,10 @@ void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 			&fetch_result); // result as a clist of mailimap_msg_att*
 	}
 
-	if( Mr_is_error(r) )
+	if( Mr_is_error(r) || fetch_result == NULL )
 	{
 		MrLogError("could not fetch");
-		return;
+		goto FetchFromFolder_Done;
 	}
 
 	// go through all mails in folder (this is typically _fast_ as we already have the whole list)
@@ -213,11 +234,30 @@ void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 		uint32_t flocal_uid = Mr_get_uid(msg_att);
 		if( flocal_uid )
 		{
-			FetchSingleMsg(threadval, folder, flocal_uid);
+			if( flocal_uid > largetst_uid ) {
+				largetst_uid = flocal_uid;
+			}
+
+			if( !FetchSingleMsg(threadval, folder, flocal_uid) ) {
+				read_errors = true;
+			}
 		}
 	}
 
-	mailimap_fetch_list_free(fetch_result);
+	if( !read_errors ) {
+		MrSqlite3Locker locker(m_mailbox->m_sql);
+		m_mailbox->m_sql.SetConfigInt(config_key, largetst_uid);
+	}
+
+	// done
+FetchFromFolder_Done:
+	if( fetch_result ) {
+		mailimap_fetch_list_free(fetch_result);
+	}
+
+	if( config_key ) {
+		sqlite3_free(config_key);
+	}
 }
 
 

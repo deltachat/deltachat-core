@@ -291,6 +291,7 @@ bool MrMailbox::Empty()
 	m_sql.sqlite3_execute_("DELETE FROM chats_contacts;");
 	m_sql.sqlite3_execute_("DELETE FROM msg;");
 	m_sql.sqlite3_execute_("DELETE FROM msg_to;");
+	m_sql.sqlite3_execute_("DELETE FROM config WHERE keyname LIKE 'folder.%';");
 
 	return true;
 }

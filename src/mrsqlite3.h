@@ -70,6 +70,7 @@ public:
 
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value);
+	bool          SetConfigInt         (const char* key, int32_t value);
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 	int32_t       GetConfigInt         (const char* key, int32_t def);
 
