@@ -59,6 +59,9 @@ public:
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
 
+	// empty all tabes but leaves server configuration
+	bool          Empty                ();
+
 	// connect to the mailbox: error are be received asynchronously.
 	bool          Connect              ();
 	void          Disconnect           ();

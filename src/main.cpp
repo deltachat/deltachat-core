@@ -93,6 +93,7 @@ int main(int argc, char ** argv)
 			printf("disconnect          disconnect from mailbox server\n");
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
+			printf("empty               empty database but server config\n");
 			printf("exit                exit program\n");
 		}
 		else if( strncmp(cmd, "open", 4)==0 )
@@ -180,6 +181,12 @@ int main(int argc, char ** argv)
 				free(buf);
 			}
 			else {
+				print_error();
+			}
+		}
+		else if( strcmp(cmd, "empty")==0 )
+		{
+			if( !mailbox->Empty() ) {
 				print_error();
 			}
 		}

@@ -275,3 +275,16 @@ char* MrMailbox::GetInfo()
 	return buf; // must be freed by the caller
 }
 
+
+bool MrMailbox::Empty()
+{
+	MrSqlite3Locker locker(m_sql);
+
+	m_sql.sqlite3_execute_("DELETE FROM contacts;");
+	m_sql.sqlite3_execute_("DELETE FROM chats;");
+	m_sql.sqlite3_execute_("DELETE FROM chats_contacts;");
+	m_sql.sqlite3_execute_("DELETE FROM msg;");
+	m_sql.sqlite3_execute_("DELETE FROM msg_to;");
+
+	return true;
+}
