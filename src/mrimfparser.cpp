@@ -96,7 +96,7 @@ char* MrImfParser::CreateStubMessageId(time_t message_timestamp, carray* contact
 	// build a more or less unique string based on the timestamp and one receiver -
 	// for our purposes, this seems "good enough" for the moment, esp. as clients may a Message-ID on sent.
 	char* ret = NULL;
-	char* buf = sqlite3_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id); // todo: we should also recard from: and to: here!
+	char* buf = sqlite3_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
 	if( buf ) {
 		ret = strdup(buf);
 		sqlite3_free(buf);

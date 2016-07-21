@@ -153,9 +153,10 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 	}
 
 	// write the mail for debugging purposes to a directory
+	if( m_debugDir )
 	{
 		char filename[512];
-		snprintf(filename, sizeof(filename), "/home/bpetersen/temp/%s-%u.eml", folder, (unsigned int)flocal_uid);
+		snprintf(filename, sizeof(filename), "%s/%s-%u.eml", m_debugDir, folder, (unsigned int)flocal_uid);
 		f = fopen(filename, "w");
 		if( f ) {
 			fwrite(msg_content, 1, msg_len, f);
@@ -309,6 +310,8 @@ MrImap::MrImap(MrMailbox* mailbox)
 	m_threadCmd     = MR_THREAD_WAIT;
 	m_loginParam    = NULL;
 
+	m_debugDir      = NULL;
+
 	pthread_mutex_init(&m_condmutex, NULL);
     pthread_cond_init(&m_cond, NULL);
 }
@@ -320,6 +323,8 @@ MrImap::~MrImap()
 
 	pthread_cond_destroy(&m_cond);
 	pthread_mutex_destroy(&m_condmutex);
+
+	free(m_debugDir);
 }
 
 
@@ -334,6 +339,14 @@ bool MrImap::Connect(const MrLoginParam* param)
 		return true; // already trying to connect
 	}
 
+	// (re-)read debug directory configuration
+	{
+		MrSqlite3Locker locker(m_mailbox->m_sql);
+		free(m_debugDir);
+		m_debugDir = m_mailbox->m_sql.GetConfig("debug_dir", NULL);
+	}
+
+	// start the working thread
 	m_loginParam = param;
 	m_threadState = MR_THREAD_INIT;
 	pthread_create(&m_thread, NULL, (void * (*)(void *)) MrImap::StartupHelper, this);

@@ -78,6 +78,8 @@ private:
 	pthread_cond_t      m_cond;
 	pthread_mutex_t     m_condmutex;
 
+	char*               m_debugDir;
+
 	static void         StartupHelper       (MrImap*);
 	void                WorkingThread       ();
 

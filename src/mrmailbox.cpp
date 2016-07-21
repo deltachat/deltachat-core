@@ -196,7 +196,7 @@ char* MrMailbox::GetInfo()
 	}
 
 	// read data (all pointers may be NULL!)
-	char *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw;
+	char *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
 	int contacts, chats, messages;
 	{
 		MrSqlite3Locker locker(m_sql);
@@ -212,6 +212,8 @@ char* MrMailbox::GetInfo()
 		send_port   = m_sql.GetConfig("send_port", NULL);
 		send_user   = m_sql.GetConfig("send_user", NULL);
 		send_pw     = m_sql.GetConfig("send_pw", NULL);
+
+		debug_dir   = m_sql.GetConfig("debug_dir", NULL);
 
 		contacts    = m_sql.GetContactCnt();
 		chats       = m_sql.GetChatCnt();
@@ -237,6 +239,8 @@ char* MrMailbox::GetInfo()
 		"send_port        %s\n"
 		"send_user        %s\n"
 		"send_pw          %s\n"
+
+		"debug_dir        %s\n"
 		"If possible, unset values are filled by the program with typical values.\n"
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
@@ -257,6 +261,8 @@ char* MrMailbox::GetInfo()
 		, send_port? send_port : unset
 		, send_user? send_user : unset
 		, send_pw? set : unset // we do not display the password here; in the cli-utility, you can see it using `get send_pw`
+
+		, debug_dir? debug_dir : unset
 		);
 
 	// free data
