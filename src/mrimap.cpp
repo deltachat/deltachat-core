@@ -105,6 +105,7 @@ bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 							const char* folder, // only needed for statistical/debugging purposes, the correct folder is already selected when this function is called
                             uint32_t flocal_uid)
 {
+	// we're inside a working thread!
 	// the function returns false if the caller should try over fetch message again, else true.
 	size_t      msg_len;
 	char*       msg_content;
@@ -174,12 +175,13 @@ bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 }
 
 
-void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
+void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folder)
 {
+	// we're inside a working thread!
 	int      r;
 	clist*   fetch_result = NULL;
 	uint32_t largetst_uid = 0, first_uid;
-	bool     read_errors = false;
+	int      read_cnt = 0, read_errors = 0;
 	char*    config_key = NULL;
 
 	// read the last index used for the given folder
@@ -238,8 +240,9 @@ void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 				largetst_uid = flocal_uid;
 			}
 
+			read_cnt++;
 			if( !FetchSingleMsg(threadval, folder, flocal_uid) ) {
-				read_errors = true;
+				read_errors++;
 			}
 		}
 	}
@@ -251,6 +254,19 @@ void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 
 	// done
 FetchFromFolder_Done:
+    {
+		char* temp = sqlite3_mprintf("Read %i mails from %s with %i errors.", read_cnt, folder, read_errors);
+		if( temp ) {
+			if( read_errors ) {
+				MrLogError(temp, NULL);
+			}
+			else {
+				MrLogInfo(temp, NULL);
+			}
+			sqlite3_free(temp);
+		}
+    }
+
 	if( fetch_result ) {
 		mailimap_fetch_list_free(fetch_result);
 	}
@@ -258,6 +274,14 @@ FetchFromFolder_Done:
 	if( config_key ) {
 		sqlite3_free(config_key);
 	}
+}
+
+
+void MrImap::FetchFromAllFolders(MrImapThreadVal& threadval)
+{
+	// we're inside a working thread!
+
+	FetchFromSingleFolder(threadval, "Gesendet"); // INBOX, Gesendet
 }
 
 
@@ -302,7 +326,7 @@ void MrImap::WorkingThread()
 		switch( cmd )
 		{
 			case MR_THREAD_FETCH:
-                FetchFromFolder(threadval, "Gesendet"); // INBOX, Gesendet
+                FetchFromAllFolders(threadval);
                 break;
 
 			case MR_THREAD_EXIT:

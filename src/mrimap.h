@@ -80,11 +80,12 @@ private:
 
 	char*               m_debugDir;
 
-	static void         StartupHelper       (MrImap*);
-	void                WorkingThread       ();
+	static void         StartupHelper        (MrImap*);
+	void                WorkingThread        ();
 
-	void                FetchFromFolder     (MrImapThreadVal&, const char* folder);
-	bool                FetchSingleMsg      (MrImapThreadVal&, const char* folder, uint32_t uid);
+	void                FetchFromAllFolders  (MrImapThreadVal&);
+	void                FetchFromSingleFolder(MrImapThreadVal&, const char* folder);
+	bool                FetchSingleMsg       (MrImapThreadVal&, const char* folder, uint32_t uid);
 };
 
 
