@@ -81,7 +81,7 @@ private:
 	static void         StartupHelper       (MrImap*);
 	void                WorkingThread       ();
 
-	void                FetchMessages       (MrImapThreadVal&);
+	void                FetchFromFolder     (MrImapThreadVal&, const char* folder);
 	void                FetchSingleMsg      (MrImapThreadVal&, uint32_t uid);
 };
 

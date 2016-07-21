@@ -264,8 +264,13 @@ int32_t MrImfParser::Imf2Msg(uint32_t server_id, const char* imf_raw, size_t imf
 			}
 		}
 
+		// check, if the given message can be used as chat
+		// (a message that is send by us introduces a chat with the receiver)
+
+		// TODO
+
 		// add new message record to database
-        // (MrImap checks that the record does not yet exist using ServerIdExists() before calling Imf2Msg())
+		// (MrImap checks that the record does not yet exist using ServerIdExists() before calling Imf2Msg())
 		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_scm];
 		sqlite3_reset(s);
 		sqlite3_bind_int (s, 1, server_id);

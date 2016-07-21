@@ -168,12 +168,12 @@ void MrImap::FetchSingleMsg(MrImapThreadVal& threadval, uint32_t uid)
 }
 
 
-void MrImap::FetchMessages(MrImapThreadVal& threadval)
+void MrImap::FetchFromFolder(MrImapThreadVal& threadval, const char* folder)
 {
 	// select the folder
-	int r = mailimap_select(threadval.m_imap, "INBOX");
+	int r = mailimap_select(threadval.m_imap, folder);
 	if( Mr_is_error(r) ) {
-		MrLogError("could not select INBOX.");
+		MrLogError("could not select folder.", folder);
 		return;
 	}
 
@@ -266,7 +266,7 @@ void MrImap::WorkingThread()
 		switch( cmd )
 		{
 			case MR_THREAD_FETCH:
-                FetchMessages(threadval);
+                FetchFromFolder(threadval, "INBOX");
                 break;
 
 			case MR_THREAD_EXIT:
