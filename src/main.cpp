@@ -85,7 +85,7 @@ int main(int argc, char ** argv)
 		if( strcmp(cmd, "help")==0 || cmd[0] == '?' )
 		{
 			printf("?                   show this help\n");
-			printf("open <file>         open database\n");
+			printf("open <file>         open/create database\n");
 			printf("close               close database\n");
 			printf("set <key> [<value>] set/delete configuration value\n");
 			printf("get <key>           show configuration value\n");
