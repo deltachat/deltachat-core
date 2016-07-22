@@ -119,6 +119,7 @@ bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 		mailimap_set* set = mailimap_set_new_single(flocal_uid);
 
 		// create an object describing the type of information to be retrieved
+		// - we want to retrieve the body -
 		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
 		{
 		 mailimap_section*    section = mailimap_section_new(NULL);
@@ -207,9 +208,13 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// call mailimap_fetch() with some options; the result goes to fetch_result
 	{
 		// create an object defining the set set to fetch
-		mailimap_set* set = mailimap_set_new_interval(first_uid, 0); // fetch in interval 1:*
+		// set may reference to index or tu uid, depending if mailimap_fetch() or mailimap_uid_fetch() is used below
+		// TODO: if  the mail with the uid first_uid does not exist, we get the next smaller value ... we would expect an empty list.
+		//       possible HACK for this: we check the id below ...
+		struct mailimap_set* set = mailimap_set_new_interval(first_uid, 0);
 
 		// create an object describing the type of information to be retrieved
+		// - we want to retrieve the uid -
 		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
 		{
 		 mailimap_fetch_att*  att = mailimap_fetch_att_new_uid();
@@ -217,7 +222,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 		}
 
 		// do fetch!
-		r = mailimap_fetch(threadval.m_imap,
+		r = mailimap_uid_fetch(threadval.m_imap,
 			set,            // set of message numbers, mailimap_fetch() takes ownership of the object
 			type,           // type of information to be retrieved, mailimap_fetch() takes ownership of the object
 			&fetch_result); // result as a clist of mailimap_msg_att*
@@ -247,7 +252,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 		}
 	}
 
-	if( !read_errors ) {
+	if( !read_errors && largetst_uid > 0 ) {
 		MrSqlite3Locker locker(m_mailbox->m_sql);
 		m_mailbox->m_sql.SetConfigInt(config_key, largetst_uid);
 	}
@@ -280,8 +285,30 @@ FetchFromFolder_Done:
 void MrImap::FetchFromAllFolders(MrImapThreadVal& threadval)
 {
 	// we're inside a working thread!
+	/*int        r;
+	clist*     imap_folders = NULL;
+	clistiter* cur;
 
-	FetchFromSingleFolder(threadval, "Gesendet"); // INBOX, Gesendet
+	r = mailimap_list(threadval.m_imap, "", "", &imap_folders); // returns mailimap_mailbox_list
+	if( Mr_is_error(r) || imap_folders==NULL ) {
+		goto FetchFromAllFolders_Done;
+	}
+
+	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) )
+	{
+		mailimap_mailbox_list* folder = (mailimap_mailbox_list*)clist_content(cur);
+		if( folder )
+		{
+            printf("%s\n", folder->mb_name);
+		}
+	}
+	*/
+
+	FetchFromSingleFolder(threadval, "INBOX");
+	//FetchFromSingleFolder(threadval, "Gesendet");
+
+FetchFromAllFolders_Done:
+	;
 }
 
 
