@@ -301,8 +301,9 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 					}
 					else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
 					{
-						comes_from_extern = true; // we assume, the `Return-Path:`-Header is never present if the message is send by us
+						comes_from_extern = true; // we assume, the `Return-Path:`-header is never present if the message is send by us
 						                          // (messages send by us are used to validate other mail senders and receivers)
+						                          // maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan.
 					}
 				}
 
