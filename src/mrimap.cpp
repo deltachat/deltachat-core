@@ -29,15 +29,55 @@
 #include <stdlib.h>
 #include <libetpan/libetpan.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #include "mrmailbox.h"
 #include "mrimap.h"
 #include "mrosnative.h"
+#include "mrtools.h"
 
 
 /*******************************************************************************
  * Tools
  ******************************************************************************/
+
+
+static bool Mr_ignore_folder(const char* folder_name)
+{
+	bool ignore_folder = false;
+	char* l = mr_strlower(folder_name);
+	if( !l ) {
+		goto Mr_is_void_folder_Done;
+	}
+
+	if( strcmp(l, "spam") == 0
+	 || strcmp(l, "junk") == 0
+	 || strcmp(l, "indésirables") == 0 // fr
+
+	 || strcmp(l, "trash") == 0
+	 || strcmp(l, "deleted") == 0
+	 || strcmp(l, "deleted items") == 0
+	 || strcmp(l, "papierkorb") == 0   // de
+	 || strcmp(l, "corbeille") == 0    // fr
+	 || strcmp(l, "papelera") == 0     // es
+	 || strcmp(l, "papperskorg") == 0  // sv
+
+	 || strcmp(l, "drafts") == 0
+	 || strcmp(l, "entwürfe") == 0     // de
+	 || strcmp(l, "brouillons") == 0   // fr
+	 || strcmp(l, "borradores") == 0   // es
+	 || strcmp(l, "utkast") == 0       // sv
+	  )
+	{
+		ignore_folder = true;
+	}
+
+Mr_is_void_folder_Done:
+	if( l ) {
+		free(l);
+	}
+	return ignore_folder;
+}
 
 
 static bool Mr_is_error(int imapCode)
@@ -134,7 +174,7 @@ bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 	}
 
 	if( Mr_is_error(r) ) {
-		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.");
+		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.", folder);
 		return false; // this is an error that should be recovered; the caller should try over later to fetch the message again
 	}
 
@@ -189,7 +229,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// read the last index used for the given folder
 	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
 	if( config_key == NULL ) {
-		MrLogError("out of memory.");
+		MrLogError("MrImap::FetchFromSingleFolder(): Out of memory.", folder);
 		goto FetchFromFolder_Done;
 	}
 
@@ -201,7 +241,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// select the folder
 	r = mailimap_select(threadval.m_imap, folder);
 	if( Mr_is_error(r) ) {
-		MrLogError("could not select folder.", folder);
+		MrLogError("MrImap::FetchFromSingleFolder(): Could not select folder.", folder);
 		goto FetchFromFolder_Done;
 	}
 
@@ -231,7 +271,10 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 
 	if( Mr_is_error(r) || fetch_result == NULL )
 	{
-		MrLogError("could not fetch");
+		if( r == MAILIMAP_ERROR_PROTOCOL ) {
+			goto FetchFromFolder_Done; // the folder is simply empty
+		}
+		MrLogError("MrImap::FetchFromSingleFolder(): Could not fetch", folder);
 		goto FetchFromFolder_Done;
 	}
 
@@ -286,27 +329,41 @@ FetchFromFolder_Done:
 void MrImap::FetchFromAllFolders(MrImapThreadVal& threadval)
 {
 	// we're inside a working thread!
-	/*int        r;
+
+	// check INBOX
+	FetchFromSingleFolder(threadval, "INBOX");
+
+	// check other folders
+	int        r;
 	clist*     imap_folders = NULL;
 	clistiter* cur;
 
-	r = mailimap_list(threadval.m_imap, "", "", &imap_folders); // returns mailimap_mailbox_list
+	r = mailimap_list(threadval.m_imap, "", "*", &imap_folders); // returns mailimap_mailbox_list
 	if( Mr_is_error(r) || imap_folders==NULL ) {
 		goto FetchFromAllFolders_Done;
 	}
 
-	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) )
+	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) ) // contains eg. Gesendet, Archiv, INBOX - uninteresting: Spam, Papierkorb, Entwürfe
 	{
 		mailimap_mailbox_list* folder = (mailimap_mailbox_list*)clist_content(cur);
-		if( folder )
+		if( folder && strcmp(folder->mb_name, "INBOX")!=0 )
 		{
-            printf("%s\n", folder->mb_name);
+			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, false);
+			if( name_utf8 )
+			{
+				if( !Mr_ignore_folder(name_utf8) )
+				{
+					FetchFromSingleFolder(threadval, name_utf8);
+				}
+				else
+				{
+					MrLogInfo("Folder ignored", name_utf8);
+				}
+
+				free(name_utf8);
+			}
 		}
 	}
-	*/
-
-	FetchFromSingleFolder(threadval, "INBOX");
-	//FetchFromSingleFolder(threadval, "Gesendet");
 
 FetchFromAllFolders_Done:
 	;

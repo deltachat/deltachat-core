@@ -30,6 +30,11 @@
 #define __MRTOOLS_H__
 
 
+// string tools
+char* mr_strlower(const char*); // the result must be free()'d
+char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
+char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);
+
 // carray tools
 bool carray_search     (carray*, void* needle, unsigned int* indx); // returns true/false and the index if `indx` is not NULL
 
