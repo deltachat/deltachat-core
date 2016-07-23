@@ -181,12 +181,13 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// we're inside a working thread!
 	int      r;
 	clist*   fetch_result = NULL;
-	uint32_t largetst_uid = 0, first_uid;
+	uint32_t in_first_uid = 0; // the first uid to fetch, if 0, get all
+	uint32_t out_largetst_uid = 0;
 	int      read_cnt = 0, read_errors = 0;
 	char*    config_key = NULL;
 
 	// read the last index used for the given folder
-	config_key = sqlite3_mprintf("folder.lastuid.%s", folder);
+	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
 	if( config_key == NULL ) {
 		MrLogError("out of memory.");
 		goto FetchFromFolder_Done;
@@ -194,8 +195,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 
 	{
 		MrSqlite3Locker locker(m_mailbox->m_sql);
-		first_uid = m_mailbox->m_sql.GetConfigInt(config_key, 0);
-		first_uid++;
+		in_first_uid = m_mailbox->m_sql.GetConfigInt(config_key, 0);
 	}
 
 	// select the folder
@@ -207,13 +207,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 
 	// call mailimap_fetch() with some options; the result goes to fetch_result
 	{
-		// create an object defining the set set to fetch
-		// set may reference to index or tu uid, depending if mailimap_fetch() or mailimap_uid_fetch() is used below
-		// TODO: if  the mail with the uid first_uid does not exist, we get the next smaller value ... we would expect an empty list.
-		//       possible HACK for this: we check the id below ...
-		struct mailimap_set* set = mailimap_set_new_interval(first_uid, 0);
-
-		// create an object describing the type of information to be retrieved
+		// create an object describing the type of information to be retrieved, mailimap_fetch() takes ownership of the object
 		// - we want to retrieve the uid -
 		mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
 		{
@@ -222,10 +216,17 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 		}
 
 		// do fetch!
-		r = mailimap_uid_fetch(threadval.m_imap,
-			set,            // set of message numbers, mailimap_fetch() takes ownership of the object
-			type,           // type of information to be retrieved, mailimap_fetch() takes ownership of the object
-			&fetch_result); // result as a clist of mailimap_msg_att*
+		if( in_first_uid )
+		{
+			// CAVE: We may get mails with uid smaller than the given one; therefore we check the uid below (this is also done in MailCore2, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp)
+			r = mailimap_uid_fetch(threadval.m_imap, mailimap_set_new_interval(in_first_uid+1, 0), // fetch by uid
+				type, &fetch_result);
+		}
+		else
+		{
+			r = mailimap_fetch(threadval.m_imap, mailimap_set_new_interval(1, 0), // fetch by index
+				type, &fetch_result);
+		}
 	}
 
 	if( Mr_is_error(r) || fetch_result == NULL )
@@ -238,23 +239,23 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	for( clistiter* cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
 	{
 		mailimap_msg_att* msg_att = (mailimap_msg_att*)clist_content(cur); // mailimap_msg_att is a list of attributes: list is a list of message attributes
-		uint32_t flocal_uid = Mr_get_uid(msg_att);
-		if( flocal_uid )
+		uint32_t cur_uid = Mr_get_uid(msg_att);
+		if( cur_uid && (in_first_uid==0 || cur_uid>in_first_uid) )
 		{
-			if( flocal_uid > largetst_uid ) {
-				largetst_uid = flocal_uid;
+			if( cur_uid > out_largetst_uid ) {
+				out_largetst_uid = cur_uid;
 			}
 
 			read_cnt++;
-			if( !FetchSingleMsg(threadval, folder, flocal_uid) ) {
+			if( !FetchSingleMsg(threadval, folder, cur_uid) ) {
 				read_errors++;
 			}
 		}
 	}
 
-	if( !read_errors && largetst_uid > 0 ) {
+	if( !read_errors && out_largetst_uid > 0 ) {
 		MrSqlite3Locker locker(m_mailbox->m_sql);
-		m_mailbox->m_sql.SetConfigInt(config_key, largetst_uid);
+		m_mailbox->m_sql.SetConfigInt(config_key, out_largetst_uid);
 	}
 
 	// done
