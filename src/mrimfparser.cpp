@@ -232,6 +232,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	uint32_t         dblocal_id = 0;    // databaselocal message id
 	char*            message_id = NULL; // Message-ID from the header
 	time_t           message_timestamp = INVALID_TIMESTAMP;
+	bool             comes_from_extern = false; // indicates, if the mail was send by us or was received from outside
 
 	// create arrays that will hold from: and to: lists
 	contact_ids_from = carray_new(16); // may be NULL, we check this later
@@ -298,7 +299,19 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 							message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
 						}
 					}
+					else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
+					{
+						comes_from_extern = true; // we assume, the `Return-Path:`-Header is never present if the message is send by us
+						                          // (messages send by us are used to validate other mail senders and receivers)
+					}
 				}
+
+			} // for
+
+			// check, if the given message is send by _us_ -
+			// a message that is send by us introduces a chat with the receivers
+			if( !comes_from_extern )
+			{
 			}
 		}
 
@@ -318,11 +331,6 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 		if( m_mailbox->m_sql.MessageIdExists(message_id) ) {
 			goto Imf2Msg_Done; // success - the message is already added to our database
 		}
-
-		// check, if the given message can be used as chat
-		// (a message that is send by us introduces a chat with the receiver)
-
-		// TODO
 
 		// add new message record to database
 		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mctm];
