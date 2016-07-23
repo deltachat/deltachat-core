@@ -313,6 +313,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// a message that is send by us introduces a chat with the receivers
 			if( !comes_from_extern )
 			{
+				// TODO: create chats, if not yet done
 			}
 		}
 
