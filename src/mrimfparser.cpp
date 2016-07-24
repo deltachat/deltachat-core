@@ -309,8 +309,8 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 
 			} // for
 
-			// check, if the given message is send by _us_ -
-			// a message that is send by us introduces a chat with the receivers
+			// check, if the given message is send by _us_ to only _one_ receiver --
+			// only these messages introduce an automatic chat with the receiver (of course, the user can add other chats manually)
 			if( !comes_from_extern )
 			{
 				// TODO: create chats, if not yet done
