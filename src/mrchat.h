@@ -37,7 +37,7 @@ class MrMailbox;
 enum MrChatType
 {
 	 MR_CHAT_UNDEFINED =  0
-	,MR_CHAT_CONTACT   = 10
+	,MR_CHAT_NORMAL    = 10 // a normal chat is a chat with a single contact
 	,MR_CHAT_PRIVATE   = 20
 	,MR_CHAT_GROUP     = 30
 };

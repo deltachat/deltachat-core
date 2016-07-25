@@ -232,6 +232,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	uint32_t         dblocal_id = 0;    // databaselocal message id
 	char*            message_id = NULL; // Message-ID from the header
 	time_t           message_timestamp = INVALID_TIMESTAMP;
+	uint32_t         chat_id = 0;
 	bool             comes_from_extern = false; // indicates, if the mail was send by us or was received from outside
 
 	// create arrays that will hold from: and to: lists
@@ -310,10 +311,11 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			} // for
 
 			// check, if the given message is send by _us_ to only _one_ receiver --
-			// only these messages introduce an automatic chat with the receiver (of course, the user can add other chats manually)
-			if( !comes_from_extern )
+			// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
+			// (of course, the user can add other chats manually)
+			if( !comes_from_extern && contact_ids_to && carray_count(contact_ids_to)==1 )
 			{
-				// TODO: create chats, if not yet done
+				chat_id = m_mailbox->m_sql.CreateNormalChat(NULL, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
 			}
 		}
 

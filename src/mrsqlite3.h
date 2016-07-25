@@ -33,6 +33,7 @@
 #include <sqlite3.h>
 #include <libetpan.h>
 #include <pthread.h>
+#include "mrchat.h"
 
 
 // predefined statements
@@ -74,9 +75,13 @@ public:
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 	int32_t       GetConfigInt         (const char* key, int32_t def);
 
-	// get counts
+	// handle contacts
 	size_t        GetContactCnt        ();
+
+	// handle chats
 	size_t        GetChatCnt           ();
+	uint32_t      ChatExists           (MrChatType, uint32_t contact_id); // returns chat_id or 0
+	uint32_t      CreateNormalChat     (const char* name, uint32_t contact_id);
 
 	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow

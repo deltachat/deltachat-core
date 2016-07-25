@@ -375,7 +375,7 @@ bool MrSqlite3::SetConfigInt(const char* key, int32_t value)
 
 
 /*******************************************************************************
- * Handle tables
+ * Handle contacts
  ******************************************************************************/
 
 
@@ -396,6 +396,11 @@ size_t MrSqlite3::GetContactCnt()
 }
 
 
+/*******************************************************************************
+ * Handle chats
+ ******************************************************************************/
+
+
 size_t MrSqlite3::GetChatCnt()
 {
 	if( m_cobj==NULL ) {
@@ -411,6 +416,53 @@ size_t MrSqlite3::GetChatCnt()
 
 	return sqlite3_column_int(m_pd[SELECT_COUNT_FROM_chats], 0); // success
 }
+
+
+uint32_t MrSqlite3::ChatExists(MrChatType type, uint32_t contact_id)
+{
+	bool chat_id = 0;
+
+	if( type == MR_CHAT_NORMAL )
+	{
+		char* querystr=sqlite3_mprintf("SELECT id FROM chats LEFT JOIN chats_contacts ON id=chat_id WHERE type=%i AND contact_id=%i", type, contact_id);
+
+		sqlite3_stmt* stmt = sqlite3_prepare_v2_(querystr);
+		if( stmt ) {
+			int r = sqlite3_step(stmt);
+			if( r == SQLITE_ROW ) {
+				chat_id = sqlite3_column_int(stmt, 0);
+			}
+			else if( r == SQLITE_ERROR ) {
+				;
+			}
+			sqlite3_finalize(stmt);
+		}
+		else {
+			MrLogSqliteError(m_cobj);
+			MrLogError("MrSqlite3::ChatExists() failed.");
+		}
+		sqlite3_free(querystr);
+	}
+
+	return chat_id;
+}
+
+
+uint32_t MrSqlite3::CreateNormalChat(const char* name, uint32_t contact_id)
+{
+	uint32_t chat_id = 0;
+
+	if( ChatExists(MR_CHAT_NORMAL, contact_id) ) {
+		return chat_id;
+	}
+
+	return chat_id;
+}
+
+
+/*******************************************************************************
+ * Handle messages
+ ******************************************************************************/
 
 
 size_t MrSqlite3::GetMsgCnt()
