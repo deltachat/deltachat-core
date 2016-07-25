@@ -38,6 +38,17 @@
  ******************************************************************************/
 
 
+char* save_strdup(char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns NULL in this case
+{
+	if( s ) {
+		return strdup(s);
+	}
+	else {
+		return NULL;
+	}
+}
+
+
 char* mr_strlower(const char* in) // the result must be free()'d
 {
 	char* out = strdup(in);

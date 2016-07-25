@@ -42,7 +42,6 @@ MrMsg::MrMsg(MrMailbox* mailbox)
 
 MrMsg::~MrMsg()
 {
-	#define FREE_(a) if((a)) { free((a)); (a)=NULL; }
-	FREE_(m_msg)
+	free(m_msg);
 }
 

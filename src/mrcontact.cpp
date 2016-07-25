@@ -41,8 +41,7 @@ MrContact::MrContact(MrMailbox* mailbox)
 
 MrContact::~MrContact()
 {
-	#define FREE_(a) if((a)) { free((a)); (a)=NULL; }
-	FREE_(m_name);
-	FREE_(m_email);
+	free(m_name);
+	free(m_email);
 }
 

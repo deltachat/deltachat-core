@@ -41,8 +41,5 @@ MrChat::MrChat(MrMailbox* mailbox)
 
 MrChat::~MrChat()
 {
-	if( m_name ) {
-		free(m_name);
-		m_name = NULL;
-	}
+	free(m_name);
 }

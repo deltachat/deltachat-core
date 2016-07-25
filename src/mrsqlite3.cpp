@@ -30,12 +30,14 @@
 #include <string.h>
 #include "mrsqlite3.h"
 #include "mrerror.h"
+#include "mrtools.h"
 
 
-MrSqlite3::MrSqlite3()
+MrSqlite3::MrSqlite3(MrMailbox* mailbox)
 {
-	m_cobj                       = NULL;
-	m_dbfile                     = NULL;
+	m_cobj    = NULL;
+	m_dbfile  = NULL;
+	m_mailbox = mailbox;
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
 		m_pd[i] = NULL;
@@ -92,7 +94,7 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat INTEGER, from_contact_id INTEGER, timestamp INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, msg TEXT);");
 		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (message_id);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
 		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (timestamp);");
 		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id);");
@@ -123,7 +125,7 @@ bool MrSqlite3::Open(const char* dbfile)
 
 	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
 	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE message_id=?;");
-	m_pd[INSERT_INTO_msg_mctm]       = sqlite3_prepare_v2_("INSERT INTO msg (message_id, from_contact_id, timestamp, msg) VALUES (?,?,?,?);");
+	m_pd[INSERT_INTO_msg_mccttm]     = sqlite3_prepare_v2_("INSERT INTO msg (message_id, chat_id, from_id, timestamp, type, msg) VALUES (?,?,?, ?,?,?);");
 	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
@@ -396,6 +398,59 @@ size_t MrSqlite3::GetContactCnt()
 }
 
 
+MrContact* MrSqlite3::GetContact(uint32_t contact_id)
+{
+	bool          success = false;
+	MrContact*    contact = NULL;
+	char*         q;
+	sqlite3_stmt* stmt;
+
+	contact = new MrContact(m_mailbox);
+	if( contact == NULL ) {
+		goto GetContact_Cleanup;
+	}
+
+	q=sqlite3_mprintf("SELECT id, name, email FROM contacts WHERE id=%i;", contact_id);
+	stmt = sqlite3_prepare_v2_(q);
+	if( stmt == NULL ) {
+		goto GetContact_Cleanup;
+	}
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto GetContact_Cleanup;
+	}
+
+	contact->m_id    = contact_id;
+	contact->m_name  = save_strdup((char*)sqlite3_column_text(stmt, 1));
+	contact->m_email = save_strdup((char*)sqlite3_column_text(stmt, 2));
+	if( contact->m_name == NULL || contact->m_email == NULL ) {
+		goto GetContact_Cleanup; // should not happen
+	}
+
+	// success
+	success = true;
+
+	// cleanup
+GetContact_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	if( success ) {
+		return contact;
+	}
+	else {
+		delete contact;
+		return NULL;
+	}
+
+}
+
+
 /*******************************************************************************
  * Handle chats
  ******************************************************************************/
@@ -420,20 +475,17 @@ size_t MrSqlite3::GetChatCnt()
 
 uint32_t MrSqlite3::ChatExists(MrChatType type, uint32_t contact_id)
 {
-	bool chat_id = 0;
+	uint32_t chat_id = 0;
 
 	if( type == MR_CHAT_NORMAL )
 	{
-		char* querystr=sqlite3_mprintf("SELECT id FROM chats LEFT JOIN chats_contacts ON id=chat_id WHERE type=%i AND contact_id=%i", type, contact_id);
+		char* q=sqlite3_mprintf("SELECT id FROM chats INNER JOIN chats_contacts ON id=chat_id WHERE type=%i AND contact_id=%i", type, contact_id);
 
-		sqlite3_stmt* stmt = sqlite3_prepare_v2_(querystr);
+		sqlite3_stmt* stmt = sqlite3_prepare_v2_(q);
 		if( stmt ) {
 			int r = sqlite3_step(stmt);
 			if( r == SQLITE_ROW ) {
 				chat_id = sqlite3_column_int(stmt, 0);
-			}
-			else if( r == SQLITE_ERROR ) {
-				;
 			}
 			sqlite3_finalize(stmt);
 		}
@@ -441,22 +493,97 @@ uint32_t MrSqlite3::ChatExists(MrChatType type, uint32_t contact_id)
 			MrLogSqliteError(m_cobj);
 			MrLogError("MrSqlite3::ChatExists() failed.");
 		}
-		sqlite3_free(querystr);
+
+		sqlite3_free(q);
 	}
 
 	return chat_id;
 }
 
 
-uint32_t MrSqlite3::CreateNormalChat(const char* name, uint32_t contact_id)
+uint32_t MrSqlite3::CreateChatRecord(uint32_t contact_id)
 {
-	uint32_t chat_id = 0;
+	uint32_t      chat_id = 0;
+	MrContact*    contact = NULL;
+	char*         chat_name, *q = NULL;
+	sqlite3_stmt* stmt = NULL;
 
-	if( ChatExists(MR_CHAT_NORMAL, contact_id) ) {
-		return chat_id;
+	if( (chat_id=ChatExists(MR_CHAT_NORMAL, contact_id)) != 0 ) {
+		return chat_id; // soon success
 	}
 
+	// get fine chat name
+	contact = GetContact(contact_id);
+	if( contact == NULL ) {
+		goto CreateNormalChat_Cleanup;
+	}
+
+	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_email;
+
+	// create chat record
+	q = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_NORMAL, chat_name);
+	stmt = sqlite3_prepare_v2_(q);
+	if( stmt == NULL) {
+		goto CreateNormalChat_Cleanup;
+	}
+
+    if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto CreateNormalChat_Cleanup;
+    }
+
+    chat_id = sqlite3_last_insert_rowid(m_cobj);
+
+	sqlite3_free(q);
+	q = NULL;
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+    // add contact IDs to the new chat record
+	q = sqlite3_mprintf("INSERT INTO chats_contacts (chat_id, contact_id) VALUES(%i, %i)", chat_id, contact_id);
+	stmt = sqlite3_prepare_v2_(q);
+
+    if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto CreateNormalChat_Cleanup;
+    }
+
+	// add already existing messages to the chat record
+
+	sqlite3_free(q);
+	q = NULL;
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	q = sqlite3_mprintf("UPDATE msg SET chat_id=%i WHERE chat_id=0 AND from_id=%i;", chat_id, contact_id);
+	stmt = sqlite3_prepare_v2_(q);
+
+    if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto CreateNormalChat_Cleanup;
+    }
+
+	// cleanup
+CreateNormalChat_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	if( contact ) {
+		delete contact;
+	}
 	return chat_id;
+}
+
+
+uint32_t MrSqlite3::FindOutChatId(carray* contact_ids_from, carray* contact_ids_to)
+{
+	if( carray_count(contact_ids_from)==1 ) {
+		return ChatExists(MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+	}
+
+	return 0;
 }
 
 

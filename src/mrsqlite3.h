@@ -34,6 +34,10 @@
 #include <libetpan.h>
 #include <pthread.h>
 #include "mrchat.h"
+#include "mrcontact.h"
+
+
+class MrMailbox;
 
 
 // predefined statements
@@ -53,7 +57,7 @@ enum
 
 	,SELECT_COUNT_FROM_msg
 	,SELECT_id_FROM_msg_m
-	,INSERT_INTO_msg_mctm
+	,INSERT_INTO_msg_mccttm
 	,INSERT_INTO_msg_to_mc
 
 	,PREDEFINED_CNT // must be last
@@ -63,7 +67,7 @@ enum
 class MrSqlite3
 {
 public:
-	              MrSqlite3            ();
+	              MrSqlite3            (MrMailbox*);
 	              ~MrSqlite3           ();
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
@@ -77,11 +81,13 @@ public:
 
 	// handle contacts
 	size_t        GetContactCnt        ();
+	MrContact*    GetContact           (uint32_t contact_id);
 
 	// handle chats
 	size_t        GetChatCnt           ();
 	uint32_t      ChatExists           (MrChatType, uint32_t contact_id); // returns chat_id or 0
-	uint32_t      CreateNormalChat     (const char* name, uint32_t contact_id);
+	uint32_t      CreateChatRecord     (uint32_t contact_id);
+	uint32_t      FindOutChatId        (carray* contact_ids_from, carray* contact_ids_to);
 
 	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
@@ -102,6 +108,9 @@ public:
 	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
 	bool          sqlite3_execute_     (const char* sql);
 	bool          sqlite3_table_exists_(const char* name);
+
+private:
+	MrMailbox*    m_mailbox;
 };
 
 

@@ -36,25 +36,23 @@ class MrMailbox;
 
 enum MrMsgType
 {
-	 MR_MSG_UNDEFINED =  0
-	,MR_MSG_TEXT      = 10
-	,MR_MSG_IMAGE     = 20
-	,MR_MSG_STICKER   = 30
-	,MR_MSG_AUDIO     = 40
-	,MR_MSG_VIDEO     = 50
-	,MR_MSG_FILE      = 60
-	,MR_MSG_CONTACT   = 70
-	,MR_MSG_LOCATION  = 80
+	 MR_MSG_UNDEFINED =   0
+	,MR_MSG_TEXT      = 100
+	,MR_MSG_IMAGE     = 110
+	,MR_MSG_STICKER   = 120
+	,MR_MSG_AUDIO     = 130
+	,MR_MSG_VIDEO     = 140
+	,MR_MSG_FILE      = 150
+	,MR_MSG_CONTACT   = 160
+	,MR_MSG_LOCATION  = 170
 };
 
 
 class MrMsg
 {
 public:
-	// if an object is no longer needed, it should be Release()'d, to destroy a message physically,
-	// call Destroy() (an additional Release() is needed even in this case)
-	void          Release     () { delete this; }
-	void          Destroy     ();
+	              MrMsg       (MrMailbox*);
+	              ~MrMsg      ();
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
@@ -63,11 +61,6 @@ public:
 	time_t        m_time; // unix time the message was sended
 
 private:
-	// as message objects are only constructed by MrMailbox, we declare the constructor as private and MrMailbox as a friend
-	              MrMsg       (MrMailbox*);
-	              ~MrMsg      ();
-	friend class  MrMailbox;
-
 	// the mailbox, the message belongs to
 	MrMailbox*    m_mailbox;
 };

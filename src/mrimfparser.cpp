@@ -59,6 +59,7 @@
 #include "mrmailbox.h"
 #include "mrimfparser.h"
 #include "mrtools.h"
+#include "mrmsg.h"
 
 
 MrImfParser::MrImfParser(MrMailbox* mailbox)
@@ -160,7 +161,7 @@ void MrImfParser::AddOrLookupContact(const char* display_name_enc /*can be NULL*
 
 		sqlite3_stmt* s = m_mailbox->m_sql.m_pd[INSERT_INTO_contacts_ne];
 		sqlite3_reset(s);
-		sqlite3_bind_text(s, 1, display_name_dec, -1, SQLITE_STATIC);
+		sqlite3_bind_text(s, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); // avoid NULL-fields in column
 		sqlite3_bind_text(s, 2, addr_spec,    -1, SQLITE_STATIC);
 		if( sqlite3_step(s) == SQLITE_DONE )
 		{
@@ -227,6 +228,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	mailimf_message* imf = NULL;
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
+	uint32_t         contact_id_from = 0; // 0=self
 	sqlite3_stmt*    s;
 	int              r, i, icnt;
 	uint32_t         dblocal_id = 0;    // databaselocal message id
@@ -236,9 +238,11 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	bool             comes_from_extern = false; // indicates, if the mail was send by us or was received from outside
 
 	// create arrays that will hold from: and to: lists
-	contact_ids_from = carray_new(16); // may be NULL, we check this later
-	contact_ids_to = carray_new(16);   // may be NULL, we check this later
-
+	contact_ids_from = carray_new(16);
+	contact_ids_to = carray_new(16);
+	if( contact_ids_from==NULL || contact_ids_to==NULL ) {
+		goto Imf2Msg_Done; // out of memory
+	}
 
 	// parse the imf to mailimf_message {
 	//		mailimf_fields* msg_fields {
@@ -250,7 +254,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	//      }
 	// };
 	r = mailimf_message_parse(imf_raw, imf_len, &imf_start, &imf);
-	if( r!=MAILIMF_NO_ERROR || imf==NULL || contact_ids_from==NULL || contact_ids_to==NULL ) {
+	if( r!=MAILIMF_NO_ERROR || imf==NULL ) {
 		imf = NULL; // parse error, however, try to add at least an empty record
 	}
 
@@ -313,9 +317,14 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// check, if the given message is send by _us_ to only _one_ receiver --
 			// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
 			// (of course, the user can add other chats manually)
-			if( !comes_from_extern && contact_ids_to && carray_count(contact_ids_to)==1 )
+			if( !comes_from_extern && carray_count(contact_ids_to)==1 )
 			{
-				chat_id = m_mailbox->m_sql.CreateNormalChat(NULL, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+				chat_id = m_mailbox->m_sql.CreateChatRecord((uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+			}
+
+			if( chat_id == 0 )
+			{
+                chat_id = m_mailbox->m_sql.FindOutChatId(contact_ids_from, contact_ids_to);
 			}
 		}
 
@@ -336,13 +345,29 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			goto Imf2Msg_Done; // success - the message is already added to our database
 		}
 
+		// set the sender (contact_id_from, 0=self)
+		if( comes_from_extern ) {
+			if( carray_count(contact_ids_from) == 0 ) {
+				AddOrLookupContact(NULL, "no@ddress", contact_ids_from);
+				if( carray_count(contact_ids_from) == 0 ) {
+					goto Imf2Msg_Done;
+				}
+			}
+			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
+		}
+		else {
+			contact_id_from = 0; // send by ourself
+		}
+
 		// add new message record to database
-		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mctm];
+		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mccttm];
 		sqlite3_reset(s);
 		sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (s, 2, (contact_ids_from&&carray_count(contact_ids_from)>0)? (int)(uintptr_t)carray_get(contact_ids_from, 0) : 0);
-		sqlite3_bind_int64(s, 3, message_timestamp);
-		sqlite3_bind_text (s, 4, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (s, 2, chat_id);
+		sqlite3_bind_int  (s, 3, contact_id_from);
+		sqlite3_bind_int64(s, 4, message_timestamp);
+		sqlite3_bind_int  (s, 5, MR_MSG_TEXT);
+		sqlite3_bind_text (s, 6, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
 		if( sqlite3_step(s) != SQLITE_DONE ) {
 			goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
 		}
