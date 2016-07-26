@@ -38,13 +38,15 @@
  ******************************************************************************/
 
 
-char* save_strdup(char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns NULL in this case
+char* save_strdup(char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case
 {
 	if( s ) {
 		return strdup(s);
 	}
 	else {
-		return NULL;
+		char* ptr = (char*)malloc(1);
+		ptr[0] = 0;
+		return ptr;
 	}
 }
 

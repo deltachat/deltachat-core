@@ -93,6 +93,9 @@ int main(int argc, char ** argv)
 			printf("disconnect          disconnect from mailbox server\n");
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
+			printf("chats               list all chats\n");
+			printf("chat [<name>]       list/select chat\n");
+			printf("send <text>         send message to selected chat\n");
 			printf("empty               empty database but server config\n");
 			printf("exit                exit program\n");
 		}
@@ -182,6 +185,21 @@ int main(int argc, char ** argv)
 			}
 			else {
 				print_error();
+			}
+		}
+		else if( strcmp(cmd, "chats")==0 )
+		{
+			MrChatList* chatlist = mailbox->GetChats();
+			if( chatlist ) {
+				int i, cnt = carray_count(chatlist->m_chats);
+				for( i = 0; i < cnt; i++ ) {
+					MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
+					printf("%s\n", chat->m_name);
+				}
+				delete chatlist;
+			}
+			else {
+				printf("No chats.\n");
 			}
 		}
 		else if( strcmp(cmd, "empty")==0 )

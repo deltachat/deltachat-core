@@ -43,3 +43,34 @@ MrChat::~MrChat()
 {
 	free(m_name);
 }
+
+
+/*******************************************************************************
+ * chat lists
+ ******************************************************************************/
+
+
+MrChatList::MrChatList()
+{
+	m_chats = carray_new(128);
+}
+
+
+MrChatList::~MrChatList()
+{
+	if( m_chats )
+	{
+		int cnt = carray_count(m_chats);
+		for( int i = 0; i < cnt; i++ )
+		{
+			MrChat* chat = (MrChat*)carray_get(m_chats, i);
+			if( chat )
+			{
+				delete chat;
+			}
+		}
+
+		carray_free(m_chats);
+		m_chats = NULL;
+	}
+}

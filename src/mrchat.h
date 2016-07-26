@@ -51,12 +51,23 @@ public:
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
+	int          m_id;
 	MrChatType   m_type;
 	char*        m_name;
+	time_t       m_timestamp;
 
 private:
 	// the mailbox, the chat belongs to
 	MrMailbox*   m_mailbox;
+};
+
+
+class MrChatList
+{
+public:
+	             MrChatList  ();
+	             ~MrChatList ();
+	carray*      m_chats; // contains MrChat objects
 };
 
 

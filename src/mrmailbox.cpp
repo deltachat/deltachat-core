@@ -163,9 +163,11 @@ void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
  ******************************************************************************/
 
 
-MrChat* MrMailbox::GetChat(size_t i)
+MrChatList* MrMailbox::GetChats()
 {
-	return NULL;
+	MrSqlite3Locker locker(m_sql);
+
+	return m_sql.GetChatList();
 }
 
 

@@ -69,11 +69,11 @@ public:
 
 	// iterate contacts
 	size_t        GetContactCnt        () { MrSqlite3Locker l(m_sql); return m_sql.GetContactCnt(); }
-	MrContact*    GetContact           (size_t i); // the returned objects must be Release()'d, returns NULL on errors
+	MrContact*    GetContact           (size_t i);
 
 	// iterate chats
 	size_t        GetChatCnt           () { MrSqlite3Locker l(m_sql); return m_sql.GetChatCnt(); }
-	MrChat*       GetChat              (size_t i); // the returned objects must be Release()'d, returns NULL on errors
+	MrChatList*   GetChats             ();
 
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker l(m_sql); return m_sql.SetConfig(key, value); }

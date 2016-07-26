@@ -88,6 +88,7 @@ public:
 	uint32_t      ChatExists           (MrChatType, uint32_t contact_id); // returns chat_id or 0
 	uint32_t      CreateChatRecord     (uint32_t contact_id);
 	uint32_t      FindOutChatId        (carray* contact_ids_from, carray* contact_ids_to);
+	MrChatList*   GetChatList          ();
 
 	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow

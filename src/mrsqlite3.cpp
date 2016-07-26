@@ -424,7 +424,7 @@ MrContact* MrSqlite3::GetContact(uint32_t contact_id)
 	contact->m_name  = save_strdup((char*)sqlite3_column_text(stmt, 1));
 	contact->m_email = save_strdup((char*)sqlite3_column_text(stmt, 2));
 	if( contact->m_name == NULL || contact->m_email == NULL ) {
-		goto GetContact_Cleanup; // should not happen
+		goto GetContact_Cleanup; // out of memory, should not happen
 	}
 
 	// success
@@ -584,6 +584,52 @@ uint32_t MrSqlite3::FindOutChatId(carray* contact_ids_from, carray* contact_ids_
 	}
 
 	return 0;
+}
+
+
+MrChatList* MrSqlite3::GetChatList()
+{
+	MrChatList*   chatlist = NULL;
+	MrChat*       chat;
+	bool          success = false;
+	char*         q = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	if( (chatlist=new MrChatList()) == NULL ) {
+		goto GetChatList_Cleanup;
+	}
+
+	q = sqlite3_mprintf("SELECT id, type, name FROM chats ORDER BY name;");
+	stmt = sqlite3_prepare_v2_(q);
+
+    while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		chat = new MrChat(m_mailbox);
+		chat->m_id   = sqlite3_column_int(stmt, 0);
+		chat->m_type = (MrChatType)sqlite3_column_int(stmt, 1);
+		chat->m_name = save_strdup((char*)sqlite3_column_text(stmt, 2));
+		carray_add(chatlist->m_chats, (void*)chat, NULL);
+    }
+
+	// success
+	success = true;
+
+	// cleanup
+GetChatList_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	if( success ) {
+		return chatlist;
+	}
+	else {
+		delete chatlist;
+		return NULL;
+	}
 }
 
 
