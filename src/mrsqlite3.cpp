@@ -589,6 +589,7 @@ uint32_t MrSqlite3::FindOutChatId(carray* contact_ids_from, carray* contact_ids_
 
 MrChatList* MrSqlite3::GetChatList()
 {
+	#define GET_CHATS_PREFIX "SELECT c.id, c.type, c.name, m.timestamp, m.type, m.msg FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
 	MrChatList*   chatlist = NULL;
 	MrChat*       chat;
 	bool          success = false;
@@ -599,15 +600,21 @@ MrChatList* MrSqlite3::GetChatList()
 		goto GetChatList_Cleanup;
 	}
 
-	q = sqlite3_mprintf("SELECT id, type, name FROM chats ORDER BY name;");
+	// select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min
+	q = sqlite3_mprintf(GET_CHATS_PREFIX " ORDER BY timestamp;");
 	stmt = sqlite3_prepare_v2_(q);
 
     while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		chat = new MrChat(m_mailbox);
-		chat->m_id   = sqlite3_column_int(stmt, 0);
-		chat->m_type = (MrChatType)sqlite3_column_int(stmt, 1);
-		chat->m_name = save_strdup((char*)sqlite3_column_text(stmt, 2));
-		carray_add(chatlist->m_chats, (void*)chat, NULL);
+		chat->m_id             =                    sqlite3_column_int  (stmt, 0);
+		chat->m_type           = (MrChatType)       sqlite3_column_int  (stmt, 1);
+		chat->m_name           = save_strdup((char*)sqlite3_column_text (stmt, 2));
+		chat->m_last_timestamp =                    sqlite3_column_int64(stmt, 3);
+		chat->m_last_msg_type  = (MrMsgType)        sqlite3_column_int  (stmt, 4);
+		chat->m_last_msg       = save_strdup((char*)sqlite3_column_text (stmt, 5));
+		if( chat->m_name && chat->m_last_msg ) {
+			carray_add(chatlist->m_chats, (void*)chat, NULL);
+		}
     }
 
 	// success
@@ -645,10 +652,10 @@ MrChat* MrSqlite3::GetSingleChat(const char* name, uint32_t id)
 	}
 
 	if( name ) {
-		q = sqlite3_mprintf("SELECT id, type, name FROM chats WHERE name=%Q;", name);
+		q = sqlite3_mprintf(GET_CHATS_PREFIX " WHERE name=%Q;", name);
 	}
 	else {
-		q = sqlite3_mprintf("SELECT id, type, name FROM chats WHERE id=%i;", id);
+		q = sqlite3_mprintf(GET_CHATS_PREFIX " WHERE id=%i;", id);
 	}
 
 	stmt = sqlite3_prepare_v2_(q);
@@ -657,9 +664,15 @@ MrChat* MrSqlite3::GetSingleChat(const char* name, uint32_t id)
 		goto GetSingleChat_Cleanup;
 	}
 
-	chat->m_id   = sqlite3_column_int(stmt, 0);
-	chat->m_type = (MrChatType)sqlite3_column_int(stmt, 1);
-	chat->m_name = save_strdup((char*)sqlite3_column_text(stmt, 2));
+	chat->m_id             =                    sqlite3_column_int  (stmt, 0);
+	chat->m_type           = (MrChatType)       sqlite3_column_int  (stmt, 1);
+	chat->m_name           = save_strdup((char*)sqlite3_column_text (stmt, 2));
+	chat->m_last_timestamp =                    sqlite3_column_int64(stmt, 3);
+	chat->m_last_msg_type  = (MrMsgType)        sqlite3_column_int  (stmt, 4);
+	chat->m_last_msg       = save_strdup((char*)sqlite3_column_text (stmt, 5));
+	if( chat->m_name==NULL || chat->m_last_msg==NULL ) {
+		goto GetSingleChat_Cleanup;
+	}
 
 	// success
 	success  = true;

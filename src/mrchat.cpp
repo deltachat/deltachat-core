@@ -33,15 +33,19 @@
 
 MrChat::MrChat(MrMailbox* mailbox)
 {
-	m_mailbox = mailbox;
-	m_type    = MR_CHAT_UNDEFINED;
-	m_name    = NULL;
+	m_mailbox        = mailbox;
+	m_type           = MR_CHAT_UNDEFINED;
+	m_name           = NULL;
+	m_last_timestamp = 0;
+	m_last_msg_type  = MR_MSG_UNDEFINED;
+	m_last_msg       = NULL;
 }
 
 
 MrChat::~MrChat()
 {
 	free(m_name);
+	free(m_last_msg);
 }
 
 

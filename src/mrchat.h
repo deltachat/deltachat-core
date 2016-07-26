@@ -31,6 +31,7 @@
 #define __MRCHAT_H__
 
 
+#include "mrmsg.h"
 class MrMailbox;
 
 
@@ -54,7 +55,9 @@ public:
 	int          m_id;
 	MrChatType   m_type;
 	char*        m_name;
-	time_t       m_timestamp;
+	time_t       m_last_timestamp;
+	MrMsgType    m_last_msg_type;
+	char*        m_last_msg;
 
 	// send a message
 	void         SendMsg     (const char* text);
