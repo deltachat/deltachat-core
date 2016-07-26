@@ -45,3 +45,33 @@ MrMsg::~MrMsg()
 	free(m_msg);
 }
 
+
+/*******************************************************************************
+ * Message lists
+ ******************************************************************************/
+
+
+MrMsgList::MrMsgList()
+{
+	m_msgs = carray_new(128);
+}
+
+
+MrMsgList::~MrMsgList()
+{
+	if( m_msgs )
+	{
+		int cnt = carray_count(m_msgs);
+		for( int i = 0; i < cnt; i++ )
+		{
+			MrMsg* msg = (MrMsg*)carray_get(m_msgs, i);
+			if( msg )
+			{
+				delete msg;
+			}
+		}
+
+		carray_free(m_msgs);
+		m_msgs = NULL;
+	}
+}

@@ -66,5 +66,13 @@ private:
 };
 
 
+class MrMsgList
+{
+public:
+	             MrMsgList   ();
+	             ~MrMsgList  ();
+	carray*      m_msgs; // contains MrMsg objects
+};
+
 #endif // __MRMSG_H__
 
