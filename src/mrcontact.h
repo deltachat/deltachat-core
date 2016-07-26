@@ -40,18 +40,22 @@ class MrMailbox;
 class MrContact
 {
 public:
-	             MrContact      (MrMailbox*);
-	             ~MrContact     ();
+	              MrContact      (MrMailbox*);
+	              ~MrContact     ();
+	bool          LoadFromDb     (uint32_t id);
+
+	static size_t GetContactCnt  (MrMailbox*);
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
-	uint32_t     m_id;
-	char*        m_name;  // != NULL, however, may be empty
-	char*        m_email; // != NULL
+	uint32_t      m_id;
+	char*         m_name;  // != NULL, however, may be empty
+	char*         m_email; // != NULL
 
 private:
 	// the mailbox, the contact belongs to
-	MrMailbox*   m_mailbox;
+	MrMailbox*    m_mailbox;
+	void          Empty          ();
 };
 
 

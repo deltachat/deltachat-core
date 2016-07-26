@@ -31,6 +31,8 @@
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrimfparser.h"
+#include "mrcontact.h"
+#include "mrmsg.h"
 
 
 /*******************************************************************************
@@ -163,11 +165,25 @@ void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
  ******************************************************************************/
 
 
+size_t MrMailbox::GetChatCnt()
+{
+	MrSqlite3Locker l(m_sql);
+	return MrChat::GetChatCnt(this);
+}
+
+
 MrChatList* MrMailbox::GetChats()
 {
 	MrSqlite3Locker locker(m_sql);
 
-	return m_sql.GetChatList();
+	MrChatList* obj = new MrChatList(this);
+	if( obj->LoadFromDb() ) {
+		return obj;
+	}
+	else {
+		delete obj;
+		return NULL;
+	}
 }
 
 
@@ -175,7 +191,14 @@ MrChat* MrMailbox::GetChat(const char* name)
 {
 	MrSqlite3Locker locker(m_sql);
 
-	return m_sql.GetSingleChat(name, 0);
+	MrChat* obj = new MrChat(this);
+	if( obj->LoadFromDb(name, 0) ) {
+		return obj;
+	}
+	else {
+		delete obj;
+		return NULL;
+	}
 }
 
 
@@ -183,7 +206,14 @@ MrChat* MrMailbox::GetChat(uint32_t id)
 {
 	MrSqlite3Locker locker(m_sql);
 
-	return m_sql.GetSingleChat(NULL, id);
+	MrChat* obj = new MrChat(this);
+	if( obj->LoadFromDb(NULL, id) ) {
+		return obj;
+	}
+	else {
+		delete obj;
+		return NULL;
+	}
 }
 
 
@@ -233,9 +263,9 @@ char* MrMailbox::GetInfo()
 
 		debug_dir   = m_sql.GetConfig("debug_dir", NULL);
 
-		contacts    = m_sql.GetContactCnt();
-		chats       = m_sql.GetChatCnt();
-		messages    = m_sql.GetMsgCnt();
+		contacts    = MrContact::GetContactCnt(this);
+		chats       = MrChat::GetChatCnt(this);
+		messages    = MrMsg::GetMsgCnt(this);
 	}
 
 	// create info

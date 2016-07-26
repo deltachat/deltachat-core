@@ -319,12 +319,12 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// (of course, the user can add other chats manually)
 			if( !comes_from_extern && carray_count(contact_ids_to)==1 )
 			{
-				chat_id = m_mailbox->m_sql.CreateChatRecord((uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+				chat_id = MrChat::CreateChatRecord(m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
 			}
 
 			if( chat_id == 0 )
 			{
-                chat_id = m_mailbox->m_sql.FindOutChatId(contact_ids_from, contact_ids_to);
+                chat_id = MrChat::FindOutChatId(m_mailbox, contact_ids_from, contact_ids_to);
 			}
 		}
 
@@ -341,7 +341,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			}
 		}
 
-		if( m_mailbox->m_sql.MessageIdExists(message_id) ) {
+		if( MrMsg::MessageIdExists(m_mailbox, message_id) ) {
 			goto Imf2Msg_Done; // success - the message is already added to our database
 		}
 

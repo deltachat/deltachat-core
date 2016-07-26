@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include "mrmailbox.h"
 #include "mrcontact.h"
+#include "mrtools.h"
 
 
 MrContact::MrContact(MrMailbox* mailbox)
@@ -41,7 +42,86 @@ MrContact::MrContact(MrMailbox* mailbox)
 
 MrContact::~MrContact()
 {
-	free(m_name);
-	free(m_email);
+	Empty();
 }
+
+
+void MrContact::Empty()
+{
+	if( m_name ) {
+		free(m_name);
+		m_name = NULL;
+	}
+
+	if( m_email ) {
+		free(m_email);
+		m_email = NULL;
+	}
+}
+
+
+bool MrContact::LoadFromDb(uint32_t contact_id)
+{
+	bool          success = false;
+	char*         q;
+	sqlite3_stmt* stmt;
+
+	Empty();
+
+	q=sqlite3_mprintf("SELECT id, name, email FROM contacts WHERE id=%i;", contact_id);
+	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
+	if( stmt == NULL ) {
+		goto LoadFromDb_Cleanup;
+	}
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto LoadFromDb_Cleanup;
+	}
+
+	m_id    = contact_id;
+	m_name  = save_strdup((char*)sqlite3_column_text(stmt, 1));
+	m_email = save_strdup((char*)sqlite3_column_text(stmt, 2));
+	if( m_name == NULL || m_email == NULL ) {
+		goto LoadFromDb_Cleanup; // out of memory, should not happen
+	}
+
+	// success
+	success = true;
+
+	// cleanup
+LoadFromDb_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	return success;
+}
+
+
+/*******************************************************************************
+ * Static funcions
+ ******************************************************************************/
+
+
+size_t MrContact::GetContactCnt(MrMailbox* mailbox) // static function
+{
+	if( mailbox->m_sql.m_cobj==NULL ) {
+		return 0; // no database, no contacts - this is no error (needed eg. for information)
+	}
+
+	sqlite3_stmt* s = mailbox->m_sql.m_pd[SELECT_COUNT_FROM_contacts];
+	sqlite3_reset (s);
+	if( sqlite3_step(s) != SQLITE_ROW ) {
+		MrLogSqliteError(mailbox->m_sql.m_cobj);
+		MrLogError("MrSqlite3::GetContactCnt() failed.");
+		return 0; // error
+	}
+
+	return sqlite3_column_int(s, 0); // success
+}
+
 

@@ -36,10 +36,14 @@
 
 #include <libetpan/libetpan.h> // defines uint16_t etc.
 #include "mrsqlite3.h"
-#include "mrchat.h"
-#include "mrcontact.h"
 #include "mrimap.h"
 #include "mrerror.h"
+#include "mrloginparam.h"
+
+
+class MrChat;
+class MrChatList;
+class MrContact;
 
 
 #define MR_VERSION_MAJOR    0
@@ -72,7 +76,7 @@ public:
 	MrContact*    GetContact           (size_t i);
 
 	// iterate chats
-	size_t        GetChatCnt           () { MrSqlite3Locker l(m_sql); return m_sql.GetChatCnt(); }
+	size_t        GetChatCnt           ();
 	MrChatList*   GetChats             (); // the result must be delete'd
 	MrChat*       GetChat              (const char* name); // the result must be delete'd
 	MrChat*       GetChat              (uint32_t id); // the result must be delete'd
@@ -86,9 +90,11 @@ public:
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
 	char*         GetInfo              (); // multi-line output; the returned string must be free()'d, returns NULL on errors
 
+	// data, should be treated as read-only
+	MrSqlite3     m_sql;
+
 private:
 	// private stuff
-	MrSqlite3     m_sql;
 	MrLoginParam  m_loginParam;
 	MrImap        m_imap;
 
@@ -97,7 +103,6 @@ private:
 	void          ReceiveImf           (const char* imf, size_t imf_len);
 
 	friend class  MrImap;
-	friend class  MrImfParser;
 };
 
 

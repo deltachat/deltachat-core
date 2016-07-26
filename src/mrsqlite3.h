@@ -34,10 +34,10 @@
 #include <libetpan.h>
 #include <pthread.h>
 #include "mrchat.h"
-#include "mrcontact.h"
 
 
 class MrMailbox;
+class MrContact;
 
 
 // predefined statements
@@ -82,14 +82,6 @@ public:
 	// handle contacts
 	size_t        GetContactCnt        ();
 	MrContact*    GetContact           (uint32_t contact_id);
-
-	// handle chats
-	size_t        GetChatCnt           ();
-	uint32_t      ChatExists           (MrChatType, uint32_t contact_id); // returns chat_id or 0
-	uint32_t      CreateChatRecord     (uint32_t contact_id);
-	uint32_t      FindOutChatId        (carray* contact_ids_from, carray* contact_ids_to);
-	MrChatList*   GetChatList          ();
-	MrChat*       GetSingleChat        (const char* name, uint32_t id);
 
 	// handle  messages
 	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow

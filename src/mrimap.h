@@ -30,7 +30,7 @@
 #define __MRIMAP_H__
 
 
-#include "mrloginparam.h"
+class MrLoginParam;
 class MrMailbox;
 
 

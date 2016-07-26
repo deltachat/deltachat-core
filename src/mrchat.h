@@ -31,7 +31,7 @@
 #define __MRCHAT_H__
 
 
-#include "mrmsg.h"
+class MrMsg;
 class MrMailbox;
 
 
@@ -47,33 +47,49 @@ enum MrChatType
 class MrChat
 {
 public:
-	             MrChat      (MrMailbox*);
-	             ~MrChat     ();
+	                MrChat      (MrMailbox*);
+	                ~MrChat     ();
+	bool            LoadFromDb  (const char* name, uint32_t id);
 
-	// the data should be read only and are valid until the object is Release()'d.
+	static size_t   GetChatCnt           (MrMailbox*);
+	static uint32_t ChatExists           (MrMailbox*, MrChatType, uint32_t contact_id); // returns chat_id or 0
+	static uint32_t CreateChatRecord     (MrMailbox*, uint32_t contact_id);
+	static uint32_t FindOutChatId        (MrMailbox*, carray* contact_ids_from, carray* contact_ids_to);
+
+	// the data should be read only and are valid until the object is delete'd.
 	// unset strings are set to NULL.
-	int          m_id;
-	MrChatType   m_type;
-	char*        m_name;
-	time_t       m_last_timestamp;
-	MrMsgType    m_last_msg_type;
-	char*        m_last_msg;
+	int             m_id;
+	MrChatType      m_type;
+	char*           m_name;
+	MrMsg*          m_lastMsg;
 
 	// send a message
-	void         SendMsg     (const char* text);
+	void            SendMsg     (const char* text);
 
 private:
 	// the mailbox, the chat belongs to
-	MrMailbox*   m_mailbox;
+	#define         MR_GET_CHATS_PREFIX "SELECT c.id, c.type, c.name, m.timestamp, m.type, m.msg FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+	bool            SetFromStmt (sqlite3_stmt* row);
+	void            Empty       ();
+	MrMailbox*      m_mailbox;
+
+	friend class    MrChatList;
 };
 
 
 class MrChatList
 {
 public:
-	             MrChatList  ();
-	             ~MrChatList ();
-	carray*      m_chats; // contains MrChat objects
+	                MrChatList  (MrMailbox*);
+	                ~MrChatList ();
+	bool            LoadFromDb  ();
+
+	// data
+	carray*         m_chats; // contains MrChat objects
+
+private:
+	MrMailbox*      m_mailbox;
+	void            Empty       ();
 };
 
 
