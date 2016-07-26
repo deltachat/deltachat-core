@@ -171,6 +171,22 @@ MrChatList* MrMailbox::GetChats()
 }
 
 
+MrChat* MrMailbox::GetChat(const char* name)
+{
+	MrSqlite3Locker locker(m_sql);
+
+	return m_sql.GetSingleChat(name, 0);
+}
+
+
+MrChat* MrMailbox::GetChat(uint32_t id)
+{
+	MrSqlite3Locker locker(m_sql);
+
+	return m_sql.GetSingleChat(NULL, id);
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/

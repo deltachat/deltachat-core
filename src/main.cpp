@@ -63,6 +63,7 @@ static void print_error()
 int main(int argc, char ** argv)
 {
 	MrMailbox* mailbox = new MrMailbox();
+	MrChat*    sel_chat = NULL;
 
 	printf("LibreChat is awaiting your commands.\n");
 
@@ -202,6 +203,40 @@ int main(int argc, char ** argv)
 				printf("No chats.\n");
 			}
 		}
+		else if( strncmp(cmd, "chat", 4)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 && arg1[0] ) {
+				// select a chat (argument 1 = name of chat to select)
+				arg1++;
+				if( sel_chat ) { delete sel_chat; sel_chat = NULL; }
+				sel_chat = mailbox->GetChat(arg1); // may be NULL
+			}
+
+			// show chat
+			if( sel_chat ) {
+				printf("Chat name: %s\n", sel_chat->m_name);
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
+		else if( strncmp(cmd, "send", 4)==0 )
+		{
+			if( sel_chat ) {
+				char* arg1 = (char*)strstr(cmd, " ");
+				if( arg1 && arg1[0] ) {
+					arg1++;
+					sel_chat->SendMsg(arg1);
+				}
+				else {
+					printf("No message text given.\n");
+				}
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
 		else if( strcmp(cmd, "empty")==0 )
 		{
 			if( !mailbox->Empty() ) {
@@ -222,8 +257,10 @@ int main(int argc, char ** argv)
 		}
 	}
 
+	if( sel_chat ) { delete sel_chat; sel_chat = NULL; }
 	mailbox->Close();
 	delete mailbox;
+	mailbox = NULL;
 	return 0;
 }
 

@@ -73,7 +73,9 @@ public:
 
 	// iterate chats
 	size_t        GetChatCnt           () { MrSqlite3Locker l(m_sql); return m_sql.GetChatCnt(); }
-	MrChatList*   GetChats             ();
+	MrChatList*   GetChats             (); // the result must be delete'd
+	MrChat*       GetChat              (const char* name); // the result must be delete'd
+	MrChat*       GetChat              (uint32_t id); // the result must be delete'd
 
 	// handle configurations
 	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker l(m_sql); return m_sql.SetConfig(key, value); }

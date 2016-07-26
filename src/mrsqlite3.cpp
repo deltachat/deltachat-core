@@ -633,6 +633,57 @@ GetChatList_Cleanup:
 }
 
 
+MrChat* MrSqlite3::GetSingleChat(const char* name, uint32_t id)
+{
+	MrChat*       chat = NULL;
+	bool          success = false;
+	char*         q = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	if( (chat=new MrChat(m_mailbox)) == NULL ) {
+		goto GetSingleChat_Cleanup;
+	}
+
+	if( name ) {
+		q = sqlite3_mprintf("SELECT id, type, name FROM chats WHERE name=%Q;", name);
+	}
+	else {
+		q = sqlite3_mprintf("SELECT id, type, name FROM chats WHERE id=%i;", id);
+	}
+
+	stmt = sqlite3_prepare_v2_(q);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto GetSingleChat_Cleanup;
+	}
+
+	chat->m_id   = sqlite3_column_int(stmt, 0);
+	chat->m_type = (MrChatType)sqlite3_column_int(stmt, 1);
+	chat->m_name = save_strdup((char*)sqlite3_column_text(stmt, 2));
+
+	// success
+	success  = true;
+
+	// cleanup
+GetSingleChat_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	if( success ) {
+		return chat;
+	}
+	else {
+		delete chat;
+		return NULL;
+	}
+}
+
+
 /*******************************************************************************
  * Handle messages
  ******************************************************************************/

@@ -56,6 +56,9 @@ public:
 	char*        m_name;
 	time_t       m_timestamp;
 
+	// send a message
+	void         SendMsg     (const char* text);
+
 private:
 	// the mailbox, the chat belongs to
 	MrMailbox*   m_mailbox;
