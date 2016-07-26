@@ -79,14 +79,6 @@ public:
 	char*         GetConfig            (const char* key, const char* def); // the returned string must be free()'d, returns NULL on errors
 	int32_t       GetConfigInt         (const char* key, int32_t def);
 
-	// handle contacts
-	size_t        GetContactCnt        ();
-	MrContact*    GetContact           (uint32_t contact_id);
-
-	// handle  messages
-	size_t        GetMsgCnt            (); // total number of messages, just for statistics, normally not needed for the program flow
-	bool          MessageIdExists      (const char* message_id); // check existance of a Message-ID
-
 	// prepared statements - this is the favourite way for the caller to use SQLite
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 

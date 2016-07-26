@@ -72,7 +72,7 @@ public:
 	bool          Fetch                ();
 
 	// iterate contacts
-	size_t        GetContactCnt        () { MrSqlite3Locker l(m_sql); return m_sql.GetContactCnt(); }
+	size_t        GetContactCnt        ();
 	MrContact*    GetContact           (size_t i);
 
 	// iterate chats
