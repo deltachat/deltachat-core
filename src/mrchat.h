@@ -32,6 +32,7 @@
 
 
 class MrMsg;
+class MrMsgList;
 class MrMailbox;
 
 
@@ -63,12 +64,16 @@ public:
 	char*           m_name;
 	MrMsg*          m_lastMsg;
 
+	// list messages
+	MrMsgList*      ListMsgs    (); // the caller must delete the result
+
 	// send a message
 	void            SendMsg     (const char* text);
 
 private:
 	// the mailbox, the chat belongs to
-	#define         MR_GET_CHATS_PREFIX "SELECT c.id, c.type, c.name, m.timestamp, m.type, m.msg FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+	#define         MR_MSG_FIELDS "m.id, m.from_id, m.timestamp, m.type, m.msg"
+	#define         MR_GET_CHATS_PREFIX "SELECT c.id, c.type, c.name, " MR_MSG_FIELDS " FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
 	bool            SetFromStmt (sqlite3_stmt* row);
 	void            Empty       ();
 	MrMailbox*      m_mailbox;

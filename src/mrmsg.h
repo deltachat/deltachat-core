@@ -52,14 +52,15 @@ class MrMsg
 {
 public:
 	              MrMsg          (MrMailbox*);
-	              MrMsg          (MrMailbox*, time_t timestamp, MrMsgType, char*);
 	              ~MrMsg         ();
-
+	bool          SetFromStmt    (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
 	static size_t GetMsgCnt      (MrMailbox*);
 	static bool   MessageIdExists(MrMailbox*, const char* message_id);
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
+	uint32_t      m_id;
+	uint32_t      m_fromId;
 	time_t        m_timestamp; // unix time the message was sended
 	MrMsgType     m_type;
 	char*         m_msg;  // meaning dedpends on m_type

@@ -39,6 +39,7 @@
 #include "mrimap.h"
 #include "mrerror.h"
 #include "mrloginparam.h"
+#include "mrmsg.h"
 
 
 class MrChat;

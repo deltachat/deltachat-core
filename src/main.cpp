@@ -216,6 +216,15 @@ int main(int argc, char ** argv)
 			// show chat
 			if( sel_chat ) {
 				printf("Chat name: %s\n", sel_chat->m_name);
+				MrMsgList* msglist = sel_chat->ListMsgs();
+				if( msglist ) {
+					int i, cnt = carray_count(msglist->m_msgs);
+					for( i = 0; i < cnt; i++ ) {
+						MrMsg* msg = (MrMsg*)carray_get(msglist->m_msgs, i);
+						printf("%i\n", (int)msg->m_id);
+					}
+					delete msglist;
+				}
 			}
 			else {
 				printf("No chat selected.\n");

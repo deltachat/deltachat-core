@@ -95,7 +95,7 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT);");
 		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (message_id);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
 		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (timestamp);");
 		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id);");
@@ -173,6 +173,11 @@ void MrSqlite3::Close()
 sqlite3_stmt* MrSqlite3::sqlite3_prepare_v2_(const char* querystr)
 {
 	sqlite3_stmt* retStmt = NULL;
+
+	if( querystr == NULL ) {
+		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): Bad argument.");
+		return NULL; // error
+	}
 
 	if( m_cobj == NULL )
 	{

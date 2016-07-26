@@ -67,13 +67,12 @@ bool MrChat::SetFromStmt(sqlite3_stmt* row)
 {
 	Empty();
 
-	m_id             =                    sqlite3_column_int  (row, 0); // the columns are defined in MR_GET_CHATS_PREFIX
-	m_type           = (MrChatType)       sqlite3_column_int  (row, 1);
-	m_name           = save_strdup((char*)sqlite3_column_text (row, 2));
-	m_lastMsg        = new MrMsg(m_mailbox,
-	                              (time_t)sqlite3_column_int64(row, 3),
-	                           (MrMsgType)sqlite3_column_int  (row, 4),
-	                               (char*)sqlite3_column_text (row, 5));
+	int row_offset = 0;
+	m_id             =                    sqlite3_column_int  (row, row_offset++); // the columns are defined in MR_GET_CHATS_PREFIX
+	m_type           = (MrChatType)       sqlite3_column_int  (row, row_offset++);
+	m_name           = save_strdup((char*)sqlite3_column_text (row, row_offset++));
+	m_lastMsg        = new MrMsg(m_mailbox);
+	m_lastMsg->SetFromStmt(row, row_offset);
 
 	if( m_name == NULL || m_lastMsg == NULL || m_lastMsg->m_msg == NULL ) {
 		return false;
@@ -180,7 +179,8 @@ uint32_t MrChat::CreateChatRecord(MrMailbox* mailbox, uint32_t contact_id) // st
 {
 	uint32_t      chat_id = 0;
 	MrContact*    contact = NULL;
-	char*         chat_name, *q = NULL;
+	char*         chat_name;
+	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if( (chat_id=ChatExists(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
@@ -259,6 +259,61 @@ uint32_t MrChat::FindOutChatId(MrMailbox* mailbox, carray* contact_ids_from, car
 	}
 
 	return 0;
+}
+
+
+/*******************************************************************************
+ * List messages
+ ******************************************************************************/
+
+
+MrMsgList* MrChat::ListMsgs() // the caller must delete the result
+{
+	bool          success = false;
+	MrMsgList*    ret = NULL;
+	char*         q = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	// create return object
+	if( (ret=new MrMsgList()) == NULL ) {
+		goto ListMsgs_Cleanup;
+	}
+
+	// query
+	q = sqlite3_mprintf("SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=%i ORDER BY m.timestamp;", m_id);
+	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
+	if( stmt == NULL ) {
+		goto ListMsgs_Cleanup;
+	}
+
+	while( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		MrMsg* msg = new MrMsg(m_mailbox);
+		if( msg && msg->SetFromStmt(stmt) ) {
+			carray_add(ret->m_msgs, (void*)msg, NULL);
+		}
+	}
+
+	// success
+	success = true;
+
+	// cleanup
+ListMsgs_Cleanup:
+	if( q ) {
+		sqlite3_free(q);
+	}
+
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+
+	if( success ) {
+		return ret;
+	}
+	else {
+		delete ret;
+		return NULL;
+	}
 }
 
 

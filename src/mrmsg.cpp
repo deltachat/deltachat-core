@@ -35,18 +35,11 @@
 MrMsg::MrMsg(MrMailbox* mailbox)
 {
 	m_mailbox   = mailbox;
+	m_id        = 0;
+	m_fromId    = 0;
 	m_timestamp = 0;
 	m_type      = MR_MSG_UNDEFINED;
 	m_msg       = NULL;
-}
-
-
-MrMsg::MrMsg(MrMailbox* mailbox, time_t timestamp, MrMsgType type, char* msg)
-{
-	m_mailbox   = mailbox;
-	m_timestamp = timestamp;
-	m_type      = type;
-	m_msg       = save_strdup(msg);
 }
 
 
@@ -62,6 +55,20 @@ void MrMsg::Empty()
 MrMsg::~MrMsg()
 {
 	Empty();
+}
+
+
+bool MrMsg::SetFromStmt(sqlite3_stmt* row, int row_offset)
+{
+	Empty();
+
+	m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	m_fromId    =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
+	m_type      =         (MrMsgType)sqlite3_column_int  (row, row_offset++);
+	m_msg       = save_strdup((char*)sqlite3_column_text (row, row_offset++));
+
+	return true;
 }
 
 
