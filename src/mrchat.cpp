@@ -362,6 +362,8 @@ void MrChatList::Empty()
 				delete chat;
 			}
 		}
+
+		carray_set_size(m_chats, 0);
 	}
 }
 

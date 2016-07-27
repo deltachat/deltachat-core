@@ -83,18 +83,48 @@ void MrMimeParser::Empty()
 				delete part;
 			}
 		}
+		carray_set_size(m_parts, 0);
 	}
 }
 
 
 carray* MrMimeParser::Parse(const char* subject, const char* body)
 {
+	int r;
+	size_t index = 0;
+	mailmime* mime = NULL;
+	MrMimePart* part;
+
 	Empty();
 
-	MrMimePart* part = new MrMimePart();
+	// parse body
+	r = mailmime_parse(body, strlen(body), &index, &mime);
+	if(r != MAILIMF_NO_ERROR || mime == NULL ) {
+		goto Parse_Cleanup;
+	}
+
+	// check parsing result
+	if( (part=new MrMimePart())==NULL ) {
+		goto Parse_Cleanup;
+	}
 	part->m_type = MR_MSG_TEXT;
 	part->m_txt  = save_strdup((char*)body);
 	carray_add(m_parts, (void*)part, NULL);
+
+	// Cleanup
+Parse_Cleanup:
+	if( carray_count(m_parts)==0 ) {
+		if( (part=new MrMimePart())!=NULL ) {
+			part->m_type = MR_MSG_TEXT;
+			part->m_txt  = save_strdup((char*)(subject? subject : "Empty message"));
+			carray_add(m_parts, (void*)part, NULL);
+		}
+	}
+
+	if( mime ) {
+		mailmime_free(mime);
+		mime = NULL;
+	}
 
 	return m_parts;
 }
