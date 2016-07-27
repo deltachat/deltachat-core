@@ -91,10 +91,10 @@ bool MrChat::LoadFromDb(const char* name, uint32_t id)
 	Empty();
 
 	if( name ) {
-		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE name=%Q;", name);
+		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE name=%Q " MR_GET_CHATS_POSTFIX ";", name);
 	}
 	else {
-		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE id=%i;", id);
+		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE id=%i" MR_GET_CHATS_POSTFIX ";", id);
 	}
 
 	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
@@ -375,7 +375,7 @@ bool MrChatList::LoadFromDb()
 	Empty();
 
 	// select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min
-	q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " ORDER BY timestamp;");
+	q = sqlite3_mprintf(MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
 	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
 	if( stmt==NULL ) {
 		goto GetChatList_Cleanup;

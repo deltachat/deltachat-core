@@ -58,6 +58,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrimfparser.h"
+#include "mrmimeparser.h"
 #include "mrtools.h"
 #include "mrmsg.h"
 
@@ -230,12 +231,13 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	carray*          contact_ids_to = NULL;
 	uint32_t         contact_id_from = 0; // 0=self
 	sqlite3_stmt*    s;
-	int              r, i, icnt;
+	int              r, i, icnt, part_i, part_cnt;
 	uint32_t         dblocal_id = 0;    // databaselocal message id
 	char*            message_id = NULL; // Message-ID from the header
 	time_t           message_timestamp = INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
 	bool             comes_from_extern = false; // indicates, if the mail was send by us or was received from outside
+	MrMimeParser     mime_parser;
 
 	// create arrays that will hold from: and to: lists
 	contact_ids_from = carray_new(16);
@@ -255,7 +257,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	// };
 	r = mailimf_message_parse(imf_raw, imf_len, &imf_start, &imf);
 	if( r!=MAILIMF_NO_ERROR || imf==NULL ) {
-		imf = NULL; // parse error, however, try to add at least an empty record
+		goto Imf2Msg_Done; // Error - even adding an empty record won't help as we do not know the message ID
 	}
 
 	// iterate through the parsed fields
@@ -264,70 +266,67 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 		{
 			MrSqlite3Transaction transaction(m_mailbox->m_sql);
 
-			if( imf )
+			for( clistiter* cur1 = clist_begin(imf->msg_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 			{
-				for( clistiter* cur1 = clist_begin(imf->msg_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+				mailimf_field* field = (mailimf_field*)clist_content(cur1);
+				if( field )
 				{
-					mailimf_field* field = (mailimf_field*)clist_content(cur1);
-					if( field )
+					if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
 					{
-						if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
-						{
-							mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
-							if( fld_message_id ) {
-								message_id = strdup(fld_message_id->mid_value); // != NULL
-							}
-						}
-						else if( field->fld_type == MAILIMF_FIELD_FROM )
-						{
-							mailimf_from* fld_from = field->fld_data.fld_from; // can be NULL
-							if( fld_from ) {
-								AddOrLookupContacts(fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
-							}
-						}
-						else if( field->fld_type == MAILIMF_FIELD_TO )
-						{
-							mailimf_to* fld_to = field->fld_data.fld_to; // can be NULL
-							if( fld_to ) {
-								AddOrLookupContacts(fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
-							}
-						}
-						else if( field->fld_type == MAILIMF_FIELD_CC )
-						{
-							mailimf_cc* fld_cc = field->fld_data.fld_cc; // can be NULL;
-							if( fld_cc ) {
-								AddOrLookupContacts(fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
-							}
-						}
-						else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
-						{
-							mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-							if( orig_date ) {
-								message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
-							}
-						}
-						else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
-						{
-							comes_from_extern = true; // we assume, the `Return-Path:`-header is never present if the message is send by us
-													  // (messages send by us are used to validate other mail senders and receivers)
-													  // maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan.
+						mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
+						if( fld_message_id ) {
+							message_id = strdup(fld_message_id->mid_value); // != NULL
 						}
 					}
-
-				} // for
-
-				// check, if the given message is send by _us_ to only _one_ receiver --
-				// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
-				// (of course, the user can add other chats manually)
-				if( !comes_from_extern && carray_count(contact_ids_to)==1 )
-				{
-					chat_id = MrChat::CreateChatRecord(m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+					else if( field->fld_type == MAILIMF_FIELD_FROM )
+					{
+						mailimf_from* fld_from = field->fld_data.fld_from; // can be NULL
+						if( fld_from ) {
+							AddOrLookupContacts(fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_TO )
+					{
+						mailimf_to* fld_to = field->fld_data.fld_to; // can be NULL
+						if( fld_to ) {
+							AddOrLookupContacts(fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_CC )
+					{
+						mailimf_cc* fld_cc = field->fld_data.fld_cc; // can be NULL;
+						if( fld_cc ) {
+							AddOrLookupContacts(fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
+					{
+						mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+						if( orig_date ) {
+							message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
+					{
+						comes_from_extern = true; // we assume, the `Return-Path:`-header is never present if the message is send by us
+												  // (messages send by us are used to validate other mail senders and receivers)
+												  // maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan.
+					}
 				}
 
-				if( chat_id == 0 )
-				{
-					chat_id = MrChat::FindOutChatId(m_mailbox, contact_ids_from, contact_ids_to);
-				}
+			} // for
+
+			// check, if the given message is send by _us_ to only _one_ receiver --
+			// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
+			// (of course, the user can add other chats manually)
+			if( !comes_from_extern && carray_count(contact_ids_to)==1 )
+			{
+				chat_id = MrChat::CreateChatRecord(m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+			}
+
+			if( chat_id == 0 )
+			{
+				chat_id = MrChat::FindOutChatId(m_mailbox, contact_ids_from, contact_ids_to);
 			}
 
 			// check, if the mail is already in our database - if so, there's nothing more to do
@@ -361,31 +360,40 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 				contact_id_from = 0; // send by ourself
 			}
 
-			// add new message record to database
-			s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
-			sqlite3_reset(s);
-			sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (s, 2, chat_id);
-			sqlite3_bind_int  (s, 3, contact_id_from);
-			sqlite3_bind_int64(s, 4, message_timestamp);
-			sqlite3_bind_int  (s, 5, MR_MSG_TEXT); // type
-			sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
-			sqlite3_bind_text (s, 7, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
-			if( sqlite3_step(s) != SQLITE_DONE ) {
-				goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
-			}
+			// fine, so far.  now, split the message into simple parts usable as "short messages"
+			// and add them to the database (mails send by other LibreChat clients should result
+			// into only one message; mails send by other clients may result in several messages (eg. one per attachment))
+			mime_parser.Parse(NULL, imf->msg_body->bd_text);
+			part_cnt = carray_count(mime_parser.m_parts); // should be at least one - maybe empty - part
+			for( part_i = 0; part_i < part_cnt; part_i++ )
+			{
+				MrMimePart* part = (MrMimePart*)carray_get(mime_parser.m_parts, part_i);
 
-			dblocal_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
+				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
+				sqlite3_reset(s);
+				sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (s, 2, chat_id);
+				sqlite3_bind_int  (s, 3, contact_id_from);
+				sqlite3_bind_int64(s, 4, message_timestamp);
+				sqlite3_bind_int  (s, 5, part->m_type);
+				sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
+				sqlite3_bind_text (s, 7, part->m_txt, -1, SQLITE_STATIC);
+				if( sqlite3_step(s) != SQLITE_DONE ) {
+					goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+				}
 
-			if( contact_ids_to ) {
-				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_to_mc];
-				icnt = carray_count(contact_ids_to);
-				for( i = 0; i < icnt; i++ ) {
-					sqlite3_reset(s);
-					sqlite3_bind_int(s, 1, dblocal_id);
-					sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
-					if( sqlite3_step(s) != SQLITE_DONE ) {
-						goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+				dblocal_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
+
+				if( contact_ids_to ) {
+					s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_to_mc];
+					icnt = carray_count(contact_ids_to);
+					for( i = 0; i < icnt; i++ ) {
+						sqlite3_reset(s);
+						sqlite3_bind_int(s, 1, dblocal_id);
+						sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
+						if( sqlite3_step(s) != SQLITE_DONE ) {
+							goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+						}
 					}
 				}
 			}

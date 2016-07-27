@@ -140,6 +140,7 @@ bool MrMailbox::Fetch()
  * However, the caller should make sure, it does not exist in the database.
  ******************************************************************************/
 
+
 void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
 {
 	MrImfParser parser(this);
@@ -147,8 +148,6 @@ void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
 	if( !parser.Imf2Msg(imf, imf_len) ) {
 		return; // error already logged
 	}
-
-
 }
 
 

@@ -193,9 +193,14 @@ int main(int argc, char ** argv)
 			MrChatList* chatlist = mailbox->GetChats();
 			if( chatlist ) {
 				int i, cnt = carray_count(chatlist->m_chats);
-				for( i = 0; i < cnt; i++ ) {
-					MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
-					printf("%s\n", chat->m_name);
+				if( cnt ) {
+					for( i = 0; i < cnt; i++ ) {
+						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
+						printf("%s\n", chat->m_name);
+					}
+				}
+				else {
+					printf("Empty chat list.\n");
 				}
 				delete chatlist;
 			}

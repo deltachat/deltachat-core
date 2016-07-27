@@ -21,7 +21,7 @@
  *
  * File:    mrmimeparser.h
  * Authors: Björn Petersen
- * Purpose: Parse MIME body; this is the text part of an IMF handled by 
+ * Purpose: Parse MIME body; this is the text part of an IMF handled by
  *          MrImfParser
  *
  ******************************************************************************/
@@ -31,11 +31,33 @@
 #define __MRMIMEPARSER_H__
 
 
+#include "mrmsg.h"
+
+
+class MrMimePart
+{
+public:
+						MrMimePart();
+	                    ~MrMimePart();
+	MrMsgType           m_type;
+	char*               m_txt;
+};
+
 class MrMimeParser
 {
 public:
-	                    MrMimeParser         (const char* body);
+	                    MrMimeParser         ();
 	                    ~MrMimeParser        ();
+	void                Empty                ();
+
+	// The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
+	// Unless memory-allocation-errors occur, Parse() returns at least one empty part.
+	// (this is because we want to add even these message to our database to avoid reading them several times.
+	// of course, these empty messages are not added to any chat)
+	carray*             Parse                (const char* subject, const char* body);
+
+	// data, read-only
+	carray*             m_parts;
 };
 
 

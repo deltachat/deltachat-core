@@ -30,14 +30,71 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
+#include "mrtools.h"
 
 
-MrMimeParser::MrMimeParser(const char* body)
+/*******************************************************************************
+ * a MIME part
+ ******************************************************************************/
+
+
+MrMimePart::MrMimePart()
 {
+	m_type = MR_MSG_UNDEFINED;
+	m_txt  = NULL;
+}
+
+
+MrMimePart::~MrMimePart()
+{
+	if( m_txt ) {
+		free((void*)m_txt);
+		m_txt = NULL;
+	}
+}
+
+
+/*******************************************************************************
+ * MIME parser
+ ******************************************************************************/
+
+
+MrMimeParser::MrMimeParser()
+{
+	m_parts = carray_new(16);
 }
 
 
 MrMimeParser::~MrMimeParser()
 {
+	Empty();
+	carray_free(m_parts);
 }
 
+
+void MrMimeParser::Empty()
+{
+	if( m_parts )
+	{
+		int i, cnt = carray_count(m_parts);
+		for( i = 0; i < cnt; i++ ) {
+			MrMimePart* part = (MrMimePart*)carray_get(m_parts, i);
+			if( part ) {
+				delete part;
+			}
+		}
+	}
+}
+
+
+carray* MrMimeParser::Parse(const char* subject, const char* body)
+{
+	Empty();
+
+	MrMimePart* part = new MrMimePart();
+	part->m_type = MR_MSG_TEXT;
+	part->m_txt  = save_strdup((char*)body);
+	carray_add(m_parts, (void*)part, NULL);
+
+	return m_parts;
+}
