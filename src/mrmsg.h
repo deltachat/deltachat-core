@@ -65,7 +65,7 @@ public:
 	              MrMsg          (MrMailbox*);
 	              ~MrMsg         ();
 
-	#define       MR_MSG_FIELDS " m.id, m.from_id, m.timestamp, m.type, m.state, m.msg " // we use a define for easier string concatenation
+	#define       MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " // we use a define for easier string concatenation
 	bool          SetMsgFromStmt (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
 
 	static size_t GetMsgCnt      (MrMailbox*);

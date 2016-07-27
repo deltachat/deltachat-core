@@ -74,8 +74,9 @@ public:
 
 private:
 	// the mailbox, the chat belongs to
-	#define         MR_CHAT_FIELDS " c.id, c.type, c.name "
-	#define         MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+	#define         MR_CHAT_FIELDS " c.id,c.type,c.name "
+	#define         MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
+	                    "LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
 	bool            SetChatFromStmt      (sqlite3_stmt* row);
 	void            Empty                ();
 	MrMailbox*      m_mailbox;
