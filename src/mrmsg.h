@@ -41,8 +41,10 @@ enum MrMsgType
 	,MR_MSG_IMAGE     =  20
 	,MR_MSG_STICKER   =  30
 	,MR_MSG_AUDIO     =  40
+	,MR_MSG_VOICE_MSG =  41
 	,MR_MSG_VIDEO     =  50
 	,MR_MSG_FILE      =  60
+	,MR_MSG_LINK      =  61
 	,MR_MSG_CONTACT   =  70
 	,MR_MSG_LOCATION  =  80
 };
