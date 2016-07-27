@@ -83,9 +83,9 @@ public:
 	MrChat*       GetChat              (uint32_t id); // the result must be delete'd
 
 	// handle configurations
-	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker l(m_sql); return m_sql.SetConfig(key, value); }
-	char*         GetConfig            (const char* key, const char* def)   { MrSqlite3Locker l(m_sql); return m_sql.GetConfig(key, def); } // the returned string must be free()'d, returns NULL on errors
-	int32_t       GetConfigInt         (const char* key, int32_t def)       { MrSqlite3Locker l(m_sql); return m_sql.GetConfigInt(key, def); }
+	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker locker(m_sql); return m_sql.SetConfig(key, value); }
+	char*         GetConfig            (const char* key, const char* def)   { MrSqlite3Locker locker(m_sql); return m_sql.GetConfig(key, def); } // the returned string must be free()'d, returns NULL on errors
+	int32_t       GetConfigInt         (const char* key, int32_t def)       { MrSqlite3Locker locker(m_sql); return m_sql.GetConfigInt(key, def); }
 
 	// misc
 	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open

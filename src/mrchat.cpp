@@ -269,6 +269,8 @@ uint32_t MrChat::FindOutChatId(MrMailbox* mailbox, carray* contact_ids_from, car
 
 MrMsgList* MrChat::ListMsgs() // the caller must delete the result
 {
+	MrSqlite3Locker locker(m_mailbox->m_sql); // function is called from user-level, needs locking therefore
+
 	bool          success = false;
 	MrMsgList*    ret = NULL;
 	char*         q = NULL;

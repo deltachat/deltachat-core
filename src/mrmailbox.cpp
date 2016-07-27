@@ -159,7 +159,8 @@ void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
 
 size_t MrMailbox::GetContactCnt()
 {
-	MrSqlite3Locker l(m_sql);
+	MrSqlite3Locker locker(m_sql);
+
 	return MrContact::GetContactCnt(this);
 }
 
@@ -171,7 +172,8 @@ size_t MrMailbox::GetContactCnt()
 
 size_t MrMailbox::GetChatCnt()
 {
-	MrSqlite3Locker l(m_sql);
+	MrSqlite3Locker locker(m_sql);
+
 	return MrChat::GetChatCnt(this);
 }
 

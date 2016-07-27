@@ -106,6 +106,9 @@ public:
 	// the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.
 	// for this purpose, he can use MrSqlite3Locker as a helper:
 	// By the simple existance of a object, all other object creation will be halted until the first is deleted again.
+	//
+	// In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
+	// Low-level-functions, eg. the MrSqlite3-methods, do not lock.
 	MrSqlite3Locker(MrSqlite3& sqlite3)
 	{
 		m_sqlite3 = &sqlite3;
