@@ -64,10 +64,10 @@ public:
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
 
-	// empty all tabes but leaves server configuration
+	// empty all tables but leaves server configuration
 	bool          Empty                ();
 
-	// connect to the mailbox: error are be received asynchronously.
+	// connect to the mailbox: errors are received asynchronously.
 	bool          Connect              ();
 	void          Disconnect           ();
 	bool          Fetch                ();
