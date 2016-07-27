@@ -108,28 +108,6 @@ char* MrImfParser::CreateStubMessageId(time_t message_timestamp, carray* contact
 }
 
 
-char* MrImfParser::DecodeHeaderString(const char* in)
-{
-	// decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
-	// if `in` is NULL, `out` is NULL as well; also returns NULL on errors
-
-	if( in == NULL ) {
-		return NULL; // no string given
-	}
-
-	#define DEF_INCOMING_CHARSET "iso-8859-1"
-	#define DEF_DISPLAY_CHARSET "utf-8"
-	char* out = NULL;
-	size_t cur_token = 0;
-	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
-	if( r != MAILIMF_NO_ERROR || out == NULL ) {
-		out = strdup(in); // error, make a copy of the original string (as we free it later)
-	}
-
-	return out; // must be free()'d by the caller
-}
-
-
 void MrImfParser::AddOrLookupContact(const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
 {
 	uint32_t row_id = 0;
@@ -144,7 +122,7 @@ void MrImfParser::AddOrLookupContact(const char* display_name_enc /*can be NULL*
 		if( display_name_enc && display_name_enc[0] && (row_name==NULL || row_name[0]==0) )
 		{
 			// update the display name ONLY if it was unset before (otherwise, we can assume, the name is fine and maybe already edited by the user)
-			char* display_name_dec = DecodeHeaderString(display_name_enc);
+			char* display_name_dec = mr_decode_header_string(display_name_enc);
 			if( display_name_dec )
 			{
 				sqlite3_stmt* s = m_mailbox->m_sql.m_pd[UPDATE_contacts_ni];
@@ -158,7 +136,7 @@ void MrImfParser::AddOrLookupContact(const char* display_name_enc /*can be NULL*
 	}
 	else
 	{
-		char* display_name_dec = DecodeHeaderString(display_name_enc); // may be NULL (if display_name_enc is NULL)
+		char* display_name_dec = mr_decode_header_string(display_name_enc); // may be NULL (if display_name_enc is NULL)
 
 		sqlite3_stmt* s = m_mailbox->m_sql.m_pd[INSERT_INTO_contacts_ne];
 		sqlite3_reset(s);
@@ -363,7 +341,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// fine, so far.  now, split the message into simple parts usable as "short messages"
 			// and add them to the database (mails send by other LibreChat clients should result
 			// into only one message; mails send by other clients may result in several messages (eg. one per attachment))
-			mime_parser.Parse(NULL, imf_raw);
+			mime_parser.Parse(imf_raw);
 			part_cnt = carray_count(mime_parser.m_parts); // should be at least one - maybe empty - part
 			for( part_i = 0; part_i < part_cnt; part_i++ )
 			{

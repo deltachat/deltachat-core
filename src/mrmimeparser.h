@@ -54,10 +54,14 @@ public:
 	// Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 	// (this is because we want to add even these message to our database to avoid reading them several times.
 	// of course, these empty messages are not added to any chat)
-	carray*             Parse                (const char* subject, const char* body);
+	carray*             Parse                (const char* body);
 
 	// data, read-only
 	carray*             m_parts;
+
+private:
+	void                ParseMimeRecursive   (mailmime*);
+	char*               m_temp_subject_encoded; // a pointer somewhere to the MIME data, must not be freed
 };
 
 

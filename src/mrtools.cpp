@@ -66,6 +66,28 @@ char* mr_strlower(const char* in) // the result must be free()'d
 	return out;
 }
 
+
+char* mr_decode_header_string(const char* in)
+{
+	// decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
+	// if `in` is NULL, `out` is NULL as well; also returns NULL on errors
+
+	if( in == NULL ) {
+		return NULL; // no string given
+	}
+
+	#define DEF_INCOMING_CHARSET "iso-8859-1"
+	#define DEF_DISPLAY_CHARSET "utf-8"
+	char* out = NULL;
+	size_t cur_token = 0;
+	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
+	if( r != MAILIMF_NO_ERROR || out == NULL ) {
+		out = strdup(in); // error, make a copy of the original string (as we free it later)
+	}
+
+	return out; // must be free()'d by the caller
+}
+
 /* ===================================================================
  * UTF-7 conversion routines as in RFC 2192
  * ===================================================================

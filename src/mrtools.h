@@ -33,6 +33,7 @@
 // string tools
 char* save_strdup(char*); // returns empty string if NULL is given, else same as strdup()
 char* mr_strlower(const char*); // the result must be free()'d
+char* mr_decode_header_string(const char* in); // the result must be free()'d
 char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
 char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);
 
