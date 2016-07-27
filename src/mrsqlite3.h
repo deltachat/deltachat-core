@@ -43,7 +43,11 @@ class MrContact;
 // predefined statements
 enum
 {
-	 SELECT_value_FROM_config_k = 0 // must be first
+	 BEGIN_transaction = 0 // must be first
+	,ROLLBACK_transaction
+	,COMMIT_transaction
+
+	,SELECT_value_FROM_config_k
 	,INSERT_INTO_config_kv
 	,UPDATE_config_vk
 	,DELETE_FROM_config_k
@@ -90,6 +94,9 @@ public:
 	char*         m_dbfile; // may be NULL
 	sqlite3*      m_cobj;
 
+	// helper for MrSqlite3Transaction
+	int           m_transactionCount;
+
 	// tools, these functions are compatible to the corresponding sqlite3_* functions
 	sqlite3_stmt* sqlite3_prepare_v2_  (const char* sql); // the result mus be freed using sqlite3_finalize()
 	bool          sqlite3_execute_     (const char* sql);
@@ -122,6 +129,24 @@ public:
 
 private:
 	MrSqlite3* m_sqlite3;
+};
+
+
+class MrSqlite3Transaction
+{
+public:
+	// Transaction objects may be nested, however, only the outest
+	// object is really used.  Without an explicit Commit(), the transaction is
+	// ROLLBACK'ed on destruction of the outest transaction object.
+	//
+	// CAVE: As all sqlite requests, transactions should always be locked!
+	                MrSqlite3Transaction   (MrSqlite3& sqlite3);
+	                ~MrSqlite3Transaction  ();
+	bool            Commit                 ();
+
+private:
+	MrSqlite3*      m_sqlite3;
+	bool            m_commited;
 };
 
 

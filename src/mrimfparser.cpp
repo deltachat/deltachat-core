@@ -261,132 +261,138 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	// iterate through the parsed fields
 	{
 		MrSqlite3Locker locker(m_mailbox->m_sql); // lock database (parsing should be done outside the lock)
-
-		if( imf )
 		{
-			for( clistiter* cur1 = clist_begin(imf->msg_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+			MrSqlite3Transaction transaction(m_mailbox->m_sql);
+
+			if( imf )
 			{
-				mailimf_field* field = (mailimf_field*)clist_content(cur1);
-				if( field )
+				for( clistiter* cur1 = clist_begin(imf->msg_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 				{
-					if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+					mailimf_field* field = (mailimf_field*)clist_content(cur1);
+					if( field )
 					{
-						mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
-						if( fld_message_id ) {
-							message_id = strdup(fld_message_id->mid_value); // != NULL
+						if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+						{
+							mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
+							if( fld_message_id ) {
+								message_id = strdup(fld_message_id->mid_value); // != NULL
+							}
+						}
+						else if( field->fld_type == MAILIMF_FIELD_FROM )
+						{
+							mailimf_from* fld_from = field->fld_data.fld_from; // can be NULL
+							if( fld_from ) {
+								AddOrLookupContacts(fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
+							}
+						}
+						else if( field->fld_type == MAILIMF_FIELD_TO )
+						{
+							mailimf_to* fld_to = field->fld_data.fld_to; // can be NULL
+							if( fld_to ) {
+								AddOrLookupContacts(fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
+							}
+						}
+						else if( field->fld_type == MAILIMF_FIELD_CC )
+						{
+							mailimf_cc* fld_cc = field->fld_data.fld_cc; // can be NULL;
+							if( fld_cc ) {
+								AddOrLookupContacts(fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
+							}
+						}
+						else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
+						{
+							mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+							if( orig_date ) {
+								message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
+							}
+						}
+						else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
+						{
+							comes_from_extern = true; // we assume, the `Return-Path:`-header is never present if the message is send by us
+													  // (messages send by us are used to validate other mail senders and receivers)
+													  // maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan.
 						}
 					}
-					else if( field->fld_type == MAILIMF_FIELD_FROM )
-					{
-						mailimf_from* fld_from = field->fld_data.fld_from; // can be NULL
-						if( fld_from ) {
-							AddOrLookupContacts(fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_TO )
-					{
-						mailimf_to* fld_to = field->fld_data.fld_to; // can be NULL
-						if( fld_to ) {
-							AddOrLookupContacts(fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_CC )
-					{
-						mailimf_cc* fld_cc = field->fld_data.fld_cc; // can be NULL;
-						if( fld_cc ) {
-							AddOrLookupContacts(fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
-					{
-						mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-						if( orig_date ) {
-							message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
-					{
-						comes_from_extern = true; // we assume, the `Return-Path:`-header is never present if the message is send by us
-						                          // (messages send by us are used to validate other mail senders and receivers)
-						                          // maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan.
-					}
+
+				} // for
+
+				// check, if the given message is send by _us_ to only _one_ receiver --
+				// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
+				// (of course, the user can add other chats manually)
+				if( !comes_from_extern && carray_count(contact_ids_to)==1 )
+				{
+					chat_id = MrChat::CreateChatRecord(m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
 				}
 
-			} // for
-
-			// check, if the given message is send by _us_ to only _one_ receiver --
-			// only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
-			// (of course, the user can add other chats manually)
-			if( !comes_from_extern && carray_count(contact_ids_to)==1 )
-			{
-				chat_id = MrChat::CreateChatRecord(m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+				if( chat_id == 0 )
+				{
+					chat_id = MrChat::FindOutChatId(m_mailbox, contact_ids_from, contact_ids_to);
+				}
 			}
 
-			if( chat_id == 0 )
-			{
-                chat_id = MrChat::FindOutChatId(m_mailbox, contact_ids_from, contact_ids_to);
-			}
-		}
-
-		// check, if the mail is already in our database - if so, there's nothing more to do
-		// (we may get a mail twice eg. it it is moved between folders)
-		if( message_id == NULL ) {
-			// header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail clien
-			// the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
-			// in these cases, we build a message ID based on some useful header fields that do never change (date, to)
-			// we do not use the folder-local id, as this will change if the mail is moved to another folder.
-			message_id = CreateStubMessageId(message_timestamp, contact_ids_to);
+			// check, if the mail is already in our database - if so, there's nothing more to do
+			// (we may get a mail twice eg. it it is moved between folders)
 			if( message_id == NULL ) {
-				goto Imf2Msg_Done;
-			}
-		}
-
-		if( MrMsg::MessageIdExists(m_mailbox, message_id) ) {
-			goto Imf2Msg_Done; // success - the message is already added to our database
-		}
-
-		// set the sender (contact_id_from, 0=self)
-		if( comes_from_extern ) {
-			if( carray_count(contact_ids_from) == 0 ) {
-				AddOrLookupContact(NULL, "no@ddress", contact_ids_from);
-				if( carray_count(contact_ids_from) == 0 ) {
+				// header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail clien
+				// the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
+				// in these cases, we build a message ID based on some useful header fields that do never change (date, to)
+				// we do not use the folder-local id, as this will change if the mail is moved to another folder.
+				message_id = CreateStubMessageId(message_timestamp, contact_ids_to);
+				if( message_id == NULL ) {
 					goto Imf2Msg_Done;
 				}
 			}
-			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
-		}
-		else {
-			contact_id_from = 0; // send by ourself
-		}
 
-		// add new message record to database
-		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
-		sqlite3_reset(s);
-		sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (s, 2, chat_id);
-		sqlite3_bind_int  (s, 3, contact_id_from);
-		sqlite3_bind_int64(s, 4, message_timestamp);
-		sqlite3_bind_int  (s, 5, MR_MSG_TEXT); // type
-		sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
-		sqlite3_bind_text (s, 7, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
-		if( sqlite3_step(s) != SQLITE_DONE ) {
-			goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
-		}
+			if( MrMsg::MessageIdExists(m_mailbox, message_id) ) {
+				goto Imf2Msg_Done; // success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK)
+			}
 
-		dblocal_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
+			// set the sender (contact_id_from, 0=self)
+			if( comes_from_extern ) {
+				if( carray_count(contact_ids_from) == 0 ) {
+					AddOrLookupContact(NULL, "no@ddress", contact_ids_from);
+					if( carray_count(contact_ids_from) == 0 ) {
+						goto Imf2Msg_Done;
+					}
+				}
+				contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
+			}
+			else {
+				contact_id_from = 0; // send by ourself
+			}
 
-		if( contact_ids_to ) {
-			s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_to_mc];
-			icnt = carray_count(contact_ids_to);
-			for( i = 0; i < icnt; i++ ) {
-				sqlite3_reset(s);
-				sqlite3_bind_int(s, 1, dblocal_id);
-				sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
-				if( sqlite3_step(s) != SQLITE_DONE ) {
-					goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+			// add new message record to database
+			s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
+			sqlite3_reset(s);
+			sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (s, 2, chat_id);
+			sqlite3_bind_int  (s, 3, contact_id_from);
+			sqlite3_bind_int64(s, 4, message_timestamp);
+			sqlite3_bind_int  (s, 5, MR_MSG_TEXT); // type
+			sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
+			sqlite3_bind_text (s, 7, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
+			if( sqlite3_step(s) != SQLITE_DONE ) {
+				goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+			}
+
+			dblocal_id = sqlite3_last_insert_rowid(m_mailbox->m_sql.m_cobj);
+
+			if( contact_ids_to ) {
+				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_to_mc];
+				icnt = carray_count(contact_ids_to);
+				for( i = 0; i < icnt; i++ ) {
+					sqlite3_reset(s);
+					sqlite3_bind_int(s, 1, dblocal_id);
+					sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
+					if( sqlite3_step(s) != SQLITE_DONE ) {
+						goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
+					}
 				}
 			}
-		}
+
+			transaction.Commit();
+
+		} // end sql-transaction
 
 	} // end sql-lock
 

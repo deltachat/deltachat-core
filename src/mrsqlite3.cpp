@@ -36,9 +36,10 @@
 
 MrSqlite3::MrSqlite3(MrMailbox* mailbox)
 {
-	m_cobj    = NULL;
-	m_dbfile  = NULL;
-	m_mailbox = mailbox;
+	m_cobj             = NULL;
+	m_dbfile           = NULL;
+	m_mailbox          = mailbox;
+	m_transactionCount = 0;
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
 		m_pd[i] = NULL;
@@ -112,6 +113,10 @@ bool MrSqlite3::Open(const char* dbfile)
 	}
 
 	// prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this)
+	m_pd[BEGIN_transaction]          = sqlite3_prepare_v2_("BEGIN;");
+	m_pd[ROLLBACK_transaction]       = sqlite3_prepare_v2_("ROLLBACK;");
+	m_pd[COMMIT_transaction]         = sqlite3_prepare_v2_("COMMIT;");
+
 	m_pd[SELECT_value_FROM_config_k] = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
 	m_pd[INSERT_INTO_config_kv]      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
 	m_pd[UPDATE_config_vk]           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
@@ -375,3 +380,59 @@ bool MrSqlite3::SetConfigInt(const char* key, int32_t value)
     return ret;
 }
 
+
+/*******************************************************************************
+ * Transactions
+ ******************************************************************************/
+
+
+MrSqlite3Transaction::MrSqlite3Transaction(MrSqlite3& sqlite3)
+{
+	m_sqlite3 = &sqlite3;
+
+	m_sqlite3->m_transactionCount++; // this is safe, as the database should be locked when using a transaction
+	m_commited = false;
+	if( m_sqlite3->m_transactionCount == 1 )
+	{
+		sqlite3_reset(m_sqlite3->m_pd[BEGIN_transaction]);
+		if( sqlite3_step(m_sqlite3->m_pd[BEGIN_transaction]) != SQLITE_DONE ) {
+			MrLogSqliteError(m_sqlite3->m_cobj);
+		}
+	}
+}
+
+
+MrSqlite3Transaction::~MrSqlite3Transaction()
+{
+	if( m_sqlite3->m_transactionCount == 1 )
+	{
+		if( !m_commited )
+		{
+			sqlite3_reset(m_sqlite3->m_pd[ROLLBACK_transaction]);
+			if( sqlite3_step(m_sqlite3->m_pd[ROLLBACK_transaction]) != SQLITE_DONE ) {
+				MrLogSqliteError(m_sqlite3->m_cobj);
+			}
+		}
+	}
+
+	m_sqlite3->m_transactionCount--;
+}
+
+
+bool MrSqlite3Transaction::Commit()
+{
+	if( m_commited ) {
+		return false; // ERROR - already committed
+	}
+
+	if( m_sqlite3->m_transactionCount == 1 )
+	{
+		sqlite3_reset(m_sqlite3->m_pd[COMMIT_transaction]);
+		if( sqlite3_step(m_sqlite3->m_pd[COMMIT_transaction]) != SQLITE_DONE ) {
+			MrLogSqliteError(m_sqlite3->m_cobj);
+		}
+	}
+
+	m_commited = true;
+	return true; // committed later, on outest level if no errors occur
+}
