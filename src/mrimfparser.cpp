@@ -363,7 +363,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// fine, so far.  now, split the message into simple parts usable as "short messages"
 			// and add them to the database (mails send by other LibreChat clients should result
 			// into only one message; mails send by other clients may result in several messages (eg. one per attachment))
-			mime_parser.Parse(NULL, imf->msg_body->bd_text);
+			mime_parser.Parse(NULL, imf_raw);
 			part_cnt = carray_count(mime_parser.m_parts); // should be at least one - maybe empty - part
 			for( part_i = 0; part_i < part_cnt; part_i++ )
 			{
