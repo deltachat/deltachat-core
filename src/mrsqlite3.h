@@ -140,6 +140,9 @@ public:
 	// ROLLBACK'ed on destruction of the outest transaction object.
 	//
 	// CAVE: As all sqlite requests, transactions should always be locked!
+	//
+	// NB: While transactions are useful for data integrity, on sqlite,
+	// they will also speed up inserts and updates massively!
 	                MrSqlite3Transaction   (MrSqlite3& sqlite3);
 	                ~MrSqlite3Transaction  ();
 	bool            Commit                 ();
