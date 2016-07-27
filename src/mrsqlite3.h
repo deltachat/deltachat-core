@@ -57,7 +57,7 @@ enum
 
 	,SELECT_COUNT_FROM_msg
 	,SELECT_id_FROM_msg_m
-	,INSERT_INTO_msg_mccttm
+	,INSERT_INTO_msg_mcfttsm
 	,INSERT_INTO_msg_to_mc
 
 	,PREDEFINED_CNT // must be last

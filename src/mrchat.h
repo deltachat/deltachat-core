@@ -31,26 +31,28 @@
 #define __MRCHAT_H__
 
 
-class MrMsg;
+#include "mrmsg.h"
+
 class MrMsgList;
 class MrMailbox;
 
 
 enum MrChatType
 {
-	 MR_CHAT_UNDEFINED =  0
-	,MR_CHAT_NORMAL    = 10 // a normal chat is a chat with a single contact
-	,MR_CHAT_PRIVATE   = 20
-	,MR_CHAT_GROUP     = 30
+	 MR_CHAT_UNDEFINED =   0
+	,MR_CHAT_NORMAL    = 100 // a normal chat is a chat with a single contact
+	,MR_CHAT_PRIVATE   = 110
+	,MR_CHAT_GROUP     = 120
+	,MR_CHAT_FEED      = 130
 };
 
 
 class MrChat
 {
 public:
-	                MrChat      (MrMailbox*);
-	                ~MrChat     ();
-	bool            LoadFromDb  (const char* name, uint32_t id);
+	                MrChat               (MrMailbox*);
+	                ~MrChat              ();
+	bool            LoadFromDb           (const char* name, uint32_t id);
 
 	static size_t   GetChatCnt           (MrMailbox*);
 	static uint32_t ChatExists           (MrMailbox*, MrChatType, uint32_t contact_id); // returns chat_id or 0
@@ -65,17 +67,17 @@ public:
 	MrMsg*          m_lastMsg;
 
 	// list messages
-	MrMsgList*      ListMsgs    (); // the caller must delete the result
+	MrMsgList*      ListMsgs             (); // the caller must delete the result
 
 	// send a message
-	void            SendMsg     (const char* text);
+	void            SendMsg              (const char* text);
 
 private:
 	// the mailbox, the chat belongs to
-	#define         MR_MSG_FIELDS "m.id, m.from_id, m.timestamp, m.type, m.msg"
-	#define         MR_GET_CHATS_PREFIX "SELECT c.id, c.type, c.name, " MR_MSG_FIELDS " FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
-	bool            SetFromStmt (sqlite3_stmt* row);
-	void            Empty       ();
+	#define         MR_CHAT_FIELDS " c.id, c.type, c.name "
+	#define         MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+	bool            SetChatFromStmt      (sqlite3_stmt* row);
+	void            Empty                ();
 	MrMailbox*      m_mailbox;
 
 	friend class    MrChatList;

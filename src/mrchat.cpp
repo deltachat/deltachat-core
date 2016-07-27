@@ -63,16 +63,16 @@ void MrChat::Empty()
 }
 
 
-bool MrChat::SetFromStmt(sqlite3_stmt* row)
+bool MrChat::SetChatFromStmt(sqlite3_stmt* row)
 {
 	Empty();
 
 	int row_offset = 0;
-	m_id             =                    sqlite3_column_int  (row, row_offset++); // the columns are defined in MR_GET_CHATS_PREFIX
+	m_id             =                    sqlite3_column_int  (row, row_offset++); // the columns are defined in MR_CHAT_FIELDS
 	m_type           = (MrChatType)       sqlite3_column_int  (row, row_offset++);
 	m_name           = save_strdup((char*)sqlite3_column_text (row, row_offset++));
 	m_lastMsg        = new MrMsg(m_mailbox);
-	m_lastMsg->SetFromStmt(row, row_offset);
+	m_lastMsg->SetMsgFromStmt(row, row_offset);
 
 	if( m_name == NULL || m_lastMsg == NULL || m_lastMsg->m_msg == NULL ) {
 		return false;
@@ -103,7 +103,7 @@ bool MrChat::LoadFromDb(const char* name, uint32_t id)
 		goto LoadFromDb_Cleanup;
 	}
 
-	if( !SetFromStmt(stmt) ) {
+	if( !SetChatFromStmt(stmt) ) {
 		goto LoadFromDb_Cleanup;
 	}
 
@@ -289,7 +289,7 @@ MrMsgList* MrChat::ListMsgs() // the caller must delete the result
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		MrMsg* msg = new MrMsg(m_mailbox);
-		if( msg && msg->SetFromStmt(stmt) ) {
+		if( msg && msg->SetMsgFromStmt(stmt) ) {
 			carray_add(ret->m_msgs, (void*)msg, NULL);
 		}
 	}
@@ -381,7 +381,7 @@ bool MrChatList::LoadFromDb()
 
     while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		MrChat* chat = new MrChat(m_mailbox);
-		if( chat->SetFromStmt(stmt) ) {
+		if( chat->SetChatFromStmt(stmt) ) {
 			carray_add(m_chats, (void*)chat, NULL);
 		}
     }

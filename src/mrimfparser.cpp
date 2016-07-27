@@ -360,14 +360,15 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 		}
 
 		// add new message record to database
-		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mccttm];
+		s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
 		sqlite3_reset(s);
 		sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
 		sqlite3_bind_int  (s, 2, chat_id);
 		sqlite3_bind_int  (s, 3, contact_id_from);
 		sqlite3_bind_int64(s, 4, message_timestamp);
-		sqlite3_bind_int  (s, 5, MR_MSG_TEXT);
-		sqlite3_bind_text (s, 6, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (s, 5, MR_MSG_TEXT); // type
+		sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
+		sqlite3_bind_text (s, 7, imf? imf->msg_body->bd_text : NULL, -1, SQLITE_STATIC);
 		if( sqlite3_step(s) != SQLITE_DONE ) {
 			goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
 		}

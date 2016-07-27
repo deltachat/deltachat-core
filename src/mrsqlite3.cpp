@@ -126,7 +126,7 @@ bool MrSqlite3::Open(const char* dbfile)
 
 	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
 	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE message_id=?;");
-	m_pd[INSERT_INTO_msg_mccttm]     = sqlite3_prepare_v2_("INSERT INTO msg (message_id, chat_id, from_id, timestamp, type, msg) VALUES (?,?,?, ?,?,?);");
+	m_pd[INSERT_INTO_msg_mcfttsm]    = sqlite3_prepare_v2_("INSERT INTO msg (message_id,chat_id,from_id, timestamp,type,state, msg) VALUES (?,?,?, ?,?,?, ?);");
 	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {

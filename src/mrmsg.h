@@ -37,14 +37,25 @@ class MrMailbox;
 enum MrMsgType
 {
 	 MR_MSG_UNDEFINED =   0
-	,MR_MSG_TEXT      = 100
-	,MR_MSG_IMAGE     = 110
-	,MR_MSG_STICKER   = 120
-	,MR_MSG_AUDIO     = 130
-	,MR_MSG_VIDEO     = 140
-	,MR_MSG_FILE      = 150
-	,MR_MSG_CONTACT   = 160
-	,MR_MSG_LOCATION  = 170
+	,MR_MSG_TEXT      =  10
+	,MR_MSG_IMAGE     =  20
+	,MR_MSG_STICKER   =  30
+	,MR_MSG_AUDIO     =  40
+	,MR_MSG_VIDEO     =  50
+	,MR_MSG_FILE      =  60
+	,MR_MSG_CONTACT   =  70
+	,MR_MSG_LOCATION  =  80
+};
+
+
+enum MrMsgState
+{
+	 MR_STATE_UNDEFINED = 0
+	,MR_IN_UNREAD       = 1 // incoming message not read
+	,MR_IN_READ         = 3 // incoming message read
+	,MR_OUT_SEND        = 5 // outgoing message put to server without errors (one check)
+	,MR_OUT_DELIVERED   = 7 // outgoing message successfully delivered (one check)
+	,MR_OUT_READ        = 9 // outgoing message read (two checks)
 };
 
 
@@ -53,16 +64,20 @@ class MrMsg
 public:
 	              MrMsg          (MrMailbox*);
 	              ~MrMsg         ();
-	bool          SetFromStmt    (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
+
+	#define       MR_MSG_FIELDS " m.id, m.from_id, m.timestamp, m.type, m.state, m.msg " // we use a define for easier string concatenation
+	bool          SetMsgFromStmt (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
+
 	static size_t GetMsgCnt      (MrMailbox*);
 	static bool   MessageIdExists(MrMailbox*, const char* message_id);
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
 	uint32_t      m_id;
-	uint32_t      m_fromId;
+	uint32_t      m_fromId; // 0 = self
 	time_t        m_timestamp; // unix time the message was sended
 	MrMsgType     m_type;
+	MrMsgState    m_state;
 	char*         m_msg;  // meaning dedpends on m_type
 
 private:
