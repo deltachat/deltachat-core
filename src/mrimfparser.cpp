@@ -203,13 +203,11 @@ void MrImfParser::AddOrLookupContacts(mailimf_address_list* adr_list, carray* id
 
 int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 {
-	size_t           imf_start = 0; // in/out: pointer to the current/next message; we assume, we only get one IMF at once.
-	mailimf_message* imf = NULL;
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
 	uint32_t         contact_id_from = 0; // 0=self
 	sqlite3_stmt*    s;
-	int              r, i, icnt, part_i, part_cnt;
+	int              i, icnt, part_i, part_cnt;
 	uint32_t         dblocal_id = 0;    // databaselocal message id
 	char*            message_id = NULL; // Message-ID from the header
 	time_t           message_timestamp = INVALID_TIMESTAMP;
@@ -233,8 +231,11 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
     //          size_t bd_size;
 	//      }
 	// };
-	r = mailimf_message_parse(imf_raw, imf_len, &imf_start, &imf);
-	if( r!=MAILIMF_NO_ERROR || imf==NULL ) {
+	// normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
+	// we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
+	// that speaks against this approach yet)
+	mime_parser.Parse(imf_raw);
+	if( mime_parser.m_header == NULL ) {
 		goto Imf2Msg_Done; // Error - even adding an empty record won't help as we do not know the message ID
 	}
 
@@ -244,7 +245,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 		{
 			MrSqlite3Transaction transaction(m_mailbox->m_sql);
 
-			for( clistiter* cur1 = clist_begin(imf->msg_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+			for( clistiter* cur1 = clist_begin(mime_parser.m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 			{
 				mailimf_field* field = (mailimf_field*)clist_content(cur1);
 				if( field )
@@ -341,7 +342,6 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 			// fine, so far.  now, split the message into simple parts usable as "short messages"
 			// and add them to the database (mails send by other LibreChat clients should result
 			// into only one message; mails send by other clients may result in several messages (eg. one per attachment))
-			mime_parser.Parse(imf_raw);
 			part_cnt = carray_count(mime_parser.m_parts); // should be at least one - maybe empty - part
 			for( part_i = 0; part_i < part_cnt; part_i++ )
 			{
@@ -396,8 +396,5 @@ Imf2Msg_Done:
 		carray_free(contact_ids_to);
 	}
 
-	if( imf ) {
-		mailimf_message_free(imf);
-	}
 	return 0;
 }

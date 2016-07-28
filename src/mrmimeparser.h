@@ -43,6 +43,7 @@ public:
 	char*               m_txt;
 };
 
+
 class MrMimeParser
 {
 public:
@@ -58,10 +59,12 @@ public:
 
 	// data, read-only
 	carray*             m_parts;
+	mailmime*           m_mimeroot;
+	mailimf_fields*     m_header;
+	char*               m_subjectEncoded;
 
 private:
 	void                ParseMimeRecursive   (mailmime*);
-	char*               m_temp_subject_encoded; // a pointer somewhere to the MIME data, must not be freed
 };
 
 
