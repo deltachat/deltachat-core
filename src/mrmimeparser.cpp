@@ -464,6 +464,7 @@ void MrMimeParser::ParseMimeRecursive(mailmime* mime)
 						if( m_subjectEncoded == NULL && field->fld_data.fld_subject ) {
 							m_subjectEncoded = field->fld_data.fld_subject->sbj_value;
 						}
+						break; // we're not interested in the other fields
 					}
 				}
 			}
