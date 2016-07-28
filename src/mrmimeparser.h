@@ -40,7 +40,7 @@ public:
 						MrMimePart();
 	                    ~MrMimePart();
 	MrMsgType           m_type;
-	char*               m_txt;
+	char*               m_msg;
 };
 
 
@@ -65,6 +65,7 @@ public:
 
 private:
 	void                ParseMimeRecursive   (mailmime*);
+	void                AddSinglePart        (mailmime*);
 };
 
 

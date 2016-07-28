@@ -97,13 +97,13 @@ size_t MrMsg::GetMsgCnt(MrMailbox* mailbox) // static function
 }
 
 
-bool MrMsg::MessageIdExists(MrMailbox* mailbox, const char* message_id) // static function
+bool MrMsg::MessageIdExists(MrMailbox* mailbox, const char* rfc724_mid) // static function
 {
 	// check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	// so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space)
 	sqlite3_stmt* s = mailbox->m_sql.m_pd[SELECT_id_FROM_msg_m];
 	sqlite3_reset (s);
-	sqlite3_bind_text(s, 1, message_id, -1, SQLITE_STATIC);
+	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		return false; // record does not exist
 	}

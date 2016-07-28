@@ -209,7 +209,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	sqlite3_stmt*    s;
 	int              i, icnt, part_i, part_cnt;
 	uint32_t         dblocal_id = 0;    // databaselocal message id
-	char*            message_id = NULL; // Message-ID from the header
+	char*            rfc724_mid = NULL; // Message-ID from the header
 	time_t           message_timestamp = INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
 	bool             comes_from_extern = false; // indicates, if the mail was send by us or was received from outside
@@ -254,7 +254,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 					{
 						mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
 						if( fld_message_id ) {
-							message_id = strdup(fld_message_id->mid_value); // != NULL
+							rfc724_mid = strdup(fld_message_id->mid_value); // != NULL
 						}
 					}
 					else if( field->fld_type == MAILIMF_FIELD_FROM )
@@ -310,18 +310,18 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 
 			// check, if the mail is already in our database - if so, there's nothing more to do
 			// (we may get a mail twice eg. it it is moved between folders)
-			if( message_id == NULL ) {
+			if( rfc724_mid == NULL ) {
 				// header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail clien
 				// the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
 				// in these cases, we build a message ID based on some useful header fields that do never change (date, to)
 				// we do not use the folder-local id, as this will change if the mail is moved to another folder.
-				message_id = CreateStubMessageId(message_timestamp, contact_ids_to);
-				if( message_id == NULL ) {
+				rfc724_mid = CreateStubMessageId(message_timestamp, contact_ids_to);
+				if( rfc724_mid == NULL ) {
 					goto Imf2Msg_Done;
 				}
 			}
 
-			if( MrMsg::MessageIdExists(m_mailbox, message_id) ) {
+			if( MrMsg::MessageIdExists(m_mailbox, rfc724_mid) ) {
 				goto Imf2Msg_Done; // success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK)
 			}
 
@@ -349,13 +349,13 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 
 				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
 				sqlite3_reset(s);
-				sqlite3_bind_text (s, 1, message_id, -1, SQLITE_STATIC);
+				sqlite3_bind_text (s, 1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (s, 2, chat_id);
 				sqlite3_bind_int  (s, 3, contact_id_from);
 				sqlite3_bind_int64(s, 4, message_timestamp);
 				sqlite3_bind_int  (s, 5, part->m_type);
 				sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
-				sqlite3_bind_text (s, 7, part->m_txt, -1, SQLITE_STATIC);
+				sqlite3_bind_text (s, 7, part->m_msg, -1, SQLITE_STATIC);
 				if( sqlite3_step(s) != SQLITE_DONE ) {
 					goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
 				}
@@ -384,8 +384,8 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 
 	// done
 Imf2Msg_Done:
-	if( message_id ) {
-		free(message_id);
+	if( rfc724_mid ) {
+		free(rfc724_mid);
 	}
 
 	if( contact_ids_from ) {

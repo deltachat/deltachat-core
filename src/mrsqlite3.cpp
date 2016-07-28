@@ -96,11 +96,12 @@ bool MrSqlite3::Open(const char* dbfile)
 		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, message_id TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT);");
-		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (message_id);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
+		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT);");
+		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (rfc724_mid);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
 		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (timestamp);");
-		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id);");
+		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
 		sqlite3_execute_("CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
+		sqlite3_execute_("CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
 
 		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
 		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
@@ -130,8 +131,8 @@ bool MrSqlite3::Open(const char* dbfile)
 	m_pd[SELECT_COUNT_FROM_chats]    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
 
 	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
-	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE message_id=?;");
-	m_pd[INSERT_INTO_msg_mcfttsm]    = sqlite3_prepare_v2_("INSERT INTO msg (message_id,chat_id,from_id, timestamp,type,state, msg) VALUES (?,?,?, ?,?,?, ?);");
+	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE rfc724_mid=?;");
+	m_pd[INSERT_INTO_msg_mcfttsm]    = sqlite3_prepare_v2_("INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg) VALUES (?,?,?, ?,?,?, ?);");
 	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {

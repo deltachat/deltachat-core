@@ -71,7 +71,7 @@ public:
 	bool          SetMsgFromStmt (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
 
 	static size_t GetMsgCnt      (MrMailbox*);
-	static bool   MessageIdExists(MrMailbox*, const char* message_id);
+	static bool   MessageIdExists(MrMailbox*, const char* rfc724_mid);
 
 	// the data should be read only and are valid until the object is Release()'d.
 	// unset strings are set to NULL.
