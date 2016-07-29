@@ -33,9 +33,9 @@
 #include <sqlite3.h>
 
 
-void MrLogError  (const char* msg, const char* obj=NULL);
-void MrLogWarning(const char* msg, const char* obj=NULL);
-void MrLogInfo   (const char* msg, const char* obj=NULL);
+void MrLogError  (const char* msg);
+void MrLogWarning(const char* msg);
+void MrLogInfo   (const char* msg);
 
 void MrLogSqliteError(sqlite3*);
 

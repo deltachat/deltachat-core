@@ -32,22 +32,40 @@
 #include "mrerror.h"
 
 
-void MrLogInfo(const char* msg, const char* obj)
+
+static void mr_log(char type, const char* msg)
 {
-	printf("INFORMATION: %s (obj=%s)\n", msg, obj);
+	const char* type_str;
+	switch( type ) {
+		case 'i': type_str = "Information"; break;
+		case 'w': type_str = "Warning"; break;
+		default:  type_str = "ERROR"; break;
+	}
+
+	char* p = sqlite3_mprintf("[%s] %s", type_str, msg);
+	if( p ) {
+		printf("%s\n", p);
+		sqlite3_free(p);
+	}
+}
+
+
+void MrLogInfo(const char* msg)
+{
+	mr_log('i', msg);
 }
 
 
 
-void MrLogWarning(const char* msg, const char* obj)
+void MrLogWarning(const char* msg)
 {
-	printf("WARNING: %s (obj=%s)\n", msg, obj);
+	mr_log('w', msg);
 }
 
 
-void MrLogError(const char* msg, const char* obj)
+void MrLogError(const char* msg)
 {
-	printf("ERROR: %s (obj=%s)\n", msg, obj);
+	mr_log('e', msg);
 }
 
 

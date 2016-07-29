@@ -148,7 +148,7 @@ void MrImfParser::AddOrLookupContact(const char* display_name_enc /*can be NULL*
 		}
 		else
 		{
-			MrLogError("Cannot add contact.", addr_spec);
+			MrLogError("Cannot add contact.");
 		}
 
 		free(display_name_dec);

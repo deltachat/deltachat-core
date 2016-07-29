@@ -174,7 +174,7 @@ bool MrImap::FetchSingleMsg(MrImapThreadVal& threadval,
 	}
 
 	if( Mr_is_error(r) ) {
-		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.", folder);
+		MrLogError("MrImap::FetchSingleMsg(): Could not fetch.");
 		return false; // this is an error that should be recovered; the caller should try over later to fetch the message again
 	}
 
@@ -229,7 +229,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// read the last index used for the given folder
 	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
 	if( config_key == NULL ) {
-		MrLogError("MrImap::FetchFromSingleFolder(): Out of memory.", folder);
+		MrLogError("MrImap::FetchFromSingleFolder(): Out of memory.");
 		goto FetchFromFolder_Done;
 	}
 
@@ -241,7 +241,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// select the folder
 	r = mailimap_select(threadval.m_imap, folder);
 	if( Mr_is_error(r) ) {
-		MrLogError("MrImap::FetchFromSingleFolder(): Could not select folder.", folder);
+		MrLogError("MrImap::FetchFromSingleFolder(): Could not select folder.");
 		goto FetchFromFolder_Done;
 	}
 
@@ -274,7 +274,7 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
 			goto FetchFromFolder_Done; // the folder is simply empty
 		}
-		MrLogError("MrImap::FetchFromSingleFolder(): Could not fetch", folder);
+		MrLogError("MrImap::FetchFromSingleFolder(): Could not fetch");
 		goto FetchFromFolder_Done;
 	}
 
@@ -304,13 +304,13 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// done
 FetchFromFolder_Done:
     {
-		char* temp = sqlite3_mprintf("Read %i mails from %s with %i errors.", read_cnt, folder, read_errors);
+		char* temp = sqlite3_mprintf("%i mails read from %s with %i errors.", read_cnt, folder, read_errors);
 		if( temp ) {
 			if( read_errors ) {
-				MrLogError(temp, NULL);
+				MrLogError(temp);
 			}
 			else {
-				MrLogInfo(temp, NULL);
+				MrLogInfo(temp);
 			}
 			sqlite3_free(temp);
 		}
@@ -357,7 +357,7 @@ void MrImap::FetchFromAllFolders(MrImapThreadVal& threadval)
 				}
 				else
 				{
-					MrLogInfo("Folder ignored", name_utf8);
+					MrLogInfo("Folder ignored");
 				}
 
 				free(name_utf8);

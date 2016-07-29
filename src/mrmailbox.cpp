@@ -99,22 +99,22 @@ bool MrMailbox::ImportFile(const char* filename)
 
 	// read file content to `data`
 	if( (f=fopen(filename, "r")) == NULL ) {
-		MrLogError("MrMailbox::ImportFile(): Cannot open file.", filename);
+		MrLogError("MrMailbox::ImportFile(): Cannot open file.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
-		MrLogError("MrMailbox::ImportFile(): Cannot find out file size or file is empty.", filename);
+		MrLogError("MrMailbox::ImportFile(): Cannot find out file size or file is empty.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
-		MrLogError("MrMailbox::ImportFile(): Out of memory.", filename);
+		MrLogError("MrMailbox::ImportFile(): Out of memory.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
-		MrLogError("MrMailbox::ImportFile(): Read error.", filename);
+		MrLogError("MrMailbox::ImportFile(): Read error.");
 		goto ImportFile_Cleanup;
 	}
 

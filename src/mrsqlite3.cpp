@@ -77,7 +77,7 @@ bool MrSqlite3::Open(const char* dbfile)
 
 	if( sqlite3_open(dbfile, &m_cobj) != SQLITE_OK ) {
 		MrLogSqliteError(m_cobj); // ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError())
-		MrLogError("MrSqlite3::Open(): sqlite3_open() failed.", dbfile);
+		MrLogError("MrSqlite3::Open(): sqlite3_open() failed.");
 		goto Open_Error;
 	}
 
@@ -108,7 +108,7 @@ bool MrSqlite3::Open(const char* dbfile)
 		 || !sqlite3_table_exists_("msg") )
 		{
 			MrLogSqliteError(m_cobj);
-			MrLogError("MrSqlite3::Open(): Cannot create tables.", dbfile);
+			MrLogError("MrSqlite3::Open(): Cannot create tables.");
 			goto Open_Error; // cannot create the tables - maybe we cannot write?
 		}
 	}
@@ -138,7 +138,7 @@ bool MrSqlite3::Open(const char* dbfile)
 	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
 		if( m_pd[i] == NULL ) {
 			MrLogSqliteError(m_cobj);
-			MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.", dbfile);
+			MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.");
 			goto Open_Error;
 		}
 	}
