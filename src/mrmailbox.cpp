@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrimfparser.h"
@@ -137,48 +138,78 @@ ImportFile_Cleanup:
 }
 
 
-bool MrMailbox::ImportSpec(const char* spec)
+bool MrMailbox::ImportSpec(const char* spec) // spec is a file, a directory or NULL for the last import
 {
-	bool  success = false;
-	char* spec_memory = NULL;
+	bool           success = false;
+	char*          spec_memory = NULL;
+	DIR*           dir = NULL;
+	struct dirent* dir_entry;
+	int            read_cnt = 0;
+	char*          name;
 
 	if( !m_sql.Ok() ) {
-        MrLogError("MrMailbox::ImportSpec(): Datebase not opened.", spec);
+        MrLogError("MrMailbox::ImportSpec(): Datebase not opened.");
 		goto ImportSpec_Cleanup;
 	}
 
-	// if `spec` is not given, try to use the last one
-	if( spec == NULL ) {
+	// if `spec` is given, remember it for later usage; if it is not given, try to use the last one
+	if( spec ) {
+		MrSqlite3Locker locker(m_sql);
+		m_sql.SetConfig("import_spec", spec);
+	}
+	else {
 		MrSqlite3Locker locker(m_sql);
         spec_memory = m_sql.GetConfig("import_spec", NULL);
 		spec = spec_memory; // may still  be NULL
 		if( spec == NULL ) {
-			MrLogError("MrMailbox::ImportSpec(): No file or folder given.", spec);
+			MrLogError("MrMailbox::ImportSpec(): No file or folder given.");
 			goto ImportSpec_Cleanup;
 		}
 	}
 
 	if( strlen(spec)>=4 && strcmp(&spec[strlen(spec)-4], ".eml")==0 ) {
 		// import a single file
-		if( !ImportFile(spec) ) {
-			goto ImportSpec_Cleanup; // error already logged
+		if( ImportFile(spec) ) { // errors are logged in any case
+			read_cnt++;
 		}
 	}
 	else {
 		// import a directory
-		MrLogError("MrMailbox::ImportSpec(): Directory import not yet implemented.", spec);
-		goto ImportSpec_Cleanup;
+		if( (dir=opendir(spec))==NULL ) {
+			MrLogError("MrMailbox::ImportSpec(): Cannot open directory.");
+			goto ImportSpec_Cleanup;
+		}
+
+		while( (dir_entry=readdir(dir))!=NULL ) {
+			name = dir_entry->d_name; // name without path; may also be `.` or `..`
+            if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
+				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
+				if( path_plus_name ) {
+					if( ImportFile(path_plus_name) ) { // no abort on single errors errors are logged in any case
+						read_cnt++;
+					}
+					sqlite3_free(path_plus_name);
+				}
+            }
+		}
+	}
+
+	{
+		char* p = sqlite3_mprintf("%i mails read from %s.", read_cnt, spec);
+		if( p ) {
+			MrLogInfo(p);
+			sqlite3_free(p);
+		}
 	}
 
 	// success
-	{
-		MrSqlite3Locker locker(m_sql);
-		m_sql.SetConfig("import_spec", spec);
-	}
 	success = true;
 
 	// cleanup
 ImportSpec_Cleanup:
+	if( dir ) {
+		closedir(dir);
+	}
 	free(spec_memory);
 	return success;
 }
