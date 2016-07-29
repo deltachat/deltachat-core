@@ -19,31 +19,36 @@
  *
  *******************************************************************************
  *
- * File:    mrtools.h
+ * File:    mrsimplify.cpp
  * Authors: Björn Petersen
- * Purpose: Some tools and enhancements to the used libraries
+ * Purpose: Simplify text, see header for details.
  *
  ******************************************************************************/
 
 
-#ifndef __MRTOOLS_H__
-#define __MRTOOLS_H__
+#include <stdlib.h>
+#include <string.h>
+#include "mrmailbox.h"
+#include "mrsimplify.h"
+#include "mrtools.h"
 
 
-// string tools
-char* save_strdup(const char*); // returns empty string if NULL is given, else same as strdup()
-char* mr_strlower(const char*); // the result must be free()'d
-char* mr_decode_header_string(const char* in); // the result must be free()'d
-char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
-char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);
-
-// carray tools
-bool carray_search     (carray*, void* needle, unsigned int* indx); // returns true/false and the index if `indx` is not NULL
-
-// date/time tools
-#define INVALID_TIMESTAMP    (-1)
-time_t timestampFromDate(struct mailimf_date_time * date_time); // the result is UTC or INVALID_TIMESTAMP
+MrSimplify::MrSimplify()
+{
+}
 
 
-#endif // __MRTOOLS_H__
+MrSimplify::~MrSimplify()
+{
+}
+
+
+char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
+{
+	if( in_unterminated == NULL || in_bytes <= 0 ) {
+		return strdup(""); // error
+	}
+
+	return strndup((char*)in_unterminated, in_bytes);
+}
 

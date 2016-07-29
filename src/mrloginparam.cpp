@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrloginparam.h
+ * File:    mrloginparam.cpp
  * Authors: Björn Petersen
  * Purpose: Handle IMAP/POP3/SMTP parameters, see header for details.
  *

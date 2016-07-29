@@ -19,31 +19,28 @@
  *
  *******************************************************************************
  *
- * File:    mrtools.h
+ * File:    mrsimplify.h
  * Authors: Björn Petersen
- * Purpose: Some tools and enhancements to the used libraries
+ * Purpose: Simplify and normalise text: Remove quotes, signatures, unnecessary
+ *          lineends etc.
  *
  ******************************************************************************/
 
 
-#ifndef __MRTOOLS_H__
-#define __MRTOOLS_H__
+#ifndef __MRSIMPLIFY_H__
+#define __MRSIMPLIFY_H__
 
 
-// string tools
-char* save_strdup(const char*); // returns empty string if NULL is given, else same as strdup()
-char* mr_strlower(const char*); // the result must be free()'d
-char* mr_decode_header_string(const char* in); // the result must be free()'d
-char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
-char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);
+class MrSimplify
+{
+public:
+	                    MrSimplify           ();
+	                    ~MrSimplify          ();
 
-// carray tools
-bool carray_search     (carray*, void* needle, unsigned int* indx); // returns true/false and the index if `indx` is not NULL
-
-// date/time tools
-#define INVALID_TIMESTAMP    (-1)
-time_t timestampFromDate(struct mailimf_date_time * date_time); // the result is UTC or INVALID_TIMESTAMP
+	// The data returned from Simplify() must not be free()'d when no longer used
+	char*               Simplify             (const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
+};
 
 
-#endif // __MRTOOLS_H__
+#endif // __MRSIMPLIFY_H__
 

@@ -38,7 +38,7 @@
  ******************************************************************************/
 
 
-char* save_strdup(char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case
+char* save_strdup(const char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case
 {
 	if( s ) {
 		return strdup(s);

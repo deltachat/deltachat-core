@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrcontact.h
+ * File:    mrcontact.cpp
  * Authors: Björn Petersen
  * Purpose: MrContactrepresents a single contact, see header for details.
  *

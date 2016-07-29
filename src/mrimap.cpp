@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrimap.h
+ * File:    mrimap.cpp
  * Authors: Björn Petersen
  * Purpose: Reading from IMAP servers, see header for details.
  *

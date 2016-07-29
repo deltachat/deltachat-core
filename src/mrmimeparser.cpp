@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrmimeparser.h
+ * File:    mrmimeparser.cpp
  * Authors: Björn Petersen
  * Purpose: Parse MIME body, see header for details.
  *
@@ -30,6 +30,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
+#include "mrsimplify.h"
 #include "mrtools.h"
 
 
@@ -437,20 +438,7 @@ void MrMimeParser::Empty()
 }
 
 
-#define MR_MIME_MP             0x100
-#define MR_MIME_MP_MIXED       (MR_MIME_MP+1)
-#define MR_MIME_MP_ALTERNATIVE (MR_MIME_MP+2)
-#define MR_MIME_MP_RELATED     (MR_MIME_MP+3)
-#define MR_MIME_TEXT           0x200
-#define MR_MIME_TEXT_PLAIN     (MR_MIME_TEXT+1)
-#define MR_MIME_TEXT_HTML      (MR_MIME_TEXT+2)
-#define MR_MIME_IMAGE          0x300
-#define MR_MIME_AUDIO          0x400
-#define MR_MIME_VIDEO          0x500
-#define MR_MIME_FILE           0x600
-
-
-static int mr_mime(struct mailmime_content* c)
+int MrMimeParser::GetMimeType(mailmime_content* c)
 {
 	if( c == NULL || c->ct_type == NULL ) {
 		return 0; // error
@@ -462,44 +450,41 @@ static int mr_mime(struct mailmime_content* c)
 			switch( c->ct_type->tp_data.tp_discrete_type->dt_type )
 			{
 				case MAILMIME_DISCRETE_TYPE_TEXT:
-                    if( strcmp(c->ct_subtype, "plain")==0 ) {
-						return MR_MIME_TEXT_PLAIN;
+					if( strcmp(c->ct_subtype, "plain")==0 ) {
+						return MR_MIMETYPE_TEXT_PLAIN;
                     }
-                    else if( strcmp(c->ct_subtype, "html")==0 ) {
-						return MR_MIME_TEXT_HTML;
+					else if( strcmp(c->ct_subtype, "html")==0 ) {
+						return MR_MIMETYPE_TEXT_HTML;
                     }
                     else {
-						return MR_MIME_TEXT;
+						return MR_MIMETYPE_TEXT;
                     }
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
-					return MR_MIME_IMAGE;
+					return MR_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
-					return MR_MIME_AUDIO;
+					return MR_MIMETYPE_AUDIO;
 
 				case MAILMIME_DISCRETE_TYPE_VIDEO:
-					return MR_MIME_VIDEO;
+					return MR_MIMETYPE_VIDEO;
 
 				default:
-					return MR_MIME_FILE;
+					return MR_MIMETYPE_FILE;
 			}
 			break;
 
 		case MAILMIME_TYPE_COMPOSITE_TYPE:
 			if( c->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART )
 			{
-				if( strcmp(c->ct_subtype, "mixed")==0 )
-				{
-					return MR_MIME_MP_MIXED;
+				if( strcmp(c->ct_subtype, "alternative")==0 ) {
+					return MR_MIMETYPE_MP_ALTERNATIVE;
 				}
-				else if( strcmp(c->ct_subtype, "alternative")==0 )
-				{
-					return MR_MIME_MP_ALTERNATIVE;
+				else if( strcmp(c->ct_subtype, "related")==0 ) {
+					return MR_MIMETYPE_MP_RELATED;
 				}
-				else if( strcmp(c->ct_subtype, "related")==0 )
-				{
-					return MR_MIME_MP_ALTERNATIVE;
+				else { // eg. "mixed"
+					return MR_MIMETYPE_MP;
 				}
 			}
 			break;
@@ -512,11 +497,12 @@ static int mr_mime(struct mailmime_content* c)
 }
 
 
-void MrMimeParser::AddSinglePart(mailmime* mime)
+bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 {
 	MrMimePart*    part   = NULL;
 	bool           do_add = false;
 	mailmime_data* data;
+	int            mimetype;
 
 	// allocate object to hold part data
 	if( (part=new MrMimePart())==NULL ) {
@@ -532,19 +518,25 @@ void MrMimeParser::AddSinglePart(mailmime* mime)
 	if( data->dt_type != MAILMIME_DATA_TEXT   // MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing
 	 || data->dt_data.dt_text.dt_data == NULL
 	 || data->dt_data.dt_text.dt_length <= 0 ) {
-		return; // error
+		goto AddSinglePart_Cleanup; // error
 	}
 
-	switch( mr_mime(mime->mm_content_type) )
+	mimetype = GetMimeType(mime->mm_content_type);
+	switch( mimetype )
 	{
-		case MR_MIME_TEXT_PLAIN:
-		case MR_MIME_TEXT_HTML:
-			part->m_type = MR_MSG_TEXT;
-			part->m_msg  = strndup((char*)data->dt_data.dt_text.dt_data, data->dt_data.dt_text.dt_length);
-			do_add = true;
+		case MR_MIMETYPE_TEXT_PLAIN:
+		case MR_MIMETYPE_TEXT_HTML:
+			{
+				MrSimplify simplifier;
+				part->m_type = MR_MSG_TEXT;
+				part->m_msg  = simplifier.Simplify(data->dt_data.dt_text.dt_data, data->dt_data.dt_text.dt_length, mimetype);
+				if( part->m_msg && part->m_msg[0] ) {
+					do_add = true;
+				}
+			}
 			break;
 
-		case MR_MIME_IMAGE:
+		case MR_MIMETYPE_IMAGE:
 			part->m_type = MR_MSG_IMAGE;
 			part->m_msg  = strdup("IMAGE");
 			do_add = true;
@@ -559,62 +551,65 @@ void MrMimeParser::AddSinglePart(mailmime* mime)
 AddSinglePart_Cleanup:
 	if( do_add ) {
 		carray_add(m_parts, (void*)part, NULL);
+		return true; // part used
 	}
 	else {
 		delete part;
+		return false;
 	}
 }
 
 
-void MrMimeParser::ParseMimeRecursive(mailmime* mime)
+bool MrMimeParser::ParseMimeRecursive(mailmime* mime)
 {
+	bool       sth_added = false;
 	clistiter* cur;
 
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			AddSinglePart(mime);
+			sth_added = AddSinglePartIfKnown(mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
+			switch( GetMimeType(mime->mm_content_type) )
 			{
-				// TODO: differ between "multipart/mixed" (show all parts) and "multipart/alternative" (show one parts)
-				// moreover, "multipart/related" is used for inline content - here, we display the root only (normally the first part)
-				switch( mr_mime(mime->mm_content_type) )
-				{
-					case MR_MIME_MP_MIXED: // add all parts
+				case MR_MIMETYPE_MP_ALTERNATIVE: // add "best" part - this is either `text/plain` or the first part
+					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-							ParseMimeRecursive((mailmime*)clist_content(cur));
+							mailmime* childmime = (mailmime*)clist_content(cur);
+							if( GetMimeType(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+								sth_added = ParseMimeRecursive(childmime);
+								break;
+							}
 						}
-						break;
 
-					case MR_MIME_MP_ALTERNATIVE: // add "best" part
-						{
-							bool sthParsed = false;
+						if( !sth_added ) { // `text/plain` not found - use the first part
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-								mailmime* childmime = (mailmime*)clist_content(cur);
-								if( mr_mime(childmime->mm_content_type) == MR_MIME_TEXT_PLAIN ) {
-									ParseMimeRecursive(childmime);
-									sthParsed = true;
-									break;
-								}
-							}
-							if( !sthParsed ) {
-								cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
-								if( cur ) {
-									ParseMimeRecursive((mailmime*)clist_content(cur));
+								if( ParseMimeRecursive((mailmime*)clist_content(cur)) ) {
+									sth_added = true;
+									break; // out of for()
 								}
 							}
 						}
-						break;
+					}
+					break;
 
-					case MR_MIME_MP_RELATED: // TODO: this works in many cases ... however, we should check for the correct root somewhen
-						cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
-						if( cur ) {
-							ParseMimeRecursive((mailmime*)clist_content(cur));
+				case MR_MIMETYPE_MP_RELATED: // add the "root part" - the other parts may be referenced which is not interesting for us (eg. embedded images)
+				                             // we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay.
+					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
+					if( cur ) {
+						ParseMimeRecursive((mailmime*)clist_content(cur));
+					}
+					break;
+
+				default: // eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported)
+					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+						if( ParseMimeRecursive((mailmime*)clist_content(cur)) ) {
+							sth_added = true;
 						}
-						break;
-				}
+					}
+					break;
 			}
 			break;
 
@@ -635,14 +630,16 @@ void MrMimeParser::ParseMimeRecursive(mailmime* mime)
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
 			{
-				ParseMimeRecursive(mime->mm_data.mm_message.mm_msg_mime);
+				sth_added = ParseMimeRecursive(mime->mm_data.mm_message.mm_msg_mime);
 			}
 			break;
 	}
+
+	return sth_added;
 }
 
 
-carray* MrMimeParser::Parse(const char* body_not_terminated, size_t body_bytes)
+void MrMimeParser::Parse(const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
@@ -677,6 +674,4 @@ Parse_Cleanup:
 			free(subject_decoded);
 		}
 	}
-
-	return m_parts;
 }

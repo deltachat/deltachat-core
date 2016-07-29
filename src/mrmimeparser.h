@@ -55,17 +55,30 @@ public:
 	// Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 	// (this is because we want to add even these message to our database to avoid reading them several times.
 	// of course, these empty messages are not added to any chat)
-	carray*             Parse                (const char* body_not_terminated, size_t body_bytes);
+	void                Parse                (const char* body_not_terminated, size_t body_bytes);
 
-	// data, read-only
+	// data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed)
 	carray*             m_parts;
 	mailmime*           m_mimeroot;
 	mailimf_fields*     m_header;
 	char*               m_subjectEncoded;
 
+	// find out the mimetype - one of the MR_MIMETYPE_* constants
+	#define             MR_MIMETYPE_MP             0x100 // eg. mixed
+	#define             MR_MIMETYPE_MP_ALTERNATIVE (MR_MIMETYPE_MP+1)
+	#define             MR_MIMETYPE_MP_RELATED     (MR_MIMETYPE_MP+2)
+	#define             MR_MIMETYPE_TEXT           0x200 // eg. plain
+	#define             MR_MIMETYPE_TEXT_PLAIN     (MR_MIMETYPE_TEXT+1)
+	#define             MR_MIMETYPE_TEXT_HTML      (MR_MIMETYPE_TEXT+2)
+	#define             MR_MIMETYPE_IMAGE          0x300
+	#define             MR_MIMETYPE_AUDIO          0x400
+	#define             MR_MIMETYPE_VIDEO          0x500
+	#define             MR_MIMETYPE_FILE           0x600
+	static int          GetMimeType          (struct mailmime_content*);
+
 private:
-	void                ParseMimeRecursive   (mailmime*);
-	void                AddSinglePart        (mailmime*);
+	bool                ParseMimeRecursive   (mailmime*);
+	bool                AddSinglePartIfKnown (mailmime*);
 };
 
 
