@@ -64,6 +64,12 @@ public:
 	bool          Open                 (const char* dbfile);
 	void          Close                ();
 
+	// ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
+	// a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
+	// ImportFile() always imports a single file,
+	bool          ImportSpec           (const char* spec);
+	bool          ImportFile           (const char* file);
+
 	// empty all tables but leaves server configuration
 	bool          Empty                ();
 

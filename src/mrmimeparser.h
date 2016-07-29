@@ -55,7 +55,7 @@ public:
 	// Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 	// (this is because we want to add even these message to our database to avoid reading them several times.
 	// of course, these empty messages are not added to any chat)
-	carray*             Parse                (const char* body);
+	carray*             Parse                (const char* body_not_terminated, size_t body_bytes);
 
 	// data, read-only
 	carray*             m_parts;

@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrimfparser.h"
@@ -85,6 +86,105 @@ void MrMailbox::Close()
 
 
 /*******************************************************************************
+ * Import EML-files
+ ******************************************************************************/
+
+
+bool MrMailbox::ImportFile(const char* filename)
+{
+	bool        success = false;
+	FILE*       f = NULL;
+	struct stat stat_info;
+	char*       data = NULL;
+
+	// read file content to `data`
+	if( (f=fopen(filename, "r")) == NULL ) {
+		MrLogError("MrMailbox::ImportFile(): Cannot open file.", filename);
+		goto ImportFile_Cleanup;
+	}
+
+	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
+		MrLogError("MrMailbox::ImportFile(): Cannot find out file size or file is empty.", filename);
+		goto ImportFile_Cleanup;
+	}
+
+	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
+		MrLogError("MrMailbox::ImportFile(): Out of memory.", filename);
+		goto ImportFile_Cleanup;
+	}
+
+	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
+		MrLogError("MrMailbox::ImportFile(): Read error.", filename);
+		goto ImportFile_Cleanup;
+	}
+
+	fclose(f);
+	f = NULL;
+
+	// import `data`
+	ReceiveImf(data, stat_info.st_size);
+
+	// success
+	success = true;
+
+	// cleanup:
+ImportFile_Cleanup:
+	free(data);
+	if( f ) {
+		fclose(f);
+	}
+	return success;
+}
+
+
+bool MrMailbox::ImportSpec(const char* spec)
+{
+	bool  success = false;
+	char* spec_memory = NULL;
+
+	if( !m_sql.Ok() ) {
+        MrLogError("MrMailbox::ImportSpec(): Datebase not opened.", spec);
+		goto ImportSpec_Cleanup;
+	}
+
+	// if `spec` is not given, try to use the last one
+	if( spec == NULL ) {
+		MrSqlite3Locker locker(m_sql);
+        spec_memory = m_sql.GetConfig("import_spec", NULL);
+		spec = spec_memory; // may still  be NULL
+		if( spec == NULL ) {
+			MrLogError("MrMailbox::ImportSpec(): No file or folder given.", spec);
+			goto ImportSpec_Cleanup;
+		}
+	}
+
+	if( strlen(spec)>=4 && strcmp(&spec[strlen(spec)-4], ".eml")==0 ) {
+		// import a single file
+		if( !ImportFile(spec) ) {
+			goto ImportSpec_Cleanup; // error already logged
+		}
+	}
+	else {
+		// import a directory
+		MrLogError("MrMailbox::ImportSpec(): Directory import not yet implemented.", spec);
+		goto ImportSpec_Cleanup;
+	}
+
+	// success
+	{
+		MrSqlite3Locker locker(m_sql);
+		m_sql.SetConfig("import_spec", spec);
+	}
+	success = true;
+
+	// cleanup
+ImportSpec_Cleanup:
+	free(spec_memory);
+	return success;
+}
+
+
+/*******************************************************************************
  * Connect
  ******************************************************************************/
 
@@ -135,17 +235,17 @@ bool MrMailbox::Fetch()
 
 
 /*******************************************************************************
- * Receive an IMF as an result to calling Fetch()
+ * Receive an IMF as an result to calling Fetch() or Import*()
  * the new IMF may be old or new and should be parsed, contacts created etc.
  * However, the caller should make sure, it does not exist in the database.
  ******************************************************************************/
 
 
-void MrMailbox::ReceiveImf(const char* imf, size_t imf_len)
+void MrMailbox::ReceiveImf(const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
 	MrImfParser parser(this);
 
-	if( !parser.Imf2Msg(imf, imf_len) ) {
+	if( !parser.Imf2Msg(imf_raw_not_terminated, imf_raw_bytes) ) {
 		return; // error already logged
 	}
 }

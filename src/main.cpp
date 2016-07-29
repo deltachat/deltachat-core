@@ -88,6 +88,7 @@ int main(int argc, char ** argv)
 			printf("?                   show this help\n");
 			printf("open <file>         open/create database\n");
 			printf("close               close database\n");
+			printf("import [<spec>]     import file/folder/last EML-file(s)\n");
 			printf("set <key> [<value>] set/delete configuration value\n");
 			printf("get <key>           show configuration value\n");
 			printf("connect             connect to mailbox server\n");
@@ -123,6 +124,13 @@ int main(int argc, char ** argv)
 			}
 			else {
 				printf("ERROR: no database opened.\n");
+			}
+		}
+		else if( strncmp(cmd, "import", 6)==0 )
+		{
+			const char* arg1 = strstr(cmd, " ");
+			if( !mailbox->ImportSpec(arg1? ++arg1 : NULL) ) {
+				print_error();
 			}
 		}
 		else if( strcmp(cmd, "connect")==0 )

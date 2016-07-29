@@ -201,7 +201,7 @@ void MrImfParser::AddOrLookupContacts(mailimf_address_list* adr_list, carray* id
  ******************************************************************************/
 
 
-int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
+int32_t MrImfParser::Imf2Msg(const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
@@ -234,7 +234,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw, size_t imf_len)
 	// normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
 	// we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	// that speaks against this approach yet)
-	mime_parser.Parse(imf_raw);
+	mime_parser.Parse(imf_raw_not_terminated, imf_raw_bytes);
 	if( mime_parser.m_header == NULL ) {
 		goto Imf2Msg_Done; // Error - even adding an empty record won't help as we do not know the message ID
 	}

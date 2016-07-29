@@ -642,7 +642,7 @@ void MrMimeParser::ParseMimeRecursive(mailmime* mime)
 }
 
 
-carray* MrMimeParser::Parse(const char* body)
+carray* MrMimeParser::Parse(const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
@@ -651,7 +651,7 @@ carray* MrMimeParser::Parse(const char* body)
 	Empty();
 
 	// parse body
-	r = mailmime_parse(body, strlen(body), &index, &m_mimeroot);
+	r = mailmime_parse(body_not_terminated, body_bytes, &index, &m_mimeroot);
 	if(r != MAILIMF_NO_ERROR || m_mimeroot == NULL ) {
 		goto Parse_Cleanup;
 	}

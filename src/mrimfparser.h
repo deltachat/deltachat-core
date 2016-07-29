@@ -39,7 +39,7 @@ public:
 
 	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
 	// the function returns the number of new created messages.
-	int32_t             Imf2Msg              (const char* imf, size_t imf_len);
+	int32_t             Imf2Msg              (const char* imf_raw_not_terminated, size_t imf_raw_bytes);
 
 private:
 	char*               DecodeHeaderString   (const char* in); // can e NULL, result must be free()'s by the caller
