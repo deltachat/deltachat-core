@@ -499,39 +499,67 @@ int MrMimeParser::GetMimeType(mailmime_content* c)
 
 bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 {
-	MrMimePart*    part   = NULL;
-	bool           do_add = false;
-	mailmime_data* data;
-	int            mimetype;
+	MrMimePart*    part = new MrMimePart();
+	bool           do_add_part = false;
 
-	// allocate object to hold part data
-	if( (part=new MrMimePart())==NULL ) {
+	int            mime_type;
+	mailmime_data* mime_data;
+
+	int            transfer_encoding = MAILMIME_MECHANISM_BINARY;
+
+	char*          decoded_data = NULL;
+	size_t         decoded_data_bytes = 0;
+
+	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
 		goto AddSinglePart_Cleanup; // error
 	}
 
-	// set up object
-	if( mime == NULL || mime->mm_data.mm_single == NULL ) {
+	// get mime type from `mime`
+	mime_type = GetMimeType(mime->mm_content_type);
+
+	// get data pointer from `mime`
+	mime_data = mime->mm_data.mm_single;
+	if( mime_data->dt_type != MAILMIME_DATA_TEXT   // MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing
+	 || mime_data->dt_data.dt_text.dt_data == NULL
+	 || mime_data->dt_data.dt_text.dt_length <= 0 ) {
 		goto AddSinglePart_Cleanup; // error
 	}
 
-	data = mime->mm_data.mm_single;
-	if( data->dt_type != MAILMIME_DATA_TEXT   // MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing
-	 || data->dt_data.dt_text.dt_data == NULL
-	 || data->dt_data.dt_text.dt_length <= 0 ) {
-		goto AddSinglePart_Cleanup; // error
+	// check headers in `mime`
+	if( mime->mm_mime_fields != NULL ) {
+		for( clistiter* cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			mailmime_field* field = (mailmime_field*)clist_content(cur);
+			if( field ) {
+				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
+					transfer_encoding = field->fld_data.fld_encoding->enc_type;
+				}
+			}
+		}
 	}
 
-	mimetype = GetMimeType(mime->mm_content_type);
-	switch( mimetype )
+	// regard `Content-Transfer-Encoding:`
+	{
+		int r;
+		size_t current_index = 0;
+		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
+			&current_index, transfer_encoding,
+			&decoded_data, &decoded_data_bytes);
+		if( r != MAILIMF_NO_ERROR || decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			goto AddSinglePart_Cleanup; // error
+		}
+	}
+
+	switch( mime_type )
 	{
 		case MR_MIMETYPE_TEXT_PLAIN:
 		case MR_MIMETYPE_TEXT_HTML:
+			// TODO: regard the charset from `Content-Type: text/...; charset=utf-8`
 			{
 				MrSimplify simplifier;
 				part->m_type = MR_MSG_TEXT;
-				part->m_msg  = simplifier.Simplify(data->dt_data.dt_text.dt_data, data->dt_data.dt_text.dt_length, mimetype);
+				part->m_msg  = simplifier.Simplify(decoded_data, decoded_data_bytes, mime_type);
 				if( part->m_msg && part->m_msg[0] ) {
-					do_add = true;
+					do_add_part = true;
 				}
 			}
 			break;
@@ -539,7 +567,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 		case MR_MIMETYPE_IMAGE:
 			part->m_type = MR_MSG_IMAGE;
 			part->m_msg  = strdup("IMAGE");
-			do_add = true;
+			do_add_part = true;
 			break;
 
 		default:
@@ -549,7 +577,11 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	// add object?
 	// (we do not add all objetcs, eg. signatures etc. are ignored)
 AddSinglePart_Cleanup:
-	if( do_add ) {
+	if( decoded_data ) {
+		mmap_string_unref(decoded_data);
+	}
+
+	if( do_add_part ) {
 		carray_add(m_parts, (void*)part, NULL);
 		return true; // part used
 	}
