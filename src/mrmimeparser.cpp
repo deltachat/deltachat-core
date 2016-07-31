@@ -504,10 +504,11 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 
 	int            mime_type;
 	mailmime_data* mime_data;
+	int            mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
 
-	int            transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	char*          transfer_decoding_buffer = NULL; // mmap_string_unref()'d if set
 
-	char*          decoded_data = NULL;
+	const char*    decoded_data = NULL; // must not be free()'d
 	size_t         decoded_data_bytes = 0;
 
 	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
@@ -531,22 +532,31 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 			mailmime_field* field = (mailmime_field*)clist_content(cur);
 			if( field ) {
 				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
-					transfer_encoding = field->fld_data.fld_encoding->enc_type;
+					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
 				}
 			}
 		}
 	}
 
 	// regard `Content-Transfer-Encoding:`
+	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
+	{
+		decoded_data       = mime_data->dt_data.dt_text.dt_data;
+		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
+	}
+	else
 	{
 		int r;
 		size_t current_index = 0;
 		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
-			&current_index, transfer_encoding,
-			&decoded_data, &decoded_data_bytes);
-		if( r != MAILIMF_NO_ERROR || decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			&current_index, mime_transfer_encoding,
+			&transfer_decoding_buffer, &decoded_data_bytes);
+		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
 			goto AddSinglePart_Cleanup; // error
 		}
+		decoded_data = transfer_decoding_buffer;
 	}
 
 	switch( mime_type )
@@ -577,8 +587,8 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	// add object?
 	// (we do not add all objetcs, eg. signatures etc. are ignored)
 AddSinglePart_Cleanup:
-	if( decoded_data ) {
-		mmap_string_unref(decoded_data);
+	if( transfer_decoding_buffer ) {
+		mmap_string_unref(transfer_decoding_buffer);
 	}
 
 	if( do_add_part ) {
