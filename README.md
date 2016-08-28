@@ -4,7 +4,7 @@ LibreChat Backend
 **LibreChat** is a project that aims to create a messaging app that is
 completely **compatible** to the existing e-mail infrastructure.
 
-![Logo](https://librechat.org/start-img2.png)
+![Logo](https://librechat.org/start-img3.png)
 
 So, with LibreChat you get the **ease** of well-known messengers with the
 **reach** of e-mail. Moreover, you're **indepentent** from other companies or
