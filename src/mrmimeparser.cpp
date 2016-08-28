@@ -563,7 +563,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	{
 		case MR_MIMETYPE_TEXT_PLAIN:
 		case MR_MIMETYPE_TEXT_HTML:
-			// TODO: regard the charset from `Content-Type: text/...; charset=utf-8`
+			// TODO: regard the charset from `Content-Type: text/...; charset=utf-8`, see mailmime_types.h
 			{
 				MrSimplify simplifier;
 				part->m_type = MR_MSG_TEXT;
