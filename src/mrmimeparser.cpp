@@ -507,6 +507,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	int            mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
 
 	char*          transfer_decoding_buffer = NULL; // mmap_string_unref()'d if set
+	char*          charset_buffer = NULL; // charconv_buffer_free()'d if set (just calls mmap_string_unref())
 
 	const char*    decoded_data = NULL; // must not be free()'d
 	size_t         decoded_data_bytes = 0;
@@ -545,6 +546,9 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	{
 		decoded_data       = mime_data->dt_data.dt_text.dt_data;
 		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
+		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			goto AddSinglePart_Cleanup; // no error - but no data
+		}
 	}
 	else
 	{
@@ -563,9 +567,25 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	{
 		case MR_MIMETYPE_TEXT_PLAIN:
 		case MR_MIMETYPE_TEXT_HTML:
-			// TODO: regard the charset from `Content-Type: text/...; charset=utf-8`, see mailmime_types.h
 			{
 				MrSimplify simplifier;
+
+				const char* charset = mailmime_content_charset_get(mime->mm_content_type); // get from `Content-Type: text/...; charset=utf-8`; must not be free()'d
+				if( charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0 ) {
+					size_t ret_bytes = 0;
+					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
+					if( r != MAIL_CHARCONV_NO_ERROR ) {
+						MrLogWarning("Cannot convert character set."); // continue, however
+					}
+					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
+						goto AddSinglePart_Cleanup; // no error - but nothing to add
+					}
+					else  {
+						decoded_data = charset_buffer;
+						decoded_data_bytes = ret_bytes;
+					}
+				}
+
 				part->m_type = MR_MSG_TEXT;
 				part->m_msg  = simplifier.Simplify(decoded_data, decoded_data_bytes, mime_type);
 				if( part->m_msg && part->m_msg[0] ) {
@@ -587,6 +607,10 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 	// add object?
 	// (we do not add all objetcs, eg. signatures etc. are ignored)
 AddSinglePart_Cleanup:
+	if( charset_buffer ) {
+		charconv_buffer_free(charset_buffer);
+	}
+
 	if( transfer_decoding_buffer ) {
 		mmap_string_unref(transfer_decoding_buffer);
 	}
