@@ -43,12 +43,42 @@ MrSimplify::~MrSimplify()
 }
 
 
+void MrSimplify::RemoveCrChars(char* buf)
+{
+	// remove all carriage return characters (`\r`) from the null-terminated buffer;
+	// the buffer itself is modified for this purpose
+
+	char* p1 = buf;
+	char* p2 = buf;
+	while( *p1 ) {
+		if( *p1 != '\r' ) {
+			*p2 = *p1;
+			p2++;
+		}
+		p1++;
+	}
+
+	*p2 = 0;
+}
+
+
 char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
 {
+	char* out = NULL;
+
 	if( in_unterminated == NULL || in_bytes <= 0 ) {
 		return strdup(""); // error
 	}
 
-	return strndup((char*)in_unterminated, in_bytes);
+	out = strndup((char*)in_unterminated, in_bytes);
+	if( out == NULL ) {
+		return strdup(""); // error
+	}
+
+	// remove all `\r` from string
+	RemoveCrChars(out);
+
+	// done
+	return out;
 }
 

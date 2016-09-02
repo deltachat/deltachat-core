@@ -39,6 +39,9 @@ public:
 
 	// The data returned from Simplify() must be free()'d when no longer used
 	char*               Simplify             (const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
+
+private:
+	void                RemoveCrChars        (char* buf);
 };
 
 
