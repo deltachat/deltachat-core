@@ -347,7 +347,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw_not_terminated, size_t imf_raw_
 			{
 				MrMimePart* part = (MrMimePart*)carray_get(mime_parser.m_parts, part_i);
 
-				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsm];
+				s = m_mailbox->m_sql.m_pd[INSERT_INTO_msg_mcfttsmm];
 				sqlite3_reset(s);
 				sqlite3_bind_text (s, 1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (s, 2, chat_id);
@@ -356,6 +356,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw_not_terminated, size_t imf_raw_
 				sqlite3_bind_int  (s, 5, part->m_type);
 				sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); // state
 				sqlite3_bind_text (s, 7, part->m_msg, -1, SQLITE_STATIC);
+				sqlite3_bind_text (s, 8, part->m_msg_raw? part->m_msg_raw  : "", -1, SQLITE_STATIC);
 				if( sqlite3_step(s) != SQLITE_DONE ) {
 					goto Imf2Msg_Done; // i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record
 				}

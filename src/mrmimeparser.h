@@ -41,6 +41,7 @@ public:
 	                    ~MrMimePart();
 	MrMsgType           m_type;
 	char*               m_msg;
+	char*               m_msg_raw;
 };
 
 

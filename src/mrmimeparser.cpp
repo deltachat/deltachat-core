@@ -378,8 +378,9 @@ static void display_mime(struct mailmime * mime)
 
 MrMimePart::MrMimePart()
 {
-	m_type = MR_MSG_UNDEFINED;
-	m_msg  = NULL;
+	m_type    = MR_MSG_UNDEFINED;
+	m_msg     = NULL;
+	m_msg_raw = NULL;
 }
 
 
@@ -388,6 +389,11 @@ MrMimePart::~MrMimePart()
 	if( m_msg ) {
 		free((void*)m_msg);
 		m_msg = NULL;
+	}
+
+	if( m_msg_raw ) {
+		free((void*)m_msg_raw);
+		m_msg_raw = NULL;
 	}
 }
 
@@ -587,7 +593,8 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 				}
 
 				part->m_type = MR_MSG_TEXT;
-				part->m_msg  = simplifier.Simplify(decoded_data, decoded_data_bytes, mime_type);
+				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+				part->m_msg = simplifier.Simplify(decoded_data, decoded_data_bytes, mime_type);
 				if( part->m_msg && part->m_msg[0] ) {
 					do_add_part = true;
 				}
@@ -735,7 +742,7 @@ Parse_Cleanup:
 		if( part!=NULL ) {
 			char* subject_decoded = mr_decode_header_string(m_subjectEncoded); // may be NULL
 			part->m_type = MR_MSG_TEXT;
-			part->m_msg  = save_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
+			part->m_msg = save_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
 			carray_add(m_parts, (void*)part, NULL);
 			free(subject_decoded);
 		}
