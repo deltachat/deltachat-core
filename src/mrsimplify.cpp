@@ -167,27 +167,28 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 	carray* lines = SplitIntoLines(buf_terminated);
 
 	// search for the line `-- ` and ignore this and all following lines
-	unsigned int l_indx, l_cnt = carray_count(lines);
-	for( l_indx = 0; l_indx < l_cnt; l_indx++ )
+	unsigned int l, l_first = 0, l_last = carray_count(lines)-1; // if l_last is -1, there are no lines
+	for( l = l_first; l <= l_last; l++ )
 	{
-		char* line = (char*)carray_get(lines, l_indx);
+		char* line = (char*)carray_get(lines, l);
 		if( strcmp(line, "-- ")==0 )
 		{
-			l_cnt = l_indx;
+			l_last = l - 1; // if l_last is -1, there are no lines
 			break; // done
 		}
 	}
 
 	// re-create buffer from lines
 	char* p1 = buf_terminated;
-	for( l_indx = 0; l_indx < l_cnt; l_indx++ )
+	*p1 = 0; // make sure, the string is terminated if there are no lines (l_last==-1)
+	for( l = l_first; l < l_last; l++ )
 	{
-		char* line = (char*)carray_get(lines, l_indx);
+		char* line = (char*)carray_get(lines, l);
 		size_t line_len = strlen(line);
 
 		strcpy(p1, line);
 
-		if( l_indx!=l_cnt-1 ) {
+		if( l!=l_last ) {
 			p1[line_len] = '\n';
 			line_len++;
 		}
