@@ -115,6 +115,7 @@ bool MrSimplify::IsEmpty(const char* buf)
 		if( *p1 > ' ' ) {
 			return false; // at least one character found - buffer is not empty
 		}
+		p1++;
 	}
 	return true; // buffer is empty or contains only spaces, tabs, lineends etc.
 }
@@ -271,20 +272,36 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 	// re-create buffer from the remaining lines
 	char* p1 = buf_terminated;
 	*p1 = 0; // make sure, the string is terminated if there are no lines (l_last==-1)
+
+	int add_nl = 0; // we write empty lines only in case and non-empty line follows
+
 	for( l = l_first; l <= l_last; l++ )
 	{
 		line = (char*)carray_get(lines, l);
-		size_t line_len = strlen(line);
 
-		strcpy(p1, line);
-
-		if( l!=l_last ) {
-			p1[line_len] = '\n';
-			line_len++;
+		if( IsEmpty(line) )
+		{
+			add_nl++;
 		}
+		else
+		{
+			if( p1 != buf_terminated ) // flush empty lines - except if we're at the start of the buffer
+			{
+				if( add_nl > 2 ) { add_nl = 2; } // ignore more than one empty line (however, regard normal line ends)
+				while( add_nl ) {
+					*p1 = '\n';
+					p1++;
+					add_nl--;
+				}
+			}
 
-		p1[line_len] = 0;
-		p1 = &p1[line_len]; // points to the current terminating nullcharacters which is overwritten with the next line
+			size_t line_len = strlen(line);
+
+			strcpy(p1, line);
+
+			p1 = &p1[line_len]; // points to the current terminating nullcharacters which is overwritten with the next line
+			add_nl = 1;
+		}
 	}
 
 	FreeSplittedLines(lines);
