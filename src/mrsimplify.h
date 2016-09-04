@@ -46,6 +46,10 @@ private:
 
 	void                RemoveCrChars        (char* buf);
 
+	bool                IsEmpty              (const char* buf);
+	bool                IsPlainQuote         (const char* buf);
+	bool                IsQuoteHeadline      (const char* buf);
+
 	carray*             SplitIntoLines       (const char* buf);
 	void                FreeSplittedLines    (carray*);
 };

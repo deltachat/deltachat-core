@@ -108,6 +108,43 @@ void MrSimplify::RemoveCrChars(char* buf)
 }
 
 
+bool MrSimplify::IsEmpty(const char* buf)
+{
+	const char* p1 = buf;
+	while( *p1 ) {
+		if( *p1 > ' ' ) {
+			return false; // at least one character found - buffer is not empty
+		}
+	}
+	return true; // buffer is empty or contains only spaces, tabs, lineends etc.
+}
+
+
+bool MrSimplify::IsPlainQuote(const char* buf)
+{
+	if( buf[0] == '>' ) {
+		return true;
+	}
+	return false;
+}
+
+
+bool MrSimplify::IsQuoteHeadline(const char* buf)
+{
+	// This function may be called for the line _directly_ before a quote.
+	// The function checks if the line contains sth. like "On 01.02.2016, xy@z wrote:" in various languages.
+	// Currently, we simply check if the last character is a ':'.
+	// (we could also check for the existance of several digits or for the existance of `@` (however, the may be headlines not mentioning the address)
+
+	int buf_len = strlen(buf);
+	if( buf_len > 0 && buf[buf_len-1] == ':' ) {
+		return true; // the buffer is a quoting headline in the meaning described above)
+	}
+
+	return false;
+}
+
+
 char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
 {
 	// create a copy of the given buffer
@@ -167,10 +204,11 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 	carray* lines = SplitIntoLines(buf_terminated);
 
 	// search for the line `-- ` and ignore this and all following lines
-	unsigned int l, l_first = 0, l_last = carray_count(lines)-1; // if l_last is -1, there are no lines
+	int l, l_first = 0, l_last = carray_count(lines)-1; // if l_last is -1, there are no lines
+	char* line;
 	for( l = l_first; l <= l_last; l++ )
 	{
-		char* line = (char*)carray_get(lines, l);
+		line = (char*)carray_get(lines, l);
 		if( strcmp(line, "-- ")==0 )
 		{
 			l_last = l - 1; // if l_last is -1, there are no lines
@@ -178,12 +216,64 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 		}
 	}
 
-	// re-create buffer from lines
+	// remove full quotes at the end of the text
+	{
+		int l_lastQuotedLine = -1;
+
+		for( l = l_last; l >= l_first; l-- ) {
+			line = (char*)carray_get(lines, l);
+			if( IsPlainQuote(line) ) {
+				l_lastQuotedLine = l;
+			}
+			else if( !IsEmpty(line) ) {
+				break;
+			}
+		}
+
+		if( l_lastQuotedLine != -1 )
+		{
+			l_last = l_lastQuotedLine-1; // if l_last is -1, there are no lines
+			if( l_last > 0 ) {
+				line = (char*)carray_get(lines, l_last);
+				if( IsQuoteHeadline(line) ) {
+					l_last--;
+				}
+			}
+		}
+	}
+
+	// remove full quotes at the beginning of the text
+	{
+		int l_lastQuotedLine = -1;
+		bool hasQuotedHeadline = false;
+
+		for( l = l_first; l <= l_last; l++ ) {
+			line = (char*)carray_get(lines, l);
+			if( IsPlainQuote(line) ) {
+				l_lastQuotedLine = l;
+			}
+			else if( !IsEmpty(line) ) {
+				if( IsQuoteHeadline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1 ) {
+					hasQuotedHeadline = true; // continue, the line may be a headline
+				}
+				else {
+					break; // non-quoting line found
+				}
+			}
+		}
+
+		if( l_lastQuotedLine != -1 )
+		{
+			l_first = l_lastQuotedLine + 1;
+		}
+	}
+
+	// re-create buffer from the remaining lines
 	char* p1 = buf_terminated;
 	*p1 = 0; // make sure, the string is terminated if there are no lines (l_last==-1)
-	for( l = l_first; l < l_last; l++ )
+	for( l = l_first; l <= l_last; l++ )
 	{
-		char* line = (char*)carray_get(lines, l);
+		line = (char*)carray_get(lines, l);
 		size_t line_len = strlen(line);
 
 		strcpy(p1, line);
