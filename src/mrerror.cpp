@@ -35,6 +35,10 @@
 
 static void mr_log(char type, const char* msg)
 {
+	if( msg == NULL ) {
+		return; // this may happen if eg. sqlite_mprintf() cannot allocate memory - normally, not.
+	}
+
 	const char* type_str;
 	switch( type ) {
 		case 'i': type_str = "Information"; break;

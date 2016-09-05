@@ -304,16 +304,14 @@ void MrImap::FetchFromSingleFolder(MrImapThreadVal& threadval, const char* folde
 	// done
 FetchFromFolder_Done:
     {
-		char* temp = sqlite3_mprintf("%i mails read from %s with %i errors.", read_cnt, folder, read_errors);
-		if( temp ) {
-			if( read_errors ) {
-				MrLogError(temp);
-			}
-			else {
-				MrLogInfo(temp);
-			}
-			sqlite3_free(temp);
+		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors.", read_cnt, folder, read_errors);
+		if( read_errors ) {
+			MrLogError(temp);
 		}
+		else {
+			MrLogInfo(temp);
+		}
+		sqlite3_free(temp);
     }
 
 	if( fetch_result ) {
@@ -357,7 +355,9 @@ void MrImap::FetchFromAllFolders(MrImapThreadVal& threadval)
 				}
 				else
 				{
-					MrLogInfo("Folder ignored");
+					char* p = sqlite3_mprintf("Folder \"%s\" ignored.", name_utf8);
+					MrLogInfo(p);
+					sqlite3_free(p);
 				}
 
 				free(name_utf8);
