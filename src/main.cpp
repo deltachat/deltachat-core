@@ -96,7 +96,7 @@ int main(int argc, char ** argv)
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");
-			printf("chat [<name>]       list/select chat\n");
+			printf("chat [<spec>]       list chat/select chat by name or id\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("empty               empty database but server config\n");
 			printf("exit                exit program\n");
@@ -205,8 +205,9 @@ int main(int argc, char ** argv)
 					for( i = 0; i < cnt; i++ ) {
 						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
 						char* subtitle = chat->GetSubtitle();
-						printf("%s [%s]\n", chat->m_name, subtitle);
+						printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, subtitle);
 						free(subtitle);
+						//printf("  %s\n", chat->m_lastMsg);
 					}
 				}
 				else {
@@ -225,7 +226,12 @@ int main(int argc, char ** argv)
 				// select a chat (argument 1 = name of chat to select)
 				arg1++;
 				if( sel_chat ) { delete sel_chat; sel_chat = NULL; }
-				sel_chat = mailbox->GetChat(arg1); // may be NULL
+				if( atoi(arg1) > 0 ) {
+					sel_chat = mailbox->GetChat(atoi(arg1)); // may be NULL
+				}
+				else {
+					sel_chat = mailbox->GetChat(arg1); // may be NULL
+				}
 			}
 
 			// show chat

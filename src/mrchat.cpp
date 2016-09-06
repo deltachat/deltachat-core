@@ -91,10 +91,10 @@ bool MrChat::LoadFromDb(const char* name, uint32_t id)
 	Empty();
 
 	if( name ) {
-		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE name=%Q " MR_GET_CHATS_POSTFIX ";", name);
+		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE c.name=%Q " MR_GET_CHATS_POSTFIX ";", name);
 	}
 	else {
-		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE id=%i" MR_GET_CHATS_POSTFIX ";", id);
+		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE c.id=%i" MR_GET_CHATS_POSTFIX ";", id);
 	}
 
 	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
