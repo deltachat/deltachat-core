@@ -380,6 +380,8 @@ void MrImap::WorkingThread()
 	MrImapThreadVal threadval;
 	int             r;
 
+	MrLogInfo("Entering working thread.");
+
 	// connect to server
 	m_threadState = MR_THREAD_CONNECT;
 
@@ -430,6 +432,8 @@ WorkingThread_Exit:
 		threadval.m_imap = NULL;
 	}
 	m_threadState = MR_THREAD_NOTALLOCATED;
+
+	MrLogInfo("Exit working thread.");
 }
 
 
@@ -485,6 +489,7 @@ bool MrImap::Connect(const MrLoginParam* param)
 	}
 
 	if( m_threadState!=MR_THREAD_NOTALLOCATED ) {
+		MrLogInfo("MrImap::Connect(): Already trying to connect.");
 		return true; // already trying to connect
 	}
 

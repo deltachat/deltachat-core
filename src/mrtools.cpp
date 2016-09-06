@@ -73,19 +73,31 @@ void mr_shorten_str(char* buf, int maxlen)
 	int characters = 0;
 	bool lastIsCharacter = false;
 	unsigned char* p1 = (unsigned char*)buf; // force unsigned - otherwise the `> ' '` comparison will fail
+	unsigned char* possibleBreak = NULL;
 	while( *p1 ) {
 		if( *p1 > ' ' ) {
 			characters++;
 			lastIsCharacter = true;
 		}
 		else {
-			*p1 = lastIsCharacter? ' ' : '\r';
-			lastIsCharacter = false;
-			if( characters >= maxlen ) {
-				*p1 = 0;
-				break;
+			if( lastIsCharacter ) {
+				lastIsCharacter = false;
+				possibleBreak = p1;
+				*p1 = ' ';
+				characters++;
+			}
+			else {
+				*p1 = '\r';
 			}
 		}
+
+		if( characters >= maxlen ) {
+			if( possibleBreak ) {
+				*possibleBreak = 0;
+			}
+			break;
+		}
+
 		p1++;
 	}
 

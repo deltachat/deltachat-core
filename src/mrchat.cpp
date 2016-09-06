@@ -178,7 +178,7 @@ char* MrChat::GetLastMsgExcerpt()
 
 	if( m_lastMsg->m_msg ) {
 		ret = safe_strdup(m_lastMsg->m_msg);
-		mr_shorten_str(ret, 60);
+		mr_shorten_str(ret, 80);
 	}
 
 	return ret? ret : safe_strdup("");

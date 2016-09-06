@@ -227,22 +227,23 @@ int main(int argc, char ** argv)
 					for( i = 0; i < cnt; i++ )
 					{
 						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
+						char *temp, *temp2;
 
-						char* temp = chat->GetSubtitle();
+						if( chat->m_lastMsg ) {
+							temp = timestamp_to_str(chat->m_lastMsg->m_timestamp);
+							temp2 = str_repeat("=", 77-strlen(temp));
+								printf("%s%s===", temp2, temp);
+							free(temp2);
+							free(temp);
+						}
+
+						temp = chat->GetSubtitle();
 							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
 						free(temp);
 
 						temp = chat->GetLastMsgExcerpt();
-							printf("   %s\n", temp);
+							printf("%s\n", temp);
 						free(temp);
-
-						if( chat->m_lastMsg ) {
-							temp = timestamp_to_str(chat->m_lastMsg->m_timestamp);
-							char* temp2 = str_repeat(" ", 80-strlen(temp));
-								printf("%s%s", temp2, temp);
-							free(temp2);
-							free(temp);
-						}
 					}
 				}
 				else {

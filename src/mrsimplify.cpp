@@ -157,6 +157,9 @@ char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimety
 
 void MrSimplify::SimplifyHtml(char* buf_terminated)
 {
+	if( strlen(buf_terminated) >= 4 ) {
+		strcpy(buf_terminated, "HTML");
+	}
 }
 
 
