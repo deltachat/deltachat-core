@@ -35,6 +35,7 @@
 #include "mrimfparser.h"
 #include "mrcontact.h"
 #include "mrmsg.h"
+#include "mrtools.h"
 
 
 /*******************************************************************************
@@ -364,7 +365,7 @@ char* MrMailbox::GetDbFile()
 		return NULL; // database not opened
 	}
 
-	return strdup(m_sql.m_dbfile); // must be freed by the caller
+	return safe_strdup(m_sql.m_dbfile); // must be freed by the caller
 }
 
 

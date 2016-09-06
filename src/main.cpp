@@ -204,7 +204,9 @@ int main(int argc, char ** argv)
 				if( cnt ) {
 					for( i = 0; i < cnt; i++ ) {
 						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
-						printf("%s [%s]\n", chat->m_name, chat->GetSubtitle());
+						char* subtitle = chat->GetSubtitle();
+						printf("%s [%s]\n", chat->m_name, subtitle);
+						free(subtitle);
 					}
 				}
 				else {

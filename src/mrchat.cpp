@@ -39,7 +39,6 @@ MrChat::MrChat(MrMailbox* mailbox)
 	m_mailbox        = mailbox;
 	m_type           = MR_CHAT_UNDEFINED;
 	m_name           = NULL;
-	m_subtitle       = NULL;
 	m_lastMsg        = NULL;
 }
 
@@ -55,11 +54,6 @@ void MrChat::Empty()
 	if( m_name ) {
 		free(m_name);
 		m_name = NULL;
-	}
-
-	if( m_subtitle ) {
-		free(m_subtitle);
-		m_subtitle = NULL;
 	}
 
 	if( m_lastMsg ) {
@@ -133,14 +127,48 @@ LoadFromDb_Cleanup:
 char* MrChat::GetSubtitle()
 {
 	// returns either the e-mail-address or the number of chat members
-	if( m_subtitle ) {
-		free(m_subtitle);
-		m_subtitle = NULL;
+	char *q1 = NULL, *q2 = NULL;
+	char* ret = NULL;
+
+	if( m_type == MR_CHAT_NORMAL || m_type == MR_CHAT_PRIVATE )
+	{
+		q1 = sqlite3_mprintf("SELECT c.email FROM chats_contacts cc LEFT JOIN contacts c ON c.id=cc.contact_id WHERE cc.chat_id=%i", m_id);
+		sqlite3_stmt* stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q1);
+		if( stmt ) {
+			int r = sqlite3_step(stmt);
+			if( r == SQLITE_ROW ) {
+				ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
+			}
+			sqlite3_finalize(stmt);
+		}
+	}
+	else if( m_type == MR_CHAT_GROUP )
+	{
+		int cnt = 0;
+		q1 = sqlite3_mprintf("SELECT COUNT(*) FROM chats_contacts WHERE chat_id=%i", m_id);
+		sqlite3_stmt* stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q1);
+		if( stmt ) {
+			int r = sqlite3_step(stmt);
+			if( r == SQLITE_ROW ) {
+				cnt = sqlite3_column_int(stmt, 0);
+			}
+			sqlite3_finalize(stmt);
+		}
+
+		q2 = sqlite3_mprintf("%i members", cnt + 1 /*do not forget ourself!*/);
+		ret = safe_strdup(q2);
+	}
+	else
+	{
+		q1 = sqlite3_mprintf("Chat type #%i", (int)m_type);
+		ret = safe_strdup(q1);
 	}
 
-	m_subtitle = safe_strdup("x");
+	// cleanup
+	sqlite3_free(q1);
+	sqlite3_free(q2);
 
-	return m_subtitle;
+	return ret? ret : safe_strdup("");
 }
 
 
