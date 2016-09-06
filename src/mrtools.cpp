@@ -499,7 +499,7 @@ static char* get_month_name(int zero_based_month)
 		case  1: p = "Feb."; break;
 		case  2: p = "Mar."; break;
 		case  3: p = "Apr."; break;
-		case  4: p = "May"; break;
+		case  4: p = "May";  break;
 		case  5: p = "Jun."; break;
 		case  6: p = "Jul."; break;
 		case  7: p = "Aug."; break;
@@ -510,7 +510,6 @@ static char* get_month_name(int zero_based_month)
 	}
 	return safe_strdup(p);
 }
-
 
 
 char* timestamp_to_str(time_t wanted)
