@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "mrmailbox.h"
+#include "mrtools.h"
 
 
 static char* read_cmd()
@@ -57,6 +58,27 @@ static char* read_cmd()
 static void print_error()
 {
 	printf("ERROR.\n");
+}
+
+
+static char* str_repeat(const char* str, int multiplier)
+{
+	int str_len = strlen(str);
+	int bytes_needed = str_len * multiplier;
+	if( bytes_needed <= 0 ) {
+		return strdup("");
+	}
+
+	char* buf = (char*)malloc(bytes_needed+1);
+	char* p1 = buf;
+	while( multiplier )
+	{
+		strcpy(p1, str);
+		p1 = &p1[str_len];
+		multiplier--;
+	}
+
+	return buf;
 }
 
 
@@ -202,15 +224,24 @@ int main(int argc, char ** argv)
 			if( chatlist ) {
 				int i, cnt = carray_count(chatlist->m_chats);
 				if( cnt ) {
-					for( i = 0; i < cnt; i++ ) {
+					for( i = 0; i < cnt; i++ )
+					{
 						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
-						char* subtitle = chat->GetSubtitle();
-						printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, subtitle);
-						free(subtitle);
+
+						char* temp = chat->GetSubtitle();
+							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
+						free(temp);
+
+						temp = chat->GetLastMsgExcerpt();
+							printf("   %s\n", temp);
+						free(temp);
+
 						if( chat->m_lastMsg ) {
-							char* excerpt = chat->GetLastMsgExcerpt();
-							printf("   %s\n", excerpt);
-							free(excerpt);
+							temp = timestamp_to_str(chat->m_lastMsg->m_timestamp);
+							char* temp2 = str_repeat(" ", 80-strlen(temp));
+								printf("%s%s", temp2, temp);
+							free(temp2);
+							free(temp);
 						}
 					}
 				}

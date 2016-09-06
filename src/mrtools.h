@@ -45,6 +45,7 @@ bool carray_search     (carray*, void* needle, unsigned int* indx); // returns t
 // date/time tools
 #define INVALID_TIMESTAMP    (-1)
 time_t timestampFromDate(struct mailimf_date_time * date_time); // the result is UTC or INVALID_TIMESTAMP
+char* timestamp_to_str(time_t); // the return values must be free()'d
 
 
 #endif // __MRTOOLS_H__

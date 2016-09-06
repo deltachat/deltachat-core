@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <sqlite3.h>
 #include <libetpan.h>
 #include "mrtools.h"
 
@@ -488,3 +489,65 @@ time_t timestampFromDate(struct mailimf_date_time * date_time) // from mailcore2
     return timeval;
 }
 
+
+char* get_month_name(int zero_based_month)
+{
+	const char* p = NULL;
+	switch( zero_based_month )
+	{
+		case  0: p = "Jan."; break;
+		case  1: p = "Feb."; break;
+		case  2: p = "Mar."; break;
+		case  3: p = "Apr."; break;
+		case  4: p = "May"; break;
+		case  5: p = "Jun."; break;
+		case  6: p = "Jul."; break;
+		case  7: p = "Aug."; break;
+		case  8: p = "Sep."; break;
+		case  9: p = "Oct."; break;
+		case 10: p = "Nov."; break;
+		case 11: p = "Dev."; break;
+	}
+	return safe_strdup(p);
+}
+
+
+
+char* timestamp_to_str(time_t wanted)
+{
+	char* temp;
+
+	struct tm wanted_struct;
+	memcpy(&wanted_struct, localtime(&wanted), sizeof(tm));
+
+	time_t curr;
+	struct tm curr_struct;
+	time(&curr);
+	memcpy(&curr_struct, localtime(&curr), sizeof(tm));
+
+	if( wanted_struct.tm_year == curr_struct.tm_year )
+	{
+		if( wanted_struct.tm_mday == curr_struct.tm_mday // 1..31
+		 && wanted_struct.tm_mon == curr_struct.tm_mon ) // 0..11
+		{
+			// same year, same day - print time
+			temp = sqlite3_mprintf("%02i:%02i", (int)wanted_struct.tm_hour, (int)wanted_struct.tm_min);
+		}
+		else
+		{
+			// same year, different day/month - print date but year
+			char* month_name = get_month_name(wanted_struct.tm_mon);
+			temp = sqlite3_mprintf("%02i. %s", (int)wanted_struct.tm_mday, month_name);
+			free(month_name);
+		}
+	}
+	else
+	{
+		// different year - print whole date
+		temp = sqlite3_mprintf("%02i.%02i.%04i", (int)wanted_struct.tm_mday, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_year+1900);
+	}
+
+	char* ret = safe_strdup(temp);
+	sqlite3_free(temp);
+	return ret;
+}
