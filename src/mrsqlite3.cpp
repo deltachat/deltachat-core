@@ -69,7 +69,7 @@ bool MrSqlite3::Open(const char* dbfile)
 		goto Open_Error;
 	}
 
-	m_dbfile = strdup(dbfile);
+	m_dbfile = safe_strdup(dbfile);
 	if( m_dbfile == NULL ) {
 		MrLogError("MrSqlite3::Open(): Out of memory.");
 		goto Open_Error;
@@ -348,13 +348,13 @@ char* MrSqlite3::GetConfig(const char* key, const char* def) // the returned str
 		if( ptr )
 		{
 			// success, fall through below to free objects
-			return strdup((const char*)ptr);
+			return safe_strdup((const char*)ptr);
 		}
 	}
 
 	// return the default value
 	if( def ) {
-		return strdup(def);
+		return safe_strdup(def);
 	}
 	return NULL;
 }

@@ -66,6 +66,9 @@ public:
 	char*           m_name;
 	MrMsg*          m_lastMsg;
 
+	// get information
+	char*           GetSubtitle          (); // either the e-mail-address or the number of group members, the result must _not_ be free()'d!
+
 	// list messages
 	MrMsgList*      ListMsgs             (); // the caller must delete the result
 
@@ -81,6 +84,7 @@ private:
 	bool            SetChatFromStmt      (sqlite3_stmt* row);
 	void            Empty                ();
 	MrMailbox*      m_mailbox;
+	char*           m_subtitle;
 
 	friend class    MrChatList;
 };

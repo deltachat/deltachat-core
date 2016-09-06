@@ -39,6 +39,7 @@ MrChat::MrChat(MrMailbox* mailbox)
 	m_mailbox        = mailbox;
 	m_type           = MR_CHAT_UNDEFINED;
 	m_name           = NULL;
+	m_subtitle       = NULL;
 	m_lastMsg        = NULL;
 }
 
@@ -56,6 +57,11 @@ void MrChat::Empty()
 		m_name = NULL;
 	}
 
+	if( m_subtitle ) {
+		free(m_subtitle);
+		m_subtitle = NULL;
+	}
+
 	if( m_lastMsg ) {
 		delete m_lastMsg;
 		m_lastMsg = NULL;
@@ -70,7 +76,7 @@ bool MrChat::SetChatFromStmt(sqlite3_stmt* row)
 	int row_offset = 0;
 	m_id             =                    sqlite3_column_int  (row, row_offset++); // the columns are defined in MR_CHAT_FIELDS
 	m_type           = (MrChatType)       sqlite3_column_int  (row, row_offset++);
-	m_name           = save_strdup((char*)sqlite3_column_text (row, row_offset++));
+	m_name           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	m_lastMsg        = new MrMsg(m_mailbox);
 	m_lastMsg->SetMsgFromStmt(row, row_offset);
 
@@ -121,6 +127,20 @@ LoadFromDb_Cleanup:
 	}
 
 	return success;
+}
+
+
+char* MrChat::GetSubtitle()
+{
+	// returns either the e-mail-address or the number of chat members
+	if( m_subtitle ) {
+		free(m_subtitle);
+		m_subtitle = NULL;
+	}
+
+	m_subtitle = safe_strdup("x");
+
+	return m_subtitle;
 }
 
 

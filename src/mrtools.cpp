@@ -38,7 +38,7 @@
  ******************************************************************************/
 
 
-char* save_strdup(const char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case
+char* safe_strdup(const char* s) // strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case
 {
 	if( s ) {
 		return strdup(s);
@@ -53,7 +53,7 @@ char* save_strdup(const char* s) // strdup(NULL) is undefined, save_strdup(NULL)
 
 char* mr_strlower(const char* in) // the result must be free()'d
 {
-	char* out = strdup(in);
+	char* out = safe_strdup(in);
 	if( out == NULL ) {
 		return NULL;
 	}
@@ -82,7 +82,7 @@ char* mr_decode_header_string(const char* in)
 	size_t cur_token = 0;
 	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
 	if( r != MAILIMF_NO_ERROR || out == NULL ) {
-		out = strdup(in); // error, make a copy of the original string (as we free it later)
+		out = safe_strdup(in); // error, make a copy of the original string (as we free it later)
 	}
 
 	return out; // must be free()'d by the caller

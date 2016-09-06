@@ -99,10 +99,8 @@ char* MrImfParser::CreateStubMessageId(time_t message_timestamp, carray* contact
 	// for our purposes, this seems "good enough" for the moment, esp. as clients may a Message-ID on sent.
 	char* ret = NULL;
 	char* buf = sqlite3_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
-	if( buf ) {
-		ret = strdup(buf);
-		sqlite3_free(buf);
-	}
+	ret = safe_strdup(buf);
+	sqlite3_free(buf);
 
 	return ret; // must be free()'d by the caller
 }
@@ -254,7 +252,7 @@ int32_t MrImfParser::Imf2Msg(const char* imf_raw_not_terminated, size_t imf_raw_
 					{
 						mailimf_message_id* fld_message_id = field->fld_data.fld_message_id; // can be NULL
 						if( fld_message_id ) {
-							rfc724_mid = strdup(fld_message_id->mid_value); // != NULL
+							rfc724_mid = safe_strdup(fld_message_id->mid_value); // != NULL
 						}
 					}
 					else if( field->fld_type == MAILIMF_FIELD_FROM )

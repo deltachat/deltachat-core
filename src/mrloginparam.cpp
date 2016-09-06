@@ -30,6 +30,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrloginparam.h"
+#include "mrtools.h"
 
 
 MrLoginParam::MrLoginParam()
@@ -91,22 +92,22 @@ void MrLoginParam::Complete()
 	 || strcmp(adr_server, "googlemail.com")==0 )
 	{
 		// Google
-		if( m_mail_server == NULL )          { m_mail_server = strdup("imap.gmail.com"); }
+		if( m_mail_server == NULL )          { m_mail_server = safe_strdup("imap.gmail.com"); }
 		if( m_mail_port == 0 )               { m_mail_port   = 993; } // IMAPS
-		if( m_mail_user == NULL )            { m_mail_user = strdup(m_email); }
+		if( m_mail_user == NULL )            { m_mail_user   = safe_strdup(m_email); }
 
-		if( m_send_server == NULL )          { m_send_server = strdup("smtp.gmail.com"); }
+		if( m_send_server == NULL )          { m_send_server = safe_strdup("smtp.gmail.com"); }
 		if( m_send_port == 0 )               { m_send_port   = 465; } // SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587
-		if( m_send_user == NULL )            { m_send_user   = strdup(m_email); }
-		if( m_send_pw == NULL && m_mail_pw ) { m_send_pw     = strdup(m_mail_pw); }
+		if( m_send_user == NULL )            { m_send_user   = safe_strdup(m_email); }
+		if( m_send_pw == NULL && m_mail_pw ) { m_send_pw     = safe_strdup(m_mail_pw); }
 	}
 
 	// generic approach
 	if( m_mail_port == 0 )               { m_mail_port = 993; }
-	if( m_mail_user == NULL )            { m_mail_user = strdup(m_email); }
+	if( m_mail_user == NULL )            { m_mail_user = safe_strdup(m_email); }
 	if( m_send_port == 0 )               { m_send_port = 465; }
-	if( m_send_user == NULL )            { m_send_user = strdup(m_email); }
-	if( m_send_pw == NULL && m_mail_pw ) { m_send_pw   = strdup(m_mail_pw); }
+	if( m_send_user == NULL )            { m_send_user = safe_strdup(m_email); }
+	if( m_send_pw == NULL && m_mail_pw ) { m_send_pw   = safe_strdup(m_mail_pw); }
 }
 
 

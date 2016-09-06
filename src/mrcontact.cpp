@@ -79,8 +79,8 @@ bool MrContact::LoadFromDb(uint32_t contact_id)
 	}
 
 	m_id    = contact_id;
-	m_name  = save_strdup((char*)sqlite3_column_text(stmt, 1));
-	m_email = save_strdup((char*)sqlite3_column_text(stmt, 2));
+	m_name  = safe_strdup((char*)sqlite3_column_text(stmt, 1));
+	m_email = safe_strdup((char*)sqlite3_column_text(stmt, 2));
 	if( m_name == NULL || m_email == NULL ) {
 		goto LoadFromDb_Cleanup; // out of memory, should not happen
 	}

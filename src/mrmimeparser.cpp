@@ -603,7 +603,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 
 		case MR_MIMETYPE_IMAGE:
 			part->m_type = MR_MSG_IMAGE;
-			part->m_msg  = strdup("IMAGE");
+			part->m_msg  = safe_strdup("IMAGE");
 			do_add_part = true;
 			break;
 
@@ -742,7 +742,7 @@ Parse_Cleanup:
 		if( part!=NULL ) {
 			char* subject_decoded = mr_decode_header_string(m_subjectEncoded); // may be NULL
 			part->m_type = MR_MSG_TEXT;
-			part->m_msg = save_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
+			part->m_msg = safe_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
 			carray_add(m_parts, (void*)part, NULL);
 			free(subject_decoded);
 		}

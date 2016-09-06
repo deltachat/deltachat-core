@@ -152,12 +152,12 @@ char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimety
 	char* out = NULL;
 
 	if( in_unterminated == NULL || in_bytes <= 0 ) {
-		return strdup(""); // error
+		return safe_strdup(""); // error
 	}
 
 	out = strndup((char*)in_unterminated, in_bytes); // strndup() makes sure, the string is null-terminated
 	if( out == NULL ) {
-		return strdup(""); // error
+		return safe_strdup(""); // error
 	}
 
 	// simplify the text in the buffer (characters to removed may be marked by `\r`)

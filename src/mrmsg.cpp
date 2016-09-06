@@ -68,7 +68,7 @@ bool MrMsg::SetMsgFromStmt(sqlite3_stmt* row, int row_offset)
 	m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
 	m_type      =         (MrMsgType)sqlite3_column_int  (row, row_offset++);
 	m_state     =        (MrMsgState)sqlite3_column_int  (row, row_offset++);
-	m_msg       = save_strdup((char*)sqlite3_column_text (row, row_offset++));
+	m_msg       = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	return true;
 }
