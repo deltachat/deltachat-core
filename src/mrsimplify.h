@@ -44,8 +44,6 @@ private:
 	void                SimplifyPlainText    (char* buf);
 	void                SimplifyHtml         (char* buf);
 
-	void                RemoveCrChars        (char* buf);
-
 	bool                IsEmpty              (const char* buf);
 	bool                IsPlainQuote         (const char* buf);
 	bool                IsQuoteHeadline      (const char* buf);

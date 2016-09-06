@@ -207,7 +207,11 @@ int main(int argc, char ** argv)
 						char* subtitle = chat->GetSubtitle();
 						printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, subtitle);
 						free(subtitle);
-						//printf("  %s\n", chat->m_lastMsg);
+						if( chat->m_lastMsg ) {
+							char* excerpt = chat->GetLastMsgExcerpt();
+							printf("   %s\n", excerpt);
+							free(excerpt);
+						}
 					}
 				}
 				else {

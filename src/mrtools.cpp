@@ -67,6 +67,58 @@ char* mr_strlower(const char* in) // the result must be free()'d
 }
 
 
+void mr_shorten_str(char* buf, int maxlen)
+{
+	int characters = 0;
+	bool lastIsCharacter = false;
+	unsigned char* p1 = (unsigned char*)buf; // force unsigned - otherwise the `> ' '` comparison will fail
+	while( *p1 ) {
+		if( *p1 > ' ' ) {
+			characters++;
+			lastIsCharacter = true;
+		}
+		else {
+			*p1 = lastIsCharacter? ' ' : '\r';
+			lastIsCharacter = false;
+			if( characters >= maxlen ) {
+				*p1 = 0;
+				break;
+			}
+		}
+		p1++;
+	}
+
+	mr_remove_cr_chars(buf);
+}
+
+
+void mr_remove_cr_chars(char* buf)
+{
+	// remove all carriage return characters (`\r`) from the null-terminated buffer;
+	// the buffer itself is modified for this purpose
+
+	const char* p1 = buf; // search for first `\r`
+	while( *p1 ) {
+		if( *p1 == '\r' ) {
+			break;
+		}
+		p1++;
+	}
+
+	char* p2 = (char*)p1; // p1 is `\r` or null-byte; start removing `\r`
+	while( *p1 ) {
+		if( *p1 != '\r' ) {
+			*p2 = *p1;
+			p2++;
+		}
+		p1++;
+	}
+
+	// add trailing null-byte
+	*p2 = 0;
+}
+
+
 char* mr_decode_header_string(const char* in)
 {
 	// decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)

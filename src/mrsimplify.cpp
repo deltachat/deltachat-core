@@ -81,36 +81,9 @@ void MrSimplify::FreeSplittedLines(carray* lines)
 }
 
 
-void MrSimplify::RemoveCrChars(char* buf)
-{
-	// remove all carriage return characters (`\r`) from the null-terminated buffer;
-	// the buffer itself is modified for this purpose
-
-	const char* p1 = buf; // search for first `\r`
-	while( *p1 ) {
-		if( *p1 == '\r' ) {
-			break;
-		}
-		p1++;
-	}
-
-	char* p2 = (char*)p1; // p1 is `\r` or null-byte; start removing `\r`
-	while( *p1 ) {
-		if( *p1 != '\r' ) {
-			*p2 = *p1;
-			p2++;
-		}
-		p1++;
-	}
-
-	// add trailing null-byte
-	*p2 = 0;
-}
-
-
 bool MrSimplify::IsEmpty(const char* buf)
 {
-	const char* p1 = buf;
+	const unsigned char* p1 = (const unsigned char*)buf; // force unsigned - otherwise the `> ' '` comparison will fail
 	while( *p1 ) {
 		if( *p1 > ' ' ) {
 			return false; // at least one character found - buffer is not empty
@@ -165,12 +138,12 @@ char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimety
 		SimplifyHtml(out);
 	}
 	else {
-		RemoveCrChars(out); // make comparisons easier, eg. for line `-- `
+		mr_remove_cr_chars(out); // make comparisons easier, eg. for line `-- `
 		SimplifyPlainText(out);
 	}
 
 	// remove all `\r` from string
-	RemoveCrChars(out);
+	mr_remove_cr_chars(out);
 
 	// done
 	return out;
