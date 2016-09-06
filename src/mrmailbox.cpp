@@ -224,6 +224,7 @@ ImportSpec_Cleanup:
 bool MrMailbox::Connect()
 {
 	if( m_imap.IsConnected() ) {
+		MrLogInfo("MrMailbox::Connect(): Already connected or trying to connect.");
 		return true;
 	}
 

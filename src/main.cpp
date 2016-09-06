@@ -232,7 +232,7 @@ int main(int argc, char ** argv)
 						if( chat->m_lastMsg ) {
 							temp = timestamp_to_str(chat->m_lastMsg->m_timestamp);
 							temp2 = str_repeat("=", 77-strlen(temp));
-								printf("%s%s===", temp2, temp);
+								printf("%s%s===\n", temp2, temp);
 							free(temp2);
 							free(temp);
 						}
@@ -278,7 +278,18 @@ int main(int argc, char ** argv)
 					int i, cnt = carray_count(msglist->m_msgs);
 					for( i = 0; i < cnt; i++ ) {
 						MrMsg* msg = (MrMsg*)carray_get(msglist->m_msgs, i);
-						printf("%i\n", (int)msg->m_id);
+						char *temp, *temp2;
+
+						temp = timestamp_to_str(msg->m_timestamp);
+						temp2 = str_repeat(msg->m_fromId==0/*0=self*/? "<" : ">", 79-strlen(temp));
+							printf("%s %s\n", temp2, temp);
+						free(temp2);
+						free(temp);
+
+						temp = safe_strdup(msg->m_msg);
+							mr_shorten_str(temp, 80);
+							printf("%s\n", temp);
+						free(temp);
 					}
 					delete msglist;
 				}

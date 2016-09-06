@@ -392,11 +392,15 @@ void MrImap::WorkingThread()
 		goto WorkingThread_Exit;
 	}
 
+	MrLogInfo("Successfully connected to server.");
+
 	r = mailimap_login(threadval.m_imap, m_loginParam->m_mail_user, m_loginParam->m_mail_pw);
 	if( Mr_is_error(r) ) {
 		MrLogError("could not login");
 		goto WorkingThread_Exit;
 	}
+
+	MrLogInfo("Successfully logged in.");
 
 	// endless look
 	while( 1 )
