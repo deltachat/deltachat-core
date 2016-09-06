@@ -490,7 +490,7 @@ time_t timestampFromDate(struct mailimf_date_time * date_time) // from mailcore2
 }
 
 
-char* get_month_name(int zero_based_month)
+static char* get_month_name(int zero_based_month)
 {
 	const char* p = NULL;
 	switch( zero_based_month )
