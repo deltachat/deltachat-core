@@ -68,7 +68,6 @@ public:
 
 	// get information
 	char*           GetSubtitle          (); // either the e-mail-address or the number of group members, the result must be free()'d!
-	char*           GetLastMsgExcerpt    ();
 
 	// list messages
 	MrMsgList*      ListMsgs             (); // the caller must delete the result

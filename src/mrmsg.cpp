@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include "mrmailbox.h"
+#include "mrcontact.h"
 #include "mrmsg.h"
 #include "mrtools.h"
 
@@ -71,6 +72,43 @@ bool MrMsg::SetMsgFromStmt(sqlite3_stmt* row, int row_offset)
 	m_msg       = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	return true;
+}
+
+
+char* MrMsg::GetSummary(long flags)
+{
+	char* from = NULL;
+	char* message = NULL;
+
+	if( m_fromId == 0 ) {
+		from = safe_strdup("You");
+	}
+	else {
+		MrContact* contact = new MrContact(m_mailbox);
+		contact->LoadFromDb(m_fromId);
+		if( contact->m_name ) {
+			from = safe_strdup(contact->m_name);
+			delete contact;
+		}
+		else {
+			from = safe_strdup("BadContactId");
+		}
+	}
+
+	if( m_msg ) {
+		message = safe_strdup(m_msg); // we do not shorten the message, this can be done by the caller
+		if( flags & DO_UNWRAP ) {
+			mr_unwrap_str(message);
+		}
+	}
+
+	char* ret;
+	char* temp = sqlite3_mprintf("%s: %s", from, message);
+	ret = safe_strdup(temp);
+	free(from);
+	free(message);
+	sqlite3_free(temp);
+	return ret;
 }
 
 

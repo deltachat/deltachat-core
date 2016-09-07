@@ -61,27 +61,6 @@ static void print_error()
 }
 
 
-static char* str_repeat(const char* str, int multiplier)
-{
-	int str_len = strlen(str);
-	int bytes_needed = str_len * multiplier;
-	if( bytes_needed <= 0 ) {
-		return strdup("");
-	}
-
-	char* buf = (char*)malloc(bytes_needed+1);
-	char* p1 = buf;
-	while( multiplier )
-	{
-		strcpy(p1, str);
-		p1 = &p1[str_len];
-		multiplier--;
-	}
-
-	return buf;
-}
-
-
 int main(int argc, char ** argv)
 {
 	MrMailbox* mailbox = new MrMailbox();
@@ -226,24 +205,25 @@ int main(int argc, char ** argv)
 				if( cnt ) {
 					for( i = 0; i < cnt; i++ )
 					{
+						if( i ) { printf("\n"); }
+
 						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
 						char *temp, *temp2;
-
-						if( chat->m_lastMsg ) {
-							temp = timestamp_to_str(chat->m_lastMsg->m_timestamp);
-							temp2 = str_repeat("=", 77-strlen(temp));
-								printf("%s%s===\n", temp2, temp);
-							free(temp2);
-							free(temp);
-						}
 
 						temp = chat->GetSubtitle();
 							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
 						free(temp);
 
-						temp = chat->GetLastMsgExcerpt();
-							printf("%s\n", temp);
-						free(temp);
+						if( chat->m_lastMsg ) {
+							temp = chat->m_lastMsg->GetSummary();
+							temp2 = timestamp_to_str(chat->m_lastMsg->m_timestamp);
+								printf("%s [%s]\n", temp, temp2);
+							free(temp2);
+							free(temp);
+						}
+						else {
+							printf("No messages.\n");
+						}
 					}
 				}
 				else {
@@ -276,19 +256,17 @@ int main(int argc, char ** argv)
 				MrMsgList* msglist = sel_chat->ListMsgs();
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
-					for( i = 0; i < cnt; i++ ) {
+					for( i = 0; i < cnt; i++ )
+					{
+						printf("\n");
+
 						MrMsg* msg = (MrMsg*)carray_get(msglist->m_msgs, i);
 						char *temp, *temp2;
 
-						temp = timestamp_to_str(msg->m_timestamp);
-						temp2 = str_repeat(msg->m_fromId==0/*0=self*/? "<" : ">", 79-strlen(temp));
-							printf("%s %s\n", temp2, temp);
+						temp = msg->GetSummary();
+						temp2 = timestamp_to_str(msg->m_timestamp);
+							printf("%s [%s]\n", temp, temp2);
 						free(temp2);
-						free(temp);
-
-						temp = safe_strdup(msg->m_msg);
-							mr_shorten_str(temp, 80);
-							printf("%s\n", temp);
 						free(temp);
 					}
 					delete msglist;

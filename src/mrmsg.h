@@ -81,6 +81,10 @@ public:
 	MrMsgState    m_state;
 	char*         m_msg;  // meaning dedpends on m_type
 
+	// get a summary
+	#define       DO_UNWRAP 0x01
+	char*         GetSummary     (long flags=0); // the result should be free()'d
+
 private:
 	// the mailbox, the message belongs to
 	MrMailbox*    m_mailbox;

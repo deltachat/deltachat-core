@@ -34,7 +34,7 @@
 char* safe_strdup(const char*); // returns empty string if NULL is given, else same as strdup()
 char* mr_strlower(const char*); // the result must be free()'d
 char* mr_decode_header_string(const char* in); // the result must be free()'d
-void  mr_shorten_str(char*, int maxlen); // modify string to one line with max. maxlen characters
+void  mr_unwrap_str(char*); // unwrap lines in the given buffer
 void  mr_remove_cr_chars(char*); // remove all \r characters from string
 char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
 char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);

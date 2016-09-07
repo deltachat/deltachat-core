@@ -172,19 +172,6 @@ char* MrChat::GetSubtitle()
 }
 
 
-char* MrChat::GetLastMsgExcerpt()
-{
-	char* ret = NULL;
-
-	if( m_lastMsg->m_msg ) {
-		ret = safe_strdup(m_lastMsg->m_msg);
-		mr_shorten_str(ret, 80);
-	}
-
-	return ret? ret : safe_strdup("");
-}
-
-
 /*******************************************************************************
  * Static funcions
  ******************************************************************************/
