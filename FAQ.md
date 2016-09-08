@@ -19,6 +19,22 @@ Frequently Asked Questions
 - The receiver will get a normal e-mail then - if he replies to it, you will
   see the reply in the LibreChat app.
 
+**Does LibreChat support images, videos and other attachments?***
+
+- Yes. Beside the plain text, all E-Mail-attachments are displayed as separate
+  messages.  Outgoing messages will get attachments as needed automatically.
+
+**How does LibreChat use the E-Mail-Subject?**
+
+- As the message content is displayed directly, the subject is not needed and will
+  not be shown therefore.  For outgoing messages, the subject will be set to an
+  excerpt of the message text.  
+
+**Does LibreChat support HTML-E-Mails?**
+
+- Yes.  If incoming E-Mail lacks a plain text part, we convert HTML-E-Mails to 
+  plain text ourself.  Outgoing E-Mails do not use HTML. 
+
 **LibreChat - is this the final name?**
 
 - Well, currently this is our _best_ name.  Maybe we will change it if we get
