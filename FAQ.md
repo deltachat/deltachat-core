@@ -28,7 +28,7 @@ Frequently Asked Questions
 
 - As the message content is displayed directly, the subject is not needed and will
   not be shown therefore.  For outgoing messages, the subject will be set to an
-  excerpt of the message text.  
+  excerpt of the message text.
 
 **Does LibreChat support HTML-E-Mails?**
 
