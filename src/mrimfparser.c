@@ -62,7 +62,7 @@
 #include "mrmimeparser.h"
 #include "mrtools.h"
 #include "mrmsg.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 mrimfparser_t* mrimfparser_new(mrmailbox_t* mailbox)
@@ -96,7 +96,7 @@ void mrimfparser_delete(mrimfparser_t* ths)
 
 static char* create_stub_message_id(time_t message_timestamp, carray* contact_ids_to)
 {
-	if( message_timestamp == INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
+	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
 		return NULL; /* cannot create a unique timestamp */
 	}
 
@@ -161,7 +161,7 @@ static void mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* di
 		}
 		else
 		{
-			MrLogError("Cannot add contact.");
+			mr_log_error("Cannot add contact.");
 		}
 
 		free(display_name_dec);
@@ -225,7 +225,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	int              i, icnt, part_i, part_cnt;
 	uint32_t         dblocal_id = 0;    /* databaselocal message id */
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
-	time_t           message_timestamp = INVALID_TIMESTAMP;
+	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
 	int              comes_from_extern = 0; /* indicates, if the mail was send by us or was received from outside */
 	mrmimeparser_t*  mime_parser = mrmimeparser_new();
@@ -303,7 +303,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 				{
 					struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 					if( orig_date ) {
-						message_timestamp =timestampFromDate(orig_date->dt_date_time /*!= NULL*/);
+						message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time /*!= NULL*/);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )

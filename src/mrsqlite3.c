@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mrsqlite3.h"
-#include "mrerror.h"
+#include "mrlog.h"
 #include "mrtools.h"
 #include "mrcontact.h"
 
@@ -70,29 +70,40 @@ void mrsqlite3_delete(mrsqlite3_t* ths)
 }
 
 
+void mrsqlite3_log_error(mrsqlite3_t* ths)
+{
+	if( ths && ths->m_cobj ) {
+		mr_log_error(sqlite3_errmsg(ths->m_cobj));
+	}
+	else {
+		mr_log_error("Sqlite object not set up.");
+	}
+}
+
+
 int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 {
 	int i;
 
 	if( ths == NULL || dbfile == NULL ) {
-		MrLogError("MrSqlite3::Open(): No database file given.");
+		mr_log_error("mrsqlite3_open(): No database file given.");
 		goto Open_Error;
 	}
 
 	if( ths->m_dbfile ) {
-		MrLogError("MrSqlite3::Open(): Database already opend.");
+		mr_log_error("mrsqlite3_open(): Database already opend.");
 		goto Open_Error;
 	}
 
 	ths->m_dbfile = safe_strdup(dbfile);
 	if( ths->m_dbfile == NULL ) {
-		MrLogError("MrSqlite3::Open(): Out of memory.");
+		mr_log_error("mrsqlite3_open(): Out of memory.");
 		goto Open_Error;
 	}
 
 	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
-		MrLogSqliteError(ths->m_cobj); /* ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError()) */
-		MrLogError("MrSqlite3::Open(): sqlite3_open() failed.");
+		mrsqlite3_log_error(ths); /* ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError()) */
+		mr_log_error("mrsqlite3_open(): sqlite3_open() failed.");
 		goto Open_Error;
 	}
 
@@ -122,8 +133,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		 || !mrsqlite3_table_exists_(ths, "chats") || !mrsqlite3_table_exists_(ths, "chats_contacts")
 		 || !mrsqlite3_table_exists_(ths, "msg") )
 		{
-			MrLogSqliteError(ths->m_cobj);
-			MrLogError("mrsqlite3_open(): Cannot create tables.");
+			mrsqlite3_log_error(ths);
+			mr_log_error("mrsqlite3_open(): Cannot create tables.");
 			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
 		}
 	}
@@ -152,8 +163,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 
 	for( i = 0; i < PREDEFINED_CNT; i++ ) {
 		if( ths->m_pd[i] == NULL ) {
-			MrLogSqliteError(ths->m_cobj);
-			MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.");
+			mrsqlite3_log_error(ths);
+			mr_log_error("mrsqlite3_open(): Cannot prepare SQL statements.");
 			goto Open_Error;
 		}
 	}
@@ -211,13 +222,13 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	sqlite3_stmt* retStmt = NULL;
 
 	if( ths == NULL || querystr == NULL ) {
-		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): Bad argument.");
+		mr_log_error("mrsqlite3_prepare_v2_(): Bad argument.");
 		return NULL; /* error */
 	}
 
 	if( ths->m_cobj == NULL )
 	{
-		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): Database not ready.");
+		mr_log_error("mrsqlite3_prepare_v2_(): Database not ready.");
 		return NULL; /* error */
 	}
 
@@ -226,8 +237,8 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	         &retStmt,
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
-		MrLogSqliteError(ths->m_cobj);
-		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): sqlite3_prepare_v2() failed.");
+		mrsqlite3_log_error(ths);
+		mr_log_error("mrsqlite3_prepare_v2_(): sqlite3_prepare_v2() failed.");
 		return NULL; /* error */
 	}
 
@@ -249,8 +260,8 @@ int mrsqlite3_execute_(mrsqlite3_t* ths, const char* querystr)
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		MrLogSqliteError(ths->m_cobj);
-		MrLogError("MrSqlite3::sqlite3_execute_(): sqlite3_step() failed.");
+		mrsqlite3_log_error(ths);
+		mr_log_error("mrsqlite3_execute_(): sqlite3_step() failed.");
 		goto sqlite3_execute_Error;
 	}
 
@@ -274,7 +285,7 @@ int mrsqlite3_table_exists_(mrsqlite3_t* ths, const char* name)
 	int           sqlState;
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
-		MrLogError("MrSqlite3::sqlite3_table_exists_(): Out of memory.");
+		mr_log_error("mrsqlite3_table_exists_(): Out of memory.");
 		goto table_exists_Error;
 	}
 
@@ -314,12 +325,12 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 	int state;
 
 	if( key == NULL ) {
-		MrLogError("MrSqlite3::SetConfig(): Bad parameter.");
+		mr_log_error("mrsqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
 	if( !mrsqlite3_ok(ths) ) {
-		MrLogError("MrSqlite3::SetConfig(): Database not ready.");
+		mr_log_error("mrsqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
@@ -343,7 +354,7 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 			state=sqlite3_step(ths->m_pd[UPDATE_config_vk]);
 		}
 		else {
-			MrLogError("MrSqlite3::SetConfig(): Cannot read value.");
+			mr_log_error("mrsqlite3_set_config(): Cannot read value.");
 			return 0;
 		}
 	}
@@ -356,7 +367,7 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 	}
 
 	if( state != SQLITE_DONE )  {
-		MrLogError("MrSqlite3::SetConfig(): Cannot change value.");
+		mr_log_error("mrsqlite3_set_config(): Cannot change value.");
 		return 0; /* error */
 	}
 
@@ -442,7 +453,7 @@ void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 	{
 		sqlite3_reset(ths->m_pd[BEGIN_transaction]);
 		if( sqlite3_step(ths->m_pd[BEGIN_transaction]) != SQLITE_DONE ) {
-			MrLogSqliteError(ths->m_cobj);
+			mrsqlite3_log_error(ths);
 		}
 	}
 }
@@ -456,7 +467,7 @@ void mrsqlite3_rollback(mrsqlite3_t* ths)
 		{
 			sqlite3_reset(ths->m_pd[ROLLBACK_transaction]);
 			if( sqlite3_step(ths->m_pd[ROLLBACK_transaction]) != SQLITE_DONE ) {
-				MrLogSqliteError(ths->m_cobj);
+				mrsqlite3_log_error(ths);
 			}
 		}
 
@@ -473,7 +484,7 @@ void mrsqlite3_commit(mrsqlite3_t* ths)
 		{
 			sqlite3_reset(ths->m_pd[COMMIT_transaction]);
 			if( sqlite3_step(ths->m_pd[COMMIT_transaction]) != SQLITE_DONE ) {
-				MrLogSqliteError(ths->m_cobj);
+				mrsqlite3_log_error(ths);
 			}
 		}
 

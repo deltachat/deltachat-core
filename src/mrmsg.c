@@ -31,7 +31,7 @@
 #include "mrcontact.h"
 #include "mrmsg.h"
 #include "mrtools.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
@@ -145,8 +145,8 @@ size_t mr_get_msg_cnt(mrmailbox_t* mailbox) /* static function */
 	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_msg];
 	sqlite3_reset (s);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		MrLogSqliteError(mailbox->m_sql->m_cobj);
-		MrLogError("MrSqlite3::GetMsgCnt() failed.");
+		mrsqlite3_log_error(mailbox->m_sql);
+		mr_log_error("mr_get_msg_cnt() failed.");
 		return 0; /* error */
 	}
 

@@ -438,7 +438,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
         dir = tmcomp(&mytm, &yourtm);
         if (dir != 0) {
             if (bits-- < 0) {
-                return INVALID_TIMESTAMP;
+                return MR_INVALID_TIMESTAMP;
             }
             if (bits < 0)
                 --t;
@@ -454,7 +454,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 }
 
 
-time_t timestampFromDate(struct mailimf_date_time * date_time) /* from mailcore2 */
+time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mailcore2 */
 {
     struct tm tmval;
     time_t timeval;
@@ -512,7 +512,7 @@ static char* get_month_name(int zero_based_month)
 }
 
 
-char* timestamp_to_str(time_t wanted)
+char* mr_timestamp_to_str(time_t wanted)
 {
 	char* temp;
 

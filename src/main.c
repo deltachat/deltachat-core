@@ -216,7 +216,7 @@ int main(int argc, char ** argv)
 
 						if( chat->m_lastMsg ) {
 							temp = mrmsg_get_summary(chat->m_lastMsg, 0);
-							temp2 = timestamp_to_str(chat->m_lastMsg->m_timestamp);
+							temp2 = mr_timestamp_to_str(chat->m_lastMsg->m_timestamp);
 								printf("%s [%s]\n", temp, temp2);
 							free(temp2);
 							free(temp);
@@ -264,7 +264,7 @@ int main(int argc, char ** argv)
 						char *temp, *temp2;
 
 						temp = mrmsg_get_summary(msg, 0);
-						temp2 = timestamp_to_str(msg->m_timestamp);
+						temp2 = mr_timestamp_to_str(msg->m_timestamp);
 							printf("%s [%s]\n", temp, temp2);
 						free(temp2);
 						free(temp);

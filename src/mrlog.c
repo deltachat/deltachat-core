@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrerror.c
+ * File:    mrlog.c
  * Authors: Björn Petersen
  * Purpose: Error handling, see header for details.
  *
@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "mrmailbox.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 
@@ -54,32 +54,24 @@ static void mr_log(char type, const char* msg)
 }
 
 
-void MrLogInfo(const char* msg)
+void mr_log_info(const char* msg)
 {
 	mr_log('i', msg);
 }
 
 
 
-void MrLogWarning(const char* msg)
+void mr_log_warning(const char* msg)
 {
 	mr_log('w', msg);
 }
 
 
-void MrLogError(const char* msg)
+void mr_log_error(const char* msg)
 {
 	mr_log('e', msg);
 }
 
 
-void MrLogSqliteError(sqlite3* db)
-{
-	if( db ) {
-		MrLogError(sqlite3_errmsg(db));
-	}
-	else {
-		MrLogError("Sqlite object not set up.");
-	}
-}
+
 

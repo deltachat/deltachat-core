@@ -102,6 +102,7 @@ int32_t       mrsqlite3_get_config_int   (mrsqlite3_t*, const char* key, int32_t
 sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
 int           mrsqlite3_execute_         (mrsqlite3_t*, const char* sql);
 int           mrsqlite3_table_exists_    (mrsqlite3_t*, const char* name);
+void          mrsqlite3_log_error        (mrsqlite3_t*);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
 the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.
@@ -111,9 +112,9 @@ void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; CAVE: 
 void          mrsqlite3_unlock           (mrsqlite3_t*);
 
 /* nestable transactions, only the outest is really used */
-void          mrsqlite3_begin_transaction (mrsqlite3_t*);
-void          mrsqlite3_commit            (mrsqlite3_t*);
-void          mrsqlite3_rollback          (mrsqlite3_t*);
+void          mrsqlite3_begin_transaction(mrsqlite3_t*);
+void          mrsqlite3_commit           (mrsqlite3_t*);
+void          mrsqlite3_rollback         (mrsqlite3_t*);
 
 #endif /* __MRSQLITE3_H__ */
 

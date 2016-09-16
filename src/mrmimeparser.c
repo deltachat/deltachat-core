@@ -32,7 +32,7 @@
 #include "mrmimeparser.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 /*******************************************************************************
@@ -621,7 +621,7 @@ static int mrmimeparser_add_single_part_if_known__(mrmimeparser_t* ths, struct m
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						MrLogWarning("Cannot convert character set."); /* continue, however */
+						mr_log_warning("Cannot convert character set."); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
 						goto AddSinglePart_Cleanup; /* no error - but nothing to add */

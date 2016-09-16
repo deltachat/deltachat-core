@@ -19,26 +19,26 @@
  *
  *******************************************************************************
  *
- * File:    mrerror.h
+ * File:    mrlog.h
  * Authors: Björn Petersen
  * Purpose: Error handling
  *
  ******************************************************************************/
 
 
-#ifndef __MRERROR_H__
-#define __MRERROR_H__
+#ifndef __MRLOG_H__
+#define __MRLOG_H__
 
 
 #include <sqlite3.h>
 
 
-void MrLogError  (const char* msg);
-void MrLogWarning(const char* msg);
-void MrLogInfo   (const char* msg);
+void mr_log_error  (const char* msg);
+void mr_log_warning(const char* msg);
+void mr_log_info   (const char* msg);
 
 void MrLogSqliteError(sqlite3*);
 
 
-#endif /* __MRERROR_H__ */
+#endif /* __MRLOG_H__ */
 

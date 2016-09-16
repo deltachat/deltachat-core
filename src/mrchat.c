@@ -32,7 +32,7 @@
 #include "mrtools.h"
 #include "mrmsg.h"
 #include "mrcontact.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 mrchat_t* mrchat_new(mrmailbox_t* mailbox)
@@ -223,8 +223,8 @@ size_t mr_get_chat_cnt(mrmailbox_t* mailbox)
 	s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_chats];
 	sqlite3_reset (s);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		MrLogSqliteError(mailbox->m_sql->m_cobj);
-		MrLogError("MrSqlite3::GetChatCnt() failed.");
+		mrsqlite3_log_error(mailbox->m_sql);
+		mr_log_error("mr_get_chat_cnt() failed.");
 		return 0; /* error */
 	}
 
@@ -253,8 +253,8 @@ uint32_t mr_chat_exists(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* 
 			sqlite3_finalize(stmt);
 		}
 		else {
-			MrLogSqliteError(mailbox->m_sql->m_cobj);
-			MrLogError("MrSqlite3::ChatExists() failed.");
+			mrsqlite3_log_error(mailbox->m_sql);
+			mr_log_error("mr_chat_exists() failed.");
 		}
 
 		sqlite3_free(q);

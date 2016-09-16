@@ -30,7 +30,7 @@
 #include "mrmailbox.h"
 #include "mrcontact.h"
 #include "mrtools.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
@@ -138,12 +138,10 @@ size_t mr_get_contact_cnt(mrmailbox_t* mailbox) /* static function */
 	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_contacts];
 	sqlite3_reset (s);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		MrLogSqliteError(mailbox->m_sql->m_cobj);
-		MrLogError("MrSqlite3::GetContactCnt() failed.");
+		mrsqlite3_log_error(mailbox->m_sql);
+		mr_log_error("mr_get_contact_cnt() failed.");
 		return 0; /* error */
 	}
 
 	return sqlite3_column_int(s, 0); /* success */
 }
-
-

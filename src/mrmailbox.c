@@ -36,7 +36,7 @@
 #include "mrcontact.h"
 #include "mrmsg.h"
 #include "mrtools.h"
-#include "mrerror.h"
+#include "mrlog.h"
 
 
 /*******************************************************************************
@@ -130,22 +130,22 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 
 	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
-		MrLogError("MrMailbox::ImportFile(): Cannot open file.");
+		mr_log_error("mrmailbox_import_file(): Cannot open file.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
-		MrLogError("MrMailbox::ImportFile(): Cannot find out file size or file is empty.");
+		mr_log_error("mrmailbox_import_file(): Cannot find out file size or file is empty.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
-		MrLogError("MrMailbox::ImportFile(): Out of memory.");
+		mr_log_error("mrmailbox_import_file(): Out of memory.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
-		MrLogError("MrMailbox::ImportFile(): Read error.");
+		mr_log_error("mrmailbox_import_file(): Read error.");
 		goto ImportFile_Cleanup;
 	}
 
@@ -178,7 +178,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	char*          name;
 
 	if( !mrsqlite3_ok(ths->m_sql) ) {
-        MrLogError("MrMailbox::ImportSpec(): Datebase not opened.");
+        mr_log_error("mrmailbox_import_spec(): Datebase not opened.");
 		goto ImportSpec_Cleanup;
 	}
 
@@ -196,7 +196,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
-			MrLogError("MrMailbox::ImportSpec(): No file or folder given.");
+			mr_log_error("mrmailbox_import_spec(): No file or folder given.");
 			goto ImportSpec_Cleanup;
 		}
 	}
@@ -210,7 +210,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	else {
 		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
-			MrLogError("MrMailbox::ImportSpec(): Cannot open directory.");
+			mr_log_error("mrmailbox_import_spec(): Cannot open directory.");
 			goto ImportSpec_Cleanup;
 		}
 
@@ -231,7 +231,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	{
 		char* p = sqlite3_mprintf("%i mails read from %s.", read_cnt, spec);
 		if( p ) {
-			MrLogInfo(p);
+			mr_log_info(p);
 			sqlite3_free(p);
 		}
 	}
@@ -257,7 +257,7 @@ ImportSpec_Cleanup:
 int mrmailbox_connect(mrmailbox_t* ths)
 {
 	if( mrimap_is_connected(ths->m_imap) ) {
-		MrLogInfo("MrMailbox::Connect(): Already connected or trying to connect.");
+		mr_log_info("mrmailbox_connect(): Already connected or trying to connect.");
 		return 1;
 	}
 
@@ -509,7 +509,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	#define BUF_BYTES 10000
 	char* buf = (char*)malloc(BUF_BYTES+1);
 	if( buf == NULL ) {
-		MrLogError("MrMailbox::GetInfo(): Out of memory.");
+		mr_log_error("mrmailbox_get_info(): Out of memory.");
 		return NULL; /* error */
 	}
 
