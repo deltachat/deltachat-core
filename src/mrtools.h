@@ -30,23 +30,23 @@
 #define __MRTOOLS_H__
 
 
-// string tools
-char* safe_strdup(const char*); // returns empty string if NULL is given, else same as strdup()
-char* mr_strlower(const char*); // the result must be free()'d
-char* mr_decode_header_string(const char* in); // the result must be free()'d
-void  mr_unwrap_str(char*); // unwrap lines in the given buffer
-void  mr_remove_cr_chars(char*); // remove all \r characters from string
-char* imap_modified_utf7_to_utf8(const char *mbox, bool change_spaces);
-char* imap_utf8_to_modified_utf7(const char *src, bool change_spaces);
+/* string tools */
+char* safe_strdup(const char*); /* returns empty string if NULL is given, else same as strdup() */
+char* mr_strlower(const char*); /* the result must be free()'d */
+char* mr_decode_header_string(const char* in); /* the result must be free()'d */
+void  mr_unwrap_str(char*); /* unwrap lines in the given buffer */
+void  mr_remove_cr_chars(char*); /* remove all \r characters from string */
+char* imap_modified_utf7_to_utf8(const char *mbox, int change_spaces);
+char* imap_utf8_to_modified_utf7(const char *src, int change_spaces);
 
-// carray tools
-bool carray_search     (carray*, void* needle, unsigned int* indx); // returns true/false and the index if `indx` is not NULL
+/* carray tools */
+int carray_search     (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
 
-// date/time tools
+/* date/time tools */
 #define INVALID_TIMESTAMP    (-1)
-time_t timestampFromDate(struct mailimf_date_time * date_time); // the result is UTC or INVALID_TIMESTAMP
-char* timestamp_to_str(time_t); // the return values must be free()'d
+time_t timestampFromDate(struct mailimf_date_time * date_time); /* the result is UTC or INVALID_TIMESTAMP */
+char* timestamp_to_str(time_t); /* the return values must be free()'d */
 
 
-#endif // __MRTOOLS_H__
+#endif /* __MRTOOLS_H__ */
 

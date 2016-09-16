@@ -40,5 +40,5 @@ void MrLogInfo   (const char* msg);
 void MrLogSqliteError(sqlite3*);
 
 
-#endif // __MRERROR_H__
+#endif /* __MRERROR_H__ */
 

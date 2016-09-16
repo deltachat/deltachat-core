@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    main.cpp
+ * File:    main.c
  * Authors: Björn Petersen
  * Purpose: Testing frame; if used as a lib, this file is obsolete.
  *
@@ -63,14 +63,14 @@ static void print_error()
 
 int main(int argc, char ** argv)
 {
-	MrMailbox* mailbox = new MrMailbox();
-	MrChat*    sel_chat = NULL;
+	mrmailbox_t* mailbox = mrmailbox_new();
+	mrchat_t*    sel_chat = NULL;
 
 	printf("LibreChat is awaiting your commands.\n");
 
-	// open database from the commandline (if omitted, it can be opened using the `open`-command)
+	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
-		if( !mailbox->Open(argv[1]) ) {
+		if( !mrmailbox_open(mailbox, argv[1]) ) {
 			print_error();
 		}
 	}
@@ -78,10 +78,10 @@ int main(int argc, char ** argv)
 		printf("Error: Bad arguments\n");
 	}
 
-	// wait for command
+	/* wait for command */
 	while(1)
 	{
-		// read command
+		/* read command */
 		const char* cmd = read_cmd();
 
 		if( strcmp(cmd, "help")==0 || cmd[0] == '?' )
@@ -107,8 +107,8 @@ int main(int argc, char ** argv)
 			const char* p1 = strstr(cmd, " ");
 			if( p1 ) {
 				p1++;
-				mailbox->Close();
-				if( !mailbox->Open(p1) ) {
+				mrmailbox_close(mailbox);
+				if( !mrmailbox_open(mailbox, p1) ) {
 					print_error();
 				}
 			}
@@ -119,9 +119,9 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "close")==0 )
 		{
 			char* filename;
-			if( (filename=mailbox->GetDbFile()) != NULL ) {
+			if( (filename=mrmailbox_get_db_file(mailbox)) != NULL ) {
 				free(filename);
-				mailbox->Close();
+				mrmailbox_close(mailbox);
 			}
 			else {
 				printf("ERROR: no database opened.\n");
@@ -130,23 +130,23 @@ int main(int argc, char ** argv)
 		else if( strncmp(cmd, "import", 6)==0 )
 		{
 			const char* arg1 = strstr(cmd, " ");
-			if( !mailbox->ImportSpec(arg1? ++arg1 : NULL) ) {
+			if( !mrmailbox_import_spec(mailbox, arg1? ++arg1 : NULL) ) {
 				print_error();
 			}
 		}
 		else if( strcmp(cmd, "connect")==0 )
 		{
-			if( !mailbox->Connect() ) {
+			if( !mrmailbox_connect(mailbox) ) {
 				print_error();
 			}
 		}
 		else if( strcmp(cmd, "disconnect")==0 )
 		{
-			mailbox->Disconnect();
+			mrmailbox_disconnect(mailbox);
 		}
 		else if( strcmp(cmd, "fetch")==0 )
 		{
-			if( !mailbox->Fetch() ) {
+			if( !mrmailbox_fetch(mailbox) ) {
 				print_error();
 			}
 		}
@@ -160,7 +160,7 @@ int main(int argc, char ** argv)
 					*arg2 = 0;
 					arg2++;
 				}
-				if( !mailbox->SetConfig(arg1, arg2) ) {
+				if( !mrmailbox_set_config(mailbox, arg1, arg2) ) {
 					print_error();
 				}
 			}
@@ -173,7 +173,7 @@ int main(int argc, char ** argv)
 			char* arg1 = (char*)strstr(cmd, " ");
 			if( arg1 ) {
 				arg1++;
-				char* ret = mailbox->GetConfig(arg1, "<unset>");
+				char* ret = mrmailbox_get_config(mailbox, arg1, "<unset>");
 				if( ret ) {
 					printf("%s=%s\n", arg1, ret);
 					free(ret);
@@ -188,7 +188,7 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "info")==0 )
 		{
-			char* buf = mailbox->GetInfo();
+			char* buf = mrmailbox_get_info(mailbox);
 			if( buf ) {
 				printf("%s", buf);
 				free(buf);
@@ -199,7 +199,7 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "chats")==0 )
 		{
-			MrChatList* chatlist = mailbox->GetChats();
+			mrchatlist_t* chatlist = mrmailbox_get_chats(mailbox);
 			if( chatlist ) {
 				int i, cnt = carray_count(chatlist->m_chats);
 				if( cnt ) {
@@ -207,15 +207,15 @@ int main(int argc, char ** argv)
 					{
 						if( i ) { printf("\n"); }
 
-						MrChat* chat = (MrChat*)carray_get(chatlist->m_chats, i);
+						mrchat_t* chat = (mrchat_t*)carray_get(chatlist->m_chats, i);
 						char *temp, *temp2;
 
-						temp = chat->GetSubtitle();
+						temp = mrchat_get_subtitle(chat);
 							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
 						free(temp);
 
 						if( chat->m_lastMsg ) {
-							temp = chat->m_lastMsg->GetSummary();
+							temp = mrmsg_get_summary(chat->m_lastMsg, 0);
 							temp2 = timestamp_to_str(chat->m_lastMsg->m_timestamp);
 								printf("%s [%s]\n", temp, temp2);
 							free(temp2);
@@ -229,7 +229,7 @@ int main(int argc, char ** argv)
 				else {
 					printf("Empty chat list.\n");
 				}
-				delete chatlist;
+				mrchatlist_delete(chatlist);
 			}
 			else {
 				printf("No chats.\n");
@@ -239,37 +239,37 @@ int main(int argc, char ** argv)
 		{
 			char* arg1 = (char*)strstr(cmd, " ");
 			if( arg1 && arg1[0] ) {
-				// select a chat (argument 1 = name of chat to select)
+				/* select a chat (argument 1 = name of chat to select) */
 				arg1++;
-				if( sel_chat ) { delete sel_chat; sel_chat = NULL; }
+				if( sel_chat ) { mrchat_delete(sel_chat); sel_chat = NULL; }
 				if( atoi(arg1) > 0 ) {
-					sel_chat = mailbox->GetChat(atoi(arg1)); // may be NULL
+					sel_chat = mrmailbox_get_chat_by_id(mailbox, atoi(arg1)); /* may be NULL */
 				}
 				else {
-					sel_chat = mailbox->GetChat(arg1); // may be NULL
+					sel_chat = mrmailbox_get_chat_by_name(mailbox, arg1); /* may be NULL */
 				}
 			}
 
-			// show chat
+			/* show chat */
 			if( sel_chat ) {
 				printf("Chat name: %s\n", sel_chat->m_name);
-				MrMsgList* msglist = sel_chat->ListMsgs();
+				mrmsglist_t* msglist = mrchat_list_msgs(sel_chat);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					for( i = 0; i < cnt; i++ )
 					{
 						printf("\n");
 
-						MrMsg* msg = (MrMsg*)carray_get(msglist->m_msgs, i);
+						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
 						char *temp, *temp2;
 
-						temp = msg->GetSummary();
+						temp = mrmsg_get_summary(msg, 0);
 						temp2 = timestamp_to_str(msg->m_timestamp);
 							printf("%s [%s]\n", temp, temp2);
 						free(temp2);
 						free(temp);
 					}
-					delete msglist;
+					mrmsglist_delete(msglist);
 				}
 			}
 			else {
@@ -282,7 +282,7 @@ int main(int argc, char ** argv)
 				char* arg1 = (char*)strstr(cmd, " ");
 				if( arg1 && arg1[0] ) {
 					arg1++;
-					sel_chat->SendMsg(arg1);
+					mrchat_send_msg(sel_chat, arg1);
 				}
 				else {
 					printf("No message text given.\n");
@@ -294,7 +294,7 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "empty")==0 )
 		{
-			if( !mailbox->Empty() ) {
+			if( !mrmailbox_empty_tables(mailbox) ) {
 				print_error();
 			}
 		}
@@ -304,7 +304,7 @@ int main(int argc, char ** argv)
 		}
 		else if( cmd[0] == 0 )
 		{
-			; // nothing types
+			; /* nothing types */
 		}
 		else
 		{
@@ -312,9 +312,9 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	if( sel_chat ) { delete sel_chat; sel_chat = NULL; }
-	mailbox->Close();
-	delete mailbox;
+	if( sel_chat ) { mrchat_delete(sel_chat); sel_chat = NULL; }
+	mrmailbox_close(mailbox);
+	mrmailbox_delete(mailbox);
 	mailbox = NULL;
 	return 0;
 }

@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrmailbox.cpp
+ * File:    mrmailbox.c
  * Authors: Björn Petersen
  * Purpose: MrMailbox represents a single mailbox, see header for details.
  *
@@ -36,6 +36,7 @@
 #include "mrcontact.h"
 #include "mrmsg.h"
 #include "mrtools.h"
+#include "mrerror.h"
 
 
 /*******************************************************************************
@@ -43,47 +44,75 @@
  ******************************************************************************/
 
 
-MrMailbox::MrMailbox()
-	: m_sql(this), m_imap(this)
+mrmailbox_t* mrmailbox_new()
 {
-}
+	mrmailbox_t* ths = NULL;
 
-
-MrMailbox::~MrMailbox()
-{
-	Close();
-}
-
-
-bool MrMailbox::Open(const char* dbfile)
-{
-	{
-		MrSqlite3Locker locker(m_sql);
-
-		// Open() sets up the object and connects to the given database
-		// from which all configuration is read/written to.
-
-		// Create/open sqlite database
-		if( !m_sql.Open(dbfile) ) {
-			goto Open_Error; // error already logged
-		}
+	if( (ths=malloc(sizeof(mrmailbox_t)))==NULL ) {
+		return NULL; /* error */
 	}
 
-	// success
-	return true;
+	ths->m_loginParam = mrloginparam_new();
+	ths->m_sql = mrsqlite3_new(ths);
+	ths->m_imap = mrimap_new(ths);
 
-	// error
-Open_Error:
-	Close();
-	return false;
+	return ths;
 }
 
 
-void MrMailbox::Close()
+void mrmailbox_delete(mrmailbox_t* ths)
 {
-	MrSqlite3Locker locker(m_sql);
+	if( ths==NULL ) {
+		return; /* error */
+	}
 
-	m_sql.Close();
+	mrmailbox_close(ths);
+	mrimap_delete(ths->m_imap);
+	mrsqlite3_delete(ths->m_sql);
+	mrloginparam_delete(ths->m_loginParam);
+	free(ths);
+}
+
+
+int mrmailbox_open(mrmailbox_t* ths, const char* dbfile)
+{
+	int success = 0;
+	int db_locked = 0;
+
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	db_locked = 1;
+
+	/* Open() sets up the object and connects to the given database
+	from which all configuration is read/written to. */
+
+	/* Create/open sqlite database */
+	if( !mrsqlite3_open(ths->m_sql, dbfile) ) {
+		goto Open_Done; // error already logged
+	}
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+Open_Done:
+	if( db_locked ) {
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	if( !success ) {
+		mrsqlite3_close(ths->m_sql); /* note, unlocking is done before */
+	}
+	return success;
+}
+
+
+void mrmailbox_close(mrmailbox_t* ths)
+{
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		mrsqlite3_close(ths->m_sql);
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 }
 
 
@@ -92,14 +121,14 @@ void MrMailbox::Close()
  ******************************************************************************/
 
 
-bool MrMailbox::ImportFile(const char* filename)
+int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 {
-	bool        success = false;
+	int         success = 0;
 	FILE*       f = NULL;
 	struct stat stat_info;
 	char*       data = NULL;
 
-	// read file content to `data`
+	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
 		MrLogError("MrMailbox::ImportFile(): Cannot open file.");
 		goto ImportFile_Cleanup;
@@ -123,13 +152,13 @@ bool MrMailbox::ImportFile(const char* filename)
 	fclose(f);
 	f = NULL;
 
-	// import `data`
-	ReceiveImf(data, stat_info.st_size);
+	/* import `data` */
+	mrmailbox_receive_imf__(ths, data, stat_info.st_size);
 
-	// success
-	success = true;
+	/* success */
+	success = 1;
 
-	// cleanup:
+	/* cleanup: */
 ImportFile_Cleanup:
 	free(data);
 	if( f ) {
@@ -139,29 +168,33 @@ ImportFile_Cleanup:
 }
 
 
-bool MrMailbox::ImportSpec(const char* spec) // spec is a file, a directory or NULL for the last import
+int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file, a directory or NULL for the last import */
 {
-	bool           success = false;
+	int            success = 0;
 	char*          spec_memory = NULL;
 	DIR*           dir = NULL;
 	struct dirent* dir_entry;
 	int            read_cnt = 0;
 	char*          name;
 
-	if( !m_sql.Ok() ) {
+	if( !mrsqlite3_ok(ths->m_sql) ) {
         MrLogError("MrMailbox::ImportSpec(): Datebase not opened.");
 		goto ImportSpec_Cleanup;
 	}
 
-	// if `spec` is given, remember it for later usage; if it is not given, try to use the last one
-	if( spec ) {
-		MrSqlite3Locker locker(m_sql);
-		m_sql.SetConfig("import_spec", spec);
+	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
+	if( spec )
+	{
+		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+			mrsqlite3_set_config(ths->m_sql, "import_spec", spec);
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	}
 	else {
-		MrSqlite3Locker locker(m_sql);
-        spec_memory = m_sql.GetConfig("import_spec", NULL);
-		spec = spec_memory; // may still  be NULL
+		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+			spec_memory = mrsqlite3_get_config(ths->m_sql, "import_spec", NULL);
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
 			MrLogError("MrMailbox::ImportSpec(): No file or folder given.");
 			goto ImportSpec_Cleanup;
@@ -169,24 +202,24 @@ bool MrMailbox::ImportSpec(const char* spec) // spec is a file, a directory or N
 	}
 
 	if( strlen(spec)>=4 && strcmp(&spec[strlen(spec)-4], ".eml")==0 ) {
-		// import a single file
-		if( ImportFile(spec) ) { // errors are logged in any case
+		/* import a single file */
+		if( mrmailbox_import_file(ths, spec) ) { /* errors are logged in any case */
 			read_cnt++;
 		}
 	}
 	else {
-		// import a directory
+		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
 			MrLogError("MrMailbox::ImportSpec(): Cannot open directory.");
 			goto ImportSpec_Cleanup;
 		}
 
 		while( (dir_entry=readdir(dir))!=NULL ) {
-			name = dir_entry->d_name; // name without path; may also be `.` or `..`
+			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
             if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
 				if( path_plus_name ) {
-					if( ImportFile(path_plus_name) ) { // no abort on single errors errors are logged in any case
+					if( mrmailbox_import_file(ths, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 						read_cnt++;
 					}
 					sqlite3_free(path_plus_name);
@@ -203,10 +236,10 @@ bool MrMailbox::ImportSpec(const char* spec) // spec is a file, a directory or N
 		}
 	}
 
-	// success
-	success = true;
+	/* success */
+	success = 1;
 
-	// cleanup
+	/* cleanup */
 ImportSpec_Cleanup:
 	if( dir ) {
 		closedir(dir);
@@ -221,49 +254,49 @@ ImportSpec_Cleanup:
  ******************************************************************************/
 
 
-bool MrMailbox::Connect()
+int mrmailbox_connect(mrmailbox_t* ths)
 {
-	if( m_imap.IsConnected() ) {
+	if( mrimap_is_connected(ths->m_imap) ) {
 		MrLogInfo("MrMailbox::Connect(): Already connected or trying to connect.");
-		return true;
+		return 1;
 	}
 
-	// read parameter, unset parameters are still NULL afterwards
-	{
-		MrSqlite3Locker locker(m_sql);
+	/* read parameter, unset parameters are still NULL afterwards */
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		m_loginParam.Clear();
+		mrloginparam_empty(ths->m_loginParam);
 
-		m_loginParam.m_email       = m_sql.GetConfig   ("email",       NULL);
+		ths->m_loginParam->m_email       = mrsqlite3_get_config    (ths->m_sql, "email",       NULL);
 
-		m_loginParam.m_mail_server = m_sql.GetConfig   ("mail_server", NULL);
-		m_loginParam.m_mail_port   = m_sql.GetConfigInt("mail_port",   0);
-		m_loginParam.m_mail_user   = m_sql.GetConfig   ("mail_user",   NULL);
-		m_loginParam.m_mail_pw     = m_sql.GetConfig   ("mail_pw",     NULL);
+		ths->m_loginParam->m_mail_server = mrsqlite3_get_config    (ths->m_sql, "mail_server", NULL);
+		ths->m_loginParam->m_mail_port   = mrsqlite3_get_config_int(ths->m_sql, "mail_port",   0);
+		ths->m_loginParam->m_mail_user   = mrsqlite3_get_config    (ths->m_sql, "mail_user",   NULL);
+		ths->m_loginParam->m_mail_pw     = mrsqlite3_get_config    (ths->m_sql, "mail_pw",     NULL);
 
-		m_loginParam.m_send_server = m_sql.GetConfig   ("send_server", NULL);
-		m_loginParam.m_send_port   = m_sql.GetConfigInt("send_port",   0);
-		m_loginParam.m_send_user   = m_sql.GetConfig   ("send_user",   NULL);
-		m_loginParam.m_send_pw     = m_sql.GetConfig   ("send_pw",     NULL);
-	}
+		ths->m_loginParam->m_send_server = mrsqlite3_get_config    (ths->m_sql, "send_server", NULL);
+		ths->m_loginParam->m_send_port   = mrsqlite3_get_config_int(ths->m_sql, "send_port",   0);
+		ths->m_loginParam->m_send_user   = mrsqlite3_get_config    (ths->m_sql, "send_user",   NULL);
+		ths->m_loginParam->m_send_pw     = mrsqlite3_get_config    (ths->m_sql, "send_pw",     NULL);
 
-	// try to suggest unset parameters
-	m_loginParam.Complete();
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
-	// connect
-	return m_imap.Connect(&m_loginParam);
+	/* try to suggest unset parameters */
+	mrloginparam_complete(ths->m_loginParam);
+
+	/* connect */
+	return mrimap_connect(ths->m_imap, ths->m_loginParam);
 }
 
 
-void MrMailbox::Disconnect()
+void mrmailbox_disconnect(mrmailbox_t* ths)
 {
-	m_imap.Disconnect();
+	mrimap_disconnect(ths->m_imap);
 }
 
 
-bool MrMailbox::Fetch()
+int mrmailbox_fetch(mrmailbox_t* ths)
 {
-	return m_imap.Fetch();
+	return 	mrimap_fetch(ths->m_imap);
 }
 
 
@@ -274,12 +307,18 @@ bool MrMailbox::Fetch()
  ******************************************************************************/
 
 
-void MrMailbox::ReceiveImf(const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+void mrmailbox_receive_imf__(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
-	MrImfParser parser(this);
+	mrimfparser_t* parser = mrimfparser_new(ths);
 
-	if( !parser.Imf2Msg(imf_raw_not_terminated, imf_raw_bytes) ) {
-		return; // error already logged
+	if( !mrimfparser_imf2msg(parser, imf_raw_not_terminated, imf_raw_bytes) ) {
+		goto ReceiveCleanup; /* error already logged */
+	}
+
+	/* Cleanup */
+ReceiveCleanup:
+	if( parser ) {
+		mrimfparser_delete(parser);
 	}
 }
 
@@ -289,11 +328,17 @@ void MrMailbox::ReceiveImf(const char* imf_raw_not_terminated, size_t imf_raw_by
  ******************************************************************************/
 
 
-size_t MrMailbox::GetContactCnt()
+size_t mrmailbox_get_contact_cnt(mrmailbox_t* ths)
 {
-	MrSqlite3Locker locker(m_sql);
+	size_t ret = 0;
 
-	return MrContact::GetContactCnt(this);
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		ret = mr_get_contact_cnt(ths);
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	return ret;
 }
 
 
@@ -302,54 +347,111 @@ size_t MrMailbox::GetContactCnt()
  ******************************************************************************/
 
 
-size_t MrMailbox::GetChatCnt()
+size_t mrmailbox_get_chat_cnt(mrmailbox_t* ths)
 {
-	MrSqlite3Locker locker(m_sql);
+	size_t ret = 0;
 
-	return MrChat::GetChatCnt(this);
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		ret = mr_get_chat_cnt(ths);
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	return ret;
 }
 
 
-MrChatList* MrMailbox::GetChats()
+mrchatlist_t* mrmailbox_get_chats(mrmailbox_t* ths)
 {
-	MrSqlite3Locker locker(m_sql);
+	int success = 0;
+	int db_locked = 0;
+	mrchatlist_t* obj = mrchatlist_new(ths);
 
-	MrChatList* obj = new MrChatList(this);
-	if( obj->LoadFromDb() ) {
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	db_locked = 1;
+
+	if( !mrchatlist_load_from_db(obj) ) {
+		goto GetChatsCleanup;
+	}
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+GetChatsCleanup:
+	if( db_locked ) {
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	if( success ) {
 		return obj;
 	}
 	else {
-		delete obj;
+		mrchatlist_delete(obj);
 		return NULL;
 	}
 }
 
 
-MrChat* MrMailbox::GetChat(const char* name)
+mrchat_t* mrmailbox_get_chat_by_name(mrmailbox_t* ths, const char* name)
 {
-	MrSqlite3Locker locker(m_sql);
+	int success = 0;
+	int db_locked = 0;
+	mrchat_t* obj = mrchat_new(ths);
 
-	MrChat* obj = new MrChat(this);
-	if( obj->LoadFromDb(name, 0) ) {
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	db_locked = 1;
+
+	if( !mrchat_load_from_db(obj, name, 0) ) {
+		goto GetChatByNameCleanup;
+	}
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+GetChatByNameCleanup:
+	if( db_locked ) {
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	if( success ) {
 		return obj;
 	}
 	else {
-		delete obj;
+		mrchat_delete(obj);
 		return NULL;
 	}
 }
 
 
-MrChat* MrMailbox::GetChat(uint32_t id)
+mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 {
-	MrSqlite3Locker locker(m_sql);
+	int success = 0;
+	int db_locked = 0;
+	mrchat_t* obj = mrchat_new(ths);
 
-	MrChat* obj = new MrChat(this);
-	if( obj->LoadFromDb(NULL, id) ) {
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	db_locked = 1;
+
+	if( !mrchat_load_from_db(obj, NULL, id) ) {
+		goto GetChatByNameCleanup;
+	}
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+GetChatByNameCleanup:
+	if( db_locked ) {
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	if( success ) {
 		return obj;
 	}
 	else {
-		delete obj;
+		mrchat_delete(obj);
 		return NULL;
 	}
 }
@@ -360,17 +462,47 @@ MrChat* MrMailbox::GetChat(uint32_t id)
  ******************************************************************************/
 
 
-char* MrMailbox::GetDbFile()
+int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
-	if( m_sql.m_dbfile == NULL ) {
-		return NULL; // database not opened
-	}
-
-	return safe_strdup(m_sql.m_dbfile); // must be freed by the caller
+	int ret;
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		ret = mrsqlite3_set_config(ths->m_sql, key, value);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	return ret;
 }
 
 
-char* MrMailbox::GetInfo()
+char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
+{
+	char* ret;
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		ret = mrsqlite3_get_config(ths->m_sql, key, def);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	return ret; /* the returned string must be free()'d, returns NULL on errors */
+}
+
+
+int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
+{
+	int32_t ret;
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		ret = mrsqlite3_get_config_int(ths->m_sql, key, def);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	return ret;
+}
+
+
+char* mrmailbox_get_db_file(mrmailbox_t* ths)
+{
+	if( ths == NULL || ths->m_sql == NULL || ths->m_sql->m_dbfile == NULL ) {
+		return NULL; /* database not opened */
+	}
+
+	return safe_strdup(ths->m_sql->m_dbfile); /* must be freed by the caller */
+}
+
+
+char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
@@ -378,35 +510,36 @@ char* MrMailbox::GetInfo()
 	char* buf = (char*)malloc(BUF_BYTES+1);
 	if( buf == NULL ) {
 		MrLogError("MrMailbox::GetInfo(): Out of memory.");
-		return NULL; // error
+		return NULL; /* error */
 	}
 
-	// read data (all pointers may be NULL!)
+	/* read data (all pointers may be NULL!) */
 	char *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
 	int contacts, chats, messages;
-	{
-		MrSqlite3Locker locker(m_sql);
 
-		email       = m_sql.GetConfig("email", NULL);
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mail_server = m_sql.GetConfig("mail_server", NULL);
-		mail_port   = m_sql.GetConfig("mail_port", NULL);
-		mail_user   = m_sql.GetConfig("mail_user", NULL);
-		mail_pw     = m_sql.GetConfig("mail_pw", NULL);
+		email       = mrsqlite3_get_config(ths->m_sql, "email", NULL);
 
-		send_server = m_sql.GetConfig("send_server", NULL);
-		send_port   = m_sql.GetConfig("send_port", NULL);
-		send_user   = m_sql.GetConfig("send_user", NULL);
-		send_pw     = m_sql.GetConfig("send_pw", NULL);
+		mail_server = mrsqlite3_get_config(ths->m_sql, "mail_server", NULL);
+		mail_port   = mrsqlite3_get_config(ths->m_sql, "mail_port", NULL);
+		mail_user   = mrsqlite3_get_config(ths->m_sql, "mail_user", NULL);
+		mail_pw     = mrsqlite3_get_config(ths->m_sql, "mail_pw", NULL);
 
-		debug_dir   = m_sql.GetConfig("debug_dir", NULL);
+		send_server = mrsqlite3_get_config(ths->m_sql, "send_server", NULL);
+		send_port   = mrsqlite3_get_config(ths->m_sql, "send_port", NULL);
+		send_user   = mrsqlite3_get_config(ths->m_sql, "send_user", NULL);
+		send_pw     = mrsqlite3_get_config(ths->m_sql, "send_pw", NULL);
 
-		contacts    = MrContact::GetContactCnt(this);
-		chats       = MrChat::GetChatCnt(this);
-		messages    = MrMsg::GetMsgCnt(this);
-	}
+		debug_dir   = mrsqlite3_get_config(ths->m_sql, "debug_dir", NULL);
 
-	// create info
+		contacts    = mr_get_contact_cnt(ths);
+		chats       = mr_get_chat_cnt(ths);
+		messages    = mr_get_msg_cnt(ths);
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	/* create info */
     snprintf(buf, BUF_BYTES,
 		"Backend version  %i.%i.%i\n"
 		"SQLite version   %s, threadsafe=%i\n"
@@ -432,7 +565,7 @@ char* MrMailbox::GetInfo()
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
-		, m_sql.m_dbfile? m_sql.m_dbfile : unset
+		, ths->m_sql->m_dbfile? ths->m_sql->m_dbfile : unset
 
 		, contacts
 		, chats, messages
@@ -441,17 +574,17 @@ char* MrMailbox::GetInfo()
 		, mail_server? mail_server : unset
 		, mail_port? mail_port : unset
 		, mail_user? mail_user : unset
-		, mail_pw? set : unset // we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
+		, mail_pw? set : unset /* we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
 
 		, send_server? send_server : unset
 		, send_port? send_port : unset
 		, send_user? send_user : unset
-		, send_pw? set : unset // we do not display the password here; in the cli-utility, you can see it using `get send_pw`
+		, send_pw? set : unset /* we do not display the password here; in the cli-utility, you can see it using `get send_pw` */
 
 		, debug_dir? debug_dir : unset
 		);
 
-	// free data
+	/* free data */
 	#define GI_FREE_(a) if((a)) { free((a)); }
 	GI_FREE_(email);
 
@@ -464,20 +597,22 @@ char* MrMailbox::GetInfo()
 	GI_FREE_(send_port);
 	GI_FREE_(send_user);
 	GI_FREE_(send_pw);
-	return buf; // must be freed by the caller
+	return buf; /* must be freed by the caller */
 }
 
 
-bool MrMailbox::Empty()
+int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
-	MrSqlite3Locker locker(m_sql);
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-	m_sql.sqlite3_execute_("DELETE FROM contacts;");
-	m_sql.sqlite3_execute_("DELETE FROM chats;");
-	m_sql.sqlite3_execute_("DELETE FROM chats_contacts;");
-	m_sql.sqlite3_execute_("DELETE FROM msg;");
-	m_sql.sqlite3_execute_("DELETE FROM msg_to;");
-	m_sql.sqlite3_execute_("DELETE FROM config WHERE keyname LIKE 'folder.%';");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM contacts;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats_contacts;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM msg;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM msg_to;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%';");
 
-	return true;
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	return 1;
 }

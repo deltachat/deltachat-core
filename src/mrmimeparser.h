@@ -34,54 +34,51 @@
 #include "mrmsg.h"
 
 
-class MrMimePart
+typedef struct mrmimepart_t
 {
-public:
-						MrMimePart();
-	                    ~MrMimePart();
-	MrMsgType           m_type;
+	int                 m_type; /*one of MR_MSG_* */
 	char*               m_msg;
 	char*               m_msg_raw;
-};
+
+} mrmimepart_t;
+
+mrmimepart_t* mrmimepart_new    ();
+void          mrmimepart_delete (mrmimepart_t*);
 
 
-class MrMimeParser
+typedef struct mrmimeparser_t
 {
-public:
-	                    MrMimeParser         ();
-	                    ~MrMimeParser        ();
-	void                Empty                ();
-
-	// The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
-	// Unless memory-allocation-errors occur, Parse() returns at least one empty part.
-	// (this is because we want to add even these message to our database to avoid reading them several times.
-	// of course, these empty messages are not added to any chat)
-	void                Parse                (const char* body_not_terminated, size_t body_bytes);
-
-	// data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed)
-	carray*             m_parts;
-	mailmime*           m_mimeroot;
-	mailimf_fields*     m_header;
-	char*               m_subjectEncoded;
-
-	// find out the mimetype - one of the MR_MIMETYPE_* constants
-	#define             MR_MIMETYPE_MP             0x100 // eg. mixed
-	#define             MR_MIMETYPE_MP_ALTERNATIVE (MR_MIMETYPE_MP+1)
-	#define             MR_MIMETYPE_MP_RELATED     (MR_MIMETYPE_MP+2)
-	#define             MR_MIMETYPE_TEXT           0x200 // eg. plain
-	#define             MR_MIMETYPE_TEXT_PLAIN     (MR_MIMETYPE_TEXT+1)
-	#define             MR_MIMETYPE_TEXT_HTML      (MR_MIMETYPE_TEXT+2)
-	#define             MR_MIMETYPE_IMAGE          0x300
-	#define             MR_MIMETYPE_AUDIO          0x400
-	#define             MR_MIMETYPE_VIDEO          0x500
-	#define             MR_MIMETYPE_FILE           0x600
-	static int          GetMimeType          (struct mailmime_content*);
-
-private:
-	bool                ParseMimeRecursive   (mailmime*);
-	bool                AddSinglePartIfKnown (mailmime*);
-};
+	/* data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed) */
+	carray*                m_parts; /*array of mrmimepart_t objects*/
+	struct mailmime*       m_mimeroot;
+	struct mailimf_fields* m_header;
+	char*                  m_subjectEncoded;
+} mrmimeparser_t;
 
 
-#endif // __MRMIMEPARSER_H__
+mrmimeparser_t* mrmimeparser_new         ();
+void            mrmimeparser_delete      (mrmimeparser_t*);
+void            mrmimeparser_empty       (mrmimeparser_t*);
+
+/* The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
+Unless memory-allocation-errors occur, Parse() returns at least one empty part.
+(this is because we want to add even these message to our database to avoid reading them several times.
+of course, these empty messages are not added to any chat) */
+void            mrmimeparser_parse       (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+
+/* find out the mimetype - one of the MR_MIMETYPE_* constants */
+#define         MR_MIMETYPE_MP             0x100 /* eg. mixed */
+#define         MR_MIMETYPE_MP_ALTERNATIVE (MR_MIMETYPE_MP+1)
+#define         MR_MIMETYPE_MP_RELATED     (MR_MIMETYPE_MP+2)
+#define         MR_MIMETYPE_TEXT           0x200 /* eg. plain */
+#define         MR_MIMETYPE_TEXT_PLAIN     (MR_MIMETYPE_TEXT+1)
+#define         MR_MIMETYPE_TEXT_HTML      (MR_MIMETYPE_TEXT+2)
+#define         MR_MIMETYPE_IMAGE          0x300
+#define         MR_MIMETYPE_AUDIO          0x400
+#define         MR_MIMETYPE_VIDEO          0x500
+#define         MR_MIMETYPE_FILE           0x600
+int             mrmimeparser_get_mime_type (struct mailmime_content*);
+
+
+#endif /* __MRMIMEPARSER_H__ */
 

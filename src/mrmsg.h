@@ -31,74 +31,68 @@
 #define __MRMSG_H__
 
 
-class MrMailbox;
+/* message types */
+#define MR_MSG_UNDEFINED   0
+#define MR_MSG_TEXT        10
+#define MR_MSG_IMAGE       20
+#define MR_MSG_STICKER     30 /* not sure, if we will really support this, maybe a image message will do the job. */
+#define MR_MSG_AUDIO       40
+#define MR_MSG_VIDEO       50
+#define MR_MSG_FILE        60
+#define MR_MSG_LINK        61 /* not sure, if we will really support this, maybe a normal text message will do the job. */
+#define MR_MSG_CONTACT     70 /* not sure, if we will really support this, maybe a normal text message will do the job. */
+#define MR_MSG_LOCATION    80 /* not sure, if we will really support this, maybe a normal text message will do the job. */
 
 
-enum MrMsgType
+/* message states */
+#define MR_STATE_UNDEFINED 0
+#define MR_IN_UNREAD       1 /* incoming message not read */
+#define MR_IN_READ         3 /* incoming message read */
+#define MR_OUT_SEND        5 /* outgoing message put to server without errors (one check) */
+#define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered (one check) */
+#define MR_OUT_READ        9 /* outgoing message read (two checks) */
+
+
+typedef struct mrmsg_t
 {
-	 MR_MSG_UNDEFINED =   0
-	,MR_MSG_TEXT      =  10
-	,MR_MSG_IMAGE     =  20
-	,MR_MSG_STICKER   =  30 // not sure, if we will really support this, maybe a image	 message will do the job.
-	,MR_MSG_AUDIO     =  40
-	,MR_MSG_VIDEO     =  50
-	,MR_MSG_FILE      =  60
-	,MR_MSG_LINK      =  61 // not sure, if we will really support this, maybe a normal text message will do the job.
-	,MR_MSG_CONTACT   =  70 // not sure, if we will really support this, maybe a normal text message will do the job.
-	,MR_MSG_LOCATION  =  80 // not sure, if we will really support this, maybe a normal text message will do the job.
-};
+	/* the following data should be read only and are valid until the object is Release()'d. unset strings are set to NULL. */
 
-
-enum MrMsgState
-{
-	 MR_STATE_UNDEFINED = 0
-	,MR_IN_UNREAD       = 1 // incoming message not read
-	,MR_IN_READ         = 3 // incoming message read
-	,MR_OUT_SEND        = 5 // outgoing message put to server without errors (one check)
-	,MR_OUT_DELIVERED   = 7 // outgoing message successfully delivered (one check)
-	,MR_OUT_READ        = 9 // outgoing message read (two checks)
-};
-
-
-class MrMsg
-{
-public:
-	              MrMsg          (MrMailbox*);
-	              ~MrMsg         ();
-
-	#define       MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " // we use a define for easier string concatenation
-	bool          SetMsgFromStmt (sqlite3_stmt* row, int row_offset=0); // row order is MR_MSG_FIELDS
-
-	static size_t GetMsgCnt      (MrMailbox*);
-	static bool   MessageIdExists(MrMailbox*, const char* rfc724_mid);
-
-	// the data should be read only and are valid until the object is Release()'d.
-	// unset strings are set to NULL.
 	uint32_t      m_id;
-	uint32_t      m_fromId; // 0 = self
-	time_t        m_timestamp; // unix time the message was sended
-	MrMsgType     m_type;
-	MrMsgState    m_state;
-	char*         m_msg;  // meaning dedpends on m_type
+	uint32_t      m_fromId;    /* 0 = self */
+	time_t        m_timestamp; /* unix time the message was sended */
 
-	// get a summary
-	#define       DO_UNWRAP 0x01
-	char*         GetSummary     (long flags=0); // the result should be free()'d
+	int           m_type;      /* MR_MSG_* */
+	int           m_state;     /* MR_STATE_* etc. */
 
-private:
-	// the mailbox, the message belongs to
-	MrMailbox*    m_mailbox;
-	void          Empty          ();
-};
+	char*         m_msg;       /* meaning dedpends on m_type */
+
+	mrmailbox_t*  m_mailbox;
+} mrmsg_t;
 
 
-class MrMsgList
+mrmsg_t* mrmsg_new               (struct mrmailbox_t*);
+void     mrmsg_delete            (mrmsg_t*);
+void     mrmsg_empty             (mrmsg_t*);
+
+#define  DO_UNWRAP 0x01
+char*    mrmsg_get_summary       (mrmsg_t*, long flags); /* the result should be free()'d */
+
+/* private tools */
+#define  MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " /* we use a define for easier string concatenation */
+int      mrmsg_set_msg_from_stmt (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+size_t   mr_get_msg_cnt          (mrmailbox_t*);
+int      mr_message_id_exists    (mrmailbox_t*, const char* rfc724_mid);
+
+
+/* list of messages */
+typedef struct mrmsglist_t
 {
-public:
-	             MrMsgList   ();
-	             ~MrMsgList  ();
-	carray*      m_msgs; // contains MrMsg objects
-};
+	carray*      m_msgs; /* contains MrMsg objects */
+} mrmsglist_t;
 
-#endif // __MRMSG_H__
+mrmsglist_t* mrmsglist_new        (void);
+void         mrmsglist_delete     (mrmsglist_t*);
+
+
+#endif /* __MRMSG_H__ */
 

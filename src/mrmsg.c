@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrmsg.cpp
+ * File:    mrmsg.c
  * Authors: Björn Petersen
  * Purpose: MrMsg represents a single message, see header for details.
  *
@@ -31,72 +31,91 @@
 #include "mrcontact.h"
 #include "mrmsg.h"
 #include "mrtools.h"
+#include "mrerror.h"
 
 
-MrMsg::MrMsg(MrMailbox* mailbox)
+mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 {
-	m_mailbox   = mailbox;
-	m_id        = 0;
-	m_fromId    = 0;
-	m_timestamp = 0;
-	m_type      = MR_MSG_UNDEFINED;
-	m_state     = MR_STATE_UNDEFINED;
-	m_msg       = NULL;
+	mrmsg_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrmsg_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	ths->m_mailbox   = mailbox;
+	ths->m_id        = 0;
+	ths->m_fromId    = 0;
+	ths->m_timestamp = 0;
+	ths->m_type      = MR_MSG_UNDEFINED;
+	ths->m_state     = MR_STATE_UNDEFINED;
+	ths->m_msg       = NULL;
+
+	return ths;
 }
 
 
-void MrMsg::Empty()
+void mrmsg_delete (mrmsg_t* ths)
 {
-	if( m_msg ) {
-		free(m_msg);
-		m_msg = NULL;
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	mrmsg_empty(ths);
+	free(ths);
+}
+
+
+void mrmsg_empty(mrmsg_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	if( ths->m_msg ) {
+		free(ths->m_msg);
+		ths->m_msg = NULL;
 	}
 }
 
 
-MrMsg::~MrMsg()
+
+int mrmsg_set_msg_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 {
-	Empty();
+	mrmsg_empty(ths);
+
+	ths->m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_fromId    =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
+	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_state     =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_msg       = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+
+	return 1;
 }
 
 
-bool MrMsg::SetMsgFromStmt(sqlite3_stmt* row, int row_offset)
-{
-	Empty();
-
-	m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	m_fromId    =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
-	m_type      =         (MrMsgType)sqlite3_column_int  (row, row_offset++);
-	m_state     =        (MrMsgState)sqlite3_column_int  (row, row_offset++);
-	m_msg       = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-
-	return true;
-}
-
-
-char* MrMsg::GetSummary(long flags)
+char* mrmsg_get_summary(mrmsg_t* ths, long flags)
 {
 	char* from = NULL;
 	char* message = NULL;
 
-	if( m_fromId == 0 ) {
+	if( ths->m_fromId == 0 ) {
 		from = safe_strdup("You");
 	}
 	else {
-		MrContact* contact = new MrContact(m_mailbox);
-		contact->LoadFromDb(m_fromId);
+		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
+		mrcontact_load_from_db(contact, ths->m_fromId);
 		if( contact->m_name ) {
 			from = safe_strdup(contact->m_name);
-			delete contact;
+			mrcontact_delete(contact);
 		}
 		else {
 			from = safe_strdup("BadContactId");
 		}
 	}
 
-	if( m_msg ) {
-		message = safe_strdup(m_msg); // we do not shorten the message, this can be done by the caller
+	if( ths->m_msg ) {
+		message = safe_strdup(ths->m_msg); /* we do not shorten the message, this can be done by the caller */
 		if( flags & DO_UNWRAP ) {
 			mr_unwrap_str(message);
 		}
@@ -117,36 +136,36 @@ char* MrMsg::GetSummary(long flags)
  ******************************************************************************/
 
 
-size_t MrMsg::GetMsgCnt(MrMailbox* mailbox) // static function
+size_t mr_get_msg_cnt(mrmailbox_t* mailbox) /* static function */
 {
-	if( mailbox->m_sql.m_cobj==NULL ) {
-		return 0; // no database, no messages - this is no error (needed eg. for information)
+	if( mailbox->m_sql->m_cobj==NULL ) {
+		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mailbox->m_sql.m_pd[SELECT_COUNT_FROM_msg];
+	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_msg];
 	sqlite3_reset (s);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		MrLogSqliteError(mailbox->m_sql.m_cobj);
+		MrLogSqliteError(mailbox->m_sql->m_cobj);
 		MrLogError("MrSqlite3::GetMsgCnt() failed.");
-		return 0; // error
+		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); // success
+	return sqlite3_column_int(s, 0); /* success */
 }
 
 
-bool MrMsg::MessageIdExists(MrMailbox* mailbox, const char* rfc724_mid) // static function
+int mr_message_id_exists(mrmailbox_t* mailbox, const char* rfc724_mid) /* static function */
 {
-	// check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
-	// so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space)
-	sqlite3_stmt* s = mailbox->m_sql.m_pd[SELECT_id_FROM_msg_m];
+	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
+	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
+	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_id_FROM_msg_m];
 	sqlite3_reset (s);
 	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		return false; // record does not exist
+		return 0; /* record does not exist */
 	}
 
-	return true; // record does exist
+	return 1; /* record does exist */
 }
 
 
@@ -155,27 +174,36 @@ bool MrMsg::MessageIdExists(MrMailbox* mailbox, const char* rfc724_mid) // stati
  ******************************************************************************/
 
 
-MrMsgList::MrMsgList()
+mrmsglist_t* mrmsglist_new(void)
 {
-	m_msgs = carray_new(128);
+	mrmsglist_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrmsglist_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	ths->m_msgs = carray_new(128);
+
+	return ths;
 }
 
 
-MrMsgList::~MrMsgList()
+void mrmsglist_delete(mrmsglist_t* ths)
 {
-	if( m_msgs )
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	if( ths->m_msgs )
 	{
-		int cnt = carray_count(m_msgs);
-		for( int i = 0; i < cnt; i++ )
+		int i, cnt = carray_count(ths->m_msgs);
+		for( i = 0; i < cnt; i++ )
 		{
-			MrMsg* msg = (MrMsg*)carray_get(m_msgs, i);
-			if( msg )
-			{
-				delete msg;
-			}
+			mrmsg_t* msg = (mrmsg_t*)carray_get(ths->m_msgs, i);
+			mrmsg_delete(msg);
 		}
 
-		carray_free(m_msgs);
-		m_msgs = NULL;
+		carray_free(ths->m_msgs);
+		ths->m_msgs = NULL;
 	}
 }

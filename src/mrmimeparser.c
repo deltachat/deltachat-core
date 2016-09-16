@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrmimeparser.cpp
+ * File:    mrmimeparser.c
  * Authors: Björn Petersen
  * Purpose: Parse MIME body, see header for details.
  *
@@ -32,6 +32,7 @@
 #include "mrmimeparser.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
+#include "mrerror.h"
 
 
 /*******************************************************************************
@@ -367,7 +368,7 @@ static void display_mime(struct mailmime * mime)
 	}
 }
 
-#endif // DEBUG_MIME_OUTPUT
+#endif /* DEBUG_MIME_OUTPUT */
 
 
 
@@ -376,25 +377,39 @@ static void display_mime(struct mailmime * mime)
  ******************************************************************************/
 
 
-MrMimePart::MrMimePart()
+mrmimepart_t* mrmimepart_new()
 {
-	m_type    = MR_MSG_UNDEFINED;
-	m_msg     = NULL;
-	m_msg_raw = NULL;
+	mrmimepart_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrmimepart_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	ths->m_type    = MR_MSG_UNDEFINED;
+	ths->m_msg     = NULL;
+	ths->m_msg_raw = NULL;
+
+	return ths;
 }
 
 
-MrMimePart::~MrMimePart()
+void mrmimepart_delete (mrmimepart_t* ths)
 {
-	if( m_msg ) {
-		free((void*)m_msg);
-		m_msg = NULL;
+	if( ths == NULL ) {
+		return; /* error */
 	}
 
-	if( m_msg_raw ) {
-		free((void*)m_msg_raw);
-		m_msg_raw = NULL;
+	if( ths->m_msg ) {
+		free(ths->m_msg);
+		ths->m_msg = NULL;
 	}
+
+	if( ths->m_msg_raw ) {
+		free(ths->m_msg_raw);
+		ths->m_msg_raw = NULL;
+	}
+
+	free(ths);
 }
 
 
@@ -403,51 +418,68 @@ MrMimePart::~MrMimePart()
  ******************************************************************************/
 
 
-MrMimeParser::MrMimeParser()
+mrmimeparser_t* mrmimeparser_new()
 {
-	m_parts          = carray_new(16);
-	m_header         = NULL;
-	m_subjectEncoded = NULL;
-	m_mimeroot       = NULL;
+	mrmimeparser_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrmimeparser_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	ths->m_parts          = carray_new(16);
+	ths->m_header         = NULL;
+	ths->m_subjectEncoded = NULL;
+	ths->m_mimeroot       = NULL;
+
+	return ths;
 }
 
 
-MrMimeParser::~MrMimeParser()
+void mrmimeparser_delete(mrmimeparser_t* ths)
 {
-	Empty();
-	carray_free(m_parts);
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	mrmimeparser_empty(ths);
+	carray_free(ths->m_parts);
+	free(ths);
 }
 
 
-void MrMimeParser::Empty()
+void mrmimeparser_empty(mrmimeparser_t* ths)
 {
-	if( m_parts )
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	if( ths->m_parts )
 	{
-		int i, cnt = carray_count(m_parts);
+		int i, cnt = carray_count(ths->m_parts);
 		for( i = 0; i < cnt; i++ ) {
-			MrMimePart* part = (MrMimePart*)carray_get(m_parts, i);
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
 			if( part ) {
-				delete part;
+				mrmimepart_delete(part);
 			}
 		}
-		carray_set_size(m_parts, 0);
+		carray_set_size(ths->m_parts, 0);
 	}
 
-	m_header         = NULL; // a pointer somewhere to the MIME data, must not be freed
-	m_subjectEncoded = NULL; // a pointer somewhere to the MIME data, must not be freed
+	ths->m_header         = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	ths->m_subjectEncoded = NULL; /* a pointer somewhere to the MIME data, must not be freed */
 
-	if( m_mimeroot )
+	if( ths->m_mimeroot )
 	{
-		mailmime_free(m_mimeroot);
-		m_mimeroot = NULL;
+		mailmime_free(ths->m_mimeroot);
+		ths->m_mimeroot = NULL;
 	}
 }
 
 
-int MrMimeParser::GetMimeType(mailmime_content* c)
+int mrmimeparser_get_mime_type(struct mailmime_content* c)
 {
 	if( c == NULL || c->ct_type == NULL ) {
-		return 0; // error
+		return 0; /* error */
 	}
 
 	switch( c->ct_type->tp_type )
@@ -489,7 +521,7 @@ int MrMimeParser::GetMimeType(mailmime_content* c)
 				else if( strcmp(c->ct_subtype, "related")==0 ) {
 					return MR_MIMETYPE_MP_RELATED;
 				}
-				else { // eg. "mixed"
+				else { /* eg. "mixed" */
 					return MR_MIMETYPE_MP;
 				}
 			}
@@ -499,44 +531,47 @@ int MrMimeParser::GetMimeType(mailmime_content* c)
 			break;
 	}
 
-	return 0; // unknown
+	return 0; /* unknown */
 }
 
 
-bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
+static int mrmimeparser_add_single_part_if_known__(mrmimeparser_t* ths, struct mailmime* mime)
 {
-	MrMimePart*    part = new MrMimePart();
-	bool           do_add_part = false;
+	mrmimepart_t*  part = mrmimepart_new();
+	int            do_add_part = 0;
 
 	int            mime_type;
-	mailmime_data* mime_data;
+	struct mailmime_data* mime_data;
 	int            mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
 
-	char*          transfer_decoding_buffer = NULL; // mmap_string_unref()'d if set
-	char*          charset_buffer = NULL; // charconv_buffer_free()'d if set (just calls mmap_string_unref())
+	char*          transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
+	char*          charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
 
-	const char*    decoded_data = NULL; // must not be free()'d
+	const char*    decoded_data = NULL; /* must not be free()'d */
 	size_t         decoded_data_bytes = 0;
 
+	mrsimplify_t*  simplifier = NULL;
+
 	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
-		goto AddSinglePart_Cleanup; // error
+		goto AddSinglePart_Cleanup; /* error */
 	}
 
-	// get mime type from `mime`
-	mime_type = GetMimeType(mime->mm_content_type);
+	/* get mime type from `mime` */
+	mime_type = mrmimeparser_get_mime_type(mime->mm_content_type);
 
-	// get data pointer from `mime`
+	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
-	if( mime_data->dt_type != MAILMIME_DATA_TEXT   // MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing
+	if( mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
 	 || mime_data->dt_data.dt_text.dt_data == NULL
 	 || mime_data->dt_data.dt_text.dt_length <= 0 ) {
-		goto AddSinglePart_Cleanup; // error
+		goto AddSinglePart_Cleanup; /* error */
 	}
 
-	// check headers in `mime`
+	/* check headers in `mime` */
 	if( mime->mm_mime_fields != NULL ) {
-		for( clistiter* cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
-			mailmime_field* field = (mailmime_field*)clist_content(cur);
+		clistiter* cur;
+		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
 			if( field ) {
 				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
 					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
@@ -545,7 +580,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 		}
 	}
 
-	// regard `Content-Transfer-Encoding:`
+	/* regard `Content-Transfer-Encoding:` */
 	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
 	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
 	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
@@ -553,7 +588,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 		decoded_data       = mime_data->dt_data.dt_text.dt_data;
 		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
 		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
-			goto AddSinglePart_Cleanup; // no error - but no data
+			goto AddSinglePart_Cleanup; /* no error - but no data */
 		}
 	}
 	else
@@ -564,7 +599,7 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 			&current_index, mime_transfer_encoding,
 			&transfer_decoding_buffer, &decoded_data_bytes);
 		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
-			goto AddSinglePart_Cleanup; // error
+			goto AddSinglePart_Cleanup; /* error */
 		}
 		decoded_data = transfer_decoding_buffer;
 	}
@@ -574,17 +609,22 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 		case MR_MIMETYPE_TEXT_PLAIN:
 		case MR_MIMETYPE_TEXT_HTML:
 			{
-				MrSimplify simplifier;
+				if( simplifier==NULL ) {
+					simplifier = mrsimplify_new();
+					if( simplifier==NULL ) {
+						goto AddSinglePart_Cleanup; /* error */
+					}
+				}
 
-				const char* charset = mailmime_content_charset_get(mime->mm_content_type); // get from `Content-Type: text/...; charset=utf-8`; must not be free()'d
+				const char* charset = mailmime_content_charset_get(mime->mm_content_type); /* get from `Content-Type: text/...; charset=utf-8`; must not be free()'d */
 				if( charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0 ) {
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						MrLogWarning("Cannot convert character set."); // continue, however
+						MrLogWarning("Cannot convert character set."); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
-						goto AddSinglePart_Cleanup; // no error - but nothing to add
+						goto AddSinglePart_Cleanup; /* no error - but nothing to add */
 					}
 					else  {
 						decoded_data = charset_buffer;
@@ -594,9 +634,9 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 
 				part->m_type = MR_MSG_TEXT;
 				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
-				part->m_msg = simplifier.Simplify(decoded_data, decoded_data_bytes, mime_type);
+				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type);
 				if( part->m_msg && part->m_msg[0] ) {
-					do_add_part = true;
+					do_add_part = 1;
 				}
 			}
 			break;
@@ -604,16 +644,19 @@ bool MrMimeParser::AddSinglePartIfKnown(mailmime* mime)
 		case MR_MIMETYPE_IMAGE:
 			part->m_type = MR_MSG_IMAGE;
 			part->m_msg  = safe_strdup("IMAGE");
-			do_add_part = true;
+			do_add_part = 1;
 			break;
 
 		default:
 			break;
 	}
 
-	// add object?
-	// (we do not add all objetcs, eg. signatures etc. are ignored)
+	/* add object? (we do not add all objetcs, eg. signatures etc. are ignored) */
 AddSinglePart_Cleanup:
+	if( simplifier ) {
+		mrsimplify_delete(simplifier);
+	}
+
 	if( charset_buffer ) {
 		charconv_buffer_free(charset_buffer);
 	}
@@ -623,63 +666,63 @@ AddSinglePart_Cleanup:
 	}
 
 	if( do_add_part ) {
-		carray_add(m_parts, (void*)part, NULL);
-		return true; // part used
+		carray_add(ths->m_parts, (void*)part, NULL);
+		return 1; /* part used */
 	}
 	else {
-		delete part;
-		return false;
+		mrmimepart_delete(part);
+		return 0;
 	}
 }
 
 
-bool MrMimeParser::ParseMimeRecursive(mailmime* mime)
+int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mime)
 {
-	bool       sth_added = false;
+	int        sth_added = 0;
 	clistiter* cur;
 
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			sth_added = AddSinglePartIfKnown(mime);
+			sth_added = mrmimeparser_add_single_part_if_known__(ths, mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch( GetMimeType(mime->mm_content_type) )
+			switch( mrmimeparser_get_mime_type(mime->mm_content_type) )
 			{
-				case MR_MIMETYPE_MP_ALTERNATIVE: // add "best" part - this is either `text/plain` or the first part
+				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
 					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-							mailmime* childmime = (mailmime*)clist_content(cur);
-							if( GetMimeType(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
-								sth_added = ParseMimeRecursive(childmime);
+							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
+							if( mrmimeparser_get_mime_type(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+								sth_added = mrmimeparser_parse_mime_recursive__(ths, childmime);
 								break;
 							}
 						}
 
-						if( !sth_added ) { // `text/plain` not found - use the first part
+						if( !sth_added ) { /* `text/plain` not found - use the first part */
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-								if( ParseMimeRecursive((mailmime*)clist_content(cur)) ) {
-									sth_added = true;
-									break; // out of for()
+								if( mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur)) ) {
+									sth_added = 1;
+									break; /* out of for() */
 								}
 							}
 						}
 					}
 					break;
 
-				case MR_MIMETYPE_MP_RELATED: // add the "root part" - the other parts may be referenced which is not interesting for us (eg. embedded images)
-				                             // we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay.
+				case MR_MIMETYPE_MP_RELATED: /* add the "root part" - the other parts may be referenced which is not interesting for us (eg. embedded images) */
+				                             /* we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay. */
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
-						ParseMimeRecursive((mailmime*)clist_content(cur));
+						mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
-				default: // eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported)
+				default: /* eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
 					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-						if( ParseMimeRecursive((mailmime*)clist_content(cur)) ) {
-							sth_added = true;
+						if( mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur)) ) {
+							sth_added = 1;
 						}
 					}
 					break;
@@ -687,23 +730,23 @@ bool MrMimeParser::ParseMimeRecursive(mailmime* mime)
 			break;
 
 		case MAILMIME_MESSAGE:
-			if( m_header == NULL && mime->mm_data.mm_message.mm_fields )
+			if( ths->m_header == NULL && mime->mm_data.mm_message.mm_fields )
 			{
-				m_header = mime->mm_data.mm_message.mm_fields;
-				for( cur = clist_begin(m_header->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
-					mailimf_field* field = (mailimf_field*)clist_content(cur);
+				ths->m_header = mime->mm_data.mm_message.mm_fields;
+				for( cur = clist_begin(ths->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
+					struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 					if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-						if( m_subjectEncoded == NULL && field->fld_data.fld_subject ) {
-							m_subjectEncoded = field->fld_data.fld_subject->sbj_value;
+						if( ths->m_subjectEncoded == NULL && field->fld_data.fld_subject ) {
+							ths->m_subjectEncoded = field->fld_data.fld_subject->sbj_value;
 						}
-						break; // we're not interested in the other fields
+						break; /* we're not interested in the other fields */
 					}
 				}
 			}
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
 			{
-				sth_added = ParseMimeRecursive(mime->mm_data.mm_message.mm_msg_mime);
+				sth_added = mrmimeparser_parse_mime_recursive__(ths, mime->mm_data.mm_message.mm_msg_mime);
 			}
 			break;
 	}
@@ -712,17 +755,17 @@ bool MrMimeParser::ParseMimeRecursive(mailmime* mime)
 }
 
 
-void MrMimeParser::Parse(const char* body_not_terminated, size_t body_bytes)
+void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
 
 
-	Empty();
+	mrmimeparser_empty(ths);
 
-	// parse body
-	r = mailmime_parse(body_not_terminated, body_bytes, &index, &m_mimeroot);
-	if(r != MAILIMF_NO_ERROR || m_mimeroot == NULL ) {
+	/* parse body */
+	r = mailmime_parse(body_not_terminated, body_bytes, &index, &ths->m_mimeroot);
+	if(r != MAILIMF_NO_ERROR || ths->m_mimeroot == NULL ) {
 		goto Parse_Cleanup;
 	}
 
@@ -732,18 +775,18 @@ void MrMimeParser::Parse(const char* body_not_terminated, size_t body_bytes)
 		printf("-----------------------------------------------------------------------\n");
 	#endif
 
-	// recursively check, whats parsed
-	ParseMimeRecursive(m_mimeroot);
+	/* recursively check, whats parsed */
+	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
 
-	// Cleanup - and try to create at least an empty part if there are no parts yet
+	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 Parse_Cleanup:
-	if( carray_count(m_parts)==0 ) {
-		MrMimePart* part = new MrMimePart();
+	if( carray_count(ths->m_parts)==0 ) {
+		mrmimepart_t* part = mrmimepart_new();
 		if( part!=NULL ) {
-			char* subject_decoded = mr_decode_header_string(m_subjectEncoded); // may be NULL
+			char* subject_decoded = mr_decode_header_string(ths->m_subjectEncoded); /* may be NULL */
 			part->m_type = MR_MSG_TEXT;
 			part->m_msg = safe_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
-			carray_add(m_parts, (void*)part, NULL);
+			carray_add(ths->m_parts, (void*)part, NULL);
 			free(subject_decoded);
 		}
 	}

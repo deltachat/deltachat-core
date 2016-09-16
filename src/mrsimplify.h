@@ -31,27 +31,17 @@
 #define __MRSIMPLIFY_H__
 
 
-class MrSimplify
+typedef struct mrsimplify_t
 {
-public:
-	                    MrSimplify           ();
-	                    ~MrSimplify          ();
+	int dummy;
+} mrsimplify_t;
 
-	// The data returned from Simplify() must be free()'d when no longer used
-	char*               Simplify             (const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
+mrsimplify_t* mrsimplify_new           ();
+void          mrsimplify_delete        (mrsimplify_t*);
 
-private:
-	void                SimplifyPlainText    (char* buf);
-	void                SimplifyHtml         (char* buf);
-
-	bool                IsEmpty              (const char* buf);
-	bool                IsPlainQuote         (const char* buf);
-	bool                IsQuoteHeadline      (const char* buf);
-
-	carray*             SplitIntoLines       (const char* buf);
-	void                FreeSplittedLines    (carray*);
-};
+/* The data returned from Simplify() must be free()'d when no longer used */
+char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
 
 
-#endif // __MRSIMPLIFY_H__
+#endif /* __MRSIMPLIFY_H__ */
 

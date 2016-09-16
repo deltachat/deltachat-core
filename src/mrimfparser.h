@@ -31,27 +31,19 @@
 #define __MRIMFPARSER_H__
 
 
-class MrImfParser
+typedef struct mrimfparser_t
 {
-public:
-	                    MrImfParser          (MrMailbox* mailbox);
-	                    ~MrImfParser         ();
+	mrmailbox_t*  m_mailbox;
+} mrimfparser_t;
 
-	// Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
-	// the function returns the number of new created messages.
-	int32_t             Imf2Msg              (const char* imf_raw_not_terminated, size_t imf_raw_bytes);
 
-private:
-	char*               DecodeHeaderString   (const char* in); // can e NULL, result must be free()'s by the caller
+mrimfparser_t* mrimfparser_new     (mrmailbox_t* mailbox);
+void           mrimfparser_delete  (mrimfparser_t*);
 
-	void                AddOrLookupContact   (const char* display_name /*can be NULL*/, const char* addr_spec, carray* ret_ids);
-	void                AddOrLookupContacts  (mailimf_mailbox_list*, carray* ret_ids);
-	void                AddOrLookupContacts  (mailimf_address_list*, carray* ret_ids); // an address is a mailbox or a group
+/* Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
+the function returns the number of new created messages. */
+int32_t        mrimfparser_imf2msg (mrimfparser_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes);
 
-	char*               CreateStubMessageId  (time_t, carray* contact_ids_to);
-
-	MrMailbox*          m_mailbox;
-};
 
 
 #endif // __MRIMFPARSER_H__

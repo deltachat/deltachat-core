@@ -30,64 +30,43 @@
 #define __MRIMAP_H__
 
 
-class MrLoginParam;
-class MrMailbox;
+/* IMAP thread command */
+#define MR_THREAD_NOTALLOCATED  0
+#define MR_THREAD_INIT         10
+#define MR_THREAD_CONNECT      20
+#define MR_THREAD_WAIT         30
+#define MR_THREAD_FETCH        40
+#define MR_THREAD_EXIT         50
 
 
-enum MrImapThreadCmd
+typedef struct mrimapthreadval_t
 {
-	 MR_THREAD_NOTALLOCATED = 0
-	,MR_THREAD_INIT
-	,MR_THREAD_CONNECT
-	,MR_THREAD_WAIT
-	,MR_THREAD_FETCH
-	,MR_THREAD_EXIT
-};
-
-
-class MrImapThreadVal
-{
-public:
-	MrImapThreadVal()
-	{
-		m_imap = NULL;
-	}
-
 	mailimap*    m_imap;
-};
+} mrimapthreadval_t;
 
 
-class MrImap
+typedef struct mrimap_t
 {
-public:
-	                    MrImap               (MrMailbox* mailbox);
-	                    ~MrImap              ();
+	mrmailbox_t*          m_mailbox;
+	const mrloginparam_t* m_loginParam;
 
-	bool                IsConnected          () { return (m_threadState!=MR_THREAD_NOTALLOCATED); }
-	bool                Connect              (const MrLoginParam*);
-	void                Disconnect           ();
-	bool                Fetch                ();
+	pthread_t             m_thread;
+	int                   m_threadState; /* set by the working thread, the main thread can read this, one of MR_THREAD_* */
+	int                   m_threadCmd;   /* set by the main thread, read and reset by the working thread, one of MR_THREAD_* */
+	pthread_cond_t        m_cond;
+	pthread_mutex_t       m_condmutex;
 
-private:
-	MrMailbox*          m_mailbox;
-	const MrLoginParam* m_loginParam;
-
-	pthread_t           m_thread;
-	MrImapThreadCmd     m_threadState; // set by the working thread, the main thread can read this
-	MrImapThreadCmd     m_threadCmd;   // set by the main thread, read and reset by the working thread
-	pthread_cond_t      m_cond;
-	pthread_mutex_t     m_condmutex;
-
-	char*               m_debugDir;
-
-	static void         StartupHelper        (MrImap*);
-	void                WorkingThread        ();
-
-	void                FetchFromAllFolders  (MrImapThreadVal&);
-	void                FetchFromSingleFolder(MrImapThreadVal&, const char* folder);
-	bool                FetchSingleMsg       (MrImapThreadVal&, const char* folder, uint32_t uid);
-};
+	char*                 m_debugDir;
+} mrimap_t;
 
 
-#endif // __MRIMAP_H__
+mrimap_t* mrimap_new               (mrmailbox_t*);
+void      mrimap_delete            (mrimap_t*);
+int       mrimap_is_connected      (mrimap_t*);
+int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
+void      mrimap_disconnect        (mrimap_t*);
+int       mrimap_fetch             (mrimap_t*);
+
+
+#endif /* __MRIMAP_H__ */
 

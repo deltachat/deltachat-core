@@ -19,9 +19,9 @@
  *
  *******************************************************************************
  *
- * File:    mrcontact.cpp
+ * File:    mrcontact.c
  * Authors: Björn Petersen
- * Purpose: MrContactrepresents a single contact, see header for details.
+ * Purpose: mrcontact_t represents a single contact, see header for details.
  *
  ******************************************************************************/
 
@@ -30,46 +30,68 @@
 #include "mrmailbox.h"
 #include "mrcontact.h"
 #include "mrtools.h"
+#include "mrerror.h"
 
 
-MrContact::MrContact(MrMailbox* mailbox)
+mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 {
-	m_mailbox = mailbox;
-	m_name    = NULL;
-	m_email   = NULL;
-}
+	mrcontact_t* ths = NULL;
 
-
-MrContact::~MrContact()
-{
-	Empty();
-}
-
-
-void MrContact::Empty()
-{
-	if( m_name ) {
-		free(m_name);
-		m_name = NULL;
+	if( (ths=malloc(sizeof(mrcontact_t)))==NULL ) {
+		return NULL; /* error */
 	}
 
-	if( m_email ) {
-		free(m_email);
-		m_email = NULL;
+	ths->m_mailbox = mailbox;
+	ths->m_name    = NULL;
+	ths->m_email   = NULL;
+
+	return ths;
+}
+
+
+void mrcontact_delete(mrcontact_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	mrcontact_empty(ths);
+	free(ths);
+}
+
+
+void mrcontact_empty(mrcontact_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	if( ths->m_name ) {
+		free(ths->m_name);
+		ths->m_name = NULL;
+	}
+
+	if( ths->m_email ) {
+		free(ths->m_email);
+		ths->m_email = NULL;
 	}
 }
 
 
-bool MrContact::LoadFromDb(uint32_t contact_id)
+int mrcontact_load_from_db(mrcontact_t* ths, uint32_t contact_id)
 {
-	bool          success = false;
+	int           success = 0;
 	char*         q;
 	sqlite3_stmt* stmt;
 
-	Empty();
+	if( ths == NULL || ths->m_mailbox == NULL ) {
+		return 0; /* error */
+	}
+
+	mrcontact_empty(ths);
 
 	q=sqlite3_mprintf("SELECT id, name, email FROM contacts WHERE id=%i;", contact_id);
-	stmt = m_mailbox->m_sql.sqlite3_prepare_v2_(q);
+	stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q);
 	if( stmt == NULL ) {
 		goto LoadFromDb_Cleanup;
 	}
@@ -78,17 +100,17 @@ bool MrContact::LoadFromDb(uint32_t contact_id)
 		goto LoadFromDb_Cleanup;
 	}
 
-	m_id    = contact_id;
-	m_name  = safe_strdup((char*)sqlite3_column_text(stmt, 1));
-	m_email = safe_strdup((char*)sqlite3_column_text(stmt, 2));
-	if( m_name == NULL || m_email == NULL ) {
-		goto LoadFromDb_Cleanup; // out of memory, should not happen
+	ths->m_id    = contact_id;
+	ths->m_name  = safe_strdup((char*)sqlite3_column_text(stmt, 1));
+	ths->m_email = safe_strdup((char*)sqlite3_column_text(stmt, 2));
+	if( ths->m_name == NULL || ths->m_email == NULL ) {
+		goto LoadFromDb_Cleanup; /* out of memory, should not happen */
 	}
 
-	// success
-	success = true;
+	/* success */
+	success = 1;
 
-	// cleanup
+	/* cleanup */
 LoadFromDb_Cleanup:
 	if( q ) {
 		sqlite3_free(q);
@@ -107,21 +129,21 @@ LoadFromDb_Cleanup:
  ******************************************************************************/
 
 
-size_t MrContact::GetContactCnt(MrMailbox* mailbox) // static function
+size_t mr_get_contact_cnt(mrmailbox_t* mailbox) /* static function */
 {
-	if( mailbox->m_sql.m_cobj==NULL ) {
-		return 0; // no database, no contacts - this is no error (needed eg. for information)
+	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
+		return 0; /* no database, no contacts - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mailbox->m_sql.m_pd[SELECT_COUNT_FROM_contacts];
+	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_contacts];
 	sqlite3_reset (s);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		MrLogSqliteError(mailbox->m_sql.m_cobj);
+		MrLogSqliteError(mailbox->m_sql->m_cobj);
 		MrLogError("MrSqlite3::GetContactCnt() failed.");
-		return 0; // error
+		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); // success
+	return sqlite3_column_int(s, 0); /* success */
 }
 
 

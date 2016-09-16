@@ -33,77 +33,59 @@
 
 #include "mrmsg.h"
 
-class MrMsgList;
-class MrMailbox;
+
+/* chat type */
+#define MR_CHAT_UNDEFINED    0
+#define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact */
+#define MR_CHAT_PRIVATE    110
+#define MR_CHAT_GROUP      120
+#define MR_CHAT_FEED       130
 
 
-enum MrChatType
+typedef struct mrchat_t
 {
-	 MR_CHAT_UNDEFINED =   0
-	,MR_CHAT_NORMAL    = 100 // a normal chat is a chat with a single contact
-	,MR_CHAT_PRIVATE   = 110
-	,MR_CHAT_GROUP     = 120
-	,MR_CHAT_FEED      = 130
-};
-
-
-class MrChat
-{
-public:
-	                MrChat               (MrMailbox*);
-	                ~MrChat              ();
-	bool            LoadFromDb           (const char* name, uint32_t id);
-
-	static size_t   GetChatCnt           (MrMailbox*);
-	static uint32_t ChatExists           (MrMailbox*, MrChatType, uint32_t contact_id); // returns chat_id or 0
-	static uint32_t CreateChatRecord     (MrMailbox*, uint32_t contact_id);
-	static uint32_t FindOutChatId        (MrMailbox*, carray* contact_ids_from, carray* contact_ids_to);
-
-	// the data should be read only and are valid until the object is delete'd.
-	// unset strings are set to NULL.
+	/* the data should be read only and are valid until the object is delete'd. unset strings are set to NULL. */
 	int             m_id;
-	MrChatType      m_type;
+	int             m_type;
 	char*           m_name;
-	MrMsg*          m_lastMsg;
-
-	// get information
-	char*           GetSubtitle          (); // either the e-mail-address or the number of group members, the result must be free()'d!
-
-	// list messages
-	MrMsgList*      ListMsgs             (); // the caller must delete the result
-
-	// send a message
-	void            SendMsg              (const char* text);
-
-private:
-	// the mailbox, the chat belongs to
-	#define         MR_CHAT_FIELDS " c.id,c.type,c.name "
-	#define         MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
-	                    "LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
-	#define         MR_GET_CHATS_POSTFIX " GROUP BY c.id " // GROUP BY is needed as there may be several messages with the same timestamp
-	bool            SetChatFromStmt      (sqlite3_stmt* row);
-	void            Empty                ();
-	MrMailbox*      m_mailbox;
-
-	friend class    MrChatList;
-};
+	mrmsg_t*        m_lastMsg;
+	mrmailbox_t*    m_mailbox;
+} mrchat_t;
 
 
-class MrChatList
+mrchat_t*    mrchat_new                   (mrmailbox_t*);
+void         mrchat_delete                (mrchat_t*);
+void         mrchat_empty                 (mrchat_t*);
+int          mrchat_load_from_db          (mrchat_t*, const char* name, uint32_t id);
+char*        mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
+mrmsglist_t* mrchat_list_msgs             (mrchat_t*); /* the caller must delete the result */
+void         mrchat_send_msg              (mrchat_t*, const char* text);
+
+/* private methods */
+#define      MR_CHAT_FIELDS " c.id,c.type,c.name "
+#define      MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
+					    "LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+#define      MR_GET_CHATS_POSTFIX " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
+size_t       mr_get_chat_cnt              (mrmailbox_t*);
+uint32_t     mr_chat_exists               (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */
+uint32_t     mr_create_chat_record        (mrmailbox_t*, uint32_t contact_id);
+uint32_t     mr_find_out_chat_id          (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
+
+
+
+/* list of chats */
+typedef struct mrchatlist_t
 {
-public:
-	                MrChatList  (MrMailbox*);
-	                ~MrChatList ();
-	bool            LoadFromDb  ();
+	carray*      m_chats; /* contains MrChat objects */
+	mrmailbox_t* m_mailbox;
 
-	// data
-	carray*         m_chats; // contains MrChat objects
+} mrchatlist_t;
 
-private:
-	MrMailbox*      m_mailbox;
-	void            Empty       ();
-};
+mrchatlist_t* mrchatlist_new          (mrmailbox_t*);
+void          mrchatlist_delete       (mrchatlist_t*);
+int           mrchatlist_load_from_db (mrchatlist_t*);
+void          mrchatlist_empty        (mrchatlist_t*);
 
 
-#endif // __MRCHAT_H__
+#endif /* __MRCHAT_H__ */
 

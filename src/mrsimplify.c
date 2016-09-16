@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrsimplify.cpp
+ * File:    mrsimplify.c
  * Authors: Björn Petersen
  * Purpose: Simplify text, see header for details.
  *
@@ -34,17 +34,29 @@
 #include "mrmimeparser.h"
 
 
-MrSimplify::MrSimplify()
+mrsimplify_t* mrsimplify_new()
 {
+	mrsimplify_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrsimplify_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	return ths;
 }
 
 
-MrSimplify::~MrSimplify()
+void mrsimplify_delete(mrsimplify_t* ths)
 {
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	free(ths);
 }
 
 
-carray* MrSimplify::SplitIntoLines(const char* buf_terminated)
+static carray* mr_split_into_lines(const char* buf_terminated)
 {
 	carray* lines = carray_new(1024);
 
@@ -66,14 +78,14 @@ carray* MrSimplify::SplitIntoLines(const char* buf_terminated)
 	}
 	carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
 
-	return lines; // should be freed using FreeSplittedLines()
+	return lines; /* should be freed using mr_free_splitted_lines() */
 }
 
 
-void MrSimplify::FreeSplittedLines(carray* lines)
+static void mr_free_splitted_lines(carray* lines)
 {
-	int cnt = carray_count(lines);
-	for( int i = 0; i < cnt; i++ )
+	int i, cnt = carray_count(lines);
+	for( i = 0; i < cnt; i++ )
 	{
 		free(carray_get(lines, i));
 	}
@@ -81,72 +93,41 @@ void MrSimplify::FreeSplittedLines(carray* lines)
 }
 
 
-bool MrSimplify::IsEmpty(const char* buf)
+static int mr_is_empty_line(const char* buf)
 {
-	const unsigned char* p1 = (const unsigned char*)buf; // force unsigned - otherwise the `> ' '` comparison will fail
+	const unsigned char* p1 = (const unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	while( *p1 ) {
 		if( *p1 > ' ' ) {
-			return false; // at least one character found - buffer is not empty
+			return 0; /* at least one character found - buffer is not empty */
 		}
 		p1++;
 	}
-	return true; // buffer is empty or contains only spaces, tabs, lineends etc.
+	return 1; /* buffer is empty or contains only spaces, tabs, lineends etc. */
 }
 
 
-bool MrSimplify::IsPlainQuote(const char* buf)
+static int mr_is_plain_quote(const char* buf)
 {
 	if( buf[0] == '>' ) {
-		return true;
+		return 1;
 	}
-	return false;
+	return 0;
 }
 
 
-bool MrSimplify::IsQuoteHeadline(const char* buf)
+static int mr_is_quoted_headline(const char* buf)
 {
-	// This function may be called for the line _directly_ before a quote.
-	// The function checks if the line contains sth. like "On 01.02.2016, xy@z wrote:" in various languages.
-	// Currently, we simply check if the last character is a ':'.
-	// (we could also check for the existance of several digits or for the existance of `@` (however, the may be headlines not mentioning the address)
+	/* This function may be called for the line _directly_ before a quote.
+	The function checks if the line contains sth. like "On 01.02.2016, xy@z wrote:" in various languages.
+	Currently, we simply check if the last character is a ':'.
+	(we could also check for the existance of several digits or for the existance of `@` (however, the may be headlines not mentioning the address) */
 
 	int buf_len = strlen(buf);
 	if( buf_len > 0 && buf[buf_len-1] == ':' ) {
-		return true; // the buffer is a quoting headline in the meaning described above)
+		return 1; /* the buffer is a quoting headline in the meaning described above) */
 	}
 
-	return false;
-}
-
-
-char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
-{
-	// create a copy of the given buffer
-	char* out = NULL;
-
-	if( in_unterminated == NULL || in_bytes <= 0 ) {
-		return safe_strdup(""); // error
-	}
-
-	out = strndup((char*)in_unterminated, in_bytes); // strndup() makes sure, the string is null-terminated
-	if( out == NULL ) {
-		return safe_strdup(""); // error
-	}
-
-	// simplify the text in the buffer (characters to removed may be marked by `\r`)
-	if( mimetype == MR_MIMETYPE_TEXT_HTML ) {
-		SimplifyHtml(out);
-	}
-	else {
-		mr_remove_cr_chars(out); // make comparisons easier, eg. for line `-- `
-		SimplifyPlainText(out);
-	}
-
-	// remove all `\r` from string
-	mr_remove_cr_chars(out);
-
-	// done
-	return out;
+	return 0;
 }
 
 
@@ -155,7 +136,7 @@ char* MrSimplify::Simplify(const char* in_unterminated, int in_bytes, int mimety
  ******************************************************************************/
 
 
-void MrSimplify::SimplifyHtml(char* buf_terminated)
+static void mrsimplify_simplify_html(mrsimplify_t* ths, char* buf_terminated)
 {
 	if( strlen(buf_terminated) >= 4 ) {
 		strcpy(buf_terminated, "HTML");
@@ -168,73 +149,73 @@ void MrSimplify::SimplifyHtml(char* buf_terminated)
  ******************************************************************************/
 
 
-void MrSimplify::SimplifyPlainText(char* buf_terminated)
+static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminated)
 {
-	// This function ...
-	// ... removes all text after the line `-- ` (footer mark)
-	// ... removes full quotes at the beginning and at the end of the text -
-	//     these are all lines starting with the character `>`
-	// ... remove a non-empty line before the removed quote (contains sth. like "On 2.9.2016, Bjoern wrote:" in different formats and lanugages)
+	/* This function ...
+	... removes all text after the line `-- ` (footer mark)
+	... removes full quotes at the beginning and at the end of the text -
+	    these are all lines starting with the character `>`
+	... remove a non-empty line before the removed quote (contains sth. like "On 2.9.2016, Bjoern wrote:" in different formats and lanugages) */
 
 
-	// split the given buffer into lines
-	carray* lines = SplitIntoLines(buf_terminated);
+	/* split the given buffer into lines */
+	carray* lines = mr_split_into_lines(buf_terminated);
 
-	// search for the line `-- ` and ignore this and all following lines
-	int l, l_first = 0, l_last = carray_count(lines)-1; // if l_last is -1, there are no lines
+	/* search for the line `-- ` and ignore this and all following lines */
+	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
 	char* line;
 	for( l = l_first; l <= l_last; l++ )
 	{
 		line = (char*)carray_get(lines, l);
 		if( strcmp(line, "-- ")==0 )
 		{
-			l_last = l - 1; // if l_last is -1, there are no lines
-			break; // done
+			l_last = l - 1; /* if l_last is -1, there are no lines */
+			break; /* done */
 		}
 	}
 
-	// remove full quotes at the end of the text
+	/* remove full quotes at the end of the text */
 	{
 		int l_lastQuotedLine = -1;
 
 		for( l = l_last; l >= l_first; l-- ) {
 			line = (char*)carray_get(lines, l);
-			if( IsPlainQuote(line) ) {
+			if( mr_is_plain_quote(line) ) {
 				l_lastQuotedLine = l;
 			}
-			else if( !IsEmpty(line) ) {
+			else if( !mr_is_empty_line(line) ) {
 				break;
 			}
 		}
 
 		if( l_lastQuotedLine != -1 )
 		{
-			l_last = l_lastQuotedLine-1; // if l_last is -1, there are no lines
+			l_last = l_lastQuotedLine-1; /* if l_last is -1, there are no lines */
 			if( l_last > 0 ) {
 				line = (char*)carray_get(lines, l_last);
-				if( IsQuoteHeadline(line) ) {
+				if( mr_is_quoted_headline(line) ) {
 					l_last--;
 				}
 			}
 		}
 	}
 
-	// remove full quotes at the beginning of the text
+	/* remove full quotes at the beginning of the text */
 	{
 		int l_lastQuotedLine = -1;
-		bool hasQuotedHeadline = false;
+		int hasQuotedHeadline = 0;
 
 		for( l = l_first; l <= l_last; l++ ) {
 			line = (char*)carray_get(lines, l);
-			if( IsPlainQuote(line) ) {
+			if( mr_is_plain_quote(line) ) {
 				l_lastQuotedLine = l;
 			}
-			else if( !IsEmpty(line) ) {
-				if( IsQuoteHeadline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1 ) {
-					hasQuotedHeadline = true; // continue, the line may be a headline
+			else if( !mr_is_empty_line(line) ) {
+				if( mr_is_quoted_headline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1 ) {
+					hasQuotedHeadline = 1; /* continue, the line may be a headline */
 				}
 				else {
-					break; // non-quoting line found
+					break; /* non-quoting line found */
 				}
 			}
 		}
@@ -245,25 +226,25 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 		}
 	}
 
-	// re-create buffer from the remaining lines
+	/* re-create buffer from the remaining lines */
 	char* p1 = buf_terminated;
-	*p1 = 0; // make sure, the string is terminated if there are no lines (l_last==-1)
+	*p1 = 0; /* make sure, the string is terminated if there are no lines (l_last==-1) */
 
-	int add_nl = 0; // we write empty lines only in case and non-empty line follows
+	int add_nl = 0; /* we write empty lines only in case and non-empty line follows */
 
 	for( l = l_first; l <= l_last; l++ )
 	{
 		line = (char*)carray_get(lines, l);
 
-		if( IsEmpty(line) )
+		if( mr_is_empty_line(line) )
 		{
 			add_nl++;
 		}
 		else
 		{
-			if( p1 != buf_terminated ) // flush empty lines - except if we're at the start of the buffer
+			if( p1 != buf_terminated ) /* flush empty lines - except if we're at the start of the buffer */
 			{
-				if( add_nl > 2 ) { add_nl = 2; } // ignore more than one empty line (however, regard normal line ends)
+				if( add_nl > 2 ) { add_nl = 2; } /* ignore more than one empty line (however, regard normal line ends) */
 				while( add_nl ) {
 					*p1 = '\n';
 					p1++;
@@ -275,11 +256,46 @@ void MrSimplify::SimplifyPlainText(char* buf_terminated)
 
 			strcpy(p1, line);
 
-			p1 = &p1[line_len]; // points to the current terminating nullcharacters which is overwritten with the next line
+			p1 = &p1[line_len]; /* points to the current terminating nullcharacters which is overwritten with the next line */
 			add_nl = 1;
 		}
 	}
 
-	FreeSplittedLines(lines);
+	mr_free_splitted_lines(lines);
 }
 
+
+/*******************************************************************************
+ * Simplify Entry Point
+ ******************************************************************************/
+
+
+char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
+{
+	/* create a copy of the given buffer */
+	char* out = NULL;
+
+	if( in_unterminated == NULL || in_bytes <= 0 ) {
+		return safe_strdup(""); /* error */
+	}
+
+	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
+	if( out == NULL ) {
+		return safe_strdup(""); /* error */
+	}
+
+	/* simplify the text in the buffer (characters to removed may be marked by `\r`) */
+	if( mimetype == MR_MIMETYPE_TEXT_HTML ) {
+		mrsimplify_simplify_html(ths, out);
+	}
+	else {
+		mr_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
+		mrsimplify_simplify_plain_text(ths, out);
+	}
+
+	/* remove all `\r` from string */
+	mr_remove_cr_chars(out);
+
+	/* done */
+	return out;
+}

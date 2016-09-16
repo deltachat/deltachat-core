@@ -35,7 +35,7 @@
 void MrAndroidSetupThread(void);
 void MrAndroidUnsetupThread(void);
 
-#endif // defined(__ANDROID) || defined(ANDROID)
+#endif /* defined(__ANDROID) || defined(ANDROID) */
 
 
-#endif // __MROSNATIVE_H__
+#endif /* __MROSNATIVE_H__ */

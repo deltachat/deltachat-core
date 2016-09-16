@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrosnative.cpp
+ * File:    mrosnative.c
  * Authors: Björn Petersen
  * Purpose: JNI handling, see header for details.
  *
@@ -40,7 +40,7 @@
 #if defined(__ANDROID) || defined(ANDROID)
 
 
-static JavaVM* s_jvm = NULL; // TODO: how is this set up?
+static JavaVM* s_jvm = NULL; /* TODO: how is this set up? */
 static jint s_version = 0;
 
 
@@ -75,4 +75,4 @@ void MrAndroidUnsetupThread(void)
 }
 
 
-#endif // defined(__ANDROID) || defined(ANDROID)
+#endif /* defined(__ANDROID) || defined(ANDROID) */

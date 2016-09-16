@@ -36,15 +36,11 @@
 
 #include <libetpan/libetpan.h> // defines uint16_t etc.
 #include "mrsqlite3.h"
-#include "mrimap.h"
-#include "mrerror.h"
-#include "mrloginparam.h"
+#include "mrchat.h"
 #include "mrmsg.h"
-
-
-class MrChat;
-class MrChatList;
-class MrContact;
+#include "mrloginparam.h"
+#include "mrimap.h"
+#include "mrcontact.h"
 
 
 #define MR_VERSION_MAJOR    0
@@ -52,66 +48,61 @@ class MrContact;
 #define MR_VERSION_REVISION 2
 
 
-class MrMailbox
+typedef struct mrmailbox_t
 {
-public:
-	              MrMailbox            ();
-	              ~MrMailbox           ();
-
-	// open/close a mailbox object, if the given file does not exist, it is created
-	// and can be set up using SetConfig() and Connect() afterwards.
-	// sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
-	bool          Open                 (const char* dbfile);
-	void          Close                ();
-
-	// ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
-	// a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
-	// ImportFile() always imports a single file,
-	bool          ImportSpec           (const char* spec);
-	bool          ImportFile           (const char* file);
-
-	// empty all tables but leaves server configuration
-	bool          Empty                ();
-
-	// connect to the mailbox: errors are received asynchronously.
-	bool          Connect              ();
-	void          Disconnect           ();
-	bool          Fetch                ();
-
-	// iterate contacts
-	size_t        GetContactCnt        ();
-	MrContact*    GetContact           (size_t i);
-
-	// iterate chats
-	size_t        GetChatCnt           ();
-	MrChatList*   GetChats             (); // the result must be delete'd
-	MrChat*       GetChat              (const char* name); // the result must be delete'd
-	MrChat*       GetChat              (uint32_t id); // the result must be delete'd
-
-	// handle configurations
-	bool          SetConfig            (const char* key, const char* value) { MrSqlite3Locker locker(m_sql); return m_sql.SetConfig(key, value); }
-	char*         GetConfig            (const char* key, const char* def)   { MrSqlite3Locker locker(m_sql); return m_sql.GetConfig(key, def); } // the returned string must be free()'d, returns NULL on errors
-	int32_t       GetConfigInt         (const char* key, int32_t def)       { MrSqlite3Locker locker(m_sql); return m_sql.GetConfigInt(key, def); }
-
-	// misc
-	char*         GetDbFile            (); // the returned string must be free()'d, returns NULL on errors or if no database is open
-	char*         GetInfo              (); // multi-line output; the returned string must be free()'d, returns NULL on errors
-
-	// data, should be treated as read-only
-	MrSqlite3     m_sql;
-
-private:
-	// private stuff
-	MrLoginParam  m_loginParam;
-	MrImap        m_imap;
-
-	// when fetching messages, this normally results in calls to ReceiveImf().
-	// CAVE: ReceiveImf() may be called from within a working thread!
-	void          ReceiveImf           (const char* imf, size_t imf_len);
-
-	friend class  MrImap;
-};
+	/* private stuff */
+	mrloginparam_t* m_loginParam;
+	mrimap_t*       m_imap;
+	mrsqlite3_t*    m_sql;
+} mrmailbox_t;
 
 
-#endif // __MRMAILBOX_H__
+/* public */
+mrmailbox_t*         mrmailbox_new                  ();
+void                 mrmailbox_delete               (mrmailbox_t*);
+
+/* open/close a mailbox object, if the given file does not exist, it is created
+and can be set up using SetConfig() and Connect() afterwards.
+sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile. */
+int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile);
+void                 mrmailbox_close                (mrmailbox_t*);
+
+/* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
+a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
+ImportFile() always imports a single file */
+int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
+int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
+
+/* empty all tables but leaves server configuration */
+int                  mrmailbox_empty_tables         (mrmailbox_t*);
+
+/* connect to the mailbox: errors are received asynchronously. */
+int                  mrmailbox_connect              (mrmailbox_t*);
+void                 mrmailbox_disconnect           (mrmailbox_t*);
+int                  mrmailbox_fetch                (mrmailbox_t*);
+
+/* iterate contacts */
+size_t               mrmailbox_get_contact_cnt      (mrmailbox_t*);
+mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, size_t i);
+
+/* iterate chats */
+size_t               mrmailbox_get_chat_cnt         (mrmailbox_t*);
+mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the result must be delete'd */
+mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be delete'd */
+mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be delete'd */
+
+/* handle configurations */
+int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
+char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
+int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
+
+/* misc */
+char*                mrmailbox_get_db_file          (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
+char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
+
+/* private */
+void                 mrmailbox_receive_imf__        (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
+
+
+#endif /* __MRMAILBOX_H__ */
 

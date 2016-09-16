@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mrsqlite3.cpp
+ * File:    mrsqlite3.c
  * Authors: Björn Petersen
  * Purpose: MrSqlite3 wraps around SQLite
  *
@@ -34,200 +34,230 @@
 #include "mrcontact.h"
 
 
-MrSqlite3::MrSqlite3(MrMailbox* mailbox)
+mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 {
-	m_cobj             = NULL;
-	m_dbfile           = NULL;
-	m_mailbox          = mailbox;
-	m_transactionCount = 0;
+	mrsqlite3_t* ths = NULL;
+	int          i;
 
-	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
-		m_pd[i] = NULL;
+	if( (ths=malloc(sizeof(mrsqlite3_t)))==NULL ) {
+		return NULL; /* error */
 	}
 
-	pthread_mutex_init(&m_critical, NULL);
+	ths->m_cobj             = NULL;
+	ths->m_dbfile           = NULL;
+	ths->m_mailbox          = mailbox;
+	ths->m_transactionCount = 0;
+
+	for( i = 0; i < PREDEFINED_CNT; i++ ) {
+		ths->m_pd[i] = NULL;
+	}
+
+	pthread_mutex_init(&ths->m_critical_, NULL);
+
+	return ths;
 }
 
 
-MrSqlite3::~MrSqlite3()
+void mrsqlite3_delete(mrsqlite3_t* ths)
 {
-	Close();
+	if( ths == NULL ) {
+		return; /* error */
+	}
 
-	pthread_mutex_destroy(&m_critical);
+	mrsqlite3_close(ths);
+	pthread_mutex_destroy(&ths->m_critical_);
+	free(ths);
 }
 
 
-bool MrSqlite3::Open(const char* dbfile)
+int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 {
-	if( dbfile == NULL ) {
+	int i;
+
+	if( ths == NULL || dbfile == NULL ) {
 		MrLogError("MrSqlite3::Open(): No database file given.");
 		goto Open_Error;
 	}
 
-	if( m_dbfile ) {
+	if( ths->m_dbfile ) {
 		MrLogError("MrSqlite3::Open(): Database already opend.");
 		goto Open_Error;
 	}
 
-	m_dbfile = safe_strdup(dbfile);
-	if( m_dbfile == NULL ) {
+	ths->m_dbfile = safe_strdup(dbfile);
+	if( ths->m_dbfile == NULL ) {
 		MrLogError("MrSqlite3::Open(): Out of memory.");
 		goto Open_Error;
 	}
 
-	if( sqlite3_open(dbfile, &m_cobj) != SQLITE_OK ) {
-		MrLogSqliteError(m_cobj); // ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError())
+	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
+		MrLogSqliteError(ths->m_cobj); /* ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError()) */
 		MrLogError("MrSqlite3::Open(): sqlite3_open() failed.");
 		goto Open_Error;
 	}
 
-	// Init the tables, if not yet done
-	// NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
-	// `INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html
-	if( !sqlite3_table_exists_("contacts") )
+	/* Init the tables, if not yet done
+	NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
+	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */
+	if( !mrsqlite3_table_exists_(ths, "contacts") )
 	{
-		sqlite3_execute_("CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		sqlite3_execute_("CREATE INDEX config_index1 ON config (keyname);");
+		mrsqlite3_execute_(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+		mrsqlite3_execute_(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-		sqlite3_execute_("CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
-		sqlite3_execute_("CREATE INDEX contacts_index1 ON contacts (email);");
+		mrsqlite3_execute_(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
+		mrsqlite3_execute_(ths, "CREATE INDEX contacts_index1 ON contacts (email);");
 
-		sqlite3_execute_("CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
-		sqlite3_execute_("CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
-		sqlite3_execute_("CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+		mrsqlite3_execute_(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
+		mrsqlite3_execute_(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
+		mrsqlite3_execute_(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		sqlite3_execute_("CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT, msg_raw TEXT);"); // msg_raw is mainly for debugging purposes
-		sqlite3_execute_("CREATE INDEX msg_index1 ON msg (rfc724_mid);"); // in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique
-		sqlite3_execute_("CREATE INDEX msg_index2 ON msg (timestamp);");
-		sqlite3_execute_("CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
-		sqlite3_execute_("CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
-		sqlite3_execute_("CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
+		mrsqlite3_execute_(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT, msg_raw TEXT);"); /* msg_raw is mainly for debugging purposes */
+		mrsqlite3_execute_(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute_(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
+		mrsqlite3_execute_(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
+		mrsqlite3_execute_(ths, "CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
+		mrsqlite3_execute_(ths, "CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
 
-		if( !sqlite3_table_exists_("config") || !sqlite3_table_exists_("contacts")
-		 || !sqlite3_table_exists_("chats") || !sqlite3_table_exists_("chats_contacts")
-		 || !sqlite3_table_exists_("msg") )
+		if( !mrsqlite3_table_exists_(ths, "config") || !mrsqlite3_table_exists_(ths, "contacts")
+		 || !mrsqlite3_table_exists_(ths, "chats") || !mrsqlite3_table_exists_(ths, "chats_contacts")
+		 || !mrsqlite3_table_exists_(ths, "msg") )
 		{
-			MrLogSqliteError(m_cobj);
-			MrLogError("MrSqlite3::Open(): Cannot create tables.");
-			goto Open_Error; // cannot create the tables - maybe we cannot write?
+			MrLogSqliteError(ths->m_cobj);
+			MrLogError("mrsqlite3_open(): Cannot create tables.");
+			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
 		}
 	}
 
-	// prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this)
-	m_pd[BEGIN_transaction]          = sqlite3_prepare_v2_("BEGIN;");
-	m_pd[ROLLBACK_transaction]       = sqlite3_prepare_v2_("ROLLBACK;");
-	m_pd[COMMIT_transaction]         = sqlite3_prepare_v2_("COMMIT;");
+	/* prepare statements (we do it when the tables really exists, however, I do not know if sqlite relies on this) */
+	ths->m_pd[BEGIN_transaction]          = mrsqlite3_prepare_v2_(ths, "BEGIN;");
+	ths->m_pd[ROLLBACK_transaction]       = mrsqlite3_prepare_v2_(ths, "ROLLBACK;");
+	ths->m_pd[COMMIT_transaction]         = mrsqlite3_prepare_v2_(ths, "COMMIT;");
 
-	m_pd[SELECT_value_FROM_config_k] = sqlite3_prepare_v2_("SELECT value FROM config WHERE keyname=?;");
-	m_pd[INSERT_INTO_config_kv]      = sqlite3_prepare_v2_("INSERT INTO config (keyname, value) VALUES (?, ?);");
-	m_pd[UPDATE_config_vk]           = sqlite3_prepare_v2_("UPDATE config SET value=? WHERE keyname=?;");
-	m_pd[DELETE_FROM_config_k]       = sqlite3_prepare_v2_("DELETE FROM config WHERE keyname=?;");
+	ths->m_pd[SELECT_value_FROM_config_k] = mrsqlite3_prepare_v2_(ths, "SELECT value FROM config WHERE keyname=?;");
+	ths->m_pd[INSERT_INTO_config_kv]      = mrsqlite3_prepare_v2_(ths, "INSERT INTO config (keyname, value) VALUES (?, ?);");
+	ths->m_pd[UPDATE_config_vk]           = mrsqlite3_prepare_v2_(ths, "UPDATE config SET value=? WHERE keyname=?;");
+	ths->m_pd[DELETE_FROM_config_k]       = mrsqlite3_prepare_v2_(ths, "DELETE FROM config WHERE keyname=?;");
 
-	m_pd[SELECT_COUNT_FROM_contacts] = sqlite3_prepare_v2_("SELECT COUNT(*) FROM contacts;");
-	m_pd[SELECT_FROM_contacts_e]     = sqlite3_prepare_v2_("SELECT id, name FROM contacts WHERE email=?;");
-	m_pd[INSERT_INTO_contacts_ne]    = sqlite3_prepare_v2_("INSERT INTO contacts (name, email) VALUES(?, ?);");
-	m_pd[UPDATE_contacts_ni]         = sqlite3_prepare_v2_("UPDATE contacts SET name=? WHERE id=?;");
+	ths->m_pd[SELECT_COUNT_FROM_contacts] = mrsqlite3_prepare_v2_(ths, "SELECT COUNT(*) FROM contacts;");
+	ths->m_pd[SELECT_FROM_contacts_e]     = mrsqlite3_prepare_v2_(ths, "SELECT id, name FROM contacts WHERE email=?;");
+	ths->m_pd[INSERT_INTO_contacts_ne]    = mrsqlite3_prepare_v2_(ths, "INSERT INTO contacts (name, email) VALUES(?, ?);");
+	ths->m_pd[UPDATE_contacts_ni]         = mrsqlite3_prepare_v2_(ths, "UPDATE contacts SET name=? WHERE id=?;");
 
-	m_pd[SELECT_COUNT_FROM_chats]    = sqlite3_prepare_v2_("SELECT COUNT(*) FROM chats;");
+	ths->m_pd[SELECT_COUNT_FROM_chats]    = mrsqlite3_prepare_v2_(ths, "SELECT COUNT(*) FROM chats;");
 
-	m_pd[SELECT_COUNT_FROM_msg]      = sqlite3_prepare_v2_("SELECT COUNT(*) FROM msg;");
-	m_pd[SELECT_id_FROM_msg_m]       = sqlite3_prepare_v2_("SELECT id FROM msg WHERE rfc724_mid=?;");
-	m_pd[INSERT_INTO_msg_mcfttsmm]   = sqlite3_prepare_v2_("INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg,msg_raw) VALUES (?,?,?, ?,?,?, ?,?);");
-	m_pd[INSERT_INTO_msg_to_mc]      = sqlite3_prepare_v2_("INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
+	ths->m_pd[SELECT_COUNT_FROM_msg]      = mrsqlite3_prepare_v2_(ths, "SELECT COUNT(*) FROM msg;");
+	ths->m_pd[SELECT_id_FROM_msg_m]       = mrsqlite3_prepare_v2_(ths, "SELECT id FROM msg WHERE rfc724_mid=?;");
+	ths->m_pd[INSERT_INTO_msg_mcfttsmm]   = mrsqlite3_prepare_v2_(ths, "INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg,msg_raw) VALUES (?,?,?, ?,?,?, ?,?);");
+	ths->m_pd[INSERT_INTO_msg_to_mc]      = mrsqlite3_prepare_v2_(ths, "INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 
-	for( int i = 0; i < PREDEFINED_CNT; i++ ) {
-		if( m_pd[i] == NULL ) {
-			MrLogSqliteError(m_cobj);
+	for( i = 0; i < PREDEFINED_CNT; i++ ) {
+		if( ths->m_pd[i] == NULL ) {
+			MrLogSqliteError(ths->m_cobj);
 			MrLogError("MrSqlite3::Open(): Cannot prepare SQL statements.");
 			goto Open_Error;
 		}
 	}
 
-	// success
-	return true;
+	/* success */
+	return 1;
 
-	// error
+	/* error */
 Open_Error:
-	Close();
-	return false;
+	mrsqlite3_close(ths);
+	return 0;
 }
 
 
-void MrSqlite3::Close()
+void mrsqlite3_close(mrsqlite3_t* ths)
 {
-	if( m_cobj )
+	int i;
+
+	if( ths == NULL ) {
+		return;
+	}
+
+	if( ths->m_cobj )
 	{
-		for( int i = 0; i < PREDEFINED_CNT; i++ ) {
-			if( m_pd[i] ) {
-				sqlite3_finalize(m_pd[i]);
-				m_pd[i] = NULL;
+		for( i = 0; i < PREDEFINED_CNT; i++ ) {
+			if( ths->m_pd[i] ) {
+				sqlite3_finalize(ths->m_pd[i]);
+				ths->m_pd[i] = NULL;
 			}
 		}
 
-		sqlite3_close(m_cobj);
-		m_cobj = NULL;
+		sqlite3_close(ths->m_cobj);
+		ths->m_cobj = NULL;
 	}
 
-	if( m_dbfile )
+	if( ths->m_dbfile )
 	{
-		free(m_dbfile);
-		m_dbfile = NULL;
+		free(ths->m_dbfile);
+		ths->m_dbfile = NULL;
 	}
 }
 
 
-sqlite3_stmt* MrSqlite3::sqlite3_prepare_v2_(const char* querystr)
+int mrsqlite3_ok(mrsqlite3_t* ths)
+{
+	if( ths == NULL || ths->m_cobj == NULL ) {
+		return 0;
+	}
+	return 1;
+}
+
+
+sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 {
 	sqlite3_stmt* retStmt = NULL;
 
-	if( querystr == NULL ) {
+	if( ths == NULL || querystr == NULL ) {
 		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): Bad argument.");
-		return NULL; // error
+		return NULL; /* error */
 	}
 
-	if( m_cobj == NULL )
+	if( ths->m_cobj == NULL )
 	{
 		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): Database not ready.");
-		return NULL; // error
+		return NULL; /* error */
 	}
 
-	if( sqlite3_prepare_v2(m_cobj,
+	if( sqlite3_prepare_v2(ths->m_cobj,
 	         querystr, -1 /*read `sql` up to the first null-byte*/,
 	         &retStmt,
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
-		MrLogSqliteError(m_cobj);
+		MrLogSqliteError(ths->m_cobj);
 		MrLogError("MrSqlite3::sqlite3_prepare_v2_(): sqlite3_prepare_v2() failed.");
-		return NULL; // error
+		return NULL; /* error */
 	}
 
-	// success - the result mus be freed using sqlite3_finalize()
+	/* success - the result mus be freed using sqlite3_finalize() */
 	return retStmt;
 }
 
 
-bool MrSqlite3::sqlite3_execute_(const char* querystr)
+int mrsqlite3_execute_(mrsqlite3_t* ths, const char* querystr)
 {
-	bool          ret = false;
+	int           ret = 0;
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
-	stmt = sqlite3_prepare_v2_(querystr);
+	stmt = mrsqlite3_prepare_v2_(ths, querystr);
 	if( stmt == NULL ) {
-		goto sqlite3_execute_Error; // error already logged
+		goto sqlite3_execute_Error; /* error already logged */
 	}
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		MrLogSqliteError(m_cobj);
+		MrLogSqliteError(ths->m_cobj);
 		MrLogError("MrSqlite3::sqlite3_execute_(): sqlite3_step() failed.");
 		goto sqlite3_execute_Error;
 	}
 
-	// success - fall through to free objects
-	ret = true;
+	/* success - fall through to free objects */
+	ret = 1;
 
-	// error
+	/* error */
 sqlite3_execute_Error:
 	if( stmt ) {
 		sqlite3_finalize(stmt);
@@ -236,31 +266,31 @@ sqlite3_execute_Error:
 }
 
 
-bool MrSqlite3::sqlite3_table_exists_(const char* name)
+int mrsqlite3_table_exists_(mrsqlite3_t* ths, const char* name)
 {
-	bool          ret = false;
+	int           ret = 0;
 	char*         querystr = NULL;
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
-	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { // this statement cannot be used with binded variables
+	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
 		MrLogError("MrSqlite3::sqlite3_table_exists_(): Out of memory.");
 		goto table_exists_Error;
 	}
 
-	if( (stmt=sqlite3_prepare_v2_(querystr)) == NULL ) {
-		goto table_exists_Error; // error already logged
+	if( (stmt=mrsqlite3_prepare_v2_(ths, querystr)) == NULL ) {
+		goto table_exists_Error; /* error already logged */
 	}
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState == SQLITE_ROW ) {
-		ret = true; // the table exists. Other states are SQLITE_DONE or SQLITE_ERROR in both cases we return false.
+		ret = 1; /* the table exists. Other states are SQLITE_DONE or SQLITE_ERROR in both cases we return 0. */
 	}
 
-	// success - fall through to free allocated objects
+	/* success - fall through to free allocated objects */
 	;
 
-	// error
+	/* error/cleanup */
 table_exists_Error:
 	if( stmt ) {
 		sqlite3_finalize(stmt);
@@ -279,80 +309,80 @@ table_exists_Error:
  ******************************************************************************/
 
 
-bool MrSqlite3::SetConfig(const char* key, const char* value)
+int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 {
 	int state;
 
 	if( key == NULL ) {
 		MrLogError("MrSqlite3::SetConfig(): Bad parameter.");
-		return false;
+		return 0;
 	}
 
-	if( !Ok() ) {
+	if( !mrsqlite3_ok(ths) ) {
 		MrLogError("MrSqlite3::SetConfig(): Database not ready.");
-		return false;
+		return 0;
 	}
 
 	if( value )
 	{
-		// insert/update key=value
-		sqlite3_reset     (m_pd[SELECT_value_FROM_config_k]);
-		sqlite3_bind_text (m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
-		state=sqlite3_step(m_pd[SELECT_value_FROM_config_k]);
+		/* insert/update key=value */
+		sqlite3_reset     (ths->m_pd[SELECT_value_FROM_config_k]);
+		sqlite3_bind_text (ths->m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
+		state=sqlite3_step(ths->m_pd[SELECT_value_FROM_config_k]);
 		if( state == SQLITE_DONE ) {
-			sqlite3_reset     (m_pd[INSERT_INTO_config_kv]);
-			sqlite3_bind_text (m_pd[INSERT_INTO_config_kv], 1, key,   -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_pd[INSERT_INTO_config_kv], 2, value, -1, SQLITE_STATIC);
-			state=sqlite3_step(m_pd[INSERT_INTO_config_kv]);
+			sqlite3_reset     (ths->m_pd[INSERT_INTO_config_kv]);
+			sqlite3_bind_text (ths->m_pd[INSERT_INTO_config_kv], 1, key,   -1, SQLITE_STATIC);
+			sqlite3_bind_text (ths->m_pd[INSERT_INTO_config_kv], 2, value, -1, SQLITE_STATIC);
+			state=sqlite3_step(ths->m_pd[INSERT_INTO_config_kv]);
 
 		}
 		else if( state == SQLITE_ROW ) {
-			sqlite3_reset     (m_pd[UPDATE_config_vk]);
-			sqlite3_bind_text (m_pd[UPDATE_config_vk], 1, value, -1, SQLITE_STATIC);
-			sqlite3_bind_text (m_pd[UPDATE_config_vk], 2, key,   -1, SQLITE_STATIC);
-			state=sqlite3_step(m_pd[UPDATE_config_vk]);
+			sqlite3_reset     (ths->m_pd[UPDATE_config_vk]);
+			sqlite3_bind_text (ths->m_pd[UPDATE_config_vk], 1, value, -1, SQLITE_STATIC);
+			sqlite3_bind_text (ths->m_pd[UPDATE_config_vk], 2, key,   -1, SQLITE_STATIC);
+			state=sqlite3_step(ths->m_pd[UPDATE_config_vk]);
 		}
 		else {
 			MrLogError("MrSqlite3::SetConfig(): Cannot read value.");
-			return false;
+			return 0;
 		}
 	}
 	else
 	{
-		// delete key
-		sqlite3_reset     (m_pd[DELETE_FROM_config_k]);
-		sqlite3_bind_text (m_pd[DELETE_FROM_config_k], 1, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(m_pd[DELETE_FROM_config_k]);
+		/* delete key */
+		sqlite3_reset     (ths->m_pd[DELETE_FROM_config_k]);
+		sqlite3_bind_text (ths->m_pd[DELETE_FROM_config_k], 1, key,   -1, SQLITE_STATIC);
+		state=sqlite3_step(ths->m_pd[DELETE_FROM_config_k]);
 	}
 
 	if( state != SQLITE_DONE )  {
 		MrLogError("MrSqlite3::SetConfig(): Cannot change value.");
-		return false; // error
+		return 0; /* error */
 	}
 
-	return true;
+	return 1;
 }
 
 
-char* MrSqlite3::GetConfig(const char* key, const char* def) // the returned string must be free()'d
+char* mrsqlite3_get_config(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
 {
-	if( key == NULL || !Ok() ) {
+	if( !mrsqlite3_ok(ths) || key == NULL ) {
 		return NULL;
 	}
 
-	sqlite3_reset    (m_pd[SELECT_value_FROM_config_k]);
-	sqlite3_bind_text(m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(m_pd[SELECT_value_FROM_config_k]) == SQLITE_ROW )
+	sqlite3_reset    (ths->m_pd[SELECT_value_FROM_config_k]);
+	sqlite3_bind_text(ths->m_pd[SELECT_value_FROM_config_k], 1, key, -1, SQLITE_STATIC);
+	if( sqlite3_step(ths->m_pd[SELECT_value_FROM_config_k]) == SQLITE_ROW )
 	{
-		const unsigned char* ptr = sqlite3_column_text(m_pd[SELECT_value_FROM_config_k], 0); // Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free().
+		const unsigned char* ptr = sqlite3_column_text(ths->m_pd[SELECT_value_FROM_config_k], 0); /* Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free(). */
 		if( ptr )
 		{
-			// success, fall through below to free objects
+			/* success, fall through below to free objects */
 			return safe_strdup((const char*)ptr);
 		}
 	}
 
-	// return the default value
+	/* return the default value */
 	if( def ) {
 		return safe_strdup(def);
 	}
@@ -360,9 +390,9 @@ char* MrSqlite3::GetConfig(const char* key, const char* def) // the returned str
 }
 
 
-int32_t MrSqlite3::GetConfigInt(const char* key, int32_t def)
+int32_t mrsqlite3_get_config_int(mrsqlite3_t* ths, const char* key, int32_t def)
 {
-    char* str = GetConfig(key, NULL);
+    char* str = mrsqlite3_get_config(ths, key, NULL);
     if( str == NULL ) {
 		return def;
     }
@@ -370,15 +400,32 @@ int32_t MrSqlite3::GetConfigInt(const char* key, int32_t def)
 }
 
 
-bool MrSqlite3::SetConfigInt(const char* key, int32_t value)
+int mrsqlite3_set_config_int(mrsqlite3_t* ths, const char* key, int32_t value)
 {
     char* value_str = sqlite3_mprintf("%i", (int)value);
     if( value_str == NULL ) {
-		return false;
+		return 0;
     }
-    bool ret = SetConfig(key, value_str);
+    int ret = mrsqlite3_set_config(ths, key, value_str);
     sqlite3_free(value_str);
     return ret;
+}
+
+
+/*******************************************************************************
+ * Locking
+ ******************************************************************************/
+
+
+void mrsqlite3_lock(mrsqlite3_t* ths) /* wait and lock */
+{
+	pthread_mutex_lock(&ths->m_critical_);
+}
+
+
+void mrsqlite3_unlock(mrsqlite3_t* ths)
+{
+	pthread_mutex_unlock(&ths->m_critical_);
 }
 
 
@@ -387,53 +434,49 @@ bool MrSqlite3::SetConfigInt(const char* key, int32_t value)
  ******************************************************************************/
 
 
-MrSqlite3Transaction::MrSqlite3Transaction(MrSqlite3& sqlite3)
+void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 {
-	m_sqlite3 = &sqlite3;
+	ths->m_transactionCount++; /* this is safe, as the database should be locked when using a transaction */
 
-	m_sqlite3->m_transactionCount++; // this is safe, as the database should be locked when using a transaction
-	m_commited = false;
-	if( m_sqlite3->m_transactionCount == 1 )
+	if( ths->m_transactionCount == 1 )
 	{
-		sqlite3_reset(m_sqlite3->m_pd[BEGIN_transaction]);
-		if( sqlite3_step(m_sqlite3->m_pd[BEGIN_transaction]) != SQLITE_DONE ) {
-			MrLogSqliteError(m_sqlite3->m_cobj);
+		sqlite3_reset(ths->m_pd[BEGIN_transaction]);
+		if( sqlite3_step(ths->m_pd[BEGIN_transaction]) != SQLITE_DONE ) {
+			MrLogSqliteError(ths->m_cobj);
 		}
 	}
 }
 
 
-MrSqlite3Transaction::~MrSqlite3Transaction()
+void mrsqlite3_rollback(mrsqlite3_t* ths)
 {
-	if( m_sqlite3->m_transactionCount == 1 )
+	if( ths->m_transactionCount >= 1 )
 	{
-		if( !m_commited )
+		if( ths->m_transactionCount == 1 )
 		{
-			sqlite3_reset(m_sqlite3->m_pd[ROLLBACK_transaction]);
-			if( sqlite3_step(m_sqlite3->m_pd[ROLLBACK_transaction]) != SQLITE_DONE ) {
-				MrLogSqliteError(m_sqlite3->m_cobj);
+			sqlite3_reset(ths->m_pd[ROLLBACK_transaction]);
+			if( sqlite3_step(ths->m_pd[ROLLBACK_transaction]) != SQLITE_DONE ) {
+				MrLogSqliteError(ths->m_cobj);
 			}
 		}
-	}
 
-	m_sqlite3->m_transactionCount--;
+		ths->m_transactionCount--;
+	}
 }
 
 
-bool MrSqlite3Transaction::Commit()
+void mrsqlite3_commit(mrsqlite3_t* ths)
 {
-	if( m_commited ) {
-		return false; // ERROR - already committed
-	}
-
-	if( m_sqlite3->m_transactionCount == 1 )
+	if( ths->m_transactionCount >= 1 )
 	{
-		sqlite3_reset(m_sqlite3->m_pd[COMMIT_transaction]);
-		if( sqlite3_step(m_sqlite3->m_pd[COMMIT_transaction]) != SQLITE_DONE ) {
-			MrLogSqliteError(m_sqlite3->m_cobj);
+		if( ths->m_transactionCount == 1 )
+		{
+			sqlite3_reset(ths->m_pd[COMMIT_transaction]);
+			if( sqlite3_step(ths->m_pd[COMMIT_transaction]) != SQLITE_DONE ) {
+				MrLogSqliteError(ths->m_cobj);
+			}
 		}
-	}
 
-	m_commited = true;
-	return true; // committed later, on outest level if no errors occur
+		ths->m_transactionCount--;
+	}
 }
