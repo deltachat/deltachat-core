@@ -28,6 +28,9 @@
 
 #ifndef __MRTOOLS_H__
 #define __MRTOOLS_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 char*  mr_timestamp_to_str(time_t); /* the return values must be free()'d */
@@ -47,4 +50,7 @@ time_t mr_timestamp_from_date(struct mailimf_date_time * date_time); /* the resu
 int    carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRTOOLS_H__ */

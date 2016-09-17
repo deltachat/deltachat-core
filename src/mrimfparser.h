@@ -29,6 +29,9 @@
 
 #ifndef __MRIMFPARSER_H__
 #define __MRIMFPARSER_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct mrimfparser_t
@@ -45,6 +48,8 @@ the function returns the number of new created messages. */
 int32_t        mrimfparser_imf2msg (mrimfparser_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes);
 
 
-
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif // __MRIMFPARSER_H__
 

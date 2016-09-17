@@ -28,10 +28,13 @@
 
 #ifndef __MRSQLITE3_H__
 #define __MRSQLITE3_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #include <sqlite3.h>
-#include <libetpan.h>
+#include <libetpan/libetpan.h>
 #include <pthread.h>
 typedef struct mrmailbox_t mrmailbox_t; /*forward declaration*/
 
@@ -116,5 +119,8 @@ void          mrsqlite3_begin_transaction(mrsqlite3_t*);
 void          mrsqlite3_commit           (mrsqlite3_t*);
 void          mrsqlite3_rollback         (mrsqlite3_t*);
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRSQLITE3_H__ */
 

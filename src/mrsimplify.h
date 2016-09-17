@@ -29,6 +29,9 @@
 
 #ifndef __MRSIMPLIFY_H__
 #define __MRSIMPLIFY_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct mrsimplify_t
@@ -43,5 +46,8 @@ void          mrsimplify_delete        (mrsimplify_t*);
 char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRSIMPLIFY_H__ */
 

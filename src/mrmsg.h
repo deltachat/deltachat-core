@@ -29,6 +29,9 @@
 
 #ifndef __MRMSG_H__
 #define __MRMSG_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /* message types */
@@ -94,5 +97,8 @@ mrmsglist_t* mrmsglist_new        (void);
 void         mrmsglist_delete     (mrmsglist_t*);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRMSG_H__ */
 

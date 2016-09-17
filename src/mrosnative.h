@@ -28,6 +28,9 @@
 
 #ifndef __MROSNATIVE_H__
 #define __MROSNATIVE_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #if defined(__ANDROID) || defined(ANDROID)
@@ -38,4 +41,7 @@ void MrAndroidUnsetupThread(void);
 #endif /* defined(__ANDROID) || defined(ANDROID) */
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MROSNATIVE_H__ */

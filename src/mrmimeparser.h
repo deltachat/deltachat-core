@@ -29,6 +29,9 @@
 
 #ifndef __MRMIMEPARSER_H__
 #define __MRMIMEPARSER_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #include "mrmsg.h"
@@ -80,5 +83,8 @@ void            mrmimeparser_parse       (mrmimeparser_t*, const char* body_not_
 int             mrmimeparser_get_mime_type (struct mailmime_content*);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRMIMEPARSER_H__ */
 

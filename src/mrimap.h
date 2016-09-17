@@ -28,6 +28,9 @@
 
 #ifndef __MRIMAP_H__
 #define __MRIMAP_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /* IMAP thread command */
@@ -68,5 +71,8 @@ void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRIMAP_H__ */
 

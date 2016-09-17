@@ -32,6 +32,9 @@
 
 #ifndef __MRCONTACT_H__
 #define __MRCONTACT_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct mrcontact_t
@@ -55,5 +58,8 @@ void         mrcontact_empty           (mrcontact_t*);
 size_t       mr_get_contact_cnt        (mrmailbox_t*); /* private, user shall use mrmailbox_get_contact_cnt() */
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRCONTACT_H__ */
 

@@ -28,6 +28,9 @@
 
 #ifndef __MRLOG_H__
 #define __MRLOG_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #include <sqlite3.h>
@@ -40,5 +43,8 @@ void mr_log_info   (const char* msg);
 void MrLogSqliteError(sqlite3*);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRLOG_H__ */
 

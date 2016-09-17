@@ -30,7 +30,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <sqlite3.h>
-#include <libetpan.h>
+#include <libetpan/libetpan.h>
 #include "mrtools.h"
 
 

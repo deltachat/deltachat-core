@@ -29,6 +29,9 @@
 
 #ifndef __MRCHAT_H__
 #define __MRCHAT_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #include "mrmsg.h"
@@ -87,5 +90,8 @@ int           mrchatlist_load_from_db (mrchatlist_t*);
 void          mrchatlist_empty        (mrchatlist_t*);
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRCHAT_H__ */
 

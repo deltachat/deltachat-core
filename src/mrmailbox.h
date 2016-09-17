@@ -32,6 +32,9 @@
 
 #ifndef __MRMAILBOX_H__
 #define __MRMAILBOX_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #include <libetpan/libetpan.h> // defines uint16_t etc.
@@ -104,5 +107,8 @@ char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-lin
 void                 mrmailbox_receive_imf__        (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRMAILBOX_H__ */
 

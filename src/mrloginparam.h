@@ -28,6 +28,9 @@
 
 #ifndef __MRLOGINPARAM_H__
 #define __MRLOGINPARAM_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 typedef struct mrloginparam_t
@@ -53,5 +56,8 @@ void            mrloginparam_empty    (mrloginparam_t*); /* clears all data and 
 void            mrloginparam_complete (mrloginparam_t*); /* tries to set missing parameters from at least m_email and m_mail_pw */
 
 
+#ifdef __cplusplus
+} /* /extern "C" */
+#endif
 #endif /* __MRLOGINPARAM_H__ */
 
