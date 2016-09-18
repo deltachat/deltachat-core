@@ -33,12 +33,9 @@ extern "C" {
 #endif
 
 
-#if defined(__ANDROID) || defined(ANDROID)
-
-void MrAndroidSetupThread(void);
-void MrAndroidUnsetupThread(void);
-
-#endif /* defined(__ANDROID) || defined(ANDROID) */
+/* library-private */
+void mrosnative_setup_thread  (void);
+void mrosnative_unsetup_thread(void);
 
 
 #ifdef __cplusplus

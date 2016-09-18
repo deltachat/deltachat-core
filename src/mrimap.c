@@ -455,15 +455,11 @@ void mrimap_startup_helper(void* param)
 {
 	mrimap_t* ths = (mrimap_t*)param;
 
-	#if defined(__ANDROID) || defined(ANDROID)
-		MrAndroidSetupThread();
-	#endif
+	mrosnative_setup_thread();
 
-	mrimap_working_thread__(ths);
+		mrimap_working_thread__(ths);
 
-	#if defined(__ANDROID) || defined(ANDROID)
-		MrAndroidUnsetupThread();
-	#endif
+	mrosnative_unsetup_thread();
 }
 
 

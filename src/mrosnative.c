@@ -37,7 +37,7 @@
  ******************************************************************************/
 
 
-#if defined(__ANDROID) || defined(ANDROID)
+#if 0
 
 
 static JavaVM* s_jvm = NULL; /* TODO: how is this set up? */
@@ -60,7 +60,7 @@ JNIEXPORT void JNICALL Java_com_libmailcore_MainThreadUtils_setupNative(JNIEnv *
 }
 
 
-void MrAndroidSetupThread(void)
+void mrosnative_setup_thread(void)
 {
 	assert(s_jvm);;
 
@@ -69,10 +69,27 @@ void MrAndroidSetupThread(void)
 }
 
 
-void MrAndroidUnsetupThread(void)
+void mrosnative_unsetup_thread(void)
 {
 	s_jvm->DetachCurrentThread();
 }
 
 
-#endif /* defined(__ANDROID) || defined(ANDROID) */
+/*******************************************************************************
+ * Empty Natives
+ ******************************************************************************/
+
+
+#else /* OS definition */
+
+
+void mrosnative_setup_thread(void)
+{
+}
+
+void mrosnative_unsetup_thread(void)
+{
+}
+
+
+#endif /* OS definition */
