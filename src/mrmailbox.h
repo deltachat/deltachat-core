@@ -46,11 +46,6 @@ extern "C" {
 #include "mrcontact.h"
 
 
-#define MR_VERSION_MAJOR    0
-#define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 2
-
-
 typedef struct mrmailbox_t
 {
 	/* public read */
@@ -93,9 +88,9 @@ mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, size_t i);
 
 /* iterate chats. Public. */
 size_t               mrmailbox_get_chat_cnt         (mrmailbox_t*);
-mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the result must be delete'd */
-mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be delete'd */
-mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be delete'd */
+mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the result must be unref'd */
+mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be unref'd */
+mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
 /* handle configurations. Public. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);

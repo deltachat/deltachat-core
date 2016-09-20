@@ -39,6 +39,15 @@
  ******************************************************************************/
 
 
+char* mr_get_version_str(void)
+{
+	char* temp = sqlite3_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+	char* ret = safe_strdup(temp);
+	sqlite3_free(temp);
+	return ret;
+}
+
+
 char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
 {
 	if( s ) {

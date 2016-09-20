@@ -366,7 +366,7 @@ uint32_t mr_find_out_chat_id(mrmailbox_t* mailbox, carray* contact_ids_from, car
  ******************************************************************************/
 
 
-mrmsglist_t* mrchat_list_msgs(mrchat_t* ths) /* the caller must delete the result */
+mrmsglist_t* mrchat_list_msgs(mrchat_t* ths) /* the caller must unref the result */
 {
 	int           success = 0;
 	mrmsglist_t*  ret = NULL;
