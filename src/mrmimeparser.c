@@ -393,7 +393,7 @@ mrmimepart_t* mrmimepart_new()
 }
 
 
-void mrmimepart_delete (mrmimepart_t* ths)
+void mrmimepart_unref(mrmimepart_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -435,7 +435,7 @@ mrmimeparser_t* mrmimeparser_new()
 }
 
 
-void mrmimeparser_delete(mrmimeparser_t* ths)
+void mrmimeparser_unref(mrmimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -459,7 +459,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		for( i = 0; i < cnt; i++ ) {
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
 			if( part ) {
-				mrmimepart_delete(part);
+				mrmimepart_unref(part);
 			}
 		}
 		carray_set_size(ths->m_parts, 0);
@@ -654,7 +654,7 @@ static int mrmimeparser_add_single_part_if_known__(mrmimeparser_t* ths, struct m
 	/* add object? (we do not add all objetcs, eg. signatures etc. are ignored) */
 AddSinglePart_Cleanup:
 	if( simplifier ) {
-		mrsimplify_delete(simplifier);
+		mrsimplify_unref(simplifier);
 	}
 
 	if( charset_buffer ) {
@@ -670,7 +670,7 @@ AddSinglePart_Cleanup:
 		return 1; /* part used */
 	}
 	else {
-		mrmimepart_delete(part);
+		mrmimepart_unref(part);
 		return 0;
 	}
 }

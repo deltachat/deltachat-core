@@ -35,14 +35,14 @@ extern "C" {
 
 typedef struct mrloginparam_t
 {
-	/* IMAP/POP3 - all pointers may be NULL if unset */
+	/* IMAP/POP3 - all pointers may be NULL if unset, public read */
 	char*         m_email;
 	char*         m_mail_server;
 	char*         m_mail_user;
 	char*         m_mail_pw;
 	uint16_t      m_mail_port;
 
-	/* SMTP - all pointers may be NULL if unset */
+	/* SMTP - all pointers may be NULL if unset, public read */
 	char*         m_send_server;
 	char*         m_send_user;
 	char*         m_send_pw;
@@ -51,7 +51,8 @@ typedef struct mrloginparam_t
 
 
 mrloginparam_t* mrloginparam_new      ();
-void            mrloginparam_delete   (mrloginparam_t*);
+void            mrloginparam_unref    (mrloginparam_t*);
+
 void            mrloginparam_empty    (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
 void            mrloginparam_complete (mrloginparam_t*); /* tries to set missing parameters from at least m_email and m_mail_pw */
 

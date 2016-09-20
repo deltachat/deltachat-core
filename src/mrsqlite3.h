@@ -39,7 +39,7 @@ extern "C" {
 typedef struct mrmailbox_t mrmailbox_t; /*forward declaration*/
 
 
-/* predefined statements */
+/* predefined statements, private */
 enum
 {
 	 BEGIN_transaction = 0 /* must be first */
@@ -69,14 +69,14 @@ enum
 
 typedef struct mrsqlite3_t
 {
-	/* prepared statements - this is the favourite way for the caller to use SQLite */
+	/* private, prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 
-	/* m_sqlite is the database given as dbfile to Open() */
+	/* private, m_sqlite is the database given as dbfile to Open() */
 	char*         m_dbfile; /* may be NULL */
 	sqlite3*      m_cobj;
 
-	/* helper for MrSqlite3Transaction */
+	/* private, helper for MrSqlite3Transaction */
 	int           m_transactionCount;
 
 	/* private */
@@ -88,14 +88,14 @@ typedef struct mrsqlite3_t
 } mrsqlite3_t;
 
 
-/* methods */
+/* private */
 mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
-void          mrsqlite3_delete           (mrsqlite3_t*);
+void          mrsqlite3_unref            (mrsqlite3_t*);
 int           mrsqlite3_open             (mrsqlite3_t*, const char* dbfile);
 void          mrsqlite3_close            (mrsqlite3_t*);
 int           mrsqlite3_ok               (mrsqlite3_t*);
 
-/* handle configurations */
+/* handle configurations, private */
 int           mrsqlite3_set_config       (mrsqlite3_t*, const char* key, const char* value);
 int           mrsqlite3_set_config_int   (mrsqlite3_t*, const char* key, int32_t value);
 char*         mrsqlite3_get_config       (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */

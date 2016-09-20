@@ -79,7 +79,7 @@ mrimfparser_t* mrimfparser_new(mrmailbox_t* mailbox)
 }
 
 
-void mrimfparser_delete(mrimfparser_t* ths)
+void mrimfparser_unref(mrimfparser_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -413,7 +413,7 @@ Imf2Msg_Done:
 	}
 
 	if( mime_parser ) {
-		mrmimeparser_delete(mime_parser);
+		mrmimeparser_unref(mime_parser);
 	}
 
 	if( rfc724_mid ) {

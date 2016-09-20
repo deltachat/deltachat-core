@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 
-/* library-private */
+/* private */
 void mrosnative_setup_thread  (void);
 void mrosnative_unsetup_thread(void);
 

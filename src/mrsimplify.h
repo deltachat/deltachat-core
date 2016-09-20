@@ -36,13 +36,15 @@ extern "C" {
 
 typedef struct mrsimplify_t
 {
+	/* private */
 	int dummy;
 } mrsimplify_t;
 
+/* private */
 mrsimplify_t* mrsimplify_new           ();
-void          mrsimplify_delete        (mrsimplify_t*);
+void          mrsimplify_unref         (mrsimplify_t*);
 
-/* The data returned from Simplify() must be free()'d when no longer used */
+/* The data returned from Simplify() must be free()'d when no longer used, private */
 char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
 
 

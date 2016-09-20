@@ -33,7 +33,9 @@ extern "C" {
 #endif
 
 
+/* public */
 char*  mr_timestamp_to_str(time_t); /* the return values must be free()'d */
+
 
 /* private string pools */
 char*  safe_strdup                (const char*); /* returns empty string if NULL is given, else same as strdup() */
@@ -43,6 +45,7 @@ void   mr_unwrap_str              (char*); /* unwrap lines in the given buffer *
 void   mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 char*  imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*  imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
+
 
 /* private misc tools */
 #define MR_INVALID_TIMESTAMP    (-1)

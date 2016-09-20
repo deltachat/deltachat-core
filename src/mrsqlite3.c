@@ -58,7 +58,7 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 }
 
 
-void mrsqlite3_delete(mrsqlite3_t* ths)
+void mrsqlite3_unref(mrsqlite3_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -102,7 +102,7 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 	}
 
 	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
-		mrsqlite3_log_error(ths); /* ususally, even for errors, the pointer is set up (if not, this is also checked by MrLogSqliteError()) */
+		mrsqlite3_log_error(ths); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
 		mr_log_error("mrsqlite3_open(): sqlite3_open() failed.");
 		goto Open_Error;
 	}

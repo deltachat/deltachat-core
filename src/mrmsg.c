@@ -34,6 +34,30 @@
 #include "mrlog.h"
 
 
+#define MR_INIT_REFERENCE \
+	if( ths == NULL ) { \
+		return NULL; \
+	} \
+	ths->m_refcnt++;
+
+
+#define MR_INC_REFERENCE \
+	if( ths == NULL ) { \
+		return NULL; \
+	} \
+	ths->m_refcnt++; \
+	return ths;
+
+#define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
+	if( ths == NULL ) { \
+		return; \
+	} \
+	ths->m_refcnt--; \
+	if( ths->m_refcnt > 0 ) { \
+		return; \
+	}
+
+
 mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 {
 	mrmsg_t* ths = NULL;
@@ -41,6 +65,8 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 	if( (ths=malloc(sizeof(mrmsg_t)))==NULL ) {
 		return NULL; /* error */
 	}
+
+	MR_INIT_REFERENCE
 
 	ths->m_mailbox   = mailbox;
 	ths->m_id        = 0;
@@ -54,11 +80,15 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 }
 
 
-void mrmsg_delete (mrmsg_t* ths)
+mrmsg_t* mrmsg_ref(mrmsg_t* ths)
 {
-	if( ths == NULL ) {
-		return; /* error */
-	}
+	MR_INC_REFERENCE
+}
+
+
+void mrmsg_unref(mrmsg_t* ths)
+{
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrmsg_empty(ths);
 	free(ths);
@@ -107,7 +137,7 @@ char* mrmsg_get_summary(mrmsg_t* ths, long flags)
 		mrcontact_load_from_db(contact, ths->m_fromId);
 		if( contact->m_name ) {
 			from = safe_strdup(contact->m_name);
-			mrcontact_delete(contact);
+			mrcontact_unref(contact);
 		}
 		else {
 			from = safe_strdup("BadContactId");
@@ -116,7 +146,7 @@ char* mrmsg_get_summary(mrmsg_t* ths, long flags)
 
 	if( ths->m_msg ) {
 		message = safe_strdup(ths->m_msg); /* we do not shorten the message, this can be done by the caller */
-		if( flags & DO_UNWRAP ) {
+		if( flags & MR_UNWRAP ) {
 			mr_unwrap_str(message);
 		}
 	}
@@ -188,7 +218,7 @@ mrmsglist_t* mrmsglist_new(void)
 }
 
 
-void mrmsglist_delete(mrmsglist_t* ths)
+void mrmsglist_unref(mrmsglist_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -200,7 +230,7 @@ void mrmsglist_delete(mrmsglist_t* ths)
 		for( i = 0; i < cnt; i++ )
 		{
 			mrmsg_t* msg = (mrmsg_t*)carray_get(ths->m_msgs, i);
-			mrmsg_delete(msg);
+			mrmsg_unref(msg);
 		}
 
 		carray_free(ths->m_msgs);

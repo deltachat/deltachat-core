@@ -66,11 +66,15 @@ servers with undefined backgrounds.
 
 Some hints:
 
-- Strings in function arguments or return values are usually UTF-8 encoded
+- Regard the header files in the `src`-directory as a documentation; we've
+  marked the parts that can be used as "public" there.
 
-- Returned `char*`-strings must be freed using `free()` - we leave it up
-  to the next level (Android, Java, iOS, Qt, ...) to use smarter strings and do
-  not add overhead here.
+- For objects, C-structures are used.  If not mentioned otherwise, you can 
+  read the members here directly.
+  
+- For `get`-functions, you have to unref the return value in some way.
+
+- Strings in function arguments or return values are usually UTF-8 encoded
 
 - Threads are implemented using POSIX threads (pthread_* functions)
 

@@ -490,7 +490,7 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 }
 
 
-void mrimap_delete(mrimap_t* ths)
+void mrimap_unref(mrimap_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */

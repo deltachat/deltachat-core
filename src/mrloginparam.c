@@ -59,7 +59,7 @@ mrloginparam_t* mrloginparam_new()
 }
 
 
-void mrloginparam_delete(mrloginparam_t* ths)
+void mrloginparam_unref(mrloginparam_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */

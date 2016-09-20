@@ -53,7 +53,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 }
 
 
-void mrchat_delete(mrchat_t* ths)
+void mrchat_unref(mrchat_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -76,12 +76,18 @@ void mrchat_empty(mrchat_t* ths)
 	}
 
 	if( ths->m_lastMsg ) {
-		mrmsg_delete(ths->m_lastMsg);
+		mrmsg_unref(ths->m_lastMsg);
 		ths->m_lastMsg = NULL;
 	}
 
 	ths->m_type = MR_CHAT_UNDEFINED;
 	ths->m_id   = 0;
+}
+
+
+mrmsg_t* mrchat_get_last_msg(mrchat_t* ths)
+{
+	return mrmsg_ref(ths->m_lastMsg);
 }
 
 
@@ -339,7 +345,7 @@ CreateNormalChat_Cleanup:
 	}
 
 	if( contact ) {
-		mrcontact_delete(contact);
+		mrcontact_unref(contact);
 	}
 	return chat_id;
 }
@@ -412,7 +418,7 @@ mrmsglist_t* mrchat_list_msgs(mrchat_t* ths) /* the caller must delete the resul
 		return ret;
 	}
 	else {
-		mrmsglist_delete(ret);
+		mrmsglist_unref(ret);
 		return NULL;
 	}
 }
@@ -448,7 +454,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 }
 
 
-void mrchatlist_delete(mrchatlist_t* ths)
+void mrchatlist_unref(mrchatlist_t* ths)
 {
 	if( ths==NULL ) {
 		return; /* error */
@@ -468,7 +474,7 @@ void mrchatlist_empty(mrchatlist_t* ths)
 		for( i = 0; i < cnt; i++ )
 		{
 			mrchat_t* chat = (mrchat_t*)carray_get(ths->m_chats, i);
-			mrchat_delete(chat);
+			mrchat_unref(chat);
 		}
 
 		carray_set_size(ths->m_chats, 0);

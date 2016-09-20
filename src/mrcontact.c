@@ -49,7 +49,7 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 }
 
 
-void mrcontact_delete(mrcontact_t* ths)
+void mrcontact_unref(mrcontact_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */

@@ -50,7 +50,8 @@ typedef struct mrcontact_t
 
 
 mrcontact_t* mrcontact_new             (mrmailbox_t*);
-void         mrcontact_delete          (mrcontact_t*);
+void         mrcontact_unref           (mrcontact_t*);
+
 int          mrcontact_load_from_db    (mrcontact_t*, uint32_t id);
 void         mrcontact_empty           (mrcontact_t*);
 

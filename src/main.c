@@ -229,7 +229,7 @@ int main(int argc, char ** argv)
 				else {
 					printf("Empty chat list.\n");
 				}
-				mrchatlist_delete(chatlist);
+				mrchatlist_unref(chatlist);
 			}
 			else {
 				printf("No chats.\n");
@@ -241,7 +241,7 @@ int main(int argc, char ** argv)
 			if( arg1 && arg1[0] ) {
 				/* select a chat (argument 1 = name of chat to select) */
 				arg1++;
-				if( sel_chat ) { mrchat_delete(sel_chat); sel_chat = NULL; }
+				if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
 				if( atoi(arg1) > 0 ) {
 					sel_chat = mrmailbox_get_chat_by_id(mailbox, atoi(arg1)); /* may be NULL */
 				}
@@ -269,7 +269,7 @@ int main(int argc, char ** argv)
 						free(temp2);
 						free(temp);
 					}
-					mrmsglist_delete(msglist);
+					mrmsglist_unref(msglist);
 				}
 			}
 			else {
@@ -312,9 +312,9 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	if( sel_chat ) { mrchat_delete(sel_chat); sel_chat = NULL; }
+	if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
 	mrmailbox_close(mailbox);
-	mrmailbox_delete(mailbox);
+	mrmailbox_unref(mailbox);
 	mailbox = NULL;
 	return 0;
 }

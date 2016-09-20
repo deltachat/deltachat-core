@@ -46,7 +46,7 @@ mrsimplify_t* mrsimplify_new()
 }
 
 
-void mrsimplify_delete(mrsimplify_t* ths)
+void mrsimplify_unref(mrsimplify_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */

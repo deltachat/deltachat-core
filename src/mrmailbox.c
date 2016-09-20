@@ -60,16 +60,16 @@ mrmailbox_t* mrmailbox_new()
 }
 
 
-void mrmailbox_delete(mrmailbox_t* ths)
+void mrmailbox_unref(mrmailbox_t* ths)
 {
 	if( ths==NULL ) {
 		return; /* error */
 	}
 
 	mrmailbox_close(ths);
-	mrimap_delete(ths->m_imap);
-	mrsqlite3_delete(ths->m_sql);
-	mrloginparam_delete(ths->m_loginParam);
+	mrimap_unref(ths->m_imap);
+	mrsqlite3_unref(ths->m_sql);
+	mrloginparam_unref(ths->m_loginParam);
 	free(ths);
 }
 
@@ -318,7 +318,7 @@ void mrmailbox_receive_imf__(mrmailbox_t* ths, const char* imf_raw_not_terminate
 	/* Cleanup */
 ReceiveCleanup:
 	if( parser ) {
-		mrimfparser_delete(parser);
+		mrimfparser_unref(parser);
 	}
 }
 
@@ -387,7 +387,7 @@ GetChatsCleanup:
 		return obj;
 	}
 	else {
-		mrchatlist_delete(obj);
+		mrchatlist_unref(obj);
 		return NULL;
 	}
 }
@@ -419,7 +419,7 @@ GetChatByNameCleanup:
 		return obj;
 	}
 	else {
-		mrchat_delete(obj);
+		mrchat_unref(obj);
 		return NULL;
 	}
 }
@@ -451,7 +451,7 @@ GetChatByNameCleanup:
 		return obj;
 	}
 	else {
-		mrchat_delete(obj);
+		mrchat_unref(obj);
 		return NULL;
 	}
 }
