@@ -48,7 +48,7 @@ extern "C" {
 typedef struct mrchat_t
 {
 	/* public read, unset strings are set to NULL */
-	int             m_id;
+	uint32_t        m_id;
 	int             m_type;
 	char*           m_name;
 	mrmsg_t*        m_lastMsg;

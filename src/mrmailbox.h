@@ -50,11 +50,11 @@ typedef struct mrmailbox_t
 {
 	/* public read */
 	mrloginparam_t* m_loginParam;
-	
+
 	/* private */
 	mrimap_t*       m_imap;
 	mrsqlite3_t*    m_sql;
-	
+
 } mrmailbox_t;
 
 
@@ -84,7 +84,7 @@ int                  mrmailbox_fetch                (mrmailbox_t*);
 
 /* iterate contacts. Public. */
 size_t               mrmailbox_get_contact_cnt      (mrmailbox_t*);
-mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, size_t i);
+mrcontact_t*         mrmailbox_get_contact_by_index (mrmailbox_t*, size_t i);
 
 /* iterate chats. Public. */
 size_t               mrmailbox_get_chat_cnt         (mrmailbox_t*);
