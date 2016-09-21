@@ -15,8 +15,10 @@ Some features at a glance
 
 - **Fast** by the use of Push-IMAP
 - **Largest userbase** - receivers _not_ using LibreChat can be reached as well
+- **Compatible** - not only to itself
 - **Elegant** and **simple** user interface
 - **Distributed** system
+- **No Spam** - only messages of known users are shown by default
 - **Trustworthy** - can even be used for business messages
 - fully **OpenSource** and **Standards** based
 
