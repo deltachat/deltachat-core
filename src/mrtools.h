@@ -59,6 +59,20 @@ char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
 
+#define MR_INIT_REFERENCE \
+	if( ths == NULL ) { return NULL; } \
+	ths->m_refcnt++;
+
+#define MR_INC_REFERENCE \
+	if( ths == NULL ) { return NULL; } \
+	ths->m_refcnt++; \
+	return ths;
+
+#define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
+	if( ths == NULL ) { return; } \
+	ths->m_refcnt--; \
+	if( ths->m_refcnt > 0 ) { return; }
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

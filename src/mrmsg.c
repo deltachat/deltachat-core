@@ -34,30 +34,6 @@
 #include "mrlog.h"
 
 
-#define MR_INIT_REFERENCE \
-	if( ths == NULL ) { \
-		return NULL; \
-	} \
-	ths->m_refcnt++;
-
-
-#define MR_INC_REFERENCE \
-	if( ths == NULL ) { \
-		return NULL; \
-	} \
-	ths->m_refcnt++; \
-	return ths;
-
-#define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
-	if( ths == NULL ) { \
-		return; \
-	} \
-	ths->m_refcnt--; \
-	if( ths->m_refcnt > 0 ) { \
-		return; \
-	}
-
-
 mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 {
 	mrmsg_t* ths = NULL;

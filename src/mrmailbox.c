@@ -342,7 +342,7 @@ size_t mrmailbox_get_contact_cnt(mrmailbox_t* ths)
 }
 
 
-mrcontact_t* mrmailbox_get_contact_by_index(mrmailbox_t* ths, size_t idx)
+mrcontact_t* mrmailbox_get_contact_by_index(mrmailbox_t* ths, size_t index)
 {
 	return NULL;
 }

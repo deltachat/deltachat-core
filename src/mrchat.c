@@ -43,6 +43,8 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 		return NULL; /* error */
 	}
 
+	MR_INIT_REFERENCE
+
 	ths->m_mailbox        = mailbox;
 	ths->m_type           = MR_CHAT_UNDEFINED;
 	ths->m_name           = NULL;
@@ -53,11 +55,15 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 }
 
 
+mrchat_t* mrchat_ref(mrchat_t* ths)
+{
+	MR_INC_REFERENCE
+}
+
+
 void mrchat_unref(mrchat_t* ths)
 {
-	if( ths == NULL ) {
-		return; /* error */
-	}
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrchat_empty(ths);
 	free(ths);
@@ -116,6 +122,11 @@ static int mrchat_set_chat_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 
 int mrchat_load_from_db(mrchat_t* ths, const char* name, uint32_t id)
 {
+	#define       MR_CHAT_FIELDS " c.id,c.type,c.name "
+	#define       MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
+							"LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+	#define       MR_GET_CHATS_POSTFIX " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
+
 	int           success = 0;
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -470,7 +481,7 @@ void mrchatlist_empty(mrchatlist_t* ths)
 {
 	if( ths && ths->m_chats )
 	{
-		int i, cnt = carray_count(ths->m_chats);
+		size_t i, cnt = (size_t)carray_count(ths->m_chats);
 		for( i = 0; i < cnt; i++ )
 		{
 			mrchat_t* chat = (mrchat_t*)carray_get(ths->m_chats, i);
@@ -479,6 +490,18 @@ void mrchatlist_empty(mrchatlist_t* ths)
 
 		carray_set_size(ths->m_chats, 0);
 	}
+}
+
+
+size_t mrchatlist_get_cnt(mrchatlist_t* ths)
+{
+	return (size_t)carray_count(ths->m_chats);
+}
+
+
+mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
+{
+	return mrchat_ref((mrchat_t*)carray_get(ths->m_chats, index));
 }
 
 
