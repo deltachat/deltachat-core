@@ -34,8 +34,13 @@ extern "C" {
 
 
 /* private */
-void mrosnative_setup_thread  (void);
-void mrosnative_unsetup_thread(void);
+#if defined(ANDROID) || defined(__ANDROID__)
+#include <jni.h>
+void mrosnative_init_android  (JNIEnv* env);
+#endif
+
+int  mrosnative_setup_thread   (void); /*returns true/false*/
+void mrosnative_unsetup_thread (void);
 
 
 #ifdef __cplusplus

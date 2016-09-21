@@ -37,41 +37,42 @@
  ******************************************************************************/
 
 
-#if 0
+#if defined(ANDROID) || defined(__ANDROID__)
 
 
-static JavaVM* s_jvm = NULL; /* TODO: how is this set up? */
-static jint s_version = 0;
+#include <jni.h>
 
 
-JNIEXPORT void JNICALL Java_com_libmailcore_MainThreadUtils_setupNative(JNIEnv * env, jobject object)
+static JavaVM* s_jvm = NULL;
+
+
+void mrosnative_init_android(JNIEnv* env)
 {
-	// AutoreleasePool * pool = new AutoreleasePool();
+	if( s_jvm ) {
+		return; /* already initialized */
+	}
 
-    env->GetJavaVM(&s_jvm);
-    s_version = env->GetVersion();
-    //s_mainThreadUtils = reinterpret_cast<jobject>(env->NewGlobalRef(object));
-    //jclass localClass = env->FindClass("com/libmailcore/MainThreadUtils");
-    //s_mainThreadUtilsClass = reinterpret_cast<jclass>(env->NewGlobalRef(localClass));
-    //MCAssert(s_mainThreadUtilsClass != NULL);
-    //MCTypesUtilsInit();
-
-    //pool->release();
+    (*env)->GetJavaVM(env, &s_jvm);
 }
 
 
-void mrosnative_setup_thread(void)
+int mrosnative_setup_thread(void)
 {
-	assert(s_jvm);;
+	if( s_jvm == NULL ) {
+		mr_log_error("Cannot setup thread. mrosnative_init_android() not called successfully.");
+		return 0; /* error */
+	}
 
 	JNIEnv* env = NULL;
-	s_jvm->AttachCurrentThread(&env, NULL);
+	(*s_jvm)->AttachCurrentThread(s_jvm, &env, NULL);
+
+	return 1; /* success */
 }
 
 
 void mrosnative_unsetup_thread(void)
 {
-	s_jvm->DetachCurrentThread();
+	(*s_jvm)->DetachCurrentThread(s_jvm);
 }
 
 
@@ -83,9 +84,11 @@ void mrosnative_unsetup_thread(void)
 #else /* OS definition */
 
 
-void mrosnative_setup_thread(void)
+int mrosnative_setup_thread(void)
 {
+	return 1;
 }
+
 
 void mrosnative_unsetup_thread(void)
 {
