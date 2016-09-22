@@ -203,10 +203,9 @@ int main(int argc, char ** argv)
 			if( chatlist ) {
 				int i, cnt = carray_count(chatlist->m_chats);
 				if( cnt ) {
+					printf("================================================================================\n");
 					for( i = 0; i < cnt; i++ )
 					{
-						if( i ) { printf("\n"); }
-
 						mrchat_t* chat = (mrchat_t*)carray_get(chatlist->m_chats, i);
 						char *temp, *temp2;
 
@@ -224,6 +223,8 @@ int main(int argc, char ** argv)
 						else {
 							printf("No messages.\n");
 						}
+
+						printf("================================================================================\n");
 					}
 				}
 				else {
@@ -256,10 +257,9 @@ int main(int argc, char ** argv)
 				mrmsglist_t* msglist = mrchat_list_msgs(sel_chat);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
+					printf("--------------------------------------------------------------------------------\n");
 					for( i = 0; i < cnt; i++ )
 					{
-						printf("\n");
-
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
 						char *temp, *temp2;
 
@@ -268,6 +268,7 @@ int main(int argc, char ** argv)
 							printf("%s [%s]\n", temp, temp2);
 						free(temp2);
 						free(temp);
+						printf("--------------------------------------------------------------------------------\n");
 					}
 					mrmsglist_unref(msglist);
 				}
