@@ -270,7 +270,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 		}
 		else
 		{
-			r = mailimap_fetch(threadval->m_imap, mailimap_set_new_interval(1, 0), /* fetch by index */
+			r = mailimap_fetch(threadval->m_imap, mailimap_set_new_interval(1, 0), /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
 				type, &fetch_result);
 		}
 	}
