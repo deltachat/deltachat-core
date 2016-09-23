@@ -19,6 +19,7 @@ Some features at a glance
 - **Elegant** and **simple** user interface
 - **Distributed** system
 - **No Spam** - only messages of known users are shown by default
+- **Reliable** - safe for professional use
 - **Trustworthy** - can even be used for business messages
 - fully **OpenSource** and **Standards** based
 
