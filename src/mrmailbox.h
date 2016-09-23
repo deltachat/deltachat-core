@@ -92,6 +92,9 @@ mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the resul
 mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
+/* get messages (aka updates) in a given timestamp */
+mrmsglist_t*         mrmailbox_get_messages         (mrmailbox_t*, time_t, time_t); /* the result must be unref'd */
+
 /* handle configurations. Public. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);

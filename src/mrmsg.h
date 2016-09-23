@@ -61,12 +61,12 @@ typedef struct mrmsg_t
 	/* public read, unset strings are set to NULL. */
 
 	uint32_t      m_id;
-	uint32_t      m_fromId;    /* 0 = self */
+	uint32_t      m_from_id;   /* contact, 0 = self */
+	uint32_t      m_chat_id;   /* the chat, the message belongs to */
 	time_t        m_timestamp; /* unix time the message was sended */
 
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
-
 	char*         m_msg;       /* meaning dedpends on m_type */
 
 	mrmailbox_t*  m_mailbox;

@@ -46,7 +46,8 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 
 	ths->m_mailbox   = mailbox;
 	ths->m_id        = 0;
-	ths->m_fromId    = 0;
+	ths->m_chat_id   = 0;
+	ths->m_from_id   = 0;
 	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
@@ -90,7 +91,7 @@ int mrmsg_set_msg_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 	mrmsg_empty(ths);
 
 	ths->m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_fromId    =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_from_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_state     =                    sqlite3_column_int  (row, row_offset++);
@@ -105,12 +106,12 @@ char* mrmsg_get_summary(mrmsg_t* ths, long flags)
 	char* from = NULL;
 	char* message = NULL;
 
-	if( ths->m_fromId == 0 ) {
+	if( ths->m_from_id == 0 ) {
 		from = safe_strdup("You");
 	}
 	else {
 		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
-		mrcontact_load_from_db(contact, ths->m_fromId);
+		mrcontact_load_from_db(contact, ths->m_from_id);
 		if( contact->m_name ) {
 			from = safe_strdup(contact->m_name);
 			mrcontact_unref(contact);
