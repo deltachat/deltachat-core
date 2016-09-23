@@ -51,9 +51,9 @@ extern "C" {
 #define MR_STATE_UNDEFINED 0
 #define MR_IN_UNREAD       1 /* incoming message not read */
 #define MR_IN_READ         3 /* incoming message read */
-#define MR_OUT_SEND        5 /* outgoing message put to server without errors (one check) */
-#define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered (one check) */
-#define MR_OUT_READ        9 /* outgoing message read (two checks) */
+#define MR_OUT_PENDING     5 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
+#define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered to server (one checkmark) */
+#define MR_OUT_READ        9 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 
 
 typedef struct mrmsg_t
