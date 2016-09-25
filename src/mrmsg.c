@@ -143,7 +143,7 @@ char* mrmsg_get_summary(mrmsg_t* ths, long flags)
  ******************************************************************************/
 
 
-size_t mr_get_msg_cnt(mrmailbox_t* mailbox) /* static function */
+size_t mr_get_msg_cnt_(mrmailbox_t* mailbox) /* static function */
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */

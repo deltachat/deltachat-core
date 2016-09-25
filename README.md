@@ -72,9 +72,12 @@ Some hints:
 - Regard the header files in the `src`-directory as a documentation; we've
   marked the parts that can be used as "public" there.
 
-- For objects, C-structures are used.  If not mentioned otherwise, you can 
+- Functions ending with an underscore should be treated as library-private and
+  should normally not be used by the library user.
+
+- For objects, C-structures are used.  If not mentioned otherwise, you can
   read the members here directly.
-  
+
 - For `get`-functions, you have to unref the return value in some way.
 
 - Strings in function arguments or return values are usually UTF-8 encoded

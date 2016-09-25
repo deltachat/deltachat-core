@@ -19,40 +19,19 @@
  *
  *******************************************************************************
  *
- * File:    mrimfparser.h
+ * File:    mrmailbox.h
  * Authors: Björn Petersen
- * Purpose: Parse IMF (Internet Message Format) as stored eg in .eml files,
- *          see https://tools.ietf.org/html/rfc5322
+ * Purpose: Wrapper around MrMailbox & Co. to use them easily in Apps normally
+ *          based upon tgnet (the Telegram API).
+ *          If you do not use tgnet, there is no need to include these files.
  *
  ******************************************************************************/
 
 
-#ifndef __MRIMFPARSER_H__
-#define __MRIMFPARSER_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdlib.h>
+
+#include "mrmailbox.h"
+#include "mrwraptgnet.h"
 
 
-typedef struct mrimfparser_t
-{
-	/* private */
-	mrmailbox_t*  m_mailbox;
-} mrimfparser_t;
-
-
-/* private */
-mrimfparser_t* mrimfparser_new_    (mrmailbox_t* mailbox);
-void           mrimfparser_unref_  (mrimfparser_t*);
-
-/* private functions */
-/* Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
-the function returns the number of new created messages. */
-int32_t        mrimfparser_imf2msg_(mrimfparser_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes);
-
-
-#ifdef __cplusplus
-} /* /extern "C" */
-#endif
-#endif // __MRIMFPARSER_H__
 

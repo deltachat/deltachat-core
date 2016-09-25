@@ -212,7 +212,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 	}
 
 	/* add to our respository */
-	mrmailbox_receive_imf__(ths->m_mailbox, msg_content, msg_len);
+	mrmailbox_receive_imf_(ths->m_mailbox, msg_content, msg_len);
 
 	mailimap_fetch_list_free(fetch_result);
 

@@ -105,7 +105,7 @@ char*                mrmailbox_get_db_file          (mrmailbox_t*); /* the retur
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 
 /* private */
-void                 mrmailbox_receive_imf__        (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
+void                 mrmailbox_receive_imf_         (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
 
 
 #ifdef __cplusplus

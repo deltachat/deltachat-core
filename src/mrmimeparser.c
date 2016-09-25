@@ -418,7 +418,7 @@ void mrmimepart_unref(mrmimepart_t* ths)
  ******************************************************************************/
 
 
-mrmimeparser_t* mrmimeparser_new()
+mrmimeparser_t* mrmimeparser_new_()
 {
 	mrmimeparser_t* ths = NULL;
 
@@ -435,19 +435,19 @@ mrmimeparser_t* mrmimeparser_new()
 }
 
 
-void mrmimeparser_unref(mrmimeparser_t* ths)
+void mrmimeparser_unref_(mrmimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
 	}
 
-	mrmimeparser_empty(ths);
+	mrmimeparser_empty_(ths);
 	carray_free(ths->m_parts);
 	free(ths);
 }
 
 
-void mrmimeparser_empty(mrmimeparser_t* ths)
+void mrmimeparser_empty_(mrmimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -476,7 +476,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 }
 
 
-int mrmimeparser_get_mime_type(struct mailmime_content* c)
+int mrmimeparser_get_mime_type_(struct mailmime_content* c)
 {
 	if( c == NULL || c->ct_type == NULL ) {
 		return 0; /* error */
@@ -535,7 +535,7 @@ int mrmimeparser_get_mime_type(struct mailmime_content* c)
 }
 
 
-static int mrmimeparser_add_single_part_if_known__(mrmimeparser_t* ths, struct mailmime* mime)
+static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct mailmime* mime)
 {
 	mrmimepart_t*  part = mrmimepart_new();
 	int            do_add_part = 0;
@@ -557,7 +557,7 @@ static int mrmimeparser_add_single_part_if_known__(mrmimeparser_t* ths, struct m
 	}
 
 	/* get mime type from `mime` */
-	mime_type = mrmimeparser_get_mime_type(mime->mm_content_type);
+	mime_type = mrmimeparser_get_mime_type_(mime->mm_content_type);
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -684,17 +684,17 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			sth_added = mrmimeparser_add_single_part_if_known__(ths, mime);
+			sth_added = mrmimeparser_add_single_part_if_known_(ths, mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch( mrmimeparser_get_mime_type(mime->mm_content_type) )
+			switch( mrmimeparser_get_mime_type_(mime->mm_content_type) )
 			{
 				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
 					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if( mrmimeparser_get_mime_type(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+							if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
 								sth_added = mrmimeparser_parse_mime_recursive__(ths, childmime);
 								break;
 							}
@@ -755,13 +755,13 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 }
 
 
-void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
+void mrmimeparser_parse_(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
 
 
-	mrmimeparser_empty(ths);
+	mrmimeparser_empty_(ths);
 
 	/* parse body */
 	r = mailmime_parse(body_not_terminated, body_bytes, &index, &ths->m_mimeroot);

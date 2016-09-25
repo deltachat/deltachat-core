@@ -153,7 +153,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	f = NULL;
 
 	/* import `data` */
-	mrmailbox_receive_imf__(ths, data, stat_info.st_size);
+	mrmailbox_receive_imf_(ths, data, stat_info.st_size);
 
 	/* success */
 	success = 1;
@@ -307,18 +307,18 @@ int mrmailbox_fetch(mrmailbox_t* ths)
  ******************************************************************************/
 
 
-void mrmailbox_receive_imf__(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+void mrmailbox_receive_imf_(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
-	mrimfparser_t* parser = mrimfparser_new(ths);
+	mrimfparser_t* parser = mrimfparser_new_(ths);
 
-	if( !mrimfparser_imf2msg(parser, imf_raw_not_terminated, imf_raw_bytes) ) {
+	if( !mrimfparser_imf2msg_(parser, imf_raw_not_terminated, imf_raw_bytes) ) {
 		goto ReceiveCleanup; /* error already logged */
 	}
 
 	/* Cleanup */
 ReceiveCleanup:
 	if( parser ) {
-		mrimfparser_unref(parser);
+		mrimfparser_unref_(parser);
 	}
 }
 
@@ -334,7 +334,7 @@ size_t mrmailbox_get_contact_cnt(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		ret = mr_get_contact_cnt(ths);
+		ret = mr_get_contact_cnt_(ths);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -359,7 +359,7 @@ size_t mrmailbox_get_chat_cnt(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		ret = mr_get_chat_cnt(ths);
+		ret = mr_get_chat_cnt_(ths);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -371,12 +371,12 @@ mrchatlist_t* mrmailbox_get_chats(mrmailbox_t* ths)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchatlist_t* obj = mrchatlist_new(ths);
+	mrchatlist_t* obj = mrchatlist_new_(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchatlist_load_from_db(obj) ) {
+	if( !mrchatlist_load_from_db_(obj) ) {
 		goto GetChatsCleanup;
 	}
 
@@ -403,12 +403,12 @@ mrchat_t* mrmailbox_get_chat_by_name(mrmailbox_t* ths, const char* name)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchat_t* obj = mrchat_new(ths);
+	mrchat_t* obj = mrchat_new_(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchat_load_from_db(obj, name, 0) ) {
+	if( !mrchat_load_from_db_(obj, name, 0) ) {
 		goto GetChatByNameCleanup;
 	}
 
@@ -435,12 +435,12 @@ mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchat_t* obj = mrchat_new(ths);
+	mrchat_t* obj = mrchat_new_(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchat_load_from_db(obj, NULL, id) ) {
+	if( !mrchat_load_from_db_(obj, NULL, id) ) {
 		goto GetChatByNameCleanup;
 	}
 
@@ -539,9 +539,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		debug_dir   = mrsqlite3_get_config(ths->m_sql, "debug_dir", NULL);
 
-		contacts    = mr_get_contact_cnt(ths);
-		chats       = mr_get_chat_cnt(ths);
-		messages    = mr_get_msg_cnt(ths);
+		contacts    = mr_get_contact_cnt_(ths);
+		chats       = mr_get_chat_cnt_(ths);
+		messages    = mr_get_msg_cnt_(ths);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 

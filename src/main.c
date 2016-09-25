@@ -254,7 +254,7 @@ int main(int argc, char ** argv)
 			/* show chat */
 			if( sel_chat ) {
 				printf("Chat name: %s\n", sel_chat->m_name);
-				mrmsglist_t* msglist = mrchat_list_msgs(sel_chat);
+				mrmsglist_t* msglist = mrchat_get_msgs_by_index(sel_chat, 0, 100);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					printf("--------------------------------------------------------------------------------\n");

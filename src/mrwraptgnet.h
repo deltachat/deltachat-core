@@ -19,48 +19,25 @@
  *
  *******************************************************************************
  *
- * File:    mrcontact.h
+ * File:    mrmailbox.h
  * Authors: Björn Petersen
- * Purpose: mrcontact_t represents a single contact - if in doubt a contact is
- *          every email-adresses the user has _send_ a mail to (only receiving
- *          is not sufficient).
- *          For the future, we plan to use the systems address books and/or a
- *          CardDAV server, too.
+ * Purpose: Wrapper around MrMailbox & Co. to use them easily in Apps normally
+ *          based upon tgnet (the Telegram API).
+ *          If you do not use tgnet, there is no need to include these files.
  *
  ******************************************************************************/
 
 
-#ifndef __MRCONTACT_H__
-#define __MRCONTACT_H__
+#ifndef __MRWRAPTGNET_H__
+#define __MRWRAPTGNET_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct mrcontact_t
-{
-	/* the data should be read only and are valid until the object is Release()'d.
-	unset strings are set to NULL. */
-	uint32_t            m_id;
-	char*               m_name;  /* != NULL, however, may be empty */
-	char*               m_email; /* != NULL */
-	mrmailbox_t*        m_mailbox;
-
-} mrcontact_t;
-
-
-mrcontact_t* mrcontact_new             (mrmailbox_t*);
-void         mrcontact_unref           (mrcontact_t*);
-
-int          mrcontact_load_from_db    (mrcontact_t*, uint32_t id);
-void         mrcontact_empty           (mrcontact_t*);
-
-/* private tools */
-size_t       mr_get_contact_cnt_       (mrmailbox_t*); /* private, user shall use mrmailbox_get_contact_cnt() */
-
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCONTACT_H__ */
+#endif /* __MRMAILBOX_H__ */
 

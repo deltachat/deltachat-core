@@ -65,7 +65,7 @@
 #include "mrlog.h"
 
 
-mrimfparser_t* mrimfparser_new(mrmailbox_t* mailbox)
+mrimfparser_t* mrimfparser_new_(mrmailbox_t* mailbox)
 {
 	mrimfparser_t* ths = NULL;
 
@@ -79,7 +79,7 @@ mrimfparser_t* mrimfparser_new(mrmailbox_t* mailbox)
 }
 
 
-void mrimfparser_unref(mrimfparser_t* ths)
+void mrimfparser_unref_(mrimfparser_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -94,7 +94,7 @@ void mrimfparser_unref(mrimfparser_t* ths)
  ******************************************************************************/
 
 
-static char* create_stub_message_id(time_t message_timestamp, carray* contact_ids_to)
+static char* create_stub_message_id_(time_t message_timestamp, carray* contact_ids_to)
 {
 	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
 		return NULL; /* cannot create a unique timestamp */
@@ -121,7 +121,7 @@ static char* create_stub_message_id(time_t message_timestamp, carray* contact_id
 }
 
 
-static void mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
+static void mrimfparser_add_or_lookup_contact_(mrimfparser_t* ths, const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
 {
 	uint32_t row_id = 0;
 
@@ -176,19 +176,19 @@ static void mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* di
 }
 
 
-static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(mrimfparser_t* ths, struct mailimf_mailbox_list* mb_list, carray* ids)
+static void mrimfparser_add_or_lookup_contacts_by_mailbox_list_(mrimfparser_t* ths, struct mailimf_mailbox_list* mb_list, carray* ids)
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+			mrimfparser_add_or_lookup_contact_(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
 		}
 	}
 }
 
 
-static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* ths, struct mailimf_address_list* adr_list, carray* ids) /* an address is a mailbox or a group */
+static void mrimfparser_add_or_lookup_contacts_by_address_list_(mrimfparser_t* ths, struct mailimf_address_list* adr_list, carray* ids) /* an address is a mailbox or a group */
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -197,13 +197,13 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* th
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+					mrimfparser_add_or_lookup_contact_(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, ids);
+					mrimfparser_add_or_lookup_contacts_by_mailbox_list_(ths, group->grp_mb_list, ids);
 				}
 			}
 		}
@@ -216,7 +216,7 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* th
  ******************************************************************************/
 
 
-int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
@@ -228,7 +228,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
 	int              comes_from_extern = 0; /* indicates, if the mail was send by us or was received from outside */
-	mrmimeparser_t*  mime_parser = mrmimeparser_new();
+	mrmimeparser_t*  mime_parser = mrmimeparser_new_();
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
@@ -252,7 +252,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
-	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
+	mrmimeparser_parse_(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( mime_parser->m_header == NULL ) {
 		goto Imf2Msg_Done; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
@@ -282,21 +282,21 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 				{
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
 					if( fld_from ) {
-						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
+						mrimfparser_add_or_lookup_contacts_by_mailbox_list_(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_TO )
 				{
 					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 					if( fld_to ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list_(ths, fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_CC )
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc; /* can be NULL */
 					if( fld_cc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list_(ths, fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
@@ -321,12 +321,12 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		(of course, the user can add other chats manually) */
 		if( !comes_from_extern && carray_count(contact_ids_to)==1 )
 		{
-			chat_id = mr_create_chat_record(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+			chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
 		}
 
 		if( chat_id == 0 )
 		{
-			chat_id = mr_find_out_chat_id(ths->m_mailbox, contact_ids_from, contact_ids_to);
+			chat_id = mr_find_out_chat_id_(ths->m_mailbox, contact_ids_from, contact_ids_to);
 		}
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do
@@ -336,7 +336,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
 			in these cases, we build a message ID based on some useful header fields that do never change (date, to)
 			we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-			rfc724_mid = create_stub_message_id(message_timestamp, contact_ids_to);
+			rfc724_mid = create_stub_message_id_(message_timestamp, contact_ids_to);
 			if( rfc724_mid == NULL ) {
 				goto Imf2Msg_Done;
 			}
@@ -349,7 +349,7 @@ int32_t mrimfparser_imf2msg(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		/* set the sender (contact_id_from, 0=self) */
 		if( comes_from_extern ) {
 			if( carray_count(contact_ids_from) == 0 ) {
-				mrimfparser_add_or_lookup_contact(ths, NULL, "no@ddress", contact_ids_from);
+				mrimfparser_add_or_lookup_contact_(ths, NULL, "no@ddress", contact_ids_from);
 				if( carray_count(contact_ids_from) == 0 ) {
 					goto Imf2Msg_Done;
 				}
@@ -413,7 +413,7 @@ Imf2Msg_Done:
 	}
 
 	if( mime_parser ) {
-		mrmimeparser_unref(mime_parser);
+		mrmimeparser_unref_(mime_parser);
 	}
 
 	if( rfc724_mid ) {

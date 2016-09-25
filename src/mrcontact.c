@@ -129,7 +129,7 @@ LoadFromDb_Cleanup:
  ******************************************************************************/
 
 
-size_t mr_get_contact_cnt(mrmailbox_t* mailbox) /* static function */
+size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
 {
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no contacts - this is no error (needed eg. for information) */

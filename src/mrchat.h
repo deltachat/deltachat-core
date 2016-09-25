@@ -69,29 +69,31 @@ typedef struct mrchatlist_t
 
 
 /* public methods */
-mrchat_t*     mrchat_new                   (mrmailbox_t*); /* result must be unref'd */
-mrchat_t*     mrchat_ref                   (mrchat_t*);
 void          mrchat_unref                 (mrchat_t*);
-void          mrchat_empty                 (mrchat_t*);
 mrmsg_t*      mrchat_get_last_msg          (mrchat_t*); /* result must be unref'd, as an alternative, you can use m_lastMsg directly */
-int           mrchat_load_from_db          (mrchat_t*, const char* name, uint32_t id);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
-mrmsglist_t*  mrchat_list_msgs             (mrchat_t*); /* the caller must unref the result */
+mrmsglist_t*  mrchat_get_msgs_by_index     (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
 void          mrchat_send_msg              (mrchat_t*, const char* text);
 
-mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
 void          mrchatlist_unref             (mrchatlist_t*);
-void          mrchatlist_empty             (mrchatlist_t*);
 size_t        mrchatlist_get_cnt           (mrchatlist_t*);
 mrchat_t*     mrchatlist_get_chat          (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
 
 
 /* private methods */
-int           mrchatlist_load_from_db      (mrchatlist_t*);
-size_t        mr_get_chat_cnt              (mrmailbox_t*);
-uint32_t      mr_chat_exists               (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */
-uint32_t      mr_create_chat_record        (mrmailbox_t*, uint32_t contact_id);
-uint32_t      mr_find_out_chat_id          (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
+mrchat_t*     mrchat_new_                  (mrmailbox_t*); /* result must be unref'd */
+mrchat_t*     mrchat_ref_                  (mrchat_t*);
+void          mrchat_empty_                (mrchat_t*);
+int           mrchat_load_from_db_         (mrchat_t*, const char* name, uint32_t id);
+
+mrchatlist_t* mrchatlist_new_              (mrmailbox_t*);
+void          mrchatlist_empty_            (mrchatlist_t*);
+int           mrchatlist_load_from_db_     (mrchatlist_t*);
+
+size_t        mr_get_chat_cnt_             (mrmailbox_t*);
+uint32_t      mr_chat_exists_              (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */
+uint32_t      mr_create_chat_record_       (mrmailbox_t*, uint32_t contact_id);
+uint32_t      mr_find_out_chat_id_         (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
 
 
 #ifdef __cplusplus

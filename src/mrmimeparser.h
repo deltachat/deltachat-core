@@ -61,15 +61,15 @@ typedef struct mrmimeparser_t
 
 
 /* private */
-mrmimeparser_t* mrmimeparser_new         ();
-void            mrmimeparser_unref       (mrmimeparser_t*);
-void            mrmimeparser_empty       (mrmimeparser_t*);
+mrmimeparser_t* mrmimeparser_new_        ();
+void            mrmimeparser_unref_      (mrmimeparser_t*);
+void            mrmimeparser_empty_      (mrmimeparser_t*);
 
 /* private, The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
 Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 (this is because we want to add even these message to our database to avoid reading them several times.
 of course, these empty messages are not added to any chat) */
-void            mrmimeparser_parse       (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+void            mrmimeparser_parse_      (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
 
 /* private, find out the mimetype - one of the MR_MIMETYPE_* constants */
 #define         MR_MIMETYPE_MP             0x100 /* eg. mixed */
@@ -82,7 +82,7 @@ void            mrmimeparser_parse       (mrmimeparser_t*, const char* body_not_
 #define         MR_MIMETYPE_AUDIO          0x400
 #define         MR_MIMETYPE_VIDEO          0x500
 #define         MR_MIMETYPE_FILE           0x600
-int             mrmimeparser_get_mime_type (struct mailmime_content*);
+int             mrmimeparser_get_mime_type_(struct mailmime_content*);
 
 
 #ifdef __cplusplus

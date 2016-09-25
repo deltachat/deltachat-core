@@ -95,10 +95,12 @@ mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 #define      MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " /* we use a define for easier string concatenation */
 int          mrmsg_set_msg_from_stmt (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
-size_t       mr_get_msg_cnt          (mrmailbox_t*);
-int          mr_message_id_exists    (mrmailbox_t*, const char* rfc724_mid);
+
 mrmsglist_t* mrmsglist_new           (void);
 void         mrmsglist_unref         (mrmsglist_t*);
+
+size_t       mr_get_msg_cnt_         (mrmailbox_t*);
+int          mr_message_id_exists    (mrmailbox_t*, const char* rfc724_mid);
 
 
 #ifdef __cplusplus
