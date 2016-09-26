@@ -28,9 +28,7 @@
 
 #include <stdlib.h>
 #include "mrmailbox.h"
-#include "mrchat.h"
 #include "mrtools.h"
-#include "mrmsg.h"
 #include "mrcontact.h"
 #include "mrlog.h"
 
@@ -97,7 +95,7 @@ mrmsg_t* mrchat_get_last_msg(mrchat_t* ths)
 }
 
 
-static int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
+int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
 {
 	if( ths == NULL || row == NULL ) {
 		return 0; /* error */
@@ -122,11 +120,6 @@ static int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
 
 int mrchat_load_from_db(mrchat_t* ths, const char* name, uint32_t id)
 {
-	#define       MR_CHAT_FIELDS " c.id,c.type,c.name "
-	#define       MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
-							"LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
-	#define       MR_GET_CHATS_POSTFIX " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
-
 	int           success = 0;
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -445,104 +438,3 @@ void mrchat_send_msg(mrchat_t* ths, const char* text)
 }
 
 
-/*******************************************************************************
- * Chat lists
- ******************************************************************************/
-
-
-mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
-{
-	mrchatlist_t* ths = NULL;
-
-	if( (ths=malloc(sizeof(mrchatlist_t)))==NULL ) {
-		return NULL; /* error */
-	}
-
-	ths->m_mailbox = mailbox;
-	ths->m_chats = carray_new(128);
-
-	return ths;
-}
-
-
-void mrchatlist_unref(mrchatlist_t* ths)
-{
-	if( ths==NULL ) {
-		return; /* error */
-	}
-
-	mrchatlist_empty(ths);
-	carray_free(ths->m_chats);
-	free(ths);
-}
-
-
-void mrchatlist_empty(mrchatlist_t* ths)
-{
-	if( ths && ths->m_chats )
-	{
-		size_t i, cnt = (size_t)carray_count(ths->m_chats);
-		for( i = 0; i < cnt; i++ )
-		{
-			mrchat_t* chat = (mrchat_t*)carray_get(ths->m_chats, i);
-			mrchat_unref(chat);
-		}
-
-		carray_set_size(ths->m_chats, 0);
-	}
-}
-
-
-size_t mrchatlist_get_cnt(mrchatlist_t* ths)
-{
-	return (size_t)carray_count(ths->m_chats);
-}
-
-
-mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
-{
-	return mrchat_ref((mrchat_t*)carray_get(ths->m_chats, index));
-}
-
-
-int mrchatlist_load_from_db(mrchatlist_t* ths)
-{
-	int           success = 0;
-	char*         q = NULL;
-	sqlite3_stmt* stmt = NULL;
-
-	if( ths == NULL || ths->m_mailbox == NULL ) {
-		return 0; /* error */
-	}
-
-	mrchatlist_empty(ths);
-
-	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	q = sqlite3_mprintf(MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
-	stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q);
-	if( stmt==NULL ) {
-		goto GetChatList_Cleanup;
-	}
-
-    while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		mrchat_t* chat = mrchat_new(ths->m_mailbox);
-		if( mrchat_set_from_stmt(chat, stmt) ) {
-			carray_add(ths->m_chats, (void*)chat, NULL);
-		}
-    }
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-GetChatList_Cleanup:
-	if( q ) {
-		sqlite3_free(q);
-	}
-
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
-
-	return success;
-}

@@ -61,7 +61,6 @@
 #include "mrimfparser.h"
 #include "mrmimeparser.h"
 #include "mrtools.h"
-#include "mrmsg.h"
 #include "mrlog.h"
 
 
@@ -121,7 +120,7 @@ static char* create_stub_message_id_(time_t message_timestamp, carray* contact_i
 }
 
 
-static void mrimfparser_add_or_lookup_contact_(mrimfparser_t* ths, const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
+static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
 {
 	uint32_t row_id = 0;
 
@@ -173,22 +172,24 @@ static void mrimfparser_add_or_lookup_contact_(mrimfparser_t* ths, const char* d
 			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
 		}
 	}
+
+	return 1; /*success*/
 }
 
 
-static void mrimfparser_add_or_lookup_contacts_by_mailbox_list_(mrimfparser_t* ths, struct mailimf_mailbox_list* mb_list, carray* ids)
+static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(mrimfparser_t* ths, struct mailimf_mailbox_list* mb_list, carray* ids)
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mrimfparser_add_or_lookup_contact_(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+			mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
 		}
 	}
 }
 
 
-static void mrimfparser_add_or_lookup_contacts_by_address_list_(mrimfparser_t* ths, struct mailimf_address_list* adr_list, carray* ids) /* an address is a mailbox or a group */
+static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* ths, struct mailimf_address_list* adr_list, carray* ids) /* an address is a mailbox or a group */
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -197,13 +198,13 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list_(mrimfparser_t* t
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mrimfparser_add_or_lookup_contact_(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+					mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					mrimfparser_add_or_lookup_contacts_by_mailbox_list_(ths, group->grp_mb_list, ids);
+					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, ids);
 				}
 			}
 		}
@@ -282,21 +283,21 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 				{
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
 					if( fld_from ) {
-						mrimfparser_add_or_lookup_contacts_by_mailbox_list_(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
+						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_TO )
 				{
 					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 					if( fld_to ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list_(ths, fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_CC )
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc; /* can be NULL */
 					if( fld_cc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list_(ths, fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
@@ -349,7 +350,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 		/* set the sender (contact_id_from, 0=self) */
 		if( comes_from_extern ) {
 			if( carray_count(contact_ids_from) == 0 ) {
-				mrimfparser_add_or_lookup_contact_(ths, NULL, "no@ddress", contact_ids_from);
+				mrimfparser_add_or_lookup_contact(ths, NULL, "no@ddress", contact_ids_from);
 				if( carray_count(contact_ids_from) == 0 ) {
 					goto Imf2Msg_Done;
 				}
