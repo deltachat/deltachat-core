@@ -35,7 +35,7 @@
 #include "mrlog.h"
 
 
-mrchat_t* mrchat_new_(mrmailbox_t* mailbox)
+mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 {
 	mrchat_t* ths = NULL;
 
@@ -55,7 +55,7 @@ mrchat_t* mrchat_new_(mrmailbox_t* mailbox)
 }
 
 
-mrchat_t* mrchat_ref_(mrchat_t* ths)
+mrchat_t* mrchat_ref(mrchat_t* ths)
 {
 	MR_INC_REFERENCE
 }
@@ -65,12 +65,12 @@ void mrchat_unref(mrchat_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
-	mrchat_empty_(ths);
+	mrchat_empty(ths);
 	free(ths);
 }
 
 
-void mrchat_empty_(mrchat_t* ths)
+void mrchat_empty(mrchat_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* error */
@@ -97,13 +97,13 @@ mrmsg_t* mrchat_get_last_msg(mrchat_t* ths)
 }
 
 
-static int mrchat_set_chat_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
+static int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
 {
 	if( ths == NULL || row == NULL ) {
 		return 0; /* error */
 	}
 
-	mrchat_empty_(ths);
+	mrchat_empty(ths);
 
 	int row_offset = 0;
 	ths->m_id        =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
@@ -120,7 +120,7 @@ static int mrchat_set_chat_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 }
 
 
-int mrchat_load_from_db_(mrchat_t* ths, const char* name, uint32_t id)
+int mrchat_load_from_db(mrchat_t* ths, const char* name, uint32_t id)
 {
 	#define       MR_CHAT_FIELDS " c.id,c.type,c.name "
 	#define       MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
@@ -135,7 +135,7 @@ int mrchat_load_from_db_(mrchat_t* ths, const char* name, uint32_t id)
 		return 0; /* error (name may be NULL) */
 	}
 
-	mrchat_empty_(ths);
+	mrchat_empty(ths);
 
 	if( name ) {
 		q = sqlite3_mprintf(MR_GET_CHATS_PREFIX " WHERE c.name=%Q " MR_GET_CHATS_POSTFIX ";", name);
@@ -150,7 +150,7 @@ int mrchat_load_from_db_(mrchat_t* ths, const char* name, uint32_t id)
 		goto LoadFromDb_Cleanup;
 	}
 
-	if( !mrchat_set_chat_from_stmt_(ths, stmt) ) {
+	if( !mrchat_set_from_stmt(ths, stmt) ) {
 		goto LoadFromDb_Cleanup;
 	}
 
@@ -450,7 +450,7 @@ void mrchat_send_msg(mrchat_t* ths, const char* text)
  ******************************************************************************/
 
 
-mrchatlist_t* mrchatlist_new_(mrmailbox_t* mailbox)
+mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 {
 	mrchatlist_t* ths = NULL;
 
@@ -471,13 +471,13 @@ void mrchatlist_unref(mrchatlist_t* ths)
 		return; /* error */
 	}
 
-	mrchatlist_empty_(ths);
+	mrchatlist_empty(ths);
 	carray_free(ths->m_chats);
 	free(ths);
 }
 
 
-void mrchatlist_empty_(mrchatlist_t* ths)
+void mrchatlist_empty(mrchatlist_t* ths)
 {
 	if( ths && ths->m_chats )
 	{
@@ -501,11 +501,11 @@ size_t mrchatlist_get_cnt(mrchatlist_t* ths)
 
 mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
 {
-	return mrchat_ref_((mrchat_t*)carray_get(ths->m_chats, index));
+	return mrchat_ref((mrchat_t*)carray_get(ths->m_chats, index));
 }
 
 
-int mrchatlist_load_from_db_(mrchatlist_t* ths)
+int mrchatlist_load_from_db(mrchatlist_t* ths)
 {
 	int           success = 0;
 	char*         q = NULL;
@@ -515,7 +515,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 		return 0; /* error */
 	}
 
-	mrchatlist_empty_(ths);
+	mrchatlist_empty(ths);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	q = sqlite3_mprintf(MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
@@ -525,8 +525,8 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		mrchat_t* chat = mrchat_new_(ths->m_mailbox);
-		if( mrchat_set_chat_from_stmt_(chat, stmt) ) {
+		mrchat_t* chat = mrchat_new(ths->m_mailbox);
+		if( mrchat_set_from_stmt(chat, stmt) ) {
 			carray_add(ths->m_chats, (void*)chat, NULL);
 		}
     }

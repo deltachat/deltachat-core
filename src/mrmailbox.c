@@ -371,12 +371,12 @@ mrchatlist_t* mrmailbox_get_chats(mrmailbox_t* ths)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchatlist_t* obj = mrchatlist_new_(ths);
+	mrchatlist_t* obj = mrchatlist_new(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchatlist_load_from_db_(obj) ) {
+	if( !mrchatlist_load_from_db(obj) ) {
 		goto GetChatsCleanup;
 	}
 
@@ -403,12 +403,12 @@ mrchat_t* mrmailbox_get_chat_by_name(mrmailbox_t* ths, const char* name)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchat_t* obj = mrchat_new_(ths);
+	mrchat_t* obj = mrchat_new(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchat_load_from_db_(obj, name, 0) ) {
+	if( !mrchat_load_from_db(obj, name, 0) ) {
 		goto GetChatByNameCleanup;
 	}
 
@@ -435,12 +435,12 @@ mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrchat_t* obj = mrchat_new_(ths);
+	mrchat_t* obj = mrchat_new(ths);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchat_load_from_db_(obj, NULL, id) ) {
+	if( !mrchat_load_from_db(obj, NULL, id) ) {
 		goto GetChatByNameCleanup;
 	}
 

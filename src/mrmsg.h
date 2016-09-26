@@ -90,8 +90,9 @@ char*        mrmsg_get_summary       (mrmsg_t*, long flags); /* the result shoul
 mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
-#define      MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " /* we use a define for easier string concatenation */
-int          mrmsg_set_from_stmt    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+
+#define      MR_MSG_FIELDS           " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg "
+int          mrmsg_set_from_stmt     (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 mrmsglist_t* mrmsglist_new           (void);
 void         mrmsglist_unref         (mrmsglist_t*);

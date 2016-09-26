@@ -76,14 +76,14 @@ mrchat_t*     mrchatlist_get_chat          (mrchatlist_t*, size_t index); /* res
 
 /*** library-private **********************************************************/
 
-mrchat_t*     mrchat_new_                  (mrmailbox_t*); /* result must be unref'd */
-mrchat_t*     mrchat_ref_                  (mrchat_t*);
-void          mrchat_empty_                (mrchat_t*);
-int           mrchat_load_from_db_         (mrchat_t*, const char* name, uint32_t id);
+mrchat_t*     mrchat_new                   (mrmailbox_t*); /* result must be unref'd */
+mrchat_t*     mrchat_ref                   (mrchat_t*);
+void          mrchat_empty                 (mrchat_t*);
+int           mrchat_load_from_db          (mrchat_t*, const char* name, uint32_t id);
 
-mrchatlist_t* mrchatlist_new_              (mrmailbox_t*);
-void          mrchatlist_empty_            (mrchatlist_t*);
-int           mrchatlist_load_from_db_     (mrchatlist_t*);
+mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
+void          mrchatlist_empty             (mrchatlist_t*);
+int           mrchatlist_load_from_db      (mrchatlist_t*);
 
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);
 uint32_t      mr_chat_exists_              (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */
