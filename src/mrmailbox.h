@@ -40,7 +40,8 @@ extern "C" {
 #include <libetpan/libetpan.h> /* defines uint16_t etc. */
 #include "mrsqlite3.h"
 #include "mrchat.h"
-#include "mrmsg.h"
+#include "mrchatlist.h"
+#include "mrmsglist.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
 #include "mrcontact.h"

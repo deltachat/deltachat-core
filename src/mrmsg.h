@@ -73,12 +73,6 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-typedef struct mrmsglist_t
-{
-	carray*      m_msgs; /* contains mrmsg_t objects */
-} mrmsglist_t;
-
-
 void         mrmsg_unref             (mrmsg_t*);
 
 #define      MR_UNWRAP 0x01
@@ -93,9 +87,6 @@ void         mrmsg_empty             (mrmsg_t*);
 
 #define      MR_MSG_FIELDS           " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg "
 int          mrmsg_set_from_stmt     (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
-
-mrmsglist_t* mrmsglist_new           (void);
-void         mrmsglist_unref         (mrmsglist_t*);
 
 size_t       mr_get_msg_cnt_         (mrmailbox_t*);
 int          mr_message_id_exists    (mrmailbox_t*, const char* rfc724_mid);

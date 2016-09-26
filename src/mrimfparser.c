@@ -61,7 +61,6 @@
 #include "mrimfparser.h"
 #include "mrmimeparser.h"
 #include "mrtools.h"
-#include "mrmsg.h"
 #include "mrlog.h"
 
 

@@ -34,7 +34,6 @@
 #include "mrmailbox.h"
 #include "mrimfparser.h"
 #include "mrcontact.h"
-#include "mrmsg.h"
 #include "mrtools.h"
 #include "mrlog.h"
 

@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include "mrmailbox.h"
 #include "mrcontact.h"
-#include "mrmsg.h"
 #include "mrtools.h"
 #include "mrlog.h"
 
@@ -176,41 +175,3 @@ int mr_message_id_exists(mrmailbox_t* mailbox, const char* rfc724_mid) /* static
 }
 
 
-/*******************************************************************************
- * Message lists
- ******************************************************************************/
-
-
-mrmsglist_t* mrmsglist_new(void)
-{
-	mrmsglist_t* ths = NULL;
-
-	if( (ths=malloc(sizeof(mrmsglist_t)))==NULL ) {
-		return NULL; /* error */
-	}
-
-	ths->m_msgs = carray_new(128);
-
-	return ths;
-}
-
-
-void mrmsglist_unref(mrmsglist_t* ths)
-{
-	if( ths == NULL ) {
-		return; /* error */
-	}
-
-	if( ths->m_msgs )
-	{
-		int i, cnt = carray_count(ths->m_msgs);
-		for( i = 0; i < cnt; i++ )
-		{
-			mrmsg_t* msg = (mrmsg_t*)carray_get(ths->m_msgs, i);
-			mrmsg_unref(msg);
-		}
-
-		carray_free(ths->m_msgs);
-		ths->m_msgs = NULL;
-	}
-}
