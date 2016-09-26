@@ -36,7 +36,6 @@ extern "C" {
 #include <sqlite3.h>
 
 
-/* public */
 void mr_log_error  (const char* msg);
 void mr_log_warning(const char* msg);
 void mr_log_info   (const char* msg);

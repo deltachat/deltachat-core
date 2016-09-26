@@ -34,12 +34,14 @@ extern "C" {
 #endif
 
 
+/*** library-private **********************************************************/
+
+
 #include "mrmsg.h"
 
 
 typedef struct mrmimepart_t
 {
-	/* private */
 	int                 m_type; /*one of MR_MSG_* */
 	char*               m_msg;
 	char*               m_msg_raw;
@@ -52,7 +54,7 @@ void          mrmimepart_unref  (mrmimepart_t*);
 
 typedef struct mrmimeparser_t
 {
-	/* private, data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed) */
+	/* data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed) */
 	carray*                m_parts; /*array of mrmimepart_t objects*/
 	struct mailmime*       m_mimeroot;
 	struct mailimf_fields* m_header;
@@ -60,18 +62,17 @@ typedef struct mrmimeparser_t
 } mrmimeparser_t;
 
 
-/* private */
 mrmimeparser_t* mrmimeparser_new_        ();
 void            mrmimeparser_unref_      (mrmimeparser_t*);
 void            mrmimeparser_empty_      (mrmimeparser_t*);
 
-/* private, The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
+/* The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
 Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 (this is because we want to add even these message to our database to avoid reading them several times.
 of course, these empty messages are not added to any chat) */
 void            mrmimeparser_parse_      (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
 
-/* private, find out the mimetype - one of the MR_MIMETYPE_* constants */
+/* find out the mimetype - one of the MR_MIMETYPE_* constants */
 #define         MR_MIMETYPE_MP             0x100 /* eg. mixed */
 #define         MR_MIMETYPE_MP_ALTERNATIVE (MR_MIMETYPE_MP+1)
 #define         MR_MIMETYPE_MP_RELATED     (MR_MIMETYPE_MP+2)

@@ -33,7 +33,8 @@ extern "C" {
 #endif
 
 
-/* private */
+/*** library-private **********************************************************/
+
 #if defined(ANDROID) || defined(__ANDROID__)
 #include <jni.h>
 void mrosnative_init_android  (JNIEnv* env);

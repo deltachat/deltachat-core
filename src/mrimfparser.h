@@ -34,18 +34,17 @@ extern "C" {
 #endif
 
 
+/*** library-private **********************************************************/
+
 typedef struct mrimfparser_t
 {
-	/* private */
 	mrmailbox_t*  m_mailbox;
 } mrimfparser_t;
 
 
-/* private */
 mrimfparser_t* mrimfparser_new_    (mrmailbox_t* mailbox);
 void           mrimfparser_unref_  (mrimfparser_t*);
 
-/* private functions */
 /* Imf2Msg() takes an IMF, convers into one or more messages and stores them in the database.
 the function returns the number of new created messages. */
 int32_t        mrimfparser_imf2msg_(mrimfparser_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes);

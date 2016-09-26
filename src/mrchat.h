@@ -47,28 +47,22 @@ extern "C" {
 
 typedef struct mrchat_t
 {
-	/* public read, unset strings are set to NULL */
 	uint32_t        m_id;
 	int             m_type;
-	char*           m_name;
-	mrmsg_t*        m_lastMsg;
-	mrmailbox_t*    m_mailbox;
-
-	/* private */
+	char*           m_name;    /* NULL if unset */
+	mrmsg_t*        m_lastMsg; /* NULL if unset */
+	mrmailbox_t*    m_mailbox; /* always set */
 	int             m_refcnt;
-
 } mrchat_t;
 
 
 typedef struct mrchatlist_t
 {
-	/* public read */
 	carray*      m_chats; /* contains mrchat_t objects */
 	mrmailbox_t* m_mailbox;
 } mrchatlist_t;
 
 
-/* public methods */
 void          mrchat_unref                 (mrchat_t*);
 mrmsg_t*      mrchat_get_last_msg          (mrchat_t*); /* result must be unref'd, as an alternative, you can use m_lastMsg directly */
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
@@ -80,7 +74,8 @@ size_t        mrchatlist_get_cnt           (mrchatlist_t*);
 mrchat_t*     mrchatlist_get_chat          (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
 
 
-/* private methods */
+/*** library-private **********************************************************/
+
 mrchat_t*     mrchat_new_                  (mrmailbox_t*); /* result must be unref'd */
 mrchat_t*     mrchat_ref_                  (mrchat_t*);
 void          mrchat_empty_                (mrchat_t*);

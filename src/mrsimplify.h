@@ -34,13 +34,14 @@ extern "C" {
 #endif
 
 
+/*** library-private **********************************************************/
+
 typedef struct mrsimplify_t
 {
-	/* private */
 	int dummy;
 } mrsimplify_t;
 
-/* private */
+
 mrsimplify_t* mrsimplify_new           ();
 void          mrsimplify_unref         (mrsimplify_t*);
 

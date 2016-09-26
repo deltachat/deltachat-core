@@ -39,13 +39,10 @@ extern "C" {
 
 typedef struct mrcontact_t
 {
-	/* the data should be read only and are valid until the object is Release()'d.
-	unset strings are set to NULL. */
 	uint32_t            m_id;
 	char*               m_name;  /* != NULL, however, may be empty */
 	char*               m_email; /* != NULL */
 	mrmailbox_t*        m_mailbox;
-
 } mrcontact_t;
 
 
@@ -55,7 +52,9 @@ void         mrcontact_unref           (mrcontact_t*);
 int          mrcontact_load_from_db    (mrcontact_t*, uint32_t id);
 void         mrcontact_empty           (mrcontact_t*);
 
-/* private tools */
+
+/*** library-private **********************************************************/
+
 size_t       mr_get_contact_cnt_       (mrmailbox_t*); /* private, user shall use mrmailbox_get_contact_cnt() */
 
 

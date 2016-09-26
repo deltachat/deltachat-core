@@ -86,7 +86,7 @@ void mrmsg_empty(mrmsg_t* ths)
 
 
 
-int mrmsg_set_msg_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
+int mrmsg_set_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 {
 	mrmsg_empty(ths);
 

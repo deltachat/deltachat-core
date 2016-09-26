@@ -58,8 +58,6 @@ extern "C" {
 
 typedef struct mrmsg_t
 {
-	/* public read, unset strings are set to NULL. */
-
 	uint32_t      m_id;
 	uint32_t      m_from_id;   /* contact, 0 = self */
 	uint32_t      m_chat_id;   /* the chat, the message belongs to */
@@ -67,11 +65,10 @@ typedef struct mrmsg_t
 
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
-	char*         m_msg;       /* meaning dedpends on m_type */
+	char*         m_msg;       /* meaning dedpends on m_type, NULL if unset */
 
 	mrmailbox_t*  m_mailbox;
 
-	/* private */
 	int           m_refcnt;
 } mrmsg_t;
 
@@ -82,19 +79,19 @@ typedef struct mrmsglist_t
 } mrmsglist_t;
 
 
-/* public */
 void         mrmsg_unref             (mrmsg_t*);
 
 #define      MR_UNWRAP 0x01
 char*        mrmsg_get_summary       (mrmsg_t*, long flags); /* the result should be free()'d */
 
 
-/* private */
+/*** library-private **********************************************************/
+
 mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 #define      MR_MSG_FIELDS " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg " /* we use a define for easier string concatenation */
-int          mrmsg_set_msg_from_stmt (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+int          mrmsg_set_from_stmt    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 mrmsglist_t* mrmsglist_new           (void);
 void         mrmsglist_unref         (mrmsglist_t*);

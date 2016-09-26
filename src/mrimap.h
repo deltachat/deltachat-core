@@ -33,7 +33,8 @@ extern "C" {
 #endif
 
 
-/* private IMAP thread command */
+/*** library-private **********************************************************/
+
 #define MR_THREAD_NOTALLOCATED  0
 #define MR_THREAD_INIT         10
 #define MR_THREAD_CONNECT      20
@@ -44,14 +45,12 @@ extern "C" {
 
 typedef struct mrimapthreadval_t
 {
-	/* private */
 	mailimap*    m_imap;
 } mrimapthreadval_t;
 
 
 typedef struct mrimap_t
 {
-	/* private */
 	mrmailbox_t*          m_mailbox;
 	const mrloginparam_t* m_loginParam;
 
@@ -65,7 +64,6 @@ typedef struct mrimap_t
 } mrimap_t;
 
 
-/* private */
 mrimap_t* mrimap_new               (mrmailbox_t*);
 void      mrimap_unref             (mrimap_t*);
 

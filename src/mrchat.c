@@ -110,7 +110,7 @@ static int mrchat_set_chat_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_lastMsg   = mrmsg_new(ths->m_mailbox);
-	mrmsg_set_msg_from_stmt(ths->m_lastMsg, row, row_offset);
+	mrmsg_set_from_stmt(ths->m_lastMsg, row, row_offset);
 
 	if( ths->m_name == NULL || ths->m_lastMsg == NULL || ths->m_lastMsg->m_msg == NULL ) {
 		return 0; /* error */
@@ -405,7 +405,7 @@ mrmsglist_t* mrchat_get_msgs_by_index(mrchat_t* ths, size_t index, size_t amount
 			while( sqlite3_step(stmt) == SQLITE_ROW )
 			{
 				mrmsg_t* msg = mrmsg_new(ths->m_mailbox);
-				if( msg && mrmsg_set_msg_from_stmt(msg, stmt, 0) ) {
+				if( msg && mrmsg_set_from_stmt(msg, stmt, 0) ) {
 					carray_add(ret->m_msgs, (void*)msg, NULL);
 				}
 			}

@@ -33,13 +33,15 @@ extern "C" {
 #endif
 
 
+/*** library-private **********************************************************/
+
 #include <sqlite3.h>
 #include <libetpan/libetpan.h>
 #include <pthread.h>
 typedef struct mrmailbox_t mrmailbox_t; /*forward declaration*/
 
 
-/* predefined statements, private */
+/* predefined statements */
 enum
 {
 	 BEGIN_transaction = 0 /* must be first */
@@ -69,17 +71,16 @@ enum
 
 typedef struct mrsqlite3_t
 {
-	/* private, prepared statements - this is the favourite way for the caller to use SQLite */
+	/* prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 
-	/* private, m_sqlite is the database given as dbfile to Open() */
+	/* m_sqlite is the database given as dbfile to Open() */
 	char*         m_dbfile; /* may be NULL */
 	sqlite3*      m_cobj;
 
-	/* private, helper for MrSqlite3Transaction */
+	/* helper for MrSqlite3Transaction */
 	int           m_transactionCount;
 
-	/* private */
 	mrmailbox_t*  m_mailbox;
 
 	/* the user must make sure, only one thread uses sqlite at the same time!
@@ -88,7 +89,6 @@ typedef struct mrsqlite3_t
 } mrsqlite3_t;
 
 
-/* private */
 mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
 void          mrsqlite3_unref            (mrsqlite3_t*);
 int           mrsqlite3_open             (mrsqlite3_t*, const char* dbfile);

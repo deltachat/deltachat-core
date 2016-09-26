@@ -48,17 +48,12 @@ extern "C" {
 
 typedef struct mrmailbox_t
 {
-	/* public read */
 	mrloginparam_t* m_loginParam;
-
-	/* private */
 	mrimap_t*       m_imap;
 	mrsqlite3_t*    m_sql;
-
 } mrmailbox_t;
 
 
-/* public */
 mrmailbox_t*         mrmailbox_new                  ();
 void                 mrmailbox_unref                (mrmailbox_t*);
 
@@ -104,7 +99,9 @@ int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* k
 char*                mrmailbox_get_db_file          (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 
-/* private */
+
+/*** library-private **********************************************************/
+
 void                 mrmailbox_receive_imf_         (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
 
 

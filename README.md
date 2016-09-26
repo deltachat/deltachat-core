@@ -69,11 +69,11 @@ servers with undefined backgrounds.
 
 Some hints:
 
-- Regard the header files in the `src`-directory as a documentation; we've
-  marked the parts that can be used as "public" there.
+- Regard the header files in the `src`-directory as a documentation; mrmailbox.h
+  is a good starting point
 
-- Functions ending with an underscore should be treated as library-private and
-  should normally not be used by the library user.
+- Headers may cointain headlines as "library-private" - stull following there
+  is not meant to be used by the library user.
 
 - For objects, C-structures are used.  If not mentioned otherwise, you can
   read the members here directly.
