@@ -81,7 +81,6 @@ void mrcontact_empty(mrcontact_t* ths)
 int mrcontact_load_from_db(mrcontact_t* ths, uint32_t contact_id)
 {
 	int           success = 0;
-	char*         q;
 	sqlite3_stmt* stmt;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
@@ -90,11 +89,12 @@ int mrcontact_load_from_db(mrcontact_t* ths, uint32_t contact_id)
 
 	mrcontact_empty(ths);
 
-	q=sqlite3_mprintf("SELECT id, name, email FROM contacts WHERE id=%i;", contact_id);
-	stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q);
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_contact_i,
+		"SELECT id, name, email FROM contacts WHERE id=?;");
 	if( stmt == NULL ) {
 		goto LoadFromDb_Cleanup;
 	}
+	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto LoadFromDb_Cleanup;
@@ -112,13 +112,6 @@ int mrcontact_load_from_db(mrcontact_t* ths, uint32_t contact_id)
 
 	/* cleanup */
 LoadFromDb_Cleanup:
-	if( q ) {
-		sqlite3_free(q);
-	}
-
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
 
 	return success;
 }

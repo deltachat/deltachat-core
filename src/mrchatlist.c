@@ -88,7 +88,6 @@ mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
 int mrchatlist_load_from_db(mrchatlist_t* ths)
 {
 	int           success = 0;
-	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
@@ -98,8 +97,8 @@ int mrchatlist_load_from_db(mrchatlist_t* ths)
 	mrchatlist_empty(ths);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	q = sqlite3_mprintf(MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
-	stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q);
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_chats,
+		MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
 	if( stmt==NULL ) {
 		goto GetChatList_Cleanup;
 	}
@@ -116,13 +115,5 @@ int mrchatlist_load_from_db(mrchatlist_t* ths)
 
 	/* cleanup */
 GetChatList_Cleanup:
-	if( q ) {
-		sqlite3_free(q);
-	}
-
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
-
 	return success;
 }

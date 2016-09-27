@@ -376,7 +376,6 @@ mrmsglist_t* mrchat_get_msgs_by_index(mrchat_t* ths, size_t index, size_t amount
 {
 	int           success = 0;
 	mrmsglist_t*  ret = NULL;
-	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if( ths==NULL ) {
@@ -391,11 +390,12 @@ mrmsglist_t* mrchat_get_msgs_by_index(mrchat_t* ths, size_t index, size_t amount
 			}
 
 			/* query */
-			q = sqlite3_mprintf("SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=%i ORDER BY m.timestamp;", ths->m_id);
-			stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q);
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_msg_i,
+				"SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=? ORDER BY m.timestamp;");
 			if( stmt == NULL ) {
 				goto ListMsgs_Cleanup;
 			}
+			sqlite3_bind_int(stmt, 1, ths->m_id);
 
 			while( sqlite3_step(stmt) == SQLITE_ROW )
 			{
@@ -410,13 +410,8 @@ mrmsglist_t* mrchat_get_msgs_by_index(mrchat_t* ths, size_t index, size_t amount
 
 			/* cleanup */
 		ListMsgs_Cleanup:
-			if( q ) {
-				sqlite3_free(q);
-			}
 
-			if( stmt ) {
-				sqlite3_finalize(stmt);
-			}
+			/* (nothing to cleanup at the moment) */
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE: No return until unlock! */
 
