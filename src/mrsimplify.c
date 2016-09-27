@@ -119,10 +119,16 @@ static int mr_is_quoted_headline(const char* buf)
 {
 	/* This function may be called for the line _directly_ before a quote.
 	The function checks if the line contains sth. like "On 01.02.2016, xy@z wrote:" in various languages.
-	Currently, we simply check if the last character is a ':'.
-	(we could also check for the existance of several digits or for the existance of `@` (however, the may be headlines not mentioning the address) */
+	- Currently, we simply check if the last character is a ':'.
+	- Checking for the existance of an email address may fail (headlines may show the user's name instead of the address) */
 
 	int buf_len = strlen(buf);
+
+	if( buf_len > 80 ) {
+		return 0; /* the buffer is too long to be a quoted headline (some mailprograms (eg. "Mail" from Stock Android)
+		          forget to insert a line break between the answer and the quoted headline ...)) */
+	}
+
 	if( buf_len > 0 && buf[buf_len-1] == ':' ) {
 		return 1; /* the buffer is a quoting headline in the meaning described above) */
 	}
