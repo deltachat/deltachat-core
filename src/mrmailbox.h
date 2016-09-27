@@ -55,11 +55,14 @@ typedef struct mrmailbox_t
 } mrmailbox_t;
 
 
+/* mrmailbox_new() creates a new mailbox object.  After creation it is usually
+opened, connected and mails are fetched; the the corresponding functions below.
+After usage, the mailbox object must be freed using mrmailbox_unref(). */
 mrmailbox_t*         mrmailbox_new                  ();
 void                 mrmailbox_unref                (mrmailbox_t*);
 
-/* public open/close a mailbox object, if the given file does not exist, it is created
-and can be set up using SetConfig() and Connect() afterwards.
+/* open/close a mailbox object, if the given file does not exist, it is created
+and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile);
 void                 mrmailbox_close                (mrmailbox_t*);
@@ -70,33 +73,33 @@ ImportFile() always imports a single file, publiuc */
 int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
 int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
 
-/* empty all tables but leaves server configuration, public */
+/* empty all tables but leaves server configuration. */
 int                  mrmailbox_empty_tables         (mrmailbox_t*);
 
-/* connect to the mailbox: errors are received asynchronously. public. */
+/* connect to the mailbox.  usually, at least here, mrmailbox will create a working thread. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
 
-/* iterate contacts. Public. */
+/* Iterate contacts. */
 size_t               mrmailbox_get_contact_cnt      (mrmailbox_t*);
 mrcontact_t*         mrmailbox_get_contact_by_index (mrmailbox_t*, size_t i);
 
-/* iterate chats. Public. */
+/* Iterate chats. */
 size_t               mrmailbox_get_chat_cnt         (mrmailbox_t*);
 mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
-/* get messages (aka updates) in a given timestamp */
+/* Get messages (aka updates) in a given period. */
 mrmsglist_t*         mrmailbox_get_messages         (mrmailbox_t*, time_t, time_t); /* the result must be unref'd */
 
-/* handle configurations. Public. */
+/* Handle configurations. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
-/* Misc. Public. */
+/* Misc. */
 char*                mrmailbox_get_db_file          (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 
