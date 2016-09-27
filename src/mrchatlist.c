@@ -75,12 +75,20 @@ void mrchatlist_empty(mrchatlist_t* ths)
 
 size_t mrchatlist_get_cnt(mrchatlist_t* ths)
 {
+	if( ths == NULL || ths->m_chats == NULL ) {
+		return 0; /* error */
+	}
+
 	return (size_t)carray_count(ths->m_chats);
 }
 
 
 mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
 {
+	if( ths == NULL || ths->m_chats == NULL || index >= (size_t)carray_count(ths->m_chats) ) {
+		return 0; /* error */
+	}
+
 	return mrchat_ref((mrchat_t*)carray_get(ths->m_chats, index));
 }
 
