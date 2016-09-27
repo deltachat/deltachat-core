@@ -124,8 +124,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 {
 	uint32_t row_id = 0;
 
-	sqlite3_stmt* s = ths->m_mailbox->m_sql->m_pd[SELECT_FROM_contacts_e];
-	sqlite3_reset(s);
+	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_contacts_e, "SELECT id, name FROM contacts WHERE email=?;");
 	sqlite3_bind_text(s, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) == SQLITE_ROW )
 	{
@@ -137,7 +136,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 			char* display_name_dec = mr_decode_header_string(display_name_enc);
 			if( display_name_dec )
 			{
-				sqlite3_stmt* s = ths->m_mailbox->m_sql->m_pd[UPDATE_contacts_ni];
+				sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_contacts_ni, "UPDATE contacts SET name=? WHERE id=?;");
 				sqlite3_bind_text(s, 1, display_name_dec, -1, SQLITE_STATIC);
 				sqlite3_bind_int (s, 2, row_id);
 				sqlite3_step     (s);
@@ -150,8 +149,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 	{
 		char* display_name_dec = mr_decode_header_string(display_name_enc); /* may be NULL (if display_name_enc is NULL) */
 
-		sqlite3_stmt* s = ths->m_mailbox->m_sql->m_pd[INSERT_INTO_contacts_ne];
-		sqlite3_reset(s);
+		sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_contacts_ne, "INSERT INTO contacts (name, email) VALUES(?, ?);");
 		sqlite3_bind_text(s, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
 		sqlite3_bind_text(s, 2, addr_spec,    -1, SQLITE_STATIC);
 		if( sqlite3_step(s) == SQLITE_DONE )
@@ -369,8 +367,8 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 		{
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, part_i);
 
-			s = ths->m_mailbox->m_sql->m_pd[INSERT_INTO_msg_mcfttsmm];
-			sqlite3_reset(s);
+			s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msg_mcfttsmm,
+				"INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg,msg_raw) VALUES (?,?,?, ?,?,?, ?,?);");
 			sqlite3_bind_text (s, 1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (s, 2, chat_id);
 			sqlite3_bind_int  (s, 3, contact_id_from);
@@ -386,7 +384,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			dblocal_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
 
 			if( contact_ids_to ) {
-				s = ths->m_mailbox->m_sql->m_pd[INSERT_INTO_msg_to_mc];
+				s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msg_to_mc, "INSERT INTO msg_to (msg_id, contact_id) VALUES (?,?);");
 				icnt = carray_count(contact_ids_to);
 				for( i = 0; i < icnt; i++ ) {
 					sqlite3_reset(s);

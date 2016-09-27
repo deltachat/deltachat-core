@@ -148,8 +148,7 @@ size_t mr_get_msg_cnt_(mrmailbox_t* mailbox) /* static function */
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_msg];
-	sqlite3_reset (s);
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg, "SELECT COUNT(*) FROM msg;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
 		mr_log_error("mr_get_msg_cnt() failed.");
@@ -164,8 +163,7 @@ int mr_message_id_exists(mrmailbox_t* mailbox, const char* rfc724_mid) /* static
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* s = mailbox->m_sql->m_pd[SELECT_id_FROM_msg_m];
-	sqlite3_reset (s);
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
 	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		return 0; /* record does not exist */

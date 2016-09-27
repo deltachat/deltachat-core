@@ -230,8 +230,10 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	s = mailbox->m_sql->m_pd[SELECT_COUNT_FROM_chats];
-	sqlite3_reset (s);
+	if( (s=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats;"))==NULL ) {
+		return 0;
+	}
+
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
 		mr_log_error("mr_get_chat_cnt() failed.");

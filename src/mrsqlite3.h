@@ -102,6 +102,7 @@ char*         mrsqlite3_get_config       (mrsqlite3_t*, const char* key, const c
 int32_t       mrsqlite3_get_config_int   (mrsqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
+sqlite3_stmt* mrsqlite3_predefine        (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
 sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
 int           mrsqlite3_execute_         (mrsqlite3_t*, const char* sql);
 int           mrsqlite3_table_exists_    (mrsqlite3_t*, const char* name);
