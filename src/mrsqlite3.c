@@ -108,28 +108,28 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 	/* Init the tables, if not yet done
 	NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
 	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */
-	if( !mrsqlite3_table_exists_(ths, "contacts") )
+	if( !mrsqlite3_table_exists(ths, "contacts") )
 	{
-		mrsqlite3_execute_(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		mrsqlite3_execute_(ths, "CREATE INDEX config_index1 ON config (keyname);");
+		mrsqlite3_execute(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+		mrsqlite3_execute(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-		mrsqlite3_execute_(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
-		mrsqlite3_execute_(ths, "CREATE INDEX contacts_index1 ON contacts (email);");
+		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
+		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (email);");
 
-		mrsqlite3_execute_(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
-		mrsqlite3_execute_(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
-		mrsqlite3_execute_(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
+		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
+		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		mrsqlite3_execute_(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT, msg_raw TEXT);"); /* msg_raw is mainly for debugging purposes */
-		mrsqlite3_execute_(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute_(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
-		mrsqlite3_execute_(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
-		mrsqlite3_execute_(ths, "CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
-		mrsqlite3_execute_(ths, "CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
+		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT, msg_raw TEXT);"); /* msg_raw is mainly for debugging purposes */
+		mrsqlite3_execute(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
+		mrsqlite3_execute(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
+		mrsqlite3_execute(ths, "CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
+		mrsqlite3_execute(ths, "CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
 
-		if( !mrsqlite3_table_exists_(ths, "config") || !mrsqlite3_table_exists_(ths, "contacts")
-		 || !mrsqlite3_table_exists_(ths, "chats") || !mrsqlite3_table_exists_(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists_(ths, "msg") )
+		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
+		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
+		 || !mrsqlite3_table_exists(ths, "msg") )
 		{
 			mrsqlite3_log_error(ths);
 			mr_log_error("mrsqlite3_open(): Cannot create tables.");
@@ -261,7 +261,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 }
 
 
-int mrsqlite3_execute_(mrsqlite3_t* ths, const char* querystr)
+int mrsqlite3_execute(mrsqlite3_t* ths, const char* querystr)
 {
 	int           ret = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -291,7 +291,7 @@ sqlite3_execute_Error:
 }
 
 
-int mrsqlite3_table_exists_(mrsqlite3_t* ths, const char* name)
+int mrsqlite3_table_exists(mrsqlite3_t* ths, const char* name)
 {
 	int           ret = 0;
 	char*         querystr = NULL;
