@@ -21,8 +21,8 @@
  *
  * File:    mrmailbox.h
  * Authors: Björn Petersen
- * Purpose: MrMailbox represents a single mailbox, normally, typically is only
- *          one instance of this class present.
+ * Purpose: MrMailbox represents a single mailbox, normally, typically only
+ *          one instance of this class is present.
  *          Each mailbox is linked to an IMAP/POP3 account and uses a separate
  *          SQLite database for offline functionality and for mailbox-related
  *          settings.
@@ -49,6 +49,7 @@ extern "C" {
 
 typedef struct mrmailbox_t
 {
+	/* members should be treated as library private */
 	mrloginparam_t* m_loginParam;
 	mrimap_t*       m_imap;
 	mrsqlite3_t*    m_sql;
