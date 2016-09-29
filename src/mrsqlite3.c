@@ -23,6 +23,14 @@
  * Authors: Björn Petersen
  * Purpose: MrSqlite3 wraps around SQLite
  *
+ *******************************************************************************
+ *
+ * NB: In general, function names ending with a `_` are private functions and
+ * should not be called directly from outside the library.
+ * For functions with database access, this generally also implies that _no_
+ * locking takes place inside the functions!  So the caller must make sure, the
+ * database is locked as needed.
+ *
  ******************************************************************************/
 
 

@@ -27,6 +27,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "mrmailbox.h"
 #include "mrcontact.h"
 #include "mrtools.h"
@@ -66,19 +67,15 @@ void mrcontact_empty(mrcontact_t* ths)
 		return; /* error */
 	}
 
-	if( ths->m_name ) {
-		free(ths->m_name);
-		ths->m_name = NULL;
-	}
+	free(ths->m_name); /* it is safe to call free(NULL) */
+	ths->m_name = NULL;
 
-	if( ths->m_email ) {
-		free(ths->m_email);
-		ths->m_email = NULL;
-	}
+	free(ths->m_email);
+	ths->m_email = NULL;
 }
 
 
-int mrcontact_load_from_db(mrcontact_t* ths, uint32_t contact_id)
+int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -141,4 +138,50 @@ size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
 	}
 
 	return sqlite3_column_int(s, 0); /* success */
+}
+
+
+void mr_normalize_name(char* full_name)
+{
+	/* function ...
+	- converts names as "Petersen, Björn" to "Björn Petersen"
+	- trims the resulting string
+	- modifies the given buffer; so the resulting string must not be longer than the original string. */
+
+	if( full_name == NULL ) {
+		return; /* error, however, this can be treated as documented behaviour */
+	}
+
+	char* p1 = strchr(full_name, ',');
+	if( p1 ) {
+		*p1 = 0;
+		char* last_name  = safe_strdup(full_name);
+		char* first_name = safe_strdup(p1+1);
+		mr_trim(last_name);
+		mr_trim(first_name);
+		strcpy(full_name, first_name);
+		strcat(full_name, " ");
+		strcat(full_name, last_name);
+	}
+	else {
+		mr_trim(full_name);
+	}
+}
+
+
+char* mr_get_first_name(const char* full_name)
+{
+	/* check for the name before the first space */
+	char* first_name = safe_strdup(full_name);
+	char* p1 = strchr(first_name, ' ');
+	if( p1 ) {
+		*p1 = 0;
+		mr_rtrim(first_name);
+		if( first_name[0]  == 0 ) { /*empty result? use the original string in this case */
+			free(first_name);
+			first_name = safe_strdup(full_name);
+		}
+	}
+
+	return first_name; /* the result must be free()'d */
 }

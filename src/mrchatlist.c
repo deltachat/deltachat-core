@@ -93,7 +93,7 @@ mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
 }
 
 
-int mrchatlist_load_from_db(mrchatlist_t* ths)
+int mrchatlist_load_from_db_(mrchatlist_t* ths)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;

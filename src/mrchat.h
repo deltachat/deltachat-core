@@ -69,7 +69,7 @@ void          mrchat_send_msg              (mrchat_t*, const char* text);
 mrchat_t*     mrchat_new                   (mrmailbox_t*); /* result must be unref'd */
 mrchat_t*     mrchat_ref                   (mrchat_t*);
 void          mrchat_empty                 (mrchat_t*);
-int           mrchat_load_from_db          (mrchat_t*, const char* name, uint32_t id);
+int           mrchat_load_from_db_         (mrchat_t*, const char* name, uint32_t id);
 
 #define       MR_CHAT_FIELDS               " c.id,c.type,c.name "
 int           mrchat_set_from_stmt         (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */

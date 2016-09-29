@@ -47,11 +47,15 @@ char*   mr_timestamp_to_str        (time_t); /* the return value must be free()'
 char*   safe_strdup                (const char*); /* returns empty string if NULL is given, else same as strdup() */
 char*   mr_strlower                (const char*); /* the result must be free()'d */
 char*   mr_decode_header_string    (const char* in); /* the result must be free()'d */
+
 void    mr_unwrap_str              (char*); /* unwrap lines in the given buffer */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
+void    mr_ltrim                   (char*);
+void    mr_rtrim                   (char*);
+void    mr_trim                    (char*);
+
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
-
 
 #define MR_INVALID_TIMESTAMP       (-1)
 time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */

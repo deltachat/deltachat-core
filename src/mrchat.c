@@ -118,7 +118,7 @@ int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
 }
 
 
-int mrchat_load_from_db(mrchat_t* ths, const char* name, uint32_t id)
+int mrchat_load_from_db_(mrchat_t* ths, const char* name, uint32_t id)
 {
 	int           success = 0;
 	char*         q = NULL;
@@ -294,7 +294,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 
 	/* get fine chat name */
 	contact = mrcontact_new(mailbox);
-	if( !mrcontact_load_from_db(contact, contact_id) ) {
+	if( !mrcontact_load_from_db_(contact, contact_id) ) {
 		goto CreateNormalChat_Cleanup;
 	}
 

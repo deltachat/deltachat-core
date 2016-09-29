@@ -89,7 +89,7 @@ void         mrmsg_empty             (mrmsg_t*);
 int          mrmsg_set_from_stmt     (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 size_t       mr_get_msg_cnt_         (mrmailbox_t*);
-int          mr_message_id_exists    (mrmailbox_t*, const char* rfc724_mid);
+int          mr_message_id_exists_   (mrmailbox_t*, const char* rfc724_mid);
 
 
 #ifdef __cplusplus

@@ -136,6 +136,8 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 			char* display_name_dec = mr_decode_header_string(display_name_enc);
 			if( display_name_dec )
 			{
+				mr_normalize_name(display_name_dec);
+
 				sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_contacts_ni, "UPDATE contacts SET name=? WHERE id=?;");
 				sqlite3_bind_text(s, 1, display_name_dec, -1, SQLITE_STATIC);
 				sqlite3_bind_int (s, 2, row_id);
@@ -148,6 +150,8 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 	else
 	{
 		char* display_name_dec = mr_decode_header_string(display_name_enc); /* may be NULL (if display_name_enc is NULL) */
+
+		mr_normalize_name(display_name_dec);
 
 		sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_contacts_ne, "INSERT INTO contacts (name, email) VALUES(?, ?);");
 		sqlite3_bind_text(s, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
@@ -341,7 +345,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			}
 		}
 
-		if( mr_message_id_exists(ths->m_mailbox, rfc724_mid) ) {
+		if( mr_message_id_exists_(ths->m_mailbox, rfc724_mid) ) {
 			goto Imf2Msg_Done; /* success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK) */
 		}
 

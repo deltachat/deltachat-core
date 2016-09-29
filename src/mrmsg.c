@@ -110,7 +110,7 @@ char* mrmsg_get_summary(mrmsg_t* ths, long flags)
 	}
 	else {
 		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
-		mrcontact_load_from_db(contact, ths->m_from_id);
+		mrcontact_load_from_db_(contact, ths->m_from_id);
 		if( contact->m_name ) {
 			from = safe_strdup(contact->m_name);
 			mrcontact_unref(contact);
@@ -159,7 +159,7 @@ size_t mr_get_msg_cnt_(mrmailbox_t* mailbox) /* static function */
 }
 
 
-int mr_message_id_exists(mrmailbox_t* mailbox, const char* rfc724_mid) /* static function */
+int mr_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* static function */
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */

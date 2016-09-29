@@ -129,6 +129,51 @@ void mr_remove_cr_chars(char* buf)
 }
 
 
+void mr_ltrim(char* buf)
+{
+	size_t len;
+	const unsigned char* cur;
+
+	if( buf && *buf ) {
+		len = strlen(buf);
+		cur = (const unsigned char*)buf;
+
+		while( *cur && isspace(*cur) ) {
+			cur++; len--;
+		}
+
+		if( (const unsigned char*)buf != cur ) {
+			memmove(buf, cur, len + 1);
+		}
+	}
+}
+
+
+void mr_rtrim(char* buf)
+{
+	size_t len;
+	unsigned char* cur;
+
+	if( buf && *buf ) {
+		len = strlen(buf);
+		cur = (unsigned char*)buf + len - 1;
+
+		while( cur != (unsigned char*)buf && isspace(*cur) ) {
+			--cur, --len;
+		}
+
+		cur[isspace(*cur) ? 0 : 1] = '\0';
+	}
+}
+
+
+void mr_trim(char* buf)
+{
+	mr_ltrim(buf);
+	mr_rtrim(buf);
+}
+
+
 char* mr_decode_header_string(const char* in)
 {
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)

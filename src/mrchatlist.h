@@ -49,7 +49,7 @@ mrchat_t*     mrchatlist_get_chat          (mrchatlist_t*, size_t index); /* res
 
 mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
 void          mrchatlist_empty             (mrchatlist_t*);
-int           mrchatlist_load_from_db      (mrchatlist_t*);
+int           mrchatlist_load_from_db_     (mrchatlist_t*);
 
 
 #ifdef __cplusplus
