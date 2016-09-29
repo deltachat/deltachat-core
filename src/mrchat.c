@@ -46,7 +46,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 	ths->m_mailbox        = mailbox;
 	ths->m_type           = MR_CHAT_UNDEFINED;
 	ths->m_name           = NULL;
-	ths->m_lastMsg        = NULL;
+	ths->m_last_msg       = NULL;
     ths->m_id             = 0;
 
     return ths;
@@ -74,24 +74,14 @@ void mrchat_empty(mrchat_t* ths)
 		return; /* error */
 	}
 
-	if( ths->m_name ) {
-		free(ths->m_name);
-		ths->m_name = NULL;
-	}
+	free(ths->m_name);
+	ths->m_name = NULL;
 
-	if( ths->m_lastMsg ) {
-		mrmsg_unref(ths->m_lastMsg);
-		ths->m_lastMsg = NULL;
-	}
+	mrmsg_unref(ths->m_last_msg);
+	ths->m_last_msg = NULL;
 
 	ths->m_type = MR_CHAT_UNDEFINED;
 	ths->m_id   = 0;
-}
-
-
-mrmsg_t* mrchat_get_last_msg(mrchat_t* ths)
-{
-	return mrmsg_ref(ths->m_lastMsg);
 }
 
 
@@ -107,10 +97,10 @@ int mrchat_set_from_stmt(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_id        =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_lastMsg   = mrmsg_new(ths->m_mailbox);
-	mrmsg_set_from_stmt(ths->m_lastMsg, row, row_offset);
+	ths->m_last_msg  = mrmsg_new(ths->m_mailbox);
+	mrmsg_set_from_stmt(ths->m_last_msg, row, row_offset);
 
-	if( ths->m_name == NULL || ths->m_lastMsg == NULL || ths->m_lastMsg->m_msg == NULL ) {
+	if( ths->m_name == NULL || ths->m_last_msg == NULL || ths->m_last_msg->m_msg == NULL ) {
 		return 0; /* error */
 	}
 
@@ -175,7 +165,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		return NULL; /* error */
 	}
 
-	if( ths->m_type == MR_CHAT_NORMAL || ths->m_type == MR_CHAT_PRIVATE )
+	if( ths->m_type == MR_CHAT_NORMAL || ths->m_type == MR_CHAT_ENCRYPTED )
 	{
 		q1 = sqlite3_mprintf("SELECT c.email FROM chats_contacts cc LEFT JOIN contacts c ON c.id=cc.contact_id WHERE cc.chat_id=%i", ths->m_id);
 		stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, q1);
@@ -214,6 +204,55 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	sqlite3_free(q2);
 
 	return ret? ret : safe_strdup("");
+}
+
+
+char* mrchat_get_summary(mrchat_t* ths)
+{
+	/* The summary is created by the chat, not by the last message.
+	This is because we may want to display drafts here or stuff as
+	"is typing".
+	Also, sth. as "No messages" would not work if the summary comes from a
+	message. */
+
+	char* from = NULL;
+	char* message = NULL;
+
+	if( ths == NULL ) {
+		return safe_strdup("No chat.");
+	}
+
+	if( ths->m_last_msg == NULL ) {
+		return safe_strdup("No messages.");
+	}
+
+	if( ths->m_last_msg->m_from_id == 0 ) {
+		from = safe_strdup("You");
+	}
+	else {
+		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
+		mrcontact_load_from_db_(contact, ths->m_last_msg->m_from_id);
+		if( contact->m_name ) {
+			from = safe_strdup(contact->m_name);
+			mrcontact_unref(contact);
+		}
+		else {
+			from = safe_strdup("Unknown contact");
+		}
+	}
+
+	if( ths->m_last_msg->m_msg ) {
+		message = safe_strdup(ths->m_last_msg->m_msg); /* we do not shorten the message, this can be done by the caller */
+		mr_unwrap_str(message, 160);
+	}
+
+	char* ret;
+	char* temp = sqlite3_mprintf("%s: %s", from, message);
+	ret = safe_strdup(temp);
+	free(from);
+	free(message);
+	sqlite3_free(temp);
+	return ret;
 }
 
 
@@ -372,7 +411,7 @@ uint32_t mr_find_out_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, ca
  ******************************************************************************/
 
 
-mrmsglist_t* mrchat_get_msgs_by_index(mrchat_t* ths, size_t index, size_t amount) /* the caller must unref the result */
+mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t index, size_t amount) /* the caller must unref the result */
 {
 	int           success = 0;
 	mrmsglist_t*  ret = NULL;

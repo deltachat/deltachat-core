@@ -100,43 +100,6 @@ int mrmsg_set_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 }
 
 
-char* mrmsg_get_summary(mrmsg_t* ths, long flags)
-{
-	char* from = NULL;
-	char* message = NULL;
-
-	if( ths->m_from_id == 0 ) {
-		from = safe_strdup("You");
-	}
-	else {
-		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
-		mrcontact_load_from_db_(contact, ths->m_from_id);
-		if( contact->m_name ) {
-			from = safe_strdup(contact->m_name);
-			mrcontact_unref(contact);
-		}
-		else {
-			from = safe_strdup("BadContactId");
-		}
-	}
-
-	if( ths->m_msg ) {
-		message = safe_strdup(ths->m_msg); /* we do not shorten the message, this can be done by the caller */
-		if( flags & MR_UNWRAP ) {
-			mr_unwrap_str(message);
-		}
-	}
-
-	char* ret;
-	char* temp = sqlite3_mprintf("%s: %s", from, message);
-	ret = safe_strdup(temp);
-	free(from);
-	free(message);
-	sqlite3_free(temp);
-	return ret;
-}
-
-
 /*******************************************************************************
  * Static functions
  ******************************************************************************/

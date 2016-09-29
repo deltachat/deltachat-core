@@ -40,8 +40,8 @@ extern "C" {
 
 /* chat type */
 #define MR_CHAT_UNDEFINED    0
-#define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact */
-#define MR_CHAT_PRIVATE    110
+#define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact - the constants must NOT change as they're used in the database, the frontends etc.*/
+#define MR_CHAT_ENCRYPTED  110
 #define MR_CHAT_GROUP      120
 #define MR_CHAT_FEED       130
 
@@ -50,17 +50,17 @@ typedef struct mrchat_t
 {
 	uint32_t        m_id;
 	int             m_type;
-	char*           m_name;    /* NULL if unset */
-	mrmsg_t*        m_lastMsg; /* NULL if unset */
-	mrmailbox_t*    m_mailbox; /* always set */
+	char*           m_name;     /* NULL if unset */
+	mrmsg_t*        m_last_msg; /* NULL if unset */
+	mrmailbox_t*    m_mailbox;  /* always set */
 	int             m_refcnt;
 } mrchat_t;
 
 
 void          mrchat_unref                 (mrchat_t*);
-mrmsg_t*      mrchat_get_last_msg          (mrchat_t*); /* result must be unref'd, as an alternative, you can use m_lastMsg directly */
+char*         mrchat_get_summary           (mrchat_t*); /* a string typically shown in the chats overview, must be free()'d */
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
-mrmsglist_t*  mrchat_get_msgs_by_index     (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
+mrmsglist_t*  mrchat_get_msgs              (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
 void          mrchat_send_msg              (mrchat_t*, const char* text);
 
 

@@ -77,8 +77,13 @@ char* mr_strlower(const char* in) /* the result must be free()'d */
 }
 
 
-void mr_unwrap_str(char* buf)
+void mr_unwrap_str(char* buf, int approx_bytes)
 {
+	/* Function unwraps the given string and removes unnecessary whitespace.
+	Function stops processing after approx_bytes are processed.
+	(as we're using UTF-8, this is not always the lenght! Moreover, we cannot split the string at any place for the same reason).
+	*/
+
 	int lastIsCharacter = 0;
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	while( *p1 ) {
@@ -87,6 +92,10 @@ void mr_unwrap_str(char* buf)
 		}
 		else {
 			if( lastIsCharacter ) {
+				if( ((uintptr_t)p1 - (uintptr_t)buf) > (uintptr_t)approx_bytes ) {
+					*p1 = 0; /* approx_len approximately reached (take care when wraping at non-spaces - we're using UTF-8 characters)*/
+					break;
+				}
 				lastIsCharacter = 0;
 				*p1 = ' ';
 			}

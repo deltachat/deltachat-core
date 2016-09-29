@@ -48,7 +48,7 @@ char*   safe_strdup                (const char*); /* returns empty string if NUL
 char*   mr_strlower                (const char*); /* the result must be free()'d */
 char*   mr_decode_header_string    (const char* in); /* the result must be free()'d */
 
-void    mr_unwrap_str              (char*); /* unwrap lines in the given buffer */
+void    mr_unwrap_str              (char*, int approx_bytes); /* unwrap lines in the given buffer */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_ltrim                   (char*);
 void    mr_rtrim                   (char*);

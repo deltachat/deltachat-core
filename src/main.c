@@ -213,9 +213,9 @@ int main(int argc, char ** argv)
 							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
 						free(temp);
 
-						if( chat->m_lastMsg ) {
-							temp = mrmsg_get_summary(chat->m_lastMsg, 0);
-							temp2 = mr_timestamp_to_str(chat->m_lastMsg->m_timestamp);
+						if( chat->m_last_msg ) {
+							temp = mrchat_get_summary(chat);
+							temp2 = mr_timestamp_to_str(chat->m_last_msg->m_timestamp);
 								printf("%s [%s]\n", temp, temp2);
 							free(temp2);
 							free(temp);
@@ -254,20 +254,18 @@ int main(int argc, char ** argv)
 			/* show chat */
 			if( sel_chat ) {
 				printf("Chat name: %s\n", sel_chat->m_name);
-				mrmsglist_t* msglist = mrchat_get_msgs_by_index(sel_chat, 0, 100);
+				mrmsglist_t* msglist = mrchat_get_msgs(sel_chat, 0, 100);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					printf("--------------------------------------------------------------------------------\n");
 					for( i = 0; i < cnt; i++ )
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
-						char *temp, *temp2;
+						char *temp2;
 
-						temp = mrmsg_get_summary(msg, 0);
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("%s [%s]\n", temp, temp2);
+							printf("%s [%s]\n", msg->m_msg, temp2);
 						free(temp2);
-						free(temp);
 						printf("--------------------------------------------------------------------------------\n");
 					}
 					mrmsglist_unref(msglist);

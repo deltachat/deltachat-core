@@ -52,6 +52,7 @@ extern "C" {
 #define MR_IN_UNREAD       1 /* incoming message not read */
 #define MR_IN_READ         3 /* incoming message read */
 #define MR_OUT_PENDING     5 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
+#define MR_OUT_ERROR       6 /* unrecoverable error (recoverable errors result in pending messages) */
 #define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered to server (one checkmark) */
 #define MR_OUT_READ        9 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 
@@ -73,15 +74,12 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
+mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 void         mrmsg_unref             (mrmsg_t*);
-
-#define      MR_UNWRAP 0x01
-char*        mrmsg_get_summary       (mrmsg_t*, long flags); /* the result should be free()'d */
 
 
 /*** library-private **********************************************************/
 
-mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 
