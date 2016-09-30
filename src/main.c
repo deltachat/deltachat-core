@@ -207,18 +207,21 @@ int main(int argc, char ** argv)
 					for( i = 0; i < cnt; i++ )
 					{
 						mrchat_t* chat = (mrchat_t*)carray_get(chatlist->m_chats, i);
-						char *temp, *temp2;
+						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
 							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
 						free(temp);
 
 						if( chat->m_last_msg ) {
-							temp = mrchat_get_summary(chat);
-							temp2 = mr_timestamp_to_str(chat->m_last_msg->m_timestamp);
-								printf("%s [%s]\n", temp, temp2);
-							free(temp2);
-							free(temp);
+							mrpoortext_t* temp2 = mrchat_get_summary(chat);
+								if( temp2->m_title ) { printf("%s(%i): ", temp2->m_title, temp2->m_title_meaning); }
+								if( temp2->m_text ) { printf("%s", temp2->m_text); }
+							mrpoortext_unref(temp2);
+
+							char* temp3 = mr_timestamp_to_str(chat->m_last_msg->m_timestamp);
+								printf(" [%s]\n", temp3);
+							free(temp3);
 						}
 						else {
 							printf("No messages.\n");

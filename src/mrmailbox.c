@@ -21,7 +21,7 @@
  *
  * File:    mrmailbox.c
  * Authors: Björn Petersen
- * Purpose: MrMailbox represents a single mailbox, see header for details.
+ * Purpose: mrmailbox_t represents a single mailbox, see header for details.
  *
  ******************************************************************************/
 

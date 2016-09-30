@@ -21,7 +21,7 @@
  *
  * File:    mrchat.h
  * Authors: Björn Petersen
- * Purpose: MrChat represents a single chat - this is a conversation with
+ * Purpose: mrchat_t represents a single chat - this is a conversation with
  *          a single user or a group
  *
  ******************************************************************************/
@@ -36,6 +36,8 @@ extern "C" {
 
 #include "mrmsg.h"
 #include "mrmsglist.h"
+
+typedef struct mrpoortext_t mrpoortext_t;
 
 
 /* chat type */
@@ -58,7 +60,7 @@ typedef struct mrchat_t
 
 
 void          mrchat_unref                 (mrchat_t*);
-char*         mrchat_get_summary           (mrchat_t*); /* a string typically shown in the chats overview, must be free()'d */
+mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
 mrmsglist_t*  mrchat_get_msgs              (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
 void          mrchat_send_msg              (mrchat_t*, const char* text);

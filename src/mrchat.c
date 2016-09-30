@@ -6,7 +6,7 @@
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any laterMrChat
+ * Foundation, either version 3 of the License, or (at your option) any later
  * version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
@@ -21,7 +21,7 @@
  *
  * File:    mrchat.c
  * Authors: Björn Petersen
- * Purpose: MrChat represents a single chat, see header for details.
+ * Purpose: mrchat_t represents a single chat, see header for details.
  *
  ******************************************************************************/
 
@@ -207,7 +207,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 }
 
 
-char* mrchat_get_summary(mrchat_t* ths)
+mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as
@@ -215,43 +215,44 @@ char* mrchat_get_summary(mrchat_t* ths)
 	Also, sth. as "No messages" would not work if the summary comes from a
 	message. */
 
-	char* from = NULL;
-	char* message = NULL;
+	mrpoortext_t* ret = mrpoortext_new();
+	if( ret == NULL ) {
+		return NULL;
+	}
 
 	if( ths == NULL ) {
-		return safe_strdup("No chat.");
+		ret->m_text = safe_strdup("No chat.");
+		return ret;
 	}
 
 	if( ths->m_last_msg == NULL ) {
-		return safe_strdup("No messages.");
+		ret->m_text = safe_strdup("No messages.");
+		return ret;
 	}
 
 	if( ths->m_last_msg->m_from_id == 0 ) {
-		from = safe_strdup("You");
+		ret->m_title = safe_strdup("You");
+		ret->m_title_meaning = MR_TITLE_USERNAME;
 	}
 	else {
 		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
 		mrcontact_load_from_db_(contact, ths->m_last_msg->m_from_id);
 		if( contact->m_name ) {
-			from = safe_strdup(contact->m_name);
+			ret->m_title = safe_strdup(contact->m_name);
+			ret->m_title_meaning = MR_TITLE_USERNAME;
 			mrcontact_unref(contact);
 		}
 		else {
-			from = safe_strdup("Unknown contact");
+			ret->m_title = safe_strdup("Unknown contact");
+			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
 	}
 
 	if( ths->m_last_msg->m_msg ) {
-		message = safe_strdup(ths->m_last_msg->m_msg); /* we do not shorten the message, this can be done by the caller */
-		mr_unwrap_str(message, 160);
+		ret->m_text = safe_strdup(ths->m_last_msg->m_msg); /* we do not shorten the message, this can be done by the caller */
+		mr_unwrap_str(ret->m_text, 160);
 	}
 
-	char* ret;
-	char* temp = sqlite3_mprintf("%s: %s", from, message);
-	ret = safe_strdup(temp);
-	free(from);
-	free(message);
-	sqlite3_free(temp);
 	return ret;
 }
 

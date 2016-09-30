@@ -21,7 +21,7 @@
  *
  * File:    mrmsg.h
  * Authors: Björn Petersen
- * Purpose: MrMsg represents a single message in a chat.  One E-Mail can
+ * Purpose: mrmsg_t represents a single message in a chat.  One E-Mail can
  *          result in different messages!
  *
  ******************************************************************************/

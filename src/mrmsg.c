@@ -21,7 +21,7 @@
  *
  * File:    mrmsg.c
  * Authors: Björn Petersen
- * Purpose: MrMsg represents a single message, see header for details.
+ * Purpose: mrmsg_t represents a single message, see header for details.
  *
  ******************************************************************************/
 
