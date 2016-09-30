@@ -207,7 +207,17 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 }
 
 
-mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
+int mrchat_get_unread_count(mrchat_t* ths)
+{
+	if( ths == NULL ) {
+		return 0; /* error */
+	}
+
+	return 1; /* TODO */
+}
+
+
+mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as
@@ -250,10 +260,30 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 
 	if( ths->m_last_msg->m_msg ) {
 		ret->m_text = safe_strdup(ths->m_last_msg->m_msg); /* we do not shorten the message, this can be done by the caller */
-		mr_unwrap_str(ret->m_text, 160);
+		mr_unwrap_str(ret->m_text, 160*5); /* 160 characters may take up 5 bytes each */
 	}
 
 	return ret;
+}
+
+
+time_t mrchat_get_last_timestamp(mrchat_t* ths)
+{
+	if( ths == NULL || ths->m_last_msg == NULL ) {
+		return 0; /* error */
+	}
+
+	return ths->m_last_msg->m_timestamp;
+}
+
+
+int mrchat_get_last_state(mrchat_t* ths)
+{
+	if( ths == NULL || ths->m_last_msg == NULL ) {
+		return 0; /* error */
+	}
+
+	return ths->m_last_msg->m_state;
 }
 
 

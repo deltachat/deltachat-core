@@ -60,9 +60,16 @@ typedef struct mrchat_t
 
 
 void          mrchat_unref                 (mrchat_t*);
-mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
 mrmsglist_t*  mrchat_get_msgs              (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
+int           mrchat_get_unread_count      (mrchat_t*);
+
+/* the following functions get information about the last message or draft */
+mrpoortext_t* mrchat_get_last_summary      (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
+time_t        mrchat_get_last_timestamp    (mrchat_t*);
+int           mrchat_get_last_state        (mrchat_t*);
+
+/* sending messages */
 void          mrchat_send_msg              (mrchat_t*, const char* text);
 
 

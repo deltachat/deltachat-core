@@ -22,7 +22,8 @@
  * File:    mrpoortext.h
  * Authors: Björn Petersen
  * Purpose: A line of text that describes eg. the last chat state as
- *          "Draft: Foo" or "You: Foobar"
+ *          "Draft: Foo" or "You: Foobar" (not really _richtext_, therefore
+ *          _poortext_)
  *
  ******************************************************************************/
 
@@ -35,7 +36,7 @@ extern "C" {
 
 
 /* additional, emphasized text */
-#define MR_TITLE_NORMAL    0
+#define MR_TITLE_NORMAL    0 /* the values must not be changes as used directly in the frontend */
 #define MR_TITLE_DRAFT     1
 #define MR_TITLE_USERNAME  2
 

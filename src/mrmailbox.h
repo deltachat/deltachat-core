@@ -27,6 +27,15 @@
  *          SQLite database for offline functionality and for mailbox-related
  *          settings.
  *
+ *******************************************************************************
+ *
+ * NB: Objects returned by mrmailbox_t (or other classes) typically reflect
+ * the state of the system when the objects are _created_ - treat them as if
+ * they're strings. Eg. mrmsg_get_state() does _always_ return the state of the
+ * time the objects is created.
+ * If you want an _updated state_, you have to recreate an objects reflecting
+ * the message - or use methods that explcitly force reloading.
+ *
  ******************************************************************************/
 
 

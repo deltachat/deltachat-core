@@ -210,16 +210,23 @@ int main(int argc, char ** argv)
 						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
-							printf("%i: %s [%s]\n", (int)chat->m_id, chat->m_name, temp);
+							printf("%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
 						if( chat->m_last_msg ) {
-							mrpoortext_t* temp2 = mrchat_get_summary(chat);
+							mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
 								if( temp2->m_title ) { printf("%s(%i): ", temp2->m_title, temp2->m_title_meaning); }
 								if( temp2->m_text ) { printf("%s", temp2->m_text); }
 							mrpoortext_unref(temp2);
 
-							char* temp3 = mr_timestamp_to_str(chat->m_last_msg->m_timestamp);
+							int laststate = mrchat_get_last_state(chat);
+							switch( laststate ) {
+								case MR_OUT_PENDING:   printf(" o"); break;
+								case MR_OUT_DELIVERED: printf(" √"); break;
+								case MR_OUT_READ:      printf(" √√"); break;
+							}
+
+							char* temp3 = mr_timestamp_to_str(mrchat_get_last_timestamp(chat));
 								printf(" [%s]\n", temp3);
 							free(temp3);
 						}

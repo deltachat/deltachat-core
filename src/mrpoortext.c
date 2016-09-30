@@ -21,7 +21,7 @@
  *
  * File:    mrpoortext.c
  * Authors: Björn Petersen
- * Purpose: Texts, see header for details.
+ * Purpose: See header.
  *
  ******************************************************************************/
 
