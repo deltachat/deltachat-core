@@ -55,6 +55,7 @@ extern "C" {
 #include "mrimap.h"
 #include "mrcontact.h"
 #include "mrpoortext.h"
+#include "mrstock.h"
 
 
 typedef struct mrmailbox_t

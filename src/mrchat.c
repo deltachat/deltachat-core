@@ -231,17 +231,17 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 	}
 
 	if( ths == NULL ) {
-		ret->m_text = safe_strdup("No chat.");
+		ret->m_text = safe_strdup("ErrNoChat"); /* should not happen */
 		return ret;
 	}
 
 	if( ths->m_last_msg == NULL ) {
-		ret->m_text = safe_strdup("No messages.");
+		ret->m_text = safe_strdup(mrstock_str(MR_STR_NO_MESSAGES));
 		return ret;
 	}
 
 	if( ths->m_last_msg->m_from_id == 0 ) {
-		ret->m_title = safe_strdup("You");
+		ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 		ret->m_title_meaning = MR_TITLE_USERNAME;
 	}
 	else {
