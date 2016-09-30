@@ -91,7 +91,6 @@ const char* mrstock_str(int id)
 	if( s_obj[id] == NULL && !s_def_strings_added ) {
 		/* init strings */
 		s_def_strings_added = 1;
-		mrstock_add_str(MR_STR_NO_CHAT,     "No chat.");
 		mrstock_add_str(MR_STR_NO_MESSAGES, "No messages.");
 		mrstock_add_str(MR_STR_YOU,         "You");
 	}

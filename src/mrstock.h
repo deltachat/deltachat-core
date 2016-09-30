@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 
-#define MR_STR_NO_CHAT         0 /* the IDs must not change! No gaps, please */
+#define MR_STR_FREE_           0 /* the IDs must not change! No gaps, please. */
 #define MR_STR_NO_MESSAGES     1
 #define MR_STR_YOU             2
 #define MR_STR_COUNT_          3
