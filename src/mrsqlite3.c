@@ -113,6 +113,9 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		goto Open_Error;
 	}
 
+	mrsqlite3_execute(ths, "PRAGMA cache_size=-8192;"); // 8 MB cache (MB is indicated by the negative value, else pages are choosen) (defaults to 2 MB, which may cause cache invalidation on reading larger blobs)
+	mrsqlite3_execute(ths, "PRAGMA page_size=8192;"); // 8 KB page size (defaults to 1 KB on older versions and 4 KB on sqlite >= 3.12.0)
+
 	/* Init the tables, if not yet done
 	NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
 	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */

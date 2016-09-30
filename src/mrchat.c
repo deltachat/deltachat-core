@@ -442,7 +442,7 @@ uint32_t mr_find_out_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, ca
  ******************************************************************************/
 
 
-mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t index, size_t amount) /* the caller must unref the result */
+mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t offset, size_t amount) /* the caller must unref the result */
 {
 	int           success = 0;
 	mrmsglist_t*  ret = NULL;
@@ -461,11 +461,13 @@ mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t index, size_t amount) /* the 
 
 			/* query */
 			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_msg_i,
-				"SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=? ORDER BY m.timestamp;");
+				"SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=? ORDER BY m.timestamp LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
 				goto ListMsgs_Cleanup;
 			}
 			sqlite3_bind_int(stmt, 1, ths->m_id);
+			sqlite3_bind_int(stmt, 2, amount);
+			sqlite3_bind_int(stmt, 3, offset);
 
 			while( sqlite3_step(stmt) == SQLITE_ROW )
 			{
