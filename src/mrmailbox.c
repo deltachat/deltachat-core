@@ -352,20 +352,6 @@ mrcontact_t* mrmailbox_get_contact_by_index(mrmailbox_t* ths, size_t index)
  ******************************************************************************/
 
 
-size_t mrmailbox_get_chat_cnt(mrmailbox_t* ths)
-{
-	size_t ret = 0;
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-
-		ret = mr_get_chat_cnt_(ths);
-
-	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-
-	return ret;
-}
-
-
 mrchatlist_t* mrmailbox_get_chats(mrmailbox_t* ths)
 {
 	int success = 0;
@@ -398,38 +384,6 @@ GetChatsCleanup:
 }
 
 
-mrchat_t* mrmailbox_get_chat_by_name(mrmailbox_t* ths, const char* name)
-{
-	int success = 0;
-	int db_locked = 0;
-	mrchat_t* obj = mrchat_new(ths);
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-	db_locked = 1;
-
-	if( !mrchat_load_from_db_(obj, name, 0) ) {
-		goto GetChatByNameCleanup;
-	}
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-GetChatByNameCleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-	}
-
-	if( success ) {
-		return obj;
-	}
-	else {
-		mrchat_unref(obj);
-		return NULL;
-	}
-}
-
-
 mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
@@ -439,15 +393,15 @@ mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
 
-	if( !mrchat_load_from_db_(obj, NULL, id) ) {
-		goto GetChatByNameCleanup;
+	if( !mrchat_load_from_db_(obj, id) ) {
+		goto cleanup;
 	}
 
 	/* success */
 	success = 1;
 
 	/* cleanup */
-GetChatByNameCleanup:
+cleanup:
 	if( db_locked ) {
 		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	}

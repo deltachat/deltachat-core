@@ -50,14 +50,19 @@ char* mr_get_version_str(void)
 
 char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
 {
+	char* ret;
 	if( s ) {
-		return strdup(s);
+		if( (ret=strdup(s)) == NULL ) {
+			exit(16); /* cannot allocate (little) memory, unrecoverable error */
+		}
 	}
 	else {
-		char* ptr = (char*)malloc(1);
-		ptr[0] = 0;
-		return ptr;
+		if( (ret=(char*)malloc(1)) == NULL ) {
+			exit(17); /* cannot allocate little memory, unrecoverable error */
+		}
+		ret[0] = 0;
 	}
+	return ret;
 }
 
 

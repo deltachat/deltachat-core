@@ -152,7 +152,7 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 	/* prepare statements that are used at different source code positions and/or are always needed.
 	other statements are prepared just-in-time as needed.
 	(we do it when the tables really exists, however, I do not know if sqlite relies on this) */
-	if( !mrsqlite3_predefine(ths, SELECT_value_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
+	if( !mrsqlite3_predefine(ths, SELECT_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
 	{
 		mrsqlite3_log_error(ths);
 		mr_log_error("mrsqlite3_open(): Cannot prepare SQL statements.");
@@ -364,7 +364,7 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 	if( value )
 	{
 		/* insert/update key=value */
-		s = mrsqlite3_predefine(ths, SELECT_value_FROM_config_k, NULL /*predefined on construction*/);
+		s = mrsqlite3_predefine(ths, SELECT_FROM_config_k, NULL /*predefined on construction*/);
 		sqlite3_bind_text (s, 1, key, -1, SQLITE_STATIC);
 		state=sqlite3_step(s);
 		if( state == SQLITE_DONE ) {
@@ -410,7 +410,7 @@ char* mrsqlite3_get_config(mrsqlite3_t* ths, const char* key, const char* def) /
 		return NULL;
 	}
 
-	s = mrsqlite3_predefine(ths, SELECT_value_FROM_config_k, NULL /*predefined on construction*/);
+	s = mrsqlite3_predefine(ths, SELECT_FROM_config_k, NULL /*predefined on construction*/);
 	sqlite3_bind_text(s, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) == SQLITE_ROW )
 	{

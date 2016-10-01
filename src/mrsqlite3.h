@@ -48,23 +48,27 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_value_FROM_config_k
+	,SELECT_FROM_config_k
 	,INSERT_INTO_config_kv
 	,UPDATE_config_vk
 	,DELETE_FROM_config_k
 
 	,SELECT_COUNT_FROM_contacts
-	,SELECT_fields_FROM_contact_i
+	,SELECT_FROM_contacts_i
 	,SELECT_FROM_contacts_e
 	,INSERT_INTO_contacts_ne
 	,UPDATE_contacts_ni
 
 	,SELECT_COUNT_FROM_chats
-	,SELECT_fields_FROM_chats
+	,SELECT_FROM_chatsNmsgs
+	,SELECT_FROM_chats_i
+
+	,SELECT_e_FROM_chats_contacts_WHERE_i
+	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
 
 	,SELECT_COUNT_FROM_msg
-	,SELECT_id_FROM_msg_m
-	,SELECT_fields_FROM_msg_i
+	,SELECT_FROM_msg_m
+	,SELECT_FROM_msg_i
 	,INSERT_INTO_msg_mcfttsmm
 	,INSERT_INTO_msg_to_mc
 

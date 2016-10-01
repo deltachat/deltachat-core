@@ -97,7 +97,7 @@ int main(int argc, char ** argv)
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");
-			printf("chat [<spec>]       list chat/select chat by name or id\n");
+			printf("chat [<spec>]       list chat/select chat by id\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("empty               empty database but server config\n");
 			printf("exit                exit program\n");
@@ -213,26 +213,21 @@ int main(int argc, char ** argv)
 							printf("%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
-						if( chat->m_last_msg ) {
-							mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
-								if( temp2->m_title ) { printf("%s(%i): ", temp2->m_title, temp2->m_title_meaning); }
-								if( temp2->m_text ) { printf("%s", temp2->m_text); }
-							mrpoortext_unref(temp2);
+						mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
+							if( temp2->m_title ) { printf("%s(%i): ", temp2->m_title, temp2->m_title_meaning); }
+							if( temp2->m_text ) { printf("%s", temp2->m_text); }
+						mrpoortext_unref(temp2);
 
-							int laststate = mrchat_get_last_state(chat);
-							switch( laststate ) {
-								case MR_OUT_PENDING:   printf(" o"); break;
-								case MR_OUT_DELIVERED: printf(" √"); break;
-								case MR_OUT_READ:      printf(" √√"); break;
-							}
+						int laststate = mrchat_get_last_state(chat);
+						switch( laststate ) {
+							case MR_OUT_PENDING:   printf(" o"); break;
+							case MR_OUT_DELIVERED: printf(" √"); break;
+							case MR_OUT_READ:      printf(" √√"); break;
+						}
 
-							char* temp3 = mr_timestamp_to_str(mrchat_get_last_timestamp(chat));
-								printf(" [%s]\n", temp3);
-							free(temp3);
-						}
-						else {
-							printf("No messages.\n");
-						}
+						char* temp3 = mr_timestamp_to_str(mrchat_get_last_timestamp(chat));
+							printf(" [%s]\n", temp3);
+						free(temp3);
 
 						printf("================================================================================\n");
 					}
@@ -253,12 +248,7 @@ int main(int argc, char ** argv)
 				/* select a chat (argument 1 = name of chat to select) */
 				arg1++;
 				if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
-				if( atoi(arg1) > 0 ) {
-					sel_chat = mrmailbox_get_chat_by_id(mailbox, atoi(arg1)); /* may be NULL */
-				}
-				else {
-					sel_chat = mrmailbox_get_chat_by_name(mailbox, arg1); /* may be NULL */
-				}
+				sel_chat = mrmailbox_get_chat_by_id(mailbox, atoi(arg1)); /* may be NULL */
 			}
 
 			/* show chat */

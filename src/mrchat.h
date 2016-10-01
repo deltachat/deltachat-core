@@ -64,10 +64,12 @@ char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-add
 mrmsglist_t*  mrchat_get_msgs              (mrchat_t*, size_t index, size_t amount); /* the caller must unref the result */
 int           mrchat_get_unread_count      (mrchat_t*);
 
-/* the following functions get information about the last message or draft */
+/* the following functions get information about the last message or draft;
+the functions only work, if the chat is a part of a chatlist
+(otherwise, for speed reasons, the last message is not loaded) */
 mrpoortext_t* mrchat_get_last_summary      (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
-time_t        mrchat_get_last_timestamp    (mrchat_t*);
-int           mrchat_get_last_state        (mrchat_t*);
+time_t        mrchat_get_last_timestamp    (mrchat_t*); /* typically shown in the chats overview */
+int           mrchat_get_last_state        (mrchat_t*); /* typically shown in the chats overview */
 
 /* sending messages */
 void          mrchat_send_msg              (mrchat_t*, const char* text);
@@ -78,14 +80,10 @@ void          mrchat_send_msg              (mrchat_t*, const char* text);
 mrchat_t*     mrchat_new                   (mrmailbox_t*); /* result must be unref'd */
 mrchat_t*     mrchat_ref                   (mrchat_t*);
 void          mrchat_empty                 (mrchat_t*);
-int           mrchat_load_from_db_         (mrchat_t*, const char* name, uint32_t id);
+int           mrchat_load_from_db_         (mrchat_t*, uint32_t id);
 
 #define       MR_CHAT_FIELDS               " c.id,c.type,c.name "
-int           mrchat_set_from_stmt         (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
-
-#define       MR_GET_CHATS_PREFIX "SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c " \
-						"LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
-#define       MR_GET_CHATS_POSTFIX " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
+int           mrchat_set_from_stmt_        (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
 
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);
 uint32_t      mr_chat_exists_              (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */

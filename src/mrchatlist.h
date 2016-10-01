@@ -42,7 +42,7 @@ typedef struct mrchatlist_t
 
 void          mrchatlist_unref             (mrchatlist_t*);
 size_t        mrchatlist_get_cnt           (mrchatlist_t*);
-mrchat_t*     mrchatlist_get_chat          (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
+mrchat_t*     mrchatlist_get_chat_by_index (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
 
 
 /*** library-private **********************************************************/

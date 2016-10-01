@@ -38,7 +38,7 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 	mrmsg_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrmsg_t)))==NULL ) {
-		return NULL; /* error */
+		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
@@ -85,7 +85,7 @@ void mrmsg_empty(mrmsg_t* ths)
 
 
 
-int mrmsg_set_from_stmt(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
+int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 {
 	mrmsg_empty(ths);
 
@@ -126,7 +126,7 @@ int mr_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* stati
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
 	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		return 0; /* record does not exist */

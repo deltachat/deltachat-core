@@ -86,7 +86,7 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 
 	mrcontact_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_contact_i,
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_contacts_i,
 		"SELECT id, name, email FROM contacts WHERE id=?;");
 	if( stmt == NULL ) {
 		goto LoadFromDb_Cleanup;

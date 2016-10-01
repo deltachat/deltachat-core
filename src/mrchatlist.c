@@ -83,7 +83,7 @@ size_t mrchatlist_get_cnt(mrchatlist_t* ths)
 }
 
 
-mrchat_t* mrchatlist_get_chat(mrchatlist_t* ths, size_t index)
+mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index)
 {
 	if( ths == NULL || ths->m_chats == NULL || index >= (size_t)carray_count(ths->m_chats) ) {
 		return 0; /* error */
@@ -97,25 +97,34 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
+	mrchat_t*     chat = NULL;
+	int           row_offset;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
-		return 0; /* error */
+		goto GetChatList_Cleanup; /* error */
 	}
 
 	mrchatlist_empty(ths);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_chats,
-		MR_GET_CHATS_PREFIX MR_GET_CHATS_POSTFIX " ORDER BY timestamp;");
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_chatsNmsgs,
+		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
+			" LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
+			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
+			" ORDER BY timestamp;");
 	if( stmt==NULL ) {
 		goto GetChatList_Cleanup;
 	}
 
-    while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		mrchat_t* chat = mrchat_new(ths->m_mailbox);
-		if( mrchat_set_from_stmt(chat, stmt) ) {
-			carray_add(ths->m_chats, (void*)chat, NULL);
-		}
+    while( sqlite3_step(stmt) == SQLITE_ROW )
+    {
+		chat = mrchat_new(ths->m_mailbox);
+		row_offset = mrchat_set_from_stmt_(chat, stmt);
+
+		chat->m_last_msg  = mrmsg_new(ths->m_mailbox);
+		mrmsg_set_from_stmt_(chat->m_last_msg, stmt, row_offset);
+
+		carray_add(ths->m_chats, (void*)chat, NULL);
     }
 
 	/* success */

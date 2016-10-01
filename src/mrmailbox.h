@@ -98,9 +98,7 @@ size_t               mrmailbox_get_contact_cnt      (mrmailbox_t*);
 mrcontact_t*         mrmailbox_get_contact_by_index (mrmailbox_t*, size_t i);
 
 /* Iterate chats. */
-size_t               mrmailbox_get_chat_cnt         (mrmailbox_t*);
 mrchatlist_t*        mrmailbox_get_chats            (mrmailbox_t*); /* the result must be unref'd */
-mrchat_t*            mrmailbox_get_chat_by_name     (mrmailbox_t*, const char* name); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
 /* Get messages (aka updates) in a given period. */
