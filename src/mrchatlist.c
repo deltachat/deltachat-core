@@ -107,7 +107,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	mrchatlist_empty(ths);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_chatsNmsgs,
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itnifttsm_FROM_chatsNmsgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
 			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */

@@ -124,7 +124,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 {
 	uint32_t row_id = 0;
 
-	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_contacts_e, "SELECT id, name FROM contacts WHERE email=?;");
+	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_in_FROM_contacts_e, "SELECT id, name FROM contacts WHERE email=?;");
 	sqlite3_bind_text(s, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) == SQLITE_ROW )
 	{

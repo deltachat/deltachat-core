@@ -112,7 +112,7 @@ int mrchat_load_from_db_(mrchat_t* ths, uint32_t id)
 
 	mrchat_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_chats_i,
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itn_FROM_chats_i,
 		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -430,7 +430,7 @@ mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t offset, size_t amount) /* the
 			}
 
 			/* query */
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_FROM_msg_i,
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ifttsm_FROM_msg_i,
 				"SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=? ORDER BY m.timestamp LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
 				goto ListMsgs_Cleanup;

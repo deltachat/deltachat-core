@@ -126,7 +126,7 @@ int mr_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* stati
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
 	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		return 0; /* record does not exist */
