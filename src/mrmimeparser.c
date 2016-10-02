@@ -442,7 +442,9 @@ void mrmimeparser_unref_(mrmimeparser_t* ths)
 	}
 
 	mrmimeparser_empty_(ths);
-	carray_free(ths->m_parts);
+	if( ths->m_parts ) {
+		carray_free(ths->m_parts);
+	}
 	free(ths);
 }
 

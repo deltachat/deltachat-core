@@ -40,15 +40,15 @@ typedef struct mrchatlist_t
 } mrchatlist_t;
 
 
+mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
 void          mrchatlist_unref             (mrchatlist_t*);
+void          mrchatlist_empty             (mrchatlist_t*);
 size_t        mrchatlist_get_cnt           (mrchatlist_t*);
 mrchat_t*     mrchatlist_get_chat_by_index (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
 
 
 /*** library-private **********************************************************/
 
-mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
-void          mrchatlist_empty             (mrchatlist_t*);
 int           mrchatlist_load_from_db_     (mrchatlist_t*);
 
 

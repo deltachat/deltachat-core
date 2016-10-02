@@ -39,8 +39,11 @@ typedef struct mrmsglist_t
 } mrmsglist_t;
 
 
-mrmsglist_t* mrmsglist_new           (void);
-void         mrmsglist_unref         (mrmsglist_t*);
+mrmsglist_t* mrmsglist_new              (void);
+void         mrmsglist_unref            (mrmsglist_t*);
+void         mrmsglist_empty            (mrmsglist_t*);
+size_t       mrmsglist_get_cnt          (mrmsglist_t*);
+mrmsg_t*     mrmsglist_get_msg_by_index (mrmsglist_t*, size_t index); /* result must be unref'd, you can also use m_msgs directly */
 
 
 #ifdef __cplusplus

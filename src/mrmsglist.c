@@ -50,7 +50,17 @@ void mrmsglist_unref(mrmsglist_t* ths)
 		return; /* error */
 	}
 
-	if( ths->m_msgs )
+	mrmsglist_empty(ths);
+	if( ths->m_msgs ) {
+		carray_free(ths->m_msgs);
+	}
+	free(ths);
+}
+
+
+void mrmsglist_empty(mrmsglist_t* ths)
+{
+	if( ths == NULL && ths->m_msgs )
 	{
 		int i, cnt = carray_count(ths->m_msgs);
 		for( i = 0; i < cnt; i++ )
@@ -58,10 +68,27 @@ void mrmsglist_unref(mrmsglist_t* ths)
 			mrmsg_t* msg = (mrmsg_t*)carray_get(ths->m_msgs, i);
 			mrmsg_unref(msg);
 		}
-
-		carray_free(ths->m_msgs);
-		ths->m_msgs = NULL;
+		carray_set_size(ths->m_msgs, 0);
 	}
 }
 
+
+size_t mrmsglist_get_cnt(mrmsglist_t* ths)
+{
+	if( ths == NULL || ths->m_msgs == NULL ) {
+		return 0; /* error */
+	}
+
+	return (size_t)carray_count(ths->m_msgs);
+}
+
+
+mrmsg_t* mrmsglist_get_msg_by_index (mrmsglist_t* ths, size_t index)
+{
+	if( ths == NULL || ths->m_msgs == NULL || index >= (size_t)carray_count(ths->m_msgs) ) {
+		return 0; /* error */
+	}
+
+	return mrmsg_ref((mrmsg_t*)carray_get(ths->m_msgs, index));
+}
 

@@ -84,12 +84,13 @@ static carray* mr_split_into_lines(const char* buf_terminated)
 
 static void mr_free_splitted_lines(carray* lines)
 {
-	int i, cnt = carray_count(lines);
-	for( i = 0; i < cnt; i++ )
-	{
-		free(carray_get(lines, i));
+	if( lines ) {
+		int i, cnt = carray_count(lines);
+		for( i = 0; i < cnt; i++ ) {
+			free(carray_get(lines, i));
+		}
+		carray_free(lines);
 	}
-	carray_free(lines);
 }
 
 
