@@ -30,7 +30,7 @@
 #include "mrmailbox.h"
 
 
-mrmsglist_t* mrmsglist_new(void)
+mrmsglist_t* mrmsglist_new(mrchat_t* chat)
 {
 	mrmsglist_t* ths = NULL;
 
@@ -38,6 +38,7 @@ mrmsglist_t* mrmsglist_new(void)
 		return NULL; /* error */
 	}
 
+	ths->m_chat = chat;
 	ths->m_msgs = carray_new(128);
 
 	return ths;

@@ -420,7 +420,7 @@ mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t offset, size_t amount) /* the
 	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
 
 			/* create return object */
-			if( (ret=mrmsglist_new()) == NULL ) {
+			if( (ret=mrmsglist_new(ths)) == NULL ) {
 				goto ListMsgs_Cleanup;
 			}
 

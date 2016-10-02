@@ -33,13 +33,17 @@ extern "C" {
 #endif
 
 
+typedef struct mrchat_t mrchat_t;
+
+
 typedef struct mrmsglist_t
 {
 	carray*      m_msgs; /* contains mrmsg_t objects */
+	mrchat_t*    m_chat;
 } mrmsglist_t;
 
 
-mrmsglist_t* mrmsglist_new              (void);
+mrmsglist_t* mrmsglist_new              (mrchat_t*);
 void         mrmsglist_unref            (mrmsglist_t*);
 void         mrmsglist_empty            (mrmsglist_t*);
 size_t       mrmsglist_get_cnt          (mrmsglist_t*);
