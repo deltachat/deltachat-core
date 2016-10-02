@@ -66,7 +66,9 @@ typedef struct mrmsg_t
 
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
-	char*         m_msg;       /* meaning dedpends on m_type, NULL if unset */
+	char*         m_msg;       /* plain text; NULL if unset */
+	char*         m_param;     /* additional parameters as "key=value; key2=value2"; possible keys: mime, w, h, ms, lat, lng, url, ...; NULL if unset */
+	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
 	mrmailbox_t*  m_mailbox;
 

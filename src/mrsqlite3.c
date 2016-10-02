@@ -52,7 +52,6 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 	}
 
 	ths->m_cobj             = NULL;
-	ths->m_dbfile           = NULL;
 	ths->m_mailbox          = mailbox;
 	ths->m_transactionCount = 0;
 
@@ -96,14 +95,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		goto Open_Error;
 	}
 
-	if( ths->m_dbfile ) {
+	if( ths->m_cobj ) {
 		mr_log_error("mrsqlite3_open(): Database already opend.");
-		goto Open_Error;
-	}
-
-	ths->m_dbfile = safe_strdup(dbfile);
-	if( ths->m_dbfile == NULL ) {
-		mr_log_error("mrsqlite3_open(): Out of memory.");
 		goto Open_Error;
 	}
 
@@ -113,9 +106,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		goto Open_Error;
 	}
 
-	/* before changing stuff here, please also regard the notes from 2016-09-30 16:56 */
-	mrsqlite3_execute(ths, "PRAGMA cache_size=-8192;"); /* 8 MB cache (MB is indicated by the negative value, else pages are choosen) (defaults to 2 MB, which may cause cache invalidation on reading larger blobs) */
-	mrsqlite3_execute(ths, "PRAGMA page_size=8192;");   /* 8 KB page size (defaults to 1 KB on older versions and 4 KB on sqlite >= 3.12.0) */
+	/* `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external files, caching is not that important;
+	we rely on the system defaults here (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer versions) */
 
 	/* Init the tables, if not yet done
 	NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
@@ -132,12 +124,14 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, timestamp INTEGER, type INTEGER, state INTEGER, msg TEXT, msg_raw TEXT);"); /* msg_raw is mainly for debugging purposes */
+		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
+					" timestamp INTEGER, type INTEGER, state INTEGER, "
+					" msg TEXT, param TEXT, "
+					" bytes INTEGER);");
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
 		mrsqlite3_execute(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
 		mrsqlite3_execute(ths, "CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
-		mrsqlite3_execute(ths, "CREATE TABLE msg_blob (msg_id INTEGER PRIMARY KEY, blobdata BLOB);");
 
 		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
 		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
@@ -188,12 +182,6 @@ void mrsqlite3_close(mrsqlite3_t* ths)
 
 		sqlite3_close(ths->m_cobj);
 		ths->m_cobj = NULL;
-	}
-
-	if( ths->m_dbfile )
-	{
-		free(ths->m_dbfile);
-		ths->m_dbfile = NULL;
 	}
 }
 

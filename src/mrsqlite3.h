@@ -69,7 +69,7 @@ enum
 	,SELECT_COUNT_FROM_msg
 	,SELECT_i_FROM_msg_m
 	,SELECT_ifttsm_FROM_msg_i
-	,INSERT_INTO_msg_mcfttsmm
+	,INSERT_INTO_msg_mcfttsmp
 	,INSERT_INTO_msg_to_mc
 
 	,PREDEFINED_CNT /* must be last */
@@ -82,7 +82,6 @@ typedef struct mrsqlite3_t
 	sqlite3_stmt* m_pd[PREDEFINED_CNT];
 
 	/* m_sqlite is the database given as dbfile to Open() */
-	char*         m_dbfile; /* may be NULL */
 	sqlite3*      m_cobj;
 
 	/* helper for MrSqlite3Transaction */

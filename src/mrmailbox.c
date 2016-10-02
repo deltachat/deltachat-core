@@ -54,6 +54,8 @@ mrmailbox_t* mrmailbox_new()
 	ths->m_loginParam = mrloginparam_new();
 	ths->m_sql = mrsqlite3_new(ths);
 	ths->m_imap = mrimap_new(ths);
+	ths->m_dbfile = NULL;
+	ths->m_blobdir = NULL;
 
 	return ths;
 }
@@ -73,7 +75,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 }
 
 
-int mrmailbox_open(mrmailbox_t* ths, const char* dbfile)
+int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -87,6 +89,18 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile)
 	/* Create/open sqlite database */
 	if( !mrsqlite3_open(ths->m_sql, dbfile) ) {
 		goto Open_Done; // error already logged
+	}
+
+	ths->m_dbfile = safe_strdup(dbfile);
+
+	/* set blob-directory */
+	if( blobdir ) {
+		ths->m_blobdir = safe_strdup(blobdir);
+	}
+	else {
+		char* temp = sqlite3_mprintf("%s-blobs", dbfile);
+			ths->m_blobdir = safe_strdup(temp);
+		sqlite3_free(temp);
 	}
 
 	/* success */
@@ -110,6 +124,12 @@ void mrmailbox_close(mrmailbox_t* ths)
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
 		mrsqlite3_close(ths->m_sql);
+
+		free(ths->m_dbfile);
+		ths->m_dbfile = NULL;
+
+		free(ths->m_blobdir);
+		ths->m_blobdir = NULL;
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 }
@@ -451,13 +471,13 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 }
 
 
-char* mrmailbox_get_db_file(mrmailbox_t* ths)
+char* mrmailbox_get_dbfile(mrmailbox_t* ths)
 {
-	if( ths == NULL || ths->m_sql == NULL || ths->m_sql->m_dbfile == NULL ) {
+	if( ths == NULL || ths->m_dbfile == NULL ) {
 		return NULL; /* database not opened */
 	}
 
-	return safe_strdup(ths->m_sql->m_dbfile); /* must be freed by the caller */
+	return safe_strdup(ths->m_dbfile); /* must be freed by the caller */
 }
 
 
@@ -504,6 +524,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
+		"BLOB directory   %s\n"
 		"Contacts         %i\n"
 		"Chats/Messages   %i/%i\n"
 
@@ -524,7 +545,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
-		, ths->m_sql->m_dbfile? ths->m_sql->m_dbfile : unset
+		, ths->m_dbfile? ths->m_dbfile : unset
+		, ths->m_blobdir? ths->m_blobdir : unset
 
 		, contacts
 		, chats, messages

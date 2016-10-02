@@ -371,8 +371,8 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 		{
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, part_i);
 
-			s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msg_mcfttsmm,
-				"INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg,msg_raw) VALUES (?,?,?, ?,?,?, ?,?);");
+			s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msg_mcfttsmp,
+				"INSERT INTO msg (rfc724_mid,chat_id,from_id, timestamp,type,state, msg,param) VALUES (?,?,?, ?,?,?, ?,?);");
 			sqlite3_bind_text (s, 1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (s, 2, chat_id);
 			sqlite3_bind_int  (s, 3, contact_id_from);

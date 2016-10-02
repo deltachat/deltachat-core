@@ -64,6 +64,8 @@ typedef struct mrmailbox_t
 	mrloginparam_t* m_loginParam;
 	mrimap_t*       m_imap;
 	mrsqlite3_t*    m_sql;
+	char*           m_dbfile;
+	char*           m_blobdir;
 } mrmailbox_t;
 
 
@@ -76,7 +78,7 @@ void                 mrmailbox_unref                (mrmailbox_t*);
 /* open/close a mailbox object, if the given file does not exist, it is created
 and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile. */
-int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile);
+int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
 
 /* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
@@ -110,7 +112,7 @@ char*                mrmailbox_get_config           (mrmailbox_t*, const char* k
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
 /* Misc. */
-char*                mrmailbox_get_db_file          (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
+char*                mrmailbox_get_dbfile           (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 
 

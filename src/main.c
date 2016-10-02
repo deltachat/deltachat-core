@@ -70,7 +70,7 @@ int main(int argc, char ** argv)
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
-		if( !mrmailbox_open(mailbox, argv[1]) ) {
+		if( !mrmailbox_open(mailbox, argv[1], NULL) ) {
 			print_error();
 		}
 	}
@@ -108,7 +108,7 @@ int main(int argc, char ** argv)
 			if( p1 ) {
 				p1++;
 				mrmailbox_close(mailbox);
-				if( !mrmailbox_open(mailbox, p1) ) {
+				if( !mrmailbox_open(mailbox, p1, NULL) ) {
 					print_error();
 				}
 			}
@@ -119,7 +119,7 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "close")==0 )
 		{
 			char* filename;
-			if( (filename=mrmailbox_get_db_file(mailbox)) != NULL ) {
+			if( (filename=mrmailbox_get_dbfile(mailbox)) != NULL ) {
 				free(filename);
 				mrmailbox_close(mailbox);
 			}
