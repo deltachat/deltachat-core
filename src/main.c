@@ -100,7 +100,13 @@ int main(int argc, char ** argv)
 			printf("chat [<spec>]       list chat/select chat by id\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("empty               empty database but server config\n");
+			printf("clear               clear screen\n");
 			printf("exit                exit program\n");
+		}
+		else if( strncmp(cmd, "clear", 5)==0 )
+		{
+			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
+			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
 		else if( strncmp(cmd, "open", 4)==0 )
 		{
