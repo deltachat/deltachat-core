@@ -81,6 +81,7 @@ sth. like "~/file" won't work on all systems, if in doubt, use absolute paths fo
 for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
+int                  mrmailbox_is_open              (mrmailbox_t*);
 
 /* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
 a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
@@ -113,7 +114,6 @@ char*                mrmailbox_get_config           (mrmailbox_t*, const char* k
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
 /* Misc. */
-char*                mrmailbox_get_dbfile           (mrmailbox_t*); /* the returned string must be free()'d, returns NULL on errors or if no database is open */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 
 

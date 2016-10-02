@@ -186,7 +186,7 @@ void mrsqlite3_close(mrsqlite3_t* ths)
 }
 
 
-int mrsqlite3_ok(mrsqlite3_t* ths)
+int mrsqlite3_is_open(mrsqlite3_t* ths)
 {
 	if( ths == NULL || ths->m_cobj == NULL ) {
 		return 0;
@@ -344,7 +344,7 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 		return 0;
 	}
 
-	if( !mrsqlite3_ok(ths) ) {
+	if( !mrsqlite3_is_open(ths) ) {
 		mr_log_error("mrsqlite3_set_config(): Database not ready.");
 		return 0;
 	}
@@ -394,7 +394,7 @@ char* mrsqlite3_get_config(mrsqlite3_t* ths, const char* key, const char* def) /
 {
 	sqlite3_stmt* s;
 
-	if( !mrsqlite3_ok(ths) || key == NULL ) {
+	if( !mrsqlite3_is_open(ths) || key == NULL ) {
 		return NULL;
 	}
 

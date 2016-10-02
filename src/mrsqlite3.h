@@ -99,7 +99,7 @@ mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
 void          mrsqlite3_unref            (mrsqlite3_t*);
 int           mrsqlite3_open             (mrsqlite3_t*, const char* dbfile);
 void          mrsqlite3_close            (mrsqlite3_t*);
-int           mrsqlite3_ok               (mrsqlite3_t*);
+int           mrsqlite3_is_open          (mrsqlite3_t*);
 
 /* handle configurations, private */
 int           mrsqlite3_set_config       (mrsqlite3_t*, const char* key, const char* value);

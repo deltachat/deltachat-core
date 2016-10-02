@@ -88,9 +88,10 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 
 	/* Create/open sqlite database */
 	if( !mrsqlite3_open(ths->m_sql, dbfile) ) {
-		goto Open_Done; // error already logged
+		goto Open_Done; /* error already logged */
 	}
 
+	/* backup dbfile name */
 	ths->m_dbfile = safe_strdup(dbfile);
 
 	/* set blob-directory
@@ -107,13 +108,14 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 
 	/* cleanup */
 Open_Done:
+	if( !success ) {
+		mrsqlite3_close(ths->m_sql); /* note, unlocking is done before */
+	}
+
 	if( db_locked ) {
 		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	}
 
-	if( !success ) {
-		mrsqlite3_close(ths->m_sql); /* note, unlocking is done before */
-	}
 	return success;
 }
 
@@ -131,6 +133,16 @@ void mrmailbox_close(mrmailbox_t* ths)
 		ths->m_blobdir = NULL;
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+}
+
+
+int mrmailbox_is_open(mrmailbox_t* ths)
+{
+	if( ths == NULL ) {
+		return 0; /* error - database not opened */
+	}
+
+	return mrsqlite3_is_open(ths->m_sql);
 }
 
 
@@ -195,7 +207,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	int            read_cnt = 0;
 	char*          name;
 
-	if( !mrsqlite3_ok(ths->m_sql) ) {
+	if( !mrsqlite3_is_open(ths->m_sql) ) {
         mr_log_error("mrmailbox_import_spec(): Datebase not opened.");
 		goto ImportSpec_Cleanup;
 	}
@@ -467,16 +479,6 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 		ret = mrsqlite3_get_config_int(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	return ret;
-}
-
-
-char* mrmailbox_get_dbfile(mrmailbox_t* ths)
-{
-	if( ths == NULL || ths->m_dbfile == NULL ) {
-		return NULL; /* database not opened */
-	}
-
-	return safe_strdup(ths->m_dbfile); /* must be freed by the caller */
 }
 
 

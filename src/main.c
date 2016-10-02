@@ -118,9 +118,7 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "close")==0 )
 		{
-			char* filename;
-			if( (filename=mrmailbox_get_dbfile(mailbox)) != NULL ) {
-				free(filename);
+			if( mrmailbox_is_open(mailbox) ) {
 				mrmailbox_close(mailbox);
 			}
 			else {
