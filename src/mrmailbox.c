@@ -94,7 +94,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	ths->m_dbfile = safe_strdup(dbfile);
 
 	/* set blob-directory */
-	if( blobdir ) {
+	if( blobdir && blobdir[0] ) {
 		ths->m_blobdir = safe_strdup(blobdir);
 	}
 	else {
