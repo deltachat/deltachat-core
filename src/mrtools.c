@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <sqlite3.h>
 #include <libetpan/libetpan.h>
@@ -41,10 +42,27 @@
 
 char* mr_get_version_str(void)
 {
-	char* temp = sqlite3_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
-	char* ret = safe_strdup(temp);
-	sqlite3_free(temp);
-	return ret;
+	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+}
+
+
+char* mr_mprintf(const char* format, ...)
+{
+	char *sqlite_str, *c_string;
+
+	va_list argp;
+	va_start(argp, format); /* expects the last non-variable argument as the second parameter */
+		sqlite_str = sqlite3_vmprintf(format, argp);
+	va_end(argp);
+
+	if( sqlite_str == NULL ) {
+		return safe_strdup("ErrFmt"); /* error - the result must be free()'d */
+	}
+
+	/* as sqlite-strings must be freed using sqlite3_free() instead of a simple free(), convert it to a normal c-string */
+	c_string = safe_strdup(sqlite_str); /* exists on errors */
+	sqlite3_free(sqlite_str);
+	return c_string; /* success - the result must be free()'d */
 }
 
 
@@ -560,8 +578,6 @@ time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
 
 char* mr_timestamp_to_str(time_t wanted)
 {
-	char* temp;
-
 	struct tm wanted_struct;
 	memcpy(&wanted_struct, localtime(&wanted), sizeof(struct tm));
 
@@ -572,11 +588,7 @@ char* mr_timestamp_to_str(time_t wanted)
 	memcpy(&curr_struct, localtime(&curr), sizeof(struct tm));
 	*/
 
-	temp = sqlite3_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
+	return mr_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
 		(int)wanted_struct.tm_mday, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_year+1900,
 		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
-
-	char* ret = safe_strdup(temp);
-	sqlite3_free(temp);
-	return ret;
 }

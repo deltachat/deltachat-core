@@ -132,7 +132,6 @@ int mrchat_load_from_db_(mrchat_t* ths, uint32_t id)
 char* mrchat_get_subtitle(mrchat_t* ths)
 {
 	/* returns either the e-mail-address or the number of chat members */
-	char* q2 = NULL;
 	char* ret = NULL;
 	sqlite3_stmt* stmt;
 
@@ -166,12 +165,8 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 			cnt = sqlite3_column_int(stmt, 0);
 		}
 
-		q2 = sqlite3_mprintf("%i members", cnt + 1 /*do not forget ourself!*/);
-		ret = safe_strdup(q2);
+		ret = mr_mprintf("%i members", cnt + 1 /*do not forget ourself!*/);
 	}
-
-	/* cleanup */
-	sqlite3_free(q2);
 
 	return ret? ret : safe_strdup("Err");
 }

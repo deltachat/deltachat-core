@@ -111,10 +111,7 @@ static char* create_stub_message_id_(time_t message_timestamp, carray* contact_i
 
 	/* build a more or less unique string based on the timestamp and one receiver -
 	for our purposes, this seems "good enough" for the moment, esp. as clients may a Message-ID on sent. */
-	char* ret = NULL;
-	char* buf = sqlite3_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
-	ret = safe_strdup(buf);
-	sqlite3_free(buf);
+	char* ret = mr_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
 
 	return ret; /* must be free()'d by the caller */
 }

@@ -99,9 +99,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 		ths->m_blobdir = safe_strdup(blobdir);
 	}
 	else {
-		char* temp = sqlite3_mprintf("%s-blobs", dbfile);
-			ths->m_blobdir = safe_strdup(temp);
-		sqlite3_free(temp);
+		ths->m_blobdir = mr_mprintf("%s-blobs", dbfile);
 	}
 
 	/* success */
