@@ -50,10 +50,12 @@ extern "C" {
 #include "mrsqlite3.h"
 #include "mrchat.h"
 #include "mrchatlist.h"
+#include "mrmsg.h"
 #include "mrmsglist.h"
+#include "mrcontact.h"
+#include "mrcontactlist.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
-#include "mrcontact.h"
 #include "mrpoortext.h"
 #include "mrstock.h"
 
@@ -97,16 +99,16 @@ int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
 
-/* Iterate contacts. */
-size_t               mrmailbox_get_contact_cnt      (mrmailbox_t*);
-mrcontact_t*         mrmailbox_get_contact_by_index (mrmailbox_t*, size_t i);
+/* Get contacts. */
+mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
+mrcontact_t*         mrmailbox_get_contact_by_id    (mrmailbox_t*, uint32_t id);
 
-/* Iterate chats. */
+/* Get chats. */
 mrchatlist_t*        mrmailbox_get_chatlist         (mrmailbox_t*); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
-/* Get messages (aka updates) in a given period. */
-mrmsglist_t*         mrmailbox_get_messages         (mrmailbox_t*, time_t, time_t); /* the result must be unref'd */
+/* Get messages - for a list, see mrchat_get_msglist() */
+mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
 
 /* Handle configurations. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);

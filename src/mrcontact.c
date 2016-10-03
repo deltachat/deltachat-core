@@ -42,6 +42,8 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 		return NULL; /* error */
 	}
 
+	MR_INIT_REFERENCE
+
 	ths->m_mailbox = mailbox;
 	ths->m_name    = NULL;
 	ths->m_email   = NULL;
@@ -50,11 +52,15 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 }
 
 
+mrcontact_t* mrcontact_ref(mrcontact_t* ths)
+{
+	MR_INC_REFERENCE
+}
+
+
 void mrcontact_unref(mrcontact_t* ths)
 {
-	if( ths == NULL ) {
-		return; /* error */
-	}
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrcontact_empty(ths);
 	free(ths);

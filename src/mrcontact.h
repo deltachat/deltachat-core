@@ -43,18 +43,20 @@ typedef struct mrcontact_t
 	char*               m_name;  /* != NULL, however, may be empty */
 	char*               m_email; /* != NULL */
 	mrmailbox_t*        m_mailbox;
+	int                 m_refcnt;
 } mrcontact_t;
 
 
-mrcontact_t* mrcontact_new             (mrmailbox_t*);
 void         mrcontact_unref           (mrcontact_t*);
-void         mrcontact_empty           (mrcontact_t*);
 
 
 /*** library-private **********************************************************/
 
+mrcontact_t* mrcontact_new             (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
+void         mrcontact_empty           (mrcontact_t*);
+mrcontact_t* mrcontact_ref             (mrcontact_t*);
 int          mrcontact_load_from_db_   (mrcontact_t*, uint32_t id);
-size_t       mr_get_contact_cnt_       (mrmailbox_t*); /* private, user shall use mrmailbox_get_contact_cnt() */
+size_t       mr_get_contact_cnt_       (mrmailbox_t*);
 void         mr_normalize_name         (char* full_name);
 char*        mr_get_first_name         (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
 

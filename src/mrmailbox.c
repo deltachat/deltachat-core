@@ -358,21 +358,13 @@ ReceiveCleanup:
  ******************************************************************************/
 
 
-size_t mrmailbox_get_contact_cnt(mrmailbox_t* ths)
+mrcontactlist_t* mrmailbox_get_contactlist(mrmailbox_t* ths)
 {
-	size_t ret = 0;
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-
-		ret = mr_get_contact_cnt_(ths);
-
-	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-
-	return ret;
+	return mrcontactlist_new(ths);
 }
 
 
-mrcontact_t* mrmailbox_get_contact_by_index(mrmailbox_t* ths, size_t index)
+mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t id)
 {
 	return NULL;
 }

@@ -76,12 +76,12 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 void         mrmsg_unref             (mrmsg_t*);
 
 
 /*** library-private **********************************************************/
 
+mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 

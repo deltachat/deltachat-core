@@ -111,7 +111,9 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	if( strcmp(adr_server, "gmail.com")==0
 	 || strcmp(adr_server, "googlemail.com")==0 )
 	{
-		/* Google */
+		/* Google
+		Checking GMail too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
+		also not https://www.google.com/settings/security/lesssecureapps - is this needed? */
 		if( ths->m_mail_server == NULL )               { ths->m_mail_server = safe_strdup("imap.gmail.com"); }
 		if( ths->m_mail_port == 0 )                    { ths->m_mail_port   = 993; } /* IMAPS */
 		if( ths->m_mail_user == NULL )                 { ths->m_mail_user   = safe_strdup(ths->m_email); }

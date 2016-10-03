@@ -19,40 +19,36 @@
  *
  *******************************************************************************
  *
- * File:    mrchatlist.h
+ * File:    mrcontactlist.h
  * Authors: Björn Petersen
- * Purpose: list of chats
+ * Purpose: List of contacts
  *
  ******************************************************************************/
 
 
-#ifndef __MRCHATLIST_H__
-#define __MRCHATLIST_H__
+#ifndef __MRCONTACTLIST_H__
+#define __MRCONTACTLIST_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct mrchatlist_t
+typedef struct mrcontactlist_t
 {
-	carray*      m_chats; /* contains mrchat_t objects */
+	carray*      m_contacts; /* contains mrcontact_t objects */
 	mrmailbox_t* m_mailbox;
-} mrchatlist_t;
+} mrcontactlist_t;
 
 
-void          mrchatlist_unref             (mrchatlist_t*);
-size_t        mrchatlist_get_cnt           (mrchatlist_t*);
-mrchat_t*     mrchatlist_get_chat_by_index (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
-
-
-/*** library-private **********************************************************/
-
-mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
-void          mrchatlist_empty             (mrchatlist_t*);
-int           mrchatlist_load_from_db_     (mrchatlist_t*);
+mrcontactlist_t* mrcontactlist_new                  (mrmailbox_t*);
+void             mrcontactlist_unref                (mrcontactlist_t*);
+void             mrcontactlist_empty                (mrcontactlist_t*);
+size_t           mrcontactlist_get_cnt              (mrcontactlist_t*);
+mrcontact_t*     mrcontactlist_get_contact_by_index (mrcontactlist_t*, size_t index); /* result must be unref'd, you can also use m_contacts directly */
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHATLIST_H__ */
+#endif /* __MRCONTACTLIST_H__ */
+
