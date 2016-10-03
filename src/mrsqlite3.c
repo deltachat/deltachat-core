@@ -23,14 +23,6 @@
  * Authors: Björn Petersen
  * Purpose: MrSqlite3 wraps around SQLite
  *
- *******************************************************************************
- *
- * NB: In general, function names ending with a `_` are private functions and
- * should not be called directly from outside the library.
- * For functions with database access, this generally also implies that _no_
- * locking takes place inside the functions!  So the caller must make sure, the
- * database is locked as needed.
- *
  ******************************************************************************/
 
 
@@ -336,7 +328,7 @@ table_exists_Error:
  ******************************************************************************/
 
 
-int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
+int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 {
 	int           state;
 	sqlite3_stmt* s;
@@ -392,7 +384,7 @@ int mrsqlite3_set_config(mrsqlite3_t* ths, const char* key, const char* value)
 }
 
 
-char* mrsqlite3_get_config(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
+char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
 {
 	sqlite3_stmt* s;
 
@@ -420,9 +412,9 @@ char* mrsqlite3_get_config(mrsqlite3_t* ths, const char* key, const char* def) /
 }
 
 
-int32_t mrsqlite3_get_config_int(mrsqlite3_t* ths, const char* key, int32_t def)
+int32_t mrsqlite3_get_config_int_(mrsqlite3_t* ths, const char* key, int32_t def)
 {
-    char* str = mrsqlite3_get_config(ths, key, NULL);
+    char* str = mrsqlite3_get_config_(ths, key, NULL);
     if( str == NULL ) {
 		return def;
     }
@@ -430,13 +422,13 @@ int32_t mrsqlite3_get_config_int(mrsqlite3_t* ths, const char* key, int32_t def)
 }
 
 
-int mrsqlite3_set_config_int(mrsqlite3_t* ths, const char* key, int32_t value)
+int mrsqlite3_set_config_int_(mrsqlite3_t* ths, const char* key, int32_t value)
 {
     char* value_str = sqlite3_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return 0;
     }
-    int ret = mrsqlite3_set_config(ths, key, value_str);
+    int ret = mrsqlite3_set_config_(ths, key, value_str);
     sqlite3_free(value_str);
     return ret;
 }

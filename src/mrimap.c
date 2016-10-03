@@ -240,7 +240,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
-			in_first_uid = mrsqlite3_get_config_int(ths->m_mailbox->m_sql, config_key, 0);
+			in_first_uid = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, config_key, 0);
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
@@ -306,7 +306,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 	{
 		mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
-			mrsqlite3_set_config_int(ths->m_mailbox->m_sql, config_key, out_largetst_uid);
+			mrsqlite3_set_config_int_(ths->m_mailbox->m_sql, config_key, out_largetst_uid);
 
 		mrsqlite3_unlock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 	}
@@ -522,7 +522,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* param)
 	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
 		free(ths->m_debugDir);
-		ths->m_debugDir = mrsqlite3_get_config(ths->m_mailbox->m_sql, "debug_dir", NULL);
+		ths->m_debugDir = mrsqlite3_get_config_(ths->m_mailbox->m_sql, "debug_dir", NULL);
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE! - do not forge the unlock */
 

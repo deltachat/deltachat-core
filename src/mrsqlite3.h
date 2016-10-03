@@ -23,6 +23,14 @@
  * Authors: Björn Petersen
  * Purpose: MrSqlite3 wraps around SQLite
  *
+ *******************************************************************************
+ *
+ * NB: In general, function names ending with a `_` are private functions and
+ * should not be called directly from outside the library.
+ * For functions with database access, this generally also implies that _no_
+ * locking takes place inside the functions!  So the caller must make sure, the
+ * database is locked as needed.
+ *
  ******************************************************************************/
 
 
@@ -103,10 +111,10 @@ void          mrsqlite3_close            (mrsqlite3_t*);
 int           mrsqlite3_is_open          (mrsqlite3_t*);
 
 /* handle configurations, private */
-int           mrsqlite3_set_config       (mrsqlite3_t*, const char* key, const char* value);
-int           mrsqlite3_set_config_int   (mrsqlite3_t*, const char* key, int32_t value);
-char*         mrsqlite3_get_config       (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
-int32_t       mrsqlite3_get_config_int   (mrsqlite3_t*, const char* key, int32_t def);
+int           mrsqlite3_set_config_      (mrsqlite3_t*, const char* key, const char* value);
+int           mrsqlite3_set_config_int_  (mrsqlite3_t*, const char* key, int32_t value);
+char*         mrsqlite3_get_config_      (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
+int32_t       mrsqlite3_get_config_int_  (mrsqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
 sqlite3_stmt* mrsqlite3_predefine        (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/

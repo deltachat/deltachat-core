@@ -216,12 +216,12 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	if( spec )
 	{
 		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-			mrsqlite3_set_config(ths->m_sql, "import_spec", spec);
+			mrsqlite3_set_config_(ths->m_sql, "import_spec", spec);
 		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	}
 	else {
 		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-			spec_memory = mrsqlite3_get_config(ths->m_sql, "import_spec", NULL);
+			spec_memory = mrsqlite3_get_config_(ths->m_sql, "import_spec", NULL);
 		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
 		spec = spec_memory; /* may still  be NULL */
@@ -296,17 +296,17 @@ int mrmailbox_connect(mrmailbox_t* ths)
 
 		mrloginparam_empty(ths->m_loginParam);
 
-		ths->m_loginParam->m_email       = mrsqlite3_get_config    (ths->m_sql, "email",       NULL);
+		ths->m_loginParam->m_email       = mrsqlite3_get_config_    (ths->m_sql, "email",       NULL);
 
-		ths->m_loginParam->m_mail_server = mrsqlite3_get_config    (ths->m_sql, "mail_server", NULL);
-		ths->m_loginParam->m_mail_port   = mrsqlite3_get_config_int(ths->m_sql, "mail_port",   0);
-		ths->m_loginParam->m_mail_user   = mrsqlite3_get_config    (ths->m_sql, "mail_user",   NULL);
-		ths->m_loginParam->m_mail_pw     = mrsqlite3_get_config    (ths->m_sql, "mail_pw",     NULL);
+		ths->m_loginParam->m_mail_server = mrsqlite3_get_config_    (ths->m_sql, "mail_server", NULL);
+		ths->m_loginParam->m_mail_port   = mrsqlite3_get_config_int_(ths->m_sql, "mail_port",   0);
+		ths->m_loginParam->m_mail_user   = mrsqlite3_get_config_    (ths->m_sql, "mail_user",   NULL);
+		ths->m_loginParam->m_mail_pw     = mrsqlite3_get_config_    (ths->m_sql, "mail_pw",     NULL);
 
-		ths->m_loginParam->m_send_server = mrsqlite3_get_config    (ths->m_sql, "send_server", NULL);
-		ths->m_loginParam->m_send_port   = mrsqlite3_get_config_int(ths->m_sql, "send_port",   0);
-		ths->m_loginParam->m_send_user   = mrsqlite3_get_config    (ths->m_sql, "send_user",   NULL);
-		ths->m_loginParam->m_send_pw     = mrsqlite3_get_config    (ths->m_sql, "send_pw",     NULL);
+		ths->m_loginParam->m_send_server = mrsqlite3_get_config_    (ths->m_sql, "send_server", NULL);
+		ths->m_loginParam->m_send_port   = mrsqlite3_get_config_int_(ths->m_sql, "send_port",   0);
+		ths->m_loginParam->m_send_user   = mrsqlite3_get_config_    (ths->m_sql, "send_user",   NULL);
+		ths->m_loginParam->m_send_pw     = mrsqlite3_get_config_    (ths->m_sql, "send_pw",     NULL);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -448,7 +448,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
 	int ret;
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-		ret = mrsqlite3_set_config(ths->m_sql, key, value);
+		ret = mrsqlite3_set_config_(ths->m_sql, key, value);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	return ret;
 }
@@ -458,7 +458,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 {
 	char* ret;
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-		ret = mrsqlite3_get_config(ths->m_sql, key, def);
+		ret = mrsqlite3_get_config_(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	return ret; /* the returned string must be free()'d, returns NULL on errors */
 }
@@ -468,7 +468,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-		ret = mrsqlite3_get_config_int(ths->m_sql, key, def);
+		ret = mrsqlite3_get_config_int_(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 	return ret;
 }
@@ -491,19 +491,19 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		email       = mrsqlite3_get_config(ths->m_sql, "email", NULL);
+		email       = mrsqlite3_get_config_(ths->m_sql, "email", NULL);
 
-		mail_server = mrsqlite3_get_config(ths->m_sql, "mail_server", NULL);
-		mail_port   = mrsqlite3_get_config(ths->m_sql, "mail_port", NULL);
-		mail_user   = mrsqlite3_get_config(ths->m_sql, "mail_user", NULL);
-		mail_pw     = mrsqlite3_get_config(ths->m_sql, "mail_pw", NULL);
+		mail_server = mrsqlite3_get_config_(ths->m_sql, "mail_server", NULL);
+		mail_port   = mrsqlite3_get_config_(ths->m_sql, "mail_port", NULL);
+		mail_user   = mrsqlite3_get_config_(ths->m_sql, "mail_user", NULL);
+		mail_pw     = mrsqlite3_get_config_(ths->m_sql, "mail_pw", NULL);
 
-		send_server = mrsqlite3_get_config(ths->m_sql, "send_server", NULL);
-		send_port   = mrsqlite3_get_config(ths->m_sql, "send_port", NULL);
-		send_user   = mrsqlite3_get_config(ths->m_sql, "send_user", NULL);
-		send_pw     = mrsqlite3_get_config(ths->m_sql, "send_pw", NULL);
+		send_server = mrsqlite3_get_config_(ths->m_sql, "send_server", NULL);
+		send_port   = mrsqlite3_get_config_(ths->m_sql, "send_port", NULL);
+		send_user   = mrsqlite3_get_config_(ths->m_sql, "send_user", NULL);
+		send_pw     = mrsqlite3_get_config_(ths->m_sql, "send_pw", NULL);
 
-		debug_dir   = mrsqlite3_get_config(ths->m_sql, "debug_dir", NULL);
+		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 
 		contacts    = mr_get_contact_cnt_(ths);
 		chats       = mr_get_chat_cnt_(ths);
