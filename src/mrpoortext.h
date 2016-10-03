@@ -46,6 +46,8 @@ typedef struct mrpoortext_t
 	char*    m_title;         /* may be NULL */
 	int      m_title_meaning; /* one of MR_TITLE_* */
 	char*    m_text;          /* may be NULL */
+	time_t   m_timestamp;     /* may be 0 */
+	int      m_state;         /* may be 0 */
 	int      m_refcnt;
 } mrpoortext_t;
 

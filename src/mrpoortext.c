@@ -44,6 +44,8 @@ mrpoortext_t* mrpoortext_new()
 	ths->m_title          = NULL;
 	ths->m_title_meaning  = MR_TITLE_NORMAL;
 	ths->m_text           = NULL;
+	ths->m_timestamp      = 0;
+	ths->m_state          = 0;
 
     return ths;
 }
@@ -76,4 +78,7 @@ void mrpoortext_empty(mrpoortext_t* ths)
 
 	free(ths->m_text);
 	ths->m_text = NULL;
+
+	ths->m_timestamp = 0;
+	ths->m_state = 0;
 }

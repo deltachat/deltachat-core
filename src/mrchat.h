@@ -53,10 +53,10 @@ typedef struct mrchat_t
 	uint32_t        m_id;
 	int             m_type;
 	char*           m_name;            /* NULL if unset */
-	mrmsg_t*        m_last_msg;        /* NULL if unset */
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_msg;       /* NULL if unset */
-	mrmailbox_t*    m_mailbox;         /* always set */
+	mrmailbox_t*    m_mailbox;
+	mrmsg_t*        m_last_msg_;       /* NULL if unset. The trailing `_` indicates, this should not be used by library users. */
 	int             m_refcnt;
 } mrchat_t;
 
@@ -66,12 +66,9 @@ char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-add
 mrmsglist_t*  mrchat_get_msglist           (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
 int           mrchat_get_unread_count      (mrchat_t*);
 
-/* the following functions get information about the last message or draft;
-the functions only work, if the chat is a part of a chatlist
-(otherwise, for speed reasons, the last message is not loaded) */
-mrpoortext_t* mrchat_get_last_summary      (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
-time_t        mrchat_get_last_timestamp    (mrchat_t*); /* typically shown in the chats overview */
-int           mrchat_get_last_state        (mrchat_t*); /* typically shown in the chats overview */
+/* the following function get information about the last message or draft;
+the function only work, if the chat is a part of a chatlist (otherwise, for speed reasons, the last message is not loaded) */
+mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
 
 /* handling drafts */
 int           mrchat_save_draft            (mrchat_t*, const char*); /* save draft in object and in database */

@@ -218,21 +218,22 @@ int main(int argc, char ** argv)
 							printf("Chat #%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
-						mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
-							if( temp2->m_title ) { printf("%s(%i): ", temp2->m_title, temp2->m_title_meaning); }
-							if( temp2->m_text ) { printf("%s", temp2->m_text); }
-						mrpoortext_unref(temp2);
+						mrpoortext_t* poortext = mrchat_get_summary(chat);
 
-						int laststate = mrchat_get_last_state(chat);
-						switch( laststate ) {
-							case MR_OUT_PENDING:   printf(" o"); break;
-							case MR_OUT_DELIVERED: printf(" √"); break;
-							case MR_OUT_READ:      printf(" √√"); break;
-						}
+							if( poortext->m_title ) { printf("%s(%i): ", poortext->m_title, poortext->m_title_meaning); }
+							if( poortext->m_text ) { printf("%s", poortext->m_text); }
 
-						char* temp3 = mr_timestamp_to_str(mrchat_get_last_timestamp(chat));
-							printf(" [%s]\n", temp3);
-						free(temp3);
+							switch( poortext->m_state ) {
+								case MR_OUT_PENDING:   printf(" o"); break;
+								case MR_OUT_DELIVERED: printf(" √"); break;
+								case MR_OUT_READ:      printf(" √√"); break;
+							}
+
+							char* temp3 = mr_timestamp_to_str(poortext->m_timestamp);
+								printf(" [%s]\n", temp3);
+							free(temp3);
+
+						mrpoortext_unref(poortext);
 
 						printf("================================================================================\n");
 					}

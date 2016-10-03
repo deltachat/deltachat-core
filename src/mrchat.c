@@ -46,7 +46,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 	ths->m_mailbox         = mailbox;
 	ths->m_type            = MR_CHAT_UNDEFINED;
 	ths->m_name            = NULL;
-	ths->m_last_msg        = NULL;
+	ths->m_last_msg_       = NULL;
 	ths->m_draft_timestamp = 0;
 	ths->m_draft_msg       = NULL;
 	ths->m_id              = 0;
@@ -79,8 +79,8 @@ void mrchat_empty(mrchat_t* ths)
 	free(ths->m_name);
 	ths->m_name = NULL;
 
-	mrmsg_unref(ths->m_last_msg);
-	ths->m_last_msg = NULL;
+	mrmsg_unref(ths->m_last_msg_);
+	ths->m_last_msg_ = NULL;
 
 	ths->m_draft_timestamp = 0;
 
@@ -202,7 +202,7 @@ int mrchat_get_unread_count(mrchat_t* ths)
 }
 
 
-mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
+mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as
@@ -224,7 +224,7 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 
 	if( ths->m_draft_timestamp
 	 && ths->m_draft_msg
-	 && (ths->m_last_msg == NULL || ths->m_draft_timestamp>ths->m_last_msg->m_timestamp) )
+	 && (ths->m_last_msg_ == NULL || ths->m_draft_timestamp>ths->m_last_msg_->m_timestamp) )
 	{
 		/* show the draft as the last message */
 		ret->m_title = safe_strdup(mrstock_str(MR_STR_DRAFT));
@@ -232,8 +232,10 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 
 		ret->m_text = safe_strdup(ths->m_draft_msg);
 		mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
+
+		ret->m_timestamp = ths->m_draft_timestamp;
 	}
-	else if( ths->m_last_msg == NULL )
+	else if( ths->m_last_msg_ == NULL )
 	{
 		/* no messages */
 		ret->m_text = safe_strdup(mrstock_str(MR_STR_NO_MESSAGES));
@@ -241,13 +243,13 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 	else
 	{
 		/* show the last message */
-		if( ths->m_last_msg->m_from_id == 0 ) {
+		if( ths->m_last_msg_->m_from_id == 0 ) {
 			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
 		else {
 			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
-			mrcontact_load_from_db_(contact, ths->m_last_msg->m_from_id);
+			mrcontact_load_from_db_(contact, ths->m_last_msg_->m_from_id);
 			if( contact->m_name ) {
 				ret->m_title = safe_strdup(contact->m_name);
 				ret->m_title_meaning = MR_TITLE_USERNAME;
@@ -259,33 +261,16 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 			}
 		}
 
-		if( ths->m_last_msg->m_msg ) {
-			ret->m_text = safe_strdup(ths->m_last_msg->m_msg);
+		if( ths->m_last_msg_->m_msg ) {
+			ret->m_text = safe_strdup(ths->m_last_msg_->m_msg);
 			mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
 		}
+
+		ret->m_timestamp = ths->m_last_msg_->m_timestamp;
+		ret->m_state     = ths->m_last_msg_->m_state;
 	}
 
 	return ret;
-}
-
-
-time_t mrchat_get_last_timestamp(mrchat_t* ths)
-{
-	if( ths == NULL || ths->m_last_msg == NULL ) {
-		return 0; /* error */
-	}
-
-	return ths->m_last_msg->m_timestamp;
-}
-
-
-int mrchat_get_last_state(mrchat_t* ths)
-{
-	if( ths == NULL || ths->m_last_msg == NULL ) {
-		return 0; /* error */
-	}
-
-	return ths->m_last_msg->m_state;
 }
 
 

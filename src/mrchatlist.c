@@ -124,8 +124,8 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 		chat = mrchat_new(ths->m_mailbox);
 		row_offset = mrchat_set_from_stmt_(chat, stmt);
 
-		chat->m_last_msg  = mrmsg_new(ths->m_mailbox);
-		mrmsg_set_from_stmt_(chat->m_last_msg, stmt, row_offset);
+		chat->m_last_msg_ = mrmsg_new(ths->m_mailbox);
+		mrmsg_set_from_stmt_(chat->m_last_msg_, stmt, row_offset);
 
 		carray_add(ths->m_chats, (void*)chat, NULL);
     }
