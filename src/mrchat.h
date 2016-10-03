@@ -66,9 +66,9 @@ char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-add
 mrmsglist_t*  mrchat_get_msglist           (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
 int           mrchat_get_unread_count      (mrchat_t*);
 
-/* the following function get information about the last message or draft;
-the function only work, if the chat is a part of a chatlist (otherwise, for speed reasons, the last message is not loaded) */
-mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* typically shown in the chats overview, must be unref'd */
+/* the following function gets information about the last message or draft;
+the function only works, if the chat is a part of a chatlist (otherwise, for speed reasons, the last messages are not loaded) */
+mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* result must be unref'd */
 
 /* handling drafts */
 int           mrchat_save_draft            (mrchat_t*, const char*); /* save draft in object and in database */
