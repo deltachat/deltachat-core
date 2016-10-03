@@ -109,8 +109,9 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 	/* `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external files, caching is not that important;
 	we rely on the system defaults here (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer versions) */
 
-	/* Init the tables, if not yet done
-	NB: we use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
+	/* Init the tables, if not yet done.
+	NB: We only define default values for columns not present in all INSERT statements.
+	NB: We use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
 	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */
 	if( !mrsqlite3_table_exists(ths, "contacts") )
 	{
@@ -120,14 +121,15 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, email TEXT);");
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (email);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT);");
+		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT, "
+					" draft_timestamp INTEGER DEFAULT 0, draft_msg TEXT DEFAULT '');");
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
 		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
 					" timestamp INTEGER, type INTEGER, state INTEGER, "
 					" msg TEXT, param TEXT, "
-					" bytes INTEGER);");
+					" bytes INTEGER DEFAULT 0);");
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
 		mrsqlite3_execute(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");

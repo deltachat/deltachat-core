@@ -76,12 +76,12 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-void         mrmsg_unref             (mrmsg_t*);
+mrmsg_t*     mrmsg_new               (mrmailbox_t*); /* constructor needed for sending messages */
+void         mrmsg_unref             (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
 
 
 /*** library-private **********************************************************/
 
-mrmsg_t*     mrmsg_new               (mrmailbox_t*);
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 

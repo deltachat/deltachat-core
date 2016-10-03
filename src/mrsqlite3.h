@@ -65,6 +65,7 @@ enum
 
 	,SELECT_e_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
+	,UPDATE_chats_dd
 
 	,SELECT_COUNT_FROM_msg
 	,SELECT_i_FROM_msg_m

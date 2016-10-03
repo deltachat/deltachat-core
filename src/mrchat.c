@@ -43,11 +43,13 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 
 	MR_INIT_REFERENCE
 
-	ths->m_mailbox        = mailbox;
-	ths->m_type           = MR_CHAT_UNDEFINED;
-	ths->m_name           = NULL;
-	ths->m_last_msg       = NULL;
-    ths->m_id             = 0;
+	ths->m_mailbox         = mailbox;
+	ths->m_type            = MR_CHAT_UNDEFINED;
+	ths->m_name            = NULL;
+	ths->m_last_msg        = NULL;
+	ths->m_draft_timestamp = 0;
+	ths->m_draft_msg       = NULL;
+	ths->m_id              = 0;
 
     return ths;
 }
@@ -80,6 +82,11 @@ void mrchat_empty(mrchat_t* ths)
 	mrmsg_unref(ths->m_last_msg);
 	ths->m_last_msg = NULL;
 
+	ths->m_draft_timestamp = 0;
+
+	free(ths->m_draft_msg);
+	ths->m_draft_msg = NULL;
+
 	ths->m_type = MR_CHAT_UNDEFINED;
 	ths->m_id   = 0;
 }
@@ -87,16 +94,29 @@ void mrchat_empty(mrchat_t* ths)
 
 int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 {
+	int row_offset = 0;
+	const char* draft_msg;
+
 	if( ths == NULL || row == NULL ) {
 		return 0; /* error */
 	}
 
 	mrchat_empty(ths);
 
-	int row_offset = 0;
-	ths->m_id        =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
-	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_name      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
+	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_draft_timestamp =                    sqlite3_column_int  (row, row_offset++);
+	draft_msg              =       (const char*)sqlite3_column_text (row, row_offset++);
+
+	/* We leave a NULL-pointer for the very usual situation of "no draft".
+	Also make sure, m_draft_msg and m_draft_timestamp are set together */
+	if( ths->m_draft_timestamp && draft_msg && draft_msg[0] ) {
+		ths->m_draft_msg = safe_strdup(draft_msg);
+	}
+	else {
+		ths->m_draft_timestamp = 0;
+	}
 
 	return row_offset; /* success, return the next row offset */
 }
@@ -200,32 +220,49 @@ mrpoortext_t* mrchat_get_last_summary(mrchat_t* ths)
 		return ret;
 	}
 
-	if( ths->m_last_msg == NULL ) {
-		ret->m_text = safe_strdup(mrstock_str(MR_STR_NO_MESSAGES));
-		return ret;
-	}
+	#define SUMMARY_BYTES (160*5) /* 160 characters may take up 5 bytes each */
 
-	if( ths->m_last_msg->m_from_id == 0 ) {
-		ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
-		ret->m_title_meaning = MR_TITLE_USERNAME;
+	if( ths->m_draft_timestamp
+	 && ths->m_draft_msg
+	 && (ths->m_last_msg == NULL || ths->m_draft_timestamp>ths->m_last_msg->m_timestamp) )
+	{
+		/* show the draft as the last message */
+		ret->m_title = safe_strdup(mrstock_str(MR_STR_DRAFT));
+		ret->m_title_meaning = MR_TITLE_DRAFT;
+
+		ret->m_text = safe_strdup(ths->m_draft_msg);
+		mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
 	}
-	else {
-		mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
-		mrcontact_load_from_db_(contact, ths->m_last_msg->m_from_id);
-		if( contact->m_name ) {
-			ret->m_title = safe_strdup(contact->m_name);
+	else if( ths->m_last_msg == NULL )
+	{
+		/* no messages */
+		ret->m_text = safe_strdup(mrstock_str(MR_STR_NO_MESSAGES));
+	}
+	else
+	{
+		/* show the last message */
+		if( ths->m_last_msg->m_from_id == 0 ) {
+			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 			ret->m_title_meaning = MR_TITLE_USERNAME;
-			mrcontact_unref(contact);
 		}
 		else {
-			ret->m_title = safe_strdup("Unknown contact");
-			ret->m_title_meaning = MR_TITLE_USERNAME;
+			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
+			mrcontact_load_from_db_(contact, ths->m_last_msg->m_from_id);
+			if( contact->m_name ) {
+				ret->m_title = safe_strdup(contact->m_name);
+				ret->m_title_meaning = MR_TITLE_USERNAME;
+				mrcontact_unref(contact);
+			}
+			else {
+				ret->m_title = safe_strdup("Unknown contact");
+				ret->m_title_meaning = MR_TITLE_USERNAME;
+			}
 		}
-	}
 
-	if( ths->m_last_msg->m_msg ) {
-		ret->m_text = safe_strdup(ths->m_last_msg->m_msg); /* we do not shorten the message, this can be done by the caller */
-		mr_unwrap_str(ret->m_text, 160*5); /* 160 characters may take up 5 bytes each */
+		if( ths->m_last_msg->m_msg ) {
+			ret->m_text = safe_strdup(ths->m_last_msg->m_msg);
+			mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
+		}
 	}
 
 	return ret;
@@ -463,12 +500,53 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 
 
 /*******************************************************************************
+ * Handle drafts
+ ******************************************************************************/
+
+
+int mrchat_save_draft(mrchat_t* ths, const char* msg)
+{
+	sqlite3_stmt* stmt;
+
+	if( ths == NULL ) {
+		return 0; /* error */
+	}
+
+	if( msg && msg[0]==0 ) {
+		msg = NULL; /*an empty draft is no draft*/
+	}
+
+	/* save draft in object - NULL or empty: clear draft */
+	free(ths->m_draft_msg);
+	ths->m_draft_msg       = msg? safe_strdup(msg) : NULL;
+	ths->m_draft_timestamp = msg? time(NULL) : 0;
+
+	/* save draft in database */
+	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
+
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_dd,
+			"UPDATE chats SET draft_timestamp=?, draft_msg=? WHERE id=?;");
+		sqlite3_bind_int (stmt, 1, ths->m_draft_timestamp);
+		sqlite3_bind_text(stmt, 2, ths->m_draft_msg? ths->m_draft_msg : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
+		sqlite3_bind_int (stmt, 3, ths->m_id);
+
+		sqlite3_step(stmt);
+
+	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE: No return until unlock! */
+
+	/* success */
+	return 1;
+}
+
+
+/*******************************************************************************
  * Send Messages
  ******************************************************************************/
 
 
-void mrchat_send_msg(mrchat_t* ths, const char* text)
+int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 {
+	return 0; /* not yet implemented */
 }
 
 

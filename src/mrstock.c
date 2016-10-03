@@ -93,6 +93,7 @@ const char* mrstock_str(int id)
 		s_def_strings_added = 1;
 		mrstock_add_str(MR_STR_NO_MESSAGES, "No messages.");
 		mrstock_add_str(MR_STR_YOU,         "You");
+		mrstock_add_str(MR_STR_DRAFT,       "Draft");
 	}
 
 	return s_obj[id]? s_obj[id] : "Err"; /* the result must not be freed! */

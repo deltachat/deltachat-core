@@ -99,6 +99,7 @@ int main(int argc, char ** argv)
 			printf("chats               list all chats\n");
 			printf("chat [<spec>]       list chat/select chat by id\n");
 			printf("send <text>         send message to selected chat\n");
+			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
 			printf("exit                exit program\n");
@@ -214,7 +215,7 @@ int main(int argc, char ** argv)
 						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
-							printf("#%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
+							printf("Chat #%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
 						mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
@@ -257,22 +258,45 @@ int main(int argc, char ** argv)
 
 			/* show chat */
 			if( sel_chat ) {
-				printf("Chat name: %s\n", sel_chat->m_name);
 				mrmsglist_t* msglist = mrchat_get_msglist(sel_chat, 0, 100);
+				char* temp2 = mrchat_get_subtitle(sel_chat);
+					printf("Chat #%i: %s [%s]\n", sel_chat->m_id, sel_chat->m_name, temp2);
+				free(temp2);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					printf("--------------------------------------------------------------------------------\n");
 					for( i = 0; i < cnt; i++ )
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
-						char *temp2;
-
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("#%i: %s [%s]\n", (int)msg->m_id, msg->m_msg, temp2);
+							printf("Msg #%i: %s [%s]\n", (int)msg->m_id, msg->m_msg, temp2);
 						free(temp2);
 						printf("--------------------------------------------------------------------------------\n");
 					}
 					mrmsglist_unref(msglist);
+				}
+				if( sel_chat->m_draft_timestamp ) {
+					char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
+						printf("Draft: %s [%s]\n", sel_chat->m_draft_msg, timestr);
+					free(timestr);
+				}
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
+		else if( strncmp(cmd, "draft", 5)==0 )
+		{
+			if( sel_chat ) {
+				char* arg1 = (char*)strstr(cmd, " ");
+				if( arg1 && arg1[0] ) {
+					arg1++;
+					mrchat_save_draft(sel_chat, arg1);
+					printf("Draft saved.\n");
+				}
+				else {
+					mrchat_save_draft(sel_chat, NULL);
+					printf("Draft deleted.\n");
 				}
 			}
 			else {
@@ -284,8 +308,11 @@ int main(int argc, char ** argv)
 			if( sel_chat ) {
 				char* arg1 = (char*)strstr(cmd, " ");
 				if( arg1 && arg1[0] ) {
-					arg1++;
-					mrchat_send_msg(sel_chat, arg1);
+					mrmsg_t* msg = mrmsg_new(mailbox);
+						arg1++;
+						msg->m_msg = strdup(arg1);
+						mrchat_send_msg(sel_chat, msg);
+					mrmsg_unref(msg);
 				}
 				else {
 					printf("No message text given.\n");
