@@ -96,6 +96,7 @@ Please keep in mind, that your derived work must be released under a
 GPL-compatible licence.  For details, please have a look at the file LICENSE
 that comes together with the source code.
 
+---
 
 Copyright (c) Bjoern Petersen Software Design and Development,
 http://b44t.com and contributors.
