@@ -407,7 +407,7 @@ uint32_t mr_find_out_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, ca
  ******************************************************************************/
 
 
-mrmsglist_t* mrchat_get_msgs(mrchat_t* ths, size_t offset, size_t amount) /* the caller must unref the result */
+mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* the caller must unref the result */
 {
 	int           success = 0;
 	mrmsglist_t*  ret = NULL;

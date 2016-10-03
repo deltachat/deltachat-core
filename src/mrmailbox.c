@@ -383,7 +383,7 @@ mrcontact_t* mrmailbox_get_contact_by_index(mrmailbox_t* ths, size_t index)
  ******************************************************************************/
 
 
-mrchatlist_t* mrmailbox_get_chats(mrmailbox_t* ths)
+mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 {
 	int success = 0;
 	int db_locked = 0;

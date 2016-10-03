@@ -203,7 +203,7 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "chats")==0 )
 		{
-			mrchatlist_t* chatlist = mrmailbox_get_chats(mailbox);
+			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox);
 			if( chatlist ) {
 				int i, cnt = carray_count(chatlist->m_chats);
 				if( cnt ) {
@@ -258,7 +258,7 @@ int main(int argc, char ** argv)
 			/* show chat */
 			if( sel_chat ) {
 				printf("Chat name: %s\n", sel_chat->m_name);
-				mrmsglist_t* msglist = mrchat_get_msgs(sel_chat, 0, 100);
+				mrmsglist_t* msglist = mrchat_get_msglist(sel_chat, 0, 100);
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					printf("--------------------------------------------------------------------------------\n");

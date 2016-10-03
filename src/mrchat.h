@@ -61,7 +61,7 @@ typedef struct mrchat_t
 
 void          mrchat_unref                 (mrchat_t*);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
-mrmsglist_t*  mrchat_get_msgs              (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
+mrmsglist_t*  mrchat_get_msglist           (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
 int           mrchat_get_unread_count      (mrchat_t*);
 
 /* the following functions get information about the last message or draft;
