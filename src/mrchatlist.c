@@ -113,7 +113,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msg m ON (c.id=m.chat_id AND m.timestamp=(SELECT MIN(timestamp) FROM msg WHERE chat_id=c.id)) "
 			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
-			" ORDER BY timestamp DESC;" /* the list starts with the newest chats */
+			" ORDER BY m.timestamp DESC,m.id DESC;" /* the list starts with the newest chats */
 			);
 	if( stmt==NULL ) {
 		goto GetChatList_Cleanup;

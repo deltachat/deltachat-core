@@ -214,7 +214,7 @@ int main(int argc, char ** argv)
 						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
-							printf("%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
+							printf("#%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
 						mrpoortext_t* temp2 = mrchat_get_last_summary(chat);
@@ -268,7 +268,7 @@ int main(int argc, char ** argv)
 						char *temp2;
 
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("%s [%s]\n", msg->m_msg, temp2);
+							printf("#%i: %s [%s]\n", (int)msg->m_id, msg->m_msg, temp2);
 						free(temp2);
 						printf("--------------------------------------------------------------------------------\n");
 					}
