@@ -40,6 +40,7 @@ Frequently Asked Questions
 - Well, currently this is our _best_ name.  Maybe we will change it if we get
   a great idea posted to _r10s at b44t dotcom_.
 
+---
 
 Copyright (c) Bjoern Petersen Software Design and Development,
 http://b44t.com and contributors.
