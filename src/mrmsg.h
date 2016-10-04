@@ -45,6 +45,7 @@ extern "C" {
 #define MR_MSG_LINK        61 /* not sure, if we will really support this, maybe a normal text message will do the job. */
 #define MR_MSG_CONTACT     70 /* not sure, if we will really support this, maybe a normal text message will do the job. */
 #define MR_MSG_LOCATION    80 /* not sure, if we will really support this, maybe a normal text message will do the job. */
+#define MR_MSG_SERVICE     90 /* messages as "You created the group.", not always spread via e-mail and equal on all clients, m_text is a stock ID, m_param may contain additional information */
 
 
 /* message states */
