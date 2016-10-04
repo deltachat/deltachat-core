@@ -270,7 +270,7 @@ int main(int argc, char ** argv)
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("Msg #%i: %s [%s]\n", (int)msg->m_id, msg->m_msg, temp2);
+							printf("Msg #%i: %s [%s]\n", (int)msg->m_id, msg->m_text, temp2);
 						free(temp2);
 						printf("--------------------------------------------------------------------------------\n");
 					}
@@ -311,7 +311,7 @@ int main(int argc, char ** argv)
 				if( arg1 && arg1[0] ) {
 					mrmsg_t* msg = mrmsg_new(mailbox);
 						arg1++;
-						msg->m_msg = strdup(arg1);
+						msg->m_text = strdup(arg1);
 						mrchat_send_msg(sel_chat, msg);
 					mrmsg_unref(msg);
 				}

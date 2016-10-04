@@ -261,8 +261,8 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			}
 		}
 
-		if( ths->m_last_msg_->m_msg ) {
-			ret->m_text = safe_strdup(ths->m_last_msg_->m_msg);
+		if( ths->m_last_msg_->m_text ) {
+			ret->m_text = safe_strdup(ths->m_last_msg_->m_text);
 			mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
 		}
 

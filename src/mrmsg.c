@@ -50,7 +50,7 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
-	ths->m_msg       = NULL;
+	ths->m_text      = NULL;
 	ths->m_param     = NULL;
 	ths->m_bytes     = 0;
 
@@ -79,8 +79,8 @@ void mrmsg_empty(mrmsg_t* ths)
 		return; /* error */
 	}
 
-	free(ths->m_msg);
-	ths->m_msg = NULL;
+	free(ths->m_text);
+	ths->m_text = NULL;
 
 	free(ths->m_param);
 	ths->m_param = NULL;
@@ -97,7 +97,7 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
 	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_state     =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_msg       = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_text      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_param     = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_bytes     =                    sqlite3_column_int  (row, row_offset++);
 
