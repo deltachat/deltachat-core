@@ -342,7 +342,13 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
-		return 0; /* no database, no chats - this is no error (needed eg. for information) */
+		mr_log_error("mr_create_chat_record_(): Database not opened.");
+		return 0; /* database not opened - error */
+	}
+
+	if( contact_id == 0 ) {
+		mr_log_error("mr_create_chat_record_(): Contact missing.");
+		return 0; /* error */
 	}
 
 	if( (chat_id=mr_chat_exists_(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
