@@ -48,7 +48,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 	ths->m_name            = NULL;
 	ths->m_last_msg_       = NULL;
 	ths->m_draft_timestamp = 0;
-	ths->m_draft_msg       = NULL;
+	ths->m_draft_text      = NULL;
 	ths->m_id              = 0;
 
     return ths;
@@ -84,8 +84,8 @@ void mrchat_empty(mrchat_t* ths)
 
 	ths->m_draft_timestamp = 0;
 
-	free(ths->m_draft_msg);
-	ths->m_draft_msg = NULL;
+	free(ths->m_draft_text);
+	ths->m_draft_text = NULL;
 
 	ths->m_type = MR_CHAT_UNDEFINED;
 	ths->m_id   = 0;
@@ -95,7 +95,7 @@ void mrchat_empty(mrchat_t* ths)
 int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 {
 	int row_offset = 0;
-	const char* draft_msg;
+	const char* draft_text;
 
 	if( ths == NULL || row == NULL ) {
 		return 0; /* error */
@@ -107,12 +107,12 @@ int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_draft_timestamp =                    sqlite3_column_int  (row, row_offset++);
-	draft_msg              =       (const char*)sqlite3_column_text (row, row_offset++);
+	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
-	Also make sure, m_draft_msg and m_draft_timestamp are set together */
-	if( ths->m_draft_timestamp && draft_msg && draft_msg[0] ) {
-		ths->m_draft_msg = safe_strdup(draft_msg);
+	Also make sure, m_draft_text and m_draft_timestamp are set together */
+	if( ths->m_draft_timestamp && draft_text && draft_text[0] ) {
+		ths->m_draft_text = safe_strdup(draft_text);
 	}
 	else {
 		ths->m_draft_timestamp = 0;
@@ -223,14 +223,14 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	#define SUMMARY_BYTES (160*5) /* 160 characters may take up 5 bytes each */
 
 	if( ths->m_draft_timestamp
-	 && ths->m_draft_msg
+	 && ths->m_draft_text
 	 && (ths->m_last_msg_ == NULL || ths->m_draft_timestamp>ths->m_last_msg_->m_timestamp) )
 	{
 		/* show the draft as the last message */
 		ret->m_title = safe_strdup(mrstock_str(MR_STR_DRAFT));
 		ret->m_title_meaning = MR_TITLE_DRAFT;
 
-		ret->m_text = safe_strdup(ths->m_draft_msg);
+		ret->m_text = safe_strdup(ths->m_draft_text);
 		mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
 
 		ret->m_timestamp = ths->m_draft_timestamp;
@@ -502,17 +502,17 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 	}
 
 	/* save draft in object - NULL or empty: clear draft */
-	free(ths->m_draft_msg);
-	ths->m_draft_msg       = msg? safe_strdup(msg) : NULL;
+	free(ths->m_draft_text);
+	ths->m_draft_text      = msg? safe_strdup(msg) : NULL;
 	ths->m_draft_timestamp = msg? time(NULL) : 0;
 
 	/* save draft in database */
 	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
 
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_dd,
-			"UPDATE chats SET draft_timestamp=?, draft_msg=? WHERE id=?;");
+			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
 		sqlite3_bind_int (stmt, 1, ths->m_draft_timestamp);
-		sqlite3_bind_text(stmt, 2, ths->m_draft_msg? ths->m_draft_msg : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
+		sqlite3_bind_text(stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
 		sqlite3_bind_int (stmt, 3, ths->m_id);
 
 		sqlite3_step(stmt);

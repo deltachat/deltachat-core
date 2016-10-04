@@ -278,7 +278,7 @@ int main(int argc, char ** argv)
 				}
 				if( sel_chat->m_draft_timestamp ) {
 					char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
-						printf("Draft: %s [%s]\n", sel_chat->m_draft_msg, timestr);
+						printf("Draft: %s [%s]\n", sel_chat->m_draft_text, timestr);
 					free(timestr);
 				}
 			}

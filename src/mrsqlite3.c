@@ -114,13 +114,13 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (email);");
 
 		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT, "
-					" draft_timestamp INTEGER DEFAULT 0, draft_msg TEXT DEFAULT '');");
+					" draft_timestamp INTEGER DEFAULT 0, draft_txt TEXT DEFAULT '');");
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
 		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
 					" timestamp INTEGER, type INTEGER, state INTEGER, "
-					" msg TEXT, param TEXT, "
+					" txt TEXT, param TEXT, "
 					" bytes INTEGER DEFAULT 0);");
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");

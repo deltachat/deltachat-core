@@ -85,7 +85,7 @@ void         mrmsg_unref             (mrmsg_t*); /* this also free()s all string
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 
-#define      MR_MSG_FIELDS           " m.id,m.from_id,m.timestamp, m.type,m.state,m.msg, m.param,m.bytes "
+#define      MR_MSG_FIELDS           " m.id,m.from_id,m.timestamp, m.type,m.state,m.txt, m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 size_t       mr_get_msg_cnt_         (mrmailbox_t*);
