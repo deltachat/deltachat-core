@@ -59,7 +59,7 @@ void mrosnative_init_android(JNIEnv* env)
 int mrosnative_setup_thread(void)
 {
 	if( s_jvm == NULL ) {
-		mr_log_error("Cannot setup thread. mrosnative_init_android() not called successfully.");
+		mrlog_error("Cannot setup thread. mrosnative_init_android() not called successfully.");
 		return 0; /* error */
 	}
 

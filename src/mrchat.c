@@ -293,7 +293,7 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
-		mr_log_error("mr_get_chat_cnt() failed.");
+		mrlog_error("mr_get_chat_cnt() failed.");
 		return 0; /* error */
 	}
 
@@ -323,7 +323,7 @@ uint32_t mr_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /*
 		}
 		else {
 			mrsqlite3_log_error(mailbox->m_sql);
-			mr_log_error("mr_chat_exists() failed.");
+			mrlog_error("mr_chat_exists() failed.");
 		}
 
 		sqlite3_free(q);
@@ -342,12 +342,12 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
-		mr_log_error("mr_create_chat_record_(): Database not opened.");
+		mrlog_error("mr_create_chat_record_(): Database not opened.");
 		return 0; /* database not opened - error */
 	}
 
 	if( contact_id == 0 ) {
-		mr_log_error("mr_create_chat_record_(): Contact missing.");
+		mrlog_error("mr_create_chat_record_(): Contact missing.");
 		return 0; /* error */
 	}
 

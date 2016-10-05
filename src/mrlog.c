@@ -33,11 +33,10 @@
 #include "mrlog.h"
 
 
-
-static void mr_log(char type, const char* msg_format_str, va_list argp)
+static void mrlog_print(int type, const char* msg)
 {
-	const char *type_str;
-	char* msg_full_str, *log_entry_str;
+	const char* type_str;
+	char*       log_entry_str;
 
 	switch( type ) {
 		case 'i': type_str = "Information"; break;
@@ -45,39 +44,56 @@ static void mr_log(char type, const char* msg_format_str, va_list argp)
 		default:  type_str = "ERROR";       break;
 	}
 
-	msg_full_str = sqlite3_vmprintf(msg_format_str, argp); if( msg_full_str == NULL ) { exit(18); }
-		log_entry_str = sqlite3_mprintf("[%s] %s", type_str, msg_full_str); if( log_entry_str == NULL ) { exit(19); }
-			printf("%s\n", log_entry_str);
-		sqlite3_free(log_entry_str);
-	sqlite3_free(msg_full_str);
+	log_entry_str = sqlite3_mprintf("[%s] %s", type_str, msg); if( log_entry_str == NULL ) { exit(18); }
+		printf("%s\n", log_entry_str);
+	sqlite3_free(log_entry_str);
 }
 
 
-void mr_log_info(const char* msg, ...)
+static void mrlog_vprintf(int type, const char* msg_format, va_list va)
+{
+	char* msg;
+
+	if( type != 'e' && type != 'w' && type != 'i' ) {
+		mrlog_print('e', "Bad log type.");
+		return;
+	}
+
+	if( msg_format == NULL ) {
+		mrlog_print('e', "Log format string missing.");
+		return;
+	}
+
+	msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_print('e', "Bad log format string."); }
+		mrlog_print(type, msg);
+	sqlite3_free(msg);
+}
+
+
+void mrlog_info(const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		mr_log('i', msg, va);
+		mrlog_vprintf('i', msg, va);
 	va_end(va);
 }
 
 
 
-void mr_log_warning(const char* msg, ...)
+void mrlog_warning(const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		mr_log('w', msg, va);
+		mrlog_vprintf('w', msg, va);
 	va_end(va);
 }
 
 
-void mr_log_error(const char* msg, ...)
+void mrlog_error(const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		mr_log('e', msg, va);
+		mrlog_vprintf('e', msg, va);
 	va_end(va);
 }
-
 

@@ -178,7 +178,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 	}
 
 	if( Mr_is_error(r) ) {
-		mr_log_error("mrimap_fetch_single_msg(): Could not fetch.");
+		mrlog_error("mrimap_fetch_single_msg(): Could not fetch.");
 		return 0; /* this is an error that should be recovered; the caller should try over later to fetch the message again */
 	}
 
@@ -186,14 +186,14 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 	{
 		clistiter* cur = clist_begin(fetch_result);
 		if( cur == NULL ) {
-			mr_log_error("mrimap_fetch_single_msg(): Empty message.");
+			mrlog_error("mrimap_fetch_single_msg(): Empty message.");
 			return 1; /* error, however, do not try to fetch the message again */
 		}
 
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
 		msg_content = Mr_get_msg_att_msg_content(msg_att, &msg_len);
 		if( msg_content == NULL ) {
-			mr_log_warning("mrimap_fetch_single_msg(): No content found for a message.");
+			mrlog_warning("mrimap_fetch_single_msg(): No content found for a message.");
 			mailimap_fetch_list_free(fetch_result);
 			return 1; /* error, however, do not try to fetch the message again */
 		}
@@ -234,7 +234,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 	/* read the last index used for the given folder */
 	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
 	if( config_key == NULL ) {
-		mr_log_error("MrImap::FetchFromSingleFolder(): Out of memory.");
+		mrlog_error("MrImap::FetchFromSingleFolder(): Out of memory.");
 		goto FetchFromFolder_Done;
 	}
 
@@ -247,7 +247,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 	/* select the folder */
 	r = mailimap_select(threadval->m_imap, folder);
 	if( Mr_is_error(r) ) {
-		mr_log_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
+		mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
 		goto FetchFromFolder_Done;
 	}
 
@@ -280,7 +280,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
 			goto FetchFromFolder_Done; /* the folder is simply empty */
 		}
-		mr_log_error("MrImap::FetchFromSingleFolder(): Could not fetch");
+		mrlog_error("MrImap::FetchFromSingleFolder(): Could not fetch");
 		goto FetchFromFolder_Done;
 	}
 
@@ -316,10 +316,10 @@ FetchFromFolder_Done:
     {
 		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors.", read_cnt, folder, read_errors);
 		if( read_errors ) {
-			mr_log_error(temp);
+			mrlog_error(temp);
 		}
 		else {
-			mr_log_info(temp);
+			mrlog_info(temp);
 		}
 		sqlite3_free(temp);
     }
@@ -365,7 +365,7 @@ static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 				}
 				else
 				{
-					mr_log_info("Folder \"%s\" ignored.", name_utf8);
+					mrlog_info("Folder \"%s\" ignored.", name_utf8);
 				}
 
 				free(name_utf8);
@@ -388,7 +388,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	mrimapthreadval_t threadval;
 	int               r, cmd;
 
-	mr_log_info("Entering working thread.");
+	mrlog_info("Entering working thread.");
 
 	/* connect to server */
 	ths->m_threadState = MR_THREAD_CONNECT;
@@ -396,19 +396,19 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	threadval.m_imap = mailimap_new(0, NULL);
 	r = mailimap_ssl_connect(threadval.m_imap, ths->m_loginParam->m_mail_server, ths->m_loginParam->m_mail_port);
 	if( Mr_is_error(r) ) {
-		mr_log_error("could not connect to server");
+		mrlog_error("could not connect to server");
 		goto WorkingThread_Exit;
 	}
 
-	mr_log_info("Successfully connected to server.");
+	mrlog_info("Successfully connected to server.");
 
 	r = mailimap_login(threadval.m_imap, ths->m_loginParam->m_mail_user, ths->m_loginParam->m_mail_pw);
 	if( Mr_is_error(r) ) {
-		mr_log_error("could not login");
+		mrlog_error("could not login");
 		goto WorkingThread_Exit;
 	}
 
-	mr_log_info("Successfully logged in.");
+	mrlog_info("Successfully logged in.");
 
 	/* endless loop */
 	while( 1 )
@@ -445,7 +445,7 @@ WorkingThread_Exit:
 	}
 	ths->m_threadState = MR_THREAD_NOTALLOCATED;
 
-	mr_log_info("Exit working thread.");
+	mrlog_info("Exit working thread.");
 }
 
 
@@ -507,12 +507,12 @@ void mrimap_unref(mrimap_t* ths)
 int mrimap_connect(mrimap_t* ths, const mrloginparam_t* param)
 {
 	if( ths == NULL || param==NULL || param->m_mail_server==NULL || param->m_mail_user==NULL || param->m_mail_pw==NULL ) {
-		mr_log_error("mrimap_connect(): Bad parameter.");
+		mrlog_error("mrimap_connect(): Bad parameter.");
 		return 0; /* error, bad parameters */
 	}
 
 	if( ths->m_threadState!=MR_THREAD_NOTALLOCATED ) {
-		mr_log_info("mrimap_connect(): Already trying to connect.");
+		mrlog_info("mrimap_connect(): Already trying to connect.");
 		return 1; /* already trying to connect */
 	}
 
@@ -567,7 +567,7 @@ int mrimap_fetch(mrimap_t* ths)
 	}
 
 	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {
-		mr_log_error("mrimap_fetch(): Working thread not ready.");
+		mrlog_error("mrimap_fetch(): Working thread not ready.");
 		return 0; /* not connected */
 	}
 

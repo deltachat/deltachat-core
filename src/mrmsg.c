@@ -119,7 +119,7 @@ size_t mr_get_msg_cnt_(mrmailbox_t* mailbox) /* static function */
 	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg, "SELECT COUNT(*) FROM msg;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
-		mr_log_error("mr_get_msg_cnt() failed.");
+		mrlog_error("mr_get_msg_cnt() failed.");
 		return 0; /* error */
 	}
 

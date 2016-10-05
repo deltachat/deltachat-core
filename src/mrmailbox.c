@@ -160,22 +160,22 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 
 	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
-		mr_log_error("mrmailbox_import_file(): Cannot open file.");
+		mrlog_error("mrmailbox_import_file(): Cannot open file.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
-		mr_log_error("mrmailbox_import_file(): Cannot find out file size or file is empty.");
+		mrlog_error("mrmailbox_import_file(): Cannot find out file size or file is empty.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
-		mr_log_error("mrmailbox_import_file(): Out of memory.");
+		mrlog_error("mrmailbox_import_file(): Out of memory.");
 		goto ImportFile_Cleanup;
 	}
 
 	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
-		mr_log_error("mrmailbox_import_file(): Read error.");
+		mrlog_error("mrmailbox_import_file(): Read error.");
 		goto ImportFile_Cleanup;
 	}
 
@@ -208,7 +208,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	char*          name;
 
 	if( !mrsqlite3_is_open(ths->m_sql) ) {
-        mr_log_error("mrmailbox_import_spec(): Datebase not opened.");
+        mrlog_error("mrmailbox_import_spec(): Datebase not opened.");
 		goto ImportSpec_Cleanup;
 	}
 
@@ -226,7 +226,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
-			mr_log_error("mrmailbox_import_spec(): No file or folder given.");
+			mrlog_error("mrmailbox_import_spec(): No file or folder given.");
 			goto ImportSpec_Cleanup;
 		}
 	}
@@ -240,7 +240,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	else {
 		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
-			mr_log_error("mrmailbox_import_spec(): Cannot open directory.");
+			mrlog_error("mrmailbox_import_spec(): Cannot open directory.");
 			goto ImportSpec_Cleanup;
 		}
 
@@ -248,7 +248,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
             if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
-				mr_log_info("Import: %s", path_plus_name);
+				mrlog_info("Import: %s", path_plus_name);
 				if( path_plus_name ) {
 					if( mrmailbox_import_file(ths, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 						read_cnt++;
@@ -259,7 +259,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		}
 	}
 
-	mr_log_info("Import: %i mails read from %s.", read_cnt, spec);
+	mrlog_info("Import: %i mails read from %s.", read_cnt, spec);
 
 	/* success */
 	success = 1;
@@ -282,7 +282,7 @@ ImportSpec_Cleanup:
 int mrmailbox_connect(mrmailbox_t* ths)
 {
 	if( mrimap_is_connected(ths->m_imap) ) {
-		mr_log_info("mrmailbox_connect(): Already connected or trying to connect.");
+		mrlog_info("mrmailbox_connect(): Already connected or trying to connect.");
 		return 1;
 	}
 
@@ -476,7 +476,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	#define BUF_BYTES 10000
 	char* buf = (char*)malloc(BUF_BYTES+1);
 	if( buf == NULL ) {
-		mr_log_error("mrmailbox_get_info(): Out of memory.");
+		mrlog_error("mrmailbox_get_info(): Out of memory.");
 		return NULL; /* error */
 	}
 

@@ -159,7 +159,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 		}
 		else
 		{
-			mr_log_error("Cannot add contact.");
+			mrlog_error("Cannot add contact.");
 		}
 
 		free(display_name_dec);
