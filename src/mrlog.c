@@ -33,7 +33,12 @@
 #include "mrlog.h"
 
 
-static void mrlog_print(int type, const char* msg)
+/*******************************************************************************
+ * The default logging handler
+ ******************************************************************************/
+
+
+void mrlog_default_handler_(int type, const char* msg)
 {
 	const char* type_str;
 	char*       log_entry_str;
@@ -48,6 +53,33 @@ static void mrlog_print(int type, const char* msg)
 		printf("%s\n", log_entry_str);
 	sqlite3_free(log_entry_str);
 }
+
+
+/*******************************************************************************
+ * Call/set the logging handler
+ ******************************************************************************/
+
+
+mrlogcallback_t mrlog_callback_ptr_ = mrlog_default_handler_;
+
+
+static void mrlog_print(int type, const char* msg)
+{
+	mrlog_callback_ptr_(type, msg);
+}
+
+
+void mrlog_set_handler(mrlogcallback_t cb)
+{
+	if( cb ) {
+		mrlog_callback_ptr_ = cb;
+	}
+}
+
+
+/*******************************************************************************
+ * High-level logging functions
+ ******************************************************************************/
 
 
 static void mrlog_vprintf(int type, const char* msg_format, va_list va)

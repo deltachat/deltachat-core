@@ -33,9 +33,16 @@ extern "C" {
 #endif
 
 
-void mrlog_error  (const char* msg, ...);
-void mrlog_warning(const char* msg, ...);
-void mrlog_info   (const char* msg, ...);
+typedef void (*mrlogcallback_t) (int type, const char* msg);
+
+void mrlog_set_handler (mrlogcallback_t);
+
+
+/*** library-private **********************************************************/
+
+void mrlog_error       (const char* msg, ...);
+void mrlog_warning     (const char* msg, ...);
+void mrlog_info        (const char* msg, ...);
 
 
 #ifdef __cplusplus
