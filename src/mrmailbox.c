@@ -248,6 +248,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
             if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
+				mr_log_info("Import: %s", path_plus_name);
 				if( path_plus_name ) {
 					if( mrmailbox_import_file(ths, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 						read_cnt++;
@@ -258,13 +259,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		}
 	}
 
-	{
-		char* p = sqlite3_mprintf("%i mails read from %s.", read_cnt, spec);
-		if( p ) {
-			mr_log_info(p);
-			sqlite3_free(p);
-		}
-	}
+	mr_log_info("Import: %i mails read from %s.", read_cnt, spec);
 
 	/* success */
 	success = 1;

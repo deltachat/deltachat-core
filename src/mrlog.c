@@ -28,50 +28,56 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "mrmailbox.h"
 #include "mrlog.h"
 
 
 
-static void mr_log(char type, const char* msg)
+static void mr_log(char type, const char* msg_format_str, va_list argp)
 {
-	if( msg == NULL ) {
-		return; /* this may happen if eg. sqlite3_mprintf() cannot allocate memory - normally, not. */
-	}
+	const char *type_str;
+	char* msg_full_str, *log_entry_str;
 
-	const char* type_str;
 	switch( type ) {
 		case 'i': type_str = "Information"; break;
-		case 'w': type_str = "Warning"; break;
-		default:  type_str = "ERROR"; break;
+		case 'w': type_str = "Warning";     break;
+		default:  type_str = "ERROR";       break;
 	}
 
-	char* p = sqlite3_mprintf("[%s] %s", type_str, msg);
-	if( p ) {
-		printf("%s\n", p);
-		sqlite3_free(p);
-	}
+	msg_full_str = sqlite3_vmprintf(msg_format_str, argp); if( msg_full_str == NULL ) { exit(18); }
+		log_entry_str = sqlite3_mprintf("[%s] %s", type_str, msg_full_str); if( log_entry_str == NULL ) { exit(19); }
+			printf("%s\n", log_entry_str);
+		sqlite3_free(log_entry_str);
+	sqlite3_free(msg_full_str);
 }
 
 
-void mr_log_info(const char* msg)
+void mr_log_info(const char* msg, ...)
 {
-	mr_log('i', msg);
+	va_list va;
+	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
+		mr_log('i', msg, va);
+	va_end(va);
 }
 
 
 
-void mr_log_warning(const char* msg)
+void mr_log_warning(const char* msg, ...)
 {
-	mr_log('w', msg);
+	va_list va;
+	va_start(va, msg);
+		mr_log('w', msg, va);
+	va_end(va);
 }
 
 
-void mr_log_error(const char* msg)
+void mr_log_error(const char* msg, ...)
 {
-	mr_log('e', msg);
+	va_list va;
+	va_start(va, msg);
+		mr_log('e', msg, va);
+	va_end(va);
 }
-
-
 
 

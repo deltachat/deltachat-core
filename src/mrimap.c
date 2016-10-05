@@ -365,9 +365,7 @@ static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 				}
 				else
 				{
-					char* p = sqlite3_mprintf("Folder \"%s\" ignored.", name_utf8);
-					mr_log_info(p);
-					sqlite3_free(p);
+					mr_log_info("Folder \"%s\" ignored.", name_utf8);
 				}
 
 				free(name_utf8);
