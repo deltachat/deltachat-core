@@ -121,7 +121,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 {
 	uint32_t row_id = 0;
 
-	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_in_FROM_contacts_e, "SELECT id, name FROM contacts WHERE email=?;");
+	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_in_FROM_contacts_a, "SELECT id, name FROM contacts WHERE addr=?;");
 	sqlite3_bind_text(s, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) == SQLITE_ROW )
 	{
@@ -150,7 +150,7 @@ static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* dis
 
 		mr_normalize_name(display_name_dec);
 
-		sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_contacts_ne, "INSERT INTO contacts (name, email) VALUES(?, ?);");
+		sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_contacts_ne, "INSERT INTO contacts (name, addr) VALUES(?, ?);");
 		sqlite3_bind_text(s, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
 		sqlite3_bind_text(s, 2, addr_spec,    -1, SQLITE_STATIC);
 		if( sqlite3_step(s) == SQLITE_DONE )

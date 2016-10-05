@@ -92,8 +92,8 @@ int main(int argc, char ** argv)
 			printf("import [<spec>]     import file/folder/last EML-file(s)\n");
 			printf("set <key> [<value>] set/delete configuration value\n");
 			printf("get <key>           show configuration value\n");
-			printf("connect             connect to mailbox server\n");
-			printf("disconnect          disconnect from mailbox server\n");
+			printf("connect             connect to server\n");
+			printf("disconnect          disconnect from server\n");
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");

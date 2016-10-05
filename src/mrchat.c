@@ -151,7 +151,7 @@ int mrchat_load_from_db_(mrchat_t* ths, uint32_t id)
 
 char* mrchat_get_subtitle(mrchat_t* ths)
 {
-	/* returns either the e-mail-address or the number of chat members */
+	/* returns either the address or the number of chat members */
 	char* ret = NULL;
 	sqlite3_stmt* stmt;
 
@@ -162,8 +162,8 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	if( ths->m_type == MR_CHAT_NORMAL || ths->m_type == MR_CHAT_ENCRYPTED )
 	{
 		int r;
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_e_FROM_chats_contacts_WHERE_i,
-			"SELECT c.email FROM chats_contacts cc "
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
+			"SELECT c.addr FROM chats_contacts cc "
 				" LEFT JOIN contacts c ON c.id=cc.contact_id "
 				" WHERE cc.chat_id=?;");
 		sqlite3_bind_int(stmt, 1, ths->m_id);
@@ -361,7 +361,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 		goto CreateNormalChat_Cleanup;
 	}
 
-	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_email;
+	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
 	/* create chat record */
 	q = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_NORMAL, chat_name);

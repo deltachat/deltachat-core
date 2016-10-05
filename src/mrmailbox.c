@@ -296,7 +296,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 
 		mrloginparam_empty(ths->m_loginParam);
 
-		ths->m_loginParam->m_email       = mrsqlite3_get_config_    (ths->m_sql, "email",       NULL);
+		ths->m_loginParam->m_addr        = mrsqlite3_get_config_    (ths->m_sql, "addr",        NULL);
 
 		ths->m_loginParam->m_mail_server = mrsqlite3_get_config_    (ths->m_sql, "mail_server", NULL);
 		ths->m_loginParam->m_mail_port   = mrsqlite3_get_config_int_(ths->m_sql, "mail_port",   0);
@@ -486,12 +486,12 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	}
 
 	/* read data (all pointers may be NULL!) */
-	char *email, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
+	char *addr, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
 	int contacts, chats, messages;
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		email       = mrsqlite3_get_config_(ths->m_sql, "email", NULL);
+		addr        = mrsqlite3_get_config_(ths->m_sql, "addr", NULL);
 
 		mail_server = mrsqlite3_get_config_(ths->m_sql, "mail_server", NULL);
 		mail_port   = mrsqlite3_get_config_(ths->m_sql, "mail_port", NULL);
@@ -521,7 +521,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Contacts         %i\n"
 		"Chats/Messages   %i/%i\n"
 
-		"email            %s\n"
+		"addr             %s\n"
 		"mail_server      %s\n"
 		"mail_port        %s\n"
 		"mail_user        %s\n"
@@ -544,7 +544,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, contacts
 		, chats, messages
 
-		, email? email : unset
+		, addr? addr : unset
 		, mail_server? mail_server : unset
 		, mail_port? mail_port : unset
 		, mail_user? mail_user : unset
@@ -559,18 +559,18 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		);
 
 	/* free data */
-	#define GI_FREE_(a) if((a)) { free((a)); }
-	GI_FREE_(email);
+	free(addr);
 
-	GI_FREE_(mail_server);
-	GI_FREE_(mail_port);
-	GI_FREE_(mail_user);
-	GI_FREE_(mail_pw);
+	free(mail_server);
+	free(mail_port);
+	free(mail_user);
+	free(mail_pw);
 
-	GI_FREE_(send_server);
-	GI_FREE_(send_port);
-	GI_FREE_(send_user);
-	GI_FREE_(send_pw);
+	free(send_server);
+	free(send_port);
+	free(send_user);
+	free(send_pw);
+
 	return buf; /* must be freed by the caller */
 }
 

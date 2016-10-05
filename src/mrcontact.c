@@ -46,7 +46,7 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 
 	ths->m_mailbox = mailbox;
 	ths->m_name    = NULL;
-	ths->m_email   = NULL;
+	ths->m_addr    = NULL;
 
 	return ths;
 }
@@ -76,8 +76,8 @@ void mrcontact_empty(mrcontact_t* ths)
 	free(ths->m_name); /* it is safe to call free(NULL) */
 	ths->m_name = NULL;
 
-	free(ths->m_email);
-	ths->m_email = NULL;
+	free(ths->m_addr);
+	ths->m_addr = NULL;
 }
 
 
@@ -93,7 +93,7 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 	mrcontact_empty(ths);
 
 	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ine_FROM_contacts_i,
-		"SELECT id, name, email FROM contacts WHERE id=?;");
+		"SELECT id, name, addr FROM contacts WHERE id=?;");
 	if( stmt == NULL ) {
 		goto LoadFromDb_Cleanup;
 	}
@@ -105,8 +105,8 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 
 	ths->m_id    = contact_id;
 	ths->m_name  = safe_strdup((char*)sqlite3_column_text(stmt, 1));
-	ths->m_email = safe_strdup((char*)sqlite3_column_text(stmt, 2));
-	if( ths->m_name == NULL || ths->m_email == NULL ) {
+	ths->m_addr  = safe_strdup((char*)sqlite3_column_text(stmt, 2));
+	if( ths->m_name == NULL || ths->m_addr == NULL ) {
 		goto LoadFromDb_Cleanup; /* out of memory, should not happen */
 	}
 

@@ -43,7 +43,7 @@ mrloginparam_t* mrloginparam_new()
 	}
 
 	/* init pointers (this cannot be done by mrloginparam_empty() as this function checks against NULL pointers) */
-	ths->m_email      = NULL;
+	ths->m_addr        = NULL;
 
 	ths->m_mail_server = NULL;
 	ths->m_mail_port   = 0;
@@ -78,7 +78,7 @@ void mrloginparam_empty(mrloginparam_t* ths)
 
 	#define FREE_(a) if((a)) { free((a)); (a) = NULL; }
 
-	FREE_(ths->m_email)
+	FREE_(ths->m_addr)
 
 	FREE_(ths->m_mail_server)
 	ths->m_mail_port = 0;
@@ -96,11 +96,11 @@ void mrloginparam_complete(mrloginparam_t* ths)
 {
 	char* adr_server;
 
-	if( ths == NULL || ths->m_email == NULL ) {
+	if( ths == NULL || ths->m_addr == NULL ) {
 		return; /* nothing we can do */
 	}
 
-	adr_server = strstr(ths->m_email, "@");
+	adr_server = strstr(ths->m_addr, "@");
 	if( adr_server == NULL ) {
 		return; /* no "@" found in address, normally, this should not happen */
 	}
@@ -116,19 +116,19 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		also not https://www.google.com/settings/security/lesssecureapps - is this needed? */
 		if( ths->m_mail_server == NULL )               { ths->m_mail_server = safe_strdup("imap.gmail.com"); }
 		if( ths->m_mail_port == 0 )                    { ths->m_mail_port   = 993; } /* IMAPS */
-		if( ths->m_mail_user == NULL )                 { ths->m_mail_user   = safe_strdup(ths->m_email); }
+		if( ths->m_mail_user == NULL )                 { ths->m_mail_user   = safe_strdup(ths->m_addr); }
 
 		if( ths->m_send_server == NULL )               { ths->m_send_server = safe_strdup("smtp.gmail.com"); }
 		if( ths->m_send_port == 0 )                    { ths->m_send_port   = 465; } /* SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587 */
-		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_email); }
+		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_addr); }
 		if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
 	}
 
 	/* generic approach */
 	if( ths->m_mail_port == 0 )                    { ths->m_mail_port = 993; }
-	if( ths->m_mail_user == NULL )                 { ths->m_mail_user = safe_strdup(ths->m_email); }
+	if( ths->m_mail_user == NULL )                 { ths->m_mail_user = safe_strdup(ths->m_addr); }
 	if( ths->m_send_port == 0 )                    { ths->m_send_port = 465; }
-	if( ths->m_send_user == NULL )                 { ths->m_send_user = safe_strdup(ths->m_email); }
+	if( ths->m_send_user == NULL )                 { ths->m_send_user = safe_strdup(ths->m_addr); }
 	if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw   = safe_strdup(ths->m_mail_pw); }
 }
 

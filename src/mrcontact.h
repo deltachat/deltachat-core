@@ -22,7 +22,7 @@
  * File:    mrcontact.h
  * Authors: Björn Petersen
  * Purpose: mrcontact_t represents a single contact - if in doubt a contact is
- *          every email-adresses the user has _send_ a mail to (only receiving
+ *          every (email-)adresses the user has _send_ a mail to (only receiving
  *          is not sufficient).
  *          For the future, we plan to use the systems address books and/or a
  *          CardDAV server, too.
@@ -41,7 +41,7 @@ typedef struct mrcontact_t
 {
 	uint32_t            m_id;
 	char*               m_name;  /* != NULL, however, may be empty */
-	char*               m_email; /* != NULL */
+	char*               m_addr;  /* != NULL */
 	mrmailbox_t*        m_mailbox;
 	int                 m_refcnt;
 } mrcontact_t;

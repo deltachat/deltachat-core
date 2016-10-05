@@ -63,7 +63,7 @@ enum
 
 	,SELECT_COUNT_FROM_contacts
 	,SELECT_ine_FROM_contacts_i
-	,SELECT_in_FROM_contacts_e
+	,SELECT_in_FROM_contacts_a
 	,INSERT_INTO_contacts_ne
 	,UPDATE_contacts_ni
 
@@ -71,7 +71,7 @@ enum
 	,SELECT_itnifttsm_FROM_chatsNmsgs
 	,SELECT_itn_FROM_chats_i
 
-	,SELECT_e_FROM_chats_contacts_WHERE_i
+	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
 	,UPDATE_chats_dd
 
