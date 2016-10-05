@@ -97,7 +97,7 @@ int main(int argc, char ** argv)
 			printf("fetch               fetch messages\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");
-			printf("chat [<spec>]       list chat/select chat by id\n");
+			printf("chat [<id>]         list chat/select chat by id\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("empty               empty database but server config\n");
