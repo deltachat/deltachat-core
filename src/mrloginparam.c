@@ -76,19 +76,30 @@ void mrloginparam_empty(mrloginparam_t* ths)
 		return; /* error */
 	}
 
-	#define FREE_(a) if((a)) { free((a)); (a) = NULL; }
+	free(ths->m_addr);
+	ths->m_addr = NULL;
 
-	FREE_(ths->m_addr)
+	free(ths->m_mail_server);
+	ths->m_mail_server = NULL;
 
-	FREE_(ths->m_mail_server)
 	ths->m_mail_port = 0;
-	FREE_(ths->m_mail_user)
-	FREE_(ths->m_mail_pw)
 
-	FREE_(ths->m_send_server)
+	free(ths->m_mail_user);
+	ths->m_mail_user = NULL;
+
+	free(ths->m_mail_pw);
+	ths->m_mail_pw = NULL;
+
+	free(ths->m_send_server);
+	ths->m_send_server = NULL;
+
 	ths->m_send_port = 0;
-	FREE_(ths->m_send_user)
-	FREE_(ths->m_send_pw)
+
+	free(ths->m_send_user);
+	ths->m_send_user = NULL;
+
+	free(ths->m_send_pw);
+	ths->m_send_pw = NULL;
 }
 
 
