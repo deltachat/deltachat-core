@@ -76,30 +76,15 @@ void mrloginparam_empty(mrloginparam_t* ths)
 		return; /* error */
 	}
 
-	free(ths->m_addr);
-	ths->m_addr = NULL;
-
-	free(ths->m_mail_server);
-	ths->m_mail_server = NULL;
-
-	ths->m_mail_port = 0;
-
-	free(ths->m_mail_user);
-	ths->m_mail_user = NULL;
-
-	free(ths->m_mail_pw);
-	ths->m_mail_pw = NULL;
-
-	free(ths->m_send_server);
-	ths->m_send_server = NULL;
-
-	ths->m_send_port = 0;
-
-	free(ths->m_send_user);
-	ths->m_send_user = NULL;
-
-	free(ths->m_send_pw);
-	ths->m_send_pw = NULL;
+	free(ths->m_addr);        ths->m_addr        = NULL;
+	free(ths->m_mail_server); ths->m_mail_server = NULL;
+	                          ths->m_mail_port   = 0;
+	free(ths->m_mail_user);   ths->m_mail_user   = NULL;
+	free(ths->m_mail_pw);     ths->m_mail_pw     = NULL;
+	free(ths->m_send_server); ths->m_send_server = NULL;
+	                          ths->m_send_port   = 0;
+	free(ths->m_send_user);   ths->m_send_user   = NULL;
+	free(ths->m_send_pw);     ths->m_send_pw     = NULL;
 }
 
 
