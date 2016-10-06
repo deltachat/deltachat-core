@@ -346,8 +346,11 @@ static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 	clist*     imap_folders = NULL;
 	clistiter* cur;
 
+	mrlog_info("Checking other folders...");
+
 	r = mailimap_list(threadval->m_imap, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
 	if( Mr_is_error(r) || imap_folders==NULL ) {
+		mrlog_error("Cannot get folder list.");
 		goto FetchFromAllFolders_Done;
 	}
 
@@ -388,27 +391,31 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	mrimapthreadval_t threadval;
 	int               r, cmd;
 
-	mrlog_info("Entering working thread.");
+	mrlog_info("Working thread entered.");
 
 	/* connect to server */
 	ths->m_threadState = MR_THREAD_CONNECT;
 
+	mrlog_info("Connecting to \"%s:%i\"...", ths->m_loginParam->m_mail_server, (int)ths->m_loginParam->m_mail_port);
+
 	threadval.m_imap = mailimap_new(0, NULL);
 	r = mailimap_ssl_connect(threadval.m_imap, ths->m_loginParam->m_mail_server, ths->m_loginParam->m_mail_port);
 	if( Mr_is_error(r) ) {
-		mrlog_error("could not connect to server");
+		mrlog_error("Could not connect to server.");
 		goto WorkingThread_Exit;
 	}
 
-	mrlog_info("Successfully connected to server.");
+	mrlog_info("Connection ok.");
+
+	mrlog_info("Login as \"%s\"...", ths->m_loginParam->m_mail_user);
 
 	r = mailimap_login(threadval.m_imap, ths->m_loginParam->m_mail_user, ths->m_loginParam->m_mail_pw);
 	if( Mr_is_error(r) ) {
-		mrlog_error("could not login");
+		mrlog_error("Could not login.");
 		goto WorkingThread_Exit;
 	}
 
-	mrlog_info("Successfully logged in.");
+	mrlog_info("Login ok.");
 
 	/* endless loop */
 	while( 1 )
@@ -439,9 +446,13 @@ static void mrimap_working_thread__(mrimap_t* ths)
 
 WorkingThread_Exit:
 	if( threadval.m_imap ) {
+
 		mailimap_logout(threadval.m_imap);
+		mrlog_info("Logout done.");
+
 		mailimap_free(threadval.m_imap);
 		threadval.m_imap = NULL;
+		mrlog_info("Disconnect done.");
 	}
 	ths->m_threadState = MR_THREAD_NOTALLOCATED;
 

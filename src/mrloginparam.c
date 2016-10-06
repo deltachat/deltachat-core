@@ -39,7 +39,7 @@ mrloginparam_t* mrloginparam_new()
 	mrloginparam_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrloginparam_t)))==NULL ) {
-		return NULL; /* error */
+		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	/* init pointers (this cannot be done by mrloginparam_empty() as this function checks against NULL pointers) */
@@ -62,7 +62,7 @@ mrloginparam_t* mrloginparam_new()
 void mrloginparam_unref(mrloginparam_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return; /* ok, but nothing to do */
 	}
 
 	mrloginparam_empty(ths);
@@ -73,7 +73,7 @@ void mrloginparam_unref(mrloginparam_t* ths)
 void mrloginparam_empty(mrloginparam_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return; /* ok, but nothing to do */
 	}
 
 	free(ths->m_addr);        ths->m_addr        = NULL;

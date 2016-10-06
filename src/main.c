@@ -57,7 +57,7 @@ static char* read_cmd()
 
 static void print_error()
 {
-	printf("ERROR.\n");
+	/* the errors are already logged, currently, there's nothing to do here */
 }
 
 
