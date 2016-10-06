@@ -220,7 +220,7 @@ int main(int argc, char ** argv)
 
 						mrpoortext_t* poortext = mrchat_get_summary(chat);
 
-							if( poortext->m_title ) { printf("%s(%i): ", poortext->m_title, poortext->m_title_meaning); }
+							if( poortext->m_title ) { printf("%s: ", poortext->m_title); }
 							if( poortext->m_text ) { printf("%s", poortext->m_text); }
 
 							switch( poortext->m_state ) {
@@ -269,9 +269,14 @@ int main(int argc, char ** argv)
 					for( i = 0; i < cnt; i++ )
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
+						mrcontact_t* contact = mrmailbox_get_contact_by_id(mailbox, msg->m_from_id);
+						const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
+
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("Msg #%i: %s [%s]\n", (int)msg->m_id, msg->m_text, temp2);
+							printf("Msg #%i: %s: %s [%s]\n", (int)msg->m_id, contact_name, msg->m_text, temp2);
 						free(temp2);
+
+						mrcontact_unref(contact);
 						printf("--------------------------------------------------------------------------------\n");
 					}
 					mrmsglist_unref(msglist);

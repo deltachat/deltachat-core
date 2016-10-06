@@ -251,7 +251,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
 			mrcontact_load_from_db_(contact, ths->m_last_msg_->m_from_id);
 			if( contact->m_name ) {
-				ret->m_title = safe_strdup(contact->m_name);
+				ret->m_title = mr_get_first_name(contact->m_name);
 				ret->m_title_meaning = MR_TITLE_USERNAME;
 				mrcontact_unref(contact);
 			}

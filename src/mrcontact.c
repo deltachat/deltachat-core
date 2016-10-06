@@ -39,7 +39,7 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 	mrcontact_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrcontact_t)))==NULL ) {
-		return NULL; /* error */
+		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE

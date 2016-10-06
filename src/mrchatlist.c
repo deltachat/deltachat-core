@@ -35,7 +35,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 	mrchatlist_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrchatlist_t)))==NULL ) {
-		return NULL; /* error */
+		exit(20); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_mailbox = mailbox;
