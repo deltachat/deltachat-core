@@ -89,8 +89,9 @@ void         mrmsg_empty             (mrmsg_t*);
 #define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
-size_t       mr_get_msg_cnt_         (mrmailbox_t*);
-int          mr_message_id_exists_   (mrmailbox_t*, const char* rfc724_mid);
+size_t       mr_get_assigned_msg_cnt_  (mrmailbox_t*);
+size_t       mr_get_unassigned_msg_cnt_(mrmailbox_t*);
+int          mr_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
 
 
 #ifdef __cplusplus

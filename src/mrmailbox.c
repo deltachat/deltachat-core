@@ -501,7 +501,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	/* read data (all pointers may be NULL!) */
 	char *addr, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
-	int contacts, chats, messages;
+	int contacts, chats, assigned_msgs, unassigned_msgs;
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
@@ -519,9 +519,10 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 
-		chats       = mr_get_chat_cnt_(ths);
-		messages    = mr_get_msg_cnt_(ths);
-		contacts    = mr_get_contact_cnt_(ths);
+		chats           = mr_get_chat_cnt_(ths);
+		assigned_msgs   = mr_get_assigned_msg_cnt_(ths);
+		unassigned_msgs = mr_get_unassigned_msg_cnt_(ths);
+		contacts        = mr_get_contact_cnt_(ths);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -532,7 +533,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
 		"BLOB directory   %s\n"
-		"Chats/Messages   %i/%i\n"
+		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
 		"addr             %s\n"
@@ -555,7 +556,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, ths->m_dbfile? ths->m_dbfile : unset
 		, ths->m_blobdir? ths->m_blobdir : unset
 
-		, chats, messages
+		, chats, assigned_msgs, unassigned_msgs
 		, contacts
 
 		, addr? addr : unset

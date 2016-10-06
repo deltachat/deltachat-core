@@ -113,16 +113,35 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
  ******************************************************************************/
 
 
-size_t mr_get_msg_cnt_(mrmailbox_t* mailbox) /* static function */
+size_t mr_get_assigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of messages assigned to a chat */
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg, "SELECT COUNT(*) FROM msg;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg_WHERE_assigned,
+		"SELECT COUNT(*) FROM msg WHERE chat_id!=0;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
-		mrlog_error("mr_get_msg_cnt() failed.");
+		mrlog_error("mr_get_assigned_msg_cnt_() failed.");
+		return 0; /* error */
+	}
+
+	return sqlite3_column_int(s, 0); /* success */
+}
+
+
+size_t mr_get_unassigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of messages not assigned to a chat */
+{
+	if( mailbox->m_sql->m_cobj==NULL ) {
+		return 0; /* no database, no messages - this is no error (needed eg. for information) */
+	}
+
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg_WHERE_unassigned,
+		"SELECT COUNT(*) FROM msg WHERE chat_id=0;");
+	if( sqlite3_step(s) != SQLITE_ROW ) {
+		mrsqlite3_log_error(mailbox->m_sql);
+		mrlog_error("mr_get_unassigned_msg_cnt_() failed.");
 		return 0; /* error */
 	}
 

@@ -35,7 +35,7 @@ mrmsglist_t* mrmsglist_new(mrchat_t* chat)
 	mrmsglist_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrmsglist_t)))==NULL ) {
-		return NULL; /* error */
+		exit(21); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_chat = chat;
