@@ -88,6 +88,24 @@ void mrloginparam_empty(mrloginparam_t* ths)
 }
 
 
+void mrloginparam_read(mrloginparam_t* ths, mrsqlite3_t* sql)
+{
+	mrloginparam_empty(ths);
+
+	ths->m_addr        = mrsqlite3_get_config_    (sql, "addr",        NULL);
+
+	ths->m_mail_server = mrsqlite3_get_config_    (sql, "mail_server", NULL);
+	ths->m_mail_port   = mrsqlite3_get_config_int_(sql, "mail_port",   0);
+	ths->m_mail_user   = mrsqlite3_get_config_    (sql, "mail_user",   NULL);
+	ths->m_mail_pw     = mrsqlite3_get_config_    (sql, "mail_pw",     NULL);
+
+	ths->m_send_server = mrsqlite3_get_config_    (sql, "send_server", NULL);
+	ths->m_send_port   = mrsqlite3_get_config_int_(sql, "send_port",   0);
+	ths->m_send_user   = mrsqlite3_get_config_    (sql, "send_user",   NULL);
+	ths->m_send_pw     = mrsqlite3_get_config_    (sql, "send_pw",     NULL);
+}
+
+
 void mrloginparam_complete(mrloginparam_t* ths)
 {
 	char* adr_server;
@@ -102,7 +120,8 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	}
 	adr_server++;
 
-	/* set servers, ports etc. for well-known and frequently used services
+	/* set servers, ports etc. for well-known and frequently used services.
+	Remember, unset values are NULL, not the empty string!
 	TODO: We should add values for gmx.net, web.de etc. */
 	if( strcmp(adr_server, "gmail.com")==0
 	 || strcmp(adr_server, "googlemail.com")==0 )
@@ -118,14 +137,18 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		if( ths->m_send_port == 0 )                    { ths->m_send_port   = 465; } /* SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587 */
 		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_addr); }
 		if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
+		return;
 	}
 
-	/* generic approach */
-	if( ths->m_mail_port == 0 )                    { ths->m_mail_port = 993; }
-	if( ths->m_mail_user == NULL )                 { ths->m_mail_user = safe_strdup(ths->m_addr); }
-	if( ths->m_send_port == 0 )                    { ths->m_send_port = 465; }
-	if( ths->m_send_user == NULL )                 { ths->m_send_user = safe_strdup(ths->m_addr); }
-	if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw   = safe_strdup(ths->m_mail_pw); }
+	/* generic approach, just duplicate the servers and use the standard ports.
+	works fine eg. for all-inkl */
+	if( ths->m_mail_port == 0 )                            { ths->m_mail_port   = 993; }
+	if( ths->m_mail_user == NULL )                         { ths->m_mail_user   = safe_strdup(ths->m_addr); }
+
+	if( ths->m_send_server == NULL && ths->m_mail_server ) { ths->m_send_server = safe_strdup(ths->m_mail_server); }
+	if( ths->m_send_port == 0 )                            { ths->m_send_port   = 465; }
+	if( ths->m_send_user == NULL && ths->m_mail_user )     { ths->m_send_user   = safe_strdup(ths->m_mail_user); }
+	if( ths->m_send_pw == NULL && ths->m_mail_pw )         { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
 }
 
 

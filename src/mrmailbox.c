@@ -289,19 +289,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	/* read parameter, unset parameters are still NULL afterwards */
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrloginparam_empty(ths->m_loginParam);
-
-		ths->m_loginParam->m_addr        = mrsqlite3_get_config_    (ths->m_sql, "addr",        NULL);
-
-		ths->m_loginParam->m_mail_server = mrsqlite3_get_config_    (ths->m_sql, "mail_server", NULL);
-		ths->m_loginParam->m_mail_port   = mrsqlite3_get_config_int_(ths->m_sql, "mail_port",   0);
-		ths->m_loginParam->m_mail_user   = mrsqlite3_get_config_    (ths->m_sql, "mail_user",   NULL);
-		ths->m_loginParam->m_mail_pw     = mrsqlite3_get_config_    (ths->m_sql, "mail_pw",     NULL);
-
-		ths->m_loginParam->m_send_server = mrsqlite3_get_config_    (ths->m_sql, "send_server", NULL);
-		ths->m_loginParam->m_send_port   = mrsqlite3_get_config_int_(ths->m_sql, "send_port",   0);
-		ths->m_loginParam->m_send_user   = mrsqlite3_get_config_    (ths->m_sql, "send_user",   NULL);
-		ths->m_loginParam->m_send_pw     = mrsqlite3_get_config_    (ths->m_sql, "send_pw",     NULL);
+		mrloginparam_read(ths->m_loginParam, ths->m_sql);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
