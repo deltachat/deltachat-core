@@ -500,9 +500,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 
-		contacts    = mr_get_contact_cnt_(ths);
 		chats       = mr_get_chat_cnt_(ths);
 		messages    = mr_get_msg_cnt_(ths);
+		contacts    = mr_get_contact_cnt_(ths);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -513,8 +513,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
 		"BLOB directory   %s\n"
-		"Contacts         %i\n"
 		"Chats/Messages   %i/%i\n"
+		"Contacts         %i\n"
 
 		"addr             %s\n"
 		"mail_server      %s\n"
@@ -536,8 +536,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, ths->m_dbfile? ths->m_dbfile : unset
 		, ths->m_blobdir? ths->m_blobdir : unset
 
-		, contacts
 		, chats, messages
+		, contacts
 
 		, addr? addr : unset
 		, mail_server? mail_server : unset
@@ -574,7 +574,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>=10;"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MRSCID_LAST) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg;");

@@ -37,6 +37,12 @@ extern "C" {
 #endif
 
 
+/* Specical contact IDs */
+#define MRSCID_SELF   1
+#define MRSCID_SYSTEM 2
+#define MRSCID_LAST   9
+
+
 typedef struct mrcontact_t
 {
 	uint32_t            m_id;

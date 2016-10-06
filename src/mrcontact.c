@@ -127,23 +127,24 @@ LoadFromDb_Cleanup:
 
 size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no contacts - this is no error (needed eg. for information) */
 	}
 
-	if( (s=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts;"))==NULL ) {
+	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;"))==NULL ) {
 		return 0;
 	}
+	sqlite3_bind_int(stmt, 1, MRSCID_LAST);
 
-	if( sqlite3_step(s) != SQLITE_ROW ) {
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
 		mrlog_error("mr_get_contact_cnt() failed.");
 		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); /* success */
+	return sqlite3_column_int(stmt, 0); /* success */
 }
 
 

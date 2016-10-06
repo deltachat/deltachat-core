@@ -82,6 +82,10 @@ int     carray_search              (carray*, void* needle, unsigned int* indx); 
 	if( ths->m_refcnt > 0 ) { return; }
 
 
+#define MR_QUOTEHELPER(name) #name
+#define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

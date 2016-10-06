@@ -243,7 +243,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	else
 	{
 		/* show the last message */
-		if( ths->m_last_msg_->m_from_id == 1 ) {
+		if( ths->m_last_msg_->m_from_id == MRSCID_SELF ) {
 			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}

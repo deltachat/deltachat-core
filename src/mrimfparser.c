@@ -357,7 +357,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
 		}
 		else {
-			contact_id_from = 1; /* send by ourself */
+			contact_id_from = MRSCID_SELF; /* send by ourself */
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"

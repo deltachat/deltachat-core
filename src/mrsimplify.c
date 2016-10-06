@@ -168,7 +168,8 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 	/* split the given buffer into lines */
 	carray* lines = mr_split_into_lines(buf_terminated);
 
-	/* search for the line `-- ` and ignore this and all following lines */
+	/* search for the line `-- ` and ignore this and all following lines
+	If the line contains more characters, it is _not_ treated as the footer start mark (hi, Thorsten) */
 	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
 	char* line;
 	for( l = l_first; l <= l_last; l++ )
