@@ -227,6 +227,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
+	int              has_return_path = 0;
 	int              comes_from_extern = 0; /* indicates, if the mail was send by us or was received from outside */
 	mrmimeparser_t*  mime_parser = mrmimeparser_new_();
 	int              db_locked = 0;
@@ -308,13 +309,26 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 				}
 				else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
 				{
-					comes_from_extern = 1; /* we assume, the `Return-Path:`-header is never present if the message is send by us */
-										   /* (messages send by us are used to validate other mail senders and receivers) */
-										   /* maybe, the `Received:`-header is a better choice, however, I don't know how to get it with libEtPan. */
+					has_return_path = 1;
+				}
+				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+				{
+					struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+					if( strcasecmp(optional_field->fld_name, "Return-Path")==0 ) {
+						has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
+					}
 				}
 			}
 
 		} /* for */
+
+		/* Check, if the mail comes from extern, resp. is not send by us
+		(messages send by us are used to validate other mail senders and receivers).
+		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
+		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP. */
+		if( has_return_path ) {
+			comes_from_extern = 1;
+		}
 
 		/* check, if the given message is send by _us_ to only _one_ receiver --
 		only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
