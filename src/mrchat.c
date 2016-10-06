@@ -243,7 +243,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	else
 	{
 		/* show the last message */
-		if( ths->m_last_msg_->m_from_id == 0 ) {
+		if( ths->m_last_msg_->m_from_id == 1 ) {
 			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
@@ -453,8 +453,12 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			}
 
 			/* query */
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ifttsm_FROM_msg_i,
-				"SELECT " MR_MSG_FIELDS " FROM msg m WHERE m.chat_id=? ORDER BY m.timestamp,m.id LIMIT ? OFFSET ?;");
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_icfttstpb_FROM_msg_i,
+				"SELECT " MR_MSG_FIELDS
+					" FROM msg m"
+					" WHERE m.chat_id=?"
+					" ORDER BY m.timestamp,m.id"
+					" LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
 				goto ListMsgs_Cleanup;
 			}

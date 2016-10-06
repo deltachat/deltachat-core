@@ -46,7 +46,7 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 	ths->m_mailbox   = mailbox;
 	ths->m_id        = 0;
 	ths->m_chat_id   = 0;
-	ths->m_from_id   = 0;
+	ths->m_from_id   = 0; /* unset, 1=self */
 	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
@@ -88,15 +88,18 @@ void mrmsg_empty(mrmsg_t* ths)
 
 
 
-int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset)
+int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
 {
 	mrmsg_empty(ths);
 
 	ths->m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_chat_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_from_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+
 	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_state     =                    sqlite3_column_int  (row, row_offset++);
+
 	ths->m_text      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_param     = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_bytes     =                    sqlite3_column_int  (row, row_offset++);

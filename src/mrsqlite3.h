@@ -77,7 +77,7 @@ enum
 
 	,SELECT_COUNT_FROM_msg
 	,SELECT_i_FROM_msg_m
-	,SELECT_ifttsm_FROM_msg_i
+	,SELECT_icfttstpb_FROM_msg_i
 	,INSERT_INTO_msg_mcfttsmp
 	,INSERT_INTO_msg_to_mc
 

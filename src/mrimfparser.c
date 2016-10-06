@@ -220,7 +220,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 {
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
-	uint32_t         contact_id_from = 0; /* 0=self */
+	uint32_t         contact_id_from = 0; /* 1=self */
 	sqlite3_stmt*    s;
 	int              i, icnt, part_i, part_cnt;
 	uint32_t         dblocal_id = 0;    /* databaselocal message id */
@@ -346,7 +346,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			goto Imf2Msg_Done; /* success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK) */
 		}
 
-		/* set the sender (contact_id_from, 0=self) */
+		/* set the sender (contact_id_from, 1=self) */
 		if( comes_from_extern ) {
 			if( carray_count(contact_ids_from) == 0 ) {
 				mrimfparser_add_or_lookup_contact(ths, NULL, "no@ddress", contact_ids_from);
@@ -357,7 +357,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
 		}
 		else {
-			contact_id_from = 0; /* send by ourself */
+			contact_id_from = 1; /* send by ourself */
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"

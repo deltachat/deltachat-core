@@ -56,7 +56,7 @@ typedef struct mrchat_t
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_text;      /* NULL if unset */
 	mrmailbox_t*    m_mailbox;
-	mrmsg_t*        m_last_msg_;       /* NULL if unset. The trailing `_` indicates, this should not be used by library users. */
+	mrmsg_t*        m_last_msg_;       /* Only set, if the chat was read by mrmailbox_get_chatlist(); use mrchat_get_summary() to read this field. */
 	int             m_refcnt;
 } mrchat_t;
 

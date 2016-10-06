@@ -574,7 +574,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts;");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>=10;"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg;");

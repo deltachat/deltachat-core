@@ -110,8 +110,11 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 		mrsqlite3_execute(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY, name TEXT, addr TEXT);");
+		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+					" name TEXT DEFAULT '',"
+					" addr TEXT DEFAULT '');");
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
+		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name) VALUES (1,'self'), (2,'system'), (3,'rsvd'), (4,'rsvd'), (5,'rsvd'), (6,'rsvd'), (7,'rsvd'), (8,'rsvd'), (9,'rsvd');");
 
 		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT, "
 					" draft_timestamp INTEGER DEFAULT 0, draft_txt TEXT DEFAULT '');");

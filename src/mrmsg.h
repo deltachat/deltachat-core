@@ -45,7 +45,7 @@ extern "C" {
 #define MR_MSG_LINK        61 /* not sure, if we will really support this, maybe a normal text message will do the job. */
 #define MR_MSG_CONTACT     70 /* not sure, if we will really support this, maybe a normal text message will do the job. */
 #define MR_MSG_LOCATION    80 /* not sure, if we will really support this, maybe a normal text message will do the job. */
-#define MR_MSG_SERVICE     90 /* messages as "You created the group.", not always spread via e-mail and equal on all clients, m_text is a stock ID, m_param may contain additional information */
+#define MR_MSG_SYSTEM      90 /* service messages as "You created the group.", not always spread via e-mail and equal on all clients, m_text is a stock ID, m_param may contain additional information; not sure, if we will use this, we also have the special user ID #2 which may be a better choice (as system messages can be of any type then) */
 
 
 /* message states */
@@ -61,7 +61,7 @@ extern "C" {
 typedef struct mrmsg_t
 {
 	uint32_t      m_id;
-	uint32_t      m_from_id;   /* contact, 0 = self */
+	uint32_t      m_from_id;   /* contact, 0=unset, 1=self */
 	uint32_t      m_chat_id;   /* the chat, the message belongs to */
 	time_t        m_timestamp; /* unix time the message was sended */
 
@@ -86,7 +86,7 @@ void         mrmsg_unref             (mrmsg_t*); /* this also free()s all string
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 
-#define      MR_MSG_FIELDS           " m.id,m.from_id,m.timestamp, m.type,m.state,m.txt, m.param,m.bytes "
+#define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 size_t       mr_get_msg_cnt_         (mrmailbox_t*);
