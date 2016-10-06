@@ -114,6 +114,7 @@ mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id);
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
+mrloginparam_t*      mrmailbox_suggest_config       (mrmailbox_t*); /* the result must be unref'd */
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */

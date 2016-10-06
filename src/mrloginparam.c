@@ -88,7 +88,7 @@ void mrloginparam_empty(mrloginparam_t* ths)
 }
 
 
-void mrloginparam_read(mrloginparam_t* ths, mrsqlite3_t* sql)
+void mrloginparam_read_(mrloginparam_t* ths, mrsqlite3_t* sql)
 {
 	mrloginparam_empty(ths);
 

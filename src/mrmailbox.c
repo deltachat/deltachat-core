@@ -81,7 +81,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	int db_locked = 0;
 
 	if( ths == NULL ) {
-		return;
+		goto Open_Done;
 	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
@@ -309,7 +309,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	/* read parameter, unset parameters are still NULL afterwards */
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrloginparam_read(ths->m_loginParam, ths->m_sql);
+		mrloginparam_read_(ths->m_loginParam, ths->m_sql);
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
@@ -334,7 +334,7 @@ void mrmailbox_disconnect(mrmailbox_t* ths)
 int mrmailbox_fetch(mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
-		return;
+		return 0;
 	}
 
 	return mrimap_fetch(ths->m_imap);
@@ -504,6 +504,20 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 }
 
 
+mrloginparam_t* mrmailbox_suggest_config(mrmailbox_t* ths)
+{
+	mrloginparam_t* ret = mrloginparam_new();
+
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		mrloginparam_read_(ret, ths->m_sql);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	mrloginparam_complete(ret);
+
+	return ret;
+}
+
+
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
@@ -516,22 +530,16 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	}
 
 	/* read data (all pointers may be NULL!) */
-	char *addr, *mail_server, *mail_port, *mail_user, *mail_pw, *send_server, *send_port, *send_user, *send_pw, *debug_dir;
+	mrloginparam_t *l = mrloginparam_new(), *l2 = mrloginparam_new();
+	char *debug_dir;
 	int contacts, chats, assigned_msgs, unassigned_msgs;
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		addr        = mrsqlite3_get_config_(ths->m_sql, "addr", NULL);
+		mrloginparam_read_(l, ths->m_sql);
 
-		mail_server = mrsqlite3_get_config_(ths->m_sql, "mail_server", NULL);
-		mail_port   = mrsqlite3_get_config_(ths->m_sql, "mail_port", NULL);
-		mail_user   = mrsqlite3_get_config_(ths->m_sql, "mail_user", NULL);
-		mail_pw     = mrsqlite3_get_config_(ths->m_sql, "mail_pw", NULL);
-
-		send_server = mrsqlite3_get_config_(ths->m_sql, "send_server", NULL);
-		send_port   = mrsqlite3_get_config_(ths->m_sql, "send_port", NULL);
-		send_user   = mrsqlite3_get_config_(ths->m_sql, "send_user", NULL);
-		send_pw     = mrsqlite3_get_config_(ths->m_sql, "send_pw", NULL);
+		mrloginparam_read_(l2, ths->m_sql);
+		mrloginparam_complete(l2);
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 
@@ -542,65 +550,54 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
-	/* create info */
+	/* create info
+	- some keys are display lower case - these can be changed using the `set`-command
+	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
     snprintf(buf, BUF_BYTES,
 		"Backend version  %i.%i.%i\n"
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
 		"BLOB directory   %s\n"
+		"debug_dir        %s\n"
 		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
 		"addr             %s\n"
-		"mail_server      %s\n"
-		"mail_port        %s\n"
-		"mail_user        %s\n"
+		"mail_server      %s (%s)\n"
+		"mail_port        %i (%i)\n"
+		"mail_user        %s (%s)\n"
 		"mail_pw          %s\n"
 
-		"send_server      %s\n"
-		"send_port        %s\n"
-		"send_user        %s\n"
-		"send_pw          %s\n"
-
-		"debug_dir        %s\n"
-		"If possible, unset values are filled by the program with typical values.\n"
+		"send_server      %s (%s)\n"
+		"send_port        %i (%i)\n"
+		"send_user        %s (%s)\n"
+		"send_pw          %s (%s)\n"
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()
 		, libetpan_get_version_major(), libetpan_get_version_minor()
 		, ths->m_dbfile? ths->m_dbfile : unset
 		, ths->m_blobdir? ths->m_blobdir : unset
+		, debug_dir? debug_dir : unset
 
 		, chats, assigned_msgs, unassigned_msgs
 		, contacts
 
-		, addr? addr : unset
-		, mail_server? mail_server : unset
-		, mail_port? mail_port : unset
-		, mail_user? mail_user : unset
-		, mail_pw? set : unset /* we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
+		, l->m_addr? l->m_addr : unset
+		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
+		, l->m_mail_port? l->m_mail_port : 0           , l2->m_mail_port? l2->m_mail_port : 0
+		, l->m_mail_user? l->m_mail_user : unset       , l2->m_mail_user? l2->m_mail_user : unset
+		, l->m_mail_pw? set : unset
 
-		, send_server? send_server : unset
-		, send_port? send_port : unset
-		, send_user? send_user : unset
-		, send_pw? set : unset /* we do not display the password here; in the cli-utility, you can see it using `get send_pw` */
-
-		, debug_dir? debug_dir : unset
+		, l->m_send_server? l->m_send_server : unset   , l2->m_send_server? l2->m_send_server : unset
+		, l->m_send_port? l->m_send_port : 0           , l2->m_send_port? l2->m_send_port : 0
+		, l->m_send_user? l->m_send_user : unset       , l2->m_send_user? l2->m_send_user : unset
+		, l->m_send_pw? set : unset                    , l2->m_send_pw? set : unset
 		);
 
 	/* free data */
-	free(addr);
-
-	free(mail_server);
-	free(mail_port);
-	free(mail_user);
-	free(mail_pw);
-
-	free(send_server);
-	free(send_port);
-	free(send_user);
-	free(send_pw);
+	mrloginparam_unref(l);
 
 	return buf; /* must be freed by the caller */
 }

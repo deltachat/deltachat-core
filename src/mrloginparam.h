@@ -50,10 +50,14 @@ typedef struct mrloginparam_t
 } mrloginparam_t;
 
 
-mrloginparam_t* mrloginparam_new      ();
 void            mrloginparam_unref    (mrloginparam_t*);
+
+
+/*** library-private **********************************************************/
+
+mrloginparam_t* mrloginparam_new      ();
 void            mrloginparam_empty    (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
-void            mrloginparam_read     (mrloginparam_t*, mrsqlite3_t*);
+void            mrloginparam_read_    (mrloginparam_t*, mrsqlite3_t*);
 void            mrloginparam_complete (mrloginparam_t*); /* tries to set missing parameters from at least m_addr and m_mail_pw */
 
 
