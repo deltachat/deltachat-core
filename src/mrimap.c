@@ -482,7 +482,7 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 	mrimap_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrimap_t)))==NULL ) {
-		return NULL; /* error */
+		exit(25); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_mailbox       = mailbox;

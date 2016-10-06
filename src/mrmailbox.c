@@ -48,7 +48,7 @@ mrmailbox_t* mrmailbox_new()
 	mrmailbox_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrmailbox_t)))==NULL ) {
-		return NULL; /* error */
+		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_loginParam = mrloginparam_new();
@@ -79,6 +79,10 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
 	int db_locked = 0;
+
+	if( ths == NULL ) {
+		return;
+	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 	db_locked = 1;
@@ -122,6 +126,10 @@ Open_Done:
 
 void mrmailbox_close(mrmailbox_t* ths)
 {
+	if( ths == NULL ) {
+		return;
+	}
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
 		mrsqlite3_close(ths->m_sql);
@@ -157,6 +165,10 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	FILE*       f = NULL;
 	struct stat stat_info;
 	char*       data = NULL;
+
+	if( ths == NULL ) {
+		return 0;
+	}
 
 	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
@@ -206,6 +218,10 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	struct dirent* dir_entry;
 	int            read_cnt = 0;
 	char*          name;
+
+	if( ths == NULL ) {
+		return 0;
+	}
 
 	if( !mrsqlite3_is_open(ths->m_sql) ) {
         mrlog_error("mrmailbox_import_spec(): Datebase not opened.");
@@ -281,6 +297,10 @@ ImportSpec_Cleanup:
 
 int mrmailbox_connect(mrmailbox_t* ths)
 {
+	if( ths == NULL ) {
+		return 0;
+	}
+
 	if( mrimap_is_connected(ths->m_imap) ) {
 		mrlog_info("mrmailbox_connect(): Already connected or trying to connect.");
 		return 1;
@@ -303,13 +323,21 @@ int mrmailbox_connect(mrmailbox_t* ths)
 
 void mrmailbox_disconnect(mrmailbox_t* ths)
 {
+	if( ths == NULL ) {
+		return;
+	}
+
 	mrimap_disconnect(ths->m_imap);
 }
 
 
 int mrmailbox_fetch(mrmailbox_t* ths)
 {
-	return 	mrimap_fetch(ths->m_imap);
+	if( ths == NULL ) {
+		return;
+	}
+
+	return mrimap_fetch(ths->m_imap);
 }
 
 

@@ -40,7 +40,7 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 	int          i;
 
 	if( (ths=malloc(sizeof(mrsqlite3_t)))==NULL ) {
-		return NULL; /* error */
+		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_cobj             = NULL;
