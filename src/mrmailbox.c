@@ -477,9 +477,15 @@ cleanup:
 int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
 	int ret;
+
+	if( ths == NULL ) {
+		return 0;
+	}
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 		ret = mrsqlite3_set_config_(ths->m_sql, key, value);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
 	return ret;
 }
 
@@ -487,9 +493,15 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 {
 	char* ret;
+
+	if( ths == NULL ) {
+		return NULL;
+	}
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 		ret = mrsqlite3_get_config_(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
 	return ret; /* the returned string must be free()'d, returns NULL on errors */
 }
 
@@ -497,16 +509,28 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
+
+	if( ths == NULL ) {
+		return 0;
+	}
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 		ret = mrsqlite3_get_config_int_(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
 	return ret;
 }
 
 
 mrloginparam_t* mrmailbox_suggest_config(mrmailbox_t* ths)
 {
-	mrloginparam_t* ret = mrloginparam_new();
+	mrloginparam_t* ret;
+
+	if( ths == NULL ) {
+		return NULL;
+	}
+
+	ret = mrloginparam_new();
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 		mrloginparam_read_(ret, ths->m_sql);
@@ -522,17 +546,17 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
-	#define BUF_BYTES 10000
-	char* buf = (char*)malloc(BUF_BYTES+1);
-	if( buf == NULL ) {
-		mrlog_error("mrmailbox_get_info(): Out of memory.");
+	char *debug_dir, *info;
+	mrloginparam_t *l, *l2;
+	int contacts, chats, assigned_msgs, unassigned_msgs;
+
+	if( ths == NULL ) {
 		return NULL; /* error */
 	}
 
 	/* read data (all pointers may be NULL!) */
-	mrloginparam_t *l = mrloginparam_new(), *l2 = mrloginparam_new();
-	char *debug_dir;
-	int contacts, chats, assigned_msgs, unassigned_msgs;
+	l = mrloginparam_new();
+	l2 = mrloginparam_new();
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
@@ -553,7 +577,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
-    snprintf(buf, BUF_BYTES,
+	info = mr_mprintf(
 		"Backend version  %i.%i.%i\n"
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
@@ -599,7 +623,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	/* free data */
 	mrloginparam_unref(l);
 
-	return buf; /* must be freed by the caller */
+	return info; /* must be freed by the caller */
 }
 
 
