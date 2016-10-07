@@ -80,7 +80,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	int success = 0;
 	int db_locked = 0;
 
-	if( ths == NULL || dbfile == NULL || blobdir == NULL ) {
+	if( ths == NULL || dbfile == NULL ) {
 		goto Open_Done;
 	}
 
@@ -542,13 +542,42 @@ mrloginparam_t* mrmailbox_suggest_config(mrmailbox_t* ths)
 }
 
 
+int mrmailbox_is_configured(mrmailbox_t* ths)
+{
+	if( ths == NULL || ths->m_sql == NULL ) {
+		return 0;
+	}
+
+	if( ths->m_sql->m_is_configured_cache_ == -1 )
+	{
+		/* as this function may be used frequently, we cache the result.
+		m_is_configured_cache_ is reset to -1 any time the config-table is written. */
+		char *addr, *mail_pw;
+
+		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+			addr        = mrsqlite3_get_config_(ths->m_sql, "addr",    NULL);
+			mail_pw     = mrsqlite3_get_config_(ths->m_sql, "mail_pw", NULL);
+
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+		ths->m_sql->m_is_configured_cache_ = (addr && mail_pw)? 1 : 0;
+
+		free(addr);
+		free(mail_pw);
+	}
+
+	return ths->m_sql->m_is_configured_cache_;
+}
+
+
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
 	char *debug_dir, *info;
 	mrloginparam_t *l, *l2;
-	int contacts, chats, assigned_msgs, unassigned_msgs;
+	int contacts, chats, assigned_msgs, unassigned_msgs, is_configured;
 
 	if( ths == NULL ) {
 		return NULL; /* error */
@@ -574,6 +603,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
+	is_configured = mrmailbox_is_configured(ths);
+
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
@@ -584,6 +615,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Database file    %s\n"
 		"BLOB directory   %s\n"
 		"debug_dir        %s\n"
+		"Configured?      %i\n"
 		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
@@ -605,6 +637,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, ths->m_blobdir? ths->m_blobdir : unset
 		, debug_dir? debug_dir : unset
 
+		, is_configured
 		, chats, assigned_msgs, unassigned_msgs
 		, contacts
 
@@ -637,6 +670,8 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg_to;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%';");
+
+		ths->m_sql->m_is_configured_cache_ = -1; /* dont't know */
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 

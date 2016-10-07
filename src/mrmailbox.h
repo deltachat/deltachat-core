@@ -115,6 +115,7 @@ int                  mrmailbox_set_config           (mrmailbox_t*, const char* k
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 mrloginparam_t*      mrmailbox_suggest_config       (mrmailbox_t*); /* the result must be unref'd */
+int                  mrmailbox_is_configured        (mrmailbox_t*); /* just checks if at least e-mail and password are given, does not check if the connection works */
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
