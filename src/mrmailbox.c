@@ -80,7 +80,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	int success = 0;
 	int db_locked = 0;
 
-	if( ths == NULL ) {
+	if( ths == NULL || dbfile == NULL || blobdir == NULL ) {
 		goto Open_Done;
 	}
 
@@ -478,7 +478,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
 	int ret;
 
-	if( ths == NULL ) {
+	if( ths == NULL || key == NULL ) { /* "value" may be NULL */
 		return 0;
 	}
 
@@ -494,7 +494,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 {
 	char* ret;
 
-	if( ths == NULL ) {
+	if( ths == NULL || key == NULL ) { /* "def" may be NULL */
 		return NULL;
 	}
 
@@ -510,7 +510,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
 
-	if( ths == NULL ) {
+	if( ths == NULL || key == NULL ) {
 		return 0;
 	}
 

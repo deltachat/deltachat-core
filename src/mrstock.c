@@ -83,7 +83,7 @@ void mrstock_add_str(int id, const char* str)
 }
 
 
-const char* mrstock_str(int id)
+const char* mrstock_str(int id) /* get the string with the given ID, the result must not be freed! */
 {
 	/* init array */
 	mrstock_init_array_();
