@@ -575,7 +575,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
-	char *debug_dir, *info;
+	char *debug_dir, *name, *info;
 	mrloginparam_t *l, *l2;
 	int contacts, chats, assigned_msgs, unassigned_msgs, is_configured;
 
@@ -595,6 +595,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		mrloginparam_complete(l2);
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
+		name        = mrsqlite3_get_config_(ths->m_sql, "name", NULL);
 
 		chats           = mr_get_chat_cnt_(ths);
 		assigned_msgs   = mr_get_assigned_msg_cnt_(ths);
@@ -619,6 +620,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
+		"name             %s\n"
 		"addr             %s\n"
 		"mail_server      %s (%s)\n"
 		"mail_port        %i (%i)\n"
@@ -641,6 +643,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, chats, assigned_msgs, unassigned_msgs
 		, contacts
 
+        , name? name : unset
 		, l->m_addr? l->m_addr : unset
 		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
 		, l->m_mail_port? l->m_mail_port : 0           , l2->m_mail_port? l2->m_mail_port : 0
@@ -655,6 +658,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	/* free data */
 	mrloginparam_unref(l);
+	free(debug_dir);
+	free(name);
 
 	return info; /* must be freed by the caller */
 }
