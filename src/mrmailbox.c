@@ -495,7 +495,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 	char* ret;
 
 	if( ths == NULL || key == NULL ) { /* "def" may be NULL */
-		return NULL;
+		return def;
 	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
@@ -511,7 +511,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 	int32_t ret;
 
 	if( ths == NULL || key == NULL ) {
-		return 0;
+		return def;
 	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */

@@ -395,7 +395,7 @@ char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) 
 	sqlite3_stmt* s;
 
 	if( !mrsqlite3_is_open(ths) || key == NULL ) {
-		return NULL;
+		return def;
 	}
 
 	s = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
