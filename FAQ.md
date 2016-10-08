@@ -11,8 +11,6 @@ Frequently Asked Questions
 
 - This is not true for most accounts. In fact, there are standards as Push-IMAP
   for years, that allow receiving Mails in a second or so.  
-  Unfortunately, many clients does not support these standards - but LibreChat 
-  will.
 
 **What, if the receiver does not use LibreChat?**
 
@@ -33,7 +31,22 @@ Frequently Asked Questions
 **Does LibreChat support HTML-E-Mails?**
 
 - Yes.  If incoming E-Mail lacks a plain text part, we convert HTML-E-Mails to 
-  plain text ourself.  Outgoing E-Mails do not use HTML. 
+  plain text ourself.  Outgoing E-Mails always use plain text. 
+
+**What are the advantages of LibreChat compared to other messengers?**
+
+- Here are a few one:
+  - _Independent_ of any company or services. _You_ own your data.
+  - You do not distribute your address book to anyone.
+  - _Fast_ by the use of Push-IMAP
+  - _Largest userbase_ - receivers _not_ using LibreChat can be reached as well
+  - _Compatible_ - not only to itself
+  - _Elegant_ and _simple_ user interface
+  - _Distributed_ system
+  - _No Spam_ - only messages of known users are shown by default
+  - _Reliable_ - safe for professional use
+  - _Trustworthy_ - can even be used for business messages
+  - fully _OpenSource_ and _Standards_ based
 
 **LibreChat - is this the final name?**
 
