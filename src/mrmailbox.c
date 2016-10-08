@@ -595,7 +595,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		mrloginparam_complete(l2);
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
-		name        = mrsqlite3_get_config_(ths->m_sql, "name", NULL);
+		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
 
 		chats           = mr_get_chat_cnt_(ths);
 		assigned_msgs   = mr_get_assigned_msg_cnt_(ths);
@@ -620,7 +620,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
-		"name             %s\n"
+		"displayname      %s\n"
 		"addr             %s\n"
 		"mail_server      %s (%s)\n"
 		"mail_port        %i (%i)\n"
