@@ -495,7 +495,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 	char* ret;
 
 	if( ths == NULL || key == NULL ) { /* "def" may be NULL */
-		return def;
+		return safe_strdup(def);
 	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
@@ -672,8 +672,8 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MRSCID_LAST) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM msg_to;");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs_to;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%';");
 
 		ths->m_sql->m_is_configured_cache_ = -1; /* dont't know */

@@ -122,18 +122,18 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE msg (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
+		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
 					" timestamp INTEGER, type INTEGER, state INTEGER, "
 					" txt TEXT, param TEXT, "
 					" bytes INTEGER DEFAULT 0);");
-		mrsqlite3_execute(ths, "CREATE INDEX msg_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute(ths, "CREATE INDEX msg_index2 ON msg (timestamp);");
-		mrsqlite3_execute(ths, "CREATE TABLE msg_to (msg_id INTEGER, contact_id INTEGER);");
-		mrsqlite3_execute(ths, "CREATE INDEX msg_to_index1 ON msg_to (msg_id);");
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msg (timestamp);");
+		mrsqlite3_execute(ths, "CREATE TABLE msgs_to (msg_id INTEGER, contact_id INTEGER);");
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_to_index1 ON msgs_to (msg_id);");
 
 		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
 		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists(ths, "msg") )
+		 || !mrsqlite3_table_exists(ths, "msgs") )
 		{
 			mrsqlite3_log_error(ths);
 			mrlog_error("mrsqlite3_open(): Cannot create tables.");
@@ -395,7 +395,7 @@ char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) 
 	sqlite3_stmt* s;
 
 	if( !mrsqlite3_is_open(ths) || key == NULL ) {
-		return def;
+		return safe_strdup(def);
 	}
 
 	s = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);

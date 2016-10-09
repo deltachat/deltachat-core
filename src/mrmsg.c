@@ -119,8 +119,8 @@ size_t mr_get_assigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of messages 
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg_WHERE_assigned,
-		"SELECT COUNT(*) FROM msg WHERE chat_id!=0;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id!=0;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
 		mrlog_error("mr_get_assigned_msg_cnt_() failed.");
@@ -137,8 +137,8 @@ size_t mr_get_unassigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of message
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msg_WHERE_unassigned,
-		"SELECT COUNT(*) FROM msg WHERE chat_id=0;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id=0;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql);
 		mrlog_error("mr_get_unassigned_msg_cnt_() failed.");
@@ -153,7 +153,7 @@ int mr_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* stati
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msg_m, "SELECT id FROM msg WHERE rfc724_mid=?;");
+	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_m, "SELECT id FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(s) != SQLITE_ROW ) {
 		return 0; /* record does not exist */

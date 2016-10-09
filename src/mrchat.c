@@ -396,7 +396,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	q = sqlite3_mprintf("UPDATE msg SET chat_id=%i WHERE chat_id=0 AND from_id=%i;", chat_id, contact_id);
+	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=0 AND from_id=%i;", chat_id, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -453,9 +453,9 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			}
 
 			/* query */
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_icfttstpb_FROM_msg_i,
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_icfttstpb_FROM_msgs_i,
 				"SELECT " MR_MSG_FIELDS
-					" FROM msg m"
+					" FROM msgs m"
 					" WHERE m.chat_id=?"
 					" ORDER BY m.timestamp,m.id"
 					" LIMIT ? OFFSET ?;");

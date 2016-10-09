@@ -75,12 +75,12 @@ enum
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
 	,UPDATE_chats_dd
 
-	,SELECT_COUNT_FROM_msg_WHERE_assigned
-	,SELECT_COUNT_FROM_msg_WHERE_unassigned
-	,SELECT_i_FROM_msg_m
-	,SELECT_icfttstpb_FROM_msg_i
-	,INSERT_INTO_msg_mcfttsmp
-	,INSERT_INTO_msg_to_mc
+	,SELECT_COUNT_FROM_msgs_WHERE_assigned
+	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
+	,SELECT_i_FROM_msgs_m
+	,SELECT_icfttstpb_FROM_msgs_i
+	,INSERT_INTO_msgs_mcfttsmp
+	,INSERT_INTO_msgs_to_mc
 
 	,PREDEFINED_CNT /* must be last */
 };
