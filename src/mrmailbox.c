@@ -647,7 +647,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
 	info = mr_mprintf(
-		"Backend version  %i.%i.%i\n"
+		"Messenger backend version %i.%i.%i - (C) by Björn Petersen Software Design and Development and contributors - Licensed under GPL v3, see http://messenger.b44t.com for details.\n\n"
 		"SQLite version   %s, threadsafe=%i\n"
 		"libEtPan version %i.%i\n"
 		"Database file    %s\n"
