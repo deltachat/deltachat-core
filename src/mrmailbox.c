@@ -548,21 +548,25 @@ int mrmailbox_configure(mrmailbox_t* ths)
 	mrloginparam_complete(param);
 
 	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
-	if( param->m_addr
-	 && param->m_mail_server
-	 && param->m_mail_port
-	 && param->m_mail_user
-	 && param->m_mail_pw
-	 && param->m_send_server
-	 && param->m_send_port
-	 && param->m_send_user
-	 && param->m_send_pw )
-	{
-		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		if( param->m_addr
+		 && param->m_mail_server
+		 && param->m_mail_port
+		 && param->m_mail_user
+		 && param->m_mail_pw
+		 && param->m_send_server
+		 && param->m_send_port
+		 && param->m_send_user
+		 && param->m_send_pw )
+		{
 			mrloginparam_write_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 			mrsqlite3_set_config_int_(ths->m_sql, "configured", 1);
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-	}
+		}
+		else
+		{
+			mrsqlite3_set_config_int_(ths->m_sql, "configured", 0);
+		}
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
 	return 1;
 }
