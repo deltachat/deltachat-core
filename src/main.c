@@ -57,7 +57,7 @@ static char* read_cmd()
 
 static void print_error()
 {
-	/* the errors are already logged, currently, there's nothing to do here */
+	printf("Command failed.\n");
 }
 
 
@@ -92,6 +92,7 @@ int main(int argc, char ** argv)
 			printf("import [<spec>]     import file/folder/last EML-file(s)\n");
 			printf("set <key> [<value>] set/delete configuration value\n");
 			printf("get <key>           show configuration value\n");
+			printf("configure           configure server connection\n");
 			printf("connect             connect to server\n");
 			printf("disconnect          disconnect from server\n");
 			printf("fetch               fetch messages\n");
@@ -136,6 +137,12 @@ int main(int argc, char ** argv)
 		{
 			const char* arg1 = strstr(cmd, " ");
 			if( !mrmailbox_import_spec(mailbox, arg1? ++arg1 : NULL) ) {
+				print_error();
+			}
+		}
+		else if( strcmp(cmd, "configure")==0 )
+		{
+			if( !mrmailbox_configure(mailbox) ) {
 				print_error();
 			}
 		}

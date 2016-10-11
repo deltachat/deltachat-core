@@ -35,6 +35,7 @@
 #include "mrosnative.h"
 #include "mrtools.h"
 #include "mrlog.h"
+#include "mrloginparam.h"
 
 
 /*******************************************************************************
@@ -488,7 +489,7 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 	ths->m_mailbox       = mailbox;
 	ths->m_threadState   = MR_THREAD_NOTALLOCATED;
 	ths->m_threadCmd     = MR_THREAD_WAIT;
-	ths->m_loginParam    = NULL;
+	ths->m_loginParam    = NULL; /* obects saved here are freed on unref() */
 
 	ths->m_debugDir      = NULL;
 
@@ -507,6 +508,8 @@ void mrimap_unref(mrimap_t* ths)
 
 	mrimap_disconnect(ths);
 
+	mrloginparam_unref(ths->m_loginParam);
+
 	pthread_cond_destroy(&ths->m_cond);
 	pthread_mutex_destroy(&ths->m_condmutex);
 
@@ -515,15 +518,17 @@ void mrimap_unref(mrimap_t* ths)
 }
 
 
-int mrimap_connect(mrimap_t* ths, const mrloginparam_t* param)
+int mrimap_connect(mrimap_t* ths, mrloginparam_t* param) /* the function takes ownership of "param" */
 {
 	if( ths == NULL || param==NULL || param->m_mail_server==NULL || param->m_mail_user==NULL || param->m_mail_pw==NULL ) {
 		mrlog_error("mrimap_connect(): Bad parameter.");
+		mrloginparam_unref(param);
 		return 0; /* error, bad parameters */
 	}
 
 	if( ths->m_threadState!=MR_THREAD_NOTALLOCATED ) {
 		mrlog_info("mrimap_connect(): Already trying to connect.");
+		mrloginparam_unref(param);
 		return 1; /* already trying to connect */
 	}
 
@@ -536,7 +541,9 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* param)
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE! - do not forge the unlock */
 
 	/* start the working thread */
-	ths->m_loginParam = param;
+	mrloginparam_unref(ths->m_loginParam);
+	ths->m_loginParam = param; /* take owenership of the given parameters */
+
 	ths->m_threadState = MR_THREAD_INIT;
 	pthread_create(&ths->m_thread, NULL, (void * (*)(void *))mrimap_startup_helper, ths);
 

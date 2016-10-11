@@ -43,6 +43,9 @@ extern "C" {
 #define MR_THREAD_EXIT         50
 
 
+typedef struct mrloginparam_t mrloginparam_t;
+
+
 typedef struct mrimapthreadval_t
 {
 	mailimap*    m_imap;
@@ -52,7 +55,7 @@ typedef struct mrimapthreadval_t
 typedef struct mrimap_t
 {
 	mrmailbox_t*          m_mailbox;
-	const mrloginparam_t* m_loginParam;
+	mrloginparam_t*       m_loginParam;
 
 	pthread_t             m_thread;
 	int                   m_threadState; /* set by the working thread, the main thread can read this, one of MR_THREAD_* */
@@ -68,7 +71,7 @@ mrimap_t* mrimap_new               (mrmailbox_t*);
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_is_connected      (mrimap_t*);
-int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
+int       mrimap_connect           (mrimap_t*, mrloginparam_t*); /* mrimap_connect() takes ownership of the mrloginparam_t-object */
 void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 

@@ -36,6 +36,7 @@
 #include "mrcontact.h"
 #include "mrtools.h"
 #include "mrlog.h"
+#include "mrloginparam.h"
 
 
 /*******************************************************************************
@@ -51,7 +52,6 @@ mrmailbox_t* mrmailbox_new()
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_loginParam = mrloginparam_new();
 	ths->m_sql = mrsqlite3_new(ths);
 	ths->m_imap = mrimap_new(ths);
 	ths->m_dbfile = NULL;
@@ -70,7 +70,6 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	mrmailbox_close(ths);
 	mrimap_unref(ths->m_imap);
 	mrsqlite3_unref(ths->m_sql);
-	mrloginparam_unref(ths->m_loginParam);
 	free(ths);
 }
 
@@ -172,22 +171,21 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 
 	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
-		mrlog_error("mrmailbox_import_file(): Cannot open file.");
+		mrlog_error("Import: Cannot open \"%s\".", filename);
 		goto ImportFile_Cleanup;
 	}
 
 	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
-		mrlog_error("mrmailbox_import_file(): Cannot find out file size or file is empty.");
+		mrlog_error("Import: Cannot find out file size or file is empty for \"%s\".", filename);
 		goto ImportFile_Cleanup;
 	}
 
 	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
-		mrlog_error("mrmailbox_import_file(): Out of memory.");
-		goto ImportFile_Cleanup;
+		exit(26); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
-		mrlog_error("mrmailbox_import_file(): Read error.");
+		mrlog_error("Import: Read error in \"%s\".", filename);
 		goto ImportFile_Cleanup;
 	}
 
@@ -224,7 +222,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	}
 
 	if( !mrsqlite3_is_open(ths->m_sql) ) {
-        mrlog_error("mrmailbox_import_spec(): Datebase not opened.");
+        mrlog_error("Import: Database not opened.");
 		goto ImportSpec_Cleanup;
 	}
 
@@ -242,7 +240,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
-			mrlog_error("mrmailbox_import_spec(): No file or folder given.");
+			mrlog_error("Import: No file or folder given.");
 			goto ImportSpec_Cleanup;
 		}
 	}
@@ -256,7 +254,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	else {
 		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
-			mrlog_error("mrmailbox_import_spec(): Cannot open directory.");
+			mrlog_error("Import: Cannot open directory \"%s\".", spec);
 			goto ImportSpec_Cleanup;
 		}
 
@@ -275,7 +273,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		}
 	}
 
-	mrlog_info("Import: %i mails read from %s.", read_cnt, spec);
+	mrlog_info("Import: %i mails read from \"%s\".", read_cnt, spec);
 
 	/* success */
 	success = 1;
@@ -297,27 +295,35 @@ ImportSpec_Cleanup:
 
 int mrmailbox_connect(mrmailbox_t* ths)
 {
-	if( ths == NULL ) {
+	mrloginparam_t* param = NULL;
+	int             is_configured = 0;
+
+	if( ths == NULL || ths->m_sql == NULL ) {
 		return 0;
 	}
 
 	if( mrimap_is_connected(ths->m_imap) ) {
-		mrlog_info("mrmailbox_connect(): Already connected or trying to connect.");
+		mrlog_info("Already connected or trying to connect.");
 		return 1;
 	}
 
 	/* read parameter, unset parameters are still NULL afterwards */
+	param = mrloginparam_new();
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrloginparam_read_(ths->m_loginParam, ths->m_sql);
+		mrloginparam_read_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+		is_configured = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0)? 1 : 0;
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
-	/* try to suggest unset parameters */
-	mrloginparam_complete(ths->m_loginParam);
+	if( is_configured == 0 ) {
+		mrlog_error("Not configured.");
+		return 0;
+	}
 
 	/* connect */
-	return mrimap_connect(ths->m_imap, ths->m_loginParam);
+	return mrimap_connect(ths->m_imap, param /*ownership of loginParam is taken by mrimap_connect() */);
 }
 
 
@@ -522,52 +528,65 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 }
 
 
-mrloginparam_t* mrmailbox_suggest_config(mrmailbox_t* ths)
+int mrmailbox_configure(mrmailbox_t* ths)
 {
-	mrloginparam_t* ret;
+	mrloginparam_t* param;
 
-	if( ths == NULL ) {
-		return NULL;
+	if( ths == NULL || !mrsqlite3_is_open(ths->m_sql) ) {
+		mrlog_error("Database not opened.");
+		return 0;
 	}
 
-	ret = mrloginparam_new();
+	/* read the original parameters */
+	param = mrloginparam_new();
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-		mrloginparam_read_(ret, ths->m_sql);
+		mrloginparam_read_(param, ths->m_sql, "");
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
-	mrloginparam_complete(ret);
+	/* complete the parameters; in the future we may also try some server connections here */
+	mrloginparam_complete(param);
 
-	return ret;
+	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
+	if( param->m_addr
+	 && param->m_mail_server
+	 && param->m_mail_port
+	 && param->m_mail_user
+	 && param->m_mail_pw
+	 && param->m_send_server
+	 && param->m_send_port
+	 && param->m_send_user
+	 && param->m_send_pw )
+	{
+		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+			mrloginparam_write_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+			mrsqlite3_set_config_int_(ths->m_sql, "configured", 1);
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	return 1;
 }
 
 
 int mrmailbox_is_configured(mrmailbox_t* ths)
 {
+	int is_configured;
+
 	if( ths == NULL || ths->m_sql == NULL ) {
 		return 0;
 	}
 
-	if( ths->m_sql->m_is_configured_cache_ == -1 )
-	{
-		/* as this function may be used frequently, we cache the result.
-		m_is_configured_cache_ is reset to -1 any time the config-table is written. */
-		char *addr, *mail_pw;
-
-		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-
-			addr        = mrsqlite3_get_config_(ths->m_sql, "addr",    NULL);
-			mail_pw     = mrsqlite3_get_config_(ths->m_sql, "mail_pw", NULL);
-
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-
-		ths->m_sql->m_is_configured_cache_ = (addr && mail_pw)? 1 : 0;
-
-		free(addr);
-		free(mail_pw);
+	if( mrimap_is_connected(ths->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
+		return 1;
 	}
 
-	return ths->m_sql->m_is_configured_cache_;
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		is_configured = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	return is_configured? 1 : 0;
 }
 
 
@@ -589,10 +608,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrloginparam_read_(l, ths->m_sql);
-
-		mrloginparam_read_(l2, ths->m_sql);
-		mrloginparam_complete(l2);
+		mrloginparam_read_(l2, ths->m_sql, "");
+		mrloginparam_read_(l, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
@@ -602,9 +619,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		unassigned_msgs = mr_get_unassigned_msg_cnt_(ths);
 		contacts        = mr_get_contact_cnt_(ths);
 
-	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+		is_configured   = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
 
-	is_configured = mrmailbox_is_configured(ths);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
@@ -616,16 +633,17 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Database file    %s\n"
 		"BLOB directory   %s\n"
 		"debug_dir        %s\n"
-		"Configured?      %i\n"
 		"Chats            %i chats with %i messages, %i unassigned messages\n"
 		"Contacts         %i\n"
 
 		"displayname      %s\n"
-		"addr             %s\n"
+
+		"Configured?      %i\n"
+		"addr             %s (%s)\n"
 		"mail_server      %s (%s)\n"
 		"mail_port        %i (%i)\n"
 		"mail_user        %s (%s)\n"
-		"mail_pw          %s\n"
+		"mail_pw          %s (%s)\n"
 
 		"send_server      %s (%s)\n"
 		"send_port        %i (%i)\n"
@@ -639,16 +657,17 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, ths->m_blobdir? ths->m_blobdir : unset
 		, debug_dir? debug_dir : unset
 
-		, is_configured
 		, chats, assigned_msgs, unassigned_msgs
 		, contacts
 
         , name? name : unset
-		, l->m_addr? l->m_addr : unset
+
+		, is_configured
+		, l->m_addr? l->m_addr : unset                 , l2->m_addr? l2->m_addr : unset
 		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
 		, l->m_mail_port? l->m_mail_port : 0           , l2->m_mail_port? l2->m_mail_port : 0
 		, l->m_mail_user? l->m_mail_user : unset       , l2->m_mail_user? l2->m_mail_user : unset
-		, l->m_mail_pw? set : unset
+		, l->m_mail_pw? set : unset,                     l2->m_mail_pw? set : unset
 
 		, l->m_send_server? l->m_send_server : unset   , l2->m_send_server? l2->m_send_server : unset
 		, l->m_send_port? l->m_send_port : 0           , l2->m_send_port? l2->m_send_port : 0
@@ -658,6 +677,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	/* free data */
 	mrloginparam_unref(l);
+	mrloginparam_unref(l2);
 	free(debug_dir);
 	free(name);
 
@@ -675,8 +695,6 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs_to;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%';");
-
-		ths->m_sql->m_is_configured_cache_ = -1; /* dont't know */
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 

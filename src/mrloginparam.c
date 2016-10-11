@@ -31,6 +31,7 @@
 #include "mrmailbox.h"
 #include "mrloginparam.h"
 #include "mrtools.h"
+#include "mrlog.h"
 
 
 
@@ -88,21 +89,46 @@ void mrloginparam_empty(mrloginparam_t* ths)
 }
 
 
-void mrloginparam_read_(mrloginparam_t* ths, mrsqlite3_t* sql)
+void mrloginparam_read_(mrloginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
 {
+	char* key = NULL;
+	#define MR_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
+
 	mrloginparam_empty(ths);
 
-	ths->m_addr        = mrsqlite3_get_config_    (sql, "addr",        NULL);
+	MR_PREFIX("addr");        ths->m_addr        = mrsqlite3_get_config_    (sql, key, NULL);
 
-	ths->m_mail_server = mrsqlite3_get_config_    (sql, "mail_server", NULL);
-	ths->m_mail_port   = mrsqlite3_get_config_int_(sql, "mail_port",   0);
-	ths->m_mail_user   = mrsqlite3_get_config_    (sql, "mail_user",   NULL);
-	ths->m_mail_pw     = mrsqlite3_get_config_    (sql, "mail_pw",     NULL);
+	MR_PREFIX("mail_server"); ths->m_mail_server = mrsqlite3_get_config_    (sql, key, NULL);
+	MR_PREFIX("mail_port");   ths->m_mail_port   = mrsqlite3_get_config_int_(sql, key, 0);
+	MR_PREFIX("mail_user");   ths->m_mail_user   = mrsqlite3_get_config_    (sql, key, NULL);
+	MR_PREFIX("mail_pw");     ths->m_mail_pw     = mrsqlite3_get_config_    (sql, key, NULL);
 
-	ths->m_send_server = mrsqlite3_get_config_    (sql, "send_server", NULL);
-	ths->m_send_port   = mrsqlite3_get_config_int_(sql, "send_port",   0);
-	ths->m_send_user   = mrsqlite3_get_config_    (sql, "send_user",   NULL);
-	ths->m_send_pw     = mrsqlite3_get_config_    (sql, "send_pw",     NULL);
+	MR_PREFIX("send_server"); ths->m_send_server = mrsqlite3_get_config_    (sql, key, NULL);
+	MR_PREFIX("send_port");   ths->m_send_port   = mrsqlite3_get_config_int_(sql, key, 0);
+	MR_PREFIX("send_user");   ths->m_send_user   = mrsqlite3_get_config_    (sql, key, NULL);
+	MR_PREFIX("send_pw");     ths->m_send_pw     = mrsqlite3_get_config_    (sql, key, NULL);
+
+	sqlite3_free(key);
+}
+
+
+void mrloginparam_write_(const mrloginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
+{
+	char* key = NULL;
+
+	MR_PREFIX("addr");         mrsqlite3_set_config_    (sql, key, ths->m_addr);
+
+	MR_PREFIX("mail_server");  mrsqlite3_set_config_    (sql, key, ths->m_mail_server);
+	MR_PREFIX("mail_port");    mrsqlite3_set_config_int_(sql, key, ths->m_mail_port);
+	MR_PREFIX("mail_user");    mrsqlite3_set_config_    (sql, key, ths->m_mail_user);
+	MR_PREFIX("mail_pw");      mrsqlite3_set_config_    (sql, key, ths->m_mail_pw);
+
+	MR_PREFIX("send_server");  mrsqlite3_set_config_    (sql, key, ths->m_send_server);
+	MR_PREFIX("send_port");    mrsqlite3_set_config_int_(sql, key, ths->m_send_port);
+	MR_PREFIX("send_user");    mrsqlite3_set_config_    (sql, key, ths->m_send_user);
+	MR_PREFIX("send_pw");      mrsqlite3_set_config_    (sql, key, ths->m_send_pw);
+
+	sqlite3_free(key);
 }
 
 
@@ -111,11 +137,18 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	char* adr_server;
 
 	if( ths == NULL || ths->m_addr == NULL ) {
+		mrlog_error("Configuration failed, we need at least the email-address.");
 		return; /* nothing we can do */
 	}
 
+	/* if no password is given, assume an empty password */
+    if( ths->m_mail_pw == NULL ) {
+		ths->m_mail_pw = safe_strdup("");
+    }
+
 	adr_server = strstr(ths->m_addr, "@");
 	if( adr_server == NULL ) {
+		mrlog_error("Configuration failed, bad email-address.");
 		return; /* no "@" found in address, normally, this should not happen */
 	}
 	adr_server++;
@@ -142,20 +175,36 @@ void mrloginparam_complete(mrloginparam_t* ths)
 
 	/* generic approach, just duplicate the servers and use the standard ports.
 	works fine eg. for all-inkl */
-	if( ths->m_mail_port == 0 )                            { ths->m_mail_port   = 993; }
-	if( ths->m_mail_user == NULL )                         { ths->m_mail_user   = safe_strdup(ths->m_addr); }
+	if( ths->m_mail_server == NULL ) {
+		ths->m_mail_server = mr_mprintf("imap.%s", adr_server);
+	}
 
-	if( ths->m_send_server == NULL && ths->m_mail_server )
-	{
+	if( ths->m_mail_port == 0 ) {
+		ths->m_mail_port = 993;
+	}
+
+	if( ths->m_mail_user == NULL ) {
+		ths->m_mail_user = safe_strdup(ths->m_addr);
+	}
+
+	if( ths->m_send_server == NULL && ths->m_mail_server ) {
 		ths->m_send_server = safe_strdup(ths->m_mail_server);
 		if( strncmp(ths->m_send_server, "imap.", 5)==0 ) {
 			memcpy(ths->m_send_server, "smtp", 4);
 		}
 	}
 
-	if( ths->m_send_port == 0 )                            { ths->m_send_port   = 465; }
-	if( ths->m_send_user == NULL && ths->m_mail_user )     { ths->m_send_user   = safe_strdup(ths->m_mail_user); }
-	if( ths->m_send_pw == NULL && ths->m_mail_pw )         { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
+	if( ths->m_send_port == 0 ) {
+		ths->m_send_port = 465;
+	}
+
+	if( ths->m_send_user == NULL && ths->m_mail_user ) {
+		ths->m_send_user = safe_strdup(ths->m_mail_user);
+	}
+
+	if( ths->m_send_pw == NULL && ths->m_mail_pw ) {
+		ths->m_send_pw = safe_strdup(ths->m_mail_pw);
+	}
 }
 
 

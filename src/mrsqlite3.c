@@ -46,7 +46,6 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 	ths->m_cobj             = NULL;
 	ths->m_mailbox          = mailbox;
 	ths->m_transactionCount = 0;
-	ths->m_is_configured_cache_ = -1; /* don't know */
 
 	for( i = 0; i < PREDEFINED_CNT; i++ ) {
 		ths->m_pd[i] = NULL;
@@ -346,8 +345,6 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 		mrlog_error("mrsqlite3_set_config(): Database not ready.");
 		return 0;
 	}
-
-	ths->m_is_configured_cache_ = -1; /* don't know */
 
 	if( value )
 	{

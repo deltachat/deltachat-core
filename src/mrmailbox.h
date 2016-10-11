@@ -54,7 +54,6 @@ extern "C" {
 #include "mrmsglist.h"
 #include "mrcontact.h"
 #include "mrcontactlist.h"
-#include "mrloginparam.h"
 #include "mrimap.h"
 #include "mrpoortext.h"
 #include "mrstock.h"
@@ -63,7 +62,6 @@ extern "C" {
 typedef struct mrmailbox_t
 {
 	/* members should be treated as library private */
-	mrloginparam_t* m_loginParam;
 	mrimap_t*       m_imap;
 	mrsqlite3_t*    m_sql;
 	char*           m_dbfile;
@@ -77,7 +75,7 @@ After usage, the mailbox object must be freed using mrmailbox_unref(). */
 mrmailbox_t*         mrmailbox_new                  ();
 void                 mrmailbox_unref                (mrmailbox_t*);
 
-/* open/close a mailbox object, if the given file does not exist, it is created
+/* open/close a mailbox database, if the given file does not exist, it is created
 and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
 for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one. */
@@ -91,10 +89,16 @@ ImportFile() always imports a single file, publiuc */
 int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
 int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
 
-/* empty all tables but leaves server configuration. */
-int                  mrmailbox_empty_tables         (mrmailbox_t*);
+/* Configure (prepare to connect) a mailbox.  There is not need to call this every program start,
+the result is saved in the database.   However, mrmailbox_configure() should be called after
+any settings change.
+*/
+int                  mrmailbox_configure            (mrmailbox_t*);
+int                  mrmailbox_is_configured        (mrmailbox_t*); /* just checks if at least e-mail and password are given, does not check if the connection works */
 
-/* connect to the mailbox.  usually, at least here, mrmailbox will create a working thread. */
+
+/* connect to the mailbox.  usually, at least here, mrmailbox will create a working thread.
+before a mailbox can be opended, it has to be configured. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
@@ -114,11 +118,10 @@ mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id);
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
-mrloginparam_t*      mrmailbox_suggest_config       (mrmailbox_t*); /* the result must be unref'd */
-int                  mrmailbox_is_configured        (mrmailbox_t*); /* just checks if at least e-mail and password are given, does not check if the connection works */
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
+int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all tables but leaves server configuration. */
 
 
 /*** library-private **********************************************************/

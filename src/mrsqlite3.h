@@ -103,8 +103,6 @@ typedef struct mrsqlite3_t
 	for this purpose, all calls must be enclosed by a locked m_critical; use mrsqlite3_lock() for this purpose */
 	pthread_mutex_t m_critical_;
 
-	/* some caching */
-	int             m_is_configured_cache_;
 } mrsqlite3_t;
 
 
