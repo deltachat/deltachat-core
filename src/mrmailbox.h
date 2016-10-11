@@ -70,7 +70,7 @@ typedef struct mrmailbox_t
 
 
 /* mrmailbox_new() creates a new mailbox object.  After creation it is usually
-opened, connected and mails are fetched; the the corresponding functions below.
+opened, connected and mails are fetched; see the corresponding functions below.
 After usage, the mailbox object must be freed using mrmailbox_unref(). */
 mrmailbox_t*         mrmailbox_new                  ();
 void                 mrmailbox_unref                (mrmailbox_t*);
@@ -83,19 +83,12 @@ int                  mrmailbox_open                 (mrmailbox_t*, const char* d
 void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (mrmailbox_t*);
 
-/* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
-a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
-ImportFile() always imports a single file, publiuc */
-int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
-int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
-
-/* Configure (prepare to connect) a mailbox.  There is not need to call this every program start,
+/* Configure (prepare to connect) a mailbox.  There is no need to call this every program start,
 the result is saved in the database.   However, mrmailbox_configure() should be called after
 any settings change.
 */
 int                  mrmailbox_configure            (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*); /* just checks if at least e-mail and password are given, does not check if the connection works */
-
 
 /* connect to the mailbox.  usually, at least here, mrmailbox will create a working thread.
 before a mailbox can be opended, it has to be configured. */
@@ -117,7 +110,14 @@ mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id);
 /* Handle configurations. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
+int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
+
+/* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
+a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
+ImportFile() always imports a single file, publiuc */
+int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
+int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */

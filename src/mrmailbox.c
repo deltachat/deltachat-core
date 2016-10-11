@@ -512,6 +512,22 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 }
 
 
+int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
+{
+	int ret;
+
+	if( ths == NULL || key == NULL ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		ret = mrsqlite3_set_config_int_(ths->m_sql, key, value);
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	return ret;
+}
+
+
 int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
