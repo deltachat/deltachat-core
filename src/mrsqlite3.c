@@ -126,8 +126,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 					" timestamp INTEGER, type INTEGER, state INTEGER, "
 					" txt TEXT, param TEXT, "
 					" bytes INTEGER DEFAULT 0);");
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msg (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msg (timestamp);");
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);"); /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msgs (timestamp);");
 		mrsqlite3_execute(ths, "CREATE TABLE msgs_to (msg_id INTEGER, contact_id INTEGER);");
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_to_index1 ON msgs_to (msg_id);");
 
@@ -240,7 +240,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 
 	if( ths->m_cobj == NULL )
 	{
-		mrlog_error("mrsqlite3_prepare_v2_(): Database not ready.");
+		mrlog_error("mrsqlite3_prepare_v2_(): Database not ready. Query: %s", querystr);
 		return NULL; /* error */
 	}
 
@@ -250,7 +250,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
 		mrsqlite3_log_error(ths);
-		mrlog_error("mrsqlite3_prepare_v2_(): sqlite3_prepare_v2() failed.");
+		mrlog_error("mrsqlite3_prepare_v2_(): Query failed: %s", querystr);
 		return NULL; /* error */
 	}
 

@@ -145,7 +145,14 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	if( ths->m_mail_port == 0 )                            { ths->m_mail_port   = 993; }
 	if( ths->m_mail_user == NULL )                         { ths->m_mail_user   = safe_strdup(ths->m_addr); }
 
-	if( ths->m_send_server == NULL && ths->m_mail_server ) { ths->m_send_server = safe_strdup(ths->m_mail_server); }
+	if( ths->m_send_server == NULL && ths->m_mail_server )
+	{
+		ths->m_send_server = safe_strdup(ths->m_mail_server);
+		if( strncmp(ths->m_send_server, "imap.", 5)==0 ) {
+			memcpy(ths->m_send_server, "smtp", 4);
+		}
+	}
+
 	if( ths->m_send_port == 0 )                            { ths->m_send_port   = 465; }
 	if( ths->m_send_user == NULL && ths->m_mail_user )     { ths->m_send_user   = safe_strdup(ths->m_mail_user); }
 	if( ths->m_send_pw == NULL && ths->m_mail_pw )         { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
