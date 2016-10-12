@@ -67,7 +67,10 @@ void mrmailbox_unref(mrmailbox_t* ths)
 		return; /* error */
 	}
 
-	mrmailbox_close(ths);
+	if( mrmailbox_is_open(ths) ) {
+		mrmailbox_close(ths);
+	}
+
 	mrimap_unref(ths->m_imap);
 	mrsqlite3_unref(ths->m_sql);
 	free(ths);
@@ -90,7 +93,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	from which all configuration is read/written to. */
 
 	/* Create/open sqlite database */
-	if( !mrsqlite3_open(ths->m_sql, dbfile) ) {
+	if( !mrsqlite3_open_(ths->m_sql, dbfile) ) {
 		goto Open_Done; /* error already logged */
 	}
 
@@ -112,7 +115,9 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	/* cleanup */
 Open_Done:
 	if( !success ) {
-		mrsqlite3_close(ths->m_sql); /* note, unlocking is done before */
+		if( mrsqlite3_is_open(ths->m_sql) ) {
+			mrsqlite3_close_(ths->m_sql); /* note, unlocking is done before */
+		}
 	}
 
 	if( db_locked ) {
@@ -125,13 +130,15 @@ Open_Done:
 
 void mrmailbox_close(mrmailbox_t* ths)
 {
-	if( ths == NULL ) {
+	if( ths == NULL || ths->m_sql == NULL ) {
 		return;
 	}
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrsqlite3_close(ths->m_sql);
+		if( mrsqlite3_is_open(ths->m_sql) ) {
+			mrsqlite3_close_(ths->m_sql);
+		}
 
 		free(ths->m_dbfile);
 		ths->m_dbfile = NULL;

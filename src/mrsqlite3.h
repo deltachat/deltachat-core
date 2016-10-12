@@ -108,8 +108,8 @@ typedef struct mrsqlite3_t
 
 mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
 void          mrsqlite3_unref            (mrsqlite3_t*);
-int           mrsqlite3_open             (mrsqlite3_t*, const char* dbfile);
-void          mrsqlite3_close            (mrsqlite3_t*);
+int           mrsqlite3_open_            (mrsqlite3_t*, const char* dbfile);
+void          mrsqlite3_close_           (mrsqlite3_t*);
 int           mrsqlite3_is_open          (mrsqlite3_t*);
 
 /* handle configurations, private */

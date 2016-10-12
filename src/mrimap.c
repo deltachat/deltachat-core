@@ -585,7 +585,7 @@ int mrimap_fetch(mrimap_t* ths)
 	}
 
 	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {
-		mrlog_error("mrimap_fetch(): Working thread not ready.");
+		mrlog_error("Cannot fetch now, working thread not ready.");
 		return 0; /* not connected */
 	}
 

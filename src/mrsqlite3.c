@@ -63,7 +63,10 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 		return; /* error */
 	}
 
-	mrsqlite3_close(ths);
+	if( ths->m_cobj ) {
+		mrsqlite3_close_(ths);
+	}
+
 	pthread_mutex_destroy(&ths->m_critical_);
 	free(ths);
 }
@@ -80,21 +83,21 @@ void mrsqlite3_log_error(mrsqlite3_t* ths)
 }
 
 
-int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
+int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 {
 	if( ths == NULL || dbfile == NULL ) {
-		mrlog_error("mrsqlite3_open(): No database file given.");
+		mrlog_error("Cannot open, bad parameters.");
 		goto Open_Error;
 	}
 
 	if( ths->m_cobj ) {
-		mrlog_error("mrsqlite3_open(): Database already opend.");
+		mrlog_error("Cannot open, database \"%s\" already opend.", dbfile);
 		goto Open_Error;
 	}
 
 	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
 		mrsqlite3_log_error(ths); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
-		mrlog_error("mrsqlite3_open(): sqlite3_open() failed.");
+		mrlog_error("Cannot open database \"%s\".", dbfile);
 		goto Open_Error;
 	}
 
@@ -136,7 +139,7 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 		 || !mrsqlite3_table_exists(ths, "msgs") )
 		{
 			mrsqlite3_log_error(ths);
-			mrlog_error("mrsqlite3_open(): Cannot create tables.");
+			mrlog_error("Cannot create tables in new database \"%s\".", dbfile);
 			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
 		}
 	}
@@ -147,21 +150,22 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 	if( !mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
 	{
 		mrsqlite3_log_error(ths);
-		mrlog_error("mrsqlite3_open(): Cannot prepare SQL statements.");
+		mrlog_error("Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
 		goto Open_Error;
 	}
 
 	/* success */
+	mrlog_info("Opened \"%s\" successfully.", dbfile);
 	return 1;
 
 	/* error */
 Open_Error:
-	mrsqlite3_close(ths);
+	mrsqlite3_close_(ths);
 	return 0;
 }
 
 
-void mrsqlite3_close(mrsqlite3_t* ths)
+void mrsqlite3_close_(mrsqlite3_t* ths)
 {
 	int i;
 
@@ -181,6 +185,8 @@ void mrsqlite3_close(mrsqlite3_t* ths)
 		sqlite3_close(ths->m_cobj);
 		ths->m_cobj = NULL;
 	}
+
+	mrlog_info("Database closed.");
 }
 
 

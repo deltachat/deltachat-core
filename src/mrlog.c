@@ -44,12 +44,12 @@ void mrlog_default_handler_(int type, const char* msg)
 	char*       log_entry_str;
 
 	switch( type ) {
-		case 'i': type_str = "Information"; break;
-		case 'w': type_str = "Warning";     break;
-		default:  type_str = "ERROR";       break;
+		case 'i': type_str = "";          break;
+		case 'w': type_str = "[Warning]"; break;
+		default:  type_str = "[ERROR]";   break;
 	}
 
-	log_entry_str = sqlite3_mprintf("[%s] %s", type_str, msg); if( log_entry_str == NULL ) { exit(18); }
+	log_entry_str = sqlite3_mprintf("%s[%s]", type_str, msg); if( log_entry_str == NULL ) { exit(18); }
 		printf("%s\n", log_entry_str);
 	sqlite3_free(log_entry_str);
 }

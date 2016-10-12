@@ -35,6 +35,9 @@ extern "C" {
 
 typedef void (*mrlogcallback_t) (int type, const char* msg);
 
+
+/* Set a handler to receive logfiles.  Overwrites and disables the default handler
+which uses printf(). */
 void mrlog_set_handler (mrlogcallback_t);
 
 
