@@ -619,7 +619,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	int contacts, chats, assigned_msgs, unassigned_msgs, is_configured;
 
 	if( ths == NULL ) {
-		return NULL; /* error */
+		return safe_strdup("ErrBadPtr");
 	}
 
 	/* read data (all pointers may be NULL!) */
@@ -628,8 +628,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrloginparam_read_(l2, ths->m_sql, "");
-		mrloginparam_read_(l, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+		mrloginparam_read_(l, ths->m_sql, "");
+		mrloginparam_read_(l2, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
@@ -647,52 +647,47 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
 	info = mr_mprintf(
-		"Messenger backend version %i.%i.%i - (C) by Björn Petersen Software Design and Development and contributors - Licensed under GPL v3, see http://messenger.b44t.com for details.\n\n"
-		"SQLite version   %s, threadsafe=%i\n"
-		"libEtPan version %i.%i\n"
-		"Database file    %s\n"
-		"BLOB directory   %s\n"
-		"debug_dir        %s\n"
-		"Chats            %i chats with %i messages, %i unassigned messages\n"
-		"Contacts         %i\n"
-
-		"displayname      %s\n"
-
-		"Configured?      %i\n"
-		"addr             %s (%s)\n"
-		"mail_server      %s (%s)\n"
-		"mail_port        %i (%i)\n"
-		"mail_user        %s (%s)\n"
-		"mail_pw          %s (%s)\n"
-
-		"send_server      %s (%s)\n"
-		"send_port        %i (%i)\n"
-		"send_user        %s (%s)\n"
-		"send_pw          %s (%s)\n"
+		"Messenger Backend %i.%i.%i - (C) Björn Petersen Software Design and Development and contributors\n" /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
+		"\n"
+		"%i chats with %i messages, %i unassigned messages, %i contacts\n"
+		"Database file: %s, blob directory: %s\n"
+		"\n"
+		"displayname=%s\n"
+		"configured=%i\n"
+		"addr=%s (%s)\n"
+		"mail_server=%s (%s)\n"
+		"mail_port=%i (%i)\n"
+		"mail_user=%s (%s)\n"
+		"mail_pw=%s (%s)\n"
+		"send_server=%s (%s)\n"
+		"send_port=%i (%i)\n"
+		"send_user=%s (%s)\n"
+		"send_pw=%s (%s)\n"
+		"debug_dir=%s\n"
+		"\n"
+		"Using SQLite %s-ts%i and libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		/* In the frontends, additional software hints may follow here. */
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
-		, SQLITE_VERSION, sqlite3_threadsafe()
-		, libetpan_get_version_major(), libetpan_get_version_minor()
-		, ths->m_dbfile? ths->m_dbfile : unset
-		, ths->m_blobdir? ths->m_blobdir : unset
-		, debug_dir? debug_dir : unset
 
-		, chats, assigned_msgs, unassigned_msgs
-		, contacts
+		, chats, assigned_msgs, unassigned_msgs, contacts
+		, ths->m_dbfile? ths->m_dbfile : unset   ,  ths->m_blobdir? ths->m_blobdir : unset
 
         , name? name : unset
-
 		, is_configured
 		, l->m_addr? l->m_addr : unset                 , l2->m_addr? l2->m_addr : unset
 		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
 		, l->m_mail_port? l->m_mail_port : 0           , l2->m_mail_port? l2->m_mail_port : 0
 		, l->m_mail_user? l->m_mail_user : unset       , l2->m_mail_user? l2->m_mail_user : unset
 		, l->m_mail_pw? set : unset,                     l2->m_mail_pw? set : unset
-
 		, l->m_send_server? l->m_send_server : unset   , l2->m_send_server? l2->m_send_server : unset
 		, l->m_send_port? l->m_send_port : 0           , l2->m_send_port? l2->m_send_port : 0
 		, l->m_send_user? l->m_send_user : unset       , l2->m_send_user? l2->m_send_user : unset
 		, l->m_send_pw? set : unset                    , l2->m_send_pw? set : unset
+		, debug_dir? debug_dir : unset
+
+		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(), sizeof(void*)*8
+
 		);
 
 	/* free data */

@@ -72,10 +72,10 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 void mrsqlite3_log_error(mrsqlite3_t* ths)
 {
 	if( ths && ths->m_cobj ) {
-		mrlog_error(sqlite3_errmsg(ths->m_cobj));
+		mrlog_error("SQLite says: %s", sqlite3_errmsg(ths->m_cobj));
 	}
 	else {
-		mrlog_error("Sqlite object not set up.");
+		mrlog_error("SQLite object not set up.");
 	}
 }
 
@@ -112,7 +112,8 @@ int mrsqlite3_open(mrsqlite3_t* ths, const char* dbfile)
 
 		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 					" name TEXT DEFAULT '',"
-					" addr TEXT DEFAULT '');");
+					" addr TEXT DEFAULT '',"
+					" last_seen INTEGER DEFAULT 0);"); /* last_seen is for future use */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
 		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name) VALUES (1,'self'), (2,'system'), (3,'rsvd'), (4,'rsvd'), (5,'rsvd'), (6,'rsvd'), (7,'rsvd'), (8,'rsvd'), (9,'rsvd');");
 
@@ -239,7 +240,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 
 	if( ths->m_cobj == NULL )
 	{
-		mrlog_error("mrsqlite3_prepare_v2_(): Database not ready. Query: %s", querystr);
+		mrlog_error("Database not ready for query: %s", querystr);
 		return NULL; /* error */
 	}
 
@@ -249,7 +250,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
 		mrsqlite3_log_error(ths);
-		mrlog_error("mrsqlite3_prepare_v2_(): Query failed: %s", querystr);
+		mrlog_error("Query failed: %s", querystr);
 		return NULL; /* error */
 	}
 

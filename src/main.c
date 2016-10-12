@@ -66,7 +66,7 @@ int main(int argc, char ** argv)
 	mrmailbox_t* mailbox = mrmailbox_new();
 	mrchat_t*    sel_chat = NULL;
 
-	printf("LibreChat is awaiting your commands.\n");
+	printf("Messenger Backend is awaiting your commands.\n"); /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
@@ -202,7 +202,7 @@ int main(int argc, char ** argv)
 		{
 			char* buf = mrmailbox_get_info(mailbox);
 			if( buf ) {
-				printf("%s", buf);
+				printf("%s\n", buf);
 				free(buf);
 			}
 			else {

@@ -375,7 +375,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"
-		and add them to the database (mails send by other LibreChat clients should result
+		and add them to the database (mails send by other messenger clients should result
 		into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
 		part_cnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
 		for( part_i = 0; part_i < part_cnt; part_i++ )
