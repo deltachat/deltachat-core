@@ -41,17 +41,15 @@
 void mrlog_default_handler_(int type, const char* msg)
 {
 	const char* type_str;
-	char*       log_entry_str;
 
 	switch( type ) {
+		case 'd': type_str = "[Debug]";   break;
 		case 'i': type_str = "";          break;
 		case 'w': type_str = "[Warning]"; break;
 		default:  type_str = "[ERROR]";   break;
 	}
 
-	log_entry_str = sqlite3_mprintf("%s[%s]", type_str, msg); if( log_entry_str == NULL ) { exit(18); }
-		printf("%s\n", log_entry_str);
-	sqlite3_free(log_entry_str);
+	printf("%s[%s]\n", type_str, msg);
 }
 
 
