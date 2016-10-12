@@ -110,6 +110,8 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */
 	if( !mrsqlite3_table_exists(ths, "contacts") )
 	{
+		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
+
 		mrsqlite3_execute(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 		mrsqlite3_execute(ths, "CREATE INDEX config_index1 ON config (keyname);");
 

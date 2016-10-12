@@ -433,11 +433,13 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		switch( cmd )
 		{
 			case MR_THREAD_FETCH:
-                fetch_from_all_folders(ths, &threadval);
-                break;
+				mrlog_info("Received THREAD_FETCH signal.");
+				fetch_from_all_folders(ths, &threadval);
+				break;
 
 			case MR_THREAD_EXIT:
-                goto WorkingThread_Exit;
+				mrlog_info("Received THREAD_EXIT signal.");
+				goto WorkingThread_Exit;
 
 			default:
 				break; /* bad command */
@@ -590,10 +592,12 @@ int mrimap_fetch(mrimap_t* ths)
 	}
 
 	if( ths->m_threadState==MR_THREAD_FETCH || ths->m_threadCmd==MR_THREAD_FETCH ) {
+		mrlog_info("Already fetching.");
 		return 1; /* already fetching/about to fetch */
 	}
 
 	/* raise fetch signal */
+	mrlog_info("Raise THREAD_FETCH signal.");
 	ths->m_threadCmd = MR_THREAD_FETCH;
 	pthread_cond_signal(&ths->m_cond);
 
