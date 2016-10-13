@@ -23,6 +23,11 @@
  * Authors: Björn Petersen
  * Purpose: mrmailbox_t represents a single mailbox, see header for details.
  *
+ *******************************************************************************
+ *
+ * For memory checking, use eg.
+ * $ valgrind --leak-check=full --tool=memcheck ./messenger-backend <db>
+ *
  ******************************************************************************/
 
 
@@ -303,6 +308,7 @@ ImportSpec_Cleanup:
 int mrmailbox_connect(mrmailbox_t* ths)
 {
 	mrloginparam_t* param = NULL;
+	int             is_locked = 0;
 	int             is_configured = 0;
 
 	if( ths == NULL || ths->m_sql == NULL ) {
@@ -318,19 +324,31 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	param = mrloginparam_new();
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	is_locked = 1;
 
 		mrloginparam_read_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 		is_configured = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0)? 1 : 0;
+		if( is_configured == 0 ) {
+			mrlog_error("Not configured.");
+			goto Error;
+		}
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-
-	if( is_configured == 0 ) {
-		mrlog_error("Not configured.");
-		return 0;
-	}
+	is_locked = 0;
 
 	/* connect */
 	return mrimap_connect(ths->m_imap, param /*ownership of loginParam is taken by mrimap_connect() */);
+
+	/* error */
+Error:
+	if( param ) {
+		mrloginparam_unref(param);
+	}
+
+	if( is_locked ) {
+		mrsqlite3_unlock(ths->m_sql);
+	}
+	return 0;
 }
 
 
@@ -592,6 +610,9 @@ int mrmailbox_configure(mrmailbox_t* ths)
 			mrsqlite3_set_config_int_(ths->m_sql, "configured", 0);
 		}
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	mrloginparam_unref(param);
+	param = NULL;
 
 	mrlog_info("Configure ok.");
 

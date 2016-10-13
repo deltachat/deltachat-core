@@ -427,7 +427,9 @@ int32_t mrsqlite3_get_config_int_(mrsqlite3_t* ths, const char* key, int32_t def
     if( str == NULL ) {
 		return def;
     }
-    return atol(str);
+    int32_t ret = atol(str);
+    free(str);
+    return ret;
 }
 
 
