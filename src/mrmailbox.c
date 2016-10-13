@@ -555,6 +555,8 @@ int mrmailbox_configure(mrmailbox_t* ths)
 {
 	mrloginparam_t* param;
 
+	mrlog_info("Configuring...");
+
 	if( ths == NULL || !mrsqlite3_is_open(ths->m_sql) ) {
 		mrlog_error("Database not opened.");
 		return 0;
@@ -590,6 +592,8 @@ int mrmailbox_configure(mrmailbox_t* ths)
 			mrsqlite3_set_config_int_(ths->m_sql, "configured", 0);
 		}
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	mrlog_info("Configure ok.");
 
 	return 1;
 }
@@ -709,6 +713,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
+	mrlog_info("Emptying all tables...");
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MRSCID_LAST) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
@@ -716,9 +722,11 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs_to;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%';");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%' OR keyname LIKE 'configured%';");
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+	mrlog_info("Tables emptied.");
 
 	return 1;
 }

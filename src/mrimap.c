@@ -390,7 +390,7 @@ FetchFromAllFolders_Done:
 static void mrimap_working_thread__(mrimap_t* ths)
 {
 	mrimapthreadval_t threadval;
-	int               r, cmd;
+	int               r, cmd, login_done = 0;
 
 	mrlog_info("Working thread entered.");
 
@@ -415,6 +415,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		mrlog_error("Could not login.");
 		goto WorkingThread_Exit;
 	}
+	login_done = 1;
 
 	mrlog_info("Login ok.");
 
@@ -450,11 +451,19 @@ static void mrimap_working_thread__(mrimap_t* ths)
 WorkingThread_Exit:
 	if( threadval.m_imap ) {
 
-		mailimap_logout(threadval.m_imap);
-		mrlog_info("Logout done.");
+		if( login_done ) {
+			mrlog_info("Logout...");
+
+			mailimap_logout(threadval.m_imap);
+
+			mrlog_info("Logout done.");
+		}
+
+		mrlog_info("Disconnecting...");
 
 		mailimap_free(threadval.m_imap);
 		threadval.m_imap = NULL;
+
 		mrlog_info("Disconnect done.");
 	}
 	ths->m_threadState = MR_THREAD_NOTALLOCATED;

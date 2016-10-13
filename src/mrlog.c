@@ -42,8 +42,8 @@
 
 static int mrlog_get_thread_index()
 {
-	#define          MR_MAX_THREADS 8
-	static pthread_t s_threadIds[MR_MAX_THREADS]; /* It's safe to use a static array here as the the number of threads is known. */
+	#define          MR_MAX_THREADS 32 /* if more threads are started, the full ID is printed (this may happen eg. on many failed connections so that we try to start a working thread several times) */
+	static pthread_t s_threadIds[MR_MAX_THREADS];
 	static int       s_threadIdsCnt = 0;
 
 	int       i;
@@ -62,7 +62,7 @@ static int mrlog_get_thread_index()
 	}
 
 	if( s_threadIdsCnt >= MR_MAX_THREADS ) {
-		return (int)(self); /* Fallback, this happends only if we're using more than MR_MAX_THREADS threads.  If this is _really_ desired, we should just increase MR_MAX_THREADS. */
+		return (int)(self); /* Fallback, this may happen, see comment above */
 	}
 
 	s_threadIds[s_threadIdsCnt] = self;
