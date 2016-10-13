@@ -122,8 +122,7 @@ size_t mr_get_assigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of messages 
 	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id!=0;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql);
-		mrlog_error("mr_get_assigned_msg_cnt_() failed.");
+		mrsqlite3_log_error(mailbox->m_sql, "mr_get_assigned_msg_cnt_() failed.");
 		return 0; /* error */
 	}
 
@@ -140,8 +139,7 @@ size_t mr_get_unassigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of message
 	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=0;");
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql);
-		mrlog_error("mr_get_unassigned_msg_cnt_() failed.");
+		mrsqlite3_log_error(mailbox->m_sql, "mr_get_unassigned_msg_cnt_() failed.");
 		return 0; /* error */
 	}
 

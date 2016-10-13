@@ -292,8 +292,7 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 	}
 
 	if( sqlite3_step(s) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql);
-		mrlog_error("mr_get_chat_cnt() failed.");
+		mrsqlite3_log_error(mailbox->m_sql, "mr_get_chat_cnt() failed.");
 		return 0; /* error */
 	}
 
@@ -322,8 +321,7 @@ uint32_t mr_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /*
 			sqlite3_finalize(stmt);
 		}
 		else {
-			mrsqlite3_log_error(mailbox->m_sql);
-			mrlog_error("mr_chat_exists() failed.");
+			mrsqlite3_log_error(mailbox->m_sql, "mr_chat_exists() failed.");
 		}
 
 		sqlite3_free(q);

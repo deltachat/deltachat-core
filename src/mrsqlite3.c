@@ -72,14 +72,17 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 }
 
 
-void mrsqlite3_log_error(mrsqlite3_t* ths)
+void mrsqlite3_log_error(mrsqlite3_t* ths, const char* msg_format, ...)
 {
-	if( ths && ths->m_cobj ) {
-		mrlog_error("SQLite says: %s", sqlite3_errmsg(ths->m_cobj));
-	}
-	else {
-		mrlog_error("SQLite object not set up.");
-	}
+	char*       msg;
+	const char* notSetUp = "SQLite object not set up.";
+	va_list     va;
+
+	va_start(va, msg_format);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_error("Bad log format string \"%s\".", msg_format); }
+			mrlog_error("%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
+		sqlite3_free(msg);
+	va_end(va);
 }
 
 
@@ -96,8 +99,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	}
 
 	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
-		mrsqlite3_log_error(ths); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
-		mrlog_error("Cannot open database \"%s\".", dbfile);
+		mrsqlite3_log_error(ths, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
 		goto Open_Error;
 	}
 
@@ -140,8 +142,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
 		 || !mrsqlite3_table_exists(ths, "msgs") )
 		{
-			mrsqlite3_log_error(ths);
-			mrlog_error("Cannot create tables in new database \"%s\".", dbfile);
+			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
 			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
 		}
 	}
@@ -151,8 +152,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	(we do it when the tables really exists, however, I do not know if sqlite relies on this) */
 	if( !mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
 	{
-		mrsqlite3_log_error(ths);
-		mrlog_error("Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
+		mrsqlite3_log_error(ths, "Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
 		goto Open_Error;
 	}
 
@@ -188,7 +188,7 @@ void mrsqlite3_close_(mrsqlite3_t* ths)
 		ths->m_cobj = NULL;
 	}
 
-	mrlog_info("Database closed.");
+	mrlog_info("Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
 }
 
 
@@ -228,8 +228,7 @@ sqlite3_stmt* mrsqlite3_predefine(mrsqlite3_t* ths, size_t idx, const char* quer
 	         &ths->m_pd[idx],
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
-		mrsqlite3_log_error(ths);
-		mrlog_error("mrsqlite3_predefine_stmt(): sqlite3_prepare_v2() failed.");
+		mrsqlite3_log_error(ths, "mrsqlite3_predefine_stmt(): sqlite3_prepare_v2() failed.");
 		return NULL; /* error */
 	}
 
@@ -257,8 +256,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	         &retStmt,
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
-		mrsqlite3_log_error(ths);
-		mrlog_error("Query failed: %s", querystr);
+		mrsqlite3_log_error(ths, "Query failed: %s", querystr);
 		return NULL; /* error */
 	}
 
@@ -280,8 +278,7 @@ int mrsqlite3_execute(mrsqlite3_t* ths, const char* querystr)
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		mrsqlite3_log_error(ths);
-		mrlog_error("mrsqlite3_execute_(): sqlite3_step() failed.");
+		mrsqlite3_log_error(ths, "mrsqlite3_execute_(): sqlite3_step() failed.");
 		goto sqlite3_execute_Error;
 	}
 
@@ -481,7 +478,7 @@ void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 		}
 
 		if( sqlite3_step(s) != SQLITE_DONE ) {
-			mrsqlite3_log_error(ths);
+			mrsqlite3_log_error(ths, "Cannot begin transaction.");
 		}
 	}
 }
@@ -500,7 +497,7 @@ void mrsqlite3_rollback(mrsqlite3_t* ths)
 			}
 
 			if( sqlite3_step(s) != SQLITE_DONE ) {
-				mrsqlite3_log_error(ths);
+				mrsqlite3_log_error(ths, "Cannot rollback transaction.");
 			}
 		}
 
@@ -522,7 +519,7 @@ void mrsqlite3_commit(mrsqlite3_t* ths)
 			}
 
 			if( sqlite3_step(s) != SQLITE_DONE ) {
-				mrsqlite3_log_error(ths);
+				mrsqlite3_log_error(ths, "Cannot commit transaction.");
 			}
 		}
 
