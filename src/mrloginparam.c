@@ -141,10 +141,11 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		return; /* nothing we can do */
 	}
 
-	/* if no password is given, assume an empty password */
-    if( ths->m_mail_pw == NULL ) {
+	/* if no password is given, assume an empty password.
+	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */
+	if( ths->m_mail_pw == NULL ) {
 		ths->m_mail_pw = safe_strdup("");
-    }
+	}
 
 	adr_server = strstr(ths->m_addr, "@");
 	if( adr_server == NULL ) {
@@ -153,9 +154,14 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	}
 	adr_server++;
 
-	/* set servers, ports etc. for well-known and frequently used services.
-	Remember, unset values are NULL, not the empty string!
-	TODO: We should add values for gmx.net, web.de etc. */
+	/* set servers, ports etc. for well-known and frequently used and/or privacy-aware services.
+	Examples: gmail.com, gmx.net, web.de, yahoo.com, posteo.de, mailbox.org
+
+	TODO: maybe we should support Thunderbird's Autoconfiguration
+	( https://developer.mozilla.org/en-US/docs/Mozilla/Thunderbird/Autoconfiguration ,
+	https://wiki.mozilla.org/Thunderbird:Autoconfiguration ).
+	At a glance, this would result in HTTP-download as `https://autoconfig.thunderbird.net/v1.1/posteo.de`
+	or even `http://autoconfig.posteo.de` */
 	if( strcmp(adr_server, "gmail.com")==0
 	 || strcmp(adr_server, "googlemail.com")==0 )
 	{

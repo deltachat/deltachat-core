@@ -281,6 +281,10 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 				}
 				else if( field->fld_type == MAILIMF_FIELD_FROM )
 				{
+					/* What, if a mail has a Reply-To:-Header? Shouldn't we treat this as the real sender? So prefer this header to From:?
+					However, before creating something here, we whould check how this is used in practice.  At least for mailing lists, the Reply-To:
+					is used differently and contains a thread ID - such stuff is not desired.  Maybe the best approach for the moment is just to
+					ignore the header - at least until we have more information. */
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
 					if( fld_from ) {
 						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);

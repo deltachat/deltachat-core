@@ -29,8 +29,46 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <memory.h>
 #include "mrmailbox.h"
+#include "mrtools.h"
 #include "mrlog.h"
+
+
+/*******************************************************************************
+ * Get a unique thread ID to recognize log output from different threads
+ ******************************************************************************/
+
+
+static int mrlog_get_thread_index()
+{
+	#define          MR_MAX_THREADS 8
+	static pthread_t s_threadIds[MR_MAX_THREADS]; /* It's safe to use a static array here as the the number of threads is known. */
+	static int       s_threadIdsCnt = 0;
+
+	int       i;
+	pthread_t self = pthread_self();
+
+	if( s_threadIdsCnt==0 ) {
+		for( i = 0; i < MR_MAX_THREADS; i++ ) {
+			s_threadIds[i] = 0;
+		}
+	}
+
+	for( i = 0; i < s_threadIdsCnt; i++ ) {
+		if( s_threadIds[i] == self ) {
+			return i+1;
+		}
+	}
+
+	if( s_threadIdsCnt >= MR_MAX_THREADS ) {
+		return (int)(self); /* Fallback, this happends only if we're using more than MR_MAX_THREADS threads.  If this is _really_ desired, we should just increase MR_MAX_THREADS. */
+	}
+
+	s_threadIds[s_threadIdsCnt] = self;
+	s_threadIdsCnt++;
+	return s_threadIdsCnt;
+}
 
 
 /*******************************************************************************
@@ -38,7 +76,7 @@
  ******************************************************************************/
 
 
-void mrlog_default_handler_(int type, const char* msg)
+static void mrlog_default_handler_(int type, const char* msg)
 {
 	const char* type_str;
 
@@ -58,7 +96,7 @@ void mrlog_default_handler_(int type, const char* msg)
  ******************************************************************************/
 
 
-mrlogcallback_t mrlog_callback_ptr_ = mrlog_default_handler_;
+static mrlogcallback_t mrlog_callback_ptr_ = mrlog_default_handler_;
 
 
 static void mrlog_print(int type, const char* msg)
@@ -83,6 +121,7 @@ void mrlog_set_handler(mrlogcallback_t cb)
 static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 {
 	char* msg;
+	char* msg2;
 
 	if( type != 'e' && type != 'w' && type != 'i' ) {
 		mrlog_print('e', "Bad log type.");
@@ -95,7 +134,9 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	}
 
 	msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_print('e', "Bad log format string."); }
-		mrlog_print(type, msg);
+		msg2 = sqlite3_mprintf("T%i: %s", mrlog_get_thread_index(), msg);
+			mrlog_print(type, msg2);
+		sqlite3_free(msg2);
 	sqlite3_free(msg);
 }
 
