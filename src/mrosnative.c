@@ -52,7 +52,11 @@ void mrosnative_init_android(JNIEnv* env)
 		return; /* already initialized */
 	}
 
+	mrlog_info("Get Java VM...");
+
     (*env)->GetJavaVM(env, &s_jvm);
+
+	mrlog_info("Got it.");
 }
 
 
@@ -63,8 +67,12 @@ int mrosnative_setup_thread(void)
 		return 0; /* error */
 	}
 
+	mrlog_info("Attaching C-thread to Java VM...");
+
 	JNIEnv* env = NULL;
 	(*s_jvm)->AttachCurrentThread(s_jvm, &env, NULL);
+
+	mrlog_info("Attaching ok");
 
 	return 1; /* success */
 }
@@ -72,7 +80,11 @@ int mrosnative_setup_thread(void)
 
 void mrosnative_unsetup_thread(void)
 {
+	mrlog_info("Detaching C-thread from Java VM...");
+
 	(*s_jvm)->DetachCurrentThread(s_jvm);
+
+	mrlog_info("Detaching done.");
 }
 
 
