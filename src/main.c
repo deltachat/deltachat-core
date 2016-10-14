@@ -110,105 +110,6 @@ int main(int argc, char ** argv)
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
 			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
-		else if( strncmp(cmd, "open", 4)==0 )
-		{
-			const char* p1 = strstr(cmd, " ");
-			if( p1 ) {
-				p1++;
-				mrmailbox_close(mailbox);
-				if( !mrmailbox_open(mailbox, p1, NULL) ) {
-					print_error();
-				}
-			}
-			else {
-				printf("ERROR: Argument <file> missing.\n");
-			}
-		}
-		else if( strcmp(cmd, "close")==0 )
-		{
-			if( mrmailbox_is_open(mailbox) ) {
-				mrmailbox_close(mailbox);
-			}
-			else {
-				printf("ERROR: no database opened.\n");
-			}
-		}
-		else if( strncmp(cmd, "import", 6)==0 )
-		{
-			const char* arg1 = strstr(cmd, " ");
-			if( !mrmailbox_import_spec(mailbox, arg1? ++arg1 : NULL) ) {
-				print_error();
-			}
-		}
-		else if( strcmp(cmd, "configure")==0 )
-		{
-			if( !mrmailbox_configure(mailbox) ) {
-				print_error();
-			}
-		}
-		else if( strcmp(cmd, "connect")==0 )
-		{
-			if( !mrmailbox_connect(mailbox) ) {
-				print_error();
-			}
-		}
-		else if( strcmp(cmd, "disconnect")==0 )
-		{
-			mrmailbox_disconnect(mailbox);
-		}
-		else if( strcmp(cmd, "fetch")==0 )
-		{
-			if( !mrmailbox_fetch(mailbox) ) {
-				print_error();
-			}
-		}
-		else if( strncmp(cmd, "set", 3)==0 )
-		{
-			char* arg1 = (char*)strstr(cmd, " ");
-			if( arg1 ) {
-				arg1++;
-				char* arg2 = strstr(arg1, " ");
-				if( arg2 ) {
-					*arg2 = 0;
-					arg2++;
-				}
-				if( !mrmailbox_set_config(mailbox, arg1, arg2) ) {
-					print_error();
-				}
-			}
-			else {
-				printf("ERROR: Argument <key> missing.\n");
-			}
-		}
-		else if( strncmp(cmd, "get", 3)==0 )
-		{
-			char* arg1 = (char*)strstr(cmd, " ");
-			if( arg1 ) {
-				arg1++;
-				char* ret = mrmailbox_get_config(mailbox, arg1, "<unset>");
-				if( ret ) {
-					printf("%s=%s\n", arg1, ret);
-					free(ret);
-				}
-				else {
-					print_error();
-				}
-			}
-			else {
-				printf("ERROR: Argument <key> missing.\n");
-			}
-		}
-		else if( strcmp(cmd, "info")==0 )
-		{
-			char* buf = mrmailbox_get_info(mailbox);
-			if( buf ) {
-				printf("%s\n", buf);
-				free(buf);
-			}
-			else {
-				print_error();
-			}
-		}
 		else if( strcmp(cmd, "chats")==0 )
 		{
 			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox);
@@ -335,23 +236,24 @@ int main(int argc, char ** argv)
 				printf("No chat selected.\n");
 			}
 		}
-		else if( strcmp(cmd, "empty")==0 )
-		{
-			if( !mrmailbox_empty_tables(mailbox) ) {
-				print_error();
-			}
-		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
 			break;
 		}
 		else if( cmd[0] == 0 )
 		{
-			; /* nothing types */
+			; /* nothing typed */
 		}
 		else
 		{
-			printf("ERROR: Unknown command \"%s\", type ? for help.\n", cmd);
+			char* execute_result = mrmailbox_execute(mailbox, cmd);
+			if( execute_result ) {
+				printf("%s\n", execute_result);
+				free(execute_result);
+			}
+			else {
+				printf("ERROR: Unknown command \"%s\", type ? for help.\n", cmd);
+			}
 		}
 	}
 

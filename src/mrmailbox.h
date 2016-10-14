@@ -125,6 +125,7 @@ int                  mrmailbox_import_file          (mrmailbox_t*, const char* f
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all tables but leaves server configuration. */
+char*                mrmailbox_execute              (mrmailbox_t*, const char* cmd); /* execute a simple command; the returned result must be free()'d */
 
 
 /*** library-private **********************************************************/

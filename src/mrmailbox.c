@@ -755,3 +755,109 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	return 1;
 }
+
+
+char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
+{
+	#define COMMAND_FAILED    ((char*)1)
+	#define COMMAND_SUCCEEDED ((char*)2)
+	char*   ret = NULL;
+
+	if( ths == NULL || cmd == NULL || cmd[0]==0 ) {
+		goto Done;
+	}
+
+	if( strncmp(cmd, "open", 4)==0 )
+	{
+		const char* arg1 = strstr(cmd, " ");
+		if( arg1 ) {
+			arg1++;
+			mrmailbox_close(ths);
+			ret = mrmailbox_open(ths, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <file> missing.");
+		}
+	}
+	else if( strcmp(cmd, "close")==0 )
+	{
+		mrmailbox_close(ths);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if( strncmp(cmd, "import", 6)==0 )
+	{
+		const char* arg1 = strstr(cmd, " ");
+		ret = mrmailbox_import_spec(ths, arg1? ++arg1 : NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "configure")==0 )
+	{
+		ret = mrmailbox_configure(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "connect")==0 )
+	{
+		ret = mrmailbox_connect(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "disconnect")==0 )
+	{
+		mrmailbox_disconnect(ths);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if( strcmp(cmd, "fetch")==0 )
+	{
+		ret = mrmailbox_fetch(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strncmp(cmd, "set", 3)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			arg1++;
+			char* arg2 = strstr(arg1, " ");
+			if( arg2 ) {
+				*arg2 = 0;
+				arg2++;
+			}
+			ret = mrmailbox_set_config(ths, arg1, arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <key> missing.");
+		}
+	}
+	else if( strncmp(cmd, "get", 3)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			arg1++;
+			char* val = mrmailbox_get_config(ths, arg1, "<unset>");
+			if( val ) {
+				ret = mr_mprintf("%s=%s", arg1, val);
+				free(val);
+			}
+			else {
+				ret = COMMAND_FAILED;
+			}
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <key> missing.");
+		}
+	}
+	else if( strcmp(cmd, "info")==0 )
+	{
+		ret = mrmailbox_get_info(ths);
+		if( ret == NULL ) {
+			ret = COMMAND_FAILED;
+		}
+	}
+	else if( strcmp(cmd, "empty")==0 )
+	{
+		ret = mrmailbox_empty_tables(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+
+Done:
+	if( ret == COMMAND_FAILED ) {
+		ret = safe_strdup("ERROR: Command failed.");
+	}
+	else if( ret == COMMAND_SUCCEEDED ) {
+		ret = safe_strdup("Command executed successfully.");
+	}
+	return ret;
+}
