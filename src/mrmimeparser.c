@@ -623,7 +623,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						mrlog_warning("Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.",
+						mrlog_warning("Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
