@@ -623,7 +623,8 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						mrlog_warning("Cannot convert character set."); /* continue, however */
+						mrlog_warning("Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.",
+							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
 						goto AddSinglePart_Cleanup; /* no error - but nothing to add */
