@@ -69,7 +69,7 @@ int     carray_search              (carray*, void* needle, unsigned int* indx); 
 
 #define MR_INIT_REFERENCE \
 	if( ths == NULL ) { return NULL; } \
-	ths->m_refcnt = 0;
+	ths->m_refcnt = 1;
 
 #define MR_INC_REFERENCE \
 	if( ths == NULL ) { return NULL; } \

@@ -359,6 +359,7 @@ int main(int argc, char ** argv)
 	mrmailbox_close(mailbox);
 	mrmailbox_unref(mailbox);
 	mailbox = NULL;
+	mrstock_exit();
 	return 0;
 }
 
