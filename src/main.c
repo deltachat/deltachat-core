@@ -55,12 +55,6 @@ static char* read_cmd()
 }
 
 
-static void print_error()
-{
-	printf("Command failed.\n");
-}
-
-
 int main(int argc, char ** argv)
 {
 	mrmailbox_t* mailbox = mrmailbox_new();
@@ -71,7 +65,7 @@ int main(int argc, char ** argv)
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
 		if( !mrmailbox_open(mailbox, argv[1], NULL) ) {
-			print_error();
+			printf("ERROR: Cannot open mailbox.\n");
 		}
 	}
 	else if( argc != 1 ) {
