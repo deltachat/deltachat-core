@@ -194,11 +194,23 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 
 int mrchat_get_unread_count(mrchat_t* ths)
 {
-	if( ths == NULL ) {
+	sqlite3_stmt* stmt = NULL;
+
+	if( ths == NULL || ths->m_mailbox == NULL || ths->m_mailbox->m_sql == NULL ) {
 		return 0; /* error */
 	}
 
-	return 1; /* TODO */
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
+		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unread messages */
+	sqlite3_bind_int(stmt, 1, MR_IN_UNREAD);
+	sqlite3_bind_int(stmt, 2, ths->m_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		mrsqlite3_log_error(ths->m_mailbox->m_sql, "mrchat_get_unread_count() failed.");
+		return 0; /* error */
+	}
+
+	return sqlite3_column_int(stmt, 0);
 }
 
 

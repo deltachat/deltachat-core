@@ -75,7 +75,7 @@ After usage, the mailbox object must be freed using mrmailbox_unref(). */
 mrmailbox_t*         mrmailbox_new                  ();
 void                 mrmailbox_unref                (mrmailbox_t*);
 
-/* open/close a mailbox database, if the given file does not exist, it is created
+/* Open/close a mailbox database, if the given file does not exist, it is created
 and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
 for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one. */
@@ -83,22 +83,21 @@ int                  mrmailbox_open                 (mrmailbox_t*, const char* d
 void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (mrmailbox_t*);
 
-/* Configure (prepare to connect) a mailbox.  There is no need to call this every program start,
-the result is saved in the database.   However, mrmailbox_configure() should be called after
-any settings change.
-*/
-int                  mrmailbox_configure            (mrmailbox_t*);
-int                  mrmailbox_is_configured        (mrmailbox_t*); /* just checks if at least e-mail and password are given, does not check if the connection works */
+/* mrmailbox_configure() configures (prepares to connect) a mailbox.
+Before your call this function, you should set at least `addr` and `mail_pw`
+using mrmailbox_set_config().
 
-/* connect to the mailbox.  usually, at least here, mrmailbox will create a working thread.
+There is no need to call this every program start, the result is saved in the
+database.   However, mrmailbox_configure() should be called after any settings
+change. */
+int                  mrmailbox_configure            (mrmailbox_t*);
+int                  mrmailbox_is_configured        (mrmailbox_t*);
+
+/* Connect to the mailbox.  usually, at least here, mrmailbox will create a working thread.
 before a mailbox can be opended, it has to be configured. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
-
-/* Get contacts. */
-mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
-mrcontact_t*         mrmailbox_get_contact_by_id    (mrmailbox_t*, uint32_t id);
 
 /* Get chats. */
 mrchatlist_t*        mrmailbox_get_chatlist         (mrmailbox_t*); /* the result must be unref'd */
@@ -106,6 +105,10 @@ mrchat_t*            mrmailbox_get_chat_by_id       (mrmailbox_t*, uint32_t id);
 
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
+
+/* Get contacts. */
+mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
+mrcontact_t*         mrmailbox_get_contact_by_id    (mrmailbox_t*, uint32_t id);
 
 /* Handle configurations. */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);

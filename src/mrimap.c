@@ -434,12 +434,12 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		switch( cmd )
 		{
 			case MR_THREAD_FETCH:
-				mrlog_info("Received THREAD_FETCH signal.");
+				mrlog_info("Received MR_THREAD_FETCH signal.");
 				fetch_from_all_folders(ths, &threadval);
 				break;
 
 			case MR_THREAD_EXIT:
-				mrlog_info("Received THREAD_EXIT signal.");
+				mrlog_info("Received MR_THREAD_EXIT signal.");
 				goto WorkingThread_Exit;
 
 			default:
@@ -578,6 +578,7 @@ void mrimap_disconnect(mrimap_t* ths)
 	}
 
 	/* raise exit signal */
+	mrlog_info("Raise MR_THREAD_EXIT signal...");
 	ths->m_threadCmd = MR_THREAD_EXIT;
 	pthread_cond_signal(&ths->m_cond);
 }
@@ -606,7 +607,7 @@ int mrimap_fetch(mrimap_t* ths)
 	}
 
 	/* raise fetch signal */
-	mrlog_info("Raise THREAD_FETCH signal.");
+	mrlog_info("Raise MR_THREAD_FETCH signal...");
 	ths->m_threadCmd = MR_THREAD_FETCH;
 	pthread_cond_signal(&ths->m_cond);
 

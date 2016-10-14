@@ -139,6 +139,10 @@ void mrmailbox_close(mrmailbox_t* ths)
 		return;
 	}
 
+	if( mrimap_is_connected(ths->m_imap) ) {
+		mrimap_disconnect(ths->m_imap);
+	}
+
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
 		if( mrsqlite3_is_open(ths->m_sql) ) {

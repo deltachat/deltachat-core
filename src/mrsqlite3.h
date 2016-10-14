@@ -77,6 +77,7 @@ enum
 
 	,SELECT_COUNT_FROM_msgs_WHERE_assigned
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
+	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_i_FROM_msgs_m
 	,SELECT_icfttstpb_FROM_msgs_i
 	,INSERT_INTO_msgs_mcfttsmp
