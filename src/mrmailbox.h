@@ -61,9 +61,11 @@ typedef struct mrmailbox_t mrmailbox_t;
 
 
 /* Callback function that is called on updates, state changes etc.
-Note, that the update callback may be called from _any_ thread, not only the main/GUI thread!.
-If not mentioned otherweise, the callback should return 0. */
-#define MR_EVENT_MSGS_ADDED   2000 /* messages added to the database. this may be new messages or old ones that are loaded by a request. */
+- The callback may be called from _any_ thread, not only the main/GUI thread!
+- The callback should return _fast_, for GUI updates etc. you should
+  post yourself an asynchronous message to your GUI thread.
+- If not mentioned otherweise, the callback should return 0. */
+#define MR_EVENT_MSGS_UPDATED   2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 

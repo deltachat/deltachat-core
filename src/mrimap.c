@@ -450,7 +450,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 			case MR_THREAD_FETCH:
 				mrlog_info("Received MR_THREAD_FETCH signal.");
 				if( fetch_from_all_folders(ths, &threadval) > 0 ) {
-					ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_ADDED, 0, 0);
+					ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
 				}
 				break;
 

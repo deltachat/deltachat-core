@@ -302,7 +302,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 	mrlog_info("Import: %i mails read from \"%s\".", read_cnt, spec);
 	if( read_cnt > 0 ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_ADDED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
 
 	/* success */
@@ -771,6 +771,8 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrlog_info("Tables emptied.");
 
+	ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
+
 	return 1;
 }
 
@@ -868,6 +870,18 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 	else if( strcmp(cmd, "empty")==0 )
 	{
 		ret = mrmailbox_empty_tables(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strncmp(cmd, "event", 5)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int event = atoi(arg1);
+			uintptr_t r = ths->m_cb(ths, event, 0, 0);
+			ret = mr_mprintf("Sending event %i, received value %i.", (int)event, (int)r);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <id> missing.");
+		}
 	}
 
 Done:
