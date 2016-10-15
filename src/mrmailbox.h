@@ -139,7 +139,7 @@ char*                mrmailbox_execute              (mrmailbox_t*, const char* c
 
 /*** library-private **********************************************************/
 
-void                 mrmailbox_receive_imf_         (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! */
+size_t               mrmailbox_receive_imf_         (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! Returns the number of created database message entries. */
 
 
 #ifdef __cplusplus

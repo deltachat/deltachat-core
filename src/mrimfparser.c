@@ -216,8 +216,9 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* th
  ******************************************************************************/
 
 
-int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
+	/* the function returns the number of created messages in the database */
 	carray*          contact_ids_from = NULL;
 	carray*          contact_ids_to = NULL;
 	uint32_t         contact_id_from = 0; /* 1=self */
@@ -233,6 +234,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
+	size_t           created_db_entries = 0;
 
 	/* create arrays that will hold from: and to: lists */
 	contact_ids_from = carray_new(16);
@@ -401,6 +403,7 @@ int32_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_termina
 			}
 
 			dblocal_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
+			created_db_entries++;
 
 			if( contact_ids_to ) {
 				s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_to_mc, "INSERT INTO msgs_to (msg_id, contact_id) VALUES (?,?);");
@@ -446,5 +449,5 @@ Imf2Msg_Done:
 		carray_free(contact_ids_to);
 	}
 
-	return 0;
+	return created_db_entries;
 }

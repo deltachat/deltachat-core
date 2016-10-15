@@ -148,10 +148,16 @@ static char* Mr_get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t
 
 static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 							  const char* folder, /* only needed for statistical/debugging purposes, the correct folder is already selected when this function is called */
-                              uint32_t flocal_uid)
+                              uint32_t flocal_uid,
+                              size_t* created_db_entries)
 {
-	/* we're inside a working thread!
-	the function returns 0 if the caller should try over fetch message again, else 1. */
+	/* the function returns:
+	    0  on errors; in this case, the caller should try over again later
+	or  1  if the messages should be treated as received (even if no database entries are returned)
+
+	moreover, the function copies the nubmer or really created database entries to ret_created_database_entries.
+
+	Finally, remember, we're inside a working thread! */
 	size_t      msg_len;
 	char*       msg_content;
 	FILE*       f;
@@ -187,7 +193,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 	{
 		clistiter* cur = clist_begin(fetch_result);
 		if( cur == NULL ) {
-			mrlog_error("mrimap_fetch_single_msg(): Empty message.");
+			mrlog_warning("mrimap_fetch_single_msg(): Empty message.");
 			return 1; /* error, however, do not try to fetch the message again */
 		}
 
@@ -213,22 +219,22 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 	}
 
 	/* add to our respository */
-	mrmailbox_receive_imf_(ths->m_mailbox, msg_content, msg_len);
+	*created_db_entries = mrmailbox_receive_imf_(ths->m_mailbox, msg_content, msg_len);
 
 	mailimap_fetch_list_free(fetch_result);
 
-	return 1; /* success, message fetched */
+	return 1; /* Success, messages fetched. However, the amount in created_db_entries may be 0. */
 }
 
 
-static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval, const char* folder)
+static size_t fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval, const char* folder)
 {
 	/* we're inside a working thread! */
 	int        r;
 	clist*     fetch_result = NULL;
 	uint32_t   in_first_uid = 0; /* the first uid to fetch, if 0, get all */
 	uint32_t   out_largetst_uid = 0;
-	int        read_cnt = 0, read_errors = 0;
+	size_t     read_cnt = 0, read_errors = 0, created_db_entries = 0;
 	char*      config_key = NULL;
 	clistiter* cur;
 
@@ -292,13 +298,18 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 		uint32_t cur_uid = Mr_get_uid(msg_att);
 		if( cur_uid && (in_first_uid==0 || cur_uid>in_first_uid) )
 		{
+			size_t temp_created_db_entries = 0;
+
 			if( cur_uid > out_largetst_uid ) {
 				out_largetst_uid = cur_uid;
 			}
 
 			read_cnt++;
-			if( !mrimap_fetch_single_msg(ths, threadval, folder, cur_uid) ) {
+			if( mrimap_fetch_single_msg(ths, threadval, folder, cur_uid, &temp_created_db_entries) == 0 ) {
 				read_errors++;
+			}
+			else {
+				created_db_entries += temp_created_db_entries; /* may be 0 eg. for empty messages. This is NO error. */
 			}
 		}
 	}
@@ -315,7 +326,7 @@ static void fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval
 	/* done */
 FetchFromFolder_Done:
     {
-		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors.", read_cnt, folder, read_errors);
+		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors; %i messages created.", (int)read_cnt, folder, (int)read_errors, (int)created_db_entries);
 		if( read_errors ) {
 			mrlog_error(temp);
 		}
@@ -332,15 +343,18 @@ FetchFromFolder_Done:
 	if( config_key ) {
 		sqlite3_free(config_key);
 	}
+
+	return created_db_entries;
 }
 
 
-static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
+static size_t fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 {
 	/* we're inside a working thread! */
+	size_t created_db_entries = 0;
 
 	/* check INBOX */
-	fetch_from_single_folder(ths, threadval, "INBOX");
+	created_db_entries += fetch_from_single_folder(ths, threadval, "INBOX");
 
 	/* check other folders */
 	int        r;
@@ -365,7 +379,7 @@ static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 			{
 				if( !Mr_ignore_folder(name_utf8) )
 				{
-					fetch_from_single_folder(ths, threadval, name_utf8);
+					created_db_entries += fetch_from_single_folder(ths, threadval, name_utf8);
 				}
 				else
 				{
@@ -378,7 +392,7 @@ static void fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
 	}
 
 FetchFromAllFolders_Done:
-	;
+	return created_db_entries;
 }
 
 
@@ -435,7 +449,9 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		{
 			case MR_THREAD_FETCH:
 				mrlog_info("Received MR_THREAD_FETCH signal.");
-				fetch_from_all_folders(ths, &threadval);
+				if( fetch_from_all_folders(ths, &threadval) > 0 ) {
+					ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_ADDED, 0, 0);
+				}
 				break;
 
 			case MR_THREAD_EXIT:

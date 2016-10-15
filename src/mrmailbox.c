@@ -49,6 +49,13 @@
  ******************************************************************************/
 
 
+static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+{
+	mrlog_warning("Unhandled event: %i (%i, %i)", (int)event, (int)data1, (int)data2);
+	return 0;
+}
+
+
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 {
 	mrmailbox_t* ths = NULL;
@@ -61,7 +68,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_imap     = mrimap_new(ths);
 	ths->m_dbfile   = NULL;
 	ths->m_blobdir  = NULL;
-	ths->m_cb       = cb;
+	ths->m_cb       = cb? cb : cb_dummy; /* avoid a NULL-pointer! */
 	ths->m_userData = userData;
 
 	return ths;
@@ -211,7 +218,9 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	f = NULL;
 
 	/* import `data` */
-	mrmailbox_receive_imf_(ths, data, stat_info.st_size);
+	if( mrmailbox_receive_imf_(ths, data, stat_info.st_size) == 0 ) {
+		mrlog_warning("Import: No message could be created from \"%s\".", filename);
+	}
 
 	/* success */
 	success = 1;
@@ -292,6 +301,9 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	}
 
 	mrlog_info("Import: %i mails read from \"%s\".", read_cnt, spec);
+	if( read_cnt > 0 ) {
+		ths->m_cb(ths, MR_EVENT_MSGS_ADDED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+	}
 
 	/* success */
 	success = 1;
@@ -385,11 +397,13 @@ int mrmailbox_fetch(mrmailbox_t* ths)
  ******************************************************************************/
 
 
-void mrmailbox_receive_imf_(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+size_t mrmailbox_receive_imf_(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
+	size_t         created_db_entries = 0;
 	mrimfparser_t* parser = mrimfparser_new_(ths);
 
-	if( !mrimfparser_imf2msg_(parser, imf_raw_not_terminated, imf_raw_bytes) ) {
+	created_db_entries = mrimfparser_imf2msg_(parser, imf_raw_not_terminated, imf_raw_bytes);
+	if( created_db_entries == 0 ) {
 		goto ReceiveCleanup; /* error already logged */
 	}
 
@@ -398,6 +412,8 @@ ReceiveCleanup:
 	if( parser ) {
 		mrimfparser_unref_(parser);
 	}
+
+	return created_db_entries;
 }
 
 
