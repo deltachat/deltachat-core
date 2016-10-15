@@ -96,19 +96,13 @@ static void mrlog_default_handler_(int type, const char* msg)
  ******************************************************************************/
 
 
-static mrlogcallback_t mrlog_callback_ptr_ = mrlog_default_handler_;
+static mrlogcb_t mrlog_cb_ = mrlog_default_handler_;
 
 
-static void mrlog_print(int type, const char* msg)
-{
-	mrlog_callback_ptr_(type, msg);
-}
-
-
-void mrlog_set_handler(mrlogcallback_t cb)
+void mrlog_set_handler(mrlogcb_t cb)
 {
 	if( cb ) {
-		mrlog_callback_ptr_ = cb;
+		mrlog_cb_ = cb;
 	}
 }
 
@@ -124,18 +118,18 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	char* msg2;
 
 	if( type != 'e' && type != 'w' && type != 'i' ) {
-		mrlog_print('e', "Bad log type.");
+		mrlog_cb_('e', "Bad log type.");
 		return;
 	}
 
 	if( msg_format == NULL ) {
-		mrlog_print('e', "Log format string missing.");
+		mrlog_cb_('e', "Log format string missing.");
 		return;
 	}
 
-	msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_print('e', "Bad log format string."); }
+	msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_cb_('e', "Bad log format string."); }
 		msg2 = sqlite3_mprintf("T%i: %s", mrlog_get_thread_index(), msg);
-			mrlog_print(type, msg2);
+			mrlog_cb_(type, msg2);
 		sqlite3_free(msg2);
 	sqlite3_free(msg);
 }

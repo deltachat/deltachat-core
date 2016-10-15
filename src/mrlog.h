@@ -33,13 +33,13 @@ extern "C" {
 #endif
 
 
-typedef void (*mrlogcallback_t) (int type, const char* msg);
+typedef void (*mrlogcb_t) (int type, const char* msg);
 
 
 /* Set a handler to receive logfiles.  Overwrites and disables the default handler
 which uses printf().
 Note, that the given handler may be called from any thread! */
-void mrlog_set_handler (mrlogcallback_t);
+void mrlog_set_handler (mrlogcb_t);
 
 
 /*** library-private **********************************************************/

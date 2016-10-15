@@ -57,6 +57,14 @@ extern "C" {
 #include "mrimap.h"
 #include "mrpoortext.h"
 #include "mrstock.h"
+typedef struct mrmailbox_t mrmailbox_t;
+
+
+/* Callback function that is called on updates, state changes etc.
+Note, that the update callback may be called from _any_ thread, not only the main/GUI thread!.
+If not mentioned otherweise, the callback should return 0. */
+#define MR_EVENT_MSGS_ADDED   2000 /* messages added to the database. this may be new messages or old ones that are loaded by a request. */
+typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 
 typedef struct mrmailbox_t
@@ -66,13 +74,15 @@ typedef struct mrmailbox_t
 	mrsqlite3_t*    m_sql;
 	char*           m_dbfile;
 	char*           m_blobdir;
+	void*           m_userData; /* any data that can be used by the user; not used by the library itself */
+	mrmailboxcb_t   m_cb;
 } mrmailbox_t;
 
 
 /* mrmailbox_new() creates a new mailbox object.  After creation it is usually
 opened, connected and mails are fetched; see the corresponding functions below.
 After usage, the mailbox object must be freed using mrmailbox_unref(). */
-mrmailbox_t*         mrmailbox_new                  ();
+mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t cb, void* userData);
 void                 mrmailbox_unref                (mrmailbox_t*);
 
 /* Open/close a mailbox database, if the given file does not exist, it is created
@@ -93,8 +103,7 @@ change. */
 int                  mrmailbox_configure            (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*);
 
-/* Connect to the mailbox.  usually, at least here, mrmailbox will create a working thread.
-before a mailbox can be opended, it has to be configured. */
+/* Connect to the mailbox using the configured settings. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);

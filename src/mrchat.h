@@ -36,7 +36,6 @@ extern "C" {
 
 #include "mrmsg.h"
 #include "mrmsglist.h"
-
 typedef struct mrpoortext_t mrpoortext_t;
 
 

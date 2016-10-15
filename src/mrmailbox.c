@@ -49,7 +49,7 @@
  ******************************************************************************/
 
 
-mrmailbox_t* mrmailbox_new()
+mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 {
 	mrmailbox_t* ths = NULL;
 
@@ -57,10 +57,12 @@ mrmailbox_t* mrmailbox_new()
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_sql = mrsqlite3_new(ths);
-	ths->m_imap = mrimap_new(ths);
-	ths->m_dbfile = NULL;
-	ths->m_blobdir = NULL;
+	ths->m_sql      = mrsqlite3_new(ths);
+	ths->m_imap     = mrimap_new(ths);
+	ths->m_dbfile   = NULL;
+	ths->m_blobdir  = NULL;
+	ths->m_cb       = cb;
+	ths->m_userData = userData;
 
 	return ths;
 }

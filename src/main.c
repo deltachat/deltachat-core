@@ -55,9 +55,16 @@ static char* read_cmd()
 }
 
 
+static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+{
+	printf("{{Received event %i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+	return 0;
+}
+
+
 int main(int argc, char ** argv)
 {
-	mrmailbox_t* mailbox = mrmailbox_new();
+	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
 	mrchat_t*    sel_chat = NULL;
 
 	printf("Messenger Backend is awaiting your commands.\n"); /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */

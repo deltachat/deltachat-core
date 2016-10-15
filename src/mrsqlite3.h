@@ -46,7 +46,7 @@ extern "C" {
 #include <sqlite3.h>
 #include <libetpan/libetpan.h>
 #include <pthread.h>
-typedef struct mrmailbox_t mrmailbox_t; /*forward declaration*/
+typedef struct mrmailbox_t mrmailbox_t;
 
 
 /* predefined statements */
