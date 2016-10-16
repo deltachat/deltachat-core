@@ -109,7 +109,10 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	/* Init the tables, if not yet done.
 	NB: We only define default values for columns not present in all INSERT statements.
 	NB: We use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
-	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html */
+	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html
+
+	Some words to the "param" fields:  These fields contains a string with additonal, named parameters which must
+	not be accessed by a search and/or are very seldomly used. Moreover, this allows smart minor database updates. */
 	if( !mrsqlite3_table_exists(ths, "contacts") )
 	{
 		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
@@ -124,15 +127,24 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
 		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name) VALUES (1,'self'), (2,'system'), (3,'rsvd'), (4,'rsvd'), (5,'rsvd'), (6,'rsvd'), (7,'rsvd'), (8,'rsvd'), (9,'rsvd');");
 
-		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, type INTEGER, name TEXT, "
-					" draft_timestamp INTEGER DEFAULT 0, draft_txt TEXT DEFAULT '');");
+		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+					" type INTEGER,"
+					" name TEXT,"
+					" draft_timestamp INTEGER DEFAULT 0,"
+					" draft_txt TEXT DEFAULT '',"
+					" param TEXT DEFAULT '');"); /* possible param: draft_reply_msg_id */
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY, rfc724_mid TEXT, chat_id INTEGER, from_id INTEGER, "
-					" timestamp INTEGER, type INTEGER, state INTEGER, "
-					" txt TEXT, param TEXT, "
-					" bytes INTEGER DEFAULT 0);");
+		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+					" rfc724_mid TEXT,"
+					" chat_id INTEGER,"
+					" from_id INTEGER, "
+					" timestamp INTEGER, "
+					" type INTEGER, state INTEGER, "
+					" txt TEXT, "
+					" bytes INTEGER DEFAULT 0,"
+					" param TEXT DEFAULT '');");
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index3 ON msgs (state);");          /* for selecting the count of unread messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
