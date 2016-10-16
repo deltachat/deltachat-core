@@ -70,7 +70,7 @@ the function only works, if the chat is a part of a chatlist (otherwise, for spe
 mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* result must be unref'd */
 
 /* handling drafts */
-int           mrchat_save_draft            (mrchat_t*, const char*); /* save draft in object and in database */
+int           mrchat_save_draft            (mrchat_t*, const char*); /* save draft in object and in database, may result in "MR_EVENT_MSGS_UPDATED" */
 
 /* sending messages */
 int           mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function! */

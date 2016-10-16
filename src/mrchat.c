@@ -544,6 +544,8 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE: No return until unlock! */
 
+	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
+
 	/* success */
 	return 1;
 }
