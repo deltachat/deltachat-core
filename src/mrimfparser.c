@@ -219,7 +219,7 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* th
 size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
 	/* the function returns the number of created messages in the database */
-	carray*          contact_ids_from = NULL;
+	carray*          contact_ids_from = NULL; /* TODO: I thinkg, there is no need to use an array for this. E-Mails with more than one sender does not exist. As far as I know. */
 	carray*          contact_ids_to = NULL;
 	uint32_t         contact_id_from = 0; /* 1=self */
 	sqlite3_stmt*    s;
@@ -339,17 +339,30 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		/* check, if the given message is send by _us_ to only _one_ receiver --
 		only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
 		(of course, the user can add other chats manually) */
-		if( !comes_from_extern && carray_count(contact_ids_to)==1 )
+		if( comes_from_extern )
 		{
-			chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, contact_ids_from, NULL);
+			if( chat_id == 0 ) {
+				/* TODO: check from address in addresss book
+				if( carray_count(contact_ids_from)==1
+				 && ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_EMAIL_KNOWN, (uintptr_t)from-adr, 0)==1 ) {
+					chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+				}
+				*/
+			}
+		}
+		else
+		{
+			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, NULL, contact_ids_to);
+			if( chat_id == 0 ) {
+				if( carray_count(contact_ids_to)==1 ) {
+					chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
+				}
+			}
 		}
 
-		if( chat_id == 0 )
-		{
-			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, contact_ids_from, contact_ids_to); /* does not return special chat IDs */
-			if( chat_id == 0 ) {
-				chat_id = MR_CHAT_ID_UNKNWON_SENDERS;
-			}
+		if( chat_id == 0 ) {
+			chat_id = MR_CHAT_ID_UNKNWON_SENDERS;
 		}
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do

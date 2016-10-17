@@ -433,8 +433,22 @@ CreateNormalChat_Cleanup:
 
 uint32_t mr_find_out_real_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, carray* contact_ids_to) /* does not return special chat IDs */
 {
-	if( carray_count(contact_ids_from)==1 ) {
-		return mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+	/* first, check mails send from external to us (from: matches a chat contact) */
+	if( contact_ids_from ) {
+		if( carray_count(contact_ids_from)==1 ) {
+			return mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+		}
+	}
+
+	/* then, check mails send by us (to: matches a chat contact) (maybe we should duplicate mails into several threads here) */
+	if( contact_ids_to ) {
+		size_t i, iCnt = carray_count(contact_ids_to);
+		for( i = 0; i < iCnt; i++ )  {
+			uint32_t ret = mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_to, i));
+			if( ret ) {
+				return ret;
+			}
+		}
 	}
 
 	return 0;
