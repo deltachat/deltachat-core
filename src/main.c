@@ -57,7 +57,17 @@ static char* read_cmd()
 
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
-	printf("{{Received event %i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+	switch( event ) {
+		case MR_EVENT_IS_EMAIL_KNOWN:
+			printf("{{Received event #%i, MR_EVENT_IS_EMAIL_KNOWN (%s, %i)}}\n", (int)event, (const char*)data1, (int)data2);
+			return 1;
+			break;
+
+		default:
+			printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+			break;
+	}
+
 	return 0;
 }
 
