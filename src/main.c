@@ -134,7 +134,8 @@ int main(int argc, char ** argv)
 						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
-							printf("Chat #%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
+							printf(chat->m_type==MR_CHAT_GROUP? "Group" : "Chat");
+							printf(" #%i: %s [%s] [%i unread]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unread_count(chat));
 						free(temp);
 
 						mrpoortext_t* poortext = mrchat_get_summary(chat);

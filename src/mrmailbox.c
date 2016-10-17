@@ -435,7 +435,7 @@ mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
 	if( contact_id == MR_CONTACT_ID_SELF )
 	{
 		ret->m_id   = contact_id;
-		ret->m_name = safe_strdup(mrstock_str(MR_STR_YOU));
+		ret->m_name = mrstock_str(MR_STR_YOU);
 	}
 	else
 	{

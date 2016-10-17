@@ -83,19 +83,54 @@ void mrstock_add_str(int id, const char* str)
 }
 
 
-const char* mrstock_str(int id) /* get the string with the given ID, the result must not be freed! */
+char* mrstock_str(int id) /* get the string with the given ID, the result must be free()'d! */
 {
 	/* init array */
 	mrstock_init_array_();
 
+	if( id < 0 || id >= MR_STR_COUNT_ ) {
+		return safe_strdup("StockRangeErr"); /* error */
+	}
+
 	if( s_obj[id] == NULL && !s_def_strings_added ) {
 		/* init strings */
 		s_def_strings_added = 1;
-		mrstock_add_str(MR_STR_NO_MESSAGES, "No messages.");
-		mrstock_add_str(MR_STR_YOU,         "You");
-		mrstock_add_str(MR_STR_DRAFT,       "Draft");
+		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
+		mrstock_add_str(MR_STR_YOU,          "You");
+		mrstock_add_str(MR_STR_DRAFT,        "Draft");
+		mrstock_add_str(MR_STR_MEMBER,       "? member");
+		mrstock_add_str(MR_STR_MEMBERS,      "? members");
+		mrstock_add_str(MR_STR_CONTACT,      "? contact");
+		mrstock_add_str(MR_STR_CONTACTS,     "? contacts");
+		mrstock_add_str(MR_STR_STRANGERS,    "Unknown senders");
 	}
 
-	return s_obj[id]? s_obj[id] : "Err"; /* the result must not be freed! */
+	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");
 }
 
+
+char* mrstock_str_repl_number(int id, int cnt)
+{
+	char* p1 = mrstock_str(id);
+	char* p2 = strchr(p1, '?'), *ret;
+	if( p2==NULL ) {
+		return p1; /* `?` not found */
+	}
+
+	/* replace ? by number */
+	*p2 = 0;
+	p2++;
+	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
+	free(p1);
+	return ret;
+}
+
+
+char* mrstock_str_pl(int id, int cnt)
+{
+	if( cnt != 1 ) {
+		id++; /* the provided ID should be singular, plural is plus one. */
+	}
+
+	return mrstock_str_repl_number(id, cnt);
+}

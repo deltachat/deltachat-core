@@ -46,9 +46,9 @@ typedef struct mrpoortext_t mrpoortext_t;
 
 
 /* specical chat IDs */
-#define MR_CHAT_ID_UNKNWON_SENDERS  1
-#define MR_CHAT_ID_TRASH            2
-#define MR_CHAT_ID_LAST_SPECIAL     9
+#define MR_CHAT_ID_STRANGERS     1 /* for strangers, chats_contacts is not set up. */
+#define MR_CHAT_ID_TRASH         2
+#define MR_CHAT_ID_LAST_SPECIAL  9
 
 
 typedef struct mrchat_t

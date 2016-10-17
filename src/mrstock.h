@@ -33,11 +33,16 @@ extern "C" {
 #endif
 
 
-#define MR_STR_FREE_           0 /* the IDs must not change! No gaps, please. */
-#define MR_STR_NO_MESSAGES     1
-#define MR_STR_YOU             2
-#define MR_STR_DRAFT           3
-#define MR_STR_COUNT_          4
+#define MR_STR_FREE_            0 /* the IDs must not change! No gaps, please. */
+#define MR_STR_NO_MESSAGES      1
+#define MR_STR_YOU              2
+#define MR_STR_DRAFT            3
+#define MR_STR_MEMBER           4
+#define MR_STR_MEMBERS          5 /* must be MR_STR_MEMBERS+1 */
+#define MR_STR_CONTACT          6
+#define MR_STR_CONTACTS         7 /* must be MR_STR_CONTACT+1 */
+#define MR_STR_STRANGERS        8
+#define MR_STR_COUNT_           9
 
 
 /* mrstock_set_str() adds a string to the repository. A copy of the given string
@@ -53,7 +58,9 @@ void         mrstock_exit    (void);
 
 /*** library-private **********************************************************/
 
-const char*  mrstock_str     (int id); /* the result must not be freed! */
+char*  mrstock_str             (int id);             /* the result must be free()'d! */
+char*  mrstock_str_repl_number (int id, int number); /* replaces the first ? by the given number, the result must be free()'d! */
+char*  mrstock_str_pl          (int id, int cnt);    /* id+0 should be singular, id+1 should be plural, replaces the first ? by the given number, the result must be free()'d! */
 
 
 #ifdef __cplusplus

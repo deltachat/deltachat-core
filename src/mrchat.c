@@ -118,6 +118,12 @@ int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 		ths->m_draft_timestamp = 0;
 	}
 
+	/* correct the title of some special groups */
+	if( ths->m_id == MR_CHAT_ID_STRANGERS ) {
+		free(ths->m_name);
+		ths->m_name = mrstock_str(MR_STR_STRANGERS);
+	}
+
 	return row_offset; /* success, return the next row offset */
 }
 
@@ -175,17 +181,27 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	}
 	else if( ths->m_type == MR_CHAT_GROUP )
 	{
-		int r, cnt = 0;
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_i,
-			"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
-		sqlite3_bind_int(stmt, 1, ths->m_id);
-
-		r = sqlite3_step(stmt);
-		if( r == SQLITE_ROW ) {
-			cnt = sqlite3_column_int(stmt, 0);
+		int cnt = 0;
+		if( ths->m_id == MR_CHAT_ID_STRANGERS )
+		{
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
+				"SELECT COUNT(DISTINCT from_id) FROM msgs WHERE chat_id=?;");
+			sqlite3_bind_int(stmt, 1, ths->m_id);
+			if( sqlite3_step(stmt) == SQLITE_ROW ) {
+				cnt = sqlite3_column_int(stmt, 0);
+				ret = mrstock_str_pl(MR_STR_CONTACT, cnt);
+			}
 		}
-
-		ret = mr_mprintf("%i members", cnt + 1 /*do not forget ourself!*/);
+		else
+		{
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_i,
+				"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
+			sqlite3_bind_int(stmt, 1, ths->m_id);
+			if( sqlite3_step(stmt) == SQLITE_ROW ) {
+				cnt = sqlite3_column_int(stmt, 0);
+				ret = mrstock_str_pl(MR_STR_MEMBER, cnt + 1 /*do not forget ourself!*/);
+			}
+		}
 	}
 
 	return ret? ret : safe_strdup("Err");
@@ -239,7 +255,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	 && (ths->m_last_msg_ == NULL || ths->m_draft_timestamp>ths->m_last_msg_->m_timestamp) )
 	{
 		/* show the draft as the last message */
-		ret->m_title = safe_strdup(mrstock_str(MR_STR_DRAFT));
+		ret->m_title = mrstock_str(MR_STR_DRAFT);
 		ret->m_title_meaning = MR_TITLE_DRAFT;
 
 		ret->m_text = safe_strdup(ths->m_draft_text);
@@ -250,13 +266,13 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	else if( ths->m_last_msg_ == NULL )
 	{
 		/* no messages */
-		ret->m_text = safe_strdup(mrstock_str(MR_STR_NO_MESSAGES));
+		ret->m_text = mrstock_str(MR_STR_NO_MESSAGES);
 	}
 	else
 	{
 		/* show the last message */
 		if( ths->m_last_msg_->m_from_id == MR_CONTACT_ID_SELF ) {
-			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
+			ret->m_title = mrstock_str(MR_STR_YOU);
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
 		else {
@@ -407,7 +423,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id)
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=%i;", chat_id, MR_CHAT_ID_UNKNWON_SENDERS, contact_id);
+	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=%i;", chat_id, MR_CHAT_ID_STRANGERS, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {

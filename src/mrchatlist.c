@@ -101,6 +101,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	sqlite3_stmt* stmt = NULL;
 	mrchat_t*     chat = NULL;
 	int           row_offset;
+	int           show_strangers;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
 		goto GetChatList_Cleanup; /* error */
@@ -108,11 +109,13 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 
 	mrchatlist_empty(ths);
 
+	show_strangers = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, "show_strangers", 0);
+
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itnifttsm_FROM_chatsNmsgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
-			" WHERE c.id>? "
+			" WHERE c.id>? OR c.id=?"
 			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
 			" ORDER BY MAX(c.draft_timestamp, m.timestamp) DESC,m.id DESC;" /* the list starts with the newest chats */
 			);
@@ -120,6 +123,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 		goto GetChatList_Cleanup;
 	}
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
+	sqlite3_bind_int(stmt, 2, show_strangers? MR_CHAT_ID_STRANGERS : 0);
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {

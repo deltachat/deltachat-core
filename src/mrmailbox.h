@@ -125,7 +125,11 @@ mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id);
 mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
 mrcontact_t*         mrmailbox_get_contact_by_id    (mrmailbox_t*, uint32_t id);
 
-/* Handle configurations. */
+/* Handle configurations as:
+- addr
+- mail_server, mail_user, mail_pw, mail_port,
+- send_server, send_user, send_pw, send_port
+show_unknown_senders */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);

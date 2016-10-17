@@ -362,7 +362,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		}
 
 		if( chat_id == 0 ) {
-			chat_id = MR_CHAT_ID_UNKNWON_SENDERS;
+			chat_id = MR_CHAT_ID_STRANGERS;
 		}
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do
