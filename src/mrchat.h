@@ -42,9 +42,13 @@ typedef struct mrpoortext_t mrpoortext_t;
 /* chat type */
 #define MR_CHAT_UNDEFINED    0
 #define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact - the constants must NOT change as they're used in the database, the frontends etc.*/
-#define MR_CHAT_ENCRYPTED  110
 #define MR_CHAT_GROUP      120
-#define MR_CHAT_FEED       130
+
+
+/* specical chat IDs */
+#define MR_CHAT_ID_UNKNWON_SENDERS  1
+#define MR_CHAT_ID_TRASH            2
+#define MR_CHAT_ID_LAST_SPECIAL     9
 
 
 typedef struct mrchat_t
@@ -87,9 +91,8 @@ int           mrchat_load_from_db_         (mrchat_t*, uint32_t id);
 int           mrchat_set_from_stmt_        (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
 
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);
-uint32_t      mr_chat_exists_              (mrmailbox_t*, int chat_type, uint32_t contact_id); /* returns chat_id or 0 */
 uint32_t      mr_create_chat_record_       (mrmailbox_t*, uint32_t contact_id);
-uint32_t      mr_find_out_chat_id_         (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
+uint32_t      mr_find_out_real_chat_id_    (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
 
 
 #ifdef __cplusplus

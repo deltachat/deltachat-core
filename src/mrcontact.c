@@ -136,7 +136,7 @@ size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
 	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;"))==NULL ) {
 		return 0;
 	}
-	sqlite3_bind_int(stmt, 1, MRSCID_LAST);
+	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_contact_cnt() failed.");

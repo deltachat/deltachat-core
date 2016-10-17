@@ -45,8 +45,8 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 
 	ths->m_mailbox   = mailbox;
 	ths->m_id        = 0;
-	ths->m_chat_id   = 0;
-	ths->m_from_id   = 0; /* unset, 1=self */
+	ths->m_chat_id   = 0; /* 0=unset, 1=unknwon sender ... >9=real chats */
+	ths->m_from_id   = 0; /* 0=unset, 1=self ... >9=real contacts */
 	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
@@ -119,14 +119,15 @@ size_t mr_get_assigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of messages 
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id!=0;");
-	if( sqlite3_step(s) != SQLITE_ROW ) {
+	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id>?;");
+	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_assigned_msg_cnt_() failed.");
 		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); /* success */
+	return sqlite3_column_int(stmt, 0); /* success */
 }
 
 
@@ -136,14 +137,15 @@ size_t mr_get_unassigned_msg_cnt_(mrmailbox_t* mailbox) /* the number of message
 		return 0; /* no database, no messages - this is no error (needed eg. for information) */
 	}
 
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id=0;");
-	if( sqlite3_step(s) != SQLITE_ROW ) {
+	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id<=?;");
+	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_unassigned_msg_cnt_() failed.");
 		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); /* success */
+	return sqlite3_column_int(stmt, 0); /* success */
 }
 
 

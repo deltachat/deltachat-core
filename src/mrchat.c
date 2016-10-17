@@ -159,7 +159,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		return safe_strdup("Err"); /* error */
 	}
 
-	if( ths->m_type == MR_CHAT_NORMAL || ths->m_type == MR_CHAT_ENCRYPTED )
+	if( ths->m_type == MR_CHAT_NORMAL )
 	{
 		int r;
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
@@ -255,7 +255,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	else
 	{
 		/* show the last message */
-		if( ths->m_last_msg_->m_from_id == MRSCID_SELF ) {
+		if( ths->m_last_msg_->m_from_id == MR_CONTACT_ID_SELF ) {
 			ret->m_title = safe_strdup(mrstock_str(MR_STR_YOU));
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
@@ -293,27 +293,29 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 
 size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	if( (s=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats;"))==NULL ) {
+	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;"))==NULL ) {
 		return 0;
 	}
+	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 
-	if( sqlite3_step(s) != SQLITE_ROW ) {
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_chat_cnt() failed.");
 		return 0; /* error */
 	}
 
-	return sqlite3_column_int(s, 0); /* success */
+	return sqlite3_column_int(stmt, 0); /* success */
 }
 
 
-uint32_t mr_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* static function */
+static uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
 {
+	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
@@ -322,28 +324,27 @@ uint32_t mr_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /*
 
 	if( type == MR_CHAT_NORMAL )
 	{
-		char* q=sqlite3_mprintf("SELECT id FROM chats INNER JOIN chats_contacts ON id=chat_id WHERE type=%i AND contact_id=%i", type, contact_id);
-
-		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
-		if( stmt ) {
-			int r = sqlite3_step(stmt);
-			if( r == SQLITE_ROW ) {
-				chat_id = sqlite3_column_int(stmt, 0);
-			}
-			sqlite3_finalize(stmt);
+		if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
+				"SELECT c.id"
+				" FROM chats c"
+				" INNER JOIN chats_contacts j ON c.id=j.chat_id"
+				" WHERE c.type=? AND c.id>? AND j.contact_id=?;"))==NULL ) {
+			return 0;
 		}
-		else {
-			mrsqlite3_log_error(mailbox->m_sql, "mr_chat_exists() failed.");
-		}
+		sqlite3_bind_int(stmt, 1, type);
+		sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
+		sqlite3_bind_int(stmt, 3, contact_id);
 
-		sqlite3_free(q);
+		if( sqlite3_step(stmt) == SQLITE_ROW ) {
+			chat_id = sqlite3_column_int(stmt, 0);
+		}
 	}
 
 	return chat_id;
 }
 
 
-uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* static function */
+uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
 	mrcontact_t*  contact = NULL;
@@ -361,7 +362,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 		return 0; /* error */
 	}
 
-	if( (chat_id=mr_chat_exists_(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
+	if( (chat_id=mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
 		return chat_id; /* soon success */
 	}
 
@@ -406,7 +407,7 @@ uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id) /* st
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=0 AND from_id=%i;", chat_id, contact_id);
+	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=%i;", chat_id, MR_CHAT_ID_UNKNWON_SENDERS, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -430,10 +431,10 @@ CreateNormalChat_Cleanup:
 }
 
 
-uint32_t mr_find_out_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, carray* contact_ids_to)
+uint32_t mr_find_out_real_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, carray* contact_ids_to) /* does not return special chat IDs */
 {
 	if( carray_count(contact_ids_from)==1 ) {
-		return mr_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+		return mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
 	}
 
 	return 0;

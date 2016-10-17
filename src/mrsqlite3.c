@@ -135,6 +135,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" param TEXT DEFAULT '');"); /* possible param: draft_reply_msg_id */
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'unknownsenders'), (2,120,'trash'), (3,120,'rsvd'), (4,120,'rsvd'), (5,120,'rsvd'), (6,100,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 
 		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT,"

@@ -37,10 +37,10 @@ extern "C" {
 #endif
 
 
-/* Specical contact IDs */
-#define MRSCID_SELF   1
-#define MRSCID_SYSTEM 2
-#define MRSCID_LAST   9
+/* specical contact IDs */
+#define MR_CONTACT_ID_SELF         1
+#define MR_CONTACT_ID_SYSTEM       2
+#define MR_CONTACT_ID_LAST_SPECIAL 9
 
 
 typedef struct mrcontact_t

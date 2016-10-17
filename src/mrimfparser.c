@@ -346,7 +346,10 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 
 		if( chat_id == 0 )
 		{
-			chat_id = mr_find_out_chat_id_(ths->m_mailbox, contact_ids_from, contact_ids_to);
+			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, contact_ids_from, contact_ids_to); /* does not return special chat IDs */
+			if( chat_id == 0 ) {
+				chat_id = MR_CHAT_ID_UNKNWON_SENDERS;
+			}
 		}
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do
@@ -377,7 +380,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
 		}
 		else {
-			contact_id_from = MRSCID_SELF; /* send by ourself */
+			contact_id_from = MR_CONTACT_ID_SELF; /* send by ourself */
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"

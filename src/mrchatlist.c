@@ -112,12 +112,14 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itnifttsm_FROM_chatsNmsgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
+			" WHERE c.id>? "
 			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
 			" ORDER BY MAX(c.draft_timestamp, m.timestamp) DESC,m.id DESC;" /* the list starts with the newest chats */
 			);
 	if( stmt==NULL ) {
 		goto GetChatList_Cleanup;
 	}
+	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {

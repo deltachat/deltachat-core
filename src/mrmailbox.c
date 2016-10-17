@@ -432,7 +432,7 @@ mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
 {
 	mrcontact_t* ret = mrcontact_new(ths);
 
-	if( contact_id == MRSCID_SELF )
+	if( contact_id == MR_CONTACT_ID_SELF )
 	{
 		ret->m_id   = contact_id;
 		ret->m_name = safe_strdup(mrstock_str(MR_STR_YOU));
@@ -760,8 +760,8 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MRSCID_LAST) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats;");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs_to;");

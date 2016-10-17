@@ -70,6 +70,7 @@ enum
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itnifttsm_FROM_chatsNmsgs
 	,SELECT_itn_FROM_chats_i
+	,SELECT_id_FROM_chats_WHERE_contact_id
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
