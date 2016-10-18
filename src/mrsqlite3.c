@@ -123,9 +123,10 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 					" name TEXT DEFAULT '',"
 					" addr TEXT DEFAULT '',"
+					" verified INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0);"); /* last_seen is for future use */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
-		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name) VALUES (1,'self'), (2,'system'), (3,'rsvd'), (4,'rsvd'), (5,'rsvd'), (6,'rsvd'), (7,'rsvd'), (8,'rsvd'), (9,'rsvd');");
+		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,verified) VALUES (1,'self',1), (2,'system',1), (3,'rsvd',1), (4,'rsvd',1), (5,'rsvd',1), (6,'rsvd',1), (7,'rsvd',1), (8,'rsvd',1), (9,'rsvd',1);");
 
 		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 					" type INTEGER,"
@@ -140,18 +141,17 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT,"
 					" chat_id INTEGER,"
-					" from_id INTEGER, "
-					" timestamp INTEGER, "
-					" type INTEGER, state INTEGER, "
-					" txt TEXT, "
+					" from_id INTEGER,"
+					" to_id INTEGER,"
+					" timestamp INTEGER,"
+					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"
+					" txt TEXT,"
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unread messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
-		mrsqlite3_execute(ths, "CREATE TABLE msgs_to (msg_id INTEGER, contact_id INTEGER);");
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_to_index1 ON msgs_to (msg_id);");
 
 		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
 		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")

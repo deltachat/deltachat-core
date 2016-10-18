@@ -191,3 +191,90 @@ char* mr_get_first_name(const char* full_name)
 
 	return first_name; /* the result must be free()'d */
 }
+
+
+
+uint32_t mr_add_or_lookup_contact( mrmailbox_t* mailbox,
+                                   const char*  display_name_enc /*can be NULL*/,
+                                   const char*  addr_spec,
+                                   int          mark_as_verified )
+{
+	sqlite3_stmt* stmt;
+	uint32_t      row_id = 0;
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_inv_FROM_contacts_a,
+		"SELECT id, name, verified FROM contacts WHERE addr=?;");
+	sqlite3_bind_text(stmt, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		const char* row_name;
+		int         row_verified;
+
+		row_id       = sqlite3_column_int(stmt, 0);
+		row_name     = (const char*)sqlite3_column_text(stmt, 1);
+		row_verified = sqlite3_column_int(stmt, 2);
+
+		if( (display_name_enc && display_name_enc[0] && (row_name==NULL || row_name[0]==0))
+		 || mark_as_verified>row_verified )
+		{
+			/* update the display name ONLY if it was unset before (otherwise, we can assume, the name is fine and maybe already edited by the user) */
+			char* display_name_dec = mr_decode_header_string(display_name_enc);
+			if( display_name_dec ) {
+				mr_normalize_name(display_name_dec);
+				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_nv_WHERE_i, "UPDATE contacts SET name=?, verified=? WHERE id=?;");
+				sqlite3_bind_text(stmt, 1, display_name_dec, -1, SQLITE_STATIC);
+				sqlite3_bind_int (stmt, 2, mark_as_verified);
+				sqlite3_bind_int (stmt, 3, row_id);
+				sqlite3_step     (stmt);
+				free(display_name_dec);
+			}
+			else {
+				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_v_WHERE_i, "UPDATE contacts SET verified=? WHERE id=?;");
+				sqlite3_bind_int (stmt, 1, mark_as_verified);
+				sqlite3_bind_int (stmt, 2, row_id);
+				sqlite3_step     (stmt);
+			}
+		}
+	}
+	else
+	{
+		char* display_name_dec = mr_decode_header_string(display_name_enc); /* may be NULL (if display_name_enc is NULL) */
+
+		mr_normalize_name(display_name_dec);
+
+		stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_contacts_nev,
+			"INSERT INTO contacts (name, addr, verified) VALUES(?, ?, ?);");
+		sqlite3_bind_text(stmt, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
+		sqlite3_bind_text(stmt, 2, addr_spec,    -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 3, mark_as_verified);
+		if( sqlite3_step(stmt) == SQLITE_DONE )
+		{
+			row_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		}
+		else
+		{
+			mrlog_error("Cannot add contact.");
+		}
+
+		free(display_name_dec);
+	}
+
+	return row_id; /*success*/
+}
+
+
+void mr_add_or_lookup_contact2( mrmailbox_t* mailbox,
+                                const char*  display_name_enc /*can be NULL*/,
+                                const char*  addr_spec,
+                                int          mark_as_verified,
+                                carray*      ids )
+{
+	uint32_t row_id = mr_add_or_lookup_contact(mailbox, display_name_enc, addr_spec, mark_as_verified);
+
+	if( row_id )
+	{
+		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
+			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
+		}
+	}
+}

@@ -117,78 +117,27 @@ static char* create_stub_message_id_(time_t message_timestamp, carray* contact_i
 }
 
 
-static int mrimfparser_add_or_lookup_contact(mrimfparser_t* ths, const char* display_name_enc /*can be NULL*/, const char* addr_spec, carray* ids)
-{
-	uint32_t row_id = 0;
-
-	sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_in_FROM_contacts_a, "SELECT id, name FROM contacts WHERE addr=?;");
-	sqlite3_bind_text(s, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
-	if( sqlite3_step(s) == SQLITE_ROW )
-	{
-		row_id   = sqlite3_column_int(s, 0);
-		const char* row_name = (const char*)sqlite3_column_text(s, 1);
-		if( display_name_enc && display_name_enc[0] && (row_name==NULL || row_name[0]==0) )
-		{
-			/* update the display name ONLY if it was unset before (otherwise, we can assume, the name is fine and maybe already edited by the user) */
-			char* display_name_dec = mr_decode_header_string(display_name_enc);
-			if( display_name_dec )
-			{
-				mr_normalize_name(display_name_dec);
-
-				sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_contacts_ni, "UPDATE contacts SET name=? WHERE id=?;");
-				sqlite3_bind_text(s, 1, display_name_dec, -1, SQLITE_STATIC);
-				sqlite3_bind_int (s, 2, row_id);
-				sqlite3_step     (s);
-
-				free(display_name_dec);
-			}
-		}
-	}
-	else
-	{
-		char* display_name_dec = mr_decode_header_string(display_name_enc); /* may be NULL (if display_name_enc is NULL) */
-
-		mr_normalize_name(display_name_dec);
-
-		sqlite3_stmt* s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_contacts_ne, "INSERT INTO contacts (name, addr) VALUES(?, ?);");
-		sqlite3_bind_text(s, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
-		sqlite3_bind_text(s, 2, addr_spec,    -1, SQLITE_STATIC);
-		if( sqlite3_step(s) == SQLITE_DONE )
-		{
-			row_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
-		}
-		else
-		{
-			mrlog_error("Cannot add contact.");
-		}
-
-		free(display_name_dec);
-	}
-
-	if( row_id )
-	{
-		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
-			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
-		}
-	}
-
-	return 1; /*success*/
-}
-
-
-static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(mrimfparser_t* ths, struct mailimf_mailbox_list* mb_list, carray* ids)
+static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
+				mrimfparser_t*               ths,
+				struct mailimf_mailbox_list* mb_list,
+				int                          mark_as_verified,
+				carray*                      ids )
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+			mr_add_or_lookup_contact2(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
 		}
 	}
 }
 
 
-static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* ths, struct mailimf_address_list* adr_list, carray* ids) /* an address is a mailbox or a group */
+static void mrimfparser_add_or_lookup_contacts_by_address_list(
+				mrimfparser_t*               ths,
+				struct mailimf_address_list* adr_list, /* an address is a mailbox or a group */
+				int                          mark_as_verified,
+				carray*                      ids )
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -197,13 +146,13 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(mrimfparser_t* th
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mrimfparser_add_or_lookup_contact(ths, mb->mb_display_name, mb->mb_addr_spec, ids);
+					mr_add_or_lookup_contact2(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, ids);
+					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, mark_as_verified, ids);
 				}
 			}
 		}
@@ -228,13 +177,13 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
 	uint32_t         chat_id = 0;
-	int              has_return_path = 0;
 	int              comes_from_extern = 0; /* indicates, if the mail was send by us or was received from outside */
 	mrmimeparser_t*  mime_parser = mrmimeparser_new_();
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
 	size_t           created_db_entries = 0;
+	int              mark_as_verified;
 
 	/* create arrays that will hold from: and to: lists */
 	contact_ids_from = carray_new(16);
@@ -268,7 +217,41 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
 	transaction_pending = 1;
 
-		/* iterate through the parsed fields */
+
+		/* pass 1: Check, if the mail comes from extern, resp. is not send by us.  This is a _really_ important step.
+		(messages send by us are used to validate other mail senders and receivers).
+		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
+		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP. */
+		{
+			int has_return_path = 0;
+			for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+			{
+				struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+				if( field )
+				{
+					if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
+					{
+						has_return_path = 1;
+					}
+					else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+					{
+						struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+						if( strcasecmp(optional_field->fld_name, "Return-Path")==0 ) {
+							has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
+						}
+					}
+				}
+
+			} /* for */
+
+			if( has_return_path ) {
+				comes_from_extern = 1;
+			}
+		}
+
+
+		/* pass 2: iterate through the parsed fields and collect additional information */
+		mark_as_verified = comes_from_extern? 0 : 1;
 		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
@@ -289,21 +272,21 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 					ignore the header - at least until we have more information. */
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
 					if( fld_from ) {
-						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, contact_ids_from);
+						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, mark_as_verified, contact_ids_from);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_TO )
 				{
 					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 					if( fld_to ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, mark_as_verified, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_CC )
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc; /* can be NULL */
 					if( fld_cc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, contact_ids_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, mark_as_verified, contact_ids_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
@@ -313,28 +296,10 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 						message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time /*!= NULL*/);
 					}
 				}
-				else if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
-				{
-					has_return_path = 1;
-				}
-				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-				{
-					struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-					if( strcasecmp(optional_field->fld_name, "Return-Path")==0 ) {
-						has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
-					}
-				}
 			}
 
 		} /* for */
 
-		/* Check, if the mail comes from extern, resp. is not send by us
-		(messages send by us are used to validate other mail senders and receivers).
-		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
-		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP. */
-		if( has_return_path ) {
-			comes_from_extern = 1;
-		}
 
 		/* check, if the given message is send by _us_ to only _one_ receiver --
 		only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
@@ -385,7 +350,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		/* set the sender (contact_id_from, 1=self) */
 		if( comes_from_extern ) {
 			if( carray_count(contact_ids_from) == 0 ) {
-				mrimfparser_add_or_lookup_contact(ths, NULL, "no@ddress", contact_ids_from);
+				mr_add_or_lookup_contact2(ths->m_mailbox, NULL, "no@ddress", 0 /*verified?*/, contact_ids_from);
 				if( carray_count(contact_ids_from) == 0 ) {
 					goto Imf2Msg_Done;
 				}
@@ -422,6 +387,8 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			created_db_entries++;
 
 			if( contact_ids_to ) {
+				// TODO: create ghost messages
+				/*
 				s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_to_mc, "INSERT INTO msgs_to (msg_id, contact_id) VALUES (?,?);");
 				icnt = carray_count(contact_ids_to);
 				for( i = 0; i < icnt; i++ ) {
@@ -429,9 +396,10 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 					sqlite3_bind_int(s, 1, dblocal_id);
 					sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
 					if( sqlite3_step(s) != SQLITE_DONE ) {
-						goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
+						goto Imf2Msg_Done;
 					}
 				}
+				*/
 			}
 		}
 

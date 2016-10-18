@@ -65,6 +65,8 @@ int          mrcontact_load_from_db_   (mrcontact_t*, uint32_t id);
 size_t       mr_get_contact_cnt_       (mrmailbox_t*);
 void         mr_normalize_name         (char* full_name);
 char*        mr_get_first_name         (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
+uint32_t     mr_add_or_lookup_contact  (mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified);
+void         mr_add_or_lookup_contact2 (mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified, carray* ids);
 
 #ifdef __cplusplus
 } /* /extern "C" */

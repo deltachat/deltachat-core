@@ -63,9 +63,10 @@ enum
 
 	,SELECT_COUNT_FROM_contacts
 	,SELECT_ine_FROM_contacts_i
-	,SELECT_in_FROM_contacts_a
-	,INSERT_INTO_contacts_ne
-	,UPDATE_contacts_ni
+	,SELECT_inv_FROM_contacts_a
+	,INSERT_INTO_contacts_nev
+	,UPDATE_contacts_nv_WHERE_i
+	,UPDATE_contacts_v_WHERE_i
 
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itnifttsm_FROM_chatsNmsgs
@@ -83,7 +84,6 @@ enum
 	,SELECT_i_FROM_msgs_m
 	,SELECT_icfttstpb_FROM_msgs_i
 	,INSERT_INTO_msgs_mcfttsmp
-	,INSERT_INTO_msgs_to_mc
 
 	,PREDEFINED_CNT /* must be last */
 };
