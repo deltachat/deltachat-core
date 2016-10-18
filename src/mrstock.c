@@ -98,10 +98,10 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
 		mrstock_add_str(MR_STR_YOU,          "You");
 		mrstock_add_str(MR_STR_DRAFT,        "Draft");
-		mrstock_add_str(MR_STR_MEMBER,       "? member");
-		mrstock_add_str(MR_STR_MEMBERS,      "? members");
-		mrstock_add_str(MR_STR_CONTACT,      "? contact");
-		mrstock_add_str(MR_STR_CONTACTS,     "? contacts");
+		mrstock_add_str(MR_STR_MEMBER,       "_ member");
+		mrstock_add_str(MR_STR_MEMBERS,      "_ members");
+		mrstock_add_str(MR_STR_CONTACT,      "_ contact");
+		mrstock_add_str(MR_STR_CONTACTS,     "_ contacts");
 		mrstock_add_str(MR_STR_STRANGERS,    "Unknown senders");
 	}
 
@@ -112,12 +112,12 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 char* mrstock_str_repl_number(int id, int cnt)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = strchr(p1, '?'), *ret;
+	char* p2 = strchr(p1, '_'), *ret;
 	if( p2==NULL ) {
-		return p1; /* `?` not found */
+		return p1; /* `_` not found */
 	}
 
-	/* replace ? by number */
+	/* replace `_` by number */
 	*p2 = 0;
 	p2++;
 	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
