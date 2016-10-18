@@ -48,6 +48,7 @@ typedef struct mrcontact_t
 	uint32_t            m_id;
 	char*               m_name;  /* != NULL, however, may be empty */
 	char*               m_addr;  /* != NULL */
+	int                 m_verified;
 	mrmailbox_t*        m_mailbox;
 	int                 m_refcnt;
 } mrcontact_t;
@@ -65,8 +66,9 @@ int          mrcontact_load_from_db_   (mrcontact_t*, uint32_t id);
 size_t       mr_get_contact_cnt_       (mrmailbox_t*);
 void         mr_normalize_name         (char* full_name);
 char*        mr_get_first_name         (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
-uint32_t     mr_add_or_lookup_contact  (mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified);
-void         mr_add_or_lookup_contact2 (mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified, carray* ids);
+uint32_t     mr_add_or_lookup_contact_ (mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified);
+void         mr_add_or_lookup_contact2_(mrmailbox_t*, const char* display_name_enc /*can be NULL*/, const char* addr_spec, int verified, carray* ids);
+int          mr_is_known_contact_      (mrmailbox_t*, uint32_t id);
 
 #ifdef __cplusplus
 } /* /extern "C" */

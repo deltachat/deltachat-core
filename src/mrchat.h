@@ -91,8 +91,8 @@ int           mrchat_load_from_db_         (mrchat_t*, uint32_t id);
 int           mrchat_set_from_stmt_        (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
 
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);
-uint32_t      mr_create_chat_record_       (mrmailbox_t*, uint32_t contact_id);
-uint32_t      mr_find_out_real_chat_id_    (mrmailbox_t*, carray* contact_ids_from, carray* contact_ids_to);
+uint32_t      mr_create_or_lookup_chat_record_(mrmailbox_t*, uint32_t contact_id);
+uint32_t      mr_real_chat_exists_         (mrmailbox_t*, int type, uint32_t contact_id);
 
 
 #ifdef __cplusplus

@@ -44,9 +44,10 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 
 	MR_INIT_REFERENCE
 
-	ths->m_mailbox = mailbox;
-	ths->m_name    = NULL;
-	ths->m_addr    = NULL;
+	ths->m_mailbox  = mailbox;
+	ths->m_name     = NULL;
+	ths->m_addr     = NULL;
+	ths->m_verified = 0;
 
 	return ths;
 }
@@ -92,30 +93,27 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 
 	mrcontact_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ine_FROM_contacts_i,
-		"SELECT id, name, addr FROM contacts WHERE id=?;");
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_nav_FROM_contacts_i,
+		"SELECT name, addr, verified FROM contacts WHERE id=?;");
 	if( stmt == NULL ) {
-		goto LoadFromDb_Cleanup;
+		goto Cleanup;
 	}
 	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		goto LoadFromDb_Cleanup;
+		goto Cleanup;
 	}
 
-	ths->m_id    = contact_id;
-	ths->m_name  = safe_strdup((char*)sqlite3_column_text(stmt, 1));
-	ths->m_addr  = safe_strdup((char*)sqlite3_column_text(stmt, 2));
-	if( ths->m_name == NULL || ths->m_addr == NULL ) {
-		goto LoadFromDb_Cleanup; /* out of memory, should not happen */
-	}
+	ths->m_id       = contact_id;
+	ths->m_name     = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+	ths->m_addr     = safe_strdup((char*)sqlite3_column_text(stmt, 1));
+	ths->m_verified =                    sqlite3_column_int (stmt, 2);
 
 	/* success */
 	success = 1;
 
 	/* cleanup */
-LoadFromDb_Cleanup:
-
+Cleanup:
 	return success;
 }
 
@@ -194,10 +192,10 @@ char* mr_get_first_name(const char* full_name)
 
 
 
-uint32_t mr_add_or_lookup_contact( mrmailbox_t* mailbox,
-                                   const char*  display_name_enc /*can be NULL*/,
-                                   const char*  addr_spec,
-                                   int          mark_as_verified )
+uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
+                                    const char*  display_name_enc /*can be NULL*/,
+                                    const char*  addr_spec,
+                                    int          mark_as_verified )
 {
 	sqlite3_stmt* stmt;
 	uint32_t      row_id = 0;
@@ -263,13 +261,13 @@ uint32_t mr_add_or_lookup_contact( mrmailbox_t* mailbox,
 }
 
 
-void mr_add_or_lookup_contact2( mrmailbox_t* mailbox,
-                                const char*  display_name_enc /*can be NULL*/,
-                                const char*  addr_spec,
-                                int          mark_as_verified,
-                                carray*      ids )
+void mr_add_or_lookup_contact2_( mrmailbox_t* mailbox,
+                                 const char*  display_name_enc /*can be NULL*/,
+                                 const char*  addr_spec,
+                                 int          mark_as_verified,
+                                 carray*      ids )
 {
-	uint32_t row_id = mr_add_or_lookup_contact(mailbox, display_name_enc, addr_spec, mark_as_verified);
+	uint32_t row_id = mr_add_or_lookup_contact_(mailbox, display_name_enc, addr_spec, mark_as_verified);
 
 	if( row_id )
 	{
@@ -278,3 +276,31 @@ void mr_add_or_lookup_contact2( mrmailbox_t* mailbox,
 		}
 	}
 }
+
+
+int mr_is_known_contact_(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	int          is_known = 0;
+	mrcontact_t* ths = mrcontact_new(mailbox);
+
+	if( !mrcontact_load_from_db_(ths, contact_id) ) {
+		goto Cleanup;
+	}
+
+    if( ths->m_verified ) {
+		is_known = 1;
+		goto Cleanup;
+    }
+
+	if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_EMAIL_KNOWN, (uintptr_t)ths->m_addr, 0)==1 ) {
+		is_known = 1;
+		goto Cleanup;
+	}
+
+Cleanup:
+	mrcontact_unref(ths);
+	return is_known;
+}
+
+
+

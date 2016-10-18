@@ -93,16 +93,17 @@ void mrimfparser_unref_(mrimfparser_t* ths)
  ******************************************************************************/
 
 
-static char* create_stub_message_id_(time_t message_timestamp, carray* contact_ids_to)
+static char* create_stub_message_id_(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to)
 {
 	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
 		return NULL; /* cannot create a unique timestamp */
 	}
 
 	/* find out the largets receiver ID (we could also take the smallest, but it should be unique) */
-	int i, icnt = carray_count(contact_ids_to), largest_id = 0;
+	size_t   i, icnt = carray_count(contact_ids_to);
+	uint32_t largest_id = contact_id_from;
 	for( i = 0; i < icnt; i++ ) {
-		int cur_id = (int)(uintptr_t)carray_get(contact_ids_to, i);
+		uint32_t cur_id = (uint32_t)(uintptr_t)carray_get(contact_ids_to, i);
 		if( cur_id > largest_id ) {
 			largest_id = cur_id;
 		}
@@ -127,7 +128,7 @@ static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mr_add_or_lookup_contact2(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
+			mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
 		}
 	}
 }
@@ -146,7 +147,7 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mr_add_or_lookup_contact2(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
+					mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
@@ -168,27 +169,29 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(
 size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
 {
 	/* the function returns the number of created messages in the database */
-	carray*          contact_ids_from = NULL; /* TODO: I thinkg, there is no need to use an array for this. E-Mails with more than one sender does not exist. As far as I know. */
-	carray*          contact_ids_to = NULL;
-	uint32_t         contact_id_from = 0; /* 1=self */
-	sqlite3_stmt*    s;
-	int              i, icnt, part_i, part_cnt;
-	uint32_t         dblocal_id = 0;    /* databaselocal message id */
+	int              incoming = 0;
+	#define          outgoing (!incoming)
+	carray*          outgoing_to = NULL;
+
+	uint32_t         from_id = 0;
+	uint32_t         to_id   = 0;
+	uint32_t         chat_id = 0;
+
+	sqlite3_stmt*    stmt;
+	size_t           i, icnt;
+	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
-	uint32_t         chat_id = 0;
-	int              comes_from_extern = 0; /* indicates, if the mail was send by us or was received from outside */
 	mrmimeparser_t*  mime_parser = mrmimeparser_new_();
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
 	size_t           created_db_entries = 0;
-	int              mark_as_verified;
+	int              has_return_path = 0;
 
 	/* create arrays that will hold from: and to: lists */
-	contact_ids_from = carray_new(16);
-	contact_ids_to = carray_new(16);
-	if( contact_ids_from==NULL || contact_ids_to==NULL || mime_parser == NULL ) {
+	outgoing_to = carray_new(16);
+	if( outgoing_to==NULL || mime_parser == NULL ) {
 		goto Imf2Msg_Done; /* out of memory */
 	}
 
@@ -222,36 +225,49 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		(messages send by us are used to validate other mail senders and receivers).
 		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
 		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP. */
+		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
-			int has_return_path = 0;
+			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+			if( field )
+			{
+				if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
+				{
+					has_return_path = 1;
+				}
+				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+				{
+					struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+					if( strcasecmp(optional_field->fld_name, "Return-Path")==0 ) {
+						has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
+					}
+				}
+			}
+
+		} /* for */
+
+		if( has_return_path ) {
+			incoming = 1;
+		}
+
+
+		/* pass 2: make sure, the to: list starts with the first to:-address (cc: and bcc: are added in the 3rd pass) */
+		if( outgoing ) {
 			for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 			{
 				struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-				if( field )
+				if( field && field->fld_type == MAILIMF_FIELD_TO )
 				{
-					if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
-					{
-						has_return_path = 1;
+					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
+					if( fld_to ) {
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
 					}
-					else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-					{
-						struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-						if( strcasecmp(optional_field->fld_name, "Return-Path")==0 ) {
-							has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
-						}
-					}
+					break;
 				}
-
-			} /* for */
-
-			if( has_return_path ) {
-				comes_from_extern = 1;
 			}
 		}
 
 
-		/* pass 2: iterate through the parsed fields and collect additional information */
-		mark_as_verified = comes_from_extern? 0 : 1;
+		/* pass 3: iterate through the parsed fields and collect the rest information */
 		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
@@ -271,22 +287,27 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 					is used differently and contains a thread ID - such stuff is not desired.  Maybe the best approach for the moment is just to
 					ignore the header - at least until we have more information. */
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
-					if( fld_from ) {
-						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, mark_as_verified, contact_ids_from);
+					if( incoming && fld_from ) {
+						carray* temp = carray_new(16);
+						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, 0 /* not verified */, temp);
+						if( carray_count(temp)>=1 ) {
+							from_id = (uint32_t)(uintptr_t)carray_get(temp, 0);
+						}
+						carray_free(temp);
 					}
 				}
-				else if( field->fld_type == MAILIMF_FIELD_TO )
-				{
-					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
-					if( fld_to ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, mark_as_verified, contact_ids_to);
-					}
-				}
-				else if( field->fld_type == MAILIMF_FIELD_CC )
+				if( field->fld_type == MAILIMF_FIELD_CC ) /* to: already read in pass #2 to make sure, the first receiver is the first in outgoing_to */
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc; /* can be NULL */
-					if( fld_cc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, mark_as_verified, contact_ids_to);
+					if( outgoing && fld_cc ) {
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
+					}
+				}
+				else if( field->fld_type == MAILIMF_FIELD_BCC )
+				{
+					struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc; /* can be NULL */
+					if( outgoing && fld_bcc ) {
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_bcc->bcc_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
@@ -301,28 +322,26 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		} /* for */
 
 
-		/* check, if the given message is send by _us_ to only _one_ receiver --
-		only these messages introduce an automatic chat with the receiver; only these messages reflect the will of the sender IMHO
-		(of course, the user can add other chats manually) */
-		if( comes_from_extern )
+		/* check if the message introduces a new chat:
+		- outgoing messages introduce a chat with the first to: address
+		- incoming messages introduce a chat only for known contacts (eg. used for outgoing cc: before or in the system''s address book)
+		only these messages reflect the will of the sender IMHO (of course, the user can add other chats manually) */
+		if( incoming )
 		{
-			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, contact_ids_from, NULL);
+			to_id = MR_CONTACT_ID_SELF;
+			chat_id = mr_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 ) {
-				/* TODO: check from address in addresss book
-				if( carray_count(contact_ids_from)==1
-				 && ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_EMAIL_KNOWN, (uintptr_t)from-adr, 0)==1 ) {
-					chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
+				if( mr_is_known_contact_(ths->m_mailbox, from_id) ) {
+					chat_id = mr_create_or_lookup_chat_record_(ths->m_mailbox, from_id);
 				}
-				*/
 			}
 		}
-		else
+		else /* outgoing */
 		{
-			chat_id = mr_find_out_real_chat_id_(ths->m_mailbox, NULL, contact_ids_to);
-			if( chat_id == 0 ) {
-				if( carray_count(contact_ids_to)==1 ) {
-					chat_id = mr_create_chat_record_(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(contact_ids_to, 0));
-				}
+			from_id = MR_CONTACT_ID_SELF;
+			if( carray_count(outgoing_to) >= 1 ) {
+				to_id   = (uint32_t)(uintptr_t)carray_get(outgoing_to, 0);
+				chat_id = mr_create_or_lookup_chat_record_(ths->m_mailbox, to_id);
 			}
 		}
 
@@ -337,7 +356,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
 			in these cases, we build a message ID based on some useful header fields that do never change (date, to)
 			we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-			rfc724_mid = create_stub_message_id_(message_timestamp, contact_ids_to);
+			rfc724_mid = create_stub_message_id_(message_timestamp, from_id, outgoing_to);
 			if( rfc724_mid == NULL ) {
 				goto Imf2Msg_Done;
 			}
@@ -347,60 +366,67 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			goto Imf2Msg_Done; /* success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK) */
 		}
 
-		/* set the sender (contact_id_from, 1=self) */
-		if( comes_from_extern ) {
-			if( carray_count(contact_ids_from) == 0 ) {
-				mr_add_or_lookup_contact2(ths->m_mailbox, NULL, "no@ddress", 0 /*verified?*/, contact_ids_from);
-				if( carray_count(contact_ids_from) == 0 ) {
-					goto Imf2Msg_Done;
-				}
-			}
-			contact_id_from = (int)(uintptr_t)carray_get(contact_ids_from, 0);
-		}
-		else {
-			contact_id_from = MR_CONTACT_ID_SELF; /* send by ourself */
-		}
-
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"
 		and add them to the database (mails send by other messenger clients should result
 		into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
-		part_cnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
-		for( part_i = 0; part_i < part_cnt; part_i++ )
+		icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
+		for( i = 0; i < icnt; i++ )
 		{
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, part_i);
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
 
-			s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcfttsmp,
-				"INSERT INTO msgs (rfc724_mid,chat_id,from_id, timestamp,type,state, txt,param) VALUES (?,?,?, ?,?,?, ?,?);");
-			sqlite3_bind_text (s, 1, rfc724_mid, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (s, 2, chat_id);
-			sqlite3_bind_int  (s, 3, contact_id_from);
-			sqlite3_bind_int64(s, 4, message_timestamp);
-			sqlite3_bind_int  (s, 5, part->m_type);
-			sqlite3_bind_int  (s, 6, MR_STATE_UNDEFINED); /* state */
-			sqlite3_bind_text (s, 7, part->m_msg, -1, SQLITE_STATIC);
-			sqlite3_bind_text (s, 8, part->m_msg_raw? part->m_msg_raw  : "", -1, SQLITE_STATIC);
-			if( sqlite3_step(s) != SQLITE_DONE ) {
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttsmp,
+				"INSERT INTO msgs (rfc724_mid,chat_id,from_id, to_id,timestamp,type, state,txt,param) VALUES (?,?,?, ?,?,?, ?,?,?);");
+			sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 2, chat_id);
+			sqlite3_bind_int  (stmt, 3, from_id);
+			sqlite3_bind_int  (stmt, 4, to_id);
+			sqlite3_bind_int64(stmt, 5, message_timestamp);
+			sqlite3_bind_int  (stmt, 6, part->m_type);
+			sqlite3_bind_int  (stmt, 7, MR_STATE_UNDEFINED); /* state */
+			sqlite3_bind_text (stmt, 8, part->m_msg, -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 9, part->m_msg_raw? part->m_msg_raw  : "", -1, SQLITE_STATIC);
+			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}
 
-			dblocal_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
-			created_db_entries++;
-
-			if( contact_ids_to ) {
-				// TODO: create ghost messages
-				/*
-				s = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_to_mc, "INSERT INTO msgs_to (msg_id, contact_id) VALUES (?,?);");
-				icnt = carray_count(contact_ids_to);
-				for( i = 0; i < icnt; i++ ) {
-					sqlite3_reset(s);
-					sqlite3_bind_int(s, 1, dblocal_id);
-					sqlite3_bind_int(s, 2, (int)(uintptr_t)carray_get(contact_ids_to, i));
-					if( sqlite3_step(s) != SQLITE_DONE ) {
-						goto Imf2Msg_Done;
-					}
-				}
-				*/
+			if( first_dblocal_id == 0 ) {
+				first_dblocal_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
 			}
+
+			created_db_entries++;
+		}
+
+		/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
+		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
+		if( outgoing && carray_count(outgoing_to)>1 && first_dblocal_id != 0 )
+		{
+			char* param = sqlite3_mprintf("omi=%i", (int)first_dblocal_id); /*omi=Original Message Id*/
+			icnt = carray_count(outgoing_to);
+			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
+			{
+				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(outgoing_to, i);
+				uint32_t ghost_chat_id = mr_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, ghost_to_id);
+				if(ghost_chat_id==0) {
+					ghost_chat_id = MR_CHAT_ID_STRANGERS;
+				}
+
+				stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttsmp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt, 2, ghost_chat_id);
+				sqlite3_bind_int  (stmt, 3, from_id);
+				sqlite3_bind_int  (stmt, 4, ghost_to_id);
+				sqlite3_bind_int64(stmt, 5, message_timestamp);
+				sqlite3_bind_int  (stmt, 6, MR_MSG_TEXT);
+				sqlite3_bind_int  (stmt, 7, MR_STATE_UNDEFINED); /* state */
+				sqlite3_bind_text (stmt, 8, "cc", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 9, param, -1, SQLITE_STATIC);
+				if( sqlite3_step(stmt) != SQLITE_DONE ) {
+					goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
+				}
+
+				created_db_entries++;
+			}
+			sqlite3_free(param);
 		}
 
 	/* end sql-transaction */
@@ -425,12 +451,8 @@ Imf2Msg_Done:
 		free(rfc724_mid);
 	}
 
-	if( contact_ids_from ) {
-		carray_free(contact_ids_from);
-	}
-
-	if( contact_ids_to ) {
-		carray_free(contact_ids_to);
+	if( outgoing_to ) {
+		carray_free(outgoing_to);
 	}
 
 	return created_db_entries;

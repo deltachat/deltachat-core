@@ -142,7 +142,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" rfc724_mid TEXT,"
 					" chat_id INTEGER,"
 					" from_id INTEGER,"
-					" to_id INTEGER,"
+					" to_id INTEGER," /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat */
 					" timestamp INTEGER,"
 					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"

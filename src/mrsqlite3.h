@@ -62,7 +62,7 @@ enum
 	,DELETE_FROM_config_k
 
 	,SELECT_COUNT_FROM_contacts
-	,SELECT_ine_FROM_contacts_i
+	,SELECT_nav_FROM_contacts_i
 	,SELECT_inv_FROM_contacts_a
 	,INSERT_INTO_contacts_nev
 	,UPDATE_contacts_nv_WHERE_i
@@ -83,7 +83,7 @@ enum
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_m
 	,SELECT_icfttstpb_FROM_msgs_i
-	,INSERT_INTO_msgs_mcfttsmp
+	,INSERT_INTO_msgs_mcftttsmp
 
 	,PREDEFINED_CNT /* must be last */
 };

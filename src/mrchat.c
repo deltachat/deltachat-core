@@ -329,7 +329,7 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 }
 
 
-static uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
+uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
 {
 	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
@@ -360,7 +360,7 @@ static uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t co
 }
 
 
-uint32_t mr_create_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id)
+uint32_t mr_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
 	mrcontact_t*  contact = NULL;
@@ -444,30 +444,6 @@ CreateNormalChat_Cleanup:
 		mrcontact_unref(contact);
 	}
 	return chat_id;
-}
-
-
-uint32_t mr_find_out_real_chat_id_(mrmailbox_t* mailbox, carray* contact_ids_from, carray* contact_ids_to) /* does not return special chat IDs */
-{
-	/* first, check mails send from external to us (from: matches a chat contact) */
-	if( contact_ids_from ) {
-		if( carray_count(contact_ids_from)==1 ) {
-			return mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_from, 0));
-		}
-	}
-
-	/* then, check mails send by us (to: matches a chat contact) (maybe we should duplicate mails into several threads here) */
-	if( contact_ids_to ) {
-		size_t i, iCnt = carray_count(contact_ids_to);
-		for( i = 0; i < iCnt; i++ )  {
-			uint32_t ret = mr_real_chat_exists_(mailbox, MR_CHAT_NORMAL, (uint32_t)(uintptr_t)carray_get(contact_ids_to, i));
-			if( ret ) {
-				return ret;
-			}
-		}
-	}
-
-	return 0;
 }
 
 
