@@ -62,11 +62,11 @@ enum
 	,DELETE_FROM_config_k
 
 	,SELECT_COUNT_FROM_contacts
-	,SELECT_nav_FROM_contacts_i
-	,SELECT_inv_FROM_contacts_a
-	,INSERT_INTO_contacts_nev
-	,UPDATE_contacts_nv_WHERE_i
-	,UPDATE_contacts_v_WHERE_i
+	,SELECT_naob_FROM_contacts_i
+	,SELECT_ino_FROM_contacts_a
+	,INSERT_INTO_contacts_neo
+	,UPDATE_contacts_no_WHERE_i
+	,UPDATE_contacts_o_WHERE_i
 
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itnifttsm_FROM_chatsNmsgs

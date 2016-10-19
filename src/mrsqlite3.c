@@ -123,11 +123,14 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 					" name TEXT DEFAULT '',"
 					" addr TEXT DEFAULT '',"
-					" verified INTEGER DEFAULT 0,"
+					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0);"); /* last_seen is for future use */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
-		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,verified) VALUES (1,'self',1), (2,'system',1), (3,'rsvd',1), (4,'rsvd',1), (5,'rsvd',1), (6,'rsvd',1), (7,'rsvd',1), (8,'rsvd',1), (9,'rsvd',1);");
+		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
+		#if MR_ORIGIN_INTERNAL!=262144
+			#error
+		#endif
 
 		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 					" type INTEGER,"

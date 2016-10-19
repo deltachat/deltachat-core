@@ -121,14 +121,14 @@ static char* create_stub_message_id_(time_t message_timestamp, uint32_t contact_
 static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
 				mrimfparser_t*               ths,
 				struct mailimf_mailbox_list* mb_list,
-				int                          mark_as_verified,
+				int                          origin,
 				carray*                      ids )
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
+			mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
 		}
 	}
 }
@@ -137,7 +137,7 @@ static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
 static void mrimfparser_add_or_lookup_contacts_by_address_list(
 				mrimfparser_t*               ths,
 				struct mailimf_address_list* adr_list, /* an address is a mailbox or a group */
-				int                          mark_as_verified,
+				int                          origin,
 				carray*                      ids )
 {
 	clistiter* cur;
@@ -147,13 +147,13 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, mark_as_verified, ids);
+					mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, mark_as_verified, ids);
+					mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, group->grp_mb_list, origin, ids);
 				}
 			}
 		}
@@ -259,7 +259,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 				{
 					struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 					if( fld_to ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_to->to_addr_list /*!= NULL*/, MR_ORIGIN_OUTGOING_TO, outgoing_to);
 					}
 					break;
 				}
@@ -289,7 +289,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 					struct mailimf_from* fld_from = field->fld_data.fld_from; /* can be NULL */
 					if( incoming && fld_from ) {
 						carray* temp = carray_new(16);
-						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, 0 /* not verified */, temp);
+						mrimfparser_add_or_lookup_contacts_by_mailbox_list(ths, fld_from->frm_mb_list /*!= NULL*/, MR_ORIGIN_INCOMING_UNKNOWN_FROM, temp);
 						if( carray_count(temp)>=1 ) {
 							from_id = (uint32_t)(uintptr_t)carray_get(temp, 0);
 						}
@@ -300,14 +300,14 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc; /* can be NULL */
 					if( outgoing && fld_cc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_cc->cc_addr_list /*!= NULL*/, MR_ORIGIN_OUTGOING_CC, outgoing_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_BCC )
 				{
 					struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc; /* can be NULL */
 					if( outgoing && fld_bcc ) {
-						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_bcc->bcc_addr_list /*!= NULL*/, 1 /* verified */, outgoing_to);
+						mrimfparser_add_or_lookup_contacts_by_address_list(ths, fld_bcc->bcc_addr_list /*!= NULL*/, MR_ORIGIN_OUTGOING_BCC, outgoing_to);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
