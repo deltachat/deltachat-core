@@ -85,6 +85,7 @@ int     carray_search              (carray*, void* needle, unsigned int* indx); 
 #define MR_QUOTEHELPER(name) #name
 #define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)
 #define MR_MIN(X, Y) (((X) < (Y))? (X) : (Y))
+#define MR_MAX(X, Y) (((X) > (Y))? (X) : (Y))
 
 
 #ifdef __cplusplus

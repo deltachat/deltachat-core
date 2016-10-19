@@ -193,7 +193,6 @@ char* mr_get_first_name(const char* full_name)
 }
 
 
-
 uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
                                     const char*  display_name_enc /*can be NULL*/,
                                     const char*  addr_spec,
@@ -223,7 +222,7 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 				mr_normalize_name(display_name_dec);
 				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_no_WHERE_i, "UPDATE contacts SET name=?, origin=? WHERE id=?;");
 				sqlite3_bind_text(stmt, 1, display_name_dec, -1, SQLITE_STATIC);
-				sqlite3_bind_int (stmt, 2, origin);
+				sqlite3_bind_int (stmt, 2, MR_MAX(origin, row_origin));
 				sqlite3_bind_int (stmt, 3, row_id);
 				sqlite3_step     (stmt);
 				free(display_name_dec);
