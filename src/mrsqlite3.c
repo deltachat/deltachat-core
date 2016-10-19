@@ -124,6 +124,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" name TEXT DEFAULT '',"
 					" addr TEXT DEFAULT '',"
 					" verified INTEGER DEFAULT 0,"
+					" blocked INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0);"); /* last_seen is for future use */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr);");
 		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,verified) VALUES (1,'self',1), (2,'system',1), (3,'rsvd',1), (4,'rsvd',1), (5,'rsvd',1), (6,'rsvd',1), (7,'rsvd',1), (8,'rsvd',1), (9,'rsvd',1);");
