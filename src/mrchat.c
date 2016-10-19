@@ -541,7 +541,7 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 	/* save draft in database */
 	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
 
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_dd,
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_dd_WHERE_i,
 			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
 		sqlite3_bind_int (stmt, 1, ths->m_draft_timestamp);
 		sqlite3_bind_text(stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */

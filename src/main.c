@@ -112,6 +112,7 @@ int main(int argc, char ** argv)
 			printf("send <text>         send message to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("event <id>          test the given event\n");
+			printf("adr <name>;<addr>   add entry to address book\n");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
 			printf("exit                exit program\n");

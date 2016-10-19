@@ -882,6 +882,21 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <id> missing.");
 		}
 	}
+	else if( strncmp(cmd, "adr", 3)==0 )
+	{
+		char *arg1 = (char*)strstr(cmd, " "), *arg2 = NULL;
+		if( arg1 ) { arg1++; arg2 = strstr(arg1, ";"); }
+		if( arg1 && arg2 ) {
+			*arg2 = 0; arg2++;
+			char* book = sqlite3_mprintf("%s\n%s", arg1, arg2);
+				mrmailbox_add_address_book(ths, book);
+				ret = COMMAND_SUCCEEDED;
+			sqlite3_free(book);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <name>;<addr> expected.");
+		}
+	}
 
 Done:
 	if( ret == COMMAND_FAILED ) {

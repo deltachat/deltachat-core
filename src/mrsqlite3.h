@@ -71,10 +71,11 @@ enum
 	,SELECT_itnifttsm_FROM_chatsNmsgs
 	,SELECT_itn_FROM_chats_i
 	,SELECT_id_FROM_chats_WHERE_contact_id
+	,UPDATE_chats_SET_dd_WHERE_i
+	,UPDATE_chats_SET_n_WHERE_c
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
-	,UPDATE_chats_dd
 
 	,SELECT_COUNT_FROM_msgs_WHERE_assigned
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned

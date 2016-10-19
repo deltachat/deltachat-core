@@ -205,6 +205,11 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 		return 0;
 	}
 
+	if( strlen(addr) < 3 || strchr(addr, '@')==NULL ) {
+		mrlog_warning("Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
+		return 0;
+	}
+
 	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
 		"SELECT id, name, addr, origin FROM contacts WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
@@ -242,6 +247,17 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 			sqlite3_bind_int (stmt, 3, origin>row_origin? origin : row_origin);
 			sqlite3_bind_int (stmt, 4, row_id);
 			sqlite3_step     (stmt);
+
+			if( update_name )
+			{
+				/* Update the contact name also if it is used as a group name.
+				This is one of the few duplicated data, however, getting the chat list is much faster this way.*/
+				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
+					"UPDATE chats SET name=? WHERE type=100 AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
+				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
+				sqlite3_bind_int (stmt, 2, row_id);
+				sqlite3_step     (stmt);
+			}
 		}
 	}
 	else
