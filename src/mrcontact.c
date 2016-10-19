@@ -194,7 +194,7 @@ char* mr_get_first_name(const char* full_name)
 
 
 uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
-                                    const char*  display_name_enc /*can be NULL*/,
+                                    const char*  display_name /*can be NULL, the caller may use mr_normalize_name() before*/,
                                     const char*  addr_spec,
                                     int          origin )
 {
@@ -207,43 +207,46 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		const char* row_name;
-		int         row_origin;
+		int         row_origin, update_name = 0;
 
 		row_id       = sqlite3_column_int(stmt, 0);
 		row_name     = (const char*)sqlite3_column_text(stmt, 1);
 		row_origin   = sqlite3_column_int(stmt, 2);
 
-		if( (display_name_enc && display_name_enc[0] && (row_name==NULL || row_name[0]==0))
-		 || origin>row_origin )
-		{
-			/* update the display name ONLY if it was unset before (otherwise, we can assume, the name is fine and maybe already edited by the user) */
-			char* display_name_dec = mr_decode_header_string(display_name_enc);
-			if( display_name_dec ) {
-				mr_normalize_name(display_name_dec);
-				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_no_WHERE_i, "UPDATE contacts SET name=?, origin=? WHERE id=?;");
-				sqlite3_bind_text(stmt, 1, display_name_dec, -1, SQLITE_STATIC);
-				sqlite3_bind_int (stmt, 2, MR_MAX(origin, row_origin));
-				sqlite3_bind_int (stmt, 3, row_id);
-				sqlite3_step     (stmt);
-				free(display_name_dec);
+		if( display_name && display_name[0] ) {
+			if( row_name && row_name[0] ) {
+				if( strcmp(display_name, row_name)!=0 ) {
+					if( origin>=row_origin ) {
+						update_name = 1;
+					}
+				}
 			}
 			else {
-				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_o_WHERE_i, "UPDATE contacts SET origin=? WHERE id=?;");
-				sqlite3_bind_int (stmt, 1, origin);
-				sqlite3_bind_int (stmt, 2, row_id);
-				sqlite3_step     (stmt);
+				update_name = 1;
 			}
+		}
+
+		if( update_name )
+		{
+			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_no_WHERE_i, "UPDATE contacts SET name=?, origin=? WHERE id=?;");
+			sqlite3_bind_text(stmt, 1, display_name, -1, SQLITE_STATIC);
+			sqlite3_bind_int (stmt, 2, MR_MAX(origin, row_origin));
+			sqlite3_bind_int (stmt, 3, row_id);
+			sqlite3_step     (stmt);
+		}
+		else if( origin>row_origin )
+		{
+			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_o_WHERE_i, "UPDATE contacts SET origin=? WHERE id=?;");
+			sqlite3_bind_int (stmt, 1, MR_MAX(origin, row_origin));
+			sqlite3_bind_int (stmt, 2, row_id);
+			sqlite3_step     (stmt);
 		}
 	}
 	else
 	{
-		char* display_name_dec = mr_decode_header_string(display_name_enc); /* may be NULL (if display_name_enc is NULL) */
-
-		mr_normalize_name(display_name_dec);
-
 		stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_contacts_neo,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
-		sqlite3_bind_text(stmt, 1, display_name_dec? display_name_dec : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
+		sqlite3_bind_text(stmt, 1, display_name? display_name : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
 		sqlite3_bind_text(stmt, 2, addr_spec,    -1, SQLITE_STATIC);
 		sqlite3_bind_int (stmt, 3, origin);
 		if( sqlite3_step(stmt) == SQLITE_DONE )
@@ -254,28 +257,9 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 		{
 			mrlog_error("Cannot add contact.");
 		}
-
-		free(display_name_dec);
 	}
 
 	return row_id; /*success*/
-}
-
-
-void mr_add_or_lookup_contact2_( mrmailbox_t* mailbox,
-                                 const char*  display_name_enc /*can be NULL*/,
-                                 const char*  addr_spec,
-                                 int          origin,
-                                 carray*      ids )
-{
-	uint32_t row_id = mr_add_or_lookup_contact_(mailbox, display_name_enc, addr_spec, origin);
-
-	if( row_id )
-	{
-		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
-			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
-		}
-	}
 }
 
 

@@ -892,3 +892,35 @@ Done:
 	}
 	return ret;
 }
+
+
+void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
+{
+	carray* lines = NULL;
+	size_t  i, iCnt;
+
+	if( ths == NULL || adr_book == NULL ) {
+		goto Cleanup;
+	}
+
+	if( (lines=mr_split_into_lines(adr_book))==NULL ) {
+		goto Cleanup;
+	}
+
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		iCnt = carray_count(lines);
+		for( i = 0; i+1 < iCnt; i += 2 ) {
+			char* name = (char*)carray_get(lines, i);
+			char* addr = (char*)carray_get(lines, i+1);
+			mr_normalize_name(name);
+			mr_trim(addr);
+			mr_add_or_lookup_contact_(ths, name, addr, MR_ORIGIN_ADRESS_BOOK);
+		}
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+Cleanup:
+	mr_free_splitted_lines(lines);
+}
+

@@ -51,6 +51,8 @@ void    mr_remove_cr_chars         (char*); /* remove all \r characters from str
 void    mr_ltrim                   (char*);
 void    mr_rtrim                   (char*);
 void    mr_trim                    (char*);
+carray* mr_split_into_lines        (const char* buf_terminated);
+void    mr_free_splitted_lines     (carray* lines);
 
 /* safe_strdup() returns empty string if NULL is given, else same as strdup(),
 never returns NULL (exists on errors) */

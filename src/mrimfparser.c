@@ -126,6 +126,31 @@ static char* create_stub_message_id_(time_t message_timestamp, uint32_t contact_
 }
 
 
+static void add_or_lookup_contact2_( mrmailbox_t* mailbox,
+                                     const char*  display_name_enc /*can be NULL*/,
+                                     const char*  addr_spec,
+                                     int          origin,
+                                     carray*      ids )
+{
+	char* display_name_dec = NULL;
+	if( display_name_enc ) {
+		display_name_dec = mr_decode_header_string(display_name_enc);
+		mr_normalize_name(display_name_dec);
+	}
+
+	uint32_t row_id = mr_add_or_lookup_contact_(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin);
+
+	free(display_name_dec);
+
+	if( row_id )
+	{
+		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
+			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
+		}
+	}
+}
+
+
 static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
 				mrimfparser_t*               ths,
 				struct mailimf_mailbox_list* mb_list,
@@ -136,7 +161,7 @@ static void mrimfparser_add_or_lookup_contacts_by_mailbox_list(
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
+			add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
 		}
 	}
 }
@@ -155,7 +180,7 @@ static void mrimfparser_add_or_lookup_contacts_by_address_list(
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					mr_add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
+					add_or_lookup_contact2_(ths->m_mailbox, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {

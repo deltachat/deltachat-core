@@ -206,6 +206,44 @@ void mr_trim(char* buf)
 }
 
 
+carray* mr_split_into_lines(const char* buf_terminated)
+{
+	carray* lines = carray_new(1024);
+
+	size_t line_chars = 0;
+	const char* p1 = buf_terminated;
+	const char* line_start = p1;
+	unsigned int l_indx;
+	while( *p1 ) {
+		if( *p1  == '\n' ) {
+			carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
+			p1++;
+			line_start = p1;
+			line_chars = 0;
+		}
+		else {
+			p1++;
+			line_chars++;
+		}
+	}
+	carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
+
+	return lines; /* should be freed using mr_free_splitted_lines() */
+}
+
+
+void mr_free_splitted_lines(carray* lines)
+{
+	if( lines ) {
+		int i, cnt = carray_count(lines);
+		for( i = 0; i < cnt; i++ ) {
+			free(carray_get(lines, i));
+		}
+		carray_free(lines);
+	}
+}
+
+
 char* mr_decode_header_string(const char* in)
 {
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
