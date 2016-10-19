@@ -194,31 +194,34 @@ char* mr_get_first_name(const char* full_name)
 
 
 uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
-                                    const char*  display_name /*can be NULL, the caller may use mr_normalize_name() before*/,
-                                    const char*  addr_spec,
+                                    const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
+                                    const char*  addr,
                                     int          origin )
 {
 	sqlite3_stmt* stmt;
 	uint32_t      row_id = 0;
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_ino_FROM_contacts_a,
-		"SELECT id, name, origin FROM contacts WHERE addr=?;");
-	sqlite3_bind_text(stmt, 1, (const char*)addr_spec, -1, SQLITE_STATIC);
+	if( mailbox == NULL || addr == NULL || origin <= 0 ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
+		"SELECT id, name, addr, origin FROM contacts WHERE addr=? COLLATE NOCASE;");
+	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		const char* row_name;
-		int         row_origin, update_name = 0;
+		const char  *row_name, *row_addr;
+		int         row_origin, update_addr = 0, update_name = 0;
 
 		row_id       = sqlite3_column_int(stmt, 0);
-		row_name     = (const char*)sqlite3_column_text(stmt, 1);
-		row_origin   = sqlite3_column_int(stmt, 2);
+		row_name     = (const char*)sqlite3_column_text(stmt, 1); if( row_name == NULL ) { row_name = ""; }
+		row_addr     = (const char*)sqlite3_column_text(stmt, 2); if( row_addr == NULL ) { row_addr = addr; }
+		row_origin   = sqlite3_column_int(stmt, 3);
 
-		if( display_name && display_name[0] ) {
+		if( name && name[0] ) {
 			if( row_name && row_name[0] ) {
-				if( strcmp(display_name, row_name)!=0 ) {
-					if( origin>=row_origin ) {
-						update_name = 1;
-					}
+				if( origin>=row_origin && strcmp(name, row_name)!=0 ) {
+					update_name = 1;
 				}
 			}
 			else {
@@ -226,19 +229,18 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 			}
 		}
 
-		if( update_name )
-		{
-			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_no_WHERE_i, "UPDATE contacts SET name=?, origin=? WHERE id=?;");
-			sqlite3_bind_text(stmt, 1, display_name, -1, SQLITE_STATIC);
-			sqlite3_bind_int (stmt, 2, MR_MAX(origin, row_origin));
-			sqlite3_bind_int (stmt, 3, row_id);
-			sqlite3_step     (stmt);
+		if( origin>=row_origin && strcmp(addr, row_addr)!=0 ) {
+			update_addr = 1;
 		}
-		else if( origin>row_origin )
+
+		if( update_name || update_addr || origin>row_origin )
 		{
-			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_o_WHERE_i, "UPDATE contacts SET origin=? WHERE id=?;");
-			sqlite3_bind_int (stmt, 1, MR_MAX(origin, row_origin));
-			sqlite3_bind_int (stmt, 2, row_id);
+			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
+				"UPDATE contacts SET name=?, addr=?, origin=? WHERE id=?;");
+			sqlite3_bind_text(stmt, 1, update_name?       name   : row_name, -1, SQLITE_STATIC);
+			sqlite3_bind_text(stmt, 2, update_addr?       addr   : row_addr, -1, SQLITE_STATIC);
+			sqlite3_bind_int (stmt, 3, origin>row_origin? origin : row_origin);
+			sqlite3_bind_int (stmt, 4, row_id);
 			sqlite3_step     (stmt);
 		}
 	}
@@ -246,8 +248,8 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 	{
 		stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_contacts_neo,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
-		sqlite3_bind_text(stmt, 1, display_name? display_name : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
-		sqlite3_bind_text(stmt, 2, addr_spec,    -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 1, name? name : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
+		sqlite3_bind_text(stmt, 2, addr,    -1, SQLITE_STATIC);
 		sqlite3_bind_int (stmt, 3, origin);
 		if( sqlite3_step(stmt) == SQLITE_DONE )
 		{

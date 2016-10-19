@@ -63,10 +63,9 @@ enum
 
 	,SELECT_COUNT_FROM_contacts
 	,SELECT_naob_FROM_contacts_i
-	,SELECT_ino_FROM_contacts_a
+	,SELECT_inao_FROM_contacts_a
 	,INSERT_INTO_contacts_neo
-	,UPDATE_contacts_no_WHERE_i
-	,UPDATE_contacts_o_WHERE_i
+	,UPDATE_contacts_nao_WHERE_i
 
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itnifttsm_FROM_chatsNmsgs
