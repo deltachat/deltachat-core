@@ -275,7 +275,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			ret->m_title = mrstock_str(MR_STR_YOU);
 			ret->m_title_meaning = MR_TITLE_USERNAME;
 		}
-		else {
+		else if( ths->m_type==MR_CHAT_GROUP ) { /* for non-groups, the title is not needed and would result in Strings as "Prename Familyname: Prename: last message ..." */
 			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
 			mrcontact_load_from_db_(contact, ths->m_last_msg_->m_from_id);
 			if( contact->m_name ) {
