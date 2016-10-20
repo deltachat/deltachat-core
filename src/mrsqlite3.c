@@ -31,6 +31,7 @@
 #include "mrsqlite3.h"
 #include "mrlog.h"
 #include "mrtools.h"
+#include "mrchat.h"
 #include "mrcontact.h"
 
 
@@ -128,7 +129,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" last_seen INTEGER DEFAULT 0);"); /* last_seen is for future use */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
 		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
-		#if MR_ORIGIN_INTERNAL!=262144
+		#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
 			#error
 		#endif
 
@@ -141,7 +142,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'rsvd'), (4,120,'rsvd'), (5,120,'rsvd'), (6,100,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-		#if MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120
+		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120
 			#error
 		#endif
 
