@@ -27,6 +27,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrcontact.h"
@@ -473,7 +474,8 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_icfttstpb_FROM_msgs_i,
 				"SELECT " MR_MSG_FIELDS
 					" FROM msgs m"
-					" WHERE m.chat_id=?"
+					" LEFT JOIN contacts ct ON m.from_id=ct.id"
+					" WHERE m.chat_id=? AND ct.blocked=0"
 					" ORDER BY m.timestamp,m.id"
 					" LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
