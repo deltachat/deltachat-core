@@ -229,6 +229,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 	uint32_t         from_id = 0;
 	uint32_t         to_id   = 0;
 	uint32_t         chat_id = 0;
+	int              state   = MR_STATE_UNDEFINED;
 
 	sqlite3_stmt*    stmt;
 	size_t           i, icnt;
@@ -339,8 +340,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		}
 
 
-		/* pass 3:
-		- collect the rest information */
+		/* collect the rest information */
 		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			field = (struct mailimf_field*)clist_content(cur1);
@@ -387,6 +387,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		only these messages reflect the will of the sender IMHO (of course, the user can add other chats manually) */
 		if( incoming )
 		{
+			state = MR_IN_READ; /* TODO: New messages should ge tthe state MR_IN_UNREAD here */
 			to_id = MR_CONTACT_ID_SELF;
 			chat_id = mr_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 && incoming_from_known_sender ) {
@@ -395,6 +396,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		}
 		else /* outgoing */
 		{
+			state = MR_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
@@ -439,7 +441,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			sqlite3_bind_int  (stmt, 4, to_id);
 			sqlite3_bind_int64(stmt, 5, message_timestamp);
 			sqlite3_bind_int  (stmt, 6, part->m_type);
-			sqlite3_bind_int  (stmt, 7, MR_STATE_UNDEFINED); /* state */
+			sqlite3_bind_int  (stmt, 7, state);
 			sqlite3_bind_text (stmt, 8, part->m_msg, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 9, part->m_msg_raw? part->m_msg_raw  : "", -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {

@@ -253,9 +253,10 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 				/* Update the contact name also if it is used as a group name.
 				This is one of the few duplicated data, however, getting the chat list is much faster this way.*/
 				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
-					"UPDATE chats SET name=? WHERE type=100 AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
+					"UPDATE chats SET name=? WHERE type=? AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
-				sqlite3_bind_int (stmt, 2, row_id);
+				sqlite3_bind_int (stmt, 2, MR_CHAT_NORMAL);
+				sqlite3_bind_int (stmt, 3, row_id);
 				sqlite3_step     (stmt);
 			}
 		}

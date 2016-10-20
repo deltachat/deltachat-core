@@ -51,7 +51,7 @@ extern "C" {
 /* message states */
 #define MR_STATE_UNDEFINED 0
 #define MR_IN_UNREAD       1 /* incoming message not read */
-#define MR_IN_READ         3 /* incoming message read */
+#define MR_IN_READ         3 /* incoming message read, to check for incoming messages you can check for state<=3 */
 #define MR_OUT_PENDING     5 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
 #define MR_OUT_ERROR       6 /* unrecoverable error (recoverable errors result in pending messages) */
 #define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered to server (one checkmark) */

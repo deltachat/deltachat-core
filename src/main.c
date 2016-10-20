@@ -145,9 +145,10 @@ int main(int argc, char ** argv)
 							if( poortext->m_text ) { printf("%s", poortext->m_text); }
 
 							switch( poortext->m_state ) {
-								case MR_OUT_PENDING:   printf(" o"); break;
-								case MR_OUT_DELIVERED: printf(" √"); break;
-								case MR_OUT_READ:      printf(" √√"); break;
+								case MR_OUT_ERROR:     printf(" ERR"); break;
+								case MR_OUT_PENDING:   printf(" o");   break;
+								case MR_OUT_DELIVERED: printf(" √");   break;
+								case MR_OUT_READ:      printf(" √√");  break;
 							}
 
 							char* temp3 = mr_timestamp_to_str(poortext->m_timestamp);
