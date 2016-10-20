@@ -47,6 +47,7 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 	ths->m_id        = 0;
 	ths->m_chat_id   = 0; /* 0=unset, 1=unknwon sender ... >9=real chats */
 	ths->m_from_id   = 0; /* 0=unset, 1=self ... >9=real contacts */
+	ths->m_to_id     = 0; /* 0=unset, 1=self ... >9=real contacts */
 	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
@@ -95,6 +96,7 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 	ths->m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_chat_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_from_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_to_id     =          (uint32_t)sqlite3_column_int  (row, row_offset++);
 
 	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
 	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);

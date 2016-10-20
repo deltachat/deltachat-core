@@ -62,6 +62,7 @@ typedef struct mrmsg_t
 {
 	uint32_t      m_id;
 	uint32_t      m_from_id;   /* contact, 0=unset, 1=self */
+	uint32_t      m_to_id;     /* contact, 0=unset, 1=self */
 	uint32_t      m_chat_id;   /* the chat, the message belongs to */
 	time_t        m_timestamp; /* unix time the message was sended */
 
@@ -86,7 +87,7 @@ void         mrmsg_unref             (mrmsg_t*); /* this also free()s all string
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
 
-#define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
+#define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
 size_t       mr_get_assigned_msg_cnt_  (mrmailbox_t*);
