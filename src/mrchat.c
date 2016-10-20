@@ -530,7 +530,11 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 
 	if( ths->m_draft_text==NULL && msg==NULL
 	 && ths->m_draft_timestamp==0 ) {
-		return 1; /* nothing to do - there is no old and no new draft (otherwise, even if the text is equal, we update the timestamp) */
+		return 1; /* nothing to do - there is no old and no new draft */
+	}
+
+	if( ths->m_draft_timestamp && ths->m_draft_text && msg && strcmp(ths->m_draft_text, msg)==0 ) {
+		return 1; /* for equal texts, we do not update the timestamp */
 	}
 
 	/* save draft in object - NULL or empty: clear draft */
