@@ -58,7 +58,6 @@ typedef struct mrchat_t
 	char*           m_name;            /* NULL if unset */
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_text;      /* NULL if unset */
-	int             m_muted;
 	mrmailbox_t*    m_mailbox;
 	mrmsg_t*        m_last_msg_;       /* Only set, if the chat was read by mrmailbox_get_chatlist(); use mrchat_get_summary() to read this field. */
 	int             m_refcnt;
@@ -70,7 +69,6 @@ char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-add
 mrmsglist_t*  mrchat_get_msglist           (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
 int           mrchat_get_unread_count      (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_UPDATED".  Returns true/false. */
-int           mrchat_set_muted             (mrchat_t*, int muted);   /* Save muted state in object and, if changed, in the database.  Returns true/false. */
 
 /* the following function gets information about the last message or draft;
 the function only works, if the chat is a part of a chatlist (otherwise, for speed reasons, the last messages are not loaded) */
@@ -87,7 +85,7 @@ mrchat_t*     mrchat_ref                   (mrchat_t*);
 void          mrchat_empty                 (mrchat_t*);
 int           mrchat_load_from_db_         (mrchat_t*, uint32_t id);
 
-#define       MR_CHAT_FIELDS               " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.muted "
+#define       MR_CHAT_FIELDS               " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt "
 int           mrchat_set_from_stmt_        (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
 
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);

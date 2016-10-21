@@ -138,11 +138,10 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" name TEXT,"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
-					" muted INTEGER DEFAULT 0,"
 					" param TEXT DEFAULT '');"); /* possible param: draft_reply_msg_id */
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
-		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name,muted) VALUES (1,120,'strangers',1), (2,120,'trash',1), (3,120,'rsvd',1), (4,120,'rsvd',0), (5,120,'rsvd',0), (6,100,'rsvd',0), (7,100,'rsvd',0), (8,100,'rsvd',0), (9,100,'rsvd',0);");
+		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'rsvd'), (4,120,'rsvd'), (5,120,'rsvd'), (6,100,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120
 			#error
 		#endif
