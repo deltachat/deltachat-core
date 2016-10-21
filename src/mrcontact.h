@@ -59,8 +59,8 @@ extern "C" {
 typedef struct mrcontact_t
 {
 	uint32_t            m_id;
-	char*               m_name;  /* != NULL, however, may be empty */
-	char*               m_addr;  /* != NULL */
+	char*               m_name;  /* may be NULL or empty */
+	char*               m_addr;
 	int                 m_origin;
 	int                 m_blocked;
 	mrmailbox_t*        m_mailbox;
