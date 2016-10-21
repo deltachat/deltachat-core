@@ -50,6 +50,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 	ths->m_last_msg_       = NULL;
 	ths->m_draft_timestamp = 0;
 	ths->m_draft_text      = NULL;
+	ths->m_muted           = 0;
 	ths->m_id              = 0;
 
     return ths;
@@ -109,6 +110,7 @@ int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_draft_timestamp =                    sqlite3_column_int  (row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
+	ths->m_muted           =                    sqlite3_column_int  (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
 	Also make sure, m_draft_text and m_draft_timestamp are set together */
@@ -514,16 +516,16 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 
 
 /*******************************************************************************
- * Handle drafts
+ * Save data to database
  ******************************************************************************/
 
 
-int mrchat_save_draft(mrchat_t* ths, const char* msg)
+int mrchat_set_draft(mrchat_t* ths, const char* msg)
 {
 	sqlite3_stmt* stmt;
 
 	if( ths == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	if( msg && msg[0]==0 ) {
@@ -545,9 +547,9 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 	ths->m_draft_timestamp = msg? time(NULL) : 0;
 
 	/* save draft in database */
-	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
 
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_dd_WHERE_i,
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
 			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
 		sqlite3_bind_int (stmt, 1, ths->m_draft_timestamp);
 		sqlite3_bind_text(stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
@@ -555,12 +557,42 @@ int mrchat_save_draft(mrchat_t* ths, const char* msg)
 
 		sqlite3_step(stmt);
 
-	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE: No return until unlock! */
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
 
-	/* success */
 	return 1;
+}
+
+
+int mrchat_set_muted(mrchat_t* ths, int muted)
+{
+	sqlite3_stmt* stmt;
+
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	/* save state in the object; if the state has not changed, we do not update the database */
+	if( ths->m_muted == muted ) {
+		return 1;
+	}
+	ths->m_muted = muted;
+
+	/* save state in database */
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_muted_WHERE_id,
+			"UPDATE chats SET muted=? WHERE id=?;");
+		sqlite3_bind_int (stmt, 1, ths->m_muted);
+		sqlite3_bind_int (stmt, 2, ths->m_id);
+		sqlite3_step(stmt);
+
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+
+	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
+
+    return 1;
 }
 
 

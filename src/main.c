@@ -219,11 +219,11 @@ int main(int argc, char ** argv)
 				char* arg1 = (char*)strstr(cmd, " ");
 				if( arg1 && arg1[0] ) {
 					arg1++;
-					mrchat_save_draft(sel_chat, arg1);
+					mrchat_set_draft(sel_chat, arg1);
 					printf("Draft saved.\n");
 				}
 				else {
-					mrchat_save_draft(sel_chat, NULL);
+					mrchat_set_draft(sel_chat, NULL);
 					printf("Draft deleted.\n");
 				}
 			}
