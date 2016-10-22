@@ -91,6 +91,7 @@ int           mrchat_set_from_stmt_        (mrchat_t* ths, sqlite3_stmt* row); /
 size_t        mr_get_chat_cnt_             (mrmailbox_t*);
 uint32_t      mr_create_or_lookup_chat_record_(mrmailbox_t*, uint32_t contact_id);
 uint32_t      mr_real_chat_exists_         (mrmailbox_t*, int type, uint32_t contact_id);
+int           mr_get_unread_count_         (mrmailbox_t*, uint32_t chat_id);
 
 
 #ifdef __cplusplus

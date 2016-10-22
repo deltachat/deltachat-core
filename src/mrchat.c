@@ -209,25 +209,37 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 }
 
 
-int mrchat_get_unread_count(mrchat_t* ths)
+int mr_get_unread_count_(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
+		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unread messages */
+	sqlite3_bind_int(stmt, 1, MR_IN_UNREAD);
+	sqlite3_bind_int(stmt, 2, chat_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		mrsqlite3_log_error(mailbox->m_sql, "mr_get_unread_count_() failed.");
+		return 0; /* error */
+	}
+
+	return sqlite3_column_int(stmt, 0);
+}
+
+
+int mrchat_get_unread_count(mrchat_t* ths)
+{
+	int ret;
 
 	if( ths == NULL || ths->m_mailbox == NULL || ths->m_mailbox->m_sql == NULL ) {
 		return 0; /* error */
 	}
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unread messages */
-	sqlite3_bind_int(stmt, 1, MR_IN_UNREAD);
-	sqlite3_bind_int(stmt, 2, ths->m_id);
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
+		ret = mr_get_unread_count_(ths->m_mailbox, ths->m_id);
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(ths->m_mailbox->m_sql, "mrchat_get_unread_count() failed.");
-		return 0; /* error */
-	}
-
-	return sqlite3_column_int(stmt, 0);
+	return ret;
 }
 
 
@@ -463,7 +475,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 		return NULL;
 	}
 
-	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
 
 			/* create return object */
 			if( (ret=mrmsglist_new(ths)) == NULL ) {
@@ -501,7 +513,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 
 			/* (nothing to cleanup at the moment) */
 
-	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE: No return until unlock! */
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 	if( success ) {
 		return ret;
