@@ -64,6 +64,7 @@ enum
 	,SELECT_COUNT_FROM_contacts
 	,SELECT_naob_FROM_contacts_i
 	,SELECT_inao_FROM_contacts_a
+	,SELECT_id_FROM_contacts_WHERE_id
 	,INSERT_INTO_contacts_neo
 	,UPDATE_contacts_nao_WHERE_i
 
@@ -81,6 +82,7 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
+	,SELECT_fields_FROM_msg_i
 	,SELECT_i_FROM_msgs_m
 	,SELECT_icfttstpb_FROM_msgs_i
 	,INSERT_INTO_msgs_mcftttsmp

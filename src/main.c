@@ -112,6 +112,7 @@ int main(int argc, char ** argv)
 			printf("send <text>         send message to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("event <id>          test the given event\n");
+			printf("createchat <id>     create chat by the given contact id\n");
 			printf("adr <name>;<addr>   add entry to address book\n");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
@@ -193,9 +194,10 @@ int main(int argc, char ** argv)
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
 						mrcontact_t* contact = mrmailbox_get_contact_by_id(mailbox, msg->m_from_id);
 						const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
+						int contact_id = contact? contact->m_id : 0;
 
 						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("Msg #%i: %s: %s [%s]\n", (int)msg->m_id, contact_name, msg->m_text, temp2);
+							printf("Msg #%i: %s (Contact #%i): %s [%s]\n", (int)msg->m_id, contact_name, contact_id, msg->m_text, temp2);
 						free(temp2);
 
 						mrcontact_unref(contact);

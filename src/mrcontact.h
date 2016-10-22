@@ -77,11 +77,12 @@ mrcontact_t* mrcontact_new             (mrmailbox_t*); /* the returned pointer i
 void         mrcontact_empty           (mrcontact_t*);
 mrcontact_t* mrcontact_ref             (mrcontact_t*);
 int          mrcontact_load_from_db_   (mrcontact_t*, uint32_t id);
-size_t       mr_get_contact_cnt_       (mrmailbox_t*);
+size_t       mr_get_real_contact_cnt_  (mrmailbox_t*);
 void         mr_normalize_name         (char* full_name);
 char*        mr_get_first_name         (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
 uint32_t     mr_add_or_lookup_contact_ (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin);
 int          mr_is_known_contact_      (mrmailbox_t*, uint32_t id);
+int          mr_real_contact_exists_   (mrmailbox_t*, uint32_t id);
 
 #ifdef __cplusplus
 } /* /extern "C" */

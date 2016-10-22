@@ -125,12 +125,34 @@ Cleanup:
  ******************************************************************************/
 
 
-size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
+int mr_real_contact_exists_(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	sqlite3_stmt* stmt;
+	int           ret = 0;
+
+	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL
+	 || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_id,
+		"SELECT id FROM contacts WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
+
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		ret = 1;
+	}
+
+	return ret;
+}
+
+
+size_t mr_get_real_contact_cnt_(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
-		return 0; /* no database, no contacts - this is no error (needed eg. for information) */
+		return 0;
 	}
 
 	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;"))==NULL ) {
@@ -139,11 +161,10 @@ size_t mr_get_contact_cnt_(mrmailbox_t* mailbox) /* static function */
 	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql, "mr_get_contact_cnt() failed.");
-		return 0; /* error */
+		return 0;
 	}
 
-	return sqlite3_column_int(stmt, 0); /* success */
+	return sqlite3_column_int(stmt, 0);
 }
 
 

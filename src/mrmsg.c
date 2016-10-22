@@ -110,6 +110,32 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 }
 
 
+int mrmsg_load_from_db_(mrmsg_t* ths, uint32_t id)
+{
+	sqlite3_stmt* stmt;
+
+	if( ths==NULL ) {
+		return 0;
+	}
+
+	mrmsg_empty(ths);
+
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_msg_i,
+		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
+	sqlite3_bind_int(stmt, 1, id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+	if( !mrmsg_set_from_stmt_(ths, stmt, 0) ) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
 /*******************************************************************************
  * Static functions
  ******************************************************************************/

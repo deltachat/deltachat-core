@@ -522,6 +522,79 @@ cleanup:
 }
 
 
+uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_id)
+{
+	uint32_t      chat_id = 0;
+	int           send_event = 0;
+
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(ths->m_sql);
+
+		chat_id = mr_real_chat_exists_(ths, MR_CHAT_NORMAL, contact_id);
+		if( chat_id ) {
+			mrlog_warning("Chat with contact %i already exists.", (int)contact_id);
+			goto cleanup;
+		}
+
+        if( 0==mr_real_contact_exists_(ths, contact_id) ) {
+			mrlog_error("Cannot create chat, contact %i does not exist.", (int)contact_id);
+			goto cleanup;
+        }
+
+		chat_id = mr_create_or_lookup_chat_record_(ths, contact_id);
+		if( chat_id ) {
+			send_event = 1;
+		}
+
+cleanup:
+	mrsqlite3_unlock(ths->m_sql);
+
+	if( send_event ) {
+		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
+	}
+
+	return chat_id;
+}
+
+
+/*******************************************************************************
+ * Handle messages
+ ******************************************************************************/
+
+
+mrmsg_t* mrmailbox_get_msg_by_id(mrmailbox_t* ths, uint32_t id)
+{
+	int success = 0;
+	int db_locked = 0;
+	mrmsg_t* obj = mrmsg_new(ths);
+
+	mrsqlite3_lock(ths->m_sql);
+	db_locked = 1;
+
+		if( !mrmsg_load_from_db_(obj, id) ) {
+			goto cleanup;
+		}
+
+		success = 1;
+
+cleanup:
+	if( db_locked ) {
+		mrsqlite3_unlock(ths->m_sql);
+	}
+
+	if( success ) {
+		return obj;
+	}
+	else {
+		mrmsg_unref(obj);
+		return NULL;
+	}
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/
@@ -691,7 +764,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		chats           = mr_get_chat_cnt_(ths);
 		assigned_msgs   = mr_get_assigned_msg_cnt_(ths);
 		unassigned_msgs = mr_get_unassigned_msg_cnt_(ths);
-		contacts        = mr_get_contact_cnt_(ths);
+		contacts        = mr_get_real_contact_cnt_(ths);
 
 		is_configured   = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
 
@@ -880,6 +953,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <id> missing.");
+		}
+	}
+	else if( strncmp(cmd, "createchat", 10)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int contact_id = atoi(arg1);
+			ret = mrmailbox_create_chat_by_contact_id(ths, contact_id)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
 	else if( strncmp(cmd, "adr", 3)==0 )

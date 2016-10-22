@@ -276,7 +276,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 
 		ret->m_timestamp = ths->m_draft_timestamp;
 	}
-	else if( ths->m_last_msg_ == NULL )
+	else if( ths->m_last_msg_ == NULL || ths->m_last_msg_->m_from_id == 0 )
 	{
 		/* no messages */
 		ret->m_text = mrstock_str(MR_STR_NO_MESSAGES);
