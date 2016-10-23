@@ -615,7 +615,36 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 
 int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 {
-	return 0; /* not yet implemented */
+	int   ret = 0;
+	char* text;
+
+	if( ths == NULL || msg == NULL ) {
+		return 0;
+	}
+
+	if( ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		mrlog_warning("Cannot send messages to special chat #%i.", (int)ths->m_id);
+		goto cleanup;
+	}
+
+	if( msg->m_type == MR_MSG_TEXT ) {
+		text = safe_strdup(msg->m_text);
+		mr_trim(text);
+		if( text[0] == 0 ) {
+			mrlog_warning("Message text empty.");
+			goto cleanup;
+		}
+	}
+	else {
+		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
+		goto cleanup;
+	}
+
+	// add message to the database
+	ret = 1;
+
+cleanup:
+	return ret;
 }
 
 

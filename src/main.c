@@ -85,7 +85,7 @@ int main(int argc, char ** argv)
 		}
 	}
 	else if( argc != 1 ) {
-		printf("Error: Bad arguments\n");
+		printf("ERROR: Bad arguments\n");
 	}
 
 	/* wait for command */
@@ -240,12 +240,18 @@ int main(int argc, char ** argv)
 				if( arg1 && arg1[0] ) {
 					mrmsg_t* msg = mrmsg_new(mailbox);
 						arg1++;
+						msg->m_type = MR_MSG_TEXT;
 						msg->m_text = strdup(arg1);
-						mrchat_send_msg(sel_chat, msg);
+						if( mrchat_send_msg(sel_chat, msg) ) {
+							printf("Message sent.\n");
+						}
+						else {
+							printf("ERROR: Sending failed.\n");
+						}
 					mrmsg_unref(msg);
 				}
 				else {
-					printf("No message text given.\n");
+					printf("ERROR: No message text given.\n");
 				}
 			}
 			else {
