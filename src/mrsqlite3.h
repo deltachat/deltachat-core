@@ -81,6 +81,7 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_assigned
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
+	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_fields_FROM_msg_i
 	,SELECT_i_FROM_msgs_m

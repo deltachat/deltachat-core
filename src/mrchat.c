@@ -209,6 +209,39 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 }
 
 
+int mr_get_total_msg_count_(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_chat_id,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		mrsqlite3_log_error(mailbox->m_sql, "mr_get_total_msg_count_() failed.");
+		return 0; /* error */
+	}
+
+	return sqlite3_column_int(stmt, 0);
+}
+
+
+int mrchat_get_total_msg_count(mrchat_t* ths)
+{
+	int ret;
+
+	if( ths == NULL || ths->m_mailbox == NULL || ths->m_mailbox->m_sql == NULL ) {
+		return 0; /* error */
+	}
+
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
+		ret = mr_get_total_msg_count_(ths->m_mailbox, ths->m_id);
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+
+	return ret;
+}
+
+
 int mr_get_unread_count_(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
