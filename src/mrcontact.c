@@ -155,11 +155,8 @@ size_t mr_get_real_contact_cnt_(mrmailbox_t* mailbox)
 		return 0;
 	}
 
-	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;"))==NULL ) {
-		return 0;
-	}
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
