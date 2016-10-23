@@ -49,6 +49,7 @@ extern "C" {
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
+#define MR_ORIGIN_CREATE_CHAT               0x800 /* a chat was manually created for this user, but no message yet sent */
 #define MR_ORIGIN_OUTGOING_BCC             0x1000 /* message send by us */
 #define MR_ORIGIN_OUTGOING_CC              0x2000 /* message send by us */
 #define MR_ORIGIN_OUTGOING_TO              0x4000 /* message send by us */

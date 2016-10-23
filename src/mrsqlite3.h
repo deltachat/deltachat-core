@@ -67,6 +67,7 @@ enum
 	,SELECT_id_FROM_contacts_WHERE_id
 	,INSERT_INTO_contacts_neo
 	,UPDATE_contacts_nao_WHERE_i
+	,UPDATE_contacts_SET_origin_WHERE_id
 
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itnifttsm_FROM_chatsNmsgs
