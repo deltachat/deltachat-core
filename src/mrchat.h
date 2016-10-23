@@ -47,8 +47,8 @@ typedef struct mrpoortext_t mrpoortext_t;
 
 /* specical chat IDs */
 #define MR_CHAT_ID_STRANGERS     1 /* for strangers, chats_contacts is not set up. */
-#define MR_CHAT_ID_TRASH         2
-#define MR_CHAT_ID_LAST_SPECIAL  9
+#define MR_CHAT_ID_TRASH         2 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. */
+#define MR_CHAT_ID_LAST_SPECIAL  9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
 
 
 typedef struct mrchat_t

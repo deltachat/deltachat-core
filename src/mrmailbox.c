@@ -743,7 +743,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char  set[] = "<set>";
 	char *debug_dir, *name, *info;
 	mrloginparam_t *l, *l2;
-	int contacts, chats, assigned_msgs, unassigned_msgs, is_configured;
+	int contacts, chats, real_msgs, strangers_msgs, is_configured;
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -762,8 +762,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
 
 		chats           = mr_get_chat_cnt_(ths);
-		assigned_msgs   = mr_get_assigned_msg_cnt_(ths);
-		unassigned_msgs = mr_get_unassigned_msg_cnt_(ths);
+		real_msgs       = mr_get_real_msg_cnt_(ths);
+		strangers_msgs  = mr_get_strangers_msg_cnt_(ths);
 		contacts        = mr_get_real_contact_cnt_(ths);
 
 		is_configured   = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
@@ -776,7 +776,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	info = mr_mprintf(
 		"Messenger Backend %i.%i.%i - (C) Björn Petersen Software Design and Development and contributors\n" /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
 		"\n"
-		"%i chats with %i messages, %i unassigned messages, %i contacts\n"
+		"%i chats with %i messages, %i messages from strangers, %i contacts\n"
 		"Database file: %s, blob directory: %s\n"
 		"\n"
 		"displayname=%s\n"
@@ -797,7 +797,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 
-		, chats, assigned_msgs, unassigned_msgs, contacts
+		, chats, real_msgs, strangers_msgs, contacts
 		, ths->m_dbfile? ths->m_dbfile : unset   ,  ths->m_blobdir? ths->m_blobdir : unset
 
         , name? name : unset

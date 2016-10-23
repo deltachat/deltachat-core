@@ -91,8 +91,8 @@ int          mrmsg_load_from_db_     (mrmsg_t*, uint32_t id);
 #define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 
-size_t       mr_get_assigned_msg_cnt_  (mrmailbox_t*);
-size_t       mr_get_unassigned_msg_cnt_(mrmailbox_t*);
+size_t       mr_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
+size_t       mr_get_strangers_msg_cnt_ (mrmailbox_t*);
 int          mr_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
 
 
