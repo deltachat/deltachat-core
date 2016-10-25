@@ -78,7 +78,7 @@ the function only works, if the chat is a part of a chatlist (otherwise, for spe
 mrpoortext_t* mrchat_get_summary           (mrchat_t*); /* result must be unref'd */
 
 /* sending messages */
-int           mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function! */
+uint32_t      mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function! */
 
 
 /*** library-private **********************************************************/

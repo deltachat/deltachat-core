@@ -73,13 +73,11 @@ typedef struct mrmsg_t
 	char*         m_param;     /* additional parameters as "key=value; key2=value2"; possible keys: mime, w, h, ms, lat, lng, url, ...; NULL if unset */
 	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
-	mrmailbox_t*  m_mailbox;
-
 	int           m_refcnt;
 } mrmsg_t;
 
 
-mrmsg_t*     mrmsg_new               (mrmailbox_t*); /* constructor needed for sending messages */
+mrmsg_t*     mrmsg_new               ();
 void         mrmsg_unref             (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
 
 
@@ -87,7 +85,7 @@ void         mrmsg_unref             (mrmsg_t*); /* this also free()s all string
 
 mrmsg_t*     mrmsg_ref               (mrmsg_t*);
 void         mrmsg_empty             (mrmsg_t*);
-int          mrmsg_load_from_db_     (mrmsg_t*, uint32_t id);
+int          mrmsg_load_from_db_     (mrmsg_t*, mrmailbox_t*, uint32_t id);
 
 #define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */

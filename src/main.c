@@ -238,7 +238,7 @@ int main(int argc, char ** argv)
 			if( sel_chat ) {
 				char* arg1 = (char*)strstr(cmd, " ");
 				if( arg1 && arg1[0] ) {
-					mrmsg_t* msg = mrmsg_new(mailbox);
+					mrmsg_t* msg = mrmsg_new();
 						arg1++;
 						msg->m_type = MR_MSG_TEXT;
 						msg->m_text = strdup(arg1);

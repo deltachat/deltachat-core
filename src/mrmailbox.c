@@ -575,12 +575,12 @@ mrmsg_t* mrmailbox_get_msg_by_id(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
 	int db_locked = 0;
-	mrmsg_t* obj = mrmsg_new(ths);
+	mrmsg_t* obj = mrmsg_new();
 
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-		if( !mrmsg_load_from_db_(obj, id) ) {
+		if( !mrmsg_load_from_db_(obj, ths, id) ) {
 			goto cleanup;
 		}
 

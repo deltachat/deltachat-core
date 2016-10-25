@@ -33,7 +33,7 @@
 #include "mrlog.h"
 
 
-mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
+mrmsg_t* mrmsg_new()
 {
 	mrmsg_t* ths = NULL;
 
@@ -43,7 +43,6 @@ mrmsg_t* mrmsg_new(struct mrmailbox_t* mailbox)
 
 	MR_INIT_REFERENCE
 
-	ths->m_mailbox   = mailbox;
 	ths->m_id        = 0;
 	ths->m_chat_id   = 0; /* 0=unset, 1=unknwon sender ... >9=real chats */
 	ths->m_from_id   = 0; /* 0=unset, 1=self ... >9=real contacts */
@@ -110,17 +109,17 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 }
 
 
-int mrmsg_load_from_db_(mrmsg_t* ths, uint32_t id)
+int mrmsg_load_from_db_(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL ) {
+	if( ths==NULL || mailbox == NULL ) {
 		return 0;
 	}
 
 	mrmsg_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_fields_FROM_msg_i,
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_fields_FROM_msg_i,
 		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 

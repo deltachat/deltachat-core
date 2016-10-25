@@ -532,7 +532,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 
 			while( sqlite3_step(stmt) == SQLITE_ROW )
 			{
-				mrmsg_t* msg = mrmsg_new(ths->m_mailbox);
+				mrmsg_t* msg = mrmsg_new();
 				mrmsg_set_from_stmt_(msg, stmt, 0);
 
 				carray_add(ret->m_msgs, (void*)msg, NULL);
@@ -613,9 +613,8 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
  ******************************************************************************/
 
 
-int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
+uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 {
-	int           ret = 0;
 	time_t        timestamp = time(NULL);
 	char*         text = NULL;
 	uint32_t      msg_id = 0;
@@ -680,8 +679,6 @@ int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	locked = 0;
 
 	// done
-	ret = 1;
-
 cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(ths->m_mailbox->m_sql);
@@ -689,7 +686,7 @@ cleanup:
 	if( text ) {
 		free(text);
 	}
-	return ret;
+	return msg_id;
 }
 
 
