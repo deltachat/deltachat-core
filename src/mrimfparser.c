@@ -443,7 +443,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			sqlite3_bind_int  (stmt, 6, part->m_type);
 			sqlite3_bind_int  (stmt, 7, state);
 			sqlite3_bind_text (stmt, 8, part->m_msg, -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 9, part->m_msg_raw? part->m_msg_raw  : "", -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 9, "", -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}

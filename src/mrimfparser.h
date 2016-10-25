@@ -53,5 +53,5 @@ size_t        mrimfparser_imf2msg_(mrimfparser_t*, const char* imf_raw_not_termi
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif // __MRIMFPARSER_H__
+#endif /* __MRIMFPARSER_H__ */
 

@@ -69,8 +69,9 @@ typedef struct mrmsg_t
 
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
-	char*         m_text;      /* plain text; NULL if unset */
-	char*         m_param;     /* additional parameters as "key=value; key2=value2"; possible keys: mime, w, h, ms, lat, lng, url, ...; NULL if unset */
+	char*         m_text;      /* message text or NULL if unset */
+	char*         m_param;     /* additional parameters as "k=value\nk=value2\n"; possible keys:
+	                              'f'ile, 'm'ime, 'w', 'h', 't'ime/ms, 'l'at, 'L'ng, 'u'rl, ...; NULL if unset */
 	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
 	int           m_refcnt;
@@ -79,6 +80,10 @@ typedef struct mrmsg_t
 
 mrmsg_t*     mrmsg_new               ();
 void         mrmsg_unref             (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
+char*        mrmsg_get_param         (mrmsg_t*, int key, const char* def); /* the result must be free()'d */
+int32_t      mrmsg_get_param_int     (mrmsg_t*, int key, int32_t def);
+void         mrmsg_set_param         (mrmsg_t*, int key, const char* value);
+void         mrmsg_set_param_int     (mrmsg_t*, int key, int32_t value);
 
 
 /*** library-private **********************************************************/

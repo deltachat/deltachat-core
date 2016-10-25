@@ -631,12 +631,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	}
 
 	if( msg->m_type == MR_MSG_TEXT ) {
-		text = safe_strdup(msg->m_text);
-		mr_trim(text);
-		if( text[0] == 0 ) {
-			mrlog_warning("Message text empty.");
-			goto cleanup;
-		}
+		text = safe_strdup(msg->m_text); /* the caller should check, if the message text is empty */
 	}
 	else {
 		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
@@ -646,7 +641,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	locked = 1;
 
-		// add message to the database
+		/* add message to the database */
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttst,
 			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt) VALUES (?,?,?, ?,?,?);");
 		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
@@ -661,11 +656,11 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
 
-		// set up blobs etc.
+		/* set up blobs etc. */
 
-		// ...
+		/* ... */
 
-		// finalize message object on database
+		/* finalize message object on database */
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_msgs_SET_cb_WHERE_i,
 			"UPDATE msgs SET chat_id=?, bytes=? WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, ths->m_id);
@@ -678,7 +673,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	locked = 0;
 
-	// done
+	/* done */
 cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(ths->m_mailbox->m_sql);
