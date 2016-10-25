@@ -141,16 +141,16 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" param TEXT DEFAULT '');"); /* possible param: draft_reply_msg_id */
 		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
-		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'rsvd'), (4,120,'rsvd'), (5,120,'rsvd'), (6,100,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120
+		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_STRANGERS!=1 || MR_CHAT_ID_TRASH!=2 || MR_CHAT_ID_BLOCKED_USERS!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
 			#error
 		#endif
 
 		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
-					" rfc724_mid TEXT,"
+					" rfc724_mid TEXT DEFAULT '',"
 					" chat_id INTEGER,"
 					" from_id INTEGER,"
-					" to_id INTEGER," /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat */
+					" to_id INTEGER DEFAULT 0," /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat, may be unset */
 					" timestamp INTEGER,"
 					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"

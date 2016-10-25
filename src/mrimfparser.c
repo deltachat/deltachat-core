@@ -433,7 +433,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		{
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
 
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttsmp,
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstp,
 				"INSERT INTO msgs (rfc724_mid,chat_id,from_id, to_id,timestamp,type, state,txt,param) VALUES (?,?,?, ?,?,?, ?,?,?);");
 			sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt, 2, chat_id);
@@ -469,7 +469,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 					ghost_chat_id = MR_CHAT_ID_STRANGERS;
 				}
 
-				stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttsmp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt, 2, ghost_chat_id);
 				sqlite3_bind_int  (stmt, 3, from_id);

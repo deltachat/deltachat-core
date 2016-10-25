@@ -49,13 +49,14 @@ extern "C" {
 
 
 /* message states */
-#define MR_STATE_UNDEFINED 0
-#define MR_IN_UNREAD       1 /* incoming message not read */
-#define MR_IN_READ         3 /* incoming message read, to check for incoming messages you can check for state<=3 */
-#define MR_OUT_PENDING     5 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
-#define MR_OUT_ERROR       6 /* unrecoverable error (recoverable errors result in pending messages) */
-#define MR_OUT_DELIVERED   7 /* outgoing message successfully delivered to server (one checkmark) */
-#define MR_OUT_READ        9 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
+#define MR_STATE_UNDEFINED  0
+#define MR_IN_UNREAD       10 /* incoming message not read */
+#define MR_IN_READ         16 /* incoming message read, to check for incoming messages you can check for state<=3 */
+#define MR_OUT_PENDING     20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
+#define MR_OUT_SENDING     22 /* the message is just now being sending */
+#define MR_OUT_ERROR       24 /* unrecoverable error (recoverable errors result in pending messages) */
+#define MR_OUT_DELIVERED   26 /* outgoing message successfully delivered to server (one checkmark) */
+#define MR_OUT_READ        28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 
 
 typedef struct mrmsg_t

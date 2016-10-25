@@ -107,7 +107,7 @@ int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
 	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_draft_timestamp =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
@@ -594,9 +594,9 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
 			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
-		sqlite3_bind_int (stmt, 1, ths->m_draft_timestamp);
-		sqlite3_bind_text(stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
-		sqlite3_bind_int (stmt, 3, ths->m_id);
+		sqlite3_bind_int64(stmt, 1, ths->m_draft_timestamp);
+		sqlite3_bind_text (stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
+		sqlite3_bind_int  (stmt, 3, ths->m_id);
 
 		sqlite3_step(stmt);
 
@@ -615,8 +615,12 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 
 int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 {
-	int   ret = 0;
-	char* text;
+	int           ret = 0;
+	time_t        timestamp = time(NULL);
+	char*         text = NULL;
+	uint32_t      msg_id = 0;
+	int           locked = 0;
+	sqlite3_stmt* stmt;
 
 	if( ths == NULL || msg == NULL ) {
 		return 0;
@@ -640,10 +644,51 @@ int mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		goto cleanup;
 	}
 
-	// add message to the database
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
+	locked = 1;
+
+		// add message to the database
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttst,
+			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt) VALUES (?,?,?, ?,?,?);");
+		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
+		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
+		sqlite3_bind_int64(stmt, 3, timestamp);
+		sqlite3_bind_int  (stmt, 4, msg->m_type);
+		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
+		sqlite3_bind_text (stmt, 6, text,  -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+
+		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
+
+		// set up blobs etc.
+
+		// ...
+
+		// finalize message object on database
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_msgs_SET_cb_WHERE_i,
+			"UPDATE msgs SET chat_id=?, bytes=? WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, ths->m_id);
+		sqlite3_bind_int(stmt, 2, 0);
+		sqlite3_bind_int(stmt, 3, msg_id);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	locked = 0;
+
+	// done
 	ret = 1;
 
 cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	}
+	if( text ) {
+		free(text);
+	}
 	return ret;
 }
 
