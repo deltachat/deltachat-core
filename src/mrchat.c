@@ -617,6 +617,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 {
 	time_t        timestamp = time(NULL);
 	char*         text = NULL;
+	mrparam_t*    param = mrparam_new();
 	uint32_t      msg_id = 0;
 	int           locked = 0;
 	sqlite3_stmt* stmt;
@@ -630,8 +631,13 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		goto cleanup;
 	}
 
+	mrparam_set_packed(param, msg->m_param->m_packed);
+
 	if( msg->m_type == MR_MSG_TEXT ) {
-		text = safe_strdup(msg->m_text); /* the caller should check, if the message text is empty */
+		text = safe_strdup(msg->m_text); /* the caller should check if the message text is empty */
+	}
+	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
+		;
 	}
 	else {
 		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
@@ -642,14 +648,15 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	locked = 1;
 
 		/* add message to the database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttst,
-			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt) VALUES (?,?,?, ?,?,?);");
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstp,
+			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param) VALUES (?,?,?, ?,?,?, ?);");
 		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
 		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
 		sqlite3_bind_int64(stmt, 3, timestamp);
 		sqlite3_bind_int  (stmt, 4, msg->m_type);
 		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
-		sqlite3_bind_text (stmt, 6, text,  -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 6, text? text : "",  -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 7, param->m_packed, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -678,9 +685,8 @@ cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	}
-	if( text ) {
-		free(text);
-	}
+	free(text);
+	mrparam_unref(param);
 	return msg_id;
 }
 

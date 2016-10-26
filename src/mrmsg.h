@@ -34,18 +34,16 @@ extern "C" {
 #endif
 
 
+#include "mrparam.h"
+
+
 /* message types */
 #define MR_MSG_UNDEFINED   0
 #define MR_MSG_TEXT        10
-#define MR_MSG_IMAGE       20
-#define MR_MSG_STICKER     30 /* not sure, if we will really support this, maybe a image message will do the job. */
-#define MR_MSG_AUDIO       40
-#define MR_MSG_VIDEO       50
-#define MR_MSG_FILE        60
-#define MR_MSG_LINK        61 /* not sure, if we will really support this, maybe a normal text message will do the job. */
-#define MR_MSG_CONTACT     70 /* not sure, if we will really support this, maybe a normal text message will do the job. */
-#define MR_MSG_LOCATION    80 /* not sure, if we will really support this, maybe a normal text message will do the job. */
-#define MR_MSG_SYSTEM      90 /* service messages as "You created the group.", not always spread via e-mail and equal on all clients, m_text is a stock ID, m_param may contain additional information; not sure, if we will use this, we also have the special user ID #2 which may be a better choice (as system messages can be of any type then) */
+#define MR_MSG_IMAGE       20 /* param: 'f'ile, 'w', 'h' */
+#define MR_MSG_AUDIO       40 /* param: 'f'ile, 't'ime */
+#define MR_MSG_VIDEO       50 /* param: 'f'ile, 'w', 'h', 't'ime */
+#define MR_MSG_FILE        60 /* param: 'f'ile */
 
 
 /* message states */
@@ -70,8 +68,7 @@ typedef struct mrmsg_t
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
 	char*         m_text;      /* message text or NULL if unset */
-	char*         m_param;     /* additional parameters as "k=value\nk=value2\n"; possible keys:
-	                              'f'ile, 'm'ime, 'w', 'h', 't'ime/ms, 'l'at, 'L'ng, 'u'rl, ...; NULL if unset */
+	mrparam_t*    m_param;     /* 'f'ile, 'm'ime, 'w', 'h', 't'ime/ms etc. depends on the type, != NULL */
 	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
 	int           m_refcnt;
@@ -80,10 +77,6 @@ typedef struct mrmsg_t
 
 mrmsg_t*     mrmsg_new               ();
 void         mrmsg_unref             (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
-char*        mrmsg_get_param         (mrmsg_t*, int key, const char* def); /* the result must be free()'d */
-int32_t      mrmsg_get_param_int     (mrmsg_t*, int key, int32_t def);
-void         mrmsg_set_param         (mrmsg_t*, int key, const char* value);
-void         mrmsg_set_param_int     (mrmsg_t*, int key, int32_t value);
 
 
 /*** library-private **********************************************************/

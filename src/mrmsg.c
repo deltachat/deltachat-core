@@ -51,7 +51,7 @@ mrmsg_t* mrmsg_new()
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
 	ths->m_text      = NULL;
-	ths->m_param     = NULL;
+	ths->m_param     = mrparam_new();
 	ths->m_bytes     = 0;
 
 	return ths;
@@ -69,6 +69,7 @@ void mrmsg_unref(mrmsg_t* ths)
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrmsg_empty(ths);
+	mrparam_unref(ths->m_param);
 	free(ths);
 }
 
@@ -82,8 +83,7 @@ void mrmsg_empty(mrmsg_t* ths)
 	free(ths->m_text);
 	ths->m_text = NULL;
 
-	free(ths->m_param);
-	ths->m_param = NULL;
+	mrparam_set_packed(ths->m_param, NULL);
 }
 
 
@@ -92,18 +92,18 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 {
 	mrmsg_empty(ths);
 
-	ths->m_id        =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_chat_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_from_id   =          (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_to_id     =          (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_chat_id   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_from_id   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_to_id     =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 
-	ths->m_timestamp =            (time_t)sqlite3_column_int64(row, row_offset++);
-	ths->m_type      =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_state     =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_timestamp =             (time_t)sqlite3_column_int64(row, row_offset++);
+	ths->m_type      =                     sqlite3_column_int  (row, row_offset++);
+	ths->m_state     =                     sqlite3_column_int  (row, row_offset++);
 
-	ths->m_text      = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_param     = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_bytes     =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_text      =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	mrparam_set_packed(ths->m_param,(char*)sqlite3_column_text (row, row_offset++));
+	ths->m_bytes     =                     sqlite3_column_int  (row, row_offset++);
 
 	return 1;
 }

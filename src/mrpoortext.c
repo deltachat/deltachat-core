@@ -36,7 +36,7 @@ mrpoortext_t* mrpoortext_new()
 	mrpoortext_t* ths = NULL;
 
 	if( (ths=malloc(sizeof(mrpoortext_t)))==NULL ) {
-		return NULL; /* error */
+		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
