@@ -152,6 +152,7 @@ int main(int argc, char ** argv)
 			printf("chats               list all chats\n");
 			printf("chat [<id>]         list chat/select chat by id\n");
 			printf("send <text>         send message to selected chat\n");
+			printf("sendfile <file>     send file to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("event <id>          test the given event\n");
 			printf("createchat <id>     create chat by the given contact id\n");
@@ -275,7 +276,7 @@ int main(int argc, char ** argv)
 				printf("No chat selected.\n");
 			}
 		}
-		else if( strncmp(cmd, "send", 4)==0 )
+		else if( strncmp(cmd, "send ", 5)==0 )
 		{
 			if( sel_chat ) {
 				char* arg1 = (char*)strstr(cmd, " ");
@@ -284,6 +285,31 @@ int main(int argc, char ** argv)
 						arg1++;
 						msg->m_type = MR_MSG_TEXT;
 						msg->m_text = strdup(arg1);
+						if( mrchat_send_msg(sel_chat, msg) ) {
+							printf("Message sent.\n");
+						}
+						else {
+							printf("ERROR: Sending failed.\n");
+						}
+					mrmsg_unref(msg);
+				}
+				else {
+					printf("ERROR: No message text given.\n");
+				}
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
+		else if( strncmp(cmd, "sendfile", 8)==0 )
+		{
+			if( sel_chat ) {
+				char* arg1 = (char*)strstr(cmd, " ");
+				if( arg1 && arg1[0] ) {
+					mrmsg_t* msg = mrmsg_new();
+						arg1++;
+						msg->m_type = MR_MSG_FILE;
+						mrparam_set(msg->m_param, 'f', arg1);
 						if( mrchat_send_msg(sel_chat, msg) ) {
 							printf("Message sent.\n");
 						}

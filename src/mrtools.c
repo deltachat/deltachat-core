@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <sqlite3.h>
+#include <sys/stat.h>
 #include <libetpan/libetpan.h>
 #include "mrtools.h"
 
@@ -629,4 +630,17 @@ char* mr_timestamp_to_str(time_t wanted)
 	return mr_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
 		(int)wanted_struct.tm_mday, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_year+1900,
 		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+}
+
+
+/*******************************************************************************
+ * file tools
+ ******************************************************************************/
+
+
+size_t mr_filebytes(const char* filename)
+{
+	struct stat st;
+	stat(filename, &st);
+	return (size_t)st.st_size;
 }

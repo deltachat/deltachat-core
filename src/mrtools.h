@@ -69,6 +69,10 @@ char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
 
+/* file tools */
+size_t  mr_filebytes               (const char* filename);
+
+/* misc */
 #define MR_INIT_REFERENCE \
 	if( ths == NULL ) { return NULL; } \
 	ths->m_refcnt = 1;
@@ -83,11 +87,11 @@ int     carray_search              (carray*, void* needle, unsigned int* indx); 
 	ths->m_refcnt--; \
 	if( ths->m_refcnt > 0 ) { return; }
 
-
 #define MR_QUOTEHELPER(name) #name
 #define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)
 #define MR_MIN(X, Y) (((X) < (Y))? (X) : (Y))
 #define MR_MAX(X, Y) (((X) > (Y))? (X) : (Y))
+
 
 
 #ifdef __cplusplus

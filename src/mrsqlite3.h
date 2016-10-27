@@ -88,8 +88,8 @@ enum
 	,SELECT_i_FROM_msgs_m
 	,SELECT_icfttstpb_FROM_msgs_i
 	,INSERT_INTO_msgs_mcftttstp
-	,INSERT_INTO_msgs_cfttstp
-	,UPDATE_msgs_SET_cb_WHERE_i
+	,INSERT_INTO_msgs_cfttstpb
+	,UPDATE_msgs_SET_c_WHERE_i
 
 	,PREDEFINED_CNT /* must be last */
 };

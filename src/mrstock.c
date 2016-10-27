@@ -103,6 +103,10 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_CONTACT,      "_ contact");
 		mrstock_add_str(MR_STR_CONTACTS,     "_ contacts");
 		mrstock_add_str(MR_STR_STRANGERS,    "Unknown senders");
+		mrstock_add_str(MR_STR_IMAGE,        "Image");
+		mrstock_add_str(MR_STR_VIDEO,        "Video");
+		mrstock_add_str(MR_STR_AUDIO,        "Voice message");
+		mrstock_add_str(MR_STR_FILE,         "File");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");

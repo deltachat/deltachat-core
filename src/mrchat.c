@@ -335,9 +335,17 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			}
 		}
 
-		if( ths->m_last_msg_->m_text ) {
-			ret->m_text = safe_strdup(ths->m_last_msg_->m_text);
-			mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
+		switch( ths->m_last_msg_->m_type ) {
+			case MR_MSG_IMAGE: ret->m_text = mrstock_str(MR_STR_IMAGE); break;
+			case MR_MSG_VIDEO: ret->m_text = mrstock_str(MR_STR_VIDEO); break;
+			case MR_MSG_AUDIO: ret->m_text = mrstock_str(MR_STR_AUDIO); break;
+			case MR_MSG_FILE:  ret->m_text = mrstock_str(MR_STR_FILE);  break;
+			default:
+				if( ths->m_last_msg_->m_text ) {
+					ret->m_text = safe_strdup(ths->m_last_msg_->m_text);
+					mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
+				}
+				break;
 		}
 
 		ret->m_timestamp = ths->m_last_msg_->m_timestamp;
@@ -618,6 +626,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	time_t        timestamp = time(NULL);
 	char*         text = NULL;
 	mrparam_t*    param = mrparam_new();
+	size_t        bytes = 0;
 	uint32_t      msg_id = 0;
 	int           locked = 0;
 	sqlite3_stmt* stmt;
@@ -637,7 +646,15 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		text = safe_strdup(msg->m_text); /* the caller should check if the message text is empty */
 	}
 	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
-		;
+		char* file = mrparam_get(msg->m_param, 'f', NULL);
+		if( file ) {
+			bytes = mr_filebytes(file);
+			mrlog_info("Attaching %s with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
+			free(file);
+		}
+		else {
+			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);
+		}
 	}
 	else {
 		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
@@ -648,8 +665,8 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	locked = 1;
 
 		/* add message to the database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstp,
-			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param) VALUES (?,?,?, ?,?,?, ?);");
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
+			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param,bytes) VALUES (?,?,?, ?,?,?, ?,?);");
 		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
 		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
 		sqlite3_bind_int64(stmt, 3, timestamp);
@@ -657,6 +674,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
 		sqlite3_bind_text (stmt, 6, text? text : "",  -1, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 7, param->m_packed, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 8, bytes);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -668,11 +686,10 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		/* ... */
 
 		/* finalize message object on database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_msgs_SET_cb_WHERE_i,
-			"UPDATE msgs SET chat_id=?, bytes=? WHERE id=?;");
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_msgs_SET_c_WHERE_i,
+			"UPDATE msgs SET chat_id=? WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, ths->m_id);
-		sqlite3_bind_int(stmt, 2, 0);
-		sqlite3_bind_int(stmt, 3, msg_id);
+		sqlite3_bind_int(stmt, 2, msg_id);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
