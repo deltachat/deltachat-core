@@ -601,6 +601,18 @@ cleanup:
 }
 
 
+void mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	mrsqlite3_lock(ths->m_sql);
+		mr_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
+	mrsqlite3_unlock(ths->m_sql);
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/

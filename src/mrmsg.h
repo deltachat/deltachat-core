@@ -91,7 +91,7 @@ int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offse
 size_t       mr_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
 size_t       mr_get_strangers_msg_cnt_ (mrmailbox_t*);
 int          mr_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
-
+void         mr_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 
 #ifdef __cplusplus
 } /* /extern "C" */

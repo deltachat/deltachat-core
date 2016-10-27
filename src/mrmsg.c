@@ -180,13 +180,23 @@ int mr_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* stati
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* s = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_m, "SELECT id FROM msgs WHERE rfc724_mid=?;");
-	sqlite3_bind_text(s, 1, rfc724_mid, -1, SQLITE_STATIC);
-	if( sqlite3_step(s) != SQLITE_ROW ) {
+	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_m, "SELECT id FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0; /* record does not exist */
 	}
 
 	return 1; /* record does exist */
+}
+
+
+void mr_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32_t chat_id)
+{
+    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
+		"UPDATE msgs SET chat_id=? WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, msg_id);
+	sqlite3_step(stmt);
 }
 
 

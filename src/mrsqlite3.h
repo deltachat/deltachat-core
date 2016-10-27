@@ -89,7 +89,7 @@ enum
 	,SELECT_icfttstpb_FROM_msgs_i
 	,INSERT_INTO_msgs_mcftttstp
 	,INSERT_INTO_msgs_cfttstpb
-	,UPDATE_msgs_SET_c_WHERE_i
+	,UPDATE_msgs_SET_chat_id_WHERE_id
 
 	,PREDEFINED_CNT /* must be last */
 };

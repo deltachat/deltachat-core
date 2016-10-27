@@ -116,11 +116,12 @@ int                  mrmailbox_fetch                (mrmailbox_t*);
 
 /* Handle chats. */
 mrchatlist_t*        mrmailbox_get_chatlist              (mrmailbox_t*); /* the result must be unref'd */
-mrchat_t*            mrmailbox_get_chat_by_id            (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
+mrchat_t*            mrmailbox_get_chat_by_id            (mrmailbox_t*, uint32_t chat_id); /* the result must be unref'd */
 uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id);
 
 /* Get messages - for a list, see mrchat_get_msglist() */
-mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t id); /* the result must be unref'd */
+mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
+void                 mrmailbox_delete_msg_by_id     (mrmailbox_t*, uint32_t msg_id);
 
 /* Get contacts. */
 mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);

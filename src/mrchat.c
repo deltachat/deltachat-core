@@ -685,14 +685,8 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 		/* ... */
 
-		/* finalize message object on database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_msgs_SET_c_WHERE_i,
-			"UPDATE msgs SET chat_id=? WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, ths->m_id);
-		sqlite3_bind_int(stmt, 2, msg_id);
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			goto cleanup;
-		}
+		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
+		mr_update_msg_chat_id_(ths->m_mailbox, msg_id, ths->m_id);
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	locked = 0;
