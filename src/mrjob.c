@@ -19,15 +19,16 @@
  *
  *******************************************************************************
  *
- * File:    mrmsglist.c
+ * File:    mrjob.c
  * Authors: Björn Petersen
- * Purpose: List of messages
+ * Purpose: Handle jobs
  *
  ******************************************************************************/
 
 
 #include <stdlib.h>
 #include "mrmailbox.h"
+#include "mrjob.h"
 
 
 /*******************************************************************************
@@ -35,71 +36,21 @@
  ******************************************************************************/
 
 
-mrmsglist_t* mrmsglist_new(mrchat_t* chat)
+int mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char* param)
 {
-	mrmsglist_t* ths = NULL;
+	time_t        timestamp = time(NULL);
+	sqlite3_stmt* stmt;
 
-	if( (ths=malloc(sizeof(mrmsglist_t)))==NULL ) {
-		exit(21); /* cannot allocate little memory, unrecoverable error */
-	}
-
-	ths->m_chat = chat;
-	ths->m_msgs = carray_new(128);
-
-	return ths;
-}
-
-
-void mrmsglist_unref(mrmsglist_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	mrmsglist_empty(ths);
-	if( ths->m_msgs ) {
-		carray_free(ths->m_msgs);
-	}
-
-	free(ths);
-}
-
-
-void mrmsglist_empty(mrmsglist_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	if( ths->m_msgs )
-	{
-		int i, cnt = carray_count(ths->m_msgs);
-		for( i = 0; i < cnt; i++ )
-		{
-			mrmsg_t* msg = (mrmsg_t*)carray_get(ths->m_msgs, i);
-			mrmsg_unref(msg);
-		}
-		carray_set_size(ths->m_msgs, 0);
-	}
-}
-
-
-size_t mrmsglist_get_cnt(mrmsglist_t* ths)
-{
-	if( ths == NULL || ths->m_msgs == NULL ) {
+	stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_jobs_tafp,
+		"INSERT INTO jobs (timestamp, action, foreign_id, param) VALUES (?,?,?,?);");
+	sqlite3_bind_int64(stmt, 1, timestamp);
+	sqlite3_bind_int  (stmt, 2, action);
+	sqlite3_bind_int  (stmt, 3, foreign_id);
+	sqlite3_bind_text (stmt, 4, param? param : "",  -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		return 0;
 	}
 
-	return (size_t)carray_count(ths->m_msgs);
-}
-
-
-mrmsg_t* mrmsglist_get_msg_by_index (mrmsglist_t* ths, size_t index)
-{
-	if( ths == NULL || ths->m_msgs == NULL || index >= (size_t)carray_count(ths->m_msgs) ) {
-		return 0;
-	}
-
-	return mrmsg_ref((mrmsg_t*)carray_get(ths->m_msgs, index));
+	return sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
 }
 

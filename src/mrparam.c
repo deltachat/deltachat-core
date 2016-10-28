@@ -34,6 +34,48 @@
 #include "mrparam.h"
 
 
+/*******************************************************************************
+ * Tools
+ ******************************************************************************/
+
+
+static char* find_param(char* ths, int key, char** ret_p2)
+{
+	char *p1, *p2;
+
+	/* let p1 point to the start of the */
+	p1 = ths;
+	while( 1 ) {
+		if( p1 == NULL || *p1 == 0 ) {
+			return NULL;
+		}
+		else if( *p1 == key && p1[1] == '=' ) {
+			break;
+		}
+		else {
+			p1 = strchr(p1, '\n'); /* if `\r\n` is used, this `\r` is also skipped by this*/
+			if( p1 ) {
+				p1++;
+			}
+		}
+	}
+
+	/* let p2 point to the character _after_ the value - eiter `\n` or `\0` */
+	p2 = strchr(p1, '\n');
+	if( p2 == NULL ) {
+		p2 = &p1[strlen(p1)];
+	}
+
+	*ret_p2 = p2;
+	return p1;
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
 mrparam_t* mrparam_new()
 {
 	mrparam_t* ths = NULL;
@@ -89,43 +131,6 @@ void mrparam_set_packed(mrparam_t* ths, const char* packed)
 		free(ths->m_packed);
 		ths->m_packed = safe_strdup(packed);
 	}
-}
-
-
-/*******************************************************************************
- * Access single parameters
- ******************************************************************************/
-
-
-static char* find_param(char* ths, int key, char** ret_p2)
-{
-	char *p1, *p2;
-
-	/* let p1 point to the start of the */
-	p1 = ths;
-	while( 1 ) {
-		if( p1 == NULL || *p1 == 0 ) {
-			return NULL;
-		}
-		else if( *p1 == key && p1[1] == '=' ) {
-			break;
-		}
-		else {
-			p1 = strchr(p1, '\n'); /* if `\r\n` is used, this `\r` is also skipped by this*/
-			if( p1 ) {
-				p1++;
-			}
-		}
-	}
-
-	/* let p2 point to the character _after_ the value - eiter `\n` or `\0` */
-	p2 = strchr(p1, '\n');
-	if( p2 == NULL ) {
-		p2 = &p1[strlen(p1)];
-	}
-
-	*ret_p2 = p2;
-	return p1;
 }
 
 

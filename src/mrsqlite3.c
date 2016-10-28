@@ -35,6 +35,88 @@
 #include "mrcontact.h"
 
 
+/*******************************************************************************
+ * Tools
+ ******************************************************************************/
+
+
+void mrsqlite3_log_error(mrsqlite3_t* ths, const char* msg_format, ...)
+{
+	char*       msg;
+	const char* notSetUp = "SQLite object not set up.";
+	va_list     va;
+
+	va_start(va, msg_format);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_error("Bad log format string \"%s\".", msg_format); }
+			mrlog_error("%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
+		sqlite3_free(msg);
+	va_end(va);
+}
+
+
+sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
+{
+	sqlite3_stmt* retStmt = NULL;
+
+	if( ths == NULL || querystr == NULL ) {
+		mrlog_error("mrsqlite3_prepare_v2_(): Bad argument.");
+		return NULL; /* error */
+	}
+
+	if( ths->m_cobj == NULL )
+	{
+		mrlog_error("Database not ready for query: %s", querystr);
+		return NULL; /* error */
+	}
+
+	if( sqlite3_prepare_v2(ths->m_cobj,
+	         querystr, -1 /*read `sql` up to the first null-byte*/,
+	         &retStmt,
+	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
+	{
+		mrsqlite3_log_error(ths, "Query failed: %s", querystr);
+		return NULL; /* error */
+	}
+
+	/* success - the result mus be freed using sqlite3_finalize() */
+	return retStmt;
+}
+
+
+int mrsqlite3_execute(mrsqlite3_t* ths, const char* querystr)
+{
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
+	int           sqlState;
+
+	stmt = mrsqlite3_prepare_v2_(ths, querystr);
+	if( stmt == NULL ) {
+		goto sqlite3_execute_Error; /* error already logged */
+	}
+
+	sqlState = sqlite3_step(stmt);
+	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
+		mrsqlite3_log_error(ths, "mrsqlite3_execute_(): sqlite3_step() failed.");
+		goto sqlite3_execute_Error;
+	}
+
+	/* success - fall through to free objects */
+	ret = 1;
+
+	/* error */
+sqlite3_execute_Error:
+	if( stmt ) {
+		sqlite3_finalize(stmt);
+	}
+	return ret;
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
 mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 {
 	mrsqlite3_t* ths = NULL;
@@ -70,20 +152,6 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 
 	pthread_mutex_destroy(&ths->m_critical_);
 	free(ths);
-}
-
-
-void mrsqlite3_log_error(mrsqlite3_t* ths, const char* msg_format, ...)
-{
-	char*       msg;
-	const char* notSetUp = "SQLite object not set up.";
-	va_list     va;
-
-	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_error("Bad log format string \"%s\".", msg_format); }
-			mrlog_error("%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
-		sqlite3_free(msg);
-	va_end(va);
 }
 
 
@@ -162,9 +230,16 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unread messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 
+		mrsqlite3_execute(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+					" timestamp INTEGER,"
+					" action INTEGER,"
+					" foreign_id INTEGER,"
+					" param TEXT DEFAULT '');");
+		mrsqlite3_execute(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
+
 		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
 		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists(ths, "msgs") )
+		 || !mrsqlite3_table_exists(ths, "msgs") || !mrsqlite3_table_exists(ths, "jobs") )
 		{
 			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
 			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
@@ -257,64 +332,6 @@ sqlite3_stmt* mrsqlite3_predefine(mrsqlite3_t* ths, size_t idx, const char* quer
 	}
 
 	return ths->m_pd[idx];
-}
-
-
-sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
-{
-	sqlite3_stmt* retStmt = NULL;
-
-	if( ths == NULL || querystr == NULL ) {
-		mrlog_error("mrsqlite3_prepare_v2_(): Bad argument.");
-		return NULL; /* error */
-	}
-
-	if( ths->m_cobj == NULL )
-	{
-		mrlog_error("Database not ready for query: %s", querystr);
-		return NULL; /* error */
-	}
-
-	if( sqlite3_prepare_v2(ths->m_cobj,
-	         querystr, -1 /*read `sql` up to the first null-byte*/,
-	         &retStmt,
-	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
-	{
-		mrsqlite3_log_error(ths, "Query failed: %s", querystr);
-		return NULL; /* error */
-	}
-
-	/* success - the result mus be freed using sqlite3_finalize() */
-	return retStmt;
-}
-
-
-int mrsqlite3_execute(mrsqlite3_t* ths, const char* querystr)
-{
-	int           ret = 0;
-	sqlite3_stmt* stmt = NULL;
-	int           sqlState;
-
-	stmt = mrsqlite3_prepare_v2_(ths, querystr);
-	if( stmt == NULL ) {
-		goto sqlite3_execute_Error; /* error already logged */
-	}
-
-	sqlState = sqlite3_step(stmt);
-	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		mrsqlite3_log_error(ths, "mrsqlite3_execute_(): sqlite3_step() failed.");
-		goto sqlite3_execute_Error;
-	}
-
-	/* success - fall through to free objects */
-	ret = 1;
-
-	/* error */
-sqlite3_execute_Error:
-	if( stmt ) {
-		sqlite3_finalize(stmt);
-	}
-	return ret;
 }
 
 

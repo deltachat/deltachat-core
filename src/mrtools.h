@@ -33,46 +33,35 @@ extern "C" {
 #endif
 
 
-#define MR_VERSION_MAJOR    0
-#define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 2
-
-
-char*   mr_get_version_str         (void);   /* the return value must be free()'d */
-char*   mr_timestamp_to_str        (time_t); /* the return value must be free()'d */
-
-
 /*** library-private **********************************************************/
 
-char*   mr_strlower                (const char*); /* the result must be free()'d */
-char*   mr_decode_header_string    (const char* in); /* the result must be free()'d */
-void    mr_unwrap_str              (char*, int approx_bytes); /* unwrap lines in the given buffer */
-void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
+/* string tools */
+char*   safe_strdup                (const char*); /* safe_strdup() returns empty string if NULL is given, never returns NULL (exists on errors) */
 void    mr_ltrim                   (char*);
 void    mr_rtrim                   (char*);
 void    mr_trim                    (char*);
-carray* mr_split_into_lines        (const char* buf_terminated);
+char*   mr_strlower                (const char*); /* the result must be free()'d */
+char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d.  Internally, it's faster to call sqlite3_mprintf()/sqlite3_free() directly. */
+void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
+void    mr_unwrap_str              (char*, int approx_bytes); /* unwrap lines in the given buffer */
+carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);
-
-/* safe_strdup() returns empty string if NULL is given, else same as strdup(),
-never returns NULL (exists on errors) */
-char*   safe_strdup                (const char*);
-
-/* A wrapper around sqlite3_mprintf() - the result must be free()'d, maybe by the user.
-Internally, it's faster to call sqlite3_mprintf()/sqlite3_free() directly. */
-char*   mr_mprintf                 (const char* format, ...);
-
+char*   mr_decode_header_string    (const char* in); /* the result must be free()'d */
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 
+/* carray tools */
+int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
+
+/* date/time tools */
 #define MR_INVALID_TIMESTAMP       (-1)
 time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
-int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
+char*   mr_timestamp_to_str        (time_t); /* the return value must be free()'d */
 
 /* file tools */
 size_t  mr_filebytes               (const char* filename);
 
-/* misc */
+/* macros */
 #define MR_INIT_REFERENCE \
 	if( ths == NULL ) { return NULL; } \
 	ths->m_refcnt = 1;
@@ -91,7 +80,6 @@ size_t  mr_filebytes               (const char* filename);
 #define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)
 #define MR_MIN(X, Y) (((X) < (Y))? (X) : (Y))
 #define MR_MAX(X, Y) (((X) > (Y))? (X) : (Y))
-
 
 
 #ifdef __cplusplus

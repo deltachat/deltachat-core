@@ -41,11 +41,12 @@
 #include "mrcontact.h"
 #include "mrtools.h"
 #include "mrlog.h"
+#include "mrjob.h"
 #include "mrloginparam.h"
 
 
 /*******************************************************************************
- * Init/Exit
+ * Tools
  ******************************************************************************/
 
 
@@ -54,6 +55,35 @@ static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uint
 	mrlog_warning("Unhandled event: %i (%i, %i)", (int)event, (int)data1, (int)data2);
 	return 0;
 }
+
+
+size_t mrmailbox_receive_imf_(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
+{
+	/* Receive an IMF as an result to calling Fetch() or Import*()
+	the new IMF may be old or new and should be parsed, contacts created etc.
+	However, the caller should make sure, it does not exist in the database. */
+
+	size_t         created_db_entries = 0;
+	mrimfparser_t* parser = mrimfparser_new_(ths);
+
+	created_db_entries = mrimfparser_imf2msg_(parser, imf_raw_not_terminated, imf_raw_bytes);
+	if( created_db_entries == 0 ) {
+		goto ReceiveCleanup; /* error already logged */
+	}
+
+	/* Cleanup */
+ReceiveCleanup:
+	if( parser ) {
+		mrimfparser_unref_(parser);
+	}
+
+	return created_db_entries;
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
 
 
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
@@ -391,229 +421,6 @@ int mrmailbox_fetch(mrmailbox_t* ths)
 
 
 /*******************************************************************************
- * Receive an IMF as an result to calling Fetch() or Import*()
- * the new IMF may be old or new and should be parsed, contacts created etc.
- * However, the caller should make sure, it does not exist in the database.
- ******************************************************************************/
-
-
-size_t mrmailbox_receive_imf_(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes)
-{
-	size_t         created_db_entries = 0;
-	mrimfparser_t* parser = mrimfparser_new_(ths);
-
-	created_db_entries = mrimfparser_imf2msg_(parser, imf_raw_not_terminated, imf_raw_bytes);
-	if( created_db_entries == 0 ) {
-		goto ReceiveCleanup; /* error already logged */
-	}
-
-	/* Cleanup */
-ReceiveCleanup:
-	if( parser ) {
-		mrimfparser_unref_(parser);
-	}
-
-	return created_db_entries;
-}
-
-
-/*******************************************************************************
- * Handle contacts
- ******************************************************************************/
-
-
-mrcontactlist_t* mrmailbox_get_contactlist(mrmailbox_t* ths)
-{
-	return mrcontactlist_new(ths);
-}
-
-
-mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
-{
-	mrcontact_t* ret = mrcontact_new(ths);
-
-	if( contact_id == MR_CONTACT_ID_SELF )
-	{
-		ret->m_id   = contact_id;
-		ret->m_name = mrstock_str(MR_STR_YOU);
-	}
-	else
-	{
-		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-
-			if( !mrcontact_load_from_db_(ret, contact_id) ) {
-				mrcontact_unref(ret);
-				ret = NULL;
-			}
-
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-	}
-
-	return ret; /* may be NULL */
-}
-
-
-/*******************************************************************************
- * Handle chats
- ******************************************************************************/
-
-
-mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
-{
-	int success = 0;
-	int db_locked = 0;
-	mrchatlist_t* obj = mrchatlist_new(ths);
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-	db_locked = 1;
-
-	if( !mrchatlist_load_from_db_(obj) ) {
-		goto GetChatsCleanup;
-	}
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-GetChatsCleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-	}
-
-	if( success ) {
-		return obj;
-	}
-	else {
-		mrchatlist_unref(obj);
-		return NULL;
-	}
-}
-
-
-mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
-{
-	int success = 0;
-	int db_locked = 0;
-	mrchat_t* obj = mrchat_new(ths);
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-	db_locked = 1;
-
-	if( !mrchat_load_from_db_(obj, id) ) {
-		goto cleanup;
-	}
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-cleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-	}
-
-	if( success ) {
-		return obj;
-	}
-	else {
-		mrchat_unref(obj);
-		return NULL;
-	}
-}
-
-
-uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_id)
-{
-	uint32_t      chat_id = 0;
-	int           send_event = 0;
-	sqlite3_stmt* stmt;
-
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	mrsqlite3_lock(ths->m_sql);
-
-		chat_id = mr_real_chat_exists_(ths, MR_CHAT_NORMAL, contact_id);
-		if( chat_id ) {
-			mrlog_warning("Chat with contact %i already exists.", (int)contact_id);
-			goto cleanup;
-		}
-
-        if( 0==mr_real_contact_exists_(ths, contact_id) ) {
-			mrlog_error("Cannot create chat, contact %i does not exist.", (int)contact_id);
-			goto cleanup;
-        }
-
-		chat_id = mr_create_or_lookup_chat_record_(ths, contact_id);
-		if( chat_id ) {
-			send_event = 1;
-		}
-
-		stmt = mrsqlite3_predefine(ths->m_sql, UPDATE_contacts_SET_origin_WHERE_id, "UPDATE contacts SET origin=? WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, MR_ORIGIN_CREATE_CHAT);
-		sqlite3_bind_int(stmt, 2, contact_id);
-		sqlite3_step(stmt);
-
-cleanup:
-	mrsqlite3_unlock(ths->m_sql);
-
-	if( send_event ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
-	}
-
-	return chat_id;
-}
-
-
-/*******************************************************************************
- * Handle messages
- ******************************************************************************/
-
-
-mrmsg_t* mrmailbox_get_msg_by_id(mrmailbox_t* ths, uint32_t id)
-{
-	int success = 0;
-	int db_locked = 0;
-	mrmsg_t* obj = mrmsg_new();
-
-	mrsqlite3_lock(ths->m_sql);
-	db_locked = 1;
-
-		if( !mrmsg_load_from_db_(obj, ths, id) ) {
-			goto cleanup;
-		}
-
-		success = 1;
-
-cleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql);
-	}
-
-	if( success ) {
-		return obj;
-	}
-	else {
-		mrmsg_unref(obj);
-		return NULL;
-	}
-}
-
-
-void mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	mrsqlite3_lock(ths->m_sql);
-		mr_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
-	mrsqlite3_unlock(ths->m_sql);
-}
-
-
-/*******************************************************************************
  * Misc.
  ******************************************************************************/
 
@@ -779,10 +586,10 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
 
-		chats           = mr_get_chat_cnt_(ths);
-		real_msgs       = mr_get_real_msg_cnt_(ths);
-		strangers_msgs  = mr_get_strangers_msg_cnt_(ths);
-		contacts        = mr_get_real_contact_cnt_(ths);
+		chats           = mrmailbox_get_chat_cnt_(ths);
+		real_msgs       = mrmailbox_get_real_msg_cnt_(ths);
+		strangers_msgs  = mrmailbox_get_strangers_msg_cnt_(ths);
+		contacts        = mrmailbox_get_real_contact_cnt_(ths);
 
 		is_configured   = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
 
@@ -864,6 +671,12 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 	ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
 
 	return 1;
+}
+
+
+char* mrmailbox_get_version_str(void)
+{
+	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
 }
 
 
@@ -950,6 +763,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <key> missing.");
 		}
 	}
+	else if( strncmp(cmd, "delmsg ", 7)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int id = atoi(arg1);
+			ret = mrmailbox_delete_msg_by_id(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+		}
+	}
 	else if( strcmp(cmd, "info")==0 )
 	{
 		ret = mrmailbox_get_info(ths);
@@ -1010,34 +834,4 @@ Done:
 	return ret;
 }
 
-
-void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
-{
-	carray* lines = NULL;
-	size_t  i, iCnt;
-
-	if( ths == NULL || adr_book == NULL ) {
-		goto Cleanup;
-	}
-
-	if( (lines=mr_split_into_lines(adr_book))==NULL ) {
-		goto Cleanup;
-	}
-
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
-
-		iCnt = carray_count(lines);
-		for( i = 0; i+1 < iCnt; i += 2 ) {
-			char* name = (char*)carray_get(lines, i);
-			char* addr = (char*)carray_get(lines, i+1);
-			mr_normalize_name(name);
-			mr_trim(addr);
-			mr_add_or_lookup_contact_(ths, name, addr, MR_ORIGIN_ADRESS_BOOK);
-		}
-
-	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
-
-Cleanup:
-	mr_free_splitted_lines(lines);
-}
 

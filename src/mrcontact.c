@@ -34,135 +34,9 @@
 #include "mrlog.h"
 
 
-mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
-{
-	mrcontact_t* ths = NULL;
-
-	if( (ths=malloc(sizeof(mrcontact_t)))==NULL ) {
-		exit(19); /* cannot allocate little memory, unrecoverable error */
-	}
-
-	MR_INIT_REFERENCE
-
-	ths->m_mailbox  = mailbox;
-	ths->m_name     = NULL;
-	ths->m_addr     = NULL;
-	ths->m_origin   = 0;
-	ths->m_blocked  = 0;
-
-	return ths;
-}
-
-
-mrcontact_t* mrcontact_ref(mrcontact_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
-void mrcontact_unref(mrcontact_t* ths)
-{
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
-
-	mrcontact_empty(ths);
-	free(ths);
-}
-
-
-void mrcontact_empty(mrcontact_t* ths)
-{
-	if( ths == NULL ) {
-		return; /* error */
-	}
-
-	free(ths->m_name); /* it is safe to call free(NULL) */
-	ths->m_name = NULL;
-
-	free(ths->m_addr);
-	ths->m_addr = NULL;
-}
-
-
-int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
-{
-	int           success = 0;
-	sqlite3_stmt* stmt;
-
-	if( ths == NULL || ths->m_mailbox == NULL ) {
-		return 0; /* error */
-	}
-
-	mrcontact_empty(ths);
-
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
-		"SELECT name, addr, origin, blocked FROM contacts WHERE id=?;");
-	if( stmt == NULL ) {
-		goto Cleanup;
-	}
-	sqlite3_bind_int(stmt, 1, contact_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		goto Cleanup;
-	}
-
-	ths->m_id       = contact_id;
-	ths->m_name     = safe_strdup((char*)sqlite3_column_text(stmt, 0));
-	ths->m_addr     = safe_strdup((char*)sqlite3_column_text(stmt, 1));
-	ths->m_origin   =                    sqlite3_column_int (stmt, 2);
-	ths->m_blocked  =                    sqlite3_column_int (stmt, 3);
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-Cleanup:
-	return success;
-}
-
-
 /*******************************************************************************
- * Static funcions
+ * Tools
  ******************************************************************************/
-
-
-int mr_real_contact_exists_(mrmailbox_t* mailbox, uint32_t contact_id)
-{
-	sqlite3_stmt* stmt;
-	int           ret = 0;
-
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
-	 || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
-		return 0;
-	}
-
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_id,
-		"SELECT id FROM contacts WHERE id=?;");
-	sqlite3_bind_int(stmt, 1, contact_id);
-
-	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		ret = 1;
-	}
-
-	return ret;
-}
-
-
-size_t mr_get_real_contact_cnt_(mrmailbox_t* mailbox)
-{
-	sqlite3_stmt* stmt;
-
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
-		return 0;
-	}
-
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
-	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	return sqlite3_column_int(stmt, 0);
-}
 
 
 void mr_normalize_name(char* full_name)
@@ -211,10 +85,50 @@ char* mr_get_first_name(const char* full_name)
 }
 
 
-uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
-                                    const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
-                                    const char*  addr,
-                                    int          origin )
+int mrmailbox_real_contact_exists_(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	sqlite3_stmt* stmt;
+	int           ret = 0;
+
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
+	 || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_id,
+		"SELECT id FROM contacts WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
+
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		ret = 1;
+	}
+
+	return ret;
+}
+
+
+size_t mrmailbox_get_real_contact_cnt_(mrmailbox_t* mailbox)
+{
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
+	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+	return sqlite3_column_int(stmt, 0);
+}
+
+
+uint32_t mrmailbox_add_or_lookup_contact_( mrmailbox_t* mailbox,
+                                           const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
+                                           const char*  addr,
+                                           int          origin )
 {
 	sqlite3_stmt* stmt;
 	uint32_t      row_id = 0;
@@ -300,7 +214,7 @@ uint32_t mr_add_or_lookup_contact_( mrmailbox_t* mailbox,
 }
 
 
-int mr_is_known_contact_(mrmailbox_t* mailbox, uint32_t contact_id)
+int mrmailbox_is_known_contact_(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_known = 0;
 	mrcontact_t* ths = mrcontact_new(mailbox);
@@ -329,4 +243,124 @@ Cleanup:
 }
 
 
+int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
+{
+	int           success = 0;
+	sqlite3_stmt* stmt;
+
+	if( ths == NULL || ths->m_mailbox == NULL ) {
+		return 0; /* error */
+	}
+
+	mrcontact_empty(ths);
+
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
+		"SELECT name, addr, origin, blocked FROM contacts WHERE id=?;");
+	if( stmt == NULL ) {
+		goto Cleanup;
+	}
+	sqlite3_bind_int(stmt, 1, contact_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto Cleanup;
+	}
+
+	ths->m_id       = contact_id;
+	ths->m_name     = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+	ths->m_addr     = safe_strdup((char*)sqlite3_column_text(stmt, 1));
+	ths->m_origin   =                    sqlite3_column_int (stmt, 2);
+	ths->m_blocked  =                    sqlite3_column_int (stmt, 3);
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+Cleanup:
+	return success;
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
+{
+	carray* lines = NULL;
+	size_t  i, iCnt;
+
+	if( ths == NULL || adr_book == NULL ) {
+		goto Cleanup;
+	}
+
+	if( (lines=mr_split_into_lines(adr_book))==NULL ) {
+		goto Cleanup;
+	}
+
+	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+		iCnt = carray_count(lines);
+		for( i = 0; i+1 < iCnt; i += 2 ) {
+			char* name = (char*)carray_get(lines, i);
+			char* addr = (char*)carray_get(lines, i+1);
+			mr_normalize_name(name);
+			mr_trim(addr);
+			mrmailbox_add_or_lookup_contact_(ths, name, addr, MR_ORIGIN_ADRESS_BOOK);
+		}
+
+	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+
+Cleanup:
+	mr_free_splitted_lines(lines);
+}
+
+
+mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
+{
+	mrcontact_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrcontact_t)))==NULL ) {
+		exit(19); /* cannot allocate little memory, unrecoverable error */
+	}
+
+	MR_INIT_REFERENCE
+
+	ths->m_mailbox  = mailbox;
+	ths->m_name     = NULL;
+	ths->m_addr     = NULL;
+	ths->m_origin   = 0;
+	ths->m_blocked  = 0;
+
+	return ths;
+}
+
+
+mrcontact_t* mrcontact_ref(mrcontact_t* ths)
+{
+	MR_INC_REFERENCE
+}
+
+
+void mrcontact_unref(mrcontact_t* ths)
+{
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+
+	mrcontact_empty(ths);
+	free(ths);
+}
+
+
+void mrcontact_empty(mrcontact_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	free(ths->m_name); /* it is safe to call free(NULL) */
+	ths->m_name = NULL;
+
+	free(ths->m_addr);
+	ths->m_addr = NULL;
+}
 

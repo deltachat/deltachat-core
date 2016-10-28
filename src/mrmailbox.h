@@ -60,6 +60,11 @@ extern "C" {
 typedef struct mrmailbox_t mrmailbox_t;
 
 
+#define MR_VERSION_MAJOR    0
+#define MR_VERSION_MINOR    1
+#define MR_VERSION_REVISION 2
+
+
 /* Callback function that is called on updates, state changes etc.
 - The callback may be called from _any_ thread, not only the main/GUI thread!
 - The callback should return _fast_, for GUI updates etc. you should
@@ -121,7 +126,7 @@ uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t
 
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
-void                 mrmailbox_delete_msg_by_id     (mrmailbox_t*, uint32_t msg_id);
+int                  mrmailbox_delete_msg_by_id     (mrmailbox_t*, uint32_t msg_id);
 
 /* Get contacts. */
 mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
@@ -148,7 +153,7 @@ char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-lin
 int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all tables but leaves server configuration. */
 char*                mrmailbox_execute              (mrmailbox_t*, const char* cmd); /* execute a simple command; the returned result must be free()'d */
 void                 mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
-
+char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
 
 /*** library-private **********************************************************/
 

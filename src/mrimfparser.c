@@ -72,30 +72,6 @@
 #include "mrlog.h"
 
 
-mrimfparser_t* mrimfparser_new_(mrmailbox_t* mailbox)
-{
-	mrimfparser_t* ths = NULL;
-
-	if( (ths=malloc(sizeof(mrimfparser_t)))==NULL ) {
-		return NULL; /* error */
-	}
-
-	ths->m_mailbox = mailbox;
-
-	return ths;
-}
-
-
-void mrimfparser_unref_(mrimfparser_t* ths)
-{
-	if( ths == NULL ) {
-		return; /* error */
-	}
-
-	free(ths);
-}
-
-
 /*******************************************************************************
  * Decoder MIME header
  ******************************************************************************/
@@ -138,7 +114,7 @@ static void add_or_lookup_contact2_( mrmailbox_t* mailbox,
 		mr_normalize_name(display_name_dec);
 	}
 
-	uint32_t row_id = mr_add_or_lookup_contact_(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin);
+	uint32_t row_id = mrmailbox_add_or_lookup_contact_(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin);
 
 	free(display_name_dec);
 
@@ -209,6 +185,35 @@ static struct mailimf_field* find_field(mrmimeparser_t* mime_parser, int wanted_
 	}
 
 	return NULL;
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+mrimfparser_t* mrimfparser_new_(mrmailbox_t* mailbox)
+{
+	mrimfparser_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrimfparser_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	ths->m_mailbox = mailbox;
+
+	return ths;
+}
+
+
+void mrimfparser_unref_(mrimfparser_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	free(ths);
 }
 
 
@@ -319,7 +324,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 				if( carray_count(from_list)>=1 )
 				{
 					from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-					if( mr_is_known_contact_(ths->m_mailbox, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
+					if( mrmailbox_is_known_contact_(ths->m_mailbox, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
 						incoming_from_known_sender = 1;
 					}
 				}
@@ -389,9 +394,9 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 		{
 			state = MR_IN_READ; /* TODO: New messages should ge tthe state MR_IN_UNREAD here */
 			to_id = MR_CONTACT_ID_SELF;
-			chat_id = mr_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, from_id);
+			chat_id = mrmailbox_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 && incoming_from_known_sender ) {
-				chat_id = mr_create_or_lookup_chat_record_(ths->m_mailbox, from_id);
+				chat_id = mrmailbox_create_or_lookup_chat_record_(ths->m_mailbox, from_id);
 			}
 		}
 		else /* outgoing */
@@ -400,7 +405,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-				chat_id = mr_create_or_lookup_chat_record_(ths->m_mailbox, to_id);
+				chat_id = mrmailbox_create_or_lookup_chat_record_(ths->m_mailbox, to_id);
 			}
 		}
 
@@ -421,7 +426,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			}
 		}
 
-		if( mr_message_id_exists_(ths->m_mailbox, rfc724_mid) ) {
+		if( mrmailbox_message_id_exists_(ths->m_mailbox, rfc724_mid) ) {
 			goto Imf2Msg_Done; /* success - the message is already added to our database  (this also implies the contacts - so we can do a ROLLBACK) */
 		}
 
@@ -464,7 +469,7 @@ size_t mrimfparser_imf2msg_(mrimfparser_t* ths, const char* imf_raw_not_terminat
 			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
 			{
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
-				uint32_t ghost_chat_id = mr_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, ghost_to_id);
+				uint32_t ghost_chat_id = mrmailbox_real_chat_exists_(ths->m_mailbox, MR_CHAT_NORMAL, ghost_to_id);
 				if(ghost_chat_id==0) {
 					ghost_chat_id = MR_CHAT_ID_STRANGERS;
 				}

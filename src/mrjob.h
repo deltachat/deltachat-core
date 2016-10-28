@@ -19,15 +19,15 @@
  *
  *******************************************************************************
  *
- * File:    mrloginparam.h
+ * File:    mrjob.h
  * Authors: Björn Petersen
- * Purpose: Handle IMAP/POP3/SMTP parameters
+ * Purpose: Handle jobs
  *
  ******************************************************************************/
 
 
-#ifndef __MRLOGINPARAM_H__
-#define __MRLOGINPARAM_H__
+#ifndef __MRJOB_H__
+#define __MRJOB_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,33 +35,15 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct mrloginparam_t
-{
-	/* IMAP/POP3 - all pointers may be NULL if unset, public read */
-	char*         m_addr;
-	char*         m_mail_server;
-	char*         m_mail_user;
-	char*         m_mail_pw;
-	uint16_t      m_mail_port;
+#define MRJ_DELETE_MSG_FROM_SERVER   100    /* low priority*/
+#define MRJ_SEND_MSG_TO_IMAP         800
+#define MRJ_SEND_MSG_TO_SMTP         900    /* high priority*/
 
-	/* SMTP - all pointers may be NULL if unset, public read */
-	char*         m_send_server;
-	char*         m_send_user;
-	char*         m_send_pw;
-	uint16_t      m_send_port;
-} mrloginparam_t;
-
-
-mrloginparam_t* mrloginparam_new      ();
-void            mrloginparam_unref    (mrloginparam_t*);
-void            mrloginparam_empty    (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
-void            mrloginparam_read_    (mrloginparam_t*, mrsqlite3_t*, const char* prefix);
-void            mrloginparam_write_   (const mrloginparam_t*, mrsqlite3_t*, const char* prefix);
-void            mrloginparam_complete (mrloginparam_t*); /* tries to set missing parameters from at least m_addr and m_mail_pw */
+int     mrjob_add_    (mrmailbox_t*, int action, int foreign_id, const char* param);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRLOGINPARAM_H__ */
+#endif /* __MRJOB_H__ */
 

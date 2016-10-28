@@ -37,34 +37,8 @@
 
 
 /*******************************************************************************
- * string tools
+ * String tools
  ******************************************************************************/
-
-
-char* mr_get_version_str(void)
-{
-	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
-}
-
-
-char* mr_mprintf(const char* format, ...)
-{
-	char *sqlite_str, *c_string;
-
-	va_list argp;
-	va_start(argp, format); /* expects the last non-variable argument as the second parameter */
-		sqlite_str = sqlite3_vmprintf(format, argp);
-	va_end(argp);
-
-	if( sqlite_str == NULL ) {
-		return safe_strdup("ErrFmt"); /* error - the result must be free()'d */
-	}
-
-	/* as sqlite-strings must be freed using sqlite3_free() instead of a simple free(), convert it to a normal c-string */
-	c_string = safe_strdup(sqlite_str); /* exists on errors */
-	sqlite3_free(sqlite_str);
-	return c_string; /* success - the result must be free()'d */
-}
 
 
 char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
@@ -82,83 +56,6 @@ char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL)
 		ret[0] = 0;
 	}
 	return ret;
-}
-
-
-char* mr_strlower(const char* in) /* the result must be free()'d */
-{
-	char* out = safe_strdup(in);
-	if( out == NULL ) {
-		return NULL;
-	}
-
-	char* p = out;
-	for ( ; *p; p++) {
-		*p = tolower(*p);
-	}
-
-	return out;
-}
-
-
-void mr_unwrap_str(char* buf, int approx_bytes)
-{
-	/* Function unwraps the given string and removes unnecessary whitespace.
-	Function stops processing after approx_bytes are processed.
-	(as we're using UTF-8, this is not always the lenght! Moreover, we cannot split the string at any place for the same reason).
-	*/
-
-	int lastIsCharacter = 0;
-	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
-	while( *p1 ) {
-		if( *p1 > ' ' ) {
-			lastIsCharacter = 1;
-		}
-		else {
-			if( lastIsCharacter ) {
-				if( ((uintptr_t)p1 - (uintptr_t)buf) > (uintptr_t)approx_bytes ) {
-					*p1 = 0; /* approx_len approximately reached (take care when wraping at non-spaces - we're using UTF-8 characters)*/
-					break;
-				}
-				lastIsCharacter = 0;
-				*p1 = ' ';
-			}
-			else {
-				*p1 = '\r'; /* removed below */
-			}
-		}
-
-		p1++;
-	}
-
-	mr_remove_cr_chars(buf);
-}
-
-
-void mr_remove_cr_chars(char* buf)
-{
-	/* remove all carriage return characters (`\r`) from the null-terminated buffer;
-	the buffer itself is modified for this purpose */
-
-	const char* p1 = buf; /* search for first `\r` */
-	while( *p1 ) {
-		if( *p1 == '\r' ) {
-			break;
-		}
-		p1++;
-	}
-
-	char* p2 = (char*)p1; /* p1 is `\r` or null-byte; start removing `\r` */
-	while( *p1 ) {
-		if( *p1 != '\r' ) {
-			*p2 = *p1;
-			p2++;
-		}
-		p1++;
-	}
-
-	/* add trailing null-byte */
-	*p2 = 0;
 }
 
 
@@ -204,6 +101,103 @@ void mr_trim(char* buf)
 {
 	mr_ltrim(buf);
 	mr_rtrim(buf);
+}
+
+
+char* mr_strlower(const char* in) /* the result must be free()'d */
+{
+	char* out = safe_strdup(in);
+	if( out == NULL ) {
+		return NULL;
+	}
+
+	char* p = out;
+	for ( ; *p; p++) {
+		*p = tolower(*p);
+	}
+
+	return out;
+}
+
+
+char* mr_mprintf(const char* format, ...)
+{
+	char *sqlite_str, *c_string;
+
+	va_list argp;
+	va_start(argp, format); /* expects the last non-variable argument as the second parameter */
+		sqlite_str = sqlite3_vmprintf(format, argp);
+	va_end(argp);
+
+	if( sqlite_str == NULL ) {
+		return safe_strdup("ErrFmt"); /* error - the result must be free()'d */
+	}
+
+	/* as sqlite-strings must be freed using sqlite3_free() instead of a simple free(), convert it to a normal c-string */
+	c_string = safe_strdup(sqlite_str); /* exists on errors */
+	sqlite3_free(sqlite_str);
+	return c_string; /* success - the result must be free()'d */
+}
+
+
+void mr_remove_cr_chars(char* buf)
+{
+	/* remove all carriage return characters (`\r`) from the null-terminated buffer;
+	the buffer itself is modified for this purpose */
+
+	const char* p1 = buf; /* search for first `\r` */
+	while( *p1 ) {
+		if( *p1 == '\r' ) {
+			break;
+		}
+		p1++;
+	}
+
+	char* p2 = (char*)p1; /* p1 is `\r` or null-byte; start removing `\r` */
+	while( *p1 ) {
+		if( *p1 != '\r' ) {
+			*p2 = *p1;
+			p2++;
+		}
+		p1++;
+	}
+
+	/* add trailing null-byte */
+	*p2 = 0;
+}
+
+
+void mr_unwrap_str(char* buf, int approx_bytes)
+{
+	/* Function unwraps the given string and removes unnecessary whitespace.
+	Function stops processing after approx_bytes are processed.
+	(as we're using UTF-8, this is not always the lenght! Moreover, we cannot split the string at any place for the same reason).
+	*/
+
+	int lastIsCharacter = 0;
+	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
+	while( *p1 ) {
+		if( *p1 > ' ' ) {
+			lastIsCharacter = 1;
+		}
+		else {
+			if( lastIsCharacter ) {
+				if( ((uintptr_t)p1 - (uintptr_t)buf) > (uintptr_t)approx_bytes ) {
+					*p1 = 0; /* approx_len approximately reached (take care when wraping at non-spaces - we're using UTF-8 characters)*/
+					break;
+				}
+				lastIsCharacter = 0;
+				*p1 = ' ';
+			}
+			else {
+				*p1 = '\r'; /* removed below */
+			}
+		}
+
+		p1++;
+	}
+
+	mr_remove_cr_chars(buf);
 }
 
 
@@ -265,6 +259,7 @@ char* mr_decode_header_string(const char* in)
 
 	return out; /* must be free()'d by the caller */
 }
+
 
 /* ===================================================================
  * UTF-7 conversion routines as in RFC 2192
@@ -644,3 +639,4 @@ size_t mr_filebytes(const char* filename)
 	stat(filename, &st);
 	return (size_t)st.st_size;
 }
+

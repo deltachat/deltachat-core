@@ -34,26 +34,9 @@
 #include "mrmimeparser.h"
 
 
-mrsimplify_t* mrsimplify_new()
-{
-	mrsimplify_t* ths = NULL;
-
-	if( (ths=malloc(sizeof(mrsimplify_t)))==NULL ) {
-		return NULL; /* error */
-	}
-
-	return ths;
-}
-
-
-void mrsimplify_unref(mrsimplify_t* ths)
-{
-	if( ths == NULL ) {
-		return; /* error */
-	}
-
-	free(ths);
-}
+/*******************************************************************************
+ * Tools
+ ******************************************************************************/
 
 
 static int mr_is_empty_line(const char* buf)
@@ -97,6 +80,34 @@ static int mr_is_quoted_headline(const char* buf)
 	}
 
 	return 0;
+}
+
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+mrsimplify_t* mrsimplify_new()
+{
+	mrsimplify_t* ths = NULL;
+
+	if( (ths=malloc(sizeof(mrsimplify_t)))==NULL ) {
+		return NULL; /* error */
+	}
+
+	return ths;
+}
+
+
+void mrsimplify_unref(mrsimplify_t* ths)
+{
+	if( ths == NULL ) {
+		return; /* error */
+	}
+
+	free(ths);
 }
 
 

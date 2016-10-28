@@ -75,23 +75,22 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-mrmsg_t*     mrmsg_new               ();
-void         mrmsg_unref             (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
+mrmsg_t*     mrmsg_new                    ();
+mrmsg_t*     mrmsg_ref                    (mrmsg_t*);
+void         mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
+void         mrmsg_empty                  (mrmsg_t*);
 
 
 /*** library-private **********************************************************/
 
-mrmsg_t*     mrmsg_ref               (mrmsg_t*);
-void         mrmsg_empty             (mrmsg_t*);
-int          mrmsg_load_from_db_     (mrmsg_t*, mrmailbox_t*, uint32_t id);
+#define      MR_MSG_FIELDS                    " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
+int          mrmsg_set_from_stmt_             (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+int          mrmsg_load_from_db_              (mrmsg_t*, mrmailbox_t*, uint32_t id);
+size_t       mrmailbox_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
+size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
+int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
+void         mrmailbox_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 
-#define      MR_MSG_FIELDS           " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
-int          mrmsg_set_from_stmt_    (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
-
-size_t       mr_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
-size_t       mr_get_strangers_msg_cnt_ (mrmailbox_t*);
-int          mr_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
-void         mr_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 
 #ifdef __cplusplus
 } /* /extern "C" */

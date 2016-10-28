@@ -91,6 +91,8 @@ enum
 	,INSERT_INTO_msgs_cfttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 
+	,INSERT_INTO_jobs_tafp
+
 	,PREDEFINED_CNT /* must be last */
 };
 

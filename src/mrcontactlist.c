@@ -30,6 +30,11 @@
 #include "mrmailbox.h"
 
 
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
 mrcontactlist_t* mrcontactlist_new(mrmailbox_t* mailbox)
 {
 	mrcontactlist_t* ths = NULL;
@@ -93,3 +98,33 @@ mrcontact_t* mrcontactlist_get_contact_by_index (mrcontactlist_t* ths, size_t in
 	return mrcontact_ref((mrcontact_t*)carray_get(ths->m_contacts, index));
 }
 
+
+mrcontactlist_t* mrmailbox_get_contactlist(mrmailbox_t* ths)
+{
+	return mrcontactlist_new(ths);
+}
+
+
+mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
+{
+	mrcontact_t* ret = mrcontact_new(ths);
+
+	if( contact_id == MR_CONTACT_ID_SELF )
+	{
+		ret->m_id   = contact_id;
+		ret->m_name = mrstock_str(MR_STR_YOU);
+	}
+	else
+	{
+		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+
+			if( !mrcontact_load_from_db_(ret, contact_id) ) {
+				mrcontact_unref(ret);
+				ret = NULL;
+			}
+
+		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	}
+
+	return ret; /* may be NULL */
+}
