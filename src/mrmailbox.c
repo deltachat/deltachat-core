@@ -144,7 +144,7 @@ Open_Done:
 
 void mrmailbox_close(mrmailbox_t* ths)
 {
-	if( ths == NULL || ths->m_sql == NULL ) {
+	if( ths == NULL ) {
 		return;
 	}
 
@@ -329,7 +329,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	int             is_locked = 0;
 	int             is_configured = 0;
 
-	if( ths == NULL || ths->m_sql == NULL ) {
+	if( ths == NULL ) {
 		return 0;
 	}
 
@@ -737,7 +737,7 @@ int mrmailbox_is_configured(mrmailbox_t* ths)
 {
 	int is_configured;
 
-	if( ths == NULL || ths->m_sql == NULL ) {
+	if( ths == NULL ) {
 		return 0;
 	}
 

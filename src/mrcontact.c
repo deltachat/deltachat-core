@@ -130,7 +130,7 @@ int mr_real_contact_exists_(mrmailbox_t* mailbox, uint32_t contact_id)
 	sqlite3_stmt* stmt;
 	int           ret = 0;
 
-	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
 	 || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
@@ -151,7 +151,7 @@ size_t mr_get_real_contact_cnt_(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 

@@ -77,7 +77,7 @@ typedef struct mrmailbox_t
 {
 	/* members should be treated as library private */
 	mrimap_t*       m_imap;
-	mrsqlite3_t*    m_sql;
+	mrsqlite3_t*    m_sql;      /* != NULL */
 	char*           m_dbfile;
 	char*           m_blobdir;
 	void*           m_userData; /* any data that can be used by the user; not used by the library itself */

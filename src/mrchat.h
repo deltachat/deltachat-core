@@ -60,7 +60,7 @@ typedef struct mrchat_t
 	char*           m_name;            /* NULL if unset */
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_text;      /* NULL if unset */
-	mrmailbox_t*    m_mailbox;
+	mrmailbox_t*    m_mailbox;         /* != NULL */
 	mrmsg_t*        m_last_msg_;       /* Only set, if the chat was read by mrmailbox_get_chatlist(); use mrchat_get_summary() to read this field. */
 	int             m_refcnt;
 } mrchat_t;

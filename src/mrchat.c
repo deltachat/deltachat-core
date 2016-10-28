@@ -32,13 +32,14 @@
 #include "mrtools.h"
 #include "mrcontact.h"
 #include "mrlog.h"
+#include "mrjob.h"
 
 
 mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 {
 	mrchat_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrchat_t)))==NULL ) {
+	if( mailbox == NULL || (ths=malloc(sizeof(mrchat_t)))==NULL ) {
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -230,7 +231,7 @@ int mrchat_get_total_msg_count(mrchat_t* ths)
 {
 	int ret;
 
-	if( ths == NULL || ths->m_mailbox == NULL || ths->m_mailbox->m_sql == NULL ) {
+	if( ths == NULL ) {
 		return 0; /* error */
 	}
 
@@ -264,7 +265,7 @@ int mrchat_get_unread_count(mrchat_t* ths)
 {
 	int ret;
 
-	if( ths == NULL || ths->m_mailbox == NULL || ths->m_mailbox->m_sql == NULL ) {
+	if( ths == NULL ) {
 		return 0; /* error */
 	}
 
@@ -365,7 +366,7 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
@@ -386,7 +387,7 @@ uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_i
 	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
 
-	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
@@ -418,7 +419,7 @@ uint32_t mr_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t contact
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || mailbox->m_sql == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
 		mrlog_error("mr_create_chat_record_(): Database not opened.");
 		return 0; /* database not opened - error */
 	}
