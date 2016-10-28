@@ -369,9 +369,7 @@ size_t mr_get_chat_cnt_(mrmailbox_t* mailbox)
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;"))==NULL ) {
-		return 0;
-	}
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -394,13 +392,11 @@ uint32_t mr_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t contact_i
 
 	if( type == MR_CHAT_NORMAL )
 	{
-		if( (stmt=mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
+		stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
 				"SELECT c.id"
 				" FROM chats c"
 				" INNER JOIN chats_contacts j ON c.id=j.chat_id"
-				" WHERE c.type=? AND c.id>? AND j.contact_id=?;"))==NULL ) {
-			return 0;
-		}
+				" WHERE c.type=? AND c.id>? AND j.contact_id=?;");
 		sqlite3_bind_int(stmt, 1, type);
 		sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
 		sqlite3_bind_int(stmt, 3, contact_id);

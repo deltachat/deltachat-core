@@ -364,7 +364,7 @@ table_exists_Error:
 int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 {
 	int           state;
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( key == NULL ) {
 		mrlog_error("mrsqlite3_set_config(): Bad parameter.");
@@ -379,21 +379,21 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	if( value )
 	{
 		/* insert/update key=value */
-		s = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
-		sqlite3_bind_text (s, 1, key, -1, SQLITE_STATIC);
-		state=sqlite3_step(s);
+		stmt = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+		sqlite3_bind_text (stmt, 1, key, -1, SQLITE_STATIC);
+		state=sqlite3_step(stmt);
 		if( state == SQLITE_DONE ) {
-			s = mrsqlite3_predefine(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
-			sqlite3_bind_text (s, 1, key,   -1, SQLITE_STATIC);
-			sqlite3_bind_text (s, 2, value, -1, SQLITE_STATIC);
-			state=sqlite3_step(s);
+			stmt = mrsqlite3_predefine(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
+			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
+			state=sqlite3_step(stmt);
 
 		}
 		else if( state == SQLITE_ROW ) {
-			s = mrsqlite3_predefine(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
-			sqlite3_bind_text (s, 1, value, -1, SQLITE_STATIC);
-			sqlite3_bind_text (s, 2, key,   -1, SQLITE_STATIC);
-			state=sqlite3_step(s);
+			stmt = mrsqlite3_predefine(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
+			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
+			state=sqlite3_step(stmt);
 		}
 		else {
 			mrlog_error("mrsqlite3_set_config(): Cannot read value.");
@@ -403,9 +403,9 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	else
 	{
 		/* delete key */
-		s = mrsqlite3_predefine(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
-		sqlite3_bind_text (s, 1, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(s);
+		stmt = mrsqlite3_predefine(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
+		sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
+		state=sqlite3_step(stmt);
 	}
 
 	if( state != SQLITE_DONE )  {
@@ -419,17 +419,17 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 
 char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( !mrsqlite3_is_open(ths) || key == NULL ) {
 		return safe_strdup(def);
 	}
 
-	s = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
-	sqlite3_bind_text(s, 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(s) == SQLITE_ROW )
+	stmt = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		const unsigned char* ptr = sqlite3_column_text(s, 0); /* Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free(). */
+		const unsigned char* ptr = sqlite3_column_text(stmt, 0); /* Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free(). */
 		if( ptr )
 		{
 			/* success, fall through below to free objects */
@@ -493,17 +493,14 @@ void mrsqlite3_unlock(mrsqlite3_t* ths)
 
 void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	ths->m_transactionCount++; /* this is safe, as the database should be locked when using a transaction */
 
 	if( ths->m_transactionCount == 1 )
 	{
-		if( (s=mrsqlite3_predefine(ths, BEGIN_transaction, "BEGIN;")) == NULL ) {
-			return;
-		}
-
-		if( sqlite3_step(s) != SQLITE_DONE ) {
+		stmt = mrsqlite3_predefine(ths, BEGIN_transaction, "BEGIN;");
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			mrsqlite3_log_error(ths, "Cannot begin transaction.");
 		}
 	}
@@ -512,17 +509,14 @@ void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 
 void mrsqlite3_rollback(mrsqlite3_t* ths)
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( ths->m_transactionCount >= 1 )
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			if( (s=mrsqlite3_predefine(ths, ROLLBACK_transaction, "ROLLBACK;")) == NULL ) {
-				return;
-			}
-
-			if( sqlite3_step(s) != SQLITE_DONE ) {
+			stmt = mrsqlite3_predefine(ths, ROLLBACK_transaction, "ROLLBACK;");
+			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot rollback transaction.");
 			}
 		}
@@ -534,17 +528,14 @@ void mrsqlite3_rollback(mrsqlite3_t* ths)
 
 void mrsqlite3_commit(mrsqlite3_t* ths)
 {
-	sqlite3_stmt* s;
+	sqlite3_stmt* stmt;
 
 	if( ths->m_transactionCount >= 1 )
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			if( (s=mrsqlite3_predefine(ths, COMMIT_transaction, "COMMIT;")) == NULL ) {
-				return;
-			}
-
-			if( sqlite3_step(s) != SQLITE_DONE ) {
+			stmt = mrsqlite3_predefine(ths, COMMIT_transaction, "COMMIT;");
+			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot commit transaction.");
 			}
 		}
