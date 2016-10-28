@@ -107,7 +107,6 @@ int                  mrmailbox_is_open              (mrmailbox_t*);
 /* mrmailbox_configure() configures (prepares to connect) a mailbox.
 Before your call this function, you should set at least `addr` and `mail_pw`
 using mrmailbox_set_config().
-
 There is no need to call this every program start, the result is saved in the
 database.   However, mrmailbox_configure() should be called after any settings
 change. */
