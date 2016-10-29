@@ -121,6 +121,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	}
 
 	mrimap_unref(ths->m_imap);
+	mrsmtp_unref(ths->m_smtp);
 	mrsqlite3_unref(ths->m_sql);
 	free(ths);
 }
@@ -186,6 +187,8 @@ void mrmailbox_close(mrmailbox_t* ths)
 	if( mrimap_is_connected(ths->m_imap) ) {
 		mrimap_disconnect(ths->m_imap);
 	}
+
+	mrsmtp_disconnect(ths->m_smtp);
 
 	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
 
@@ -412,6 +415,7 @@ void mrmailbox_disconnect(mrmailbox_t* ths)
 	}
 
 	mrimap_disconnect(ths->m_imap);
+	mrsmtp_disconnect(ths->m_smtp);
 }
 
 
@@ -668,6 +672,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%' OR keyname LIKE 'configured%';");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM jobs;");
 
 	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
 

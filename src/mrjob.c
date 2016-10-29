@@ -58,7 +58,7 @@ static void job_thread_entry_point(void* entry_arg)
 	{
 		/* wait for condition */
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
-			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal, if it returns, the mutex is locked again */
+			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
 		/* do all waiting jobs */
@@ -104,7 +104,7 @@ static void job_thread_entry_point(void* entry_arg)
 					sqlite3_bind_int  (stmt, 3, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
-				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(time(NULL)-job.m_start_again_at));
+				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
 			}
 			else {
 				mrsqlite3_lock(mailbox->m_sql);

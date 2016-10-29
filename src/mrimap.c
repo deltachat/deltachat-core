@@ -447,7 +447,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		/* wait for condition */
 		pthread_mutex_lock(&ths->m_condmutex);
 			ths->m_threadState = MR_THREAD_WAIT;
-			pthread_cond_wait(&ths->m_cond, &ths->m_condmutex); /* wait unlocks the mutex and waits for signal, if it returns, the mutex is locked again */
+			pthread_cond_wait(&ths->m_cond, &ths->m_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
 			cmd = ths->m_threadCmd;
 			ths->m_threadState = cmd; /* make sure state or cmd blocks eg. Fetch() */
 			ths->m_threadCmd = MR_THREAD_WAIT;
@@ -556,7 +556,7 @@ int mrimap_connect(mrimap_t* ths, mrloginparam_t* param) /* the function takes o
 	if( ths == NULL || param==NULL || param->m_mail_server==NULL || param->m_mail_user==NULL || param->m_mail_pw==NULL ) {
 		mrlog_error("mrimap_connect(): Bad parameter.");
 		mrloginparam_unref(param);
-		return 0; /* error, bad parameters */
+		return 0;
 	}
 
 	if( ths->m_threadState!=MR_THREAD_NOTALLOCATED ) {
@@ -588,7 +588,7 @@ int mrimap_connect(mrimap_t* ths, mrloginparam_t* param) /* the function takes o
 void mrimap_disconnect(mrimap_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {

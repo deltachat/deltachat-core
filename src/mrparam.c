@@ -78,7 +78,7 @@ static char* find_param(char* ths, int key, char** ret_p2)
 
 mrparam_t* mrparam_new()
 {
-	mrparam_t* ths = NULL;
+	mrparam_t* ths;
 
 	if( (ths=calloc(1, sizeof(mrparam_t)))==NULL ) {
 		exit(28); /* cannot allocate little memory, unrecoverable error */

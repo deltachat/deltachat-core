@@ -33,6 +33,7 @@
 #include "mrcontact.h"
 #include "mrlog.h"
 #include "mrjob.h"
+#include "mrsmtp.h"
 
 
 /*******************************************************************************
@@ -725,10 +726,41 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	uint32_t msg_id = job->m_foreign_id;
+	int      tries;
+
+	/* connect to SMTP server, if not yet done */
+	if( mailbox->m_smtp == NULL ) {
+		mailbox->m_smtp = mrsmtp_new(mailbox);
+	}
+
+	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
+		if( !mrsmtp_connect(mailbox->m_smtp, mailbox->m_sql) ) {
+			goto redo_;
+		}
+	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg_id, NULL);
 	mrsqlite3_unlock(mailbox->m_sql);
+
+	/* done */
+	return;
+
+redo_:
+	/* try over in at once/in a minute/in ten minutes */
+	mrsmtp_disconnect(mailbox->m_smtp);
+	tries = mrparam_get_int(job->m_param, 'T', 0) + 1;
+	mrparam_set_int(job->m_param, 'T', tries);
+
+	if( tries == 1 ) {
+		job->m_start_again_at = time(NULL)+3;
+	}
+	else if( tries < 5 ) {
+		job->m_start_again_at = time(NULL)+60;
+	}
+	else {
+		job->m_start_again_at = time(NULL)+600;
+	}
 }
 
 

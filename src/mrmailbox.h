@@ -58,6 +58,7 @@ extern "C" {
 #include "mrstock.h"
 typedef struct mrmailbox_t mrmailbox_t;
 typedef struct mrimap_t mrimap_t;
+typedef struct mrsmtp_t mrsmtp_t;
 
 
 #define MR_VERSION_MAJOR    0
@@ -87,10 +88,13 @@ typedef struct mrmailbox_t
 	char*           m_blobdir;
 	void*           m_userData; /* any data that can be used by the user; not used by the library itself */
 	mrmailboxcb_t   m_cb;
+
 	pthread_t       m_job_thread;
 	pthread_cond_t  m_job_cond;
 	pthread_mutex_t m_job_condmutex;
 	int             m_job_do_exit;
+
+	mrsmtp_t*       m_smtp;
 } mrmailbox_t;
 
 
