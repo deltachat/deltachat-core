@@ -89,6 +89,8 @@ ReceiveCleanup:
 
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 {
+	mrlog_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
+
 	mrmailbox_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmailbox_t)))==NULL ) {

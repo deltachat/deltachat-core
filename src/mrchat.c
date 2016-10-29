@@ -717,9 +717,18 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
  ******************************************************************************/
 
 
-void mrmailbox_send_msg_to_smtp_(mrmailbox_t* mailbox, mrjob_t* job)
+void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
-	job->m_delete_from_db = 1;
+}
+
+
+void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
+{
+	uint32_t msg_id = job->m_foreign_id;
+
+	mrsqlite3_lock(mailbox->m_sql);
+		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg_id, NULL);
+	mrsqlite3_unlock(mailbox->m_sql);
 }
 
 

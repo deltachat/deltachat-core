@@ -35,6 +35,7 @@ extern "C" {
 
 
 #include "mrparam.h"
+typedef struct mrjob_t mrjob_t;
 
 
 /* message types */
@@ -90,7 +91,7 @@ size_t       mrmailbox_get_real_msg_cnt_      (mrmailbox_t*); /* the number of m
 size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
 int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
 void         mrmailbox_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
-
+void         mrmailbox_delete_msg_from_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 
 #ifdef __cplusplus
 } /* /extern "C" */

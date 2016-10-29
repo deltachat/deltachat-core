@@ -39,7 +39,7 @@
 #include "mrtools.h"
 
 
-static char* read_cmd()
+static char* read_cmd(void)
 {
 	printf("> ");
 	static char cmdbuffer[1024];

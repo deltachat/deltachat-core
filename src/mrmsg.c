@@ -229,6 +229,16 @@ cleanup:
 }
 
 
+/*******************************************************************************
+ * Delete messages
+ ******************************************************************************/
+
+
+void mrmailbox_delete_msg_from_imap(mrmailbox_t* mailbox, mrjob_t* job)
+{
+}
+
+
 int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 {
 	if( ths == NULL ) {
@@ -239,7 +249,7 @@ int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 	mrsqlite3_begin_transaction(ths->m_sql);
 
 		mrmailbox_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
-		mrjob_add_(ths, MRJ_DELETE_MSG_FROM_SERVER, msg_id, NULL);
+		mrjob_add_(ths, MRJ_DELETE_MSG_FROM_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_from_imap() */
 
 	mrsqlite3_commit(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);

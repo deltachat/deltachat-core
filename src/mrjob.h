@@ -35,9 +35,9 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-#define MRJ_DELETE_MSG_FROM_SERVER   100    /* low priority*/
-#define MRJ_SEND_MSG_TO_IMAP         800
-#define MRJ_SEND_MSG_TO_SMTP         900    /* high priority*/
+#define MRJ_DELETE_MSG_FROM_IMAP   100    /* low priority ... */
+#define MRJ_SEND_MSG_TO_IMAP       800
+#define MRJ_SEND_MSG_TO_SMTP       900    /* ... high priority*/
 
 typedef struct mrjob_t {
 	uint32_t   m_job_id;
@@ -45,8 +45,7 @@ typedef struct mrjob_t {
 	uint32_t   m_foreign_id;
 	mrparam_t* m_param;
 	/* the following fields are set by the execution routines, m_param may also be modified */
-	int        m_delete_from_db;
-	time_t     m_start_again_at;
+	time_t     m_start_again_at; /* 1=on next loop, >1=on timestamp, 0=delete job (default) */
 } mrjob_t;
 
 void     mrjob_init_thread_ (mrmailbox_t*);

@@ -28,6 +28,14 @@
  *          - we expect the packed string to be well formatted and do not
  *            allow spaces around the key; spaces right of the value are trimmed
  *
+ *******************************************************************************
+ *
+ * Known keys:
+ * 'f'ile
+ * 'w'idth
+ * 'h'eight
+ * 't'ime in milliseconds
+ *
  ******************************************************************************/
 
 

@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-static int mrlog_get_thread_index()
+int mrlog_get_thread_index(void)
 {
 	#define          MR_MAX_THREADS 32 /* if more threads are started, the full ID is printed (this may happen eg. on many failed connections so that we try to start a working thread several times) */
 	static pthread_t s_threadIds[MR_MAX_THREADS];

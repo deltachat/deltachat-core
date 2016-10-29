@@ -32,6 +32,7 @@
 #include "mrjob.h"
 #include "mrlog.h"
 #include "mrchat.h"
+#include "mrmsg.h"
 #include "mrosnative.h"
 
 
@@ -40,9 +41,9 @@
  ******************************************************************************/
 
 
-static void job_thread_entry_point_(void* entry_arg_)
+static void job_thread_entry_point(void* entry_arg)
 {
-	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg_;
+	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg;
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
 
@@ -51,7 +52,6 @@ static void job_thread_entry_point_(void* entry_arg_)
 
 	/* init thread */
 	mrlog_info("Job thread entered.");
-
 	mrosnative_setup_thread();
 
 	while( 1 )
@@ -87,22 +87,15 @@ static void job_thread_entry_point_(void* entry_arg_)
 
 			/* execute job */
 			mrlog_info("Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
-			job.m_delete_from_db = 0;
 			job.m_start_again_at = 0;
 			switch( job.m_action ) {
-                case MRJ_SEND_MSG_TO_SMTP:   mrmailbox_send_msg_to_smtp_(mailbox, &job);   break;
+                case MRJ_SEND_MSG_TO_SMTP:     mrmailbox_send_msg_to_smtp     (mailbox, &job); break;
+                case MRJ_SEND_MSG_TO_IMAP:     mrmailbox_send_msg_to_imap     (mailbox, &job); break;
+                case MRJ_DELETE_MSG_FROM_IMAP: mrmailbox_delete_msg_from_imap (mailbox, &job); break;
 			}
 
 			/* delete job or execute job later again */
-			if( job.m_delete_from_db ) {
-				mrsqlite3_lock(mailbox->m_sql);
-					stmt = mrsqlite3_predefine(mailbox->m_sql, DELETE_FROM_jobs_WHERE_id,
-						"DELETE FROM jobs WHERE id=?;");
-					sqlite3_bind_int(stmt, 1, job.m_job_id);
-					sqlite3_step(stmt);
-				mrsqlite3_unlock(mailbox->m_sql);
-			}
-			else if( job.m_start_again_at ) {
+			if( job.m_start_again_at ) {
 				mrsqlite3_lock(mailbox->m_sql);
 					stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_jobs_SET_dp_WHERE_id,
 						"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
@@ -111,6 +104,16 @@ static void job_thread_entry_point_(void* entry_arg_)
 					sqlite3_bind_int  (stmt, 3, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
+				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(time(NULL)-job.m_start_again_at));
+			}
+			else {
+				mrsqlite3_lock(mailbox->m_sql);
+					stmt = mrsqlite3_predefine(mailbox->m_sql, DELETE_FROM_jobs_WHERE_id,
+						"DELETE FROM jobs WHERE id=?;");
+					sqlite3_bind_int(stmt, 1, job.m_job_id);
+					sqlite3_step(stmt);
+				mrsqlite3_unlock(mailbox->m_sql);
+				mrlog_info("Job #%i done and deleted from database", (int)job.m_job_id);
 			}
 		}
 
@@ -133,7 +136,7 @@ void mrjob_init_thread_(mrmailbox_t* mailbox)
 {
 	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
     pthread_cond_init(&mailbox->m_job_cond, NULL);
-    pthread_create(&mailbox->m_job_thread, NULL, (void * (*)(void *))job_thread_entry_point_, mailbox);
+    pthread_create(&mailbox->m_job_thread, NULL, (void * (*)(void *))job_thread_entry_point, mailbox);
 }
 
 
