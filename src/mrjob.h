@@ -39,7 +39,19 @@ extern "C" {
 #define MRJ_SEND_MSG_TO_IMAP         800
 #define MRJ_SEND_MSG_TO_SMTP         900    /* high priority*/
 
-int     mrjob_add_    (mrmailbox_t*, int action, int foreign_id, const char* param);
+typedef struct mrjob_t {
+	uint32_t   m_job_id;
+	int        m_action;
+	uint32_t   m_foreign_id;
+	mrparam_t* m_param;
+	/* the following fields are set by the execution routines, m_param may also be modified */
+	int        m_delete_from_db;
+	time_t     m_start_again_at;
+} mrjob_t;
+
+void     mrjob_init_thread_ (mrmailbox_t*);
+void     mrjob_exit_thread_ (mrmailbox_t*);
+uint32_t mrjob_add_         (mrmailbox_t*, int action, int foreign_id, const char* param); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
 
 
 #ifdef __cplusplus

@@ -27,8 +27,101 @@
 
 
 #include <stdlib.h>
+#include <memory.h>
 #include "mrmailbox.h"
 #include "mrjob.h"
+#include "mrlog.h"
+#include "mrchat.h"
+#include "mrosnative.h"
+
+
+/*******************************************************************************
+ * The job thread
+ ******************************************************************************/
+
+
+static void job_thread_entry_point_(void* entry_arg_)
+{
+	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg_;
+	sqlite3_stmt* stmt;
+	mrjob_t       job;
+
+	memset(&job, 0, sizeof(mrjob_t));
+	job.m_param = mrparam_new();
+
+	/* init thread */
+	mrlog_info("Job thread entered.");
+
+	mrosnative_setup_thread();
+
+	while( 1 )
+	{
+		/* wait for condition */
+		pthread_mutex_lock(&mailbox->m_job_condmutex);
+			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal, if it returns, the mutex is locked again */
+		pthread_mutex_unlock(&mailbox->m_job_condmutex);
+
+		/* do all waiting jobs */
+		while( 1 )
+		{
+			/* get next waiting job */
+			job.m_job_id = 0;
+			mrsqlite3_lock(mailbox->m_sql);
+				stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_iafp_FROM_jobs,
+					"SELECT id, action, foreign_id, param FROM jobs WHERE desired_timestamp<=? ORDER BY action DESC, id LIMIT 1;");
+				sqlite3_bind_int64(stmt, 1, time(NULL));
+				if( sqlite3_step(stmt) == SQLITE_ROW ) {
+					job.m_job_id                         = sqlite3_column_int (stmt, 0);
+					job.m_action                         = sqlite3_column_int (stmt, 1);
+					job.m_foreign_id                     = sqlite3_column_int (stmt, 2);
+					mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(stmt, 3));
+				}
+			mrsqlite3_unlock(mailbox->m_sql);
+
+			if( job.m_job_id == 0 ) {
+				break;
+			}
+			else if( mailbox->m_job_do_exit ) {
+				goto exit_;
+			}
+
+			/* execute job */
+			mrlog_info("Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
+			job.m_delete_from_db = 0;
+			job.m_start_again_at = 0;
+			switch( job.m_action ) {
+                case MRJ_SEND_MSG_TO_SMTP:   mrmailbox_send_msg_to_smtp_(mailbox, &job);   break;
+			}
+
+			/* delete job or execute job later again */
+			if( job.m_delete_from_db ) {
+				mrsqlite3_lock(mailbox->m_sql);
+					stmt = mrsqlite3_predefine(mailbox->m_sql, DELETE_FROM_jobs_WHERE_id,
+						"DELETE FROM jobs WHERE id=?;");
+					sqlite3_bind_int(stmt, 1, job.m_job_id);
+					sqlite3_step(stmt);
+				mrsqlite3_unlock(mailbox->m_sql);
+			}
+			else if( job.m_start_again_at ) {
+				mrsqlite3_lock(mailbox->m_sql);
+					stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_jobs_SET_dp_WHERE_id,
+						"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
+					sqlite3_bind_int64(stmt, 1, job.m_start_again_at);
+					sqlite3_bind_text (stmt, 2, job.m_param->m_packed, -1, SQLITE_STATIC);
+					sqlite3_bind_int  (stmt, 3, job.m_job_id);
+					sqlite3_step(stmt);
+				mrsqlite3_unlock(mailbox->m_sql);
+			}
+		}
+
+	}
+
+	/* exit thread */
+exit_:
+	mrparam_unref(job.m_param);
+	mrosnative_unsetup_thread();
+	mrlog_info("Exit job thread.");
+}
 
 
 /*******************************************************************************
@@ -36,13 +129,30 @@
  ******************************************************************************/
 
 
-int mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char* param)
+void mrjob_init_thread_(mrmailbox_t* mailbox)
+{
+	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
+    pthread_cond_init(&mailbox->m_job_cond, NULL);
+    pthread_create(&mailbox->m_job_thread, NULL, (void * (*)(void *))job_thread_entry_point_, mailbox);
+}
+
+
+void mrjob_exit_thread_(mrmailbox_t* mailbox)
+{
+	mailbox->m_job_do_exit = 1;
+	pthread_cond_destroy(&mailbox->m_job_cond);
+	pthread_mutex_destroy(&mailbox->m_job_condmutex);
+}
+
+
+uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char* param)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt;
+	uint32_t      job_id = 0;
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_jobs_tafp,
-		"INSERT INTO jobs (timestamp, action, foreign_id, param) VALUES (?,?,?,?);");
+	stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_jobs_aafp,
+		"INSERT INTO jobs (added_timestamp, action, foreign_id, param) VALUES (?,?,?,?);");
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, action);
 	sqlite3_bind_int  (stmt, 3, foreign_id);
@@ -51,6 +161,13 @@ int mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char* par
 		return 0;
 	}
 
-	return sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+	job_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+
+	if( !mailbox->m_job_do_exit ) {
+		mrlog_info("Signal job thread to wake up...");
+		pthread_cond_signal(&mailbox->m_job_cond);
+	}
+
+	return job_id;
 }
 

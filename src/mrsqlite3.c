@@ -229,7 +229,8 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unread messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 
 		mrsqlite3_execute(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
-					" timestamp INTEGER,"
+					" added_timestamp INTEGER,"
+					" desired_timestamp INTEGER DEFAULT 0,"
 					" action INTEGER,"
 					" foreign_id INTEGER,"
 					" param TEXT DEFAULT '');");

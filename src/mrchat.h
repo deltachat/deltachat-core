@@ -37,6 +37,7 @@ extern "C" {
 #include "mrmsg.h"
 #include "mrmsglist.h"
 typedef struct mrpoortext_t mrpoortext_t;
+typedef struct mrjob_t mrjob_t;
 
 
 /* chat type */
@@ -94,6 +95,7 @@ uint32_t      mrmailbox_create_or_lookup_chat_record_(mrmailbox_t*, uint32_t con
 uint32_t      mrmailbox_real_chat_exists_            (mrmailbox_t*, int type, uint32_t contact_id);
 int           mrmailbox_get_total_msg_count_         (mrmailbox_t*, uint32_t chat_id);
 int           mrmailbox_get_unread_count_            (mrmailbox_t*, uint32_t chat_id);
+void          mrmailbox_send_msg_to_smtp_            (mrmailbox_t*, mrjob_t*);
 
 
 #ifdef __cplusplus

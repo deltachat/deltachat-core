@@ -87,6 +87,10 @@ typedef struct mrmailbox_t
 	char*           m_blobdir;
 	void*           m_userData; /* any data that can be used by the user; not used by the library itself */
 	mrmailboxcb_t   m_cb;
+	pthread_t       m_job_thread;
+	pthread_cond_t  m_job_cond;
+	pthread_mutex_t m_job_condmutex;
+	int             m_job_do_exit;
 } mrmailbox_t;
 
 

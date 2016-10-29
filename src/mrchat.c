@@ -546,95 +546,6 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 }
 
 
-uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
-{
-	time_t        timestamp = time(NULL);
-	char*         text = NULL;
-	mrparam_t*    param = mrparam_new();
-	size_t        bytes = 0;
-	uint32_t      msg_id = 0;
-	int           locked = 0, transaction_pending = 0;
-	sqlite3_stmt* stmt;
-
-	if( ths == NULL || msg == NULL ) {
-		return 0;
-	}
-
-	if( ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		mrlog_warning("Cannot send messages to special chat #%i.", (int)ths->m_id);
-		goto cleanup;
-	}
-
-	mrparam_set_packed(param, msg->m_param->m_packed);
-
-	if( msg->m_type == MR_MSG_TEXT ) {
-		text = safe_strdup(msg->m_text); /* the caller should check if the message text is empty */
-	}
-	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
-		char* file = mrparam_get(msg->m_param, 'f', NULL);
-		if( file ) {
-			bytes = mr_filebytes(file);
-			mrlog_info("Attaching %s with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
-			free(file);
-		}
-		else {
-			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);
-		}
-	}
-	else {
-		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
-		goto cleanup;
-	}
-
-	mrsqlite3_lock(ths->m_mailbox->m_sql);
-	locked = 1;
-	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
-	transaction_pending = 1;
-
-		/* add message to the database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
-			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param,bytes) VALUES (?,?,?, ?,?,?, ?,?);");
-		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
-		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
-		sqlite3_bind_int64(stmt, 3, timestamp);
-		sqlite3_bind_int  (stmt, 4, msg->m_type);
-		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
-		sqlite3_bind_text (stmt, 6, text? text : "",  -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 7, param->m_packed, -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 8, bytes);
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			goto cleanup;
-		}
-
-		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
-
-		/* set up blobs etc. */
-
-		/* ... */
-
-		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
-		mrmailbox_update_msg_chat_id_(ths->m_mailbox, msg_id, ths->m_id);
-		mrjob_add_(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL);
-
-	mrsqlite3_commit(ths->m_mailbox->m_sql);
-	transaction_pending = 0;
-	mrsqlite3_unlock(ths->m_mailbox->m_sql);
-	locked = 0;
-
-	/* done */
-cleanup:
-	if( transaction_pending ) {
-		mrsqlite3_rollback(ths->m_mailbox->m_sql);
-	}
-	if( locked ) {
-		mrsqlite3_unlock(ths->m_mailbox->m_sql);
-	}
-	free(text);
-	mrparam_unref(param);
-	return msg_id;
-}
-
-
 char* mrchat_get_subtitle(mrchat_t* ths)
 {
 	/* returns either the address or the number of chat members */
@@ -799,3 +710,103 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	return ret;
 }
 
+
+
+/*******************************************************************************
+ * Sending messages
+ ******************************************************************************/
+
+
+void mrmailbox_send_msg_to_smtp_(mrmailbox_t* mailbox, mrjob_t* job)
+{
+	job->m_delete_from_db = 1;
+}
+
+
+uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
+{
+	time_t        timestamp = time(NULL);
+	char*         text = NULL;
+	mrparam_t*    param = mrparam_new();
+	size_t        bytes = 0;
+	uint32_t      msg_id = 0;
+	int           locked = 0, transaction_pending = 0;
+	sqlite3_stmt* stmt;
+
+	if( ths == NULL || msg == NULL ) {
+		return 0;
+	}
+
+	if( ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		mrlog_warning("Cannot send messages to special chat #%i.", (int)ths->m_id);
+		goto cleanup;
+	}
+
+	mrparam_set_packed(param, msg->m_param->m_packed);
+
+	if( msg->m_type == MR_MSG_TEXT ) {
+		text = safe_strdup(msg->m_text); /* the caller should check if the message text is empty */
+	}
+	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
+		char* file = mrparam_get(msg->m_param, 'f', NULL);
+		if( file ) {
+			bytes = mr_filebytes(file);
+			mrlog_info("Attaching %s with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
+			free(file);
+		}
+		else {
+			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);
+		}
+	}
+	else {
+		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(ths->m_mailbox->m_sql);
+	locked = 1;
+	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
+	transaction_pending = 1;
+
+		/* add message to the database */
+		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
+			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param,bytes) VALUES (?,?,?, ?,?,?, ?,?);");
+		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
+		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
+		sqlite3_bind_int64(stmt, 3, timestamp);
+		sqlite3_bind_int  (stmt, 4, msg->m_type);
+		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
+		sqlite3_bind_text (stmt, 6, text? text : "",  -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 7, param->m_packed, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 8, bytes);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+
+		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
+
+		/* set up blobs etc. */
+
+		/* ... */
+
+		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
+		mrmailbox_update_msg_chat_id_(ths->m_mailbox, msg_id, ths->m_id);
+		mrjob_add_(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrchat_send_msg_to_smtp_()  */
+
+	mrsqlite3_commit(ths->m_mailbox->m_sql);
+	transaction_pending = 0;
+	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	locked = 0;
+
+	/* done */
+cleanup:
+	if( transaction_pending ) {
+		mrsqlite3_rollback(ths->m_mailbox->m_sql);
+	}
+	if( locked ) {
+		mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	}
+	free(text);
+	mrparam_unref(param);
+	return msg_id;
+}

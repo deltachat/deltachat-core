@@ -91,7 +91,10 @@ enum
 	,INSERT_INTO_msgs_cfttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 
-	,INSERT_INTO_jobs_tafp
+	,INSERT_INTO_jobs_aafp
+	,SELECT_iafp_FROM_jobs
+	,DELETE_FROM_jobs_WHERE_id
+	,UPDATE_jobs_SET_dp_WHERE_id
 
 	,PREDEFINED_CNT /* must be last */
 };

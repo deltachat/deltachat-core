@@ -38,6 +38,14 @@
 #include "mrloginparam.h"
 
 
+#define MR_THREAD_NOTALLOCATED  0
+#define MR_THREAD_INIT         10
+#define MR_THREAD_CONNECT      20
+#define MR_THREAD_WAIT         30
+#define MR_THREAD_FETCH        40
+#define MR_THREAD_EXIT         50
+
+
 /*******************************************************************************
  * Tools
  ******************************************************************************/

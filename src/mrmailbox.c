@@ -100,6 +100,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_cb       = cb? cb : cb_dummy; /* avoid a NULL-pointer! */
 	ths->m_userData = userData;
 
+	mrjob_init_thread_(ths);
+
 	return ths;
 }
 
@@ -109,6 +111,8 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	if( ths==NULL ) {
 		return; /* error */
 	}
+
+	mrjob_exit_thread_(ths);
 
 	if( mrmailbox_is_open(ths) ) {
 		mrmailbox_close(ths);
