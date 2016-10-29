@@ -54,10 +54,10 @@ extern "C" {
 #include "mrmsglist.h"
 #include "mrcontact.h"
 #include "mrcontactlist.h"
-#include "mrimap.h"
 #include "mrpoortext.h"
 #include "mrstock.h"
 typedef struct mrmailbox_t mrmailbox_t;
+typedef struct mrimap_t mrimap_t;
 
 
 #define MR_VERSION_MAJOR    0
@@ -81,7 +81,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 typedef struct mrmailbox_t
 {
 	/* members should be treated as library private */
-	mrimap_t*       m_imap;
+	mrimap_t*       m_imap;     /* != NULL */
 	mrsqlite3_t*    m_sql;      /* != NULL */
 	char*           m_dbfile;
 	char*           m_blobdir;
