@@ -93,7 +93,7 @@ mrsimplify_t* mrsimplify_new()
 {
 	mrsimplify_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrsimplify_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrsimplify_t)))==NULL ) {
 		return NULL; /* error */
 	}
 

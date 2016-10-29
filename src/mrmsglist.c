@@ -39,7 +39,7 @@ mrmsglist_t* mrmsglist_new(mrchat_t* chat)
 {
 	mrmsglist_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrmsglist_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrmsglist_t)))==NULL ) {
 		exit(21); /* cannot allocate little memory, unrecoverable error */
 	}
 

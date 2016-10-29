@@ -156,22 +156,15 @@ mrmsg_t* mrmsg_new()
 {
 	mrmsg_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrmsg_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrmsg_t)))==NULL ) {
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
 
-	ths->m_id        = 0;
-	ths->m_chat_id   = 0; /* 0=unset, 1=unknwon sender ... >9=real chats */
-	ths->m_from_id   = 0; /* 0=unset, 1=self ... >9=real contacts */
-	ths->m_to_id     = 0; /* 0=unset, 1=self ... >9=real contacts */
-	ths->m_timestamp = 0;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
-	ths->m_text      = NULL;
 	ths->m_param     = mrparam_new();
-	ths->m_bytes     = 0;
 
 	return ths;
 }

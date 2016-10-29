@@ -509,7 +509,7 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 {
 	mrimap_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrimap_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrimap_t)))==NULL ) {
 		exit(25); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -517,8 +517,6 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 	ths->m_threadState   = MR_THREAD_NOTALLOCATED;
 	ths->m_threadCmd     = MR_THREAD_WAIT;
 	ths->m_loginParam    = NULL; /* obects saved here are freed on unref() */
-
-	ths->m_debugDir      = NULL;
 
 	pthread_mutex_init(&ths->m_condmutex, NULL);
     pthread_cond_init(&ths->m_cond, NULL);

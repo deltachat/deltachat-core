@@ -43,22 +43,9 @@ mrloginparam_t* mrloginparam_new()
 {
 	mrloginparam_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrloginparam_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrloginparam_t)))==NULL ) {
 		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
-
-	/* init pointers (this cannot be done by mrloginparam_empty() as this function checks against NULL pointers) */
-	ths->m_addr        = NULL;
-
-	ths->m_mail_server = NULL;
-	ths->m_mail_port   = 0;
-	ths->m_mail_user   = NULL;
-	ths->m_mail_pw     = NULL;
-
-	ths->m_send_server = NULL;
-	ths->m_send_port   = 0;
-	ths->m_send_user   = NULL;
-	ths->m_send_pw     = NULL;
 
 	return ths;
 }

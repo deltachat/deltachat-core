@@ -60,9 +60,9 @@ extern "C" {
 typedef struct mrmsg_t
 {
 	uint32_t      m_id;
-	uint32_t      m_from_id;   /* contact, 0=unset, 1=self */
-	uint32_t      m_to_id;     /* contact, 0=unset, 1=self */
-	uint32_t      m_chat_id;   /* the chat, the message belongs to */
+	uint32_t      m_from_id;   /* contact, 0=unset, 1=self .. >9=real contacts */
+	uint32_t      m_to_id;     /* contact, 0=unset, 1=self .. >9=real contacts */
+	uint32_t      m_chat_id;   /* the chat, the message belongs to: 0=unset, 1=unknwon sender .. >9=real chats */
 	time_t        m_timestamp; /* unix time the message was sended */
 
 	int           m_type;      /* MR_MSG_* */

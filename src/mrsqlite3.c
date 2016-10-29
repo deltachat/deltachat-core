@@ -122,13 +122,11 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 	mrsqlite3_t* ths = NULL;
 	int          i;
 
-	if( (ths=malloc(sizeof(mrsqlite3_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrsqlite3_t)))==NULL ) {
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_cobj             = NULL;
 	ths->m_mailbox          = mailbox;
-	ths->m_transactionCount = 0;
 
 	for( i = 0; i < PREDEFINED_CNT; i++ ) {
 		ths->m_pd[i] = NULL;

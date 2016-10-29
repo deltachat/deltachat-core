@@ -50,10 +50,9 @@ char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL)
 		}
 	}
 	else {
-		if( (ret=(char*)malloc(1)) == NULL ) {
+		if( (ret=(char*)calloc(1, 1)) == NULL ) {
 			exit(17); /* cannot allocate little memory, unrecoverable error */
 		}
-		ret[0] = 0;
 	}
 	return ret;
 }

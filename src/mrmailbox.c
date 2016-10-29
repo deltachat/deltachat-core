@@ -90,14 +90,12 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 {
 	mrmailbox_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrmailbox_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrmailbox_t)))==NULL ) {
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_imap     = mrimap_new(ths);
-	ths->m_dbfile   = NULL;
-	ths->m_blobdir  = NULL;
 	ths->m_cb       = cb? cb : cb_dummy; /* avoid a NULL-pointer! */
 	ths->m_userData = userData;
 

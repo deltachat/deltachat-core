@@ -380,13 +380,11 @@ mrmimepart_t* mrmimepart_new()
 {
 	mrmimepart_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrmimepart_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
 		return NULL; /* error */
 	}
 
 	ths->m_type    = MR_MSG_UNDEFINED;
-	ths->m_msg     = NULL;
-	ths->m_msg_raw = NULL;
 
 	return ths;
 }
@@ -421,14 +419,11 @@ mrmimeparser_t* mrmimeparser_new_()
 {
 	mrmimeparser_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrmimeparser_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrmimeparser_t)))==NULL ) {
 		return NULL; /* error */
 	}
 
 	ths->m_parts          = carray_new(16);
-	ths->m_header         = NULL;
-	ths->m_subjectEncoded = NULL;
-	ths->m_mimeroot       = NULL;
 
 	return ths;
 }

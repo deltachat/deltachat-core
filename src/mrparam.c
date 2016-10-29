@@ -80,14 +80,13 @@ mrparam_t* mrparam_new()
 {
 	mrparam_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrparam_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrparam_t)))==NULL ) {
 		exit(28); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
 
-	ths->m_packed = malloc(1);
-	ths->m_packed[0] = 0;
+	ths->m_packed = calloc(1, 1);
 
     return ths;
 }

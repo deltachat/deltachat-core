@@ -320,17 +320,13 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 {
 	mrcontact_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrcontact_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrcontact_t)))==NULL ) {
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
 
 	ths->m_mailbox  = mailbox;
-	ths->m_name     = NULL;
-	ths->m_addr     = NULL;
-	ths->m_origin   = 0;
-	ths->m_blocked  = 0;
 
 	return ths;
 }

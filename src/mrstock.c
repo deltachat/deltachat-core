@@ -48,10 +48,9 @@ static void mrstock_init_array_()
 	}
 
 	size_t bytes_needed = sizeof(char*) * MR_STR_COUNT_;
-	if( (s_obj=malloc(bytes_needed)) == NULL ) {
+	if( (s_obj=calloc(1, bytes_needed)) == NULL ) {
 		exit(13); /* cannot allocate little memory, unrecoverable error */
 	}
-    memset(s_obj, 0, bytes_needed);
     s_def_strings_added = 0;
 }
 

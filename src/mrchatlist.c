@@ -94,7 +94,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 {
 	mrchatlist_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrchatlist_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrchatlist_t)))==NULL ) {
 		exit(20); /* cannot allocate little memory, unrecoverable error */
 	}
 

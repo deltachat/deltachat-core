@@ -40,17 +40,13 @@ mrpoortext_t* mrpoortext_new()
 {
 	mrpoortext_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrpoortext_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrpoortext_t)))==NULL ) {
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	MR_INIT_REFERENCE
 
-	ths->m_title          = NULL;
 	ths->m_title_meaning  = MR_TITLE_NORMAL;
-	ths->m_text           = NULL;
-	ths->m_timestamp      = 0;
-	ths->m_state          = 0;
 
     return ths;
 }

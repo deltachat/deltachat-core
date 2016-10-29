@@ -39,7 +39,7 @@ mrcontactlist_t* mrcontactlist_new(mrmailbox_t* mailbox)
 {
 	mrcontactlist_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrcontactlist_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrcontactlist_t)))==NULL ) {
 		return NULL; /* error */
 	}
 

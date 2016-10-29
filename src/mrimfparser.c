@@ -197,7 +197,7 @@ mrimfparser_t* mrimfparser_new_(mrmailbox_t* mailbox)
 {
 	mrimfparser_t* ths = NULL;
 
-	if( (ths=malloc(sizeof(mrimfparser_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mrimfparser_t)))==NULL ) {
 		return NULL; /* error */
 	}
 

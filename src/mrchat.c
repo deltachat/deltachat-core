@@ -391,7 +391,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 {
 	mrchat_t* ths = NULL;
 
-	if( mailbox == NULL || (ths=malloc(sizeof(mrchat_t)))==NULL ) {
+	if( mailbox == NULL || (ths=calloc(1, sizeof(mrchat_t)))==NULL ) {
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -399,11 +399,6 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 
 	ths->m_mailbox         = mailbox;
 	ths->m_type            = MR_CHAT_UNDEFINED;
-	ths->m_name            = NULL;
-	ths->m_last_msg_       = NULL;
-	ths->m_draft_timestamp = 0;
-	ths->m_draft_text      = NULL;
-	ths->m_id              = 0;
 
     return ths;
 }
