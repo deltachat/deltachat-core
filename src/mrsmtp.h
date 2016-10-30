@@ -37,15 +37,18 @@ extern "C" {
 
 typedef struct mrsmtp_t
 {
-	mailsmtp* m_hEtpan;
+	mailsmtp*    m_hEtpan;
+	mrmailbox_t* m_mailbox;
+	char*        m_from;
+	int          m_esmtp;
 } mrsmtp_t;
 
-
-mrsmtp_t*    mrsmtp_new          ();
+mrsmtp_t*    mrsmtp_new          (mrmailbox_t*);
 void         mrsmtp_unref        (mrsmtp_t*);
 int          mrsmtp_is_connected (mrsmtp_t*);
-int          mrsmtp_connect      (mrsmtp_t*, mrsqlite3_t* config);
+int          mrsmtp_connect      (mrsmtp_t*);
 void         mrsmtp_disconnect   (mrsmtp_t*);
+int          mrsmtp_send_msg     (mrsmtp_t*, uint32_t msg_id);
 
 
 #ifdef __cplusplus

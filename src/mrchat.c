@@ -734,16 +734,20 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
-		if( !mrsmtp_connect(mailbox->m_smtp, mailbox->m_sql) ) {
+		if( !mrsmtp_connect(mailbox->m_smtp) ) {
 			goto redo_;
 		}
 	}
 
+	// send message
+	if( !mrsmtp_send_msg(mailbox->m_smtp, msg_id) ) {
+		goto redo_;
+	}
+
+	/* done for SMTP, we will add the message to IMAP in another job */
 	mrsqlite3_lock(mailbox->m_sql);
 		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg_id, NULL);
 	mrsqlite3_unlock(mailbox->m_sql);
-
-	/* done */
 	return;
 
 redo_:

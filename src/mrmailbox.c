@@ -38,6 +38,7 @@
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrimap.h"
+#include "mrsmtp.h"
 #include "mrimfparser.h"
 #include "mrcontact.h"
 #include "mrtools.h"
