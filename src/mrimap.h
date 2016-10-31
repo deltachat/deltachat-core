@@ -59,7 +59,7 @@ typedef struct mrimap_t
 } mrimap_t;
 
 
-mrimap_t* mrimap_new               (mrmailbox_t*);
+mrimap_t* mrimap_new               (mrmailbox_t*); /* the mailbox object is needed to store IMAP folder states and to call the user callback. We may decide to use separate parameters instead of the mailbox object some time. */
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_is_connected      (mrimap_t*);
