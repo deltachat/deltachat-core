@@ -21,7 +21,7 @@
  *
  * File:    mrimap.h
  * Authors: Björn Petersen
- * Purpose: Reading from IMAP servers
+ * Purpose: Reading from IMAP servers with few dependencies to mrmailbox_t.
  *
  ******************************************************************************/
 

@@ -21,7 +21,7 @@
  *
  * File:    mrsmtp.h
  * Authors: Björn Petersen
- * Purpose: Use SMTP servers
+ * Purpose: Use SMTP servers with no dependencies to mrmailbox_t.
  *
  ******************************************************************************/
 
