@@ -290,7 +290,7 @@ void mrsqlite3_close_(mrsqlite3_t* ths)
 }
 
 
-int mrsqlite3_is_open(mrsqlite3_t* ths)
+int mrsqlite3_is_open(const mrsqlite3_t* ths)
 {
 	if( ths == NULL || ths->m_cobj == NULL ) {
 		return 0;

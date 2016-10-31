@@ -207,7 +207,7 @@ void mrmailbox_close(mrmailbox_t* ths)
 }
 
 
-int mrmailbox_is_open(mrmailbox_t* ths)
+int mrmailbox_is_open(const mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
 		return 0; /* error - database not opened */
@@ -366,7 +366,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 {
 	mrloginparam_t* param = NULL;
 	int             is_locked = 0;
-	int             is_configured = 0;
+	int             is_configured = 0, connected = 0;
 
 	if( ths == NULL ) {
 		return 0;
@@ -394,7 +394,9 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	is_locked = 0;
 
 	/* connect */
-	return mrimap_connect(ths->m_imap, param /*ownership of loginParam is taken by mrimap_connect() */);
+	connected = mrimap_connect(ths->m_imap, param);
+	mrloginparam_unref(param);
+	return connected;
 
 	/* error */
 Error:

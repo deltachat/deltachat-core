@@ -70,7 +70,7 @@ void mrsmtp_unref(mrsmtp_t* ths)
  ******************************************************************************/
 
 
-int mrsmtp_is_connected (mrsmtp_t* ths)
+int mrsmtp_is_connected(const mrsmtp_t* ths)
 {
 	return (ths && ths->m_hEtpan)? 1 : 0;
 }
@@ -112,6 +112,8 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		mrlog_error("Cannot connect to SMTP; bad parameters.");
 		return 0;
 	}
+
+	mrlog_info("Connecting to \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
 
 	free(ths->m_from);
 	ths->m_from = safe_strdup(lp->m_addr);
@@ -182,7 +184,8 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		goto cleanup;
 	}
 
-	/* cleanup */
+	/* done */
+	mrlog_info("Connection to SMTP server ok.");
 	success = 1;
 
 cleanup:

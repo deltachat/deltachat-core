@@ -35,26 +35,25 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-
 typedef struct mrloginparam_t mrloginparam_t;
-
-
-typedef struct mrimapthreadval_t
-{
-	mailimap*    m_imap;
-} mrimapthreadval_t;
 
 
 typedef struct mrimap_t
 {
 	mrmailbox_t*          m_mailbox;
-	mrloginparam_t*       m_loginParam;
+
+	mailimap*             m_hEtpan;
 
 	pthread_t             m_thread;
 	int                   m_threadState; /* set by the working thread, the main thread can read this, one of MR_THREAD_* */
 	int                   m_threadCmd;   /* set by the main thread, read and reset by the working thread, one of MR_THREAD_* */
 	pthread_cond_t        m_cond;
 	pthread_mutex_t       m_condmutex;
+
+	char*                 m_imap_server;
+	int                   m_imap_port;
+	char*                 m_imap_user;
+	char*                 m_imap_pw;
 
 	char*                 m_debugDir;
 } mrimap_t;
@@ -64,7 +63,7 @@ mrimap_t* mrimap_new               (mrmailbox_t*);
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_is_connected      (mrimap_t*);
-int       mrimap_connect           (mrimap_t*, mrloginparam_t*); /* mrimap_connect() takes ownership of the mrloginparam_t-object */
+int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
 void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 

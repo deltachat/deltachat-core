@@ -154,7 +154,7 @@ static char* Mr_get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t
  ******************************************************************************/
 
 
-static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
+static int mrimap_fetch_single_msg(mrimap_t* ths,
 							  const char* folder, /* only needed for statistical/debugging purposes, the correct folder is already selected when this function is called */
                               uint32_t flocal_uid,
                               size_t* created_db_entries)
@@ -186,7 +186,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 		 mailimap_fetch_type_new_fetch_att_list_add(type, att);
 		}
 
-		r = mailimap_uid_fetch(threadval->m_imap,
+		r = mailimap_uid_fetch(ths->m_hEtpan,
 			set,            /* set of message uid, mailimap_fetch() takes ownership of the object */
 			type,           /* type of information to be retrieved, mailimap_fetch() takes ownership of the object */
 			&fetch_result); /* result as a clist of mailimap_msg_att* */
@@ -235,7 +235,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths, mrimapthreadval_t* threadval,
 }
 
 
-static size_t fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadval, const char* folder)
+static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 {
 	/* we're inside a working thread! */
 	int        r;
@@ -260,7 +260,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadv
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
 	/* select the folder */
-	r = mailimap_select(threadval->m_imap, folder);
+	r = mailimap_select(ths->m_hEtpan, folder);
 	if( Mr_is_error(r) ) {
 		mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
 		goto FetchFromFolder_Done;
@@ -280,12 +280,12 @@ static size_t fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadv
 		if( in_first_uid )
 		{
 			/* CAVE: We may get mails with uid smaller than the given one; therefore we check the uid below (this is also done in MailCore2, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp) */
-			r = mailimap_uid_fetch(threadval->m_imap, mailimap_set_new_interval(in_first_uid+1, 0), /* fetch by uid */
+			r = mailimap_uid_fetch(ths->m_hEtpan, mailimap_set_new_interval(in_first_uid+1, 0), /* fetch by uid */
 				type, &fetch_result);
 		}
 		else
 		{
-			r = mailimap_fetch(threadval->m_imap, mailimap_set_new_interval(1, 0), /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
+			r = mailimap_fetch(ths->m_hEtpan, mailimap_set_new_interval(1, 0), /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
 				type, &fetch_result);
 		}
 	}
@@ -313,7 +313,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, mrimapthreadval_t* threadv
 			}
 
 			read_cnt++;
-			if( mrimap_fetch_single_msg(ths, threadval, folder, cur_uid, &temp_created_db_entries) == 0 ) {
+			if( mrimap_fetch_single_msg(ths, folder, cur_uid, &temp_created_db_entries) == 0 ) {
 				read_errors++;
 			}
 			else {
@@ -356,13 +356,13 @@ FetchFromFolder_Done:
 }
 
 
-static size_t fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadval)
+static size_t fetch_from_all_folders(mrimap_t* ths)
 {
 	/* we're inside a working thread! */
 	size_t created_db_entries = 0;
 
 	/* check INBOX */
-	created_db_entries += fetch_from_single_folder(ths, threadval, "INBOX");
+	created_db_entries += fetch_from_single_folder(ths, "INBOX");
 
 	/* check other folders */
 	int        r;
@@ -371,7 +371,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadva
 
 	mrlog_info("Checking other folders...");
 
-	r = mailimap_list(threadval->m_imap, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
+	r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
 	if( Mr_is_error(r) || imap_folders==NULL ) {
 		mrlog_error("Cannot get folder list.");
 		goto FetchFromAllFolders_Done;
@@ -387,7 +387,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths, mrimapthreadval_t*  threadva
 			{
 				if( !Mr_ignore_folder(name_utf8) )
 				{
-					created_db_entries += fetch_from_single_folder(ths, threadval, name_utf8);
+					created_db_entries += fetch_from_single_folder(ths, name_utf8);
 				}
 				else
 				{
@@ -411,7 +411,6 @@ FetchFromAllFolders_Done:
 
 static void mrimap_working_thread__(mrimap_t* ths)
 {
-	mrimapthreadval_t threadval;
 	int               r, cmd, login_done = 0;
 
 	mrlog_info("Working thread entered.");
@@ -419,20 +418,20 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	/* connect to server */
 	ths->m_threadState = MR_THREAD_CONNECT;
 
-	mrlog_info("Connecting to \"%s:%i\"...", ths->m_loginParam->m_mail_server, (int)ths->m_loginParam->m_mail_port);
+	mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
 
-	threadval.m_imap = mailimap_new(0, NULL);
-	r = mailimap_ssl_connect(threadval.m_imap, ths->m_loginParam->m_mail_server, ths->m_loginParam->m_mail_port);
+	ths->m_hEtpan = mailimap_new(0, NULL);
+	r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 	if( Mr_is_error(r) ) {
 		mrlog_error("Could not connect to server.");
 		goto WorkingThread_Exit;
 	}
 
-	mrlog_info("Connection ok.");
+	mrlog_info("Connection to IMAP-server ok.");
 
-	mrlog_info("Login as \"%s\"...", ths->m_loginParam->m_mail_user);
+	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
 
-	r = mailimap_login(threadval.m_imap, ths->m_loginParam->m_mail_user, ths->m_loginParam->m_mail_pw);
+	r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
 	if( Mr_is_error(r) ) {
 		mrlog_error("Could not login.");
 		goto WorkingThread_Exit;
@@ -457,7 +456,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 		{
 			case MR_THREAD_FETCH:
 				mrlog_info("Received MR_THREAD_FETCH signal.");
-				if( fetch_from_all_folders(ths, &threadval) > 0 ) {
+				if( fetch_from_all_folders(ths) > 0 ) {
 					ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
 				}
 				break;
@@ -473,24 +472,25 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	}
 
 WorkingThread_Exit:
-	if( threadval.m_imap ) {
+	if( ths->m_hEtpan ) {
 
 		if( login_done ) {
 			mrlog_info("Logout...");
 
-			mailimap_logout(threadval.m_imap);
+			mailimap_logout(ths->m_hEtpan);
 
 			mrlog_info("Logout done.");
 		}
 
 		mrlog_info("Disconnecting...");
 
-		mailimap_free(threadval.m_imap);
-		threadval.m_imap = NULL;
+		mailimap_free(ths->m_hEtpan);
+		ths->m_hEtpan = NULL;
 
 		mrlog_info("Disconnect done.");
 	}
 	ths->m_threadState = MR_THREAD_NOTALLOCATED;
+
 
 	mrlog_info("Exit working thread.");
 }
@@ -524,7 +524,6 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 	ths->m_mailbox       = mailbox;
 	ths->m_threadState   = MR_THREAD_NOTALLOCATED;
 	ths->m_threadCmd     = MR_THREAD_WAIT;
-	ths->m_loginParam    = NULL; /* obects saved here are freed on unref() */
 
 	pthread_mutex_init(&ths->m_condmutex, NULL);
     pthread_cond_init(&ths->m_cond, NULL);
@@ -541,27 +540,26 @@ void mrimap_unref(mrimap_t* ths)
 
 	mrimap_disconnect(ths);
 
-	mrloginparam_unref(ths->m_loginParam);
-
 	pthread_cond_destroy(&ths->m_cond);
 	pthread_mutex_destroy(&ths->m_condmutex);
 
+	free(ths->m_imap_server);
+	free(ths->m_imap_user);
+	free(ths->m_imap_pw);
 	free(ths->m_debugDir);
 	free(ths);
 }
 
 
-int mrimap_connect(mrimap_t* ths, mrloginparam_t* param) /* the function takes ownership of "param" */
+int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 {
-	if( ths == NULL || param==NULL || param->m_mail_server==NULL || param->m_mail_user==NULL || param->m_mail_pw==NULL ) {
+	if( ths == NULL || lp==NULL || lp->m_mail_server==NULL || lp->m_mail_user==NULL || lp->m_mail_pw==NULL ) {
 		mrlog_error("mrimap_connect(): Bad parameter.");
-		mrloginparam_unref(param);
 		return 0;
 	}
 
 	if( ths->m_threadState!=MR_THREAD_NOTALLOCATED ) {
 		mrlog_info("mrimap_connect(): Already trying to connect.");
-		mrloginparam_unref(param);
 		return 1; /* already trying to connect */
 	}
 
@@ -574,8 +572,10 @@ int mrimap_connect(mrimap_t* ths, mrloginparam_t* param) /* the function takes o
 	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE! - do not forge the unlock */
 
 	/* start the working thread */
-	mrloginparam_unref(ths->m_loginParam);
-	ths->m_loginParam = param; /* take owenership of the given parameters */
+	free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);
+							  ths->m_imap_port    = lp->m_mail_port;
+	free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
+	free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 
 	ths->m_threadState = MR_THREAD_INIT;
 	pthread_create(&ths->m_thread, NULL, (void * (*)(void *))mrimap_startup_helper, ths);

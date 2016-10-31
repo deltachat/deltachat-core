@@ -46,7 +46,7 @@ typedef struct mrsmtp_t
 
 mrsmtp_t*    mrsmtp_new          (void);
 void         mrsmtp_unref        (mrsmtp_t*);
-int          mrsmtp_is_connected (mrsmtp_t*);
+int          mrsmtp_is_connected (const mrsmtp_t*);
 int          mrsmtp_connect      (mrsmtp_t*, const mrloginparam_t*);
 void         mrsmtp_disconnect   (mrsmtp_t*);
 int          mrsmtp_send_msg     (mrsmtp_t*, const clist* to, const char* data);

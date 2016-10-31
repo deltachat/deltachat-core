@@ -110,7 +110,7 @@ sth. like "~/file" won't work on all systems, if in doubt, use absolute paths fo
 for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
-int                  mrmailbox_is_open              (mrmailbox_t*);
+int                  mrmailbox_is_open              (const mrmailbox_t*);
 
 /* mrmailbox_configure() configures (prepares to connect) a mailbox.
 Before your call this function, you should set at least `addr` and `mail_pw`
