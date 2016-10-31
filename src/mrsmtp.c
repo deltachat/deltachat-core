@@ -96,8 +96,7 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 {
 	int         success = 0;
-	int         smtp_esmtp = 1, smtp_ssl = 1, smtp_tls = 0; /* TODO: make additional configurations available */
-	int         ret;
+	int         ret, try_esmtp;
 
 	if( ths == NULL ) {
 		return 0;
@@ -128,7 +127,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	#endif
 
 	/* first open the stream */
-	if( smtp_ssl ) {
+	if( lp->m_send_flags&MR_SMTP_SSL_TLS ) {
 		/* use SMTP over SSL */
 		if( (ret=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 			mrlog_error("mailsmtp_ssl_connect: %s\n", mailsmtp_strerror(ret));
@@ -144,30 +143,33 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	}
 
 	/* then introduce ourselves */
+	try_esmtp = (lp->m_send_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
 	ths->m_esmtp = 0;
-	if (smtp_esmtp && (ret = mailesmtp_ehlo(ths->m_hEtpan)) == MAILSMTP_NO_ERROR) {
+	if( try_esmtp && (ret=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 		ths->m_esmtp = 1;
 	}
-	else if (!smtp_esmtp || ret == MAILSMTP_ERROR_NOT_IMPLEMENTED) {
+	else if( !try_esmtp || ret==MAILSMTP_ERROR_NOT_IMPLEMENTED ) {
 		ret = mailsmtp_helo(ths->m_hEtpan);
 	}
 
-	if (ret != MAILSMTP_NO_ERROR) {
+	if( ret != MAILSMTP_NO_ERROR ) {
 		mrlog_error("mailsmtp_helo: %s\n", mailsmtp_strerror(ret));
 		goto cleanup;
 	}
 
-	if( ths->m_esmtp && smtp_tls && (ret=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
+	if( ths->m_esmtp
+	 && (lp->m_send_flags&MR_SMTP_STARTTLS)
+	 && (ret=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
 		mrlog_error("mailsmtp_starttls: %s\n", mailsmtp_strerror(ret));
 		goto cleanup;
 	}
 
-	if (ths->m_esmtp && smtp_tls) {
+	if( ths->m_esmtp && (lp->m_send_flags&MR_SMTP_STARTTLS) ) {
 		/* introduce ourselves again */
-		if (smtp_esmtp && (ret = mailesmtp_ehlo(ths->m_hEtpan)) == MAILSMTP_NO_ERROR) {
+		if( try_esmtp && (ret=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 			ths->m_esmtp = 1;
 		}
-		else if (!smtp_esmtp || ret == MAILSMTP_ERROR_NOT_IMPLEMENTED) {
+		else if( !try_esmtp || ret==MAILSMTP_ERROR_NOT_IMPLEMENTED ) {
 			ret = mailsmtp_helo(ths->m_hEtpan);
 		}
 
