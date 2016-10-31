@@ -33,6 +33,7 @@
 #include <sqlite3.h>
 #include <sys/stat.h>
 #include <libetpan/libetpan.h>
+#include <libetpan/mailimap_types.h>
 #include "mrtools.h"
 
 
@@ -238,6 +239,11 @@ void mr_free_splitted_lines(carray* lines)
 }
 
 
+/*******************************************************************************
+ * Decode header strings
+ ******************************************************************************/
+
+
 char* mr_decode_header_string(const char* in)
 {
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
@@ -257,6 +263,282 @@ char* mr_decode_header_string(const char* in)
 	}
 
 	return out; /* must be free()'d by the caller */
+}
+
+
+/*******************************************************************************
+ * Encode header strings, code inspired by etpan-ng
+ ******************************************************************************/
+
+
+#define ERROR_MEMORY MAILIMAP_ERROR_MEMORY
+#define NO_ERROR MAILIMAP_NO_ERROR
+#define MAX_IMF_LINE 666   /* we do not fold at position 72; this would result in empty words as `=?utf-8?Q??=` which are correct, but cannot be displayed by some mail programs (eg. Android Stock Mail)
+                           however, this is not needed, as long as _one_ word is not longer than 72 characters. _if_ it is, the display may get weired.  This affects the subject only.
+                           the best solution wor all this would be if libetpan encodes the line as only libetpan knowns when a header line is full */
+
+static inline int to_be_quoted(const char * word, size_t size)
+{
+  int do_quote;
+  const char * cur;
+  size_t i;
+
+  do_quote = 0;
+  cur = word;
+  for(i = 0 ; i < size ; i ++) {
+    switch (* cur) {
+    case ',':
+    case ':':
+    case '!':
+    case '"':
+    case '#':
+    case '$':
+    case '@':
+    case '[':
+    case '\\':
+    case ']':
+    case '^':
+    case '`':
+    case '{':
+    case '|':
+    case '}':
+    case '~':
+    case '=':
+    case '?':
+    case '_':
+      do_quote = 1;
+      break;
+    default:
+      if (((unsigned char) * cur) >= 128)
+        do_quote = 1;
+      break;
+    }
+    cur ++;
+  }
+
+  return do_quote;
+}
+
+static int quote_word(const char * display_charset,
+    MMAPString * mmapstr, const char * word, size_t size)
+{
+  const char * cur;
+  size_t i;
+  char hex[4];
+  int col;
+
+  if (mmap_string_append(mmapstr, "=?") == NULL)
+    return ERROR_MEMORY;
+  if (mmap_string_append(mmapstr, display_charset) == NULL)
+    return ERROR_MEMORY;
+  if (mmap_string_append(mmapstr, "?Q?") == NULL)
+    return ERROR_MEMORY;
+
+  col = mmapstr->len;
+
+  cur = word;
+  for(i = 0 ; i < size ; i ++) {
+    int do_quote_char;
+
+	#if MAX_IMF_LINE != 666
+    if (col + 2 /* size of "?=" */
+        + 3 /* max size of newly added character */
+        + 1 /* minimum column of string in a
+               folded header */ >= MAX_IMF_LINE) {
+      int old_pos;
+      /* adds a concatened encoded word */
+
+      if (mmap_string_append(mmapstr, "?=") == NULL)
+        return ERROR_MEMORY;
+
+      if (mmap_string_append(mmapstr, " ") == NULL)
+        return ERROR_MEMORY;
+
+      old_pos = mmapstr->len;
+
+      if (mmap_string_append(mmapstr, "=?") == NULL)
+        return ERROR_MEMORY;
+      if (mmap_string_append(mmapstr, display_charset) == NULL)
+        return ERROR_MEMORY;
+      if (mmap_string_append(mmapstr, "?Q?") == NULL)
+        return ERROR_MEMORY;
+
+      col = mmapstr->len - old_pos;
+    }
+    #endif
+
+    do_quote_char = 0;
+    switch (* cur) {
+    case ',':
+    case ':':
+    case '!':
+    case '"':
+    case '#':
+    case '$':
+    case '@':
+    case '[':
+    case '\\':
+    case ']':
+    case '^':
+    case '`':
+    case '{':
+    case '|':
+    case '}':
+    case '~':
+    case '=':
+    case '?':
+    case '_':
+      do_quote_char = 1;
+      break;
+
+    default:
+      if (((unsigned char) * cur) >= 128)
+        do_quote_char = 1;
+      break;
+    }
+
+    if (do_quote_char) {
+      snprintf(hex, 4, "=%2.2X", (unsigned char) * cur);
+      if (mmap_string_append(mmapstr, hex) == NULL)
+        return ERROR_MEMORY;
+      col += 3;
+    }
+    else {
+      if (* cur == ' ') {
+        if (mmap_string_append_c(mmapstr, '_') == NULL)
+          return ERROR_MEMORY;
+      }
+      else {
+        if (mmap_string_append_c(mmapstr, * cur) == NULL)
+          return ERROR_MEMORY;
+      }
+      col += 3;
+    }
+    cur ++;
+  }
+
+  if (mmap_string_append(mmapstr, "?=") == NULL)
+    return ERROR_MEMORY;
+
+  return 0;
+}
+
+static void get_word(const char * begin, const char ** pend, int * pto_be_quoted)
+{
+  const char * cur;
+
+  cur = begin;
+
+  while ((* cur != ' ') && (* cur != '\t') && (* cur != '\0')) {
+    cur ++;
+  }
+
+  #if MAX_IMF_LINE != 666
+  if (cur - begin +
+      1  /* minimum column of string in a
+            folded header */ > MAX_IMF_LINE)
+    * pto_be_quoted = 1;
+  else
+  #endif
+    * pto_be_quoted = to_be_quoted(begin, cur - begin);
+
+  * pend = cur;
+}
+
+char* mr_encode_header_string(const char* phrase)
+{
+  char * str;
+  const char * cur;
+  MMAPString * mmapstr;
+
+  mmapstr = mmap_string_new("");
+  if (mmapstr == NULL)
+    goto err;
+
+  cur = phrase;
+  while (* cur != '\0') {
+    const char * begin;
+    const char * end;
+    int r;
+    int do_quote;
+    int quote_words;
+
+    begin = cur;
+    end = begin;
+    quote_words = 0;
+    do_quote = 1;
+
+    while (* cur != '\0') {
+      get_word(cur, &cur, &do_quote);
+      if (do_quote) {
+        quote_words = 1;
+        end = cur;
+      }
+      else
+        break;
+      if (* cur != '\0')
+        cur ++;
+    }
+
+    if (quote_words) {
+      r = quote_word(DEF_DISPLAY_CHARSET, mmapstr, begin, end - begin);
+      if (r != NO_ERROR)
+        goto free_mmap;
+
+      if ((* end == ' ') || (* end == '\t')) {
+        if (mmap_string_append_c(mmapstr, * end) == 0)
+          goto free_mmap;
+        end ++;
+      }
+
+      if (* end != '\0') {
+        if (mmap_string_append_len(mmapstr, end, cur - end) == NULL)
+          goto free_mmap;
+      }
+    }
+    else {
+      if (mmap_string_append_len(mmapstr, begin, cur - begin) == NULL)
+        goto free_mmap;
+    }
+
+    if ((* cur == ' ') || (* cur == '\t')) {
+      if (mmap_string_append_c(mmapstr, * cur) == 0)
+        goto free_mmap;
+      cur ++;
+    }
+  }
+
+  str = strdup(mmapstr->str);
+  if (str == NULL)
+    goto free_mmap;
+
+  mmap_string_free(mmapstr);
+
+  return str;
+
+ free_mmap:
+  mmap_string_free(mmapstr);
+ err:
+  return NULL;
+	#if 0
+	size_t      in_len = strlen(in);
+	int         col = 0;
+	MMAPString* quoted_printable = mmap_string_new("");
+
+	mailmime_quoted_printable_write_mem(quoted_printable, &col, true, in, in_len);
+
+	if( quoted_printable->len<=in_len || quoted_printable->str==NULL
+	 || quoted_printable->len>=72-9 ) { /* 72-9=MAX_MAIL_COL-strlen("Subject: ") -- we do not encode as libetpan does not fold the lines correctly (would expect = at the end of the line) -- TODO */
+		mmap_string_free(quoted_printable);
+		return safe_strdup(in);
+	}
+	else {
+		char* encoded = mr_mprintf("=?UTF-8?Q?%s?=", quoted_printable->str);
+		mmap_string_free(quoted_printable);
+		return encoded;
+	}
+	#else
+	#endif
 }
 
 

@@ -46,7 +46,8 @@ void    mr_remove_cr_chars         (char*); /* remove all \r characters from str
 void    mr_unwrap_str              (char*, int approx_bytes); /* unwrap lines in the given buffer */
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);
-char*   mr_decode_header_string    (const char* in); /* the result must be free()'d */
+char*   mr_decode_header_string    (const char*); /* the result must be free()'d */
+char*   mr_encode_header_string    (const char*); /* the result must be free()'d */
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 

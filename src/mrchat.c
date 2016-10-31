@@ -710,45 +710,44 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 static struct mailmime* build_body_text(char* text)
 {
 	struct mailmime_fields*    mime_fields;
-	struct mailmime*           mime_sub;
+	struct mailmime*           message_part;
 	struct mailmime_content*   content;
-	struct mailmime_parameter* param;
 
-	/* text/plain part */
+	content = mailmime_content_new_with_str("text/plain");
+	clist_append(content->ct_parameters, mailmime_param_new_with_data("charset", "utf-8" )); /* format=flowed currently does not really affect us, see https://www.ietf.org/rfc/rfc3676.txt */
 
 	mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_8BIT);
 
-	content = mailmime_content_new_with_str("text/plain");
+	message_part = mailmime_new_empty(content, mime_fields);
+	mailmime_set_body_text(message_part, text, strlen(text));
 
-	param = mailmime_param_new_with_data("charset", "UTF-8");
-
-	clist_append(content->ct_parameters, param);
-
-	mime_sub = mailmime_new_empty(content, mime_fields);
-
-	mailmime_set_body_text(mime_sub, text, strlen(text));
-
-	return mime_sub;
+	return message_part;
 }
 
 
-static MMAPString* create_mime_msg(const mrmsg_t* msg, const clist* recipients)
+static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
-	struct mailimf_fields*   imf_fields;
-	struct mailmime*         message;
-	int                      col;
-	MMAPString*              ret = mmap_string_new("");
-	struct mailmime*         text_part;
-	char*                    subject_utf8 = mrmsg_get_summary(msg, 80);
+	struct mailimf_mailbox_list* from;
+	struct mailimf_fields*       imf_fields;
+	struct mailmime*             message;
+	int                          col = 0;
+	MMAPString*                  ret = mmap_string_new("");
+	struct mailmime*             text_part;
+	char*                        subject_utf8 = mrmsg_get_summary(msg, 80);
 
-	imf_fields = mailimf_fields_new_with_data(NULL /* from */,
+	from = mailimf_mailbox_list_new_empty();
+	mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
+
+	imf_fields = mailimf_fields_new_with_data(from,
 		NULL /* sender */, NULL /* reply-to */,
 		NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
 		NULL /* references */,
-		subject_utf8);
-	//free(subject_utf8); -- TODO: the subject should be special-encoded!
+		mr_encode_header_string(subject_utf8));
+	mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend")));
+	free(subject_utf8); /* the other objects are all freed with mailmime_free */
 
-	text_part = build_body_text(msg->m_text);
+
+	text_part = build_body_text(mr_mprintf("%s\n\n-- \nSend with Delta Chat Messenger.", msg->m_text));
 
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
@@ -758,6 +757,7 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const clist* recipients)
 	//printf("%s", ret->str);
 	mailmime_free(message);
 
+
 	return ret;
 }
 
@@ -765,6 +765,25 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const clist* recipients)
 /*******************************************************************************
  * Sending messages
  ******************************************************************************/
+
+
+static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
+                              mrmsg_t* ret_msg, char** ret_from, char** ret_displayname, clist* ret_recipients)
+{
+	mrsqlite3_lock(mailbox->m_sql);
+		if( mrmsg_load_from_db_(ret_msg, mailbox, msg_id) ) {
+			sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
+				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
+			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
+			while( sqlite3_step(stmt) == SQLITE_ROW ) {
+				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
+				clist_append(ret_recipients, (void*)safe_strdup(rcpt));
+			}
+			*ret_from        = mrsqlite3_get_config_(mailbox->m_sql, "configured_addr", NULL);
+			*ret_displayname = mrsqlite3_get_config_(mailbox->m_sql, "displayname", NULL);
+		}
+	mrsqlite3_unlock(mailbox->m_sql);
+}
 
 
 void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
@@ -777,6 +796,8 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	mrmsg_t*      msg = mrmsg_new();
 	clist*	      recipients = clist_new();
 	MMAPString*   data = NULL;
+	char*         from_addr = NULL;
+	char*         from_displayname = NULL;
 
 	/* connect to SMTP server, if not yet done */
 	if( mailbox->m_smtp == NULL ) {
@@ -797,25 +818,14 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	mrsqlite3_lock(mailbox->m_sql);
-		if( mrmsg_load_from_db_(msg, mailbox, job->m_foreign_id) ) {
-			sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
-				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
-			sqlite3_bind_int(stmt, 1, msg->m_chat_id);
-			while( sqlite3_step(stmt) == SQLITE_ROW ) {
-				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
-				clist_append(recipients, (void*)safe_strdup(rcpt));
-			}
-		}
-	mrsqlite3_unlock(mailbox->m_sql);
-
-	if( clist_count(recipients) == 0 ) {
-		mrlog_error("No recipients.");
+	load_data_to_send(mailbox, job->m_foreign_id, msg, &from_addr, &from_displayname, recipients);
+	if( from_addr == NULL || clist_count(recipients) == 0 ) {
+		mrlog_error("No recipients and/or no sender address.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 	}
 
 	/* send message */
-	data = create_mime_msg(msg, recipients);
+	data = create_mime_msg(msg, from_addr, from_displayname, recipients);
 	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, data->str, data->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
 		mrjob_try_again_later(job);
@@ -832,6 +842,8 @@ cleanup:
 	clist_free(recipients);
 	mrmsg_unref(msg);
 	mmap_string_free(data);
+	free(from_addr);
+	free(from_displayname);
 }
 
 

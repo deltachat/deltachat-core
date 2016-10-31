@@ -578,7 +578,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
-	char *debug_dir, *name, *info;
+	char *debug_dir, *displayname, *info;
 	mrloginparam_t *l, *l2;
 	int contacts, chats, real_msgs, strangers_msgs, is_configured;
 
@@ -595,8 +595,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		mrloginparam_read_(l, ths->m_sql, "");
 		mrloginparam_read_(l2, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-		debug_dir   = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
-		name        = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
+		debug_dir       = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
+		displayname     = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
 
 		chats           = mrmailbox_get_chat_cnt_(ths);
 		real_msgs       = mrmailbox_get_real_msg_cnt_(ths);
@@ -638,7 +638,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, chats, real_msgs, strangers_msgs, contacts
 		, ths->m_dbfile? ths->m_dbfile : unset   ,  ths->m_blobdir? ths->m_blobdir : unset
 
-        , name? name : unset
+        , displayname? displayname : unset
 		, is_configured
 		, l->m_addr? l->m_addr : unset                 , l2->m_addr? l2->m_addr : unset
 		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
@@ -660,7 +660,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	mrloginparam_unref(l);
 	mrloginparam_unref(l2);
 	free(debug_dir);
-	free(name);
+	free(displayname);
 
 	return info; /* must be freed by the caller */
 }
