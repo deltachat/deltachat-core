@@ -34,7 +34,9 @@
  * 'f'ile
  * 'w'idth
  * 'h'eight
- * 't'ime in milliseconds
+ * 'd'uration in milliseconds
+ * 'm'ime
+ * 't'imstamp to try a job again
  *
  ******************************************************************************/
 

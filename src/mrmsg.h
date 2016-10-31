@@ -42,8 +42,8 @@ typedef struct mrjob_t mrjob_t;
 #define MR_MSG_UNDEFINED   0
 #define MR_MSG_TEXT        10
 #define MR_MSG_IMAGE       20 /* param: 'f'ile, 'w', 'h' */
-#define MR_MSG_AUDIO       40 /* param: 'f'ile, 't'ime */
-#define MR_MSG_VIDEO       50 /* param: 'f'ile, 'w', 'h', 't'ime */
+#define MR_MSG_AUDIO       40 /* param: 'f'ile, 'd'uration */
+#define MR_MSG_VIDEO       50 /* param: 'f'ile, 'w', 'h', 'd'uration */
 #define MR_MSG_FILE        60 /* param: 'f'ile */
 
 
@@ -69,7 +69,7 @@ typedef struct mrmsg_t
 	int           m_type;      /* MR_MSG_* */
 	int           m_state;     /* MR_STATE_* etc. */
 	char*         m_text;      /* message text or NULL if unset */
-	mrparam_t*    m_param;     /* 'f'ile, 'm'ime, 'w', 'h', 't'ime/ms etc. depends on the type, != NULL */
+	mrparam_t*    m_param;     /* 'f'ile, 'm'ime, 'w', 'h', 'd'uration/ms etc. depends on the type, != NULL */
 	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
 	int           m_refcnt;

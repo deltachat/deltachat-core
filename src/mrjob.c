@@ -177,8 +177,8 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 
 void mrjob_try_again_later(mrjob_t* ths)
 {
-	int tries = mrparam_get_int(ths->m_param, 'T', 0) + 1;
-	mrparam_set_int(ths->m_param, 'T', tries);
+	int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;
+	mrparam_set_int(ths->m_param, 't', tries);
 
 	if( tries == 1 ) {
 		ths->m_start_again_at = time(NULL)+3;
