@@ -691,18 +691,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			}
 		}
 
-		switch( ths->m_last_msg_->m_type ) {
-			case MR_MSG_IMAGE: ret->m_text = mrstock_str(MR_STR_IMAGE); break;
-			case MR_MSG_VIDEO: ret->m_text = mrstock_str(MR_STR_VIDEO); break;
-			case MR_MSG_AUDIO: ret->m_text = mrstock_str(MR_STR_AUDIO); break;
-			case MR_MSG_FILE:  ret->m_text = mrstock_str(MR_STR_FILE);  break;
-			default:
-				if( ths->m_last_msg_->m_text ) {
-					ret->m_text = safe_strdup(ths->m_last_msg_->m_text);
-					mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
-				}
-				break;
-		}
+		ret->m_text = mrmsg_get_summary(ths->m_last_msg_, SUMMARY_BYTES);
 
 		ret->m_timestamp = ths->m_last_msg_->m_timestamp;
 		ret->m_state     = ths->m_last_msg_->m_state;
@@ -711,6 +700,66 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	return ret;
 }
 
+
+
+/*******************************************************************************
+ * Create IMF from mrmsg_t
+ ******************************************************************************/
+
+
+static struct mailmime* build_body_text(char* text)
+{
+	struct mailmime_fields*    mime_fields;
+	struct mailmime*           mime_sub;
+	struct mailmime_content*   content;
+	struct mailmime_parameter* param;
+
+	/* text/plain part */
+
+	mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_8BIT);
+
+	content = mailmime_content_new_with_str("text/plain");
+
+	param = mailmime_param_new_with_data("charset", "UTF-8");
+
+	clist_append(content->ct_parameters, param);
+
+	mime_sub = mailmime_new_empty(content, mime_fields);
+
+	mailmime_set_body_text(mime_sub, text, strlen(text));
+
+	return mime_sub;
+}
+
+
+static MMAPString* create_mime_msg(const mrmsg_t* msg, const clist* recipients)
+{
+	struct mailimf_fields*   imf_fields;
+	struct mailmime*         message;
+	int                      col;
+	MMAPString*              ret = mmap_string_new("");
+	struct mailmime*         text_part;
+	char*                    subject_utf8 = mrmsg_get_summary(msg, 80);
+
+	imf_fields = mailimf_fields_new_with_data(NULL /* from */,
+		NULL /* sender */, NULL /* reply-to */,
+		NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
+		NULL /* references */,
+		subject_utf8);
+	//free(subject_utf8); -- TODO: the subject should be special-encoded!
+
+	text_part = build_body_text(msg->m_text);
+
+	message = mailmime_new_message_data(NULL);
+	mailmime_set_imf_fields(message, imf_fields);
+	mailmime_smart_add_part(message, text_part);
+
+	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
+	//printf("%s", ret->str);
+	mailmime_free(message);
+
+	return ret;
+}
 
 
 /*******************************************************************************
@@ -727,6 +776,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	mrmsg_t*      msg = mrmsg_new();
 	clist*	      recipients = clist_new();
+	MMAPString*   data = NULL;
 
 	/* connect to SMTP server, if not yet done */
 	if( mailbox->m_smtp == NULL ) {
@@ -765,21 +815,23 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* send message */
-	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, msg->m_text) ) {
+	data = create_mime_msg(msg, recipients);
+	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, data->str, data->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
 		mrjob_try_again_later(job);
 		goto cleanup;
 	}
 
 	/* done */
-	mrsqlite3_lock(mailbox->m_sql);
-		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
-	mrsqlite3_unlock(mailbox->m_sql);
+	//mrsqlite3_lock(mailbox->m_sql);
+	//	mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
+	//mrsqlite3_unlock(mailbox->m_sql);
 
 cleanup:
 	clist_free_content(recipients);
 	clist_free(recipients);
 	mrmsg_unref(msg);
+	mmap_string_free(data);
 }
 
 

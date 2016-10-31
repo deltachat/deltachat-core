@@ -87,6 +87,7 @@ void         mrmsg_empty                  (mrmsg_t*);
 #define      MR_MSG_FIELDS                    " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
 int          mrmsg_set_from_stmt_             (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int          mrmsg_load_from_db_              (mrmsg_t*, mrmailbox_t*, uint32_t id);
+char*        mrmsg_get_summary                (const mrmsg_t*, int approx_bytes); /* the returned values must be free()'d */
 size_t       mrmailbox_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
 size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
 int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);

@@ -423,7 +423,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 	ths->m_hEtpan = mailimap_new(0, NULL);
 	r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 	if( Mr_is_error(r) ) {
-		mrlog_error("Could not connect to server.");
+		mrlog_error("Could not connect to IMAP-server.");
 		goto WorkingThread_Exit;
 	}
 

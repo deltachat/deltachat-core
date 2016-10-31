@@ -112,14 +112,15 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		return 0;
 	}
 
-	mrlog_info("Connecting to \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
+	mrlog_info("Connecting to SMTP-server \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
 
 	free(ths->m_from);
 	ths->m_from = safe_strdup(lp->m_addr);
 
 	ths->m_hEtpan = mailsmtp_new(0, NULL);
 	if( ths->m_hEtpan == NULL ) {
-		mrlog_error("mailsmtp_new() failed.");
+		mrlog_error("Object creationed failed.");
+		return 0;
 	}
 	mailsmtp_set_progress_callback(ths->m_hEtpan, body_progress, ths);
 	#if DEBUG_SMTP
@@ -130,14 +131,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	if( lp->m_send_flags&MR_SMTP_SSL_TLS ) {
 		/* use SMTP over SSL */
 		if( (ret=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_ssl_connect: %s\n", mailsmtp_strerror(ret));
+			mrlog_error("SSL-connect failed: %s\n", mailsmtp_strerror(ret));
 			goto cleanup;
 		}
 	}
 	else {
 		/* use STARTTLS */
 		if( (ret=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_socket_connect: %s\n", mailsmtp_strerror(ret));
+			mrlog_error("Socket-connect failed: %s\n", mailsmtp_strerror(ret));
 			goto cleanup;
 		}
 	}
@@ -218,7 +219,7 @@ void mrsmtp_disconnect(mrsmtp_t* ths)
  ******************************************************************************/
 
 
-int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data)
+int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not_terminated, size_t data_bytes)
 {
 	int           success = 0, ret;
 	clistiter*    iter;
@@ -227,7 +228,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data)
 		return 0;
 	}
 
-	if( recipients == NULL || clist_count(recipients)==0 || data == NULL ) {
+	if( recipients == NULL || clist_count(recipients)==0 || data_not_terminated == NULL || data_bytes == 0 ) {
 		return 1; /* "null message" send */
 	}
 
@@ -257,7 +258,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data)
 		goto cleanup;
 	}
 
-	if ((ret = mailsmtp_data_message(ths->m_hEtpan, data, strlen(data))) != MAILSMTP_NO_ERROR) {
+	if ((ret = mailsmtp_data_message(ths->m_hEtpan, data_not_terminated, data_bytes)) != MAILSMTP_NO_ERROR) {
 		fprintf(stderr, "mailsmtp_data_message: %s\n", mailsmtp_strerror(ret));
 		goto cleanup;
 	}

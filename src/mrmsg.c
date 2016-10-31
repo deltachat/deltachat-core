@@ -229,6 +229,31 @@ cleanup:
 }
 
 
+char* mrmsg_get_summary(const mrmsg_t* ths, int approx_bytes)
+{
+	char* ret = NULL;
+
+	switch( ths->m_type ) {
+		case MR_MSG_IMAGE: ret = mrstock_str(MR_STR_IMAGE); break;
+		case MR_MSG_VIDEO: ret = mrstock_str(MR_STR_VIDEO); break;
+		case MR_MSG_AUDIO: ret = mrstock_str(MR_STR_AUDIO); break;
+		case MR_MSG_FILE:  ret = mrstock_str(MR_STR_FILE);  break;
+		default:
+			if( ths->m_text ) {
+				ret = safe_strdup(ths->m_text);
+				mr_unwrap_str(ret, approx_bytes);
+			}
+			break;
+	}
+
+	if( ret == NULL ) {
+		ret = safe_strdup(NULL);
+	}
+
+	return ret;
+}
+
+
 /*******************************************************************************
  * Delete messages
  ******************************************************************************/
