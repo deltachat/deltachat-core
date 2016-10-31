@@ -174,3 +174,20 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 	return job_id;
 }
 
+
+void mrjob_try_again_later(mrjob_t* ths)
+{
+	int tries = mrparam_get_int(ths->m_param, 'T', 0) + 1;
+	mrparam_set_int(ths->m_param, 'T', tries);
+
+	if( tries == 1 ) {
+		ths->m_start_again_at = time(NULL)+3;
+	}
+	else if( tries < 5 ) {
+		ths->m_start_again_at = time(NULL)+60;
+	}
+	else {
+		ths->m_start_again_at = time(NULL)+600;
+	}
+}
+

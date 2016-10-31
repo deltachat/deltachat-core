@@ -487,7 +487,7 @@ char* imap_utf8_to_modified_utf7(const char *src, int change_spaces)
 
 
 /*******************************************************************************
- * carray tools
+ * carray/clist tools
  ******************************************************************************/
 
 
@@ -506,6 +506,16 @@ int carray_search(carray* haystack, void* needle, unsigned int* indx)
 	}
 
 	return 0;
+}
+
+
+void clist_free_content(const clist* haystack)
+{
+	clistiter* iter;
+	for( iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter) ) {
+		free(iter->data);
+		iter->data = NULL;
+	}
 }
 
 

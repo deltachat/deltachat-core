@@ -50,8 +50,9 @@ char*   mr_decode_header_string    (const char* in); /* the result must be free(
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 
-/* carray tools */
+/* carray/clist tools */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
+void    clist_free_content         (const clist*); /* calls free() for each item content */
 
 /* date/time tools */
 #define MR_INVALID_TIMESTAMP       (-1)

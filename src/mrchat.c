@@ -725,46 +725,61 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
-	uint32_t msg_id = job->m_foreign_id;
-	int      tries;
+	mrmsg_t*      msg = mrmsg_new();
+	clist*	      recipients = clist_new();
 
 	/* connect to SMTP server, if not yet done */
 	if( mailbox->m_smtp == NULL ) {
-		mailbox->m_smtp = mrsmtp_new(mailbox);
+		mailbox->m_smtp = mrsmtp_new();
 	}
 
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
-		if( !mrsmtp_connect(mailbox->m_smtp) ) {
-			goto redo_;
+		mrloginparam_t* loginparam = mrloginparam_new();
+			mrsqlite3_lock(mailbox->m_sql);
+				mrloginparam_read_(loginparam, mailbox->m_sql, "configured_");
+			mrsqlite3_unlock(mailbox->m_sql);
+			int connected = mrsmtp_connect(mailbox->m_smtp, loginparam);
+		mrloginparam_unref(loginparam);
+		if( !connected ) {
+			mrjob_try_again_later(job);
+			goto cleanup;
 		}
 	}
 
-	// send message
-	if( !mrsmtp_send_msg(mailbox->m_smtp, msg_id) ) {
-		goto redo_;
-	}
-
-	/* done for SMTP, we will add the message to IMAP in another job */
+	/* load message data */
 	mrsqlite3_lock(mailbox->m_sql);
-		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg_id, NULL);
+		if( mrmsg_load_from_db_(msg, mailbox, job->m_foreign_id) ) {
+			sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
+				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
+			sqlite3_bind_int(stmt, 1, msg->m_chat_id);
+			while( sqlite3_step(stmt) == SQLITE_ROW ) {
+				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
+				clist_append(recipients, (void*)safe_strdup(rcpt));
+			}
+		}
 	mrsqlite3_unlock(mailbox->m_sql);
-	return;
 
-redo_:
-	/* try over in at once/in a minute/in ten minutes */
-	mrsmtp_disconnect(mailbox->m_smtp);
-	tries = mrparam_get_int(job->m_param, 'T', 0) + 1;
-	mrparam_set_int(job->m_param, 'T', tries);
+	if( clist_count(recipients) == 0 ) {
+		mrlog_error("No recipients.");
+		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+	}
 
-	if( tries == 1 ) {
-		job->m_start_again_at = time(NULL)+3;
+	/* send message */
+	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, msg->m_text) ) {
+		mrsmtp_disconnect(mailbox->m_smtp);
+		mrjob_try_again_later(job);
+		goto cleanup;
 	}
-	else if( tries < 5 ) {
-		job->m_start_again_at = time(NULL)+60;
-	}
-	else {
-		job->m_start_again_at = time(NULL)+600;
-	}
+
+	/* done */
+	mrsqlite3_lock(mailbox->m_sql);
+		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
+	mrsqlite3_unlock(mailbox->m_sql);
+
+cleanup:
+	clist_free_content(recipients);
+	clist_free(recipients);
+	mrmsg_unref(msg);
 }
 
 

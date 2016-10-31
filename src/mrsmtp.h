@@ -33,22 +33,23 @@ extern "C" {
 #endif
 
 
+#include "mrloginparam.h"
+
 /*** library-private **********************************************************/
 
 typedef struct mrsmtp_t
 {
 	mailsmtp*    m_hEtpan;
-	mrmailbox_t* m_mailbox;
 	char*        m_from;
 	int          m_esmtp;
 } mrsmtp_t;
 
-mrsmtp_t*    mrsmtp_new          (mrmailbox_t*);
+mrsmtp_t*    mrsmtp_new          (void);
 void         mrsmtp_unref        (mrsmtp_t*);
 int          mrsmtp_is_connected (mrsmtp_t*);
-int          mrsmtp_connect      (mrsmtp_t*);
+int          mrsmtp_connect      (mrsmtp_t*, const mrloginparam_t*);
 void         mrsmtp_disconnect   (mrsmtp_t*);
-int          mrsmtp_send_msg     (mrsmtp_t*, uint32_t msg_id);
+int          mrsmtp_send_msg     (mrsmtp_t*, const clist* to, const char* data);
 
 
 #ifdef __cplusplus
