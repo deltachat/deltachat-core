@@ -46,7 +46,8 @@ extern "C" {
 #define MR_STR_VIDEO            10
 #define MR_STR_AUDIO            11
 #define MR_STR_FILE             12
-#define MR_STR_COUNT_           13
+#define MR_STR_STATUSLINE       13
+#define MR_STR_COUNT_           14
 
 
 /* mrstock_set_str() adds a string to the repository. A copy of the given string

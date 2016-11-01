@@ -116,6 +116,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_VIDEO,        "Video");
 		mrstock_add_str(MR_STR_AUDIO,        "Voice message");
 		mrstock_add_str(MR_STR_FILE,         "File");
+		mrstock_add_str(MR_STR_STATUSLINE,   "Send with my Delta Chat Messenger");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");

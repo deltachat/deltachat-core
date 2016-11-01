@@ -725,7 +725,7 @@ static struct mailmime* build_body_text(char* text)
 }
 
 
-static struct mailmime* build_body_file(mrmsg_t* msg)
+static struct mailmime* build_body_file(const mrmsg_t* msg)
 {
 	struct mailmime_fields*  mime_fields;
 	struct mailmime*         mime_sub;
@@ -769,34 +769,52 @@ static struct mailmime* build_body_file(mrmsg_t* msg)
 	return mime_sub;
 }
 
+
+static char* get_subject(const mrmsg_t* msg)
+{
+	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
+	ret = mr_mprintf("IM: %s", raw_subject);
+	free(raw_subject);
+	return ret;
+}
+
+
 static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
 	struct mailimf_mailbox_list* from;
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message;
+	char*                        message_text;
 	int                          col = 0;
 	MMAPString*                  ret = mmap_string_new("");
-	struct mailmime*             text_part;
-	char*                        subject_utf8 = mrmsg_get_summary(msg, 80);
 
 	from = mailimf_mailbox_list_new_empty();
 	mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
 
-	imf_fields = mailimf_fields_new_with_data(from,
-		NULL /* sender */, NULL /* reply-to */,
-		NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
-		NULL /* references */,
-		mr_encode_header_string(subject_utf8));
-	mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend")));
-	free(subject_utf8); /* the other objects are all freed with mailmime_free */
+	{
+		char* subject = get_subject(msg);
+		imf_fields = mailimf_fields_new_with_data(from,
+			NULL /* sender */, NULL /* reply-to */,
+			NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
+			NULL /* references */,
+			mr_encode_header_string(subject));
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend")));
+		free(subject);
+	}
 
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
 
-	text_part = build_body_text(mr_mprintf("%s%s-- \nSend with Delta Chat Messenger.",
-		msg->m_text,
-		(msg->m_text&&msg->m_text[0])?"\n\n":""));
-	mailmime_smart_add_part(message, text_part);
+	if( msg->m_text && &msg->m_text[0] ) {
+		char* footer = mrstock_str(MR_STR_STATUSLINE);
+		message_text = mr_mprintf("%s%s%s",
+			msg->m_text,
+			footer&&footer[0]? "\n\n-- \n"  : "",
+			footer&&footer[0]? footer       : "");
+		free(footer);
+		struct mailmime* text_part = build_body_text(message_text);
+		mailmime_smart_add_part(message, text_part);
+	}
 
 	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
 		struct mailmime* file_part = build_body_file(msg);
@@ -806,10 +824,9 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	}
 
 	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
-	//printf("%s", ret->str);
+
 	mailmime_free(message);
-
-
+	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
 	return ret;
 }
 
