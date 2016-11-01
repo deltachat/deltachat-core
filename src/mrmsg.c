@@ -98,6 +98,15 @@ void mrmailbox_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32
 }
 
 
+void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int state)
+{
+    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+		"UPDATE msgs SET state=? WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, state);
+	sqlite3_bind_int(stmt, 2, msg_id);
+	sqlite3_step(stmt);
+}
+
 
 size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
 {

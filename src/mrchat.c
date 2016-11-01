@@ -945,9 +945,14 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* done */
-	//mrsqlite3_lock(mailbox->m_sql);
-	//	mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
-	//mrsqlite3_unlock(mailbox->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
+	mrsqlite3_begin_transaction(mailbox->m_sql);
+		mrmailbox_update_msg_state_(mailbox, msg->m_id, MR_OUT_DELIVERED);
+		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
+	mrsqlite3_commit(mailbox->m_sql);
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	mailbox->m_cb(mailbox, MR_EVENT_MSG_DELIVERED, msg->m_chat_id, msg->m_id);
 
 cleanup:
 	clist_free_content(recipients);
