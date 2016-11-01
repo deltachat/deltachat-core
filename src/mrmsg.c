@@ -44,15 +44,17 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 	mrmsg_empty(ths);
 
 	ths->m_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	ths->m_rfc724_mid=  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_chat_id   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+
 	ths->m_from_id   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_to_id     =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-
 	ths->m_timestamp =             (time_t)sqlite3_column_int64(row, row_offset++);
+
 	ths->m_type      =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_state     =                     sqlite3_column_int  (row, row_offset++);
-
 	ths->m_text      =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+
 	mrparam_set_packed(ths->m_param,(char*)sqlite3_column_text (row, row_offset++));
 	ths->m_bytes     =                     sqlite3_column_int  (row, row_offset++);
 
@@ -70,7 +72,7 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 
 	mrmsg_empty(ths);
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_fields_FROM_msg_i,
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -194,6 +196,9 @@ void mrmsg_empty(mrmsg_t* ths)
 
 	free(ths->m_text);
 	ths->m_text = NULL;
+
+	free(ths->m_rfc724_mid);
+	ths->m_rfc724_mid = NULL;
 
 	mrparam_set_packed(ths->m_param, NULL);
 }

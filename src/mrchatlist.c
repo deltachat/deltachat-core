@@ -52,7 +52,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	show_strangers = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, "show_strangers", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itnifttsm_FROM_chatsNmsgs,
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
 			" WHERE c.id>? OR c.id=?"

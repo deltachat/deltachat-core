@@ -61,6 +61,7 @@ typedef struct mrjob_t mrjob_t;
 typedef struct mrmsg_t
 {
 	uint32_t      m_id;
+	char*         m_rfc724_mid;
 	uint32_t      m_from_id;   /* contact, 0=unset, 1=self .. >9=real contacts */
 	uint32_t      m_to_id;     /* contact, 0=unset, 1=self .. >9=real contacts */
 	uint32_t      m_chat_id;   /* the chat, the message belongs to: 0=unset, 1=unknwon sender .. >9=real chats */
@@ -84,7 +85,7 @@ void         mrmsg_empty                  (mrmsg_t*);
 
 /*** library-private **********************************************************/
 
-#define      MR_MSG_FIELDS                    " m.id,m.chat_id,m.from_id,m.to_id, m.timestamp,m.type,m.state, m.txt,m.param,m.bytes "
+#define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.txt, m.param,m.bytes "
 int          mrmsg_set_from_stmt_             (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int          mrmsg_load_from_db_              (mrmsg_t*, mrmailbox_t*, uint32_t id);
 char*        mrmsg_get_summary                (const mrmsg_t*, int approx_bytes); /* the returned values must be free()'d */

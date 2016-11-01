@@ -28,6 +28,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h> /* for getpid() */
+#include <unistd.h>    /* for getpid() */
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrcontact.h"
@@ -39,6 +41,25 @@
 /*******************************************************************************
  * Tools
  ******************************************************************************/
+
+
+static char* create_rfc724_mid_(mrchat_t* ths)
+{
+	/* do not use a counter as this may give unneeded information to the receiver,
+	see also mailimf_get_message_id()	*/
+	long now = time(NULL);
+	long pid = getpid();
+	long rnd = random();
+
+	char* from = mrsqlite3_get_config_(ths->m_mailbox->m_sql, "configured_addr", NULL);
+	if( from == NULL ) {
+		return NULL;
+	}
+
+	char* ret = mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from);
+	free(from);
+	return ret;
+}
 
 
 int mrmailbox_get_unread_count_(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -258,7 +279,7 @@ int mrchat_load_from_db_(mrchat_t* ths, uint32_t id)
 
 	mrchat_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itn_FROM_chats_i,
+	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
 		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -460,7 +481,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			}
 
 			/* query */
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_icfttstpb_FROM_msgs_i,
+			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
 				"SELECT " MR_MSG_FIELDS
 					" FROM msgs m"
 					" LEFT JOIN contacts ct ON m.from_id=ct.id"
@@ -781,30 +802,31 @@ static char* get_subject(const mrmsg_t* msg)
 
 static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
-	struct mailimf_mailbox_list* from;
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message;
 	char*                        message_text;
 	int                          col = 0;
 	MMAPString*                  ret = mmap_string_new("");
 
-	from = mailimf_mailbox_list_new_empty();
-	mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
-
+	/* create empty mail */
 	{
+		struct mailimf_mailbox_list* from = mailimf_mailbox_list_new_empty();
+		mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
+
 		char* subject = get_subject(msg);
 		imf_fields = mailimf_fields_new_with_data(from,
 			NULL /* sender */, NULL /* reply-to */,
 			NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
 			NULL /* references */,
 			mr_encode_header_string(subject));
-		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend")));
+		/* mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend"))); */
 		free(subject);
 	}
 
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
 
+	/* add text part */
 	if( msg->m_text && &msg->m_text[0] ) {
 		char* footer = mrstock_str(MR_STR_STATUSLINE);
 		message_text = mr_mprintf("%s%s%s",
@@ -816,6 +838,7 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 		mailmime_smart_add_part(message, text_part);
 	}
 
+	/* add attachment part */
 	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
 		struct mailmime* file_part = build_body_file(msg);
 		if( file_part ) {
@@ -823,7 +846,27 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 		}
 	}
 
+	/* correct the Message-ID (libEtPan creates one himself, however, we cannot use this as smtp and imap are independent from each other and we may want to add an group identifier to the Message-ID) */
+	{
+		int found_and_set = 0;
+		clistiter* cur1;
+		for( cur1 = clist_begin(imf_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) ) {
+			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+			if( field && field->fld_type == MAILIMF_FIELD_MESSAGE_ID ) {
+				free(field->fld_data.fld_message_id->mid_value);
+				field->fld_data.fld_message_id->mid_value = safe_strdup(msg->m_rfc724_mid);
+				found_and_set = 1;
+				break;
+			}
+		}
+		if( !found_and_set ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_MESSAGE_ID, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, mailimf_message_id_new(strdup("my@foobar-1")), NULL, NULL, NULL, NULL, NULL, NULL));
+		}
+	}
+
+	/* create the full mail and return */
 	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
+	//printf("%s\n", ret->str);
 
 	mailmime_free(message);
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
@@ -923,6 +966,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrparam_t*    param = mrparam_new();
 	size_t        bytes = 0;
 	uint32_t      msg_id = 0;
+	char*         rfc724_mid = NULL;
 	int           locked = 0, transaction_pending = 0;
 	sqlite3_stmt* stmt;
 
@@ -961,17 +1005,20 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
 	transaction_pending = 1;
 
+		rfc724_mid = create_rfc724_mid_(ths);
+
 		/* add message to the database */
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
-			"INSERT INTO msgs (chat_id,from_id,timestamp, type,state,txt, param,bytes) VALUES (?,?,?, ?,?,?, ?,?);");
-		sqlite3_bind_int  (stmt, 1, MR_CHAT_ID_MSGS_IN_CREATION);
-		sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
-		sqlite3_bind_int64(stmt, 3, timestamp);
-		sqlite3_bind_int  (stmt, 4, msg->m_type);
-		sqlite3_bind_int  (stmt, 5, MR_OUT_PENDING);
-		sqlite3_bind_text (stmt, 6, text? text : "",  -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 7, param->m_packed, -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 8, bytes);
+			"INSERT INTO msgs (rfc724_mid,chat_id,from_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?, ?,?,?, ?,?,?);");
+		sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (stmt, 2, MR_CHAT_ID_MSGS_IN_CREATION);
+		sqlite3_bind_int  (stmt, 3, MR_CONTACT_ID_SELF);
+		sqlite3_bind_int64(stmt, 4, timestamp);
+		sqlite3_bind_int  (stmt, 5, msg->m_type);
+		sqlite3_bind_int  (stmt, 6, MR_OUT_PENDING);
+		sqlite3_bind_text (stmt, 7, text? text : "",  -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 8, param->m_packed, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 9, bytes);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -1000,6 +1047,7 @@ cleanup:
 		mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	}
 	free(text);
+	free(rfc724_mid);
 	mrparam_unref(param);
 	return msg_id;
 }

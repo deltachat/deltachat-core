@@ -193,7 +193,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
-					" param TEXT DEFAULT '');");      /* param is for future use */
+					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
 		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
 		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
 		#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144

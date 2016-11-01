@@ -71,8 +71,8 @@ enum
 	,UPDATE_contacts_SET_origin_WHERE_id
 
 	,SELECT_COUNT_FROM_chats
-	,SELECT_itnifttsm_FROM_chatsNmsgs
-	,SELECT_itn_FROM_chats_i
+	,SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs
+	,SELECT_itndd_FROM_chats_WHERE_i
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,UPDATE_chats_SET_draft_WHERE_id
 	,UPDATE_chats_SET_n_WHERE_c
@@ -85,9 +85,9 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
-	,SELECT_fields_FROM_msg_i
+	,SELECT_ircftttstpb_FROM_msg_WHERE_i
 	,SELECT_i_FROM_msgs_m
-	,SELECT_icfttstpb_FROM_msgs_i
+	,SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
 	,INSERT_INTO_msgs_mcftttstp
 	,INSERT_INTO_msgs_cfttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
