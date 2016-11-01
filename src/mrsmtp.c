@@ -78,7 +78,9 @@ int mrsmtp_is_connected(const mrsmtp_t* ths)
 
 static void body_progress(size_t current, size_t maximum, void* user_data)
 {
+	#ifndef DEBUG_SMTP
 	mrlog_info("body_progress called with current=%i, maximum=%i.", (int)current, (int)maximum);
+	#endif
 }
 
 

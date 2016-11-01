@@ -776,6 +776,11 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		}
 	}
 
+	if( mimetype == NULL ) {
+		free(filename);
+		return NULL;
+	}
+
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT, // TODO: currently, the path and the filename goes in the mail; this is a potentially security risk
 		safe_strdup(filename), MAILMIME_MECHANISM_BASE64);
 
@@ -803,10 +808,11 @@ static char* get_subject(const mrmsg_t* msg)
 static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
 	struct mailimf_fields*       imf_fields;
-	struct mailmime*             message;
-	char*                        message_text;
+	struct mailmime*             message = NULL;
+	char*                        message_text = NULL;
 	int                          col = 0;
-	MMAPString*                  ret = mmap_string_new("");
+	MMAPString*                  ret = NULL;
+	int                          parts = 0;
 
 	/* create empty mail */
 	{
@@ -836,6 +842,7 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 		free(footer);
 		struct mailmime* text_part = build_body_text(message_text);
 		mailmime_smart_add_part(message, text_part);
+		parts++;
 	}
 
 	/* add attachment part */
@@ -843,7 +850,12 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 		struct mailmime* file_part = build_body_file(msg);
 		if( file_part ) {
 			mailmime_smart_add_part(message, file_part);
+			parts++;
 		}
+	}
+
+	if( parts == 0 ) {
+		goto cleanup;
 	}
 
 	/* correct the Message-ID (libEtPan creates one himself, however, we cannot use this as smtp and imap are independent from each other and we may want to add an group identifier to the Message-ID) */
@@ -865,10 +877,14 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	}
 
 	/* create the full mail and return */
+	ret = mmap_string_new("");
 	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
 	//printf("%s\n", ret->str);
 
-	mailmime_free(message);
+cleanup:
+	if( message ) {
+		mailmime_free(message);
+	}
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
 	return ret;
 }
@@ -938,6 +954,11 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message */
 	data = create_mime_msg(msg, from_addr, from_displayname, recipients);
+	if( data == NULL ) {
+		mrlog_error("Empty message.");
+		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+	}
+
 	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, data->str, data->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
 		mrjob_try_again_later(job);
@@ -993,8 +1014,15 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
 		if( file ) {
 			bytes = mr_filebytes(file);
-			mrlog_info("Attaching %s with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
-			free(file);
+			if( bytes > 0 ) {
+				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
+				free(file);
+			}
+			else {
+				mrlog_error("File \"%s\" not found or has zero bytes.", file);
+				free(file);
+				goto cleanup;
+			}
 		}
 		else {
 			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);

@@ -927,7 +927,11 @@ char* mr_timestamp_to_str(time_t wanted)
 size_t mr_filebytes(const char* filename)
 {
 	struct stat st;
-	stat(filename, &st);
-	return (size_t)st.st_size;
+	if( stat(filename, &st) == 0 ) {
+		return (size_t)st.st_size;
+	}
+	else {
+		return 0;
+	}
 }
 
