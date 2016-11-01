@@ -798,8 +798,18 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 static char* get_subject(const mrmsg_t* msg)
 {
+	/* we prefix the subject by "Instm: " for the follwing reasongs:
+	- easier filtering
+	- the user sees at once that the message is from an "Instant Messenger"
+
+	we we prefer "Instm: " over eg. "IM: ", "Instant message: " or "InstMsg:" because:
+	- it looks similar to "Re: ", "Fwd: " etc.
+	- it is not too long
+	- it is not used as another abbreviation with maybe bad associations ("Informeller Mitarbeiter")
+	- it is widely unique and does not give false positives when filtering */
+
 	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
-	ret = mr_mprintf("IM: %s", raw_subject);
+	ret = mr_mprintf("Instm: %s", raw_subject);
 	free(raw_subject);
 	return ret;
 }
