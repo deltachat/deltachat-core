@@ -827,7 +827,7 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	mailmime_set_imf_fields(message, imf_fields);
 
 	/* add text part */
-	if( msg->m_text && &msg->m_text[0] ) {
+	if( msg->m_text && msg->m_text[0] ) {
 		char* footer = mrstock_str(MR_STR_STATUSLINE);
 		message_text = mr_mprintf("%s%s%s",
 			msg->m_text,
