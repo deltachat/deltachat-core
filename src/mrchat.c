@@ -714,7 +714,7 @@ static struct mailmime* build_body_text(char* text)
 	struct mailmime_content*   content;
 
 	content = mailmime_content_new_with_str("text/plain");
-	clist_append(content->ct_parameters, mailmime_param_new_with_data("charset", "utf-8" )); /* format=flowed currently does not really affect us, see https://www.ietf.org/rfc/rfc3676.txt */
+	clist_append(content->ct_parameters, mailmime_param_new_with_data("charset", "utf-8")); /* format=flowed currently does not really affect us, see https://www.ietf.org/rfc/rfc3676.txt */
 
 	mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_8BIT);
 
@@ -724,6 +724,50 @@ static struct mailmime* build_body_text(char* text)
 	return message_part;
 }
 
+
+static struct mailmime* build_body_file(mrmsg_t* msg)
+{
+	struct mailmime_fields*  mime_fields;
+	struct mailmime*         mime_sub;
+	struct mailmime_content* content;
+
+	char* filename = mrparam_get(msg->m_param, 'f', NULL);
+	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
+
+	if( filename == NULL ) {
+		free(mimetype);
+		return NULL;
+	}
+
+	if( mimetype == NULL ) {
+		const char* p = strrchr(filename, '.');
+		if( p ) {
+			p++;
+			if( strcasecmp(p, "png")==0 ) {
+				mimetype = safe_strdup("image/png");
+			}
+			else if( strcasecmp(p, "jpg")==0 || strcasecmp(p, "jpeg")==0 || strcasecmp(p, "jpe")==0 ) {
+				mimetype = safe_strdup("image/jpeg");
+			}
+			else if( strcasecmp(p, "gif")==0 ) {
+				mimetype = safe_strdup("image/gif");
+			}
+		}
+	}
+
+	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT, // TODO: currently, the path and the filename goes in the mail; this is a potentially security risk
+		safe_strdup(filename), MAILMIME_MECHANISM_BASE64);
+
+	content = mailmime_content_new_with_str(mimetype);
+
+	mime_sub = mailmime_new_empty(content, mime_fields);
+
+	mailmime_set_body_file(mime_sub, safe_strdup(filename));
+
+	free(filename);
+	free(mimetype);
+	return mime_sub;
+}
 
 static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
@@ -746,12 +790,18 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend")));
 	free(subject_utf8); /* the other objects are all freed with mailmime_free */
 
-
-	text_part = build_body_text(mr_mprintf("%s\n\n-- \nSend with Delta Chat Messenger.", msg->m_text));
-
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
+
+	text_part = build_body_text(mr_mprintf("%s\n\n-- \nSend with Delta Chat Messenger.", msg->m_text));
 	mailmime_smart_add_part(message, text_part);
+
+	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
+		struct mailmime* file_part = build_body_file(msg);
+		if( file_part ) {
+			mailmime_smart_add_part(message, file_part);
+		}
+	}
 
 	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
 	//printf("%s", ret->str);
