@@ -793,7 +793,9 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
 
-	text_part = build_body_text(mr_mprintf("%s\n\n-- \nSend with Delta Chat Messenger.", msg->m_text));
+	text_part = build_body_text(mr_mprintf("%s%s-- \nSend with Delta Chat Messenger.",
+		msg->m_text,
+		(msg->m_text&&msg->m_text[0])?"\n\n":""));
 	mailmime_smart_add_part(message, text_part);
 
 	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
