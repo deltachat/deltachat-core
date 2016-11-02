@@ -835,10 +835,20 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 		struct mailimf_mailbox_list* from = mailimf_mailbox_list_new_empty();
 		mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
 
+		struct mailimf_address_list* to = NULL;
+		if( recipients && clist_count(recipients)>0 ) {
+			clistiter* iter;
+			to = mailimf_address_list_new_empty();
+			for( iter=clist_begin(recipients); iter!=NULL; iter=clist_next(iter)) {
+				const char* rcpt = clist_content(iter);
+				mailimf_address_list_add(to, mailimf_address_new(MAILIMF_ADDRESS_MAILBOX, mailimf_mailbox_new(NULL, strdup(rcpt)), NULL));
+			}
+		}
+
 		char* subject = get_subject(msg);
 		imf_fields = mailimf_fields_new_with_data(from,
 			NULL /* sender */, NULL /* reply-to */,
-			NULL, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
+			to, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
 			NULL /* references */,
 			mr_encode_header_string(subject));
 		/* mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend"))); */
