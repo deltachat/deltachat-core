@@ -815,7 +815,7 @@ static char* get_subject(const mrmsg_t* msg)
 	- "Δ" does look like the "sorting arrows" and may confuse the user */
 
 	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
-	ret = mr_mprintf("\u03B4: %s", raw_subject);
+	ret = mr_mprintf("\xCE\xB4: %s", raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
 	free(raw_subject);
 	return ret;
 }
