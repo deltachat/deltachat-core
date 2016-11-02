@@ -78,7 +78,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_MSGS_UPDATED    2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
 #define MR_EVENT_IS_EMAIL_KNOWN  2010 /* data1: email address, ret=1=email is known, create a chat, ret=0=email is unknown */
 #define MR_EVENT_MSG_DELIVERED   3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
-
+#define MR_EVENT_MSG_READ        3010 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
 
 typedef struct mrmailbox_t
 {

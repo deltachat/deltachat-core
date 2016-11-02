@@ -798,20 +798,24 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 static char* get_subject(const mrmsg_t* msg)
 {
-	/* We add prefix to the subject for the follwing reasongs:
+	/* We add a tag to the subject for the following reasons:
 	+ easier filtering
 	+ the user sees at once that the message is from an "Instant Messenger"
 
-	We we prefer "Δ" over eg. "Instm: ", "IM: ", "Instant message: " or "InstMsg:" because:
-	+ it is close to "Delta", however, it is even finde
-	+ it is not too long
-	+ it is not used as another abbreviation
-	+ it is widely unique and does not give false positives when filtering
-	Disadvantages of "Δ"
-	- it does not looks similar to "Re: ", "Fwd: " etc. */
+	We prefer a prefix over a postfix becase:
+	+ can be used to easily filter messages using the column-sorting-routine
+	+ looks better, a postfix is more noisy
+	- disadvantage: does not allow column-sorting the delta-messages themselves
+
+	We use "δ:" - other ideas were "Δ", "Instm:", "IM:", "Instant message:" or "InstMsg:" ...
+	+ "δ:" it is widely unique and does not give false positives when filtering
+	+ "δ:" is short and looks similar to "Re:", "Fwd:" etc.
+	+ "δ:" is also the name of the frontend (however, even for other frontends, we recommend to leave "δ:")
+	+ "δ:" is not used as another abbreviation in this context
+	- "Δ" does look like the "sorting arrows" and may confuse the user */
 
 	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
-	ret = mr_mprintf("\u0394 %s", raw_subject);
+	ret = mr_mprintf("\u03B4: %s", raw_subject);
 	free(raw_subject);
 	return ret;
 }
