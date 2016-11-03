@@ -61,7 +61,8 @@ time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* th
 char*   mr_timestamp_to_str        (time_t); /* the return value must be free()'d */
 
 /* file tools */
-size_t  mr_filebytes               (const char* filename);
+size_t  mr_get_filebytes           (const char* pathNfilename);
+char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
 
 /* macros */
 #define MR_INIT_REFERENCE \

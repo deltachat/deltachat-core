@@ -924,10 +924,10 @@ char* mr_timestamp_to_str(time_t wanted)
  ******************************************************************************/
 
 
-size_t mr_filebytes(const char* filename)
+size_t mr_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;
-	if( stat(filename, &st) == 0 ) {
+	if( stat(pathNfilename, &st) == 0 ) {
 		return (size_t)st.st_size;
 	}
 	else {
@@ -935,3 +935,19 @@ size_t mr_filebytes(const char* filename)
 	}
 }
 
+
+char* mr_get_filename(const char* pathNfilename)
+{
+	const char* p = strrchr(pathNfilename, '/');
+	if( p==NULL ) {
+		p = strrchr(pathNfilename, '\\');
+	}
+
+	if( p ) {
+		p++;
+		return safe_strdup(p);
+	}
+	else {
+		return safe_strdup(pathNfilename);
+	}
+}

@@ -749,40 +749,45 @@ static struct mailmime* build_body_text(char* text)
 static struct mailmime* build_body_file(const mrmsg_t* msg)
 {
 	struct mailmime_fields*  mime_fields;
-	struct mailmime*         mime_sub;
+	struct mailmime*         mime_sub = NULL;
 	struct mailmime_content* content;
 
 	char* filename = mrparam_get(msg->m_param, 'f', NULL);
 	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
+	char* original_filename = NULL; /* do not send the original path together with the attachment; this is a potential security/privacy risk */
 
 	if( filename == NULL ) {
-		free(mimetype);
-		return NULL;
+		goto cleanup;
 	}
 
-	if( mimetype == NULL ) {
+	{
 		const char* p = strrchr(filename, '.');
 		if( p ) {
 			p++;
-			if( strcasecmp(p, "png")==0 ) {
-				mimetype = safe_strdup("image/png");
+			original_filename = mr_mprintf("Delta Chat.%s", p);
+			if( mimetype == NULL ) {
+				if( strcasecmp(p, "png")==0 ) {
+					mimetype = safe_strdup("image/png");
+				}
+				else if( strcasecmp(p, "jpg")==0 || strcasecmp(p, "jpeg")==0 || strcasecmp(p, "jpe")==0 ) {
+					mimetype = safe_strdup("image/jpeg");
+				}
+				else if( strcasecmp(p, "gif")==0 ) {
+					mimetype = safe_strdup("image/gif");
+				}
 			}
-			else if( strcasecmp(p, "jpg")==0 || strcasecmp(p, "jpeg")==0 || strcasecmp(p, "jpe")==0 ) {
-				mimetype = safe_strdup("image/jpeg");
-			}
-			else if( strcasecmp(p, "gif")==0 ) {
-				mimetype = safe_strdup("image/gif");
-			}
+		}
+		else {
+			original_filename = safe_strdup("Delta Chat.dat");
 		}
 	}
 
 	if( mimetype == NULL ) {
-		free(filename);
-		return NULL;
+		goto cleanup;
 	}
 
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT, // TODO: currently, the path and the filename goes in the mail; this is a potentially security risk
-		safe_strdup(filename), MAILMIME_MECHANISM_BASE64);
+		safe_strdup(original_filename), MAILMIME_MECHANISM_BASE64);
 
 	content = mailmime_content_new_with_str(mimetype);
 
@@ -790,18 +795,27 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 	mailmime_set_body_file(mime_sub, safe_strdup(filename));
 
+cleanup:
 	free(filename);
 	free(mimetype);
+	free(original_filename);
 	return mime_sub;
 }
 
 
 static char* get_subject(const mrmsg_t* msg)
 {
-	char *ret, *raw_subject = mrmsg_get_summary(msg, 50), *prefix = mrstock_str(MR_STR_SUBJECTPREFIX);
-	ret = mr_mprintf("%s: %s", prefix, raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
+	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
+
+	#if 0
+		char *prefix = mrstock_str(MR_STR_SUBJECTPREFIX);
+		ret = mr_mprintf("%s: %s", prefix, raw_subject);
+		free(prefix);
+	#else
+		ret = mr_mprintf("%s [\xCE\xB4]", raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
+	#endif
+
 	free(raw_subject);
-	free(prefix);
 	return ret;
 }
 
@@ -1024,7 +1038,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
 		if( file ) {
-			bytes = mr_filebytes(file);
+			bytes = mr_get_filebytes(file);
 			if( bytes > 0 ) {
 				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
 				free(file);

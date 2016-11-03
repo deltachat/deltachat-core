@@ -32,6 +32,7 @@
  *
  * Known keys:
  * 'f'ile
+ * 'o'riginal filename
  * 'w'idth
  * 'h'eight
  * 'd'uration in milliseconds
