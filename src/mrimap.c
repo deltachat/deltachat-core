@@ -46,6 +46,7 @@
 #define MR_THREAD_EXIT         50
 
 
+
 /*******************************************************************************
  * Tools
  ******************************************************************************/
@@ -148,13 +149,11 @@ static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p
  ******************************************************************************/
 
 
-static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_uid, size_t* created_db_entries)
+static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_uid)
 {
 	/* the function returns:
 	    0  on errors; in this case, the caller should try over again later
 	or  1  if the messages should be treated as received (even if no database entries are returned)
-
-	moreover, the function copies the nubmer or really created database entries to ret_created_database_entries.
 
 	Finally, remember, we're inside a working thread! */
 	size_t      msg_len;
@@ -164,22 +163,11 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 
 	/* call mailimap_uid_fetch() with some options; the result goes to fetch_result */
 	{
-		/* create an object defining the set set to fetch */
 		struct mailimap_set* set = mailimap_set_new_single(flocal_uid);
 
-		/* create an object describing the type of information to be retrieved
-		- we want to retrieve the body - */
-		struct mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
-		{
-		 struct mailimap_section*    section = mailimap_section_new(NULL);
-		 struct mailimap_fetch_att*  att     = mailimap_fetch_att_new_body_peek_section(section);
-		 mailimap_fetch_type_new_fetch_att_list_add(type, att);
-		}
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 
-		r = mailimap_uid_fetch(ths->m_hEtpan,
-			set,            /* set of message uid, mailimap_fetch() takes ownership of the object */
-			type,           /* type of information to be retrieved, mailimap_fetch() takes ownership of the object */
-			&fetch_result); /* result as a clist of mailimap_msg_att* */
+		mailimap_set_free(set);
 	}
 
 	if( is_error(r) ) {
@@ -204,23 +192,23 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 		}
 	}
 
-	/* add to our respository */
-	*created_db_entries = ths->m_cb(ths, MR_EVENT_RECEIVE_IMF_, (uintptr_t)msg_content, msg_len, (uintptr_t)folder, (uintptr_t)flocal_uid);
+	/* let the user handle the message */
+	ths->m_receive_imf(ths, msg_content, msg_len, folder, flocal_uid);
 
 	mailimap_fetch_list_free(fetch_result);
 
-	return 1; /* Success, messages fetched. However, the amount in created_db_entries may be 0. */
+	return 1; /* Success, messages fetched. The amount of really created db entries by m_receive_imf() may be 0. */
 }
 
 
-static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
+static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 {
 	/* we're inside a working thread! */
 	int        r;
 	clist*     fetch_result = NULL;
 	uint32_t   in_first_uid = 0; /* the first uid to fetch, if 0, get all */
 	uint32_t   out_largetst_uid = 0;
-	size_t     read_cnt = 0, read_errors = 0, created_db_entries = 0;
+	size_t     read_cnt = 0, read_errors = 0;
 	char*      config_key = NULL;
 	clistiter* cur;
 
@@ -231,8 +219,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		goto cleanup;
 	}
 
-	in_first_uid = (uint32_t)ths->m_cb(ths, MR_EVENT_GET_CONFIG_INT_, (uintptr_t)config_key, 0, 0, 0);
-
+	in_first_uid = ths->m_get_config_int(ths, config_key, 0);
 
 	/* select the folder */
 	r = mailimap_select(ths->m_hEtpan, folder);
@@ -242,27 +229,18 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	}
 
 	/* call mailimap_fetch() with some options; the result goes to fetch_result */
+	if( in_first_uid )
 	{
-		/* create an object describing the type of information to be retrieved, mailimap_fetch() takes ownership of the object
-		- we want to retrieve the uid - */
-		struct mailimap_fetch_type* type = mailimap_fetch_type_new_fetch_att_list_empty();
-		{
-		 struct mailimap_fetch_att*  att = mailimap_fetch_att_new_uid();
-		 mailimap_fetch_type_new_fetch_att_list_add(type, att);
-		}
-
-		/* do fetch! */
-		if( in_first_uid )
-		{
-			/* CAVE: We may get mails with uid smaller than the given one; therefore we check the uid below (this is also done in MailCore2, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp) */
-			r = mailimap_uid_fetch(ths->m_hEtpan, mailimap_set_new_interval(in_first_uid+1, 0), /* fetch by uid */
-				type, &fetch_result);
-		}
-		else
-		{
-			r = mailimap_fetch(ths->m_hEtpan, mailimap_set_new_interval(1, 0), /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
-				type, &fetch_result);
-		}
+		/* CAVE: We may get mails with uid smaller than the given one; therefore we check the uid below (this is also done in MailCore2, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp) */
+		struct mailimap_set* set = mailimap_set_new_interval(in_first_uid+1, 0);
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* fetch by uid */
+		mailimap_set_free(set);
+	}
+	else
+	{
+		struct mailimap_set* set = mailimap_set_new_interval(1, 0);
+			r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
+		mailimap_set_free(set);
 	}
 
 	if( is_error(r) || fetch_result == NULL )
@@ -281,31 +259,26 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		uint32_t cur_uid = get_uid(msg_att);
 		if( cur_uid && (in_first_uid==0 || cur_uid>in_first_uid) )
 		{
-			size_t temp_created_db_entries = 0;
-
 			if( cur_uid > out_largetst_uid ) {
 				out_largetst_uid = cur_uid;
 			}
 
 			read_cnt++;
-			if( fetch_single_msg(ths, folder, cur_uid, &temp_created_db_entries) == 0 ) {
+			if( fetch_single_msg(ths, folder, cur_uid) == 0 ) {
 				read_errors++;
-			}
-			else {
-				created_db_entries += temp_created_db_entries; /* may be 0 eg. for empty messages. This is NO error. */
 			}
 		}
 	}
 
 	if( !read_errors && out_largetst_uid > 0 )
 	{
-		ths->m_cb(ths, MR_EVENT_SET_CONFIG_INT_, (uintptr_t)config_key, out_largetst_uid, 0, 0);
+		ths->m_set_config_int(ths, config_key, out_largetst_uid);
 	}
 
 	/* done */
 cleanup:
     {
-		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors; %i messages created.", (int)read_cnt, folder, (int)read_errors, (int)created_db_entries);
+		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
 		if( read_errors ) {
 			mrlog_error(temp);
 		}
@@ -322,18 +295,13 @@ cleanup:
 	if( config_key ) {
 		sqlite3_free(config_key);
 	}
-
-	return created_db_entries;
 }
 
 
-static size_t fetch_from_all_folders(mrimap_t* ths)
+static void fetch_from_all_folders(mrimap_t* ths)
 {
-	/* we're inside a working thread! */
-	size_t created_db_entries = 0;
-
 	/* check INBOX */
-	created_db_entries += fetch_from_single_folder(ths, "INBOX");
+	fetch_from_single_folder(ths, "INBOX");
 
 	/* check other folders */
 	int        r;
@@ -345,7 +313,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 	r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
 	if( is_error(r) || imap_folders==NULL ) {
 		mrlog_error("Cannot get folder list.");
-		goto cleanup;
+		return;
 	}
 
 	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) ) /* contains eg. Gesendet, Archiv, INBOX - uninteresting: Spam, Papierkorb, Entwürfe */
@@ -358,7 +326,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 			{
 				if( !ignore_folder(name_utf8) )
 				{
-					created_db_entries += fetch_from_single_folder(ths, name_utf8);
+					fetch_from_single_folder(ths, name_utf8);
 				}
 				else
 				{
@@ -369,9 +337,6 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 			}
 		}
 	}
-
-cleanup:
-	return created_db_entries;
 }
 
 
@@ -380,7 +345,7 @@ cleanup:
  ******************************************************************************/
 
 
-mrimap_t* mrimap_new(mrimapcb_t cb, void* userData)
+mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set_config_int, mr_receive_imf_t receive_imf, void* userData)
 {
 	mrimap_t* ths = NULL;
 
@@ -388,10 +353,20 @@ mrimap_t* mrimap_new(mrimapcb_t cb, void* userData)
 		exit(25); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_cb            = cb;
-	ths->m_userData      = userData;
+	ths->m_get_config_int = get_config_int;
+	ths->m_set_config_int = set_config_int;
+	ths->m_receive_imf    = receive_imf;
+	ths->m_userData       = userData;
 
     pthread_mutex_init(&ths->m_critical, NULL);
+
+	/* create some useful objects */
+	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_uid, mailimap_fetch_att_new_uid());
+
+	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the body */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body,
+		mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
 
     return ths;
 }
@@ -410,6 +385,10 @@ void mrimap_unref(mrimap_t* ths)
 	free(ths->m_imap_server);
 	free(ths->m_imap_user);
 	free(ths->m_imap_pw);
+
+	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
+	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
+
 	free(ths);
 }
 
@@ -525,9 +504,7 @@ int mrimap_fetch(mrimap_t* ths)
 		}
 
 		mrlog_info("Fetching messages...");
-		if( fetch_from_all_folders(ths) > 0 ) {
-			ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0, 0, 0);
-		}
+		fetch_from_all_folders(ths);
 
 		success = 1;
 

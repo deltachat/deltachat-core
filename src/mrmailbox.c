@@ -418,42 +418,11 @@ Imf2Msg_Done:
 		carray_free(to_list);
 	}
 
-	return created_db_entries;
-}
-
-
-/*******************************************************************************
- * IMAP callback handler
- ******************************************************************************/
-
-
-static uintptr_t imap_callback(mrimap_t* imap, int event, uintptr_t data1, uintptr_t data2, uintptr_t data3, uintptr_t data4)
-{
-	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
-	uintptr_t    ret;
-
-	switch( event )
-	{
-		case MR_EVENT_GET_CONFIG_INT_:
-			mrsqlite3_lock(mailbox->m_sql);
-				ret = mrsqlite3_get_config_int_(mailbox->m_sql, (const char*)data1, (int32_t)data2);
-			mrsqlite3_unlock(mailbox->m_sql);
-			return ret;
-
-		case MR_EVENT_SET_CONFIG_INT_:
-			mrsqlite3_lock(mailbox->m_sql);
-				mrsqlite3_set_config_int_(mailbox->m_sql, (const char*)data1, (int32_t)data2);
-			mrsqlite3_unlock(mailbox->m_sql);
-			return 1;
-
-		case MR_EVENT_RECEIVE_IMF_:
-			return receive_imf(mailbox, (const char*)data1, (size_t)data2, (const char*)data3, (uint32_t)data4);
-
-		default:
-			break;
+	if( created_db_entries > 0 ) {
+		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
 	}
 
-	return mailbox->m_cb(mailbox, event, data1, data2);
+	return created_db_entries;
 }
 
 
@@ -464,8 +433,27 @@ static uintptr_t imap_callback(mrimap_t* imap, int event, uintptr_t data1, uintp
 
 static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
-	mrlog_warning("Unhandled event: %i (%i, %i)", (int)event, (int)data1, (int)data2);
 	return 0;
+}
+static int32_t cb_get_config_int(mrimap_t* imap, const char* key, int32_t value)
+{
+	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	mrsqlite3_lock(mailbox->m_sql);
+		int32_t ret = mrsqlite3_get_config_int_(mailbox->m_sql, key, value);
+	mrsqlite3_unlock(mailbox->m_sql);
+	return ret;
+}
+static void cb_set_config_int(mrimap_t* imap, const char* key, int32_t def)
+{
+	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	mrsqlite3_lock(mailbox->m_sql);
+		mrsqlite3_set_config_int_(mailbox->m_sql, key, def);
+	mrsqlite3_unlock(mailbox->m_sql);
+}
+static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* folder, uint32_t flocal_uid)
+{
+	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, folder, flocal_uid);
 }
 
 
@@ -482,7 +470,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userData = userData;
-	ths->m_imap     = mrimap_new(imap_callback, (void*)ths);
+	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths);
 
 	mrjob_init_thread_(ths);
 

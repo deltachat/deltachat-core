@@ -37,13 +37,11 @@ extern "C" {
 /*** library-private **********************************************************/
 
 typedef struct mrloginparam_t mrloginparam_t;
+typedef struct mrimap_t mrimap_t;
 
-
-/* send events to the owner of the object, we use the standard MR_EVENT_ here */
-#define MR_EVENT_RECEIVE_IMF_    -100 /* data1: ptr, data2: bytes, ret: number of messages created */
-#define MR_EVENT_GET_CONFIG_INT_ -200 /* data1: key, data2: default, ret: value  */
-#define MR_EVENT_SET_CONFIG_INT_ -210 /* data1: key, data2: value */
-typedef uintptr_t (*mrimapcb_t) (mrimap_t*, int event, uintptr_t data1, uintptr_t data2, uintptr_t data3, uintptr_t data4);
+typedef int32_t  (*mr_get_config_int_t)(mrimap_t*, const char*, int32_t);
+typedef void     (*mr_set_config_int_t)(mrimap_t*, const char*, int32_t);
+typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* folder, uint32_t flocal_uid);
 
 
 typedef struct mrimap_t
@@ -57,12 +55,17 @@ typedef struct mrimap_t
 	char*                 m_imap_user;
 	char*                 m_imap_pw;
 
-	mrimapcb_t            m_cb;
+	struct mailimap_fetch_type* m_fetch_type_uid;
+	struct mailimap_fetch_type* m_fetch_type_body;
+
+	mr_get_config_int_t   m_get_config_int;
+	mr_set_config_int_t   m_set_config_int;
+	mr_receive_imf_t      m_receive_imf;
 	void*                 m_userData;
 } mrimap_t;
 
 
-mrimap_t* mrimap_new               (mrimapcb_t, void* userData);
+mrimap_t* mrimap_new               (mr_get_config_int_t, mr_set_config_int_t, mr_receive_imf_t, void* userData);
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_is_connected      (mrimap_t*);
