@@ -139,19 +139,21 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		goto Imf2Msg_Done; /* out of memory */
 	}
 
-	#if 1
+	#if 0
 	{
-		char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
-		if( debugDir ) {
-			char filename[512];
-			snprintf(filename, sizeof(filename), "%s/%s-%u.eml", debugDir, folder, (unsigned int)flocal_uid);
-			FILE* f = fopen(filename, "w");
-			if( f ) {
-				fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);
-				fclose(f);
+		mrsqlite3_lock(ths->m_sql);
+			char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
+			if( debugDir ) {
+				char filename[512];
+				snprintf(filename, sizeof(filename), "%s/%s-%u.eml", debugDir, folder, (unsigned int)flocal_uid);
+				FILE* f = fopen(filename, "w");
+				if( f ) {
+					fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);
+					fclose(f);
+				}
+				free(debugDir);
 			}
-			free(debugDir);
-		}
+		mrsqlite3_unlock(ths->m_sql);
 	}
 	#endif
 
