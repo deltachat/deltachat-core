@@ -7,7 +7,7 @@ completely **compatible** to the existing e-mail infrastructure.
 ![Logo](https://messenger.b44t.com/start-img4.png)
 
 So, with Delta Chat you get the **ease** of well-known messengers with the
-**reach** of e-mail. Moreover, you're **indepentent** from other companies or
+**reach** of e-mail. Moreover, you're **independent** from other companies or
 services - as your data are not related to Delta Chat, you won't even add new
 dependecies here.
 
