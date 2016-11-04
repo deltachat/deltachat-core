@@ -122,8 +122,8 @@ static void job_thread_entry_point(void* entry_arg)
 	/* exit thread */
 exit_:
 	mrparam_unref(job.m_param);
-	mrosnative_unsetup_thread();
 	mrlog_info("Exit job thread.");
+	mrosnative_unsetup_thread();
 }
 
 

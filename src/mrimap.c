@@ -51,13 +51,10 @@
  ******************************************************************************/
 
 
-static int Mr_ignore_folder(const char* folder_name)
+static int ignore_folder(const char* folder_name)
 {
 	int ignore_folder = 0;
 	char* l = mr_strlower(folder_name);
-	if( !l ) {
-		goto Mr_is_void_folder_Done;
-	}
 
 	if( strcmp(l, "spam") == 0
 	 || strcmp(l, "junk") == 0
@@ -81,28 +78,25 @@ static int Mr_ignore_folder(const char* folder_name)
 		ignore_folder = 1;
 	}
 
-Mr_is_void_folder_Done:
-	if( l ) {
-		free(l);
-	}
+	free(l);
 	return ignore_folder;
 }
 
 
-static int Mr_is_error(int imapCode)
+static int is_error(int imapCode)
 {
 	if( imapCode == MAILIMAP_NO_ERROR
 	 || imapCode == MAILIMAP_NO_ERROR_AUTHENTICATED
 	 || imapCode == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
 	{
-		return 0; /* no error - success */
+		return 0;
 	}
 
-	return 1; /* yes, the code is an error */
+	return 1;
 }
 
 
-static uint32_t Mr_get_uid(struct mailimap_msg_att* msg_att) /* search the UID in a list of attributes */
+static uint32_t get_uid(struct mailimap_msg_att* msg_att) /* search the UID in a list of attributes */
 {
 	clistiter* cur;
 
@@ -125,7 +119,7 @@ static uint32_t Mr_get_uid(struct mailimap_msg_att* msg_att) /* search the UID i
 }
 
 
-static char* Mr_get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p_msg_size) /* search content in a list of attributes */
+static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p_msg_size) /* search content in a list of attributes */
 {
 	clistiter* cur;
 
@@ -154,10 +148,7 @@ static char* Mr_get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t
  ******************************************************************************/
 
 
-static int mrimap_fetch_single_msg(mrimap_t* ths,
-							  const char* folder, /* only needed for statistical/debugging purposes, the correct folder is already selected when this function is called */
-                              uint32_t flocal_uid,
-                              size_t* created_db_entries)
+static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_uid, size_t* created_db_entries)
 {
 	/* the function returns:
 	    0  on errors; in this case, the caller should try over again later
@@ -191,7 +182,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths,
 			&fetch_result); /* result as a clist of mailimap_msg_att* */
 	}
 
-	if( Mr_is_error(r) ) {
+	if( is_error(r) ) {
 		mrlog_error("mrimap_fetch_single_msg(): Could not fetch.");
 		return 0; /* this is an error that should be recovered; the caller should try over later to fetch the message again */
 	}
@@ -205,7 +196,7 @@ static int mrimap_fetch_single_msg(mrimap_t* ths,
 		}
 
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
-		msg_content = Mr_get_msg_att_msg_content(msg_att, &msg_len);
+		msg_content = get_msg_att_msg_content(msg_att, &msg_len);
 		if( msg_content == NULL ) {
 			mrlog_warning("mrimap_fetch_single_msg(): No content found for a message.");
 			mailimap_fetch_list_free(fetch_result);
@@ -237,7 +228,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
 	if( config_key == NULL ) {
 		mrlog_error("MrImap::FetchFromSingleFolder(): Out of memory.");
-		goto FetchFromFolder_Done;
+		goto cleanup;
 	}
 
 	in_first_uid = (uint32_t)ths->m_cb(ths, MR_EVENT_GET_CONFIG_INT_, (uintptr_t)config_key, 0, 0, 0);
@@ -245,9 +236,9 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 
 	/* select the folder */
 	r = mailimap_select(ths->m_hEtpan, folder);
-	if( Mr_is_error(r) ) {
+	if( is_error(r) ) {
 		mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
-		goto FetchFromFolder_Done;
+		goto cleanup;
 	}
 
 	/* call mailimap_fetch() with some options; the result goes to fetch_result */
@@ -274,20 +265,20 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		}
 	}
 
-	if( Mr_is_error(r) || fetch_result == NULL )
+	if( is_error(r) || fetch_result == NULL )
 	{
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
-			goto FetchFromFolder_Done; /* the folder is simply empty */
+			goto cleanup; /* the folder is simply empty */
 		}
 		mrlog_error("MrImap::FetchFromSingleFolder(): Could not fetch");
-		goto FetchFromFolder_Done;
+		goto cleanup;
 	}
 
 	/* go through all mails in folder (this is typically _fast_ as we already have the whole list) */
 	for( cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
-		uint32_t cur_uid = Mr_get_uid(msg_att);
+		uint32_t cur_uid = get_uid(msg_att);
 		if( cur_uid && (in_first_uid==0 || cur_uid>in_first_uid) )
 		{
 			size_t temp_created_db_entries = 0;
@@ -297,7 +288,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 			}
 
 			read_cnt++;
-			if( mrimap_fetch_single_msg(ths, folder, cur_uid, &temp_created_db_entries) == 0 ) {
+			if( fetch_single_msg(ths, folder, cur_uid, &temp_created_db_entries) == 0 ) {
 				read_errors++;
 			}
 			else {
@@ -312,7 +303,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	}
 
 	/* done */
-FetchFromFolder_Done:
+cleanup:
     {
 		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors; %i messages created.", (int)read_cnt, folder, (int)read_errors, (int)created_db_entries);
 		if( read_errors ) {
@@ -352,9 +343,9 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 	mrlog_info("Checking other folders...");
 
 	r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
-	if( Mr_is_error(r) || imap_folders==NULL ) {
+	if( is_error(r) || imap_folders==NULL ) {
 		mrlog_error("Cannot get folder list.");
-		goto FetchFromAllFolders_Done;
+		goto cleanup;
 	}
 
 	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) ) /* contains eg. Gesendet, Archiv, INBOX - uninteresting: Spam, Papierkorb, Entwürfe */
@@ -365,7 +356,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
 			if( name_utf8 )
 			{
-				if( !Mr_ignore_folder(name_utf8) )
+				if( !ignore_folder(name_utf8) )
 				{
 					created_db_entries += fetch_from_single_folder(ths, name_utf8);
 				}
@@ -379,7 +370,7 @@ static size_t fetch_from_all_folders(mrimap_t* ths)
 		}
 	}
 
-FetchFromAllFolders_Done:
+cleanup:
 	return created_db_entries;
 }
 
@@ -389,38 +380,35 @@ FetchFromAllFolders_Done:
  ******************************************************************************/
 
 
-static void mrimap_working_thread__(mrimap_t* ths)
+static void imap_thread_entry_point(void* entry_arg)
 {
-	int               r, cmd, login_done = 0;
+	mrimap_t* ths = (mrimap_t*)entry_arg;
+	int       r, cmd, login_done = 0;
 
+	/* init thread */
 	mrlog_info("Working thread entered.");
+	mrosnative_setup_thread();
 
-	/* connect to server */
 	ths->m_threadState = MR_THREAD_CONNECT;
 
 	mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
-
-	ths->m_hEtpan = mailimap_new(0, NULL);
-	r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
-	if( Mr_is_error(r) ) {
-		mrlog_error("Could not connect to IMAP-server.");
-		goto WorkingThread_Exit;
-	}
-
+		ths->m_hEtpan = mailimap_new(0, NULL);
+		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+		if( is_error(r) ) {
+			mrlog_error("Could not connect to IMAP-server.");
+			goto exit_;
+		}
 	mrlog_info("Connection to IMAP-server ok.");
 
 	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
-
-	r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
-	if( Mr_is_error(r) ) {
-		mrlog_error("Could not login.");
-		goto WorkingThread_Exit;
-	}
-	login_done = 1;
-
+		r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
+		if( is_error(r) ) {
+			mrlog_error("Could not login.");
+			goto exit_;
+		}
+		login_done = 1;
 	mrlog_info("Login ok.");
 
-	/* endless loop */
 	while( 1 )
 	{
 		/* wait for condition */
@@ -443,15 +431,15 @@ static void mrimap_working_thread__(mrimap_t* ths)
 
 			case MR_THREAD_EXIT:
 				mrlog_info("Received MR_THREAD_EXIT signal.");
-				goto WorkingThread_Exit;
+				goto exit_;
 
 			default:
-				break; /* bad command */
+				break;
 		}
-
 	}
 
-WorkingThread_Exit:
+	/* exit thread */
+exit_:
 	if( ths->m_hEtpan ) {
 
 		if( login_done ) {
@@ -471,19 +459,7 @@ WorkingThread_Exit:
 	}
 	ths->m_threadState = MR_THREAD_NOTALLOCATED;
 
-
 	mrlog_info("Exit working thread.");
-}
-
-
-void mrimap_startup_helper(void* param)
-{
-	mrimap_t* ths = (mrimap_t*)param;
-
-	mrosnative_setup_thread();
-
-		mrimap_working_thread__(ths);
-
 	mrosnative_unsetup_thread();
 }
 
@@ -516,7 +492,7 @@ mrimap_t* mrimap_new(mrimapcb_t cb, void* userData)
 void mrimap_unref(mrimap_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	mrimap_disconnect(ths);
@@ -550,7 +526,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 	free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 
 	ths->m_threadState = MR_THREAD_INIT;
-	pthread_create(&ths->m_thread, NULL, (void * (*)(void *))mrimap_startup_helper, ths);
+	pthread_create(&ths->m_thread, NULL, (void * (*)(void *))imap_thread_entry_point, ths);
 
 	/* success, so far, the real connection takes place in the working thread */
 	return 1;
@@ -587,7 +563,7 @@ int mrimap_is_connected(mrimap_t* ths)
 int mrimap_fetch(mrimap_t* ths)
 {
 	if( ths == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {

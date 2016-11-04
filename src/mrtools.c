@@ -109,9 +109,6 @@ void mr_trim(char* buf)
 char* mr_strlower(const char* in) /* the result must be free()'d */
 {
 	char* out = safe_strdup(in);
-	if( out == NULL ) {
-		return NULL;
-	}
 
 	char* p = out;
 	for ( ; *p; p++) {
