@@ -376,96 +376,7 @@ cleanup:
 
 
 /*******************************************************************************
- * The working thread
- ******************************************************************************/
-
-
-static void imap_thread_entry_point(void* entry_arg)
-{
-	mrimap_t* ths = (mrimap_t*)entry_arg;
-	int       r, cmd, login_done = 0;
-
-	/* init thread */
-	mrlog_info("Working thread entered.");
-	mrosnative_setup_thread();
-
-	ths->m_threadState = MR_THREAD_CONNECT;
-
-	mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
-		ths->m_hEtpan = mailimap_new(0, NULL);
-		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
-		if( is_error(r) ) {
-			mrlog_error("Could not connect to IMAP-server.");
-			goto exit_;
-		}
-	mrlog_info("Connection to IMAP-server ok.");
-
-	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
-		r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
-		if( is_error(r) ) {
-			mrlog_error("Could not login.");
-			goto exit_;
-		}
-		login_done = 1;
-	mrlog_info("Login ok.");
-
-	while( 1 )
-	{
-		/* wait for condition */
-		pthread_mutex_lock(&ths->m_condmutex);
-			ths->m_threadState = MR_THREAD_WAIT;
-			pthread_cond_wait(&ths->m_cond, &ths->m_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
-			cmd = ths->m_threadCmd;
-			ths->m_threadState = cmd; /* make sure state or cmd blocks eg. Fetch() */
-			ths->m_threadCmd = MR_THREAD_WAIT;
-		pthread_mutex_unlock(&ths->m_condmutex);
-
-		switch( cmd )
-		{
-			case MR_THREAD_FETCH:
-				mrlog_info("Received MR_THREAD_FETCH signal.");
-				if( fetch_from_all_folders(ths) > 0 ) {
-					ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0, 0, 0);
-				}
-				break;
-
-			case MR_THREAD_EXIT:
-				mrlog_info("Received MR_THREAD_EXIT signal.");
-				goto exit_;
-
-			default:
-				break;
-		}
-	}
-
-	/* exit thread */
-exit_:
-	if( ths->m_hEtpan ) {
-
-		if( login_done ) {
-			mrlog_info("Logout...");
-
-			mailimap_logout(ths->m_hEtpan);
-
-			mrlog_info("Logout done.");
-		}
-
-		mrlog_info("Disconnecting...");
-
-		mailimap_free(ths->m_hEtpan);
-		ths->m_hEtpan = NULL;
-
-		mrlog_info("Disconnect done.");
-	}
-	ths->m_threadState = MR_THREAD_NOTALLOCATED;
-
-	mrlog_info("Exit working thread.");
-	mrosnative_unsetup_thread();
-}
-
-
-/*******************************************************************************
- * Connect/disconnect by start/stop the working thread
+ * Main interface
  ******************************************************************************/
 
 
@@ -479,11 +390,8 @@ mrimap_t* mrimap_new(mrimapcb_t cb, void* userData)
 
 	ths->m_cb            = cb;
 	ths->m_userData      = userData;
-	ths->m_threadState   = MR_THREAD_NOTALLOCATED;
-	ths->m_threadCmd     = MR_THREAD_WAIT;
 
-	pthread_mutex_init(&ths->m_condmutex, NULL);
-    pthread_cond_init(&ths->m_cond, NULL);
+    pthread_mutex_init(&ths->m_critical, NULL);
 
     return ths;
 }
@@ -497,8 +405,7 @@ void mrimap_unref(mrimap_t* ths)
 
 	mrimap_disconnect(ths);
 
-	pthread_cond_destroy(&ths->m_cond);
-	pthread_mutex_destroy(&ths->m_condmutex);
+	pthread_mutex_destroy(&ths->m_critical);
 
 	free(ths->m_imap_server);
 	free(ths->m_imap_user);
@@ -509,27 +416,63 @@ void mrimap_unref(mrimap_t* ths)
 
 int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 {
+	int success = 0, locked = 0, login_done = 0, r;
+
 	if( ths == NULL || lp==NULL || lp->m_mail_server==NULL || lp->m_mail_user==NULL || lp->m_mail_pw==NULL ) {
-		mrlog_error("mrimap_connect(): Bad parameter.");
 		return 0;
 	}
 
-	if( ths->m_threadState!=MR_THREAD_NOTALLOCATED ) {
-		mrlog_info("mrimap_connect(): Already trying to connect.");
-		return 1; /* already trying to connect */
+	if( pthread_mutex_trylock(&ths->m_critical)!=0 ) {
+		mrlog_warning("Cannot connect, IMAP-object blocked by another thread.");
+		goto cleanup;
+	}
+	locked = 1;
+
+		if( ths->m_hEtpan ) {
+			mrlog_warning("Already connected to IMAP-server.");
+			success = 1;
+			goto cleanup;
+		}
+
+		free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);
+								  ths->m_imap_port    = lp->m_mail_port;
+		free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
+		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
+
+		mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
+			ths->m_hEtpan = mailimap_new(0, NULL);
+			r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+			if( is_error(r) ) {
+				mrlog_error("Could not connect to IMAP-server.");
+				goto cleanup;
+			}
+		mrlog_info("Connection to IMAP-server ok.");
+
+		mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
+			r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
+			if( is_error(r) ) {
+				mrlog_error("Could not login.");
+				goto cleanup;
+			}
+			login_done = 1;
+		mrlog_info("Login ok.");
+
+		success = 1;
+
+cleanup:
+	if( success == 0 ) {
+		if( ths->m_hEtpan ) {
+			if( login_done ) {
+				mailimap_logout(ths->m_hEtpan);
+			}
+			mailimap_free(ths->m_hEtpan);
+		}
 	}
 
-	/* start the working thread */
-	free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);
-							  ths->m_imap_port    = lp->m_mail_port;
-	free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
-	free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
-
-	ths->m_threadState = MR_THREAD_INIT;
-	pthread_create(&ths->m_thread, NULL, (void * (*)(void *))imap_thread_entry_point, ths);
-
-	/* success, so far, the real connection takes place in the working thread */
-	return 1;
+	if( locked ) {
+		pthread_mutex_unlock(&ths->m_critical);
+	}
+	return success;
 }
 
 
@@ -539,49 +482,59 @@ void mrimap_disconnect(mrimap_t* ths)
 		return;
 	}
 
-	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {
-		return; /* already disconnected */
-	}
+	pthread_mutex_lock(&ths->m_critical); /* no try, wait until we get the object. */
 
-	if( ths->m_threadState==MR_THREAD_EXIT || ths->m_threadCmd==MR_THREAD_EXIT ) {
-		return; /* already exiting/about to exit */
-	}
+		if( ths->m_hEtpan ) {
+			mrlog_info("Logout...");
+				mailimap_logout(ths->m_hEtpan);
+			mrlog_info("Logout done.");
 
-	/* raise exit signal */
-	mrlog_info("Raise MR_THREAD_EXIT signal...");
-	ths->m_threadCmd = MR_THREAD_EXIT;
-	pthread_cond_signal(&ths->m_cond);
+			mrlog_info("Disconnecting...");
+				mailimap_free(ths->m_hEtpan);
+				ths->m_hEtpan = NULL;
+			mrlog_info("Disconnect done.");
+		}
+
+	pthread_mutex_unlock(&ths->m_critical);
 }
 
 
 int mrimap_is_connected(mrimap_t* ths)
 {
-	return (ths->m_threadState!=MR_THREAD_NOTALLOCATED);
+	return (ths && ths->m_hEtpan);
 }
 
 
 int mrimap_fetch(mrimap_t* ths)
 {
+	int success = 0, locked = 0;
+
 	if( ths == NULL ) {
 		return 0;
 	}
 
-	if( ths->m_threadState==MR_THREAD_NOTALLOCATED ) {
-		mrlog_error("Cannot fetch now, working thread not ready.");
-		return 0; /* not connected */
+	if( pthread_mutex_trylock(&ths->m_critical)!=0 ) {
+		mrlog_warning("Cannot fetch, IMAP-object blocked by another thread.");
+		goto cleanup;
 	}
+	locked = 1;
 
-	if( ths->m_threadState==MR_THREAD_FETCH || ths->m_threadCmd==MR_THREAD_FETCH ) {
-		mrlog_info("Already fetching.");
-		return 1; /* already fetching/about to fetch */
+		if( ths->m_hEtpan==NULL ) {
+			mrlog_error("Cannot fetch, not connected to IMAP-server.");
+			goto cleanup;
+		}
+
+		mrlog_info("Fetching messages...");
+		if( fetch_from_all_folders(ths) > 0 ) {
+			ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0, 0, 0);
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) {
+		pthread_mutex_unlock(&ths->m_critical);
 	}
-
-	/* raise fetch signal */
-	mrlog_info("Raise MR_THREAD_FETCH signal...");
-	ths->m_threadCmd = MR_THREAD_FETCH;
-	pthread_cond_signal(&ths->m_cond);
-
-	/* signal successfully raised; when and if fetching is started cannot be determinated by the return value */
-	return 1;
+	return success;
 }
 
