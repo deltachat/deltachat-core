@@ -10,7 +10,7 @@ Frequently Asked Questions
 **But E-Mail ... is so slow**
 
 - This is not true for most accounts. In fact, there are standards as Push-IMAP
-  for years, that allow receiving Mails in a second or so.  
+  for years, that allow receiving Mails in a second or so.
 
 **What, if the receiver does not use Delta Chat?**
 
