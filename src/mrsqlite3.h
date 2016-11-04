@@ -146,7 +146,7 @@ void          mrsqlite3_log_error        (mrsqlite3_t*, const char* msg, ...);
 the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.
 In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
 Low-level-functions, eg. the MrSqlite3-methods, do not lock. */
-void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; CAVE: These calls must not be nested in a single thrad*/
+void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; these calls must not be nested in a single thread */
 void          mrsqlite3_unlock           (mrsqlite3_t*);
 
 /* nestable transactions, only the outest is really used */

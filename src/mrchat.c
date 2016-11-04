@@ -28,8 +28,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> /* for getpid() */
-#include <unistd.h>    /* for getpid() */
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrcontact.h"
@@ -41,25 +39,6 @@
 /*******************************************************************************
  * Tools
  ******************************************************************************/
-
-
-static char* create_rfc724_mid_(mrchat_t* ths)
-{
-	/* do not use a counter as this may give unneeded information to the receiver,
-	see also mailimf_get_message_id()	*/
-	long now = time(NULL);
-	long pid = getpid();
-	long rnd = random();
-
-	char* from = mrsqlite3_get_config_(ths->m_mailbox->m_sql, "configured_addr", NULL);
-	if( from == NULL ) {
-		return NULL;
-	}
-
-	char* ret = mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from);
-	free(from);
-	return ret;
-}
 
 
 int mrmailbox_get_unread_count_(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -307,7 +286,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	int db_locked = 0;
 	mrchatlist_t* obj = mrchatlist_new(ths);
 
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
 	if( !mrchatlist_load_from_db_(obj) ) {
@@ -320,7 +299,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	/* cleanup */
 GetChatsCleanup:
 	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+		mrsqlite3_unlock(ths->m_sql);
 	}
 
 	if( success ) {
@@ -339,7 +318,7 @@ mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 	int db_locked = 0;
 	mrchat_t* obj = mrchat_new(ths);
 
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
 	if( !mrchat_load_from_db_(obj, id) ) {
@@ -352,7 +331,7 @@ mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
 	/* cleanup */
 cleanup:
 	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+		mrsqlite3_unlock(ths->m_sql);
 	}
 
 	if( success ) {
@@ -1087,7 +1066,12 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
 	transaction_pending = 1;
 
-		rfc724_mid = create_rfc724_mid_(ths);
+		{
+			char* from = mrsqlite3_get_config_(ths->m_mailbox->m_sql, "configured_addr", NULL);
+			if( from == NULL ) { goto cleanup; }
+				rfc724_mid = mr_create_outgoing_rfc724_mid(from);
+			free(from);
+		}
 
 		/* add message to the database */
 		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,

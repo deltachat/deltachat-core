@@ -21,8 +21,10 @@
  *
  * File:    mrmimeparser.h
  * Authors: Björn Petersen
- * Purpose: Parse MIME body; this is the text part of an IMF handled by
- *          MrImfParser
+ * Purpose: Parse MIME body; this is the text part of an IMF, see
+ *          https://tools.ietf.org/html/rfc5322
+ *          mrmimeparser_t has no dependencies to mrmailbox_t or to the
+ *          database.
  *
  ******************************************************************************/
 
@@ -62,28 +64,31 @@ typedef struct mrmimeparser_t
 } mrmimeparser_t;
 
 
-mrmimeparser_t* mrmimeparser_new_        ();
-void            mrmimeparser_unref_      (mrmimeparser_t*);
-void            mrmimeparser_empty_      (mrmimeparser_t*);
+mrmimeparser_t*       mrmimeparser_new_           ();
+void                  mrmimeparser_unref_         (mrmimeparser_t*);
+void                  mrmimeparser_empty_         (mrmimeparser_t*);
 
 /* The data returned from Parse() must not be freed (it is free()'d when the MrMimeParser object gets destructed)
 Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 (this is because we want to add even these message to our database to avoid reading them several times.
 of course, these empty messages are not added to any chat) */
-void            mrmimeparser_parse_      (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+void                  mrmimeparser_parse_         (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+
+/* work on the parse result */
+struct mailimf_field* mrmimeparser_find_field     (mrmimeparser_t*, int wanted_fld_type);
 
 /* find out the mimetype - one of the MR_MIMETYPE_* constants */
-#define         MR_MIMETYPE_MP             0x100 /* eg. mixed */
-#define         MR_MIMETYPE_MP_ALTERNATIVE (MR_MIMETYPE_MP+1)
-#define         MR_MIMETYPE_MP_RELATED     (MR_MIMETYPE_MP+2)
-#define         MR_MIMETYPE_TEXT           0x200 /* eg. plain */
-#define         MR_MIMETYPE_TEXT_PLAIN     (MR_MIMETYPE_TEXT+1)
-#define         MR_MIMETYPE_TEXT_HTML      (MR_MIMETYPE_TEXT+2)
-#define         MR_MIMETYPE_IMAGE          0x300
-#define         MR_MIMETYPE_AUDIO          0x400
-#define         MR_MIMETYPE_VIDEO          0x500
-#define         MR_MIMETYPE_FILE           0x600
-int             mrmimeparser_get_mime_type_(struct mailmime_content*);
+#define               MR_MIMETYPE_MP              0x100 /* eg. mixed */
+#define               MR_MIMETYPE_MP_ALTERNATIVE  (MR_MIMETYPE_MP+1)
+#define               MR_MIMETYPE_MP_RELATED      (MR_MIMETYPE_MP+2)
+#define               MR_MIMETYPE_TEXT            0x200 /* eg. plain */
+#define               MR_MIMETYPE_TEXT_PLAIN      (MR_MIMETYPE_TEXT+1)
+#define               MR_MIMETYPE_TEXT_HTML       (MR_MIMETYPE_TEXT+2)
+#define               MR_MIMETYPE_IMAGE           0x300
+#define               MR_MIMETYPE_AUDIO           0x400
+#define               MR_MIMETYPE_VIDEO           0x500
+#define               MR_MIMETYPE_FILE            0x600
+int                   mrmimeparser_get_mime_type_ (struct mailmime_content*);
 
 
 #ifdef __cplusplus

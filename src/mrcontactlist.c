@@ -116,14 +116,14 @@ mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
 	}
 	else
 	{
-		mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+		mrsqlite3_lock(ths->m_sql);
 
 			if( !mrcontact_load_from_db_(ret, contact_id) ) {
 				mrcontact_unref(ret);
 				ret = NULL;
 			}
 
-		mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+		mrsqlite3_unlock(ths->m_sql);
 	}
 
 	return ret; /* may be NULL */

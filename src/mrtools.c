@@ -32,6 +32,8 @@
 #include <ctype.h>
 #include <sqlite3.h>
 #include <sys/stat.h>
+#include <sys/types.h> /* for getpid() */
+#include <unistd.h>    /* for getpid() */
 #include <libetpan/libetpan.h>
 #include <libetpan/mailimap_types.h>
 #include "mrtools.h"
@@ -916,6 +918,54 @@ char* mr_timestamp_to_str(time_t wanted)
 	return mr_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
 		(int)wanted_struct.tm_mday, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_year+1900,
 		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+}
+
+
+/*******************************************************************************
+ * generate Message-IDs
+ ******************************************************************************/
+
+
+char* mr_create_outgoing_rfc724_mid(const char* from_addr)
+{
+	/* Function generates a Message-ID that can be used for a new outgoing message.
+	- this function is called for all outgoing messages.
+	- the message ID should be globally unique
+	- do not add a counter or any private data as as this may give unneeded information to the receiver	*/
+
+	long now = time(NULL);
+	long pid = getpid();
+	long rnd = random();
+
+	return mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from_addr);
+}
+
+
+char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to)
+{
+	/* Function generates a Message-ID for incoming messages that lacks one.
+	- normally, this function is not needed as incoming messages already have an ID
+	- the generated ID is only for internal use; it should be database-unique
+	- when fetching the same message again, this function should generate the same Message-ID
+	*/
+
+	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
+		return NULL;
+	}
+
+	/* find out the largets receiver ID (we could also take the smallest, but it should be unique) */
+	size_t   i, icnt = carray_count(contact_ids_to);
+	uint32_t largest_id = contact_id_from;
+	for( i = 0; i < icnt; i++ ) {
+		uint32_t cur_id = (uint32_t)(uintptr_t)carray_get(contact_ids_to, i);
+		if( cur_id > largest_id ) {
+			largest_id = cur_id;
+		}
+	}
+
+	/* build a more or less unique string based on the timestamp and one receiver -
+	for our purposes, this seems "good enough" for the moment, esp. as clients normally set Message-ID on sent. */
+	return mr_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
 }
 
 

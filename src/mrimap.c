@@ -168,7 +168,6 @@ static int mrimap_fetch_single_msg(mrimap_t* ths,
 	Finally, remember, we're inside a working thread! */
 	size_t      msg_len;
 	char*       msg_content;
-	FILE*       f;
 	int         r;
 	clist*      fetch_result;
 
@@ -214,20 +213,8 @@ static int mrimap_fetch_single_msg(mrimap_t* ths,
 		}
 	}
 
-	/* write the mail for debugging purposes to a directory */
-	if( ths->m_debugDir )
-	{
-		char filename[512];
-		snprintf(filename, sizeof(filename), "%s/%s-%u.eml", ths->m_debugDir, folder, (unsigned int)flocal_uid);
-		f = fopen(filename, "w");
-		if( f ) {
-			fwrite(msg_content, 1, msg_len, f);
-			fclose(f);
-		}
-	}
-
 	/* add to our respository */
-	*created_db_entries = mrmailbox_receive_imf_(ths->m_mailbox, msg_content, msg_len);
+	*created_db_entries = ths->m_cb(ths, MR_EVENT_RECEIVE_IMF_, (uintptr_t)msg_content, msg_len, (uintptr_t)folder, (uintptr_t)flocal_uid);
 
 	mailimap_fetch_list_free(fetch_result);
 
@@ -253,11 +240,8 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		goto FetchFromFolder_Done;
 	}
 
-	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
+	in_first_uid = (uint32_t)ths->m_cb(ths, MR_EVENT_GET_CONFIG_INT_, (uintptr_t)config_key, 0, 0, 0);
 
-			in_first_uid = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, config_key, 0);
-
-	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
 
 	/* select the folder */
 	r = mailimap_select(ths->m_hEtpan, folder);
@@ -324,11 +308,7 @@ static size_t fetch_from_single_folder(mrimap_t* ths, const char* folder)
 
 	if( !read_errors && out_largetst_uid > 0 )
 	{
-		mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
-
-			mrsqlite3_set_config_int_(ths->m_mailbox->m_sql, config_key, out_largetst_uid);
-
-		mrsqlite3_unlock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
+		ths->m_cb(ths, MR_EVENT_SET_CONFIG_INT_, (uintptr_t)config_key, out_largetst_uid, 0, 0);
 	}
 
 	/* done */
@@ -457,7 +437,7 @@ static void mrimap_working_thread__(mrimap_t* ths)
 			case MR_THREAD_FETCH:
 				mrlog_info("Received MR_THREAD_FETCH signal.");
 				if( fetch_from_all_folders(ths) > 0 ) {
-					ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
+					ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0, 0, 0);
 				}
 				break;
 
@@ -513,7 +493,7 @@ void mrimap_startup_helper(void* param)
  ******************************************************************************/
 
 
-mrimap_t* mrimap_new(mrmailbox_t* mailbox)
+mrimap_t* mrimap_new(mrimapcb_t cb, void* userData)
 {
 	mrimap_t* ths = NULL;
 
@@ -521,7 +501,8 @@ mrimap_t* mrimap_new(mrmailbox_t* mailbox)
 		exit(25); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_mailbox       = mailbox;
+	ths->m_cb            = cb;
+	ths->m_userData      = userData;
 	ths->m_threadState   = MR_THREAD_NOTALLOCATED;
 	ths->m_threadCmd     = MR_THREAD_WAIT;
 
@@ -546,7 +527,6 @@ void mrimap_unref(mrimap_t* ths)
 	free(ths->m_imap_server);
 	free(ths->m_imap_user);
 	free(ths->m_imap_pw);
-	free(ths->m_debugDir);
 	free(ths);
 }
 
@@ -562,14 +542,6 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		mrlog_info("mrimap_connect(): Already trying to connect.");
 		return 1; /* already trying to connect */
 	}
-
-	/* (re-)read debug directory configuration */
-	mrsqlite3_lock(ths->m_mailbox->m_sql); /* CAVE! - do not forge the unlock */
-
-		free(ths->m_debugDir);
-		ths->m_debugDir = mrsqlite3_get_config_(ths->m_mailbox->m_sql, "debug_dir", NULL);
-
-	mrsqlite3_unlock(ths->m_mailbox->m_sql); /* /CAVE! - do not forge the unlock */
 
 	/* start the working thread */
 	free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);

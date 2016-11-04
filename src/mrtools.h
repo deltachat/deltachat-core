@@ -21,7 +21,8 @@
  *
  * File:    mrtools.h
  * Authors: Björn Petersen
- * Purpose: Some tools and enhancements to the used libraries
+ * Purpose: Some tools and enhancements to the used libraries, there should be
+ *          no references to mrmailbox_t and other "larger" classes here.
  *
  ******************************************************************************/
 
@@ -59,6 +60,10 @@ void    clist_free_content         (const clist*); /* calls free() for each item
 #define MR_INVALID_TIMESTAMP       (-1)
 time_t  mr_timestamp_from_date     (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
 char*   mr_timestamp_to_str        (time_t); /* the return value must be free()'d */
+
+/* generate Message-IDs */
+char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);
+char* mr_create_outgoing_rfc724_mid(const char* addr);
 
 /* file tools */
 size_t  mr_get_filebytes           (const char* pathNfilename);

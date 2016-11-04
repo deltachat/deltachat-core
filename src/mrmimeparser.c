@@ -752,6 +752,24 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 }
 
 
+struct mailimf_field* mrmimeparser_find_field(mrmimeparser_t* ths, int wanted_fld_type)
+{
+	clistiter* cur1;
+	for( cur1 = clist_begin(ths->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field )
+		{
+			if( field->fld_type == wanted_fld_type ) {
+				return field;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
 void mrmimeparser_parse_(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;

@@ -298,7 +298,7 @@ void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* forma
 		goto Cleanup;
 	}
 
-	mrsqlite3_lock(ths->m_sql); /* CAVE: No return until unlock! */
+	mrsqlite3_lock(ths->m_sql);
 
 		iCnt = carray_count(lines);
 		for( i = 0; i+1 < iCnt; i += 2 ) {
@@ -309,7 +309,7 @@ void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* forma
 			mrmailbox_add_or_lookup_contact_(ths, name, addr, MR_ORIGIN_ADRESS_BOOK);
 		}
 
-	mrsqlite3_unlock(ths->m_sql); /* /CAVE: No return until unlock! */
+	mrsqlite3_unlock(ths->m_sql);
 
 Cleanup:
 	mr_free_splitted_lines(lines);

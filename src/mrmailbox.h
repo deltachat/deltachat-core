@@ -71,38 +71,37 @@ typedef struct mrsmtp_t mrsmtp_t;
 - The callback should return _fast_, for GUI updates etc. you should
   post yourself an asynchronous message to your GUI thread.
 - If not mentioned otherweise, the callback should return 0. */
-typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
-
-
-/* Events that may be send to the callback function */
 #define MR_EVENT_MSGS_UPDATED    2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
 #define MR_EVENT_IS_EMAIL_KNOWN  2010 /* data1: email address, ret=1=email is known, create a chat, ret=0=email is unknown */
 #define MR_EVENT_MSG_DELIVERED   3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
 #define MR_EVENT_MSG_READ        3010 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
+typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
+
 
 typedef struct mrmailbox_t
 {
 	/* members should be treated as library private */
-	mrimap_t*       m_imap;     /* != NULL */
 	mrsqlite3_t*    m_sql;      /* != NULL */
 	char*           m_dbfile;
 	char*           m_blobdir;
-	void*           m_userData; /* any data that can be used by the user; not used by the library itself */
-	mrmailboxcb_t   m_cb;
+
+	mrimap_t*       m_imap;     /* != NULL */
+	mrsmtp_t*       m_smtp;
 
 	pthread_t       m_job_thread;
 	pthread_cond_t  m_job_cond;
 	pthread_mutex_t m_job_condmutex;
 	int             m_job_do_exit;
 
-	mrsmtp_t*       m_smtp;
+	mrmailboxcb_t   m_cb;
+	void*           m_userData;
 } mrmailbox_t;
 
 
 /* mrmailbox_new() creates a new mailbox object.  After creation it is usually
 opened, connected and mails are fetched; see the corresponding functions below.
 After usage, the mailbox object must be freed using mrmailbox_unref(). */
-mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t cb, void* userData);
+mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t, void* userData);
 void                 mrmailbox_unref                (mrmailbox_t*);
 
 /* Open/close a mailbox database, if the given file does not exist, it is created
@@ -165,8 +164,6 @@ void                 mrmailbox_add_address_book     (mrmailbox_t*, const char*);
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
 
 /*** library-private **********************************************************/
-
-size_t               mrmailbox_receive_imf_         (mrmailbox_t*, const char* imf, size_t imf_len); /* when fetching messages, this normally results in calls to ReceiveImf(). CAVE: ReceiveImf() may be called from within a working thread! Returns the number of created database message entries. */
 
 
 #ifdef __cplusplus

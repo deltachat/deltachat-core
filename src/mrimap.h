@@ -21,7 +21,8 @@
  *
  * File:    mrimap.h
  * Authors: Björn Petersen
- * Purpose: Reading from IMAP servers with few dependencies to mrmailbox_t.
+ * Purpose: Reading from IMAP servers with no dependencies to mrmailbox_t or to
+ *          the database.
  *
  ******************************************************************************/
 
@@ -38,10 +39,15 @@ extern "C" {
 typedef struct mrloginparam_t mrloginparam_t;
 
 
+/* send events to the owner of the object, we use the standard MR_EVENT_ here */
+#define MR_EVENT_RECEIVE_IMF_    -100 /* data1: ptr, data2: bytes, ret: number of messages created */
+#define MR_EVENT_GET_CONFIG_INT_ -200 /* data1: key, data2: default, ret: value  */
+#define MR_EVENT_SET_CONFIG_INT_ -210 /* data1: key, data2: value */
+typedef uintptr_t (*mrimapcb_t) (mrimap_t*, int event, uintptr_t data1, uintptr_t data2, uintptr_t data3, uintptr_t data4);
+
+
 typedef struct mrimap_t
 {
-	mrmailbox_t*          m_mailbox;
-
 	mailimap*             m_hEtpan;
 
 	pthread_t             m_thread;
@@ -55,11 +61,12 @@ typedef struct mrimap_t
 	char*                 m_imap_user;
 	char*                 m_imap_pw;
 
-	char*                 m_debugDir;
+	mrimapcb_t            m_cb;
+	void*                 m_userData;
 } mrimap_t;
 
 
-mrimap_t* mrimap_new               (mrmailbox_t*); /* the mailbox object is needed to store IMAP folder states and to call the user callback. We may decide to use separate parameters instead of the mailbox object some time. */
+mrimap_t* mrimap_new               (mrimapcb_t, void* userData);
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_is_connected      (mrimap_t*);

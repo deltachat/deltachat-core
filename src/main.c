@@ -285,7 +285,7 @@ int main(int argc, char ** argv)
 				int i, icnt = carray_count(images);
 				printf("%i images or videos: ", icnt);
 				for( i = 0; i < icnt; i++ ) {
-					printf("%sMsg #%i", i? ", ":"", (int)carray_get(images, i));
+					printf("%sMsg #%i", i? ", ":"", (int)(uintptr_t)carray_get(images, i));
 				}
 				printf("\n");
 				carray_free(images);
