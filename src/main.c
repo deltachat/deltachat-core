@@ -154,6 +154,7 @@ int main(int argc, char ** argv)
 			printf("send <text>         send message to selected chat\n");
 			printf("sendimage <file>    send image to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
+			printf("showmedia           show media in selected chat\n");
 			printf("delmsg <id>         delete message\n");
 			printf("event <id>          test the given event\n");
 			printf("createchat <id>     create chat by the given contact id\n");
@@ -272,6 +273,22 @@ int main(int argc, char ** argv)
 					mrchat_set_draft(sel_chat, NULL);
 					printf("Draft deleted.\n");
 				}
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
+		else if( strncmp(cmd, "showmedia", 9)==0 )
+		{
+			if( sel_chat ) {
+				carray* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
+				int i, icnt = carray_count(images);
+				printf("%i images or videos: ", icnt);
+				for( i = 0; i < icnt; i++ ) {
+					printf("%sMsg #%i", i? ", ":"", (int)carray_get(images, i));
+				}
+				printf("\n");
+				carray_free(images);
 			}
 			else {
 				printf("No chat selected.\n");

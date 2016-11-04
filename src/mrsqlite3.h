@@ -85,6 +85,7 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
+	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_ircftttstpb_FROM_msg_WHERE_i
 	,SELECT_i_FROM_msgs_m
 	,SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c

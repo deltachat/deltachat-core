@@ -409,6 +409,30 @@ cleanup:
 }
 
 
+carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+{
+	carray*       ret = carray_new(100);
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
+		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, msg_type);
+	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+	}
+
+cleanup:
+	return ret;
+}
+
+
 mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 {
 	mrchat_t* ths = NULL;
