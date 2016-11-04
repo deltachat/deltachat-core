@@ -1,20 +1,20 @@
-LibreChat Backend
+Delta Chat Backend
 ================================================================================
 
-**LibreChat** is a project that aims to create a messaging app that is
+**Delta Chat** is a project that aims to create a messaging app that is
 completely **compatible** to the existing e-mail infrastructure.
 
-![Logo](https://librechat.org/start-img3.png)
+![Logo](https://messenger.b44t.com/start-img4.png)
 
-So, with LibreChat you get the **ease** of well-known messengers with the
+So, with Delta Chat you get the **ease** of well-known messengers with the
 **reach** of e-mail. Moreover, you're **indepentent** from other companies or
-services - as your data are not related to LibreChat, you won't even add new
+services - as your data are not related to Delta Chat, you won't even add new
 dependecies here.
 
 Some features at a glance
 
 - **Fast** by the use of Push-IMAP
-- **Largest userbase** - receivers _not_ using LibreChat can be reached as well
+- **Largest userbase** - receivers _not_ using Delta Chat can be reached as well
 - **Compatible** - not only to itself
 - **Elegant** and **simple** user interface
 - **Distributed** system
