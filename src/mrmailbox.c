@@ -471,6 +471,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userData = userData;
 	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths);
+	ths->m_smtp     = mrsmtp_new();
 
 	mrjob_init_thread_(ths);
 
@@ -727,82 +728,7 @@ ImportSpec_Cleanup:
 
 
 /*******************************************************************************
- * Connect
- ******************************************************************************/
-
-
-int mrmailbox_connect(mrmailbox_t* ths)
-{
-	mrloginparam_t* param = NULL;
-	int             is_locked = 0;
-	int             is_configured = 0, connected = 0;
-
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	if( mrimap_is_connected(ths->m_imap) ) {
-		mrlog_info("Already connected or trying to connect.");
-		return 1;
-	}
-
-	/* read parameter, unset parameters are still NULL afterwards */
-	param = mrloginparam_new();
-
-	mrsqlite3_lock(ths->m_sql);
-	is_locked = 1;
-
-		mrloginparam_read_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
-		is_configured = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0)? 1 : 0;
-		if( is_configured == 0 ) {
-			mrlog_error("Not configured.");
-			goto Error;
-		}
-
-	mrsqlite3_unlock(ths->m_sql);
-	is_locked = 0;
-
-	/* connect */
-	connected = mrimap_connect(ths->m_imap, param);
-	mrloginparam_unref(param);
-	return connected;
-
-	/* error */
-Error:
-	if( param ) {
-		mrloginparam_unref(param);
-	}
-
-	if( is_locked ) {
-		mrsqlite3_unlock(ths->m_sql);
-	}
-	return 0;
-}
-
-
-void mrmailbox_disconnect(mrmailbox_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	mrimap_disconnect(ths->m_imap);
-	mrsmtp_disconnect(ths->m_smtp);
-}
-
-
-int mrmailbox_fetch(mrmailbox_t* ths)
-{
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	return mrimap_fetch(ths->m_imap);
-}
-
-
-/*******************************************************************************
- * Misc.
+ * Configuration
  ******************************************************************************/
 
 
@@ -1031,6 +957,11 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 }
 
 
+/*******************************************************************************
+ * Misc.
+ ******************************************************************************/
+
+
 int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
 	mrlog_info("Emptying all tables...");
@@ -1215,3 +1146,77 @@ Done:
 }
 
 
+
+/*******************************************************************************
+ * Connect
+ ******************************************************************************/
+
+
+void mrmailbox_install_imap_watcher(mrmailbox_t* ths, mrjob_t* job)
+{
+	int             is_locked = 0;
+	mrloginparam_t* param = mrloginparam_new();
+
+	if( mrimap_is_connected(ths->m_imap) ) {
+		mrlog_info("Already connected or trying to connect.");
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(ths->m_sql);
+	is_locked = 1;
+
+		if( mrsqlite3_get_config_int_(ths->m_sql, "configured", 0) == 0 ) {
+			mrlog_error("Not configured.");
+			goto cleanup;
+		}
+
+		mrloginparam_read_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+
+	mrsqlite3_unlock(ths->m_sql);
+	is_locked = 0;
+
+	if( !mrimap_connect(ths->m_imap, param) ) {
+		goto cleanup;
+	}
+
+cleanup:
+	if( param ) {
+		mrloginparam_unref(param);
+	}
+
+	if( is_locked ) {
+		mrsqlite3_unlock(ths->m_sql);
+	}
+}
+
+
+int mrmailbox_connect(mrmailbox_t* ths)
+{
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	mrjob_add_(ths, MRJ_INSTALL_IMAP_WATCHER, 0, NULL);
+	return 1;
+}
+
+
+void mrmailbox_disconnect(mrmailbox_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	mrimap_disconnect(ths->m_imap);
+	mrsmtp_disconnect(ths->m_smtp);
+}
+
+
+int mrmailbox_fetch(mrmailbox_t* ths)
+{
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	return mrimap_fetch(ths->m_imap);
+}

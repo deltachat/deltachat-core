@@ -86,7 +86,7 @@ typedef struct mrmailbox_t
 	char*           m_blobdir;
 
 	mrimap_t*       m_imap;     /* != NULL */
-	mrsmtp_t*       m_smtp;
+	mrsmtp_t*       m_smtp;     /* != NULL */
 
 	pthread_t       m_job_thread;
 	pthread_cond_t  m_job_cond;
@@ -121,7 +121,9 @@ change. */
 int                  mrmailbox_configure            (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*);
 
-/* Connect to the mailbox using the configured settings. */
+/* Connect to the mailbox using the configured settings. normally, there is no
+need to call mrmailbox_fetch() manually as we get push events from the IMAP server;
+if this fails, we fallback to a smart pull-mode. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
@@ -164,6 +166,8 @@ void                 mrmailbox_add_address_book     (mrmailbox_t*, const char*);
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
 
 /*** library-private **********************************************************/
+
+void                 mrmailbox_install_imap_watcher (mrmailbox_t*, mrjob_t*);
 
 
 #ifdef __cplusplus

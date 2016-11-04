@@ -956,10 +956,6 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         from_displayname = NULL;
 
 	/* connect to SMTP server, if not yet done */
-	if( mailbox->m_smtp == NULL ) {
-		mailbox->m_smtp = mrsmtp_new();
-	}
-
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
 		mrloginparam_t* loginparam = mrloginparam_new();
 			mrsqlite3_lock(mailbox->m_sql);

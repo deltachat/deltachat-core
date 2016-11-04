@@ -36,8 +36,9 @@ extern "C" {
 /*** library-private **********************************************************/
 
 #define MRJ_DELETE_MSG_FROM_IMAP   100    /* low priority ... */
-#define MRJ_SEND_MSG_TO_IMAP       800
-#define MRJ_SEND_MSG_TO_SMTP       900    /* ... high priority*/
+#define MRJ_SEND_MSG_TO_IMAP       700
+#define MRJ_SEND_MSG_TO_SMTP       800
+#define MRJ_INSTALL_IMAP_WATCHER   900    /* ... high priority*/
 
 typedef struct mrjob_t {
 	uint32_t   m_job_id;
