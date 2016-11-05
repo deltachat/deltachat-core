@@ -340,85 +340,6 @@ static void fetch_from_all_folders(mrimap_t* ths)
 
 
 /*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
-mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set_config_int, mr_receive_imf_t receive_imf, void* userData)
-{
-	mrimap_t* ths = NULL;
-
-	if( (ths=calloc(1, sizeof(mrimap_t)))==NULL ) {
-		exit(25); /* cannot allocate little memory, unrecoverable error */
-	}
-
-	ths->m_get_config_int = get_config_int;
-	ths->m_set_config_int = set_config_int;
-	ths->m_receive_imf    = receive_imf;
-	ths->m_userData       = userData;
-
-    pthread_mutex_init(&ths->m_critical, NULL);
-	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
-    pthread_cond_init(&ths->m_watch_cond, NULL);
-
-	/* create some useful objects */
-	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
-	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_uid, mailimap_fetch_att_new_uid());
-
-	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the body */
-	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body,
-		mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
-
-    return ths;
-}
-
-
-void mrimap_unref(mrimap_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	mrimap_disconnect(ths);
-
-	pthread_cond_destroy(&ths->m_watch_cond);
-	pthread_mutex_destroy(&ths->m_watch_condmutex);
-	pthread_mutex_destroy(&ths->m_critical);
-
-	free(ths->m_imap_server);
-	free(ths->m_imap_user);
-	free(ths->m_imap_pw);
-
-	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
-	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
-
-	free(ths);
-}
-
-
-int mrimap_is_connected(mrimap_t* ths)
-{
-	return (ths && ths->m_connected); /* do not check for m_hEtpan, as we may loose this handle during reconnection */
-}
-
-
-int mrimap_fetch(mrimap_t* ths)
-{
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	if( !ths->m_connected ) {
-		mrlog_error("Cannot fetch, not connected to IMAP-server.");
-		return 0;
-	}
-
-	pthread_cond_signal(&ths->m_watch_cond);
-	return 1;
-}
-
-
-/*******************************************************************************
  * Connect
  ******************************************************************************/
 
@@ -566,4 +487,86 @@ cleanup:
 		pthread_mutex_unlock(&ths->m_critical);
 	}
 }
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set_config_int, mr_receive_imf_t receive_imf, void* userData)
+{
+	mrimap_t* ths = NULL;
+
+	if( (ths=calloc(1, sizeof(mrimap_t)))==NULL ) {
+		exit(25); /* cannot allocate little memory, unrecoverable error */
+	}
+
+	ths->m_get_config_int = get_config_int;
+	ths->m_set_config_int = set_config_int;
+	ths->m_receive_imf    = receive_imf;
+	ths->m_userData       = userData;
+
+    pthread_mutex_init(&ths->m_critical, NULL);
+	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
+    pthread_cond_init(&ths->m_watch_cond, NULL);
+
+	/* create some useful objects */
+	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_uid, mailimap_fetch_att_new_uid());
+
+	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the body */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body,
+		mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
+
+    return ths;
+}
+
+
+void mrimap_unref(mrimap_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	mrimap_disconnect(ths);
+
+	pthread_cond_destroy(&ths->m_watch_cond);
+	pthread_mutex_destroy(&ths->m_watch_condmutex);
+	pthread_mutex_destroy(&ths->m_critical);
+
+	free(ths->m_imap_server);
+	free(ths->m_imap_user);
+	free(ths->m_imap_pw);
+
+	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
+	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
+
+	free(ths);
+}
+
+
+int mrimap_is_connected(mrimap_t* ths)
+{
+	return (ths && ths->m_connected); /* do not check for m_hEtpan, as we may loose this handle during reconnection */
+}
+
+
+int mrimap_fetch(mrimap_t* ths)
+{
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	if( !ths->m_connected ) {
+		mrlog_error("Cannot fetch, not connected to IMAP-server.");
+		return 0;
+	}
+
+	pthread_cond_signal(&ths->m_watch_cond);
+	return 1;
+}
+
+
+
 
