@@ -789,7 +789,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		goto cleanup;
 	}
 
-	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT, // TODO: currently, the path and the filename goes in the mail; this is a potentially security risk
+	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
 		safe_strdup(original_filename), MAILMIME_MECHANISM_BASE64);
 
 	content = mailmime_content_new_with_str(mimetype);

@@ -171,7 +171,8 @@ void mr_unwrap_str(char* buf, int approx_bytes)
 	/* Function unwraps the given string and removes unnecessary whitespace.
 	Function stops processing after approx_bytes are processed.
 	(as we're using UTF-8, this is not always the lenght! Moreover, we cannot split the string at any place for the same reason).
-	*/
+
+	TODO: we should use the UTF-8 lenght instead of the byte count */
 
 	int lastIsCharacter = 0;
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
@@ -527,7 +528,7 @@ char* mr_encode_header_string(const char* phrase)
 	mailmime_quoted_printable_write_mem(quoted_printable, &col, true, in, in_len);
 
 	if( quoted_printable->len<=in_len || quoted_printable->str==NULL
-	 || quoted_printable->len>=72-9 ) { /* 72-9=MAX_MAIL_COL-strlen("Subject: ") -- we do not encode as libetpan does not fold the lines correctly (would expect = at the end of the line) -- TODO */
+	 || quoted_printable->len>=72-9 ) { /* 72-9=MAX_MAIL_COL-strlen("Subject: ") -- we do not encode as libetpan does not fold the lines correctly (would expect = at the end of the line) */
 		mmap_string_free(quoted_printable);
 		return safe_strdup(in);
 	}
