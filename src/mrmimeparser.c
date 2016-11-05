@@ -415,27 +415,27 @@ void mrmimepart_unref(mrmimepart_t* ths)
  ******************************************************************************/
 
 
-mrmimeparser_t* mrmimeparser_new_()
+mrmimeparser_t* mrmimeparser_new()
 {
 	mrmimeparser_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmimeparser_t)))==NULL ) {
-		return NULL; /* error */
+		exit(30);
 	}
 
-	ths->m_parts          = carray_new(16);
+	ths->m_parts = carray_new(16);
 
 	return ths;
 }
 
 
-void mrmimeparser_unref_(mrmimeparser_t* ths)
+void mrmimeparser_unref(mrmimeparser_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
-	mrmimeparser_empty_(ths);
+	mrmimeparser_empty(ths);
 	if( ths->m_parts ) {
 		carray_free(ths->m_parts);
 	}
@@ -443,10 +443,10 @@ void mrmimeparser_unref_(mrmimeparser_t* ths)
 }
 
 
-void mrmimeparser_empty_(mrmimeparser_t* ths)
+void mrmimeparser_empty(mrmimeparser_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	if( ths->m_parts )
@@ -770,13 +770,13 @@ struct mailimf_field* mrmimeparser_find_field(mrmimeparser_t* ths, int wanted_fl
 }
 
 
-void mrmimeparser_parse_(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
+void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
 
 
-	mrmimeparser_empty_(ths);
+	mrmimeparser_empty(ths);
 
 	/* parse body */
 	r = mailmime_parse(body_not_terminated, body_bytes, &index, &ths->m_mimeroot);

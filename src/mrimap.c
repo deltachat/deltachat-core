@@ -38,15 +38,6 @@
 #include "mrloginparam.h"
 
 
-#define MR_THREAD_NOTALLOCATED  0
-#define MR_THREAD_INIT         10
-#define MR_THREAD_CONNECT      20
-#define MR_THREAD_WAIT         30
-#define MR_THREAD_FETCH        40
-#define MR_THREAD_EXIT         50
-
-
-
 /*******************************************************************************
  * Tools
  ******************************************************************************/
@@ -54,7 +45,7 @@
 
 static int ignore_folder(const char* folder_name)
 {
-	int ignore_folder = 0;
+	int   ignore_folder = 0;
 	char* l = mr_strlower(folder_name);
 
 	if( strcmp(l, "spam") == 0

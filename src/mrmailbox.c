@@ -126,7 +126,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
-	mrmimeparser_t*  mime_parser = mrmimeparser_new_();
+	mrmimeparser_t*  mime_parser = mrmimeparser_new();
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
@@ -169,7 +169,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
-	mrmimeparser_parse_(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
+	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( mime_parser->m_header == NULL ) {
 		goto Imf2Msg_Done; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
@@ -407,7 +407,7 @@ Imf2Msg_Done:
 	}
 
 	if( mime_parser ) {
-		mrmimeparser_unref_(mime_parser);
+		mrmimeparser_unref(mime_parser);
 	}
 
 	if( rfc724_mid ) {
