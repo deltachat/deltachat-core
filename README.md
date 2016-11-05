@@ -69,11 +69,14 @@ servers with undefined backgrounds.
 
 Some hints:
 
-- Regard the header files in the `src`-directory as a documentation; mrmailbox.h
-  is a good starting point
+- Regard the header files in the `src`-directory as a documentation;
+  `mrmailbox.h` is a good starting point
 
 - Headers may cointain headlines as "library-private" - stull following there
   is not meant to be used by the library user.
+
+- The underscore at the end of a function-name may be a _hint_, that this
+  function does no resource locking.
 
 - For objects, C-structures are used.  If not mentioned otherwise, you can
   read the members here directly.
