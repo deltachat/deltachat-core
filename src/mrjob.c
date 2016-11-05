@@ -41,7 +41,7 @@
  ******************************************************************************/
 
 
-static void job_thread_entry_point(void* entry_arg)
+static void* job_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg;
 	sqlite3_stmt* stmt;
@@ -57,9 +57,11 @@ static void job_thread_entry_point(void* entry_arg)
 	while( 1 )
 	{
 		/* wait for condition */
+		if( mailbox->m_job_do_exit ) { goto exit_; }
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
 			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
+		if( mailbox->m_job_do_exit ) { goto exit_; }
 
 		/* do all waiting jobs */
 		while( 1 )
@@ -89,7 +91,7 @@ static void job_thread_entry_point(void* entry_arg)
 			mrlog_info("Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
 			job.m_start_again_at = 0;
 			switch( job.m_action ) {
-				case MRJ_INSTALL_IMAP_WATCHER: mrmailbox_install_imap_watcher (mailbox, &job); break;
+				case MRJ_INSTALL_IMAP_WATCHER: mrmailbox_connect_to_imap      (mailbox, &job); break;
                 case MRJ_SEND_MSG_TO_SMTP:     mrmailbox_send_msg_to_smtp     (mailbox, &job); break;
                 case MRJ_SEND_MSG_TO_IMAP:     mrmailbox_send_msg_to_imap     (mailbox, &job); break;
                 case MRJ_DELETE_MSG_FROM_IMAP: mrmailbox_delete_msg_from_imap (mailbox, &job); break;
@@ -125,6 +127,7 @@ exit_:
 	mrparam_unref(job.m_param);
 	mrlog_info("Exit job thread.");
 	mrosnative_unsetup_thread();
+	return NULL;
 }
 
 
@@ -137,13 +140,15 @@ void mrjob_init_thread_(mrmailbox_t* mailbox)
 {
 	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
     pthread_cond_init(&mailbox->m_job_cond, NULL);
-    pthread_create(&mailbox->m_job_thread, NULL, (void * (*)(void *))job_thread_entry_point, mailbox);
+    pthread_create(&mailbox->m_job_thread, NULL, job_thread_entry_point, mailbox);
 }
 
 
 void mrjob_exit_thread_(mrmailbox_t* mailbox)
 {
 	mailbox->m_job_do_exit = 1;
+	pthread_cond_signal(&mailbox->m_job_cond);
+	pthread_join(mailbox->m_job_thread, NULL);
 	pthread_cond_destroy(&mailbox->m_job_cond);
 	pthread_mutex_destroy(&mailbox->m_job_condmutex);
 }

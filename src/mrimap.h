@@ -46,7 +46,8 @@ typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_termi
 
 typedef struct mrimap_t
 {
-	mailimap*             m_hEtpan;
+	int                   m_connected; /* initally connected and watch thread installed */
+	mailimap*             m_hEtpan;    /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
 
 	pthread_mutex_t       m_critical;
 
@@ -54,6 +55,11 @@ typedef struct mrimap_t
 	int                   m_imap_port;
 	char*                 m_imap_user;
 	char*                 m_imap_pw;
+
+	pthread_t             m_watch_thread;
+	pthread_cond_t        m_watch_cond;
+	pthread_mutex_t       m_watch_condmutex;
+	int                   m_watch_do_exit;
 
 	struct mailimap_fetch_type* m_fetch_type_uid;
 	struct mailimap_fetch_type* m_fetch_type_body;

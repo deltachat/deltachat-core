@@ -555,10 +555,7 @@ void mrmailbox_close(mrmailbox_t* ths)
 		return;
 	}
 
-	if( mrimap_is_connected(ths->m_imap) ) {
-		mrimap_disconnect(ths->m_imap);
-	}
-
+	mrimap_disconnect(ths->m_imap);
 	mrsmtp_disconnect(ths->m_smtp);
 
 	mrsqlite3_lock(ths->m_sql);
@@ -1152,7 +1149,7 @@ Done:
  ******************************************************************************/
 
 
-void mrmailbox_install_imap_watcher(mrmailbox_t* ths, mrjob_t* job)
+void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job)
 {
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();

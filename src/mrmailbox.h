@@ -167,7 +167,7 @@ char*                mrmailbox_get_version_str      (void); /* the return value 
 
 /*** library-private **********************************************************/
 
-void                 mrmailbox_install_imap_watcher (mrmailbox_t*, mrjob_t*);
+void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
 
 
 #ifdef __cplusplus
