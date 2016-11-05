@@ -144,9 +144,7 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 {
 	/* the function returns:
 	    0  on errors; in this case, the caller should try over again later
-	or  1  if the messages should be treated as received (even if no database entries are returned)
-
-	Finally, remember, we're inside a working thread! */
+	or  1  if the messages should be treated as received (even if no database entries are returned) */
 	size_t      msg_len;
 	char*       msg_content;
 	int         r;
@@ -157,7 +155,7 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 		{
 			struct mailimap_set* set = mailimap_set_new_single(flocal_uid);
 
-					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
+				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 
 			mailimap_set_free(set);
 		}
@@ -196,7 +194,6 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 
 static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 {
-	/* we're inside a working thread! */
 	int        r;
 	clist*     fetch_result = NULL;
 	uint32_t   in_first_uid = 0; /* the first uid to fetch, if 0, get all */
@@ -206,11 +203,7 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	clistiter* cur;
 
 	/* read the last index used for the given folder */
-	config_key = sqlite3_mprintf("folder.%s.lastuid", folder);
-	if( config_key == NULL ) {
-		mrlog_error("MrImap::FetchFromSingleFolder(): Out of memory.");
-		goto cleanup;
-	}
+	config_key = mr_mprintf("folder.%s.lastuid", folder);
 
 	in_first_uid = ths->m_get_config_int(ths, config_key, 0);
 
@@ -234,8 +227,10 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		}
 		else
 		{
+			/* fetch by index - TODO: check if this will fetch _all_ mails in the folder -
+			this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
 			struct mailimap_set* set = mailimap_set_new_interval(1, 0);
-				r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* fetch by index - TODO: check if this will fetch _all_ mails in the folder - this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
+				r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
 			mailimap_set_free(set);
 		}
 	pthread_mutex_unlock(&ths->m_critical);
@@ -275,14 +270,14 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	/* done */
 cleanup:
     {
-		char* temp = sqlite3_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
+		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
 		if( read_errors ) {
 			mrlog_error(temp);
 		}
 		else {
 			mrlog_info(temp);
 		}
-		sqlite3_free(temp);
+		free(temp);
     }
 
 	if( fetch_result ) {
@@ -290,7 +285,7 @@ cleanup:
 	}
 
 	if( config_key ) {
-		sqlite3_free(config_key);
+		free(config_key);
 	}
 }
 
