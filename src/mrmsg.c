@@ -108,6 +108,19 @@ void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int stat
 }
 
 
+static int mrmailbox_update_msg_state_conditional_(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
+{
+	/* updates the message state only if the message has an given old state, returns the number of affected rows */
+    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+		"UPDATE msgs SET state=? WHERE id=? AND state=?;");
+	sqlite3_bind_int(stmt, 1, new_state);
+	sqlite3_bind_int(stmt, 2, msg_id);
+	sqlite3_bind_int(stmt, 3, old_state);
+	sqlite3_step(stmt);
+	return sqlite3_changes(mailbox->m_sql->m_cobj);
+}
+
+
 size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
@@ -273,8 +286,9 @@ char* mrmsg_get_summary(const mrmsg_t* ths, int approx_bytes)
  ******************************************************************************/
 
 
-void mrmailbox_delete_msg_from_imap(mrmailbox_t* mailbox, mrjob_t* job)
+void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
+	// TODO
 }
 
 
@@ -288,7 +302,39 @@ int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 	mrsqlite3_begin_transaction(ths->m_sql);
 
 		mrmailbox_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
-		mrjob_add_(ths, MRJ_DELETE_MSG_FROM_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_from_imap() */
+		mrjob_add_(ths, MRJ_DELETE_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
+
+	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_unlock(ths->m_sql);
+
+	return 1;
+}
+
+
+/*******************************************************************************
+ * mark message as seen
+ ******************************************************************************/
+
+
+void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
+{
+	// TODO
+}
+
+
+int mrmailbox_markseen_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
+{
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_begin_transaction(ths->m_sql);
+
+		if( mrmailbox_update_msg_state_conditional_(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) /* we use the extra condition to protect outgoing messages become ingoing and to avoid double IMAP commands */
+		{
+			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+		}
 
 	mrsqlite3_commit(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);

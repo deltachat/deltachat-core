@@ -226,7 +226,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
 		mrsqlite3_execute(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unread messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 
 		mrsqlite3_execute(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"

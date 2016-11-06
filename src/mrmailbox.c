@@ -273,7 +273,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		only these messages reflect the will of the sender IMHO (of course, the user can add other chats manually) */
 		if( incoming )
 		{
-			state = (flags&MR_IMAP_SEEN)? MR_IN_READ : MR_IN_UNREAD;
+			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
 			to_id = MR_CONTACT_ID_SELF;
 			chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 && incoming_from_known_sender ) {
@@ -1077,6 +1077,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		if( arg1 ) {
 			int id = atoi(arg1);
 			ret = mrmailbox_delete_msg_by_id(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+		}
+	}
+	else if( strncmp(cmd, "markseen ", 9)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int id = atoi(arg1);
+			ret = mrmailbox_markseen_msg_by_id(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");

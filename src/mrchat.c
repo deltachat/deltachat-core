@@ -41,18 +41,17 @@
  ******************************************************************************/
 
 
-int mrmailbox_get_unread_count_(mrmailbox_t* mailbox, uint32_t chat_id)
+int mrmailbox_get_unseen_count_(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
 	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unread messages */
-	sqlite3_bind_int(stmt, 1, MR_IN_UNREAD);
+		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unseen messages */
+	sqlite3_bind_int(stmt, 1, MR_IN_UNSEEN);
 	sqlite3_bind_int(stmt, 2, chat_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql, "mr_get_unread_count_() failed.");
-		return 0; /* error */
+		return 0;
 	}
 
 	return sqlite3_column_int(stmt, 0);
@@ -640,7 +639,7 @@ int mrchat_get_total_msg_count(mrchat_t* ths)
 }
 
 
-int mrchat_get_unread_count(mrchat_t* ths)
+int mrchat_get_unseen_count(mrchat_t* ths)
 {
 	int ret;
 
@@ -649,7 +648,7 @@ int mrchat_get_unread_count(mrchat_t* ths)
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
-		ret = mrmailbox_get_unread_count_(ths->m_mailbox, ths->m_id);
+		ret = mrmailbox_get_unseen_count_(ths->m_mailbox, ths->m_id);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 	return ret;

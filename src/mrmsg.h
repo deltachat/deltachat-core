@@ -49,8 +49,8 @@ typedef struct mrjob_t mrjob_t;
 
 /* message states */
 #define MR_STATE_UNDEFINED  0
-#define MR_IN_UNREAD       10 /* incoming message not read */
-#define MR_IN_READ         16 /* incoming message read, to check for incoming messages you can check for state<=3 */
+#define MR_IN_UNSEEN       10 /* incoming message not read */
+#define MR_IN_SEEN         16 /* incoming message readř */
 #define MR_OUT_PENDING     20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
 #define MR_OUT_SENDING     22 /* the message is just now being sending */
 #define MR_OUT_ERROR       24 /* unrecoverable error (recoverable errors result in pending messages) */
@@ -94,7 +94,8 @@ size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
 int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
 void         mrmailbox_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void         mrmailbox_update_msg_state_      (mrmailbox_t*, uint32_t msg_id, int state);
-void         mrmailbox_delete_msg_from_imap   (mrmailbox_t* mailbox, mrjob_t* job);
+void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
+void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 
 #ifdef __cplusplus
 } /* /extern "C" */
