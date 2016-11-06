@@ -371,6 +371,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
 	struct timespec timeToWait;
+	int             r, was_idleing = 0;
 
 	mrlog_info("IMAP-watch-thread started.");
 	mrosnative_setup_thread();
@@ -381,14 +382,46 @@ static void* watch_thread_entry_point(void* entry_arg)
 			fetch_from_all_folders(ths);
 		mrlog_info("Done with checking for messages.");
 
+			#if 0	// TODO: set up properly, after some time, check all folders; make it interruptable for manual fetch, what if the other thread sends a message while idle?)
+					// for the normal PULL: first, check every 10 seconds, later enlarge the timeout to every 5-10 Minutes
+				mailimap_select(ths->m_hEtpan, "INBOX");
+				was_idleing = 0;
+				mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+				r = mailimap_idle(ths->m_hEtpan);
+				if( is_error(r) ) {
+					if (r == MAILIMAP_ERROR_STREAM||r == MAILIMAP_ERROR_PARSE) {
+						// we should reconnect
+					}
+				}
+				else {
+					#define MAX_IDLE_DELAY (28 * 60)
+					r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, MAX_IDLE_DELAY);
+					if( r == MAILSTREAM_IDLE_ERROR|| MAILSTREAM_IDLE_CANCELLED ) {
+						// we should reconnect
+					}
+					else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
+					}
+					else if( r == MAILSTREAM_IDLE_TIMEOUT ) {
+					}
+					else if( r ==  MAILSTREAM_IDLE_HASDATA ) {
+						was_idleing = 1;
+					}
+				}
+				mailimap_idle_done(ths->m_hEtpan);
+				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
+			#endif
+
+
 		/* wait 10 seconds for for manual fetch condition */
-		if( ths->m_watch_do_exit ) { goto exit_; }
-		pthread_mutex_lock(&ths->m_watch_condmutex);
-			timeToWait.tv_sec  = time(NULL)+10;
-			timeToWait.tv_nsec = 0;
-			pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
-		pthread_mutex_unlock(&ths->m_watch_condmutex);
-		if( ths->m_watch_do_exit ) { goto exit_; }
+		if( was_idleing == 0 ) {
+			if( ths->m_watch_do_exit ) { goto exit_; }
+			pthread_mutex_lock(&ths->m_watch_condmutex);
+				timeToWait.tv_sec  = time(NULL)+10;
+				timeToWait.tv_nsec = 0;
+				pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+			pthread_mutex_unlock(&ths->m_watch_condmutex);
+			if( ths->m_watch_do_exit ) { goto exit_; }
+		}
 	}
 
 exit_:
