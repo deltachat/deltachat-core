@@ -93,6 +93,7 @@ enum
 	,INSERT_INTO_msgs_cfttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id
+	,UPDATE_msgs_SET_state_WHERE_id_AND_state
 
 	,INSERT_INTO_jobs_aafp
 	,SELECT_iafp_FROM_jobs

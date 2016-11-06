@@ -111,7 +111,7 @@ void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int stat
 static int mrmailbox_update_msg_state_conditional_(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
 {
 	/* updates the message state only if the message has an given old state, returns the number of affected rows */
-    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
 		"UPDATE msgs SET state=? WHERE id=? AND state=?;");
 	sqlite3_bind_int(stmt, 1, new_state);
 	sqlite3_bind_int(stmt, 2, msg_id);
