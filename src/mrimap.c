@@ -194,51 +194,60 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 
 static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 {
-	int        r;
+	int        r, locked = 0;
 	clist*     fetch_result = NULL;
-	uint32_t   in_first_uid = 0; /* the first uid to fetch, if 0, get all */
 	uint32_t   out_largetst_uid = 0;
 	size_t     read_cnt = 0, read_errors = 0;
-	char*      config_key = NULL;
 	clistiter* cur;
 
-	/* read the last index used for the given folder */
-	config_key = mr_mprintf("folder.%s.lastuid", folder);
+	uint32_t   lastuid = 0; /* The last uid fetched, we fetch from lastuid+1. If 0, we get some of the newest ones. */
+	char*      lastuid_config_key = NULL;
 
-	in_first_uid = ths->m_get_config_int(ths, config_key, 0);
-
-	/* select the folder */
 	pthread_mutex_lock(&ths->m_critical);
+	locked = 1;
+
 		r = mailimap_select(ths->m_hEtpan, folder);
-	pthread_mutex_unlock(&ths->m_critical);
-	if( is_error(r) ) {
-		mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
-		goto cleanup;
-	}
+		if( is_error(r) || ths->m_hEtpan->imap_selection_info == NULL ) {
+			mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
+			goto cleanup;
+		}
 
-	/* call mailimap_fetch() with some options; the result goes to fetch_result */
-	pthread_mutex_lock(&ths->m_critical);
-		if( in_first_uid )
+		lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
+			(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
+		lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
+
+		if( lastuid > 0 )
 		{
-			/* CAVE: We may get mails with uid smaller than the given one; therefore we check the uid below (this is also done in MailCore2, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp) */
-			struct mailimap_set* set = mailimap_set_new_interval(in_first_uid+1, 0);
-				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* fetch by uid */
+			/* Get messages with an ID larger than the one we got last time */
+			if( ths->m_hEtpan->imap_selection_info->sel_uidnext == lastuid+1 ) {
+				goto cleanup; /* the predicted "next uid on insert" is equal to the one we start for fetching - no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap) */
+			}
+
+			struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
+				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
 			mailimap_set_free(set);
 		}
 		else
 		{
-			/* fetch by index - TODO: check if this will fetch _all_ mails in the folder -
-			this is undesired, we should check only say 100 the newest mails - and more if the user scrolls up */
-			struct mailimap_set* set = mailimap_set_new_interval(1, 0);
-				r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
+			/* fetch the last 200 messages by one-based-index.  Maybe we shoud implement a method to fetch more older ones if the user scrolls up. */
+			int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
+			if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
+				i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
+				i_first = MR_MAX(i_last-200, 1);
+			}
+
+			struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
+				r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
 			mailimap_set_free(set);
 		}
+
 	pthread_mutex_unlock(&ths->m_critical);
+	locked = 0;
 
 	if( is_error(r) || fetch_result == NULL )
 	{
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
-			goto cleanup; /* the folder is simply empty */
+			goto cleanup; /* the folder is simply empty, this is no error */
 		}
 		mrlog_error("MrImap::FetchFromSingleFolder(): Could not fetch");
 		goto cleanup;
@@ -249,7 +258,7 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = get_uid(msg_att);
-		if( cur_uid && (in_first_uid==0 || cur_uid>in_first_uid) )
+		if( cur_uid && (lastuid==0 || cur_uid>lastuid) ) /* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs under some curcumstances. Mailcore2 does the same check, see see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp */
 		{
 			if( cur_uid > out_largetst_uid ) {
 				out_largetst_uid = cur_uid;
@@ -264,11 +273,15 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 
 	if( !read_errors && out_largetst_uid > 0 )
 	{
-		ths->m_set_config_int(ths, config_key, out_largetst_uid);
+		ths->m_set_config_int(ths, lastuid_config_key, out_largetst_uid);
 	}
 
 	/* done */
 cleanup:
+	if( locked ) {
+		pthread_mutex_unlock(&ths->m_critical);
+	}
+
     {
 		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
 		if( read_errors ) {
@@ -284,8 +297,8 @@ cleanup:
 		mailimap_fetch_list_free(fetch_result);
 	}
 
-	if( config_key ) {
-		free(config_key);
+	if( lastuid_config_key ) {
+		free(lastuid_config_key);
 	}
 }
 

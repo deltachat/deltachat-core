@@ -969,7 +969,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'folder.%' OR keyname LIKE 'configured%';");
+		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 		mrsqlite3_execute(ths->m_sql, "DELETE FROM jobs;");
 
 	mrsqlite3_unlock(ths->m_sql);
