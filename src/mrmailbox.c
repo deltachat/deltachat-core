@@ -107,7 +107,7 @@ static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mai
 }
 
 
-static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* folder, uint32_t flocal_uid)
+static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */
 	int              incoming = 0;
@@ -138,24 +138,6 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	if( to_list==NULL || mime_parser == NULL ) {
 		goto Imf2Msg_Done; /* out of memory */
 	}
-
-	#if 0
-	{
-		mrsqlite3_lock(ths->m_sql);
-			char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
-			if( debugDir ) {
-				char filename[512];
-				snprintf(filename, sizeof(filename), "%s/%s-%u.eml", debugDir, folder, (unsigned int)flocal_uid);
-				FILE* f = fopen(filename, "w");
-				if( f ) {
-					fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);
-					fclose(f);
-				}
-				free(debugDir);
-			}
-		mrsqlite3_unlock(ths->m_sql);
-	}
-	#endif
 
 	/* parse the imf to mailimf_message {
 	        mailimf_fields* msg_fields {
@@ -291,7 +273,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		only these messages reflect the will of the sender IMHO (of course, the user can add other chats manually) */
 		if( incoming )
 		{
-			state = MR_IN_READ; /* TODO: New messages should ge tthe state MR_IN_UNREAD here */
+			state = (flags&MR_IMAP_SEEN)? MR_IN_READ : MR_IN_UNREAD;
 			to_id = MR_CONTACT_ID_SELF;
 			chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 && incoming_from_known_sender ) {
@@ -396,6 +378,24 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	mrsqlite3_commit(ths->m_sql);
 	transaction_pending = 0;
 
+	#if 0
+	{
+		mrsqlite3_lock(ths->m_sql);
+			char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
+			if( debugDir ) {
+				char filename[512];
+				snprintf(filename, sizeof(filename), "%s/%i.eml", debugDir, (int)first_dblocal_id);
+				FILE* f = fopen(filename, "w");
+				if( f ) {
+					fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);
+					fclose(f);
+				}
+				free(debugDir);
+			}
+		mrsqlite3_unlock(ths->m_sql);
+	}
+	#endif
+
 	/* done */
 Imf2Msg_Done:
 	if( transaction_pending ) {
@@ -450,10 +450,10 @@ static void cb_set_config_int(mrimap_t* imap, const char* key, int32_t def)
 		mrsqlite3_set_config_int_(mailbox->m_sql, key, def);
 	mrsqlite3_unlock(mailbox->m_sql);
 }
-static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* folder, uint32_t flocal_uid)
+static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t flags)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
-	receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, folder, flocal_uid);
+	receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, flags);
 }
 
 
@@ -624,7 +624,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	f = NULL;
 
 	/* import `data` */
-	if( receive_imf(ths, data, stat_info.st_size, "import", 0) == 0 ) {
+	if( receive_imf(ths, data, stat_info.st_size, 0) == 0 ) {
 		mrlog_warning("Import: No message could be created from \"%s\".", filename);
 	}
 

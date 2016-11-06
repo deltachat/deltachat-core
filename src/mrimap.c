@@ -88,50 +88,71 @@ static int is_error(int imapCode)
 }
 
 
-static uint32_t get_uid(struct mailimap_msg_att* msg_att) /* search the UID in a list of attributes */
+static uint32_t peek_uid(struct mailimap_msg_att* msg_att)
 {
-	clistiter* cur;
-
-	for( cur=clist_begin(msg_att->att_list); cur!=NULL; cur=clist_next(cur) )
+	/* search the UID in a list of attributes returned by a FETCH command */
+	clistiter* iter1;
+	for( iter1=clist_begin(msg_att->att_list); iter1!=NULL; iter1=clist_next(iter1) )
 	{
-		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(cur);
-
-		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
-			continue;
+		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
+		if( item )
+		{
+			if( item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC )
+			{
+				if( item->att_data.att_static->att_type == MAILIMAP_MSG_ATT_UID )
+				{
+					return item->att_data.att_static->att_data.att_uid;
+				}
+			}
 		}
-
-		if( item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_UID ) {
-			continue;
-		}
-
-		return item->att_data.att_static->att_data.att_uid;
 	}
 
 	return 0;
 }
 
 
-static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p_msg_size) /* search content in a list of attributes */
+static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_msg_bytes, uint32_t* flags, int* deleted)
 {
-	clistiter* cur;
-
-	for( cur=clist_begin(msg_att->att_list); cur!=NULL; cur=clist_next(cur) )
+	/* search body & Co. in a list of attributes returned by a FETCH command */
+	clistiter *iter1, *iter2;
+	for( iter1=clist_begin(msg_att->att_list); iter1!=NULL; iter1=clist_next(iter1) )
 	{
-		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(cur);
-
-		if( item->att_type != MAILIMAP_MSG_ATT_ITEM_STATIC ) {
-			continue;
+		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
+		if( item )
+		{
+			if( item->att_type == MAILIMAP_MSG_ATT_ITEM_DYNAMIC )
+			{
+				if( item->att_data.att_dyn->att_list /*I've seen NULL here ...*/ )
+				{
+					for( iter2=clist_begin(item->att_data.att_dyn->att_list); iter2!=NULL ; iter2=clist_next(iter2))
+					{
+						struct mailimap_flag_fetch* flag_fetch =(struct mailimap_flag_fetch*) clist_content(iter2);
+						if( flag_fetch && flag_fetch->fl_type==MAILIMAP_FLAG_FETCH_OTHER )
+						{
+							struct mailimap_flag* flag = flag_fetch->fl_flag;
+							if( flag )
+							{
+								if( flag->fl_type == MAILIMAP_FLAG_SEEN ) {
+									*flags |= MR_IMAP_SEEN;
+								}
+								else if( flag->fl_type == MAILIMAP_FLAG_DELETED ) {
+									*deleted = 1;
+								}
+							}
+						}
+					}
+				}
+			}
+			else if( item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC )
+			{
+				if( item->att_data.att_static->att_type == MAILIMAP_MSG_ATT_BODY_SECTION )
+				{
+					*p_msg = item->att_data.att_static->att_data.att_body_section->sec_body_part;
+					*p_msg_bytes = item->att_data.att_static->att_data.att_body_section->sec_length;
+				}
+			}
 		}
-
-		if( item->att_data.att_static->att_type != MAILIMAP_MSG_ATT_BODY_SECTION ) {
-			continue;
-		}
-
-		*p_msg_size = item->att_data.att_static->att_data.att_body_section->sec_length;
-		return item->att_data.att_static->att_data.att_body_section->sec_body_part;
 	}
-
-	return NULL;
 }
 
 
@@ -143,52 +164,48 @@ static char* get_msg_att_msg_content(struct mailimap_msg_att* msg_att, size_t* p
 static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_uid)
 {
 	/* the function returns:
-	    0  on errors; in this case, the caller should try over again later
-	or  1  if the messages should be treated as received (even if no database entries are returned) */
-	size_t      msg_len;
+	    0  the caller should try over again later
+	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
 	char*       msg_content;
-	int         r;
-	clist*      fetch_result;
+	size_t      msg_bytes;
+	int         r, retry_later = 0, deleted = 0;
+	uint32_t    flags = 0;
+	clist*      fetch_result = NULL;
+	clistiter*  cur;
 
-	/* call mailimap_uid_fetch() with some options; the result goes to fetch_result */
 	pthread_mutex_lock(&ths->m_critical);
 		{
 			struct mailimap_set* set = mailimap_set_new_single(flocal_uid);
-
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
-
 			mailimap_set_free(set);
 		}
 	pthread_mutex_unlock(&ths->m_critical);
 
 	if( is_error(r) ) {
-		mrlog_error("mrimap_fetch_single_msg(): Could not fetch.");
-		return 0; /* this is an error that should be recovered; the caller should try over later to fetch the message again */
+		mrlog_error("Problem on fetching message #%i from folder \"%s\".  Try again later.", (int)flocal_uid, folder);
+		retry_later = 1;
+		goto cleanup; /* this is an error that should be recovered; the caller should try over later to fetch the message again (if there is no such message, we simply get an empty result) */
 	}
 
-	/* get message content (fetch_result should be only one message) */
-	{
-		clistiter* cur = clist_begin(fetch_result);
-		if( cur == NULL ) {
-			mrlog_warning("mrimap_fetch_single_msg(): Empty message.");
-			return 1; /* error, however, do not try to fetch the message again */
-		}
-
-		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
-		msg_content = get_msg_att_msg_content(msg_att, &msg_len);
-		if( msg_content == NULL ) {
-			mrlog_warning("mrimap_fetch_single_msg(): No content found for a message.");
-			mailimap_fetch_list_free(fetch_result);
-			return 1; /* error, however, do not try to fetch the message again */
-		}
+	if( (cur=clist_begin(fetch_result)) == NULL ) {
+		mrlog_warning("Message #%i does not exist in folder \"%s\".", (int)flocal_uid, folder);
+		goto cleanup; /* server response is fine, however, there is no such message, do not try to fetch the message again */
 	}
 
-	/* let the user handle the message */
-	ths->m_receive_imf(ths, msg_content, msg_len, folder, flocal_uid);
+	struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
+	peek_body(msg_att, &msg_content, &msg_bytes, &flags, &deleted);
+	if( msg_content == NULL  || msg_bytes <= 0 || deleted ) {
+		mrlog_warning("Message #%i in folder \"%s\" is empty or deleted.", (int)flocal_uid, folder);
+		goto cleanup;
+	}
 
-	mailimap_fetch_list_free(fetch_result);
+	ths->m_receive_imf(ths, msg_content, msg_bytes, flags);
 
-	return 1; /* Success, messages fetched. The amount of really created db entries by m_receive_imf() may be 0. */
+cleanup:
+	if( fetch_result ) {
+		mailimap_fetch_list_free(fetch_result);
+	}
+	return retry_later? 0 : 1;
 }
 
 
@@ -208,7 +225,7 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 
 		r = mailimap_select(ths->m_hEtpan, folder);
 		if( is_error(r) || ths->m_hEtpan->imap_selection_info == NULL ) {
-			mrlog_error("MrImap::FetchFromSingleFolder(): Could not select folder.");
+			mrlog_error("Cannot select folder \"%s\".", folder);
 			goto cleanup;
 		}
 
@@ -249,7 +266,7 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
-		mrlog_error("MrImap::FetchFromSingleFolder(): Could not fetch");
+		mrlog_error("Cannot fetch message list from folder \"%s\".", folder);
 		goto cleanup;
 	}
 
@@ -257,22 +274,20 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	for( cur = clist_begin(fetch_result); cur != NULL ; cur = clist_next(cur) )
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
-		uint32_t cur_uid = get_uid(msg_att);
+		uint32_t cur_uid = peek_uid(msg_att);
 		if( cur_uid && (lastuid==0 || cur_uid>lastuid) ) /* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs under some curcumstances. Mailcore2 does the same check, see see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp */
 		{
-			if( cur_uid > out_largetst_uid ) {
-				out_largetst_uid = cur_uid;
-			}
-
 			read_cnt++;
 			if( fetch_single_msg(ths, folder, cur_uid) == 0 ) {
 				read_errors++;
 			}
+			else if( cur_uid > out_largetst_uid ) {
+				out_largetst_uid = cur_uid;
+			}
 		}
 	}
 
-	if( !read_errors && out_largetst_uid > 0 )
-	{
+	if( !read_errors && out_largetst_uid > 0 ) {
 		ths->m_set_config_int(ths, lastuid_config_key, out_largetst_uid);
 	}
 
@@ -523,9 +538,9 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_uid, mailimap_fetch_att_new_uid());
 
-	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the body */
-	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body,
-		mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
+	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags+body */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_flags());
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
 
     return ths;
 }

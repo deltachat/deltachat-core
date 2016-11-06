@@ -39,9 +39,11 @@ extern "C" {
 typedef struct mrloginparam_t mrloginparam_t;
 typedef struct mrimap_t mrimap_t;
 
+#define MR_IMAP_SEEN 0x0001L
+
 typedef int32_t  (*mr_get_config_int_t)(mrimap_t*, const char*, int32_t);
 typedef void     (*mr_set_config_int_t)(mrimap_t*, const char*, int32_t);
-typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* folder, uint32_t flocal_uid);
+typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t flags);
 
 
 typedef struct mrimap_t
