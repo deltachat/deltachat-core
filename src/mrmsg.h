@@ -91,7 +91,8 @@ int          mrmsg_load_from_db_              (mrmsg_t*, mrmailbox_t*, uint32_t 
 char*        mrmsg_get_summary                (const mrmsg_t*, int approx_bytes); /* the returned values must be free()'d */
 size_t       mrmailbox_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
 size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
-int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid);
+int          mrmailbox_message_id_exists_     (mrmailbox_t*, const char* rfc724_mid, uint32_t* ret_server_uid);
+void         mrmailbox_update_server_uid_     (mrmailbox_t*, const char* rfc724_mid, uint32_t server_uid);
 void         mrmailbox_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void         mrmailbox_update_msg_state_      (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);

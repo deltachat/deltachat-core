@@ -161,7 +161,7 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
  ******************************************************************************/
 
 
-static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_uid)
+static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
 {
 	/* the function returns:
 	    0  the caller should try over again later
@@ -175,31 +175,31 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t flocal_u
 
 	pthread_mutex_lock(&ths->m_critical);
 		{
-			struct mailimap_set* set = mailimap_set_new_single(flocal_uid);
+			struct mailimap_set* set = mailimap_set_new_single(server_uid);
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 			mailimap_set_free(set);
 		}
 	pthread_mutex_unlock(&ths->m_critical);
 
 	if( is_error(r) ) {
-		mrlog_error("Problem on fetching message #%i from folder \"%s\".  Try again later.", (int)flocal_uid, folder);
+		mrlog_error("Problem on fetching message #%i from folder \"%s\".  Try again later.", (int)server_uid, folder);
 		retry_later = 1;
 		goto cleanup; /* this is an error that should be recovered; the caller should try over later to fetch the message again (if there is no such message, we simply get an empty result) */
 	}
 
 	if( (cur=clist_begin(fetch_result)) == NULL ) {
-		mrlog_warning("Message #%i does not exist in folder \"%s\".", (int)flocal_uid, folder);
+		mrlog_warning("Message #%i does not exist in folder \"%s\".", (int)server_uid, folder);
 		goto cleanup; /* server response is fine, however, there is no such message, do not try to fetch the message again */
 	}
 
 	struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
 	peek_body(msg_att, &msg_content, &msg_bytes, &flags, &deleted);
 	if( msg_content == NULL  || msg_bytes <= 0 || deleted ) {
-		mrlog_warning("Message #%i in folder \"%s\" is empty or deleted.", (int)flocal_uid, folder);
+		mrlog_warning("Message #%i in folder \"%s\" is empty or deleted.", (int)server_uid, folder);
 		goto cleanup;
 	}
 
-	ths->m_receive_imf(ths, msg_content, msg_bytes, flags);
+	ths->m_receive_imf(ths, msg_content, msg_bytes, server_uid, flags);
 
 cleanup:
 	if( fetch_result ) {

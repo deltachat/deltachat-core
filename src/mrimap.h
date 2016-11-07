@@ -43,7 +43,7 @@ typedef struct mrimap_t mrimap_t;
 
 typedef int32_t  (*mr_get_config_int_t)(mrimap_t*, const char*, int32_t);
 typedef void     (*mr_set_config_int_t)(mrimap_t*, const char*, int32_t);
-typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t flags);
+typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t server_uid, uint32_t flags);
 
 
 typedef struct mrimap_t

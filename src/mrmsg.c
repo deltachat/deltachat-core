@@ -157,17 +157,29 @@ size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
 }
 
 
-int mrmailbox_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid) /* static function */
+int mrmailbox_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, uint32_t* ret_server_uid)
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_m, "SELECT id FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_s_FROM_msgs_WHERE_m, "SELECT server_uid FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0; /* record does not exist */
+		*ret_server_uid = 0;
+		return 0;
 	}
 
-	return 1; /* record does exist */
+	*ret_server_uid = sqlite3_column_int(stmt, 0); /* may be 0 */
+	return 1;
+}
+
+
+void mrmailbox_update_server_uid_(mrmailbox_t* mailbox, const char* rfc724_mid, uint32_t server_uid)
+{
+    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_server_uid_WHERE_rfc724_mid,
+		"UPDATE msgs SET server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead "id" as there may be several db-entries refering to the same "rfc724_mid" */
+	sqlite3_bind_int (stmt, 1, server_uid);
+	sqlite3_bind_text(stmt, 2, rfc724_mid, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
 }
 
 

@@ -87,13 +87,14 @@ enum
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_ircftttstpb_FROM_msg_WHERE_i
-	,SELECT_i_FROM_msgs_m
+	,SELECT_s_FROM_msgs_WHERE_m
 	,SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
-	,INSERT_INTO_msgs_mcftttstp
+	,INSERT_INTO_msgs_mscftttstp
 	,INSERT_INTO_msgs_cfttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id_AND_state
+	,UPDATE_msgs_SET_server_uid_WHERE_rfc724_mid
 
 	,INSERT_INTO_jobs_aafp
 	,SELECT_iafp_FROM_jobs
