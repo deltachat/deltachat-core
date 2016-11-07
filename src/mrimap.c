@@ -30,6 +30,7 @@
 #include <libetpan/libetpan.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <unistd.h> /* for sleep() */
 #include "mrmailbox.h"
 #include "mrimap.h"
 #include "mrosnative.h"
@@ -37,10 +38,39 @@
 #include "mrlog.h"
 #include "mrloginparam.h"
 
+#define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); handle_locked = 1;
+#define UNLOCK_HANDLE if( handle_locked ) { pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
+
+#define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_locked = 1;
+#define UNBLOCK_IDLE if( idle_locked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_locked = 0; }
+
+static int  setup_handle_if_needed_ (mrimap_t*);
+static void unsetup_handle_         (mrimap_t*);
+
 
 /*******************************************************************************
  * Tools
  ******************************************************************************/
+
+
+static int is_error(mrimap_t* ths, int code)
+{
+	if( code == MAILIMAP_NO_ERROR
+	 || code == MAILIMAP_NO_ERROR_AUTHENTICATED
+	 || code == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
+	{
+		return 0;
+	}
+
+	if( code == MAILIMAP_ERROR_STREAM
+	 || code == MAILIMAP_ERROR_PARSE )
+	{
+		mrlog_info("IMAP stream lost; we'll reconnect soon.");
+		ths->m_should_reconnect = 1;
+	}
+
+	return 1;
+}
 
 
 static int ignore_folder(const char* folder_name)
@@ -75,16 +105,22 @@ static int ignore_folder(const char* folder_name)
 }
 
 
-static int is_error(int imapCode)
+static int select_folder_(mrimap_t* ths, const char* folder)
 {
-	if( imapCode == MAILIMAP_NO_ERROR
-	 || imapCode == MAILIMAP_NO_ERROR_AUTHENTICATED
-	 || imapCode == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
-	{
-		return 0;
+	if( strcmp(ths->m_selected_folder, folder)==0 ) {
+		return 1;
 	}
 
-	return 1;
+	int r = mailimap_select(ths->m_hEtpan, folder);
+	if( is_error(ths, r) || ths->m_hEtpan->imap_selection_info == NULL ) {
+		ths->m_selected_folder[0] = 0;
+		return 0;
+	}
+	else {
+		free(ths->m_selected_folder);
+		ths->m_selected_folder = safe_strdup(folder);
+		return 1;
+	}
 }
 
 
@@ -168,20 +204,22 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
 	char*       msg_content;
 	size_t      msg_bytes;
-	int         r, retry_later = 0, deleted = 0;
+	int         r, retry_later = 0, deleted = 0, handle_locked = 0;
 	uint32_t    flags = 0;
 	clist*      fetch_result = NULL;
 	clistiter*  cur;
 
-	pthread_mutex_lock(&ths->m_critical);
+	LOCK_HANDLE
+
 		{
 			struct mailimap_set* set = mailimap_set_new_single(server_uid);
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 			mailimap_set_free(set);
 		}
-	pthread_mutex_unlock(&ths->m_critical);
 
-	if( is_error(r) ) {
+	UNLOCK_HANDLE
+
+	if( is_error(ths, r) ) {
 		mrlog_error("Problem on fetching message #%i from folder \"%s\".  Try again later.", (int)server_uid, folder);
 		retry_later = 1;
 		goto cleanup; /* this is an error that should be recovered; the caller should try over later to fetch the message again (if there is no such message, we simply get an empty result) */
@@ -209,9 +247,9 @@ cleanup:
 }
 
 
-static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
+static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t uidvalidity)
 {
-	int        r, locked = 0;
+	int        r, handle_locked = 0;
 	clist*     fetch_result = NULL;
 	uint32_t   out_largetst_uid = 0;
 	size_t     read_cnt = 0, read_errors = 0;
@@ -220,25 +258,13 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 	uint32_t   lastuid = 0; /* The last uid fetched, we fetch from lastuid+1. If 0, we get some of the newest ones. */
 	char*      lastuid_config_key = NULL;
 
-	pthread_mutex_lock(&ths->m_critical);
-	locked = 1;
+	LOCK_HANDLE
 
-		r = mailimap_select(ths->m_hEtpan, folder);
-		if( is_error(r) || ths->m_hEtpan->imap_selection_info == NULL ) {
-			mrlog_error("Cannot select folder \"%s\".", folder);
-			goto cleanup;
-		}
-
-		lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
-			(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
-		lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
-
-		if( lastuid > 0 )
+		if( uidvalidity )
 		{
-			/* Get messages with an ID larger than the one we got last time */
-			if( ths->m_hEtpan->imap_selection_info->sel_uidnext == lastuid+1 ) {
-				goto cleanup; /* the predicted "next uid on insert" is equal to the one we start for fetching - no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap) */
-			}
+			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
+				(unsigned long)uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
+			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
 
 			struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
@@ -246,22 +272,44 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		}
 		else
 		{
-			/* fetch the last 200 messages by one-based-index.  Maybe we shoud implement a method to fetch more older ones if the user scrolls up. */
-			int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
-			if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
-				i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
-				i_first = MR_MAX(i_last-200, 1);
+			if( select_folder_(ths, folder)==0 ) {
+				mrlog_error("Cannot select folder \"%s\".", folder);
+				goto cleanup;
 			}
 
-			struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
-				r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
-			mailimap_set_free(set);
+			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
+				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
+			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
+
+			if( lastuid > 0 )
+			{
+				/* Get messages with an ID larger than the one we got last time */
+				if( ths->m_hEtpan->imap_selection_info->sel_uidnext == lastuid+1 ) {
+					goto cleanup; /* the predicted "next uid on insert" is equal to the one we start for fetching - no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap) */
+				}
+
+				struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
+					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
+				mailimap_set_free(set);
+			}
+			else
+			{
+				/* fetch the last 200 messages by one-based-index.  Maybe we shoud implement a method to fetch more older ones if the user scrolls up. */
+				int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
+				if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
+					i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
+					i_first = MR_MAX(i_last-200, 1);
+				}
+
+				struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
+					r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
+				mailimap_set_free(set);
+			}
 		}
 
-	pthread_mutex_unlock(&ths->m_critical);
-	locked = 0;
+	UNLOCK_HANDLE
 
-	if( is_error(r) || fetch_result == NULL )
+	if( is_error(ths, r) || fetch_result == NULL )
 	{
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
 			goto cleanup; /* the folder is simply empty, this is no error */
@@ -293,9 +341,7 @@ static void fetch_from_single_folder(mrimap_t* ths, const char* folder)
 
 	/* done */
 cleanup:
-	if( locked ) {
-		pthread_mutex_unlock(&ths->m_critical);
-	}
+	UNLOCK_HANDLE
 
     {
 		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
@@ -315,27 +361,33 @@ cleanup:
 	if( lastuid_config_key ) {
 		free(lastuid_config_key);
 	}
+
+	return read_cnt;
 }
 
 
-static void fetch_from_all_folders(mrimap_t* ths)
+static int fetch_from_all_folders(mrimap_t* ths)
 {
-	/* check INBOX */
-	fetch_from_single_folder(ths, "INBOX");
-
-	/* check other folders */
-	int        r;
+	int        r, handle_locked = 0;
 	clist*     imap_folders = NULL;
 	clistiter* cur;
+	int        total_cnt = 0;
 
+	/* check INBOX */
+	total_cnt += fetch_from_single_folder(ths, "INBOX", 0);
+
+	/* check other folders */
 	mrlog_info("Checking other folders...");
 
-	pthread_mutex_lock(&ths->m_critical);
-		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders); /* returns mailimap_mailbox_list */
-	pthread_mutex_unlock(&ths->m_critical);
-	if( is_error(r) || imap_folders==NULL ) {
+	LOCK_HANDLE
+
+		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
+
+	UNLOCK_HANDLE
+
+	if( is_error(ths, r) || imap_folders==NULL ) {
 		mrlog_error("Cannot get folder list.");
-		return;
+		return 0;
 	}
 
 	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) ) /* contains eg. Gesendet, Archiv, INBOX - uninteresting: Spam, Papierkorb, Entwürfe */
@@ -348,7 +400,7 @@ static void fetch_from_all_folders(mrimap_t* ths)
 			{
 				if( !ignore_folder(name_utf8) )
 				{
-					fetch_from_single_folder(ths, name_utf8);
+					total_cnt += fetch_from_single_folder(ths, name_utf8, 0);
 				}
 				else
 				{
@@ -359,94 +411,266 @@ static void fetch_from_all_folders(mrimap_t* ths)
 			}
 		}
 	}
+
+	return total_cnt;
 }
 
 
 /*******************************************************************************
- * Connect
+ * Watch thread
  ******************************************************************************/
 
 
 static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	struct timespec timeToWait;
-	int             r, was_idleing = 0;
+	int             handle_locked = 0, idle_locked = 0, unsetup_idle = 0, force_sleep = 0, do_fetch = 0;
+	#define         SLEEP_ON_ERROR_SECONDS 10
+	#define         IDLE_DELAY_SECONDS (28 * 60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
 
 	mrlog_info("IMAP-watch-thread started.");
 	mrosnative_setup_thread();
 
-	while( 1 )
+	if( ths->m_can_idle )
 	{
-		mrlog_info("IMAP-watch-thread is checking for messages...");
-			fetch_from_all_folders(ths);
-		mrlog_info("Done with checking for messages.");
+		/* watch using IDLE
+		 **********************************************************************/
 
-			#if 0	// TODO: set up properly, after some time, check all folders; make it interruptable for manual fetch, what if the other thread sends a message while idle?)
-					// for the normal PULL: first, check every 10 seconds, later enlarge the timeout to every 5-10 Minutes
-				mailimap_select(ths->m_hEtpan, "INBOX");
-				was_idleing = 0;
-				mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-				r = mailimap_idle(ths->m_hEtpan);
-				if( is_error(r) ) {
-					if (r == MAILIMAP_ERROR_STREAM||r == MAILIMAP_ERROR_PARSE) {
-						// we should reconnect
+		int      r;
+		uint32_t uidvaliditiy;
+
+		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
+
+		LOCK_HANDLE
+			mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+			unsetup_idle = 1;
+		UNLOCK_HANDLE
+
+		while( 1 )
+		{
+			if( ths->m_watch_do_exit ) { goto exit_; }
+
+			BLOCK_IDLE /* must be done before LOCK_HANDLE; this allows other threads to block IDLE */
+			LOCK_HANDLE
+
+				do_fetch = 0;
+				force_sleep = 1;
+				uidvaliditiy = 0;
+				setup_handle_if_needed_(ths);
+				if( select_folder_(ths, "INBOX") )
+				{
+					uidvaliditiy = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
+					r = mailimap_idle(ths->m_hEtpan);
+					if( !is_error(ths, r) )
+					{
+						mrlog_info("IDLE start...");
+
+						UNLOCK_HANDLE
+						UNBLOCK_IDLE
+
+							r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+							force_sleep = 0;
+
+							if( r == MAILSTREAM_IDLE_ERROR || r==MAILSTREAM_IDLE_CANCELLED ) {
+								mrlog_info("IDLE wait cancelled; we'll reconnect soon.");
+								ths->m_should_reconnect = 1;
+							}
+							else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
+								mrlog_info("IDLE interrupted.");
+							}
+							else if( r == MAILSTREAM_IDLE_TIMEOUT ) {
+								mrlog_info("IDLE timeout.");
+								do_fetch = 2; /* fetch from all folders */
+							}
+							else if( r ==  MAILSTREAM_IDLE_HASDATA ) {
+								mrlog_info("IDLE got data.");
+								do_fetch = 1; /* fetch from currently selected folder, the INBOX */
+							}
+							else if( is_error(ths, r) ) {
+								; /* this check is needed and should be last as is_error() also sets m_should_reconnect */
+							}
+
+							if( ths->m_watch_do_exit ) { goto exit_; }
+
+						BLOCK_IDLE
+						LOCK_HANDLE
+					}
+
+					r = mailimap_idle_done(ths->m_hEtpan);
+					if( is_error(ths, r) ) {
+						do_fetch = 0;
 					}
 				}
-				else {
-					#define MAX_IDLE_DELAY (28 * 60)
-					r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, MAX_IDLE_DELAY);
-					if( r == MAILSTREAM_IDLE_ERROR|| MAILSTREAM_IDLE_CANCELLED ) {
-						// we should reconnect
-					}
-					else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
-					}
-					else if( r == MAILSTREAM_IDLE_TIMEOUT ) {
-					}
-					else if( r ==  MAILSTREAM_IDLE_HASDATA ) {
-						was_idleing = 1;
-					}
+
+			UNLOCK_HANDLE
+			UNBLOCK_IDLE
+
+			if( do_fetch == 1 ) {
+				fetch_from_single_folder(ths, "INBOX", uidvaliditiy);
+			}
+			else if( do_fetch == 2 ) {
+				fetch_from_all_folders(ths);
+			}
+			else if( force_sleep ) {
+				sleep(SLEEP_ON_ERROR_SECONDS);
+			}
+		}
+	}
+	else
+	{
+		/* watch using POLL
+		 **********************************************************************/
+
+		mrlog_info("IMAP-watch-thread will poll for messages.");
+		time_t last_message_time=time(NULL), last_fullread_time=0, now, seconds_to_wait;
+		struct timespec timeToWait;
+		while( 1 )
+		{
+			/* get the latest messages */
+			now = time(NULL);
+			do_fetch = 1;
+			if( now-last_fullread_time > IDLE_DELAY_SECONDS ) {
+				do_fetch = 2;
+			}
+
+			LOCK_HANDLE
+				setup_handle_if_needed_(ths);
+			UNLOCK_HANDLE
+
+
+			if( do_fetch == 1 ) {
+				if( fetch_from_single_folder(ths, "INBOX", 0) > 0 ) {
+					last_message_time = now;
 				}
-				mailimap_idle_done(ths->m_hEtpan);
-				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
-			#endif
+			}
+			else if( do_fetch == 2 ) {
+				if( fetch_from_all_folders(ths) > 0 ) {
+					last_message_time = now;
+				}
+				last_fullread_time = now;
+			}
 
+			/* calculate the wait time: every 10 seconds in the first 2 minutes after a new message, after that growing up to 5 minutes */
+			if( now-last_message_time < 2*60 ) {
+				seconds_to_wait = 10;
+			}
+			else {
+				seconds_to_wait = (now-last_message_time)/6;
+				if( seconds_to_wait > 5*60 ) {
+					seconds_to_wait = 5*60;
+				}
+			}
 
-		/* wait 10 seconds for for manual fetch condition */
-		if( was_idleing == 0 ) {
+			/* wait */
+			mrlog_info("IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
 			if( ths->m_watch_do_exit ) { goto exit_; }
 			pthread_mutex_lock(&ths->m_watch_condmutex);
-				timeToWait.tv_sec  = time(NULL)+10;
+				timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 				timeToWait.tv_nsec = 0;
-				pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+				pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait);
 			pthread_mutex_unlock(&ths->m_watch_condmutex);
 			if( ths->m_watch_do_exit ) { goto exit_; }
 		}
 	}
 
 exit_:
-	mrlog_info("IMAP-watch-thread ended.");
+	UNLOCK_HANDLE
+	UNBLOCK_IDLE
+	if( unsetup_idle ) {
+		LOCK_HANDLE
+			mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
+		UNLOCK_HANDLE
+	}
 	mrosnative_unsetup_thread();
 	return NULL;
 }
 
 
+/*******************************************************************************
+ * Setup handle
+ ******************************************************************************/
+
+
+static int setup_handle_if_needed_(mrimap_t* ths)
+{
+	int r, success = 0;
+
+    if( ths->m_should_reconnect ) {
+		unsetup_handle_(ths);
+    }
+
+    if( ths->m_hEtpan ) {
+		success = 1;
+		goto cleanup;
+    }
+
+	mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
+		ths->m_hEtpan = mailimap_new(0, NULL);
+		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+		if( is_error(ths, r) ) {
+			mrlog_error("Could not connect to IMAP-server.");
+			goto cleanup;
+		}
+	mrlog_info("Connection to IMAP-server ok.");
+
+	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
+		r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
+		if( is_error(ths, r) ) {
+			mrlog_error("Could not login.");
+			goto cleanup;
+		}
+	mrlog_info("Login ok.");
+
+	success = 1;
+
+cleanup:
+	if( success == 0 ) {
+		unsetup_handle_(ths);
+	}
+
+	ths->m_should_reconnect = 0;
+	return success;
+}
+
+
+static void unsetup_handle_(mrimap_t* ths)
+{
+	if( ths->m_hEtpan )
+	{
+		mrlog_info("Disconnecting...");
+			if( ths->m_hEtpan->imap_stream != NULL ) {
+				mailstream_close(ths->m_hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
+				ths->m_hEtpan->imap_stream = NULL;
+			}
+
+			mailimap_free(ths->m_hEtpan);
+			ths->m_hEtpan = NULL;
+		mrlog_info("Disconnect done.");
+	}
+
+	ths->m_selected_folder[0] = 0;
+}
+
+
+/*******************************************************************************
+ * Connect/Disconnect
+ ******************************************************************************/
+
+
 int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 {
-	int success = 0, locked = 0, login_done = 0, r;
+	int success = 0, handle_locked = 0;
 
 	if( ths == NULL || lp==NULL || lp->m_mail_server==NULL || lp->m_mail_user==NULL || lp->m_mail_pw==NULL ) {
 		return 0;
 	}
 
-	if( pthread_mutex_trylock(&ths->m_critical)!=0 ) {
-		mrlog_warning("Cannot connect, IMAP-object blocked by another thread.");
+	if( pthread_mutex_trylock(&ths->m_hEtpanmutex)!=0 ) {
 		goto cleanup;
 	}
-	locked = 1;
+	handle_locked = 1;
 
 		if( ths->m_connected ) {
-			mrlog_warning("Already connected to IMAP-server.");
 			success = 1;
 			goto cleanup;
 		}
@@ -456,92 +680,74 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
 		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 
-		mrlog_info("Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
-			ths->m_hEtpan = mailimap_new(0, NULL);
-			r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
-			if( is_error(r) ) {
-				mrlog_error("Could not connect to IMAP-server.");
-				goto cleanup;
-			}
-		mrlog_info("Connection to IMAP-server ok.");
-
-		mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
-			r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
-			if( is_error(r) ) {
-				mrlog_error("Could not login.");
-				goto cleanup;
-			}
-			login_done = 1;
-		mrlog_info("Login ok.");
-
-		mrlog_info("Starting IMAP-watch-thread...");
-		ths->m_watch_do_exit = 0;
-		pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
+		if( !setup_handle_if_needed_(ths) ) {
+			goto cleanup;
+		}
 
 		ths->m_connected = 1;
-		success = 1;
+
+		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan); /* we set this here and not in setup_handle_if_needed_() as this should not change */
+		mrlog_info("Can Idle? %s", ths->m_can_idle? "Yes" : "No");
+
+	UNLOCK_HANDLE
+
+	mrlog_info("Starting IMAP-watch-thread...");
+	ths->m_watch_do_exit = 0;
+	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
+
+	success = 1;
 
 cleanup:
 	if( success == 0 ) {
-		if( ths->m_hEtpan ) {
-			if( login_done ) {
-				mailimap_logout(ths->m_hEtpan);
-			}
-			mailimap_free(ths->m_hEtpan);
-			ths->m_hEtpan = NULL;
-		}
-		ths->m_connected = 0;
+		unsetup_handle_(ths);
 	}
 
-	if( locked ) {
-		pthread_mutex_unlock(&ths->m_critical);
-	}
 	return success;
 }
 
 
 void mrimap_disconnect(mrimap_t* ths)
 {
-	int   locked = 0;
+	int handle_locked = 0, connected;
 
 	if( ths == NULL ) {
 		return;
 	}
 
-	pthread_mutex_lock(&ths->m_critical); /* no try, wait until we get the object. */
-	locked = 1;
+	LOCK_HANDLE
+		connected = ths->m_connected;
+	UNLOCK_HANDLE
 
-			if( !ths->m_connected ) {
-				goto cleanup;
+	if( connected )
+	{
+		mrlog_info("Stopping IMAP-watch-thread...");
+			ths->m_watch_do_exit = 1;
+			if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
+			{
+				LOCK_HANDLE
+					mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
+				UNLOCK_HANDLE
+				pthread_join(ths->m_watch_thread, NULL);
 			}
+			else
+			{
+				pthread_cond_signal(&ths->m_watch_cond);
+				pthread_join(ths->m_watch_thread, NULL);
+			}
+		mrlog_info("IMAP-watch-thread stopped.");
 
-	pthread_mutex_unlock(&ths->m_critical);
-	locked = 0;
-
-	mrlog_info("Waiting for IMAP-watch-thread to terminate...");
-		ths->m_watch_do_exit = 1;
-		pthread_cond_signal(&ths->m_watch_cond);
-		pthread_join(ths->m_watch_thread, NULL);
-	mrlog_info("IMAP-watch-thread terminated.");
-
-	pthread_mutex_lock(&ths->m_critical); /* no try, wait until we get the object. */
-	locked = 1;
-
-			mrlog_info("Logout...");
-				mailimap_logout(ths->m_hEtpan);
-			mrlog_info("Logout done.");
-
-			mrlog_info("Disconnecting...");
-				mailimap_free(ths->m_hEtpan);
-				ths->m_hEtpan = NULL;
-			mrlog_info("Disconnect done.");
-
+		LOCK_HANDLE
+			unsetup_handle_(ths);
+			ths->m_can_idle  = 0;
 			ths->m_connected = 0;
-
-cleanup:
-	if( locked ) {
-		pthread_mutex_unlock(&ths->m_critical);
+		UNLOCK_HANDLE
 	}
+}
+
+
+int mrimap_is_connected(mrimap_t* ths)
+{
+	return (ths && ths->m_connected); /* we do not use a LOCK - otherwise, the check may take seconds and is not sufficient for some GUI state updates. */
 }
 
 
@@ -563,9 +769,12 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	ths->m_receive_imf    = receive_imf;
 	ths->m_userData       = userData;
 
-    pthread_mutex_init(&ths->m_critical, NULL);
+	pthread_mutex_init(&ths->m_hEtpanmutex, NULL);
+	pthread_mutex_init(&ths->m_idlemutex, NULL);
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
-    pthread_cond_init(&ths->m_watch_cond, NULL);
+	pthread_cond_init(&ths->m_watch_cond, NULL);
+
+	ths->m_selected_folder = calloc(1, 1);
 
 	/* create some useful objects */
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
@@ -589,11 +798,13 @@ void mrimap_unref(mrimap_t* ths)
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);
-	pthread_mutex_destroy(&ths->m_critical);
+	pthread_mutex_destroy(&ths->m_idlemutex);
+	pthread_mutex_destroy(&ths->m_hEtpanmutex);
 
 	free(ths->m_imap_server);
 	free(ths->m_imap_user);
 	free(ths->m_imap_pw);
+	free(ths->m_selected_folder);
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
@@ -602,27 +813,14 @@ void mrimap_unref(mrimap_t* ths)
 }
 
 
-int mrimap_is_connected(mrimap_t* ths)
-{
-	return (ths && ths->m_connected); /* do not check for m_hEtpan, as we may loose this handle during reconnection */
-}
-
-
 int mrimap_fetch(mrimap_t* ths)
 {
-	if( ths == NULL ) {
+	if( ths == NULL || !ths->m_connected ) {
 		return 0;
 	}
 
-	if( !ths->m_connected ) {
-		mrlog_error("Cannot fetch, not connected to IMAP-server.");
-		return 0;
-	}
-
+	ths->m_manual_fetch = 1;
 	pthread_cond_signal(&ths->m_watch_cond);
 	return 1;
 }
-
-
-
 

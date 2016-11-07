@@ -39,7 +39,7 @@ extern "C" {
 #define MRJ_MARKSEEN_MSG_ON_IMAP   110
 #define MRJ_SEND_MSG_TO_IMAP       700
 #define MRJ_SEND_MSG_TO_SMTP       800
-#define MRJ_INSTALL_IMAP_WATCHER   900    /* ... high priority*/
+#define MRJ_CONNECT_TO_IMAP        900    /* ... high priority*/
 
 typedef struct mrjob_t {
 	uint32_t   m_job_id;

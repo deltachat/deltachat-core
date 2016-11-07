@@ -1215,7 +1215,7 @@ int mrmailbox_connect(mrmailbox_t* ths)
 		return 0;
 	}
 
-	mrjob_add_(ths, MRJ_INSTALL_IMAP_WATCHER, 0, NULL);
+	mrjob_add_(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
 	return 1;
 }
 

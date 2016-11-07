@@ -48,15 +48,20 @@ typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_termi
 
 typedef struct mrimap_t
 {
-	int                   m_connected; /* initally connected and watch thread installed */
-	mailimap*             m_hEtpan;    /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
-
-	pthread_mutex_t       m_critical;
-
 	char*                 m_imap_server;
 	int                   m_imap_port;
 	char*                 m_imap_user;
 	char*                 m_imap_pw;
+
+	int                   m_connected; /* initally connected and watch thread installed */
+	mailimap*             m_hEtpan;    /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
+	pthread_mutex_t       m_hEtpanmutex;
+	char*                 m_selected_folder;
+	int                   m_should_reconnect;
+	int                   m_manual_fetch;
+
+	int                   m_can_idle;
+	pthread_mutex_t       m_idlemutex;
 
 	pthread_t             m_watch_thread;
 	pthread_cond_t        m_watch_cond;
@@ -76,9 +81,9 @@ typedef struct mrimap_t
 mrimap_t* mrimap_new               (mr_get_config_int_t, mr_set_config_int_t, mr_receive_imf_t, void* userData);
 void      mrimap_unref             (mrimap_t*);
 
-int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
 void      mrimap_disconnect        (mrimap_t*);
+int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
 
