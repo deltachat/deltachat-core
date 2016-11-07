@@ -52,7 +52,7 @@ static void display_mime_data(struct mailmime_data * data)
 {
   switch (data->dt_type) {
   case MAILMIME_DATA_TEXT:
-    printf("data : %u bytes\n", (unsigned int) data->dt_data.dt_text.dt_length);
+    printf("data : %i bytes\n", (int) data->dt_data.dt_text.dt_length);
     break;
   case MAILMIME_DATA_FILE:
     printf("data (file) : %s\n", data->dt_data.dt_filename);

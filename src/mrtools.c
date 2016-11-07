@@ -953,17 +953,17 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 
 	/* find out the largets receiver ID (we could also take the smallest, but it should be unique) */
 	size_t   i, icnt = carray_count(contact_ids_to);
-	uint32_t largest_id = contact_id_from;
+	uint32_t largest_id_to = 0;
 	for( i = 0; i < icnt; i++ ) {
 		uint32_t cur_id = (uint32_t)(uintptr_t)carray_get(contact_ids_to, i);
-		if( cur_id > largest_id ) {
-			largest_id = cur_id;
+		if( cur_id > largest_id_to ) {
+			largest_id_to = cur_id;
 		}
 	}
 
 	/* build a more or less unique string based on the timestamp and one receiver -
 	for our purposes, this seems "good enough" for the moment, esp. as clients normally set Message-ID on sent. */
-	return mr_mprintf("%u-%i@stub", (unsigned int)message_timestamp, (int)largest_id);
+	return mr_mprintf("%lu-%lu-%lu@stub", (unsigned long)message_timestamp, (unsigned long)contact_id_from, (unsigned long)largest_id_to);
 }
 
 
