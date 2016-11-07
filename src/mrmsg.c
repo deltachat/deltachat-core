@@ -300,7 +300,7 @@ char* mrmsg_get_summary(const mrmsg_t* ths, int approx_bytes)
 
 void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
-	// TODO
+	// TODO - when deleting using server_uid, we have to check against rfc724_mid first - the UID validity or the mailbox may have change
 }
 
 
@@ -330,7 +330,7 @@ int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 
 void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
-	// TODO
+	// TODO - when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 }
 
 
