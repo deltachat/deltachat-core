@@ -343,6 +343,36 @@ cleanup:
 }
 
 
+int mrmailbox_markseen_chat_by_id(mrmailbox_t* ths, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt;
+	uint32_t      msg_id;
+
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_begin_transaction(ths->m_sql);
+
+		stmt = mrsqlite3_predefine(ths->m_sql, SELECT_id_FROM_msgs_WHERE_chat_id_AND_state,
+			"SELECT id FROM msgs WHERE chat_id=? AND state=?;");
+		sqlite3_bind_int(stmt, 1, chat_id);
+		sqlite3_bind_int(stmt, 2, MR_IN_UNSEEN);
+		while( sqlite3_step(stmt) == SQLITE_ROW )
+		{
+			msg_id = sqlite3_column_int(stmt, 0);
+			mrmailbox_update_msg_state_(ths, msg_id, MR_IN_SEEN);
+			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* TODO: maybe we can optimize this by a combined IMAP-STORE command */
+		}
+
+	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_unlock(ths->m_sql);
+
+	return 1;
+}
+
+
 uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;

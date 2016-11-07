@@ -138,6 +138,7 @@ carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t
 mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
 int                  mrmailbox_delete_msg_by_id     (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_msg_by_id   (mrmailbox_t*, uint32_t msg_id);
+int                  mrmailbox_markseen_chat_by_id  (mrmailbox_t*, uint32_t chat_id);
 
 /* Get contacts. */
 mrcontactlist_t*     mrmailbox_get_contactlist      (mrmailbox_t*);
