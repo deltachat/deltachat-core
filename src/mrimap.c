@@ -407,7 +407,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	clistiter* cur;
 	int        total_cnt = 0;
 
-	/* check INBOX */
+	/* check INBOX - the INBOX foldername is IMAP-standard, AFAIK */
 	total_cnt += fetch_from_single_folder(ths, "INBOX", 0);
 
 	/* check other folders */
