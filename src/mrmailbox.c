@@ -355,7 +355,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
 		if( outgoing && carray_count(to_list)>1 && first_dblocal_id != 0 )
 		{
-			char* param = sqlite3_mprintf("omi=%i", (int)first_dblocal_id); /*omi=Original Message Id*/
+			char* param = sqlite3_mprintf("O=%i", (int)first_dblocal_id); /*O=Original Message Id*/
 			icnt = carray_count(to_list);
 			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
 			{

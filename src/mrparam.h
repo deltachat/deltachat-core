@@ -33,6 +33,7 @@
  * Known keys:
  * 'f'ile
  * 'o'riginal filename
+ * 'O'riginal msg_id
  * 'w'idth
  * 'h'eight
  * 'd'uration in milliseconds
