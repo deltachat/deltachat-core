@@ -796,7 +796,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		const char* p = strrchr(filename, '.');
 		if( p ) {
 			p++;
-			original_filename = mr_mprintf("Delta Chat.%s", p);
+			original_filename = mr_mprintf("file.%s", p);
 			if( mimetype == NULL ) {
 				if( strcasecmp(p, "png")==0 ) {
 					mimetype = safe_strdup("image/png");
@@ -810,7 +810,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 			}
 		}
 		else {
-			original_filename = safe_strdup("Delta Chat.dat");
+			original_filename = safe_strdup("file.dat");
 		}
 	}
 
@@ -889,13 +889,16 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 	message = mailmime_new_message_data(NULL);
 	mailmime_set_imf_fields(message, imf_fields);
 
-	/* add text part */
-	if( msg->m_text && msg->m_text[0] ) {
+	/* add text part - we even add empty text and force a MIME-message as:
+	- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
+	- it looks better */
+	{
 		char* footer = mrstock_str(MR_STR_STATUSLINE);
-		message_text = mr_mprintf("%s%s%s",
-			msg->m_text,
-			footer&&footer[0]? "\n\n-- \n"  : "",
-			footer&&footer[0]? footer       : "");
+		message_text = mr_mprintf("%s%s%s%s",
+			msg->m_text? msg->m_text : "",
+			(msg->m_text&&msg->m_text[0]&&footer&&footer[0])? "\n\n" : "",
+			(footer&&footer[0])? "-- \n"  : "",
+			(footer&&footer[0])? footer       : "");
 		free(footer);
 		struct mailmime* text_part = build_body_text(message_text);
 		mailmime_smart_add_part(message, text_part);
