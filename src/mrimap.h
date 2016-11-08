@@ -61,6 +61,7 @@ typedef struct mrimap_t
 	int                   m_manual_fetch;
 
 	int                   m_can_idle;
+	int                   m_has_xlist;
 	pthread_mutex_t       m_idlemutex;
 
 	pthread_t             m_watch_thread;

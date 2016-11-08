@@ -73,35 +73,69 @@ static int is_error(mrimap_t* ths, int code)
 }
 
 
-static int ignore_folder(const char* folder_name)
+static int ignore_folder(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name)
 {
-	int   ignore_folder = 0;
-	char* l = mr_strlower(folder_name);
+	char* lower = NULL;
+	int   do_ignore = 0;
 
-	if( strcmp(l, "spam") == 0
-	 || strcmp(l, "junk") == 0
-	 || strcmp(l, "indésirables") == 0 /* fr */
-
-	 || strcmp(l, "trash") == 0
-	 || strcmp(l, "deleted") == 0
-	 || strcmp(l, "deleted items") == 0
-	 || strcmp(l, "papierkorb") == 0   /* de */
-	 || strcmp(l, "corbeille") == 0    /* fr */
-	 || strcmp(l, "papelera") == 0     /* es */
-	 || strcmp(l, "papperskorg") == 0  /* sv */
-
-	 || strcmp(l, "drafts") == 0
-	 || strcmp(l, "entwürfe") == 0     /* de */
-	 || strcmp(l, "brouillons") == 0   /* fr */
-	 || strcmp(l, "borradores") == 0   /* es */
-	 || strcmp(l, "utkast") == 0       /* sv */
-	  )
+	if( ths->m_has_xlist || flags != NULL )
 	{
-		ignore_folder = 1;
+		/* We check for flags if we get some (LIST may also return some, see https://tools.ietf.org/html/rfc6154 )
+		or if m_has_xlist is set.  However, we also allow a NULL-pointer for "no flags" if m_has_xlist is true. */
+		if( flags && flags->mbf_oflags )
+		{
+			clistiter* iter2;
+			for( iter2=clist_begin(flags->mbf_oflags); iter2!=NULL; iter2=clist_next(iter2) )
+			{
+				struct mailimap_mbx_list_oflag* oflag = (struct mailimap_mbx_list_oflag*)clist_content(iter2);
+				switch( oflag->of_type )
+				{
+					case MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT:
+						if( strcasecmp(oflag->of_flag_ext, "spam")==0
+						 || strcasecmp(oflag->of_flag_ext, "trash")==0
+						 || strcasecmp(oflag->of_flag_ext, "drafts")==0
+						 || strcasecmp(oflag->of_flag_ext, "junk")==0 )
+						{
+							do_ignore = 1;
+							mrlog_info("Folder \"%s\" ignored due flag \"%s\".", folder_name, oflag->of_flag_ext);
+							goto cleanup;
+						}
+						break;
+				}
+			}
+		}
+	}
+	else
+	{
+		/* we have no flag list; try some known default names */
+		lower = mr_strlower(folder_name);
+		if( strcmp(lower, "spam") == 0
+		 || strcmp(lower, "junk") == 0
+		 || strcmp(lower, "indésirables") == 0 /* fr */
+
+		 || strcmp(lower, "trash") == 0
+		 || strcmp(lower, "deleted") == 0
+		 || strcmp(lower, "deleted items") == 0
+		 || strcmp(lower, "papierkorb") == 0   /* de */
+		 || strcmp(lower, "corbeille") == 0    /* fr */
+		 || strcmp(lower, "papelera") == 0     /* es */
+		 || strcmp(lower, "papperskorg") == 0  /* sv */
+
+		 || strcmp(lower, "drafts") == 0
+		 || strcmp(lower, "entwürfe") == 0     /* de */
+		 || strcmp(lower, "brouillons") == 0   /* fr */
+		 || strcmp(lower, "borradores") == 0   /* es */
+		 || strcmp(lower, "utkast") == 0       /* sv */
+		  )
+		{
+			do_ignore = 1;
+			mrlog_info("Folder \"%s\" ignored due static default name.", folder_name);
+		}
 	}
 
-	free(l);
-	return ignore_folder;
+cleanup:
+	free(lower);
+	return do_ignore;
 }
 
 
@@ -381,7 +415,12 @@ static int fetch_from_all_folders(mrimap_t* ths)
 
 	LOCK_HANDLE
 
-		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
+		if( ths->m_has_xlist )  {
+			r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_folders);
+		}
+		else {
+			r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
+		}
 
 	UNLOCK_HANDLE
 
@@ -398,13 +437,9 @@ static int fetch_from_all_folders(mrimap_t* ths)
 			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
 			if( name_utf8 )
 			{
-				if( !ignore_folder(name_utf8) )
+				if( !ignore_folder(ths, folder->mb_flag, name_utf8) )
 				{
 					total_cnt += fetch_from_single_folder(ths, name_utf8, 0);
-				}
-				else
-				{
-					mrlog_info("Folder \"%s\" ignored.", name_utf8);
 				}
 
 				free(name_utf8);
@@ -686,8 +721,12 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 
 		ths->m_connected = 1;
 
-		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan); /* we set this here and not in setup_handle_if_needed_() as this should not change */
+		/* we set the following flags here and not in setup_handle_if_needed_() as they must not change during connection */
+		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
 		mrlog_info("Can Idle? %s", ths->m_can_idle? "Yes" : "No");
+
+		ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
+		mrlog_info("Has Xlist? %s", ths->m_has_xlist? "Yes" : "No");
 
 	UNLOCK_HANDLE
 
@@ -739,6 +778,7 @@ void mrimap_disconnect(mrimap_t* ths)
 		LOCK_HANDLE
 			unsetup_handle_(ths);
 			ths->m_can_idle  = 0;
+			ths->m_has_xlist = 0;
 			ths->m_connected = 0;
 		UNLOCK_HANDLE
 	}
