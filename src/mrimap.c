@@ -415,6 +415,9 @@ static int fetch_from_all_folders(mrimap_t* ths)
 
 	LOCK_HANDLE
 
+		/* the "*" not only gives us the folders from the main directory, but also all subdirectories; so the resulting foldernames may contain
+		delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
+		functinon recursively. */
 		if( ths->m_has_xlist )  {
 			r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_folders);
 		}
