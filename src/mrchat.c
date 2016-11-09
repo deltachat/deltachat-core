@@ -518,7 +518,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 					" FROM msgs m"
 					" LEFT JOIN contacts ct ON m.from_id=ct.id"
 					" WHERE m.chat_id=? AND ct.blocked=0"
-					" ORDER BY m.timestamp,m.id"
+					" ORDER BY m.timestamp DESC,m.id DESC" /* the list starts with the newest messages*/
 					" LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
 				goto ListMsgs_Cleanup;

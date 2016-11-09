@@ -235,7 +235,7 @@ int main(int argc, char ** argv)
 				if( msglist ) {
 					int i, cnt = carray_count(msglist->m_msgs);
 					printf("--------------------------------------------------------------------------------\n");
-					for( i = 0; i < cnt; i++ )
+					for( i = cnt-1; i >= 0; i-- )
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
 						mrcontact_t* contact = mrmailbox_get_contact_by_id(mailbox, msg->m_from_id);
