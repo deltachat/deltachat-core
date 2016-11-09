@@ -73,7 +73,12 @@ static int is_error(mrimap_t* ths, int code)
 }
 
 
-static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name)
+/*******************************************************************************
+ * Handle folders
+ ******************************************************************************/
+
+
+static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name, bool force_fallback)
 {
 	#define MEANING_NORMAL       1
 	#define MEANING_INBOX        2
@@ -83,7 +88,7 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 	char* lower = NULL;
 	int   ret_meaning = MEANING_NORMAL;
 
-	if( ths->m_has_xlist || flags != NULL )
+	if( !force_fallback && (ths->m_has_xlist || flags != NULL) )
 	{
 		/* We check for flags if we get some (LIST may also return some, see https://tools.ietf.org/html/rfc6154 )
 		or if m_has_xlist is set.  However, we also allow a NULL-pointer for "no flags" if m_has_xlist is true. */
@@ -102,7 +107,6 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 						 || strcasecmp(oflag->of_flag_ext, "junk")==0 )
 						{
 							ret_meaning = MEANING_IGNORE;
-							goto cleanup;
 						}
 						else if( strcasecmp(oflag->of_flag_ext, "sent")==0 )
 						{
@@ -119,7 +123,7 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 	}
 	else
 	{
-		/* we have no flag list; try some known default names; for sent-objects, simply use the first folder */
+		/* we have no flag list; try some known default names */
 		lower = mr_strlower(folder_name);
 		if( strcmp(lower, "spam") == 0
 		 || strcmp(lower, "junk") == 0
@@ -142,22 +146,100 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 		{
 			ret_meaning = MEANING_IGNORE;
 		}
-		else if( strcmp(lower, "inbox") == 0 )
+		else if( strcmp(lower, "inbox") == 0 ) /* the "INBOX" foldername is IMAP-standard, AFAIK */
 		{
 			ret_meaning = MEANING_INBOX;
 		}
+		else if( strcmp(lower, "sent")==0 || strcmp(lower, "sent objects")==0 || strcmp(lower, "gesendet")==0 )
+		{
+			ret_meaning = MEANING_SENT_OBJECTS;
+		}
 	}
 
-cleanup:
 	free(lower);
 	return ret_meaning;
 }
 
 
+typedef struct mrimapfolder_t
+{
+	char* m_name_to_select;
+	char* m_name_utf8;
+	int   m_meaning;
+} mrimapfolder_t;
+
+
+static clist* list_folders_(mrimap_t* ths)
+{
+	clist*     imap_list = NULL;
+	clistiter* iter1;
+	clist *    ret_list = clist_new();
+	int        r, xlist_works = 0;
+
+	/* the "*" not only gives us the folders from the main directory, but also all subdirectories; so the resulting foldernames may contain
+	delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
+	functinon recursively. */
+	if( ths->m_has_xlist )  {
+		r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_list);
+	}
+	else {
+		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_list);
+	}
+	if( is_error(ths, r) ) {
+		mrlog_error("Cannot get folder list.");
+		goto cleanup;
+	}
+
+	for( iter1 = clist_begin(imap_list); iter1 != NULL ; iter1 = clist_next(iter1) )
+	{
+		struct mailimap_mailbox_list* imap_folder = (struct mailimap_mailbox_list*)clist_content(iter1);
+		mrimapfolder_t* ret_folder = calloc(1, sizeof(mrimapfolder_t));
+		ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
+		ret_folder->m_name_utf8      = imap_modified_utf7_to_utf8(imap_folder->mb_name, 0);
+		ret_folder->m_meaning        = get_folder_meaning(ths, imap_folder->mb_flag, ret_folder->m_name_utf8, false);
+		if( ret_folder->m_meaning != MEANING_NORMAL ) {
+			xlist_works = 1;
+		}
+		clist_append(ret_list, (void*)ret_folder);
+	}
+
+	/* at least my own server claims that it support XLIST but does not return folder flags. So, if we did not get a single
+	flag, fall back to the default behaviour */
+	if( !xlist_works ) {
+		for( iter1 = clist_begin(ret_list); iter1 != NULL ; iter1 = clist_next(iter1) )
+		{
+			mrimapfolder_t* ret_folder = (struct mrimapfolder_t*)clist_content(iter1);
+			ret_folder->m_meaning = get_folder_meaning(ths, NULL, ret_folder->m_name_utf8, true);
+		}
+	}
+
+cleanup:
+	if( imap_list ) {
+		mailimap_list_result_free(imap_list);
+	}
+	return ret_list;
+}
+
+
+static void free_folders_(clist* folders)
+{
+	if( folders ) {
+		clistiter* iter1;
+		for( iter1 = clist_begin(folders); iter1 != NULL ; iter1 = clist_next(iter1) ) {
+			mrimapfolder_t* ret_folder = (struct mrimapfolder_t*)clist_content(iter1);
+			free(ret_folder->m_name_to_select);
+			free(ret_folder->m_name_utf8);
+			free(ret_folder);
+		}
+		clist_free(folders);
+	}
+}
+
+
 static int init_sent_folder_(mrimap_t* ths)
 {
-	int        success = 0, r;
-	clist*     imap_folders = NULL;
+	int        success = 0;
+	clist*     folder_list = NULL;
 	clistiter* iter1;
 	char       *normal_folder = NULL, *sent_folder = NULL;
 
@@ -166,35 +248,14 @@ static int init_sent_folder_(mrimap_t* ths)
 		goto cleanup;
 	}
 
-	if( ths->m_has_xlist )  {
-		r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_folders);
-	}
-	else {
-		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
-	}
-
-	if( is_error(ths, r) || imap_folders==NULL ) {
-		goto cleanup;
-	}
-
-	for( iter1 = clist_begin(imap_folders); iter1 != NULL ; iter1 = clist_next(iter1) )
-	{
-		struct mailimap_mailbox_list* folder = (struct mailimap_mailbox_list*)clist_content(iter1);
-		if( folder ) {
-			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
-			if( name_utf8 ) {
-				int meaning = get_folder_meaning(ths, folder->mb_flag, name_utf8);
-				if( meaning == MEANING_SENT_OBJECTS ) {
-                    sent_folder = name_utf8;
-                    break;
-				}
-				else if( meaning == MEANING_NORMAL && normal_folder==NULL ) {
-					normal_folder = name_utf8;
-				}
-				else {
-					free(name_utf8);
-				}
-			}
+	folder_list = list_folders_(ths);
+	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
+		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
+		if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
+			sent_folder = folder->m_name_to_select;
+		}
+		else if( folder->m_meaning == MEANING_NORMAL && normal_folder == NULL ) {
+			normal_folder = folder->m_name_to_select;
 		}
 	}
 
@@ -205,17 +266,12 @@ static int init_sent_folder_(mrimap_t* ths)
 
 	if( sent_folder ) {
 		free(ths->m_sent_folder);
-		ths->m_sent_folder = sent_folder;
-		sent_folder = NULL;
+		ths->m_sent_folder = safe_strdup(sent_folder);
 		success = 1;
 	}
 
 cleanup:
-	if( imap_folders ) {
-		mailimap_list_result_free(imap_folders);
-	}
-	free(normal_folder);
-	free(sent_folder);
+	free_folders_(folder_list);
 	return success;
 }
 
@@ -237,6 +293,11 @@ static int select_folder_(mrimap_t* ths, const char* folder)
 		return 1;
 	}
 }
+
+
+/*******************************************************************************
+ * Fetch Messages
+ ******************************************************************************/
 
 
 static uint32_t peek_uid(struct mailimap_msg_att* msg_att)
@@ -305,11 +366,6 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 		}
 	}
 }
-
-
-/*******************************************************************************
- * Fetching Messages
- ******************************************************************************/
 
 
 static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
@@ -483,57 +539,37 @@ cleanup:
 
 static int fetch_from_all_folders(mrimap_t* ths)
 {
-	int        r, handle_locked = 0;
-	clist*     imap_folders = NULL;
+	int        handle_locked = 0;
+	clist*     folder_list = NULL;
 	clistiter* cur;
 	int        total_cnt = 0;
 
-	/* check INBOX - the INBOX foldername is IMAP-standard, AFAIK */
-	total_cnt += fetch_from_single_folder(ths, "INBOX", 0);
-
-	/* check other folders */
-	mrlog_info("Checking other folders...");
-
 	LOCK_HANDLE
-
-		/* the "*" not only gives us the folders from the main directory, but also all subdirectories; so the resulting foldernames may contain
-		delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
-		functinon recursively. */
-		if( ths->m_has_xlist )  {
-			r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_folders);
-		}
-		else {
-			r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
-		}
-
+		folder_list = list_folders_(ths);
 	UNLOCK_HANDLE
 
-	if( is_error(ths, r) || imap_folders==NULL ) {
-		mrlog_error("Cannot get folder list.");
-		return 0;
-	}
-
-	for( cur = clist_begin(imap_folders); cur != NULL ; cur = clist_next(cur) ) /* contains eg. Gesendet, Archiv, INBOX - uninteresting: Spam, Papierkorb, Entwürfe */
+	/* first, read the INBOX, this looks much better on the initial load as the INBOX
+	has the most recent mails.  Moreover, this is for speed reasons, as the other folders only have few new messages. */
+	for( cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur) )
 	{
-		struct mailimap_mailbox_list* folder = (struct mailimap_mailbox_list*)clist_content(cur);
-		if( folder && strcmp(folder->mb_name, "INBOX")!=0 )
-		{
-			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
-			if( name_utf8 )
-			{
-				if( get_folder_meaning(ths, folder->mb_flag, name_utf8) != MEANING_IGNORE ) {
-					total_cnt += fetch_from_single_folder(ths, name_utf8, 0);
-				}
-				else {
-					mrlog_info("Folder \"%s\" ignored.", name_utf8);
-				}
-
-				free(name_utf8);
-			}
+		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		if( folder->m_meaning == MEANING_INBOX ) {
+			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select, 0);
 		}
 	}
 
-	mailimap_list_result_free(imap_folders);
+	for( cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur) )
+	{
+		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		if( folder->m_meaning == MEANING_IGNORE ) {
+			mrlog_info("Folder \"%s\" ignored.", folder->m_name_utf8);
+		}
+		else if( folder->m_meaning != MEANING_INBOX ) {
+			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select, 0);
+		}
+	}
+
+	free_folders_(folder_list);
 
 	return total_cnt;
 }
