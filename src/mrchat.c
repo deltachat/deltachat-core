@@ -34,6 +34,7 @@
 #include "mrlog.h"
 #include "mrjob.h"
 #include "mrsmtp.h"
+#include "mrimap.h"
 
 
 /*******************************************************************************
@@ -293,6 +294,8 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	}
 
 	/* success */
+	mrjob_ping_(ths);
+
 	success = 1;
 
 	/* cleanup */
@@ -536,6 +539,8 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			}
 
 			/* success */
+			mrjob_ping_(ths->m_mailbox);
+
 			success = 1;
 
 			/* cleanup */
@@ -976,6 +981,50 @@ static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 
 void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
+	mrmsg_t*      msg = mrmsg_new();
+	clist*	      recipients = clist_new();
+	MMAPString*   data = NULL;
+	char*         from_addr = NULL;
+	char*         from_displayname = NULL;
+	uint32_t      server_uid = 0;
+
+	/* connect to IMAP-server */
+	if( !mrimap_is_connected(mailbox->m_imap) ) {
+		mrmailbox_connect_to_imap(mailbox, NULL);
+		if( !mrimap_is_connected(mailbox->m_imap) ) {
+			mrjob_try_again_later(job);
+			goto cleanup;
+		}
+	}
+
+	/* create message */
+	load_data_to_send(mailbox, job->m_foreign_id, msg, &from_addr, &from_displayname, recipients);
+	if( from_addr == NULL || clist_count(recipients) == 0 ) {
+		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
+	}
+
+	data = create_mime_msg(msg, from_addr, from_displayname, recipients);
+	if( data == NULL ) {
+		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
+	}
+
+	if( !mrimap_append_msg(mailbox->m_imap, msg->m_timestamp, data->str, data->len, &server_uid) ) {
+		mrjob_try_again_later(job);
+		goto cleanup;
+	}
+	else {
+		mrsqlite3_lock(mailbox->m_sql);
+			mrmailbox_update_server_uid_(mailbox, msg->m_rfc724_mid, server_uid);
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+
+cleanup:
+	clist_free_content(recipients);
+	clist_free(recipients);
+	mrmsg_unref(msg);
+	mmap_string_free(data);
+	free(from_addr);
+	free(from_displayname);
 }
 
 

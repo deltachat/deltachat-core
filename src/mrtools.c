@@ -919,6 +919,41 @@ char* mr_timestamp_to_str(time_t wanted)
 }
 
 
+struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
+{
+    struct tm gmt;
+    struct tm lt;
+    int off;
+    struct mailimap_date_time * date_time;
+    int sign;
+    int hour;
+    int min;
+
+    gmtime_r(&timeval, &gmt);
+    localtime_r(&timeval, &lt);
+
+    off = (int) ((mkgmtime(&lt) - mkgmtime(&gmt)) / 60);
+    if (off < 0) {
+        sign = -1;
+    }
+    else {
+        sign = 1;
+    }
+    off = off * sign;
+    min = off % 60;
+    hour = off / 60;
+    off = hour * 100 + min;
+    off = off * sign;
+
+    date_time = mailimap_date_time_new(lt.tm_mday, lt.tm_mon + 1,
+                                       lt.tm_year + 1900,
+                                       lt.tm_hour, lt.tm_min, lt.tm_sec,
+                                       off);
+
+    return date_time;
+}
+
+
 /*******************************************************************************
  * generate Message-IDs
  ******************************************************************************/

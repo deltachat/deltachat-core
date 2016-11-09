@@ -62,7 +62,9 @@ typedef struct mrimap_t
 
 	int                   m_can_idle;
 	int                   m_has_xlist;
-	pthread_mutex_t       m_idlemutex;
+	char*                 m_sent_folder;
+	pthread_mutex_t       m_idlemutex;    /* set, if idle is not possible; morover, the interrupted IDLE thread waits a second before IDLEing again; this allows several jobs to be executed */
+	pthread_mutex_t       m_inwait_mutex; /* only used to wait for mailstream_wait_idle()/mailimap_idle_done() to terminate. */
 
 	pthread_t             m_watch_thread;
 	pthread_cond_t        m_watch_cond;
@@ -87,6 +89,7 @@ void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
+int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, uint32_t* ret_server_uid);
 
 #ifdef __cplusplus
 } /* /extern "C" */

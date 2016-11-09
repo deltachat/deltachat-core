@@ -41,8 +41,8 @@
 #define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); handle_locked = 1;
 #define UNLOCK_HANDLE if( handle_locked ) { pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
 
-#define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_locked = 1;
-#define UNBLOCK_IDLE if( idle_locked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_locked = 0; }
+#define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
+#define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }
 
 static int  setup_handle_if_needed_ (mrimap_t*);
 static void unsetup_handle_         (mrimap_t*);
@@ -73,10 +73,15 @@ static int is_error(mrimap_t* ths, int code)
 }
 
 
-static int ignore_folder(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name)
+static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name)
 {
+	#define MEANING_NORMAL       1
+	#define MEANING_INBOX        2
+	#define MEANING_IGNORE       3
+	#define MEANING_SENT_OBJECTS 4
+
 	char* lower = NULL;
-	int   do_ignore = 0;
+	int   ret_meaning = MEANING_NORMAL;
 
 	if( ths->m_has_xlist || flags != NULL )
 	{
@@ -96,9 +101,16 @@ static int ignore_folder(const mrimap_t* ths, struct mailimap_mbx_list_flags* fl
 						 || strcasecmp(oflag->of_flag_ext, "drafts")==0
 						 || strcasecmp(oflag->of_flag_ext, "junk")==0 )
 						{
-							do_ignore = 1;
-							mrlog_info("Folder \"%s\" ignored due flag \"%s\".", folder_name, oflag->of_flag_ext);
+							ret_meaning = MEANING_IGNORE;
 							goto cleanup;
+						}
+						else if( strcasecmp(oflag->of_flag_ext, "sent")==0 )
+						{
+							ret_meaning = MEANING_SENT_OBJECTS;
+						}
+						else if( strcasecmp(oflag->of_flag_ext, "inbox")==0 )
+						{
+							ret_meaning = MEANING_INBOX;
 						}
 						break;
 				}
@@ -107,7 +119,7 @@ static int ignore_folder(const mrimap_t* ths, struct mailimap_mbx_list_flags* fl
 	}
 	else
 	{
-		/* we have no flag list; try some known default names */
+		/* we have no flag list; try some known default names; for sent-objects, simply use the first folder */
 		lower = mr_strlower(folder_name);
 		if( strcmp(lower, "spam") == 0
 		 || strcmp(lower, "junk") == 0
@@ -128,14 +140,83 @@ static int ignore_folder(const mrimap_t* ths, struct mailimap_mbx_list_flags* fl
 		 || strcmp(lower, "utkast") == 0       /* sv */
 		  )
 		{
-			do_ignore = 1;
-			mrlog_info("Folder \"%s\" ignored due static default name.", folder_name);
+			ret_meaning = MEANING_IGNORE;
+		}
+		else if( strcmp(lower, "inbox") == 0 )
+		{
+			ret_meaning = MEANING_INBOX;
 		}
 	}
 
 cleanup:
 	free(lower);
-	return do_ignore;
+	return ret_meaning;
+}
+
+
+static int init_sent_folder_(mrimap_t* ths)
+{
+	int        success = 0, r;
+	clist*     imap_folders = NULL;
+	clistiter* iter1;
+	char       *normal_folder = NULL, *sent_folder = NULL;
+
+	if( ths->m_sent_folder[0] ) {
+		success = 1;
+		goto cleanup;
+	}
+
+	if( ths->m_has_xlist )  {
+		r = mailimap_xlist(ths->m_hEtpan, "", "*", &imap_folders);
+	}
+	else {
+		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_folders);
+	}
+
+	if( is_error(ths, r) || imap_folders==NULL ) {
+		goto cleanup;
+	}
+
+	for( iter1 = clist_begin(imap_folders); iter1 != NULL ; iter1 = clist_next(iter1) )
+	{
+		struct mailimap_mailbox_list* folder = (struct mailimap_mailbox_list*)clist_content(iter1);
+		if( folder ) {
+			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
+			if( name_utf8 ) {
+				int meaning = get_folder_meaning(ths, folder->mb_flag, name_utf8);
+				if( meaning == MEANING_SENT_OBJECTS ) {
+                    sent_folder = name_utf8;
+                    break;
+				}
+				else if( meaning == MEANING_NORMAL && normal_folder==NULL ) {
+					normal_folder = name_utf8;
+				}
+				else {
+					free(name_utf8);
+				}
+			}
+		}
+	}
+
+	if( sent_folder == NULL && normal_folder ) {
+		sent_folder = normal_folder;
+		normal_folder = NULL;
+	}
+
+	if( sent_folder ) {
+		free(ths->m_sent_folder);
+		ths->m_sent_folder = sent_folder;
+		sent_folder = NULL;
+		success = 1;
+	}
+
+cleanup:
+	if( imap_folders ) {
+		mailimap_list_result_free(imap_folders);
+	}
+	free(normal_folder);
+	free(sent_folder);
+	return success;
 }
 
 
@@ -440,15 +521,19 @@ static int fetch_from_all_folders(mrimap_t* ths)
 			char* name_utf8 = imap_modified_utf7_to_utf8(folder->mb_name, 0);
 			if( name_utf8 )
 			{
-				if( !ignore_folder(ths, folder->mb_flag, name_utf8) )
-				{
+				if( get_folder_meaning(ths, folder->mb_flag, name_utf8) != MEANING_IGNORE ) {
 					total_cnt += fetch_from_single_folder(ths, name_utf8, 0);
+				}
+				else {
+					mrlog_info("Folder \"%s\" ignored.", name_utf8);
 				}
 
 				free(name_utf8);
 			}
 		}
 	}
+
+	mailimap_list_result_free(imap_folders);
 
 	return total_cnt;
 }
@@ -462,9 +547,10 @@ static int fetch_from_all_folders(mrimap_t* ths)
 static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	int             handle_locked = 0, idle_locked = 0, unsetup_idle = 0, force_sleep = 0, do_fetch = 0;
-	#define         SLEEP_ON_ERROR_SECONDS 10
-	#define         IDLE_DELAY_SECONDS (28 * 60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
+	int             handle_locked = 0, idle_blocked = 0, unsetup_idle = 0, force_sleep = 0, do_fetch = 0;
+	#define         SLEEP_ON_ERROR_SECONDS     10
+	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* let the job thread a little bit time before we IDLE again, otherweise there will be many idle-interrupt sequences */
+	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
 
 	mrlog_info("IMAP-watch-thread started.");
 	mrosnative_setup_thread();
@@ -474,7 +560,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 		/* watch using IDLE
 		 **********************************************************************/
 
-		int      r;
+		int      r, r2;
 		uint32_t uidvaliditiy;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
@@ -492,7 +578,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 			LOCK_HANDLE
 
 				do_fetch = 0;
-				force_sleep = 1;
+				force_sleep = SLEEP_ON_ERROR_SECONDS;
 				uidvaliditiy = 0;
 				setup_handle_if_needed_(ths);
 				if( select_folder_(ths, "INBOX") )
@@ -506,7 +592,10 @@ static void* watch_thread_entry_point(void* entry_arg)
 						UNLOCK_HANDLE
 						UNBLOCK_IDLE
 
-							r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+							pthread_mutex_lock(&ths->m_inwait_mutex);
+								r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+								r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
+							pthread_mutex_unlock(&ths->m_inwait_mutex);
 							force_sleep = 0;
 
 							if( r == MAILSTREAM_IDLE_ERROR || r==MAILSTREAM_IDLE_CANCELLED ) {
@@ -515,6 +604,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 							}
 							else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
 								mrlog_info("IDLE interrupted.");
+								if( !ths->m_watch_do_exit ) {
+									force_sleep = SLEEP_ON_INTERRUPT_SECONDS;
+								}
 							}
 							else if( r == MAILSTREAM_IDLE_TIMEOUT ) {
 								mrlog_info("IDLE timeout.");
@@ -528,15 +620,14 @@ static void* watch_thread_entry_point(void* entry_arg)
 								; /* this check is needed and should be last as is_error() also sets m_should_reconnect */
 							}
 
+							if( is_error(ths, r2) ) {
+								do_fetch = 0;
+							}
+
 							if( ths->m_watch_do_exit ) { goto exit_; }
 
 						BLOCK_IDLE
 						LOCK_HANDLE
-					}
-
-					r = mailimap_idle_done(ths->m_hEtpan);
-					if( is_error(ths, r) ) {
-						do_fetch = 0;
 					}
 				}
 
@@ -550,7 +641,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 				fetch_from_all_folders(ths);
 			}
 			else if( force_sleep ) {
-				sleep(SLEEP_ON_ERROR_SECONDS);
+				sleep(force_sleep);
 			}
 		}
 	}
@@ -687,6 +778,8 @@ static void unsetup_handle_(mrimap_t* ths)
 	}
 
 	ths->m_selected_folder[0] = 0;
+
+	/* we leave m_sent_folder set; normally this does not change in a normal reconnect; we'll update this folder if we get errors */
 }
 
 
@@ -731,10 +824,11 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
 		mrlog_info("Has Xlist? %s", ths->m_has_xlist? "Yes" : "No");
 
+		mrlog_info("Starting IMAP-watch-thread...");
+		ths->m_watch_do_exit = 0;
+
 	UNLOCK_HANDLE
 
-	mrlog_info("Starting IMAP-watch-thread...");
-	ths->m_watch_do_exit = 0;
 	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
 
 	success = 1;
@@ -814,10 +908,12 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 
 	pthread_mutex_init(&ths->m_hEtpanmutex, NULL);
 	pthread_mutex_init(&ths->m_idlemutex, NULL);
+	pthread_mutex_init(&ths->m_inwait_mutex, NULL);
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
 	ths->m_selected_folder = calloc(1, 1);
+	ths->m_sent_folder = calloc(1, 1);
 
 	/* create some useful objects */
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
@@ -841,6 +937,7 @@ void mrimap_unref(mrimap_t* ths)
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);
+	pthread_mutex_destroy(&ths->m_inwait_mutex);
 	pthread_mutex_destroy(&ths->m_idlemutex);
 	pthread_mutex_destroy(&ths->m_hEtpanmutex);
 
@@ -848,6 +945,7 @@ void mrimap_unref(mrimap_t* ths)
 	free(ths->m_imap_user);
 	free(ths->m_imap_pw);
 	free(ths->m_selected_folder);
+	free(ths->m_sent_folder);
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
@@ -867,3 +965,66 @@ int mrimap_fetch(mrimap_t* ths)
 	return 1;
 }
 
+
+int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_terminated, size_t data_bytes, uint32_t* ret_server_uid)
+{
+	int                        success = 0, handle_locked = 0, idle_blocked = 0, r;
+	uint32_t                   ret_uidvalidity = 0;
+	struct mailimap_flag_list* flag_list = NULL;
+	struct mailimap_date_time* imap_date = NULL;
+
+	LOCK_HANDLE
+	BLOCK_IDLE
+
+		if( ths->m_can_idle && ths->m_hEtpan->imap_stream ) {
+			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
+			pthread_mutex_lock(&ths->m_inwait_mutex); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */
+			pthread_mutex_unlock(&ths->m_inwait_mutex);
+		}
+
+		mrlog_info("Appending message IMAP-server...");
+
+		if( !init_sent_folder_(ths) ) {
+			mrlog_error("Cannot find out IMAP-sent-folder.");
+			goto cleanup;
+		}
+
+		if( !select_folder_(ths, ths->m_sent_folder) ) {
+			mrlog_error("Cannot select IMAP-sent-folder \"%s\".", ths->m_sent_folder);
+			ths->m_sent_folder[0] = 0; /* force re-init */
+			goto cleanup;
+		}
+
+		flag_list = mailimap_flag_list_new_empty();
+		mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
+
+		imap_date = mr_timestamp_to_mailimap_date_time(timestamp);
+		if( imap_date == NULL ) {
+			mrlog_error("Bad date.");
+			goto cleanup;
+		}
+
+		r = mailimap_uidplus_append(ths->m_hEtpan, ths->m_sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
+		if( is_error(ths, r) ) {
+			mrlog_error("Cannot append message to \"%s\", error #%i.", ths->m_sent_folder, (int)r);
+			goto cleanup;
+		}
+
+		mrlog_info("Message appended to \"%s\".", ths->m_sent_folder);
+
+		success = 1;
+
+cleanup:
+	UNBLOCK_IDLE
+	UNLOCK_HANDLE
+
+    if( imap_date ) {
+        mailimap_date_time_free(imap_date);
+    }
+
+    if( flag_list ) {
+		mailimap_flag_list_free(flag_list);
+    }
+
+	return success;
+}

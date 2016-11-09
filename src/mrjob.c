@@ -182,6 +182,19 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 }
 
 
+void mrjob_ping_(mrmailbox_t* mailbox)
+{
+	sqlite3_stmt* stmt;
+	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_jobs,
+		"SELECT id FROM jobs WHERE desired_timestamp<=? LIMIT 1;");
+	sqlite3_bind_int64(stmt, 1, time(NULL));
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		mrlog_info("Ping does signal job thread to wake up...");
+		pthread_cond_signal(&mailbox->m_job_cond);
+	}
+}
+
+
 void mrjob_try_again_later(mrjob_t* ths)
 {
 	int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;

@@ -1153,6 +1153,13 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <name>;<addr> expected.");
 		}
 	}
+	else if( strcmp(cmd, "ping")==0 )
+	{
+		mrsqlite3_lock(ths->m_sql);
+			mrjob_ping_(ths);
+		mrsqlite3_unlock(ths->m_sql);
+		ret = COMMAND_SUCCEEDED;
+	}
 
 Done:
 	if( ret == COMMAND_FAILED ) {
@@ -1165,13 +1172,12 @@ Done:
 }
 
 
-
 /*******************************************************************************
  * Connect
  ******************************************************************************/
 
 
-void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job)
+void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
