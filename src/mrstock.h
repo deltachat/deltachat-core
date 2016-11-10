@@ -35,7 +35,7 @@ extern "C" {
 
 #define MR_STR_FREE_            0 /* the IDs must not change! No gaps, please. */
 #define MR_STR_NO_MESSAGES      1
-#define MR_STR_YOU              2
+#define MR_STR_SELF             2
 #define MR_STR_DRAFT            3
 #define MR_STR_MEMBER           4
 #define MR_STR_MEMBERS          5 /* must be MR_STR_MEMBERS+1 */

@@ -44,7 +44,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	int           show_strangers;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
-		goto GetChatList_Cleanup; /* error */
+		goto cleanup;
 	}
 
 	mrchatlist_empty(ths);
@@ -52,7 +52,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	show_strangers = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, "show_strangers", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
+	stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
 			" WHERE c.id>? OR c.id=?"
@@ -60,7 +60,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 			" ORDER BY MAX(c.draft_timestamp, m.timestamp) DESC,m.id DESC;" /* the list starts with the newest chats */
 			);
 	if( stmt==NULL ) {
-		goto GetChatList_Cleanup;
+		goto cleanup;
 	}
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 	sqlite3_bind_int(stmt, 2, show_strangers? MR_CHAT_ID_STRANGERS : 0);
@@ -80,7 +80,7 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 	success = 1;
 
 	/* cleanup */
-GetChatList_Cleanup:
+cleanup:
 	return success;
 }
 
@@ -108,7 +108,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 void mrchatlist_unref(mrchatlist_t* ths)
 {
 	if( ths==NULL ) {
-		return; /* error */
+		return;
 	}
 
 	mrchatlist_empty(ths);
@@ -138,7 +138,7 @@ void mrchatlist_empty(mrchatlist_t* ths)
 size_t mrchatlist_get_cnt(mrchatlist_t* ths)
 {
 	if( ths == NULL || ths->m_chats == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	return (size_t)carray_count(ths->m_chats);
@@ -148,7 +148,7 @@ size_t mrchatlist_get_cnt(mrchatlist_t* ths)
 mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index)
 {
 	if( ths == NULL || ths->m_chats == NULL || index >= (size_t)carray_count(ths->m_chats) ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	return mrchat_ref((mrchat_t*)carray_get(ths->m_chats, index));

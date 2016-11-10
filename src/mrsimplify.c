@@ -94,7 +94,7 @@ mrsimplify_t* mrsimplify_new()
 	mrsimplify_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrsimplify_t)))==NULL ) {
-		return NULL; /* error */
+		return NULL;
 	}
 
 	return ths;
@@ -104,7 +104,7 @@ mrsimplify_t* mrsimplify_new()
 void mrsimplify_unref(mrsimplify_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	free(ths);
@@ -257,12 +257,12 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 	char* out = NULL;
 
 	if( in_unterminated == NULL || in_bytes <= 0 ) {
-		return safe_strdup(""); /* error */
+		return safe_strdup("");
 	}
 
 	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
 	if( out == NULL ) {
-		return safe_strdup(""); /* error */
+		return safe_strdup("");
 	}
 
 	/* simplify the text in the buffer (characters to removed may be marked by `\r`) */
@@ -277,6 +277,5 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 	/* remove all `\r` from string */
 	mr_remove_cr_chars(out);
 
-	/* done */
 	return out;
 }

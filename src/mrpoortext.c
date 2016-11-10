@@ -70,7 +70,7 @@ void mrpoortext_unref(mrpoortext_t* ths)
 void mrpoortext_empty(mrpoortext_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	free(ths->m_title);

@@ -95,7 +95,7 @@ int mrmailbox_real_contact_exists_(mrmailbox_t* mailbox, uint32_t contact_id)
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_id,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_id,
 		"SELECT id FROM contacts WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 
@@ -115,7 +115,7 @@ size_t mrmailbox_get_real_contact_cnt_(mrmailbox_t* mailbox)
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
@@ -142,7 +142,7 @@ uint32_t mrmailbox_add_or_lookup_contact_( mrmailbox_t* mailbox,
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
 		"SELECT id, name, addr, origin FROM contacts WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
@@ -172,7 +172,7 @@ uint32_t mrmailbox_add_or_lookup_contact_( mrmailbox_t* mailbox,
 
 		if( update_name || update_addr || origin>row_origin )
 		{
-			stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
+			stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
 				"UPDATE contacts SET name=?, addr=?, origin=? WHERE id=?;");
 			sqlite3_bind_text(stmt, 1, update_name?       name   : row_name, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, update_addr?       addr   : row_addr, -1, SQLITE_STATIC);
@@ -184,7 +184,7 @@ uint32_t mrmailbox_add_or_lookup_contact_( mrmailbox_t* mailbox,
 			{
 				/* Update the contact name also if it is used as a group name.
 				This is one of the few duplicated data, however, getting the chat list is much faster this way.*/
-				stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
+				stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
 					"UPDATE chats SET name=? WHERE type=? AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 				sqlite3_bind_int (stmt, 2, MR_CHAT_NORMAL);
@@ -195,7 +195,7 @@ uint32_t mrmailbox_add_or_lookup_contact_( mrmailbox_t* mailbox,
 	}
 	else
 	{
-		stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_contacts_neo,
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, INSERT_INTO_contacts_neo,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
 		sqlite3_bind_text(stmt, 1, name? name : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
 		sqlite3_bind_text(stmt, 2, addr,    -1, SQLITE_STATIC);
@@ -220,24 +220,24 @@ int mrmailbox_is_known_contact_(mrmailbox_t* mailbox, uint32_t contact_id)
 	mrcontact_t* ths = mrcontact_new(mailbox);
 
 	if( !mrcontact_load_from_db_(ths, contact_id) ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 
 	if( ths->m_blocked ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 
     if( ths->m_origin > MR_ORIGIN_INCOMING_UNKNOWN_FROM ) {
 		is_known = 1;
-		goto Cleanup;
+		goto cleanup;
     }
 
 	if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_EMAIL_KNOWN, (uintptr_t)ths->m_addr, 0)==1 ) {
 		is_known = 1;
-		goto Cleanup;
+		goto cleanup;
 	}
 
-Cleanup:
+cleanup:
 	mrcontact_unref(ths);
 	return is_known;
 }
@@ -249,20 +249,20 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 	sqlite3_stmt* stmt;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	mrcontact_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
+	stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
 		"SELECT name, addr, origin, blocked FROM contacts WHERE id=?;");
 	if( stmt == NULL ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 
 	ths->m_id       = contact_id;
@@ -275,7 +275,7 @@ int mrcontact_load_from_db_(mrcontact_t* ths, uint32_t contact_id)
 	success = 1;
 
 	/* cleanup */
-Cleanup:
+cleanup:
 	return success;
 }
 
@@ -291,11 +291,11 @@ void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* forma
 	size_t  i, iCnt;
 
 	if( ths == NULL || adr_book == NULL ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 
 	if( (lines=mr_split_into_lines(adr_book))==NULL ) {
-		goto Cleanup;
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
@@ -311,7 +311,7 @@ void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* forma
 
 	mrsqlite3_unlock(ths->m_sql);
 
-Cleanup:
+cleanup:
 	mr_free_splitted_lines(lines);
 }
 
@@ -350,7 +350,7 @@ void mrcontact_unref(mrcontact_t* ths)
 void mrcontact_empty(mrcontact_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	free(ths->m_name); /* it is safe to call free(NULL) */

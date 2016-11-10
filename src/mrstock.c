@@ -79,7 +79,7 @@ void mrstock_exit(void)
 void mrstock_add_str(int id, const char* str)
 {
 	if( id < 0 || id >= MR_STR_COUNT_ || str == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	mrstock_init_array_();
@@ -98,14 +98,14 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 	mrstock_init_array_();
 
 	if( id < 0 || id >= MR_STR_COUNT_ ) {
-		return safe_strdup("StockRangeErr"); /* error */
+		return safe_strdup("StockRangeErr");
 	}
 
 	if( s_obj[id] == NULL && !s_def_strings_added ) {
 		/* init strings */
 		s_def_strings_added = 1;
 		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
-		mrstock_add_str(MR_STR_YOU,          "You");
+		mrstock_add_str(MR_STR_SELF,         "You");
 		mrstock_add_str(MR_STR_DRAFT,        "Draft");
 		mrstock_add_str(MR_STR_MEMBER,       "_ member");
 		mrstock_add_str(MR_STR_MEMBERS,      "_ members");

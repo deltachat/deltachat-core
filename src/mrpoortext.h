@@ -39,6 +39,7 @@ extern "C" {
 #define MR_TITLE_NORMAL    0 /* the values must not be changes as used directly in the frontend */
 #define MR_TITLE_DRAFT     1
 #define MR_TITLE_USERNAME  2
+#define MR_TITLE_SELF      3
 
 
 typedef struct mrpoortext_t

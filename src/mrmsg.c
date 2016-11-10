@@ -72,7 +72,7 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 
 	mrmsg_empty(ths);
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -90,7 +90,7 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 
 void mrmailbox_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32_t chat_id)
 {
-    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
+    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
 		"UPDATE msgs SET chat_id=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -100,7 +100,7 @@ void mrmailbox_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32
 
 void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int state)
 {
-    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
 		"UPDATE msgs SET state=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, state);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -111,7 +111,7 @@ void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int stat
 static int mrmailbox_update_msg_state_conditional_(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
 {
 	/* updates the message state only if the message has an given old state, returns the number of affected rows */
-    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
+    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
 		"UPDATE msgs SET state=? WHERE id=? AND state=?;");
 	sqlite3_bind_int(stmt, 1, new_state);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -127,7 +127,7 @@ size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
 		return 0;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -145,7 +145,7 @@ size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
 		return 0;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_STRANGERS);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -161,7 +161,7 @@ int mrmailbox_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, u
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_s_FROM_msgs_WHERE_m, "SELECT server_uid FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_s_FROM_msgs_WHERE_m, "SELECT server_uid FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		*ret_server_uid = 0;
@@ -175,7 +175,7 @@ int mrmailbox_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, u
 
 void mrmailbox_update_server_uid_(mrmailbox_t* mailbox, const char* rfc724_mid, uint32_t server_uid)
 {
-    sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_msgs_SET_server_uid_WHERE_rfc724_mid,
+    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_server_uid_WHERE_rfc724_mid,
 		"UPDATE msgs SET server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead "id" as there may be several db-entries refering to the same "rfc724_mid" */
 	sqlite3_bind_int (stmt, 1, server_uid);
 	sqlite3_bind_text(stmt, 2, rfc724_mid, -1, SQLITE_STATIC);
@@ -225,7 +225,7 @@ void mrmsg_unref(mrmsg_t* ths)
 void mrmsg_empty(mrmsg_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	free(ths->m_text);
@@ -311,12 +311,12 @@ int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction(ths->m_sql);
+	mrsqlite3_begin_transaction_(ths->m_sql);
 
 		mrmailbox_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
 		mrjob_add_(ths, MRJ_DELETE_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
 
-	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_commit_(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
@@ -342,14 +342,14 @@ int mrmailbox_markseen_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction(ths->m_sql);
+	mrsqlite3_begin_transaction_(ths->m_sql);
 
 		if( mrmailbox_update_msg_state_conditional_(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) /* we use the extra condition to protect outgoing messages become ingoing and to avoid double IMAP commands */
 		{
 			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 		}
 
-	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_commit_(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;

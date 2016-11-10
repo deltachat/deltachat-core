@@ -69,7 +69,7 @@ static void* job_thread_entry_point(void* entry_arg)
 			/* get next waiting job */
 			job.m_job_id = 0;
 			mrsqlite3_lock(mailbox->m_sql);
-				stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_iafp_FROM_jobs,
+				stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_iafp_FROM_jobs,
 					"SELECT id, action, foreign_id, param FROM jobs WHERE desired_timestamp<=? ORDER BY action DESC, id LIMIT 1;");
 				sqlite3_bind_int64(stmt, 1, time(NULL));
 				if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -101,7 +101,7 @@ static void* job_thread_entry_point(void* entry_arg)
 			/* delete job or execute job later again */
 			if( job.m_start_again_at ) {
 				mrsqlite3_lock(mailbox->m_sql);
-					stmt = mrsqlite3_predefine(mailbox->m_sql, UPDATE_jobs_SET_dp_WHERE_id,
+					stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_jobs_SET_dp_WHERE_id,
 						"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
 					sqlite3_bind_int64(stmt, 1, job.m_start_again_at);
 					sqlite3_bind_text (stmt, 2, job.m_param->m_packed, -1, SQLITE_STATIC);
@@ -112,7 +112,7 @@ static void* job_thread_entry_point(void* entry_arg)
 			}
 			else {
 				mrsqlite3_lock(mailbox->m_sql);
-					stmt = mrsqlite3_predefine(mailbox->m_sql, DELETE_FROM_jobs_WHERE_id,
+					stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_jobs_WHERE_id,
 						"DELETE FROM jobs WHERE id=?;");
 					sqlite3_bind_int(stmt, 1, job.m_job_id);
 					sqlite3_step(stmt);
@@ -161,7 +161,7 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 	sqlite3_stmt* stmt;
 	uint32_t      job_id = 0;
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, INSERT_INTO_jobs_aafp,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, INSERT_INTO_jobs_aafp,
 		"INSERT INTO jobs (added_timestamp, action, foreign_id, param) VALUES (?,?,?,?);");
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, action);
@@ -185,7 +185,7 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 void mrjob_ping_(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_jobs,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_i_FROM_jobs,
 		"SELECT id FROM jobs WHERE desired_timestamp<=? LIMIT 1;");
 	sqlite3_bind_int64(stmt, 1, time(NULL));
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {

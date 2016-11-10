@@ -40,7 +40,7 @@ mrcontactlist_t* mrcontactlist_new(mrmailbox_t* mailbox)
 	mrcontactlist_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrcontactlist_t)))==NULL ) {
-		return NULL; /* error */
+		return NULL;
 	}
 
 	ths->m_mailbox  = mailbox;
@@ -53,7 +53,7 @@ mrcontactlist_t* mrcontactlist_new(mrmailbox_t* mailbox)
 void mrcontactlist_unref(mrcontactlist_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	mrcontactlist_empty(ths);
@@ -82,7 +82,7 @@ void mrcontactlist_empty(mrcontactlist_t* ths)
 size_t mrcontactlist_get_cnt(mrcontactlist_t* ths)
 {
 	if( ths == NULL || ths->m_contacts == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	return (size_t)carray_count(ths->m_contacts);
@@ -92,7 +92,7 @@ size_t mrcontactlist_get_cnt(mrcontactlist_t* ths)
 mrcontact_t* mrcontactlist_get_contact_by_index (mrcontactlist_t* ths, size_t index)
 {
 	if( ths == NULL || ths->m_contacts == NULL || index >= (size_t)carray_count(ths->m_contacts) ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	return mrcontact_ref((mrcontact_t*)carray_get(ths->m_contacts, index));
@@ -112,7 +112,7 @@ mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
 	if( contact_id == MR_CONTACT_ID_SELF )
 	{
 		ret->m_id   = contact_id;
-		ret->m_name = mrstock_str(MR_STR_YOU);
+		ret->m_name = mrstock_str(MR_STR_SELF);
 	}
 	else
 	{

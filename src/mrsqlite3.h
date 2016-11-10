@@ -140,10 +140,10 @@ char*         mrsqlite3_get_config_      (mrsqlite3_t*, const char* key, const c
 int32_t       mrsqlite3_get_config_int_  (mrsqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
-sqlite3_stmt* mrsqlite3_predefine        (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
+sqlite3_stmt* mrsqlite3_predefine_       (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
 sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
-int           mrsqlite3_execute          (mrsqlite3_t*, const char* sql);
-int           mrsqlite3_table_exists     (mrsqlite3_t*, const char* name);
+int           mrsqlite3_execute_         (mrsqlite3_t*, const char* sql);
+int           mrsqlite3_table_exists_    (mrsqlite3_t*, const char* name);
 void          mrsqlite3_log_error        (mrsqlite3_t*, const char* msg, ...);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
@@ -154,9 +154,9 @@ void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; these 
 void          mrsqlite3_unlock           (mrsqlite3_t*);
 
 /* nestable transactions, only the outest is really used */
-void          mrsqlite3_begin_transaction(mrsqlite3_t*);
-void          mrsqlite3_commit           (mrsqlite3_t*);
-void          mrsqlite3_rollback         (mrsqlite3_t*);
+void          mrsqlite3_begin_transaction_(mrsqlite3_t*);
+void          mrsqlite3_commit_           (mrsqlite3_t*);
+void          mrsqlite3_rollback_         (mrsqlite3_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

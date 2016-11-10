@@ -46,7 +46,7 @@ int mrmailbox_get_unseen_count_(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
 		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unseen messages */
 	sqlite3_bind_int(stmt, 1, MR_IN_UNSEEN);
 	sqlite3_bind_int(stmt, 2, chat_id);
@@ -63,13 +63,13 @@ int mrmailbox_get_total_msg_count_(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_chat_id,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_chat_id,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_total_msg_count_() failed.");
-		return 0; /* error */
+		return 0;
 	}
 
 	return sqlite3_column_int(stmt, 0);
@@ -84,15 +84,15 @@ size_t mrmailbox_get_chat_cnt_(mrmailbox_t* mailbox)
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;");
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_chat_cnt() failed.");
-		return 0; /* error */
+		return 0;
 	}
 
-	return sqlite3_column_int(stmt, 0); /* success */
+	return sqlite3_column_int(stmt, 0);
 }
 
 
@@ -107,7 +107,7 @@ uint32_t mrmailbox_real_chat_exists_(mrmailbox_t* mailbox, int type, uint32_t co
 
 	if( type == MR_CHAT_NORMAL )
 	{
-		stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
 				"SELECT c.id"
 				" FROM chats c"
 				" INNER JOIN chats_contacts j ON c.id=j.chat_id"
@@ -134,13 +134,11 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
-		mrlog_error("mr_create_chat_record_(): Database not opened.");
 		return 0; /* database not opened - error */
 	}
 
 	if( contact_id == 0 ) {
-		mrlog_error("mr_create_chat_record_(): Contact missing.");
-		return 0; /* error */
+		return 0;
 	}
 
 	if( (chat_id=mrmailbox_real_chat_exists_(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
@@ -150,7 +148,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	/* get fine chat name */
 	contact = mrcontact_new(mailbox);
 	if( !mrcontact_load_from_db_(contact, contact_id) ) {
-		goto CreateNormalChat_Cleanup;
+		goto cleanup;
 	}
 
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
@@ -159,11 +157,11 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	q = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_NORMAL, chat_name);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 	if( stmt == NULL) {
-		goto CreateNormalChat_Cleanup;
+		goto cleanup;
 	}
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		goto CreateNormalChat_Cleanup;
+		goto cleanup;
     }
 
     chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
@@ -178,7 +176,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		goto CreateNormalChat_Cleanup;
+		goto cleanup;
     }
 
 	/* add already existing messages to the chat record */
@@ -192,11 +190,11 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		goto CreateNormalChat_Cleanup;
+		goto cleanup;
     }
 
 	/* cleanup */
-CreateNormalChat_Cleanup:
+cleanup:
 	if( q ) {
 		sqlite3_free(q);
 	}
@@ -218,7 +216,7 @@ int mrchat_set_from_stmt_(mrchat_t* ths, sqlite3_stmt* row)
 	const char* draft_text;
 
 	if( ths == NULL || row == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	mrchat_empty(ths);
@@ -253,24 +251,23 @@ int mrchat_load_from_db_(mrchat_t* ths, uint32_t id)
 	sqlite3_stmt* stmt;
 
 	if( ths==NULL ) {
-		return 0; /* error (name may be NULL) */
+		return 0;
 	}
 
 	mrchat_empty(ths);
 
-	stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
+	stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
 		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	if( !mrchat_set_from_stmt_(ths, stmt) ) {
-		return 0; /* error */
+		return 0;
 	}
 
-	/* success */
 	return 1;
 }
 
@@ -290,7 +287,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	db_locked = 1;
 
 	if( !mrchatlist_load_from_db_(obj) ) {
-		goto GetChatsCleanup;
+		goto cleanup;
 	}
 
 	/* success */
@@ -299,7 +296,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	success = 1;
 
 	/* cleanup */
-GetChatsCleanup:
+cleanup:
 	if( db_locked ) {
 		mrsqlite3_unlock(ths->m_sql);
 	}
@@ -356,9 +353,9 @@ int mrmailbox_markseen_chat_by_id(mrmailbox_t* ths, uint32_t chat_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction(ths->m_sql);
+	mrsqlite3_begin_transaction_(ths->m_sql);
 
-		stmt = mrsqlite3_predefine(ths->m_sql, SELECT_id_FROM_msgs_WHERE_chat_id_AND_state,
+		stmt = mrsqlite3_predefine_(ths->m_sql, SELECT_id_FROM_msgs_WHERE_chat_id_AND_state,
 			"SELECT id FROM msgs WHERE chat_id=? AND state=?;");
 		sqlite3_bind_int(stmt, 1, chat_id);
 		sqlite3_bind_int(stmt, 2, MR_IN_UNSEEN);
@@ -369,7 +366,7 @@ int mrmailbox_markseen_chat_by_id(mrmailbox_t* ths, uint32_t chat_id)
 			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* TODO: maybe we can optimize this by a combined IMAP-STORE command */
 		}
 
-	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_commit_(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
@@ -404,7 +401,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 			send_event = 1;
 		}
 
-		stmt = mrsqlite3_predefine(ths->m_sql, UPDATE_contacts_SET_origin_WHERE_id, "UPDATE contacts SET origin=? WHERE id=?;");
+		stmt = mrsqlite3_predefine_(ths->m_sql, UPDATE_contacts_SET_origin_WHERE_id, "UPDATE contacts SET origin=? WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, MR_ORIGIN_CREATE_CHAT);
 		sqlite3_bind_int(stmt, 2, contact_id);
 		sqlite3_step(stmt);
@@ -429,7 +426,7 @@ carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg
 		goto cleanup;
 	}
 
-	stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
 		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_type);
@@ -479,7 +476,7 @@ void mrchat_unref(mrchat_t* ths)
 void mrchat_empty(mrchat_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	free(ths->m_name);
@@ -512,11 +509,11 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 
 			/* create return object */
 			if( (ret=mrmsglist_new(ths)) == NULL ) {
-				goto ListMsgs_Cleanup;
+				goto cleanup;
 			}
 
 			/* query */
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
+			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
 				"SELECT " MR_MSG_FIELDS
 					" FROM msgs m"
 					" LEFT JOIN contacts ct ON m.from_id=ct.id"
@@ -524,7 +521,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 					" ORDER BY m.timestamp DESC,m.id DESC" /* the list starts with the newest messages*/
 					" LIMIT ? OFFSET ?;");
 			if( stmt == NULL ) {
-				goto ListMsgs_Cleanup;
+				goto cleanup;
 			}
 			sqlite3_bind_int(stmt, 1, ths->m_id);
 			sqlite3_bind_int(stmt, 2, amount);
@@ -544,7 +541,7 @@ mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* 
 			success = 1;
 
 			/* cleanup */
-		ListMsgs_Cleanup:
+		cleanup:
 
 			/* (nothing to cleanup at the moment) */
 
@@ -589,7 +586,7 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 	/* save draft in database */
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
+		stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
 			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_draft_timestamp);
 		sqlite3_bind_text (stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
@@ -612,13 +609,13 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	sqlite3_stmt* stmt;
 
 	if( ths == NULL ) {
-		return safe_strdup("Err"); /* error */
+		return safe_strdup("Err");
 	}
 
 	if( ths->m_type == MR_CHAT_NORMAL )
 	{
 		int r;
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
+		stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
 			"SELECT c.addr FROM chats_contacts cc "
 				" LEFT JOIN contacts c ON c.id=cc.contact_id "
 				" WHERE cc.chat_id=?;");
@@ -634,7 +631,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		int cnt = 0;
 		if( ths->m_id == MR_CHAT_ID_STRANGERS )
 		{
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
+			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
 				"SELECT COUNT(DISTINCT from_id) FROM msgs WHERE chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ths->m_id);
 			if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -644,7 +641,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		}
 		else
 		{
-			stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_i,
+			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_i,
 				"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ths->m_id);
 			if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -663,7 +660,7 @@ int mrchat_get_total_msg_count(mrchat_t* ths)
 	int ret;
 
 	if( ths == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
@@ -679,7 +676,7 @@ int mrchat_get_unseen_count(mrchat_t* ths)
 	int ret;
 
 	if( ths == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
@@ -732,8 +729,8 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 	{
 		/* show the last message */
 		if( ths->m_last_msg_->m_from_id == MR_CONTACT_ID_SELF ) {
-			ret->m_title = mrstock_str(MR_STR_YOU);
-			ret->m_title_meaning = MR_TITLE_USERNAME;
+			ret->m_title = mrstock_str(MR_STR_SELF);
+			ret->m_title_meaning = MR_TITLE_SELF;
 		}
 		else if( ths->m_type==MR_CHAT_GROUP ) { /* for non-groups, the title is not needed and would result in Strings as "Prename Familyname: Prename: last message ..." */
 			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
@@ -965,7 +962,7 @@ static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 {
 	mrsqlite3_lock(mailbox->m_sql);
 		if( mrmsg_load_from_db_(ret_msg, mailbox, msg_id) ) {
-			sqlite3_stmt* stmt = mrsqlite3_predefine(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
+			sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
 				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
 			while( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -1072,10 +1069,10 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* done */
 	mrsqlite3_lock(mailbox->m_sql);
-	mrsqlite3_begin_transaction(mailbox->m_sql);
+	mrsqlite3_begin_transaction_(mailbox->m_sql);
 		mrmailbox_update_msg_state_(mailbox, msg->m_id, MR_OUT_DELIVERED);
 		mrjob_add_(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
-	mrsqlite3_commit(mailbox->m_sql);
+	mrsqlite3_commit_(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	mailbox->m_cb(mailbox, MR_EVENT_MSG_DELIVERED, msg->m_chat_id, msg->m_id);
@@ -1140,7 +1137,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	locked = 1;
-	mrsqlite3_begin_transaction(ths->m_mailbox->m_sql);
+	mrsqlite3_begin_transaction_(ths->m_mailbox->m_sql);
 	transaction_pending = 1;
 
 		{
@@ -1151,7 +1148,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		}
 
 		/* add message to the database */
-		stmt = mrsqlite3_predefine(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
+		stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
 			"INSERT INTO msgs (rfc724_mid,chat_id,from_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?, ?,?,?, ?,?,?);");
 		sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		sqlite3_bind_int  (stmt, 2, MR_CHAT_ID_MSGS_IN_CREATION);
@@ -1176,7 +1173,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		mrmailbox_update_msg_chat_id_(ths->m_mailbox, msg_id, ths->m_id);
 		mrjob_add_(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrchat_send_msg_to_smtp_()  */
 
-	mrsqlite3_commit(ths->m_mailbox->m_sql);
+	mrsqlite3_commit_(ths->m_mailbox->m_sql);
 	transaction_pending = 0;
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	locked = 0;
@@ -1184,7 +1181,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	/* done */
 cleanup:
 	if( transaction_pending ) {
-		mrsqlite3_rollback(ths->m_mailbox->m_sql);
+		mrsqlite3_rollback_(ths->m_mailbox->m_sql);
 	}
 	if( locked ) {
 		mrsqlite3_unlock(ths->m_mailbox->m_sql);

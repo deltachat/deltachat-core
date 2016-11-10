@@ -58,15 +58,8 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 {
 	sqlite3_stmt* retStmt = NULL;
 
-	if( ths == NULL || querystr == NULL ) {
-		mrlog_error("mrsqlite3_prepare_v2_(): Bad argument.");
-		return NULL; /* error */
-	}
-
-	if( ths->m_cobj == NULL )
-	{
-		mrlog_error("Database not ready for query: %s", querystr);
-		return NULL; /* error */
+	if( ths == NULL || querystr == NULL || ths->m_cobj == NULL ) {
+		return NULL;
 	}
 
 	if( sqlite3_prepare_v2(ths->m_cobj,
@@ -75,7 +68,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
 		mrsqlite3_log_error(ths, "Query failed: %s", querystr);
-		return NULL; /* error */
+		return NULL;
 	}
 
 	/* success - the result mus be freed using sqlite3_finalize() */
@@ -83,32 +76,30 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 }
 
 
-int mrsqlite3_execute(mrsqlite3_t* ths, const char* querystr)
+int mrsqlite3_execute_(mrsqlite3_t* ths, const char* querystr)
 {
-	int           ret = 0;
+	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
 	stmt = mrsqlite3_prepare_v2_(ths, querystr);
 	if( stmt == NULL ) {
-		goto sqlite3_execute_Error; /* error already logged */
+		goto cleanup;
 	}
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		mrsqlite3_log_error(ths, "mrsqlite3_execute_(): sqlite3_step() failed.");
-		goto sqlite3_execute_Error;
+		mrsqlite3_log_error(ths, "Cannot step though query \"%s\".", querystr);
+		goto cleanup;
 	}
 
-	/* success - fall through to free objects */
-	ret = 1;
+	success = 1;
 
-	/* error */
-sqlite3_execute_Error:
+cleanup:
 	if( stmt ) {
 		sqlite3_finalize(stmt);
 	}
-	return ret;
+	return success;
 }
 
 
@@ -141,7 +132,7 @@ mrsqlite3_t* mrsqlite3_new(mrmailbox_t* mailbox)
 void mrsqlite3_unref(mrsqlite3_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	if( ths->m_cobj ) {
@@ -156,18 +147,17 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 {
 	if( ths == NULL || dbfile == NULL ) {
-		mrlog_error("Cannot open, bad parameters.");
-		goto Open_Error;
+		goto cleanup;
 	}
 
 	if( ths->m_cobj ) {
 		mrlog_error("Cannot open, database \"%s\" already opend.", dbfile);
-		goto Open_Error;
+		goto cleanup;
 	}
 
 	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
 		mrsqlite3_log_error(ths, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
-		goto Open_Error;
+		goto cleanup;
 	}
 
 	/* `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external files, caching is not that important;
@@ -180,40 +170,40 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 
 	Some words to the "param" fields:  These fields contains a string with additonal, named parameters which must
 	not be accessed by a search and/or are very seldomly used. Moreover, this allows smart minor database updates. */
-	if( !mrsqlite3_table_exists(ths, "contacts") )
+	if( !mrsqlite3_table_exists_(ths, "contacts") )
 	{
 		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
 
-		mrsqlite3_execute(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		mrsqlite3_execute(ths, "CREATE INDEX config_index1 ON config (keyname);");
+		mrsqlite3_execute_(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+		mrsqlite3_execute_(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-		mrsqlite3_execute(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute_(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 					" name TEXT DEFAULT '',"
 					" addr TEXT DEFAULT '' COLLATE NOCASE,"
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
 					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
-		mrsqlite3_execute(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
-		mrsqlite3_execute(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
+		mrsqlite3_execute_(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
+		mrsqlite3_execute_(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
 		#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
 			#error
 		#endif
 
-		mrsqlite3_execute(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+		mrsqlite3_execute_(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 					" type INTEGER,"
 					" name TEXT,"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");      /* param is for future use */
-		mrsqlite3_execute(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
-		mrsqlite3_execute(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
-		mrsqlite3_execute(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+		mrsqlite3_execute_(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id);");
+		mrsqlite3_execute_(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+		mrsqlite3_execute_(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_STRANGERS!=1 || MR_CHAT_ID_TRASH!=2 || MR_CHAT_ID_BLOCKED_USERS!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
 			#error
 		#endif
 
-		mrsqlite3_execute(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute_(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT DEFAULT ''," /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 					" server_uid DEFAULT 0,"       /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
 					" chat_id INTEGER,"
@@ -224,43 +214,41 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" bytes INTEGER DEFAULT 0,"
 					" txt TEXT,"                   /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
-		mrsqlite3_execute(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
+		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
+		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 
-		mrsqlite3_execute(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute_(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"
 					" desired_timestamp INTEGER DEFAULT 0,"
 					" action INTEGER,"
 					" foreign_id INTEGER,"
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
+		mrsqlite3_execute_(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
 
-		if( !mrsqlite3_table_exists(ths, "config") || !mrsqlite3_table_exists(ths, "contacts")
-		 || !mrsqlite3_table_exists(ths, "chats") || !mrsqlite3_table_exists(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists(ths, "msgs") || !mrsqlite3_table_exists(ths, "jobs") )
+		if( !mrsqlite3_table_exists_(ths, "config") || !mrsqlite3_table_exists_(ths, "contacts")
+		 || !mrsqlite3_table_exists_(ths, "chats") || !mrsqlite3_table_exists_(ths, "chats_contacts")
+		 || !mrsqlite3_table_exists_(ths, "msgs") || !mrsqlite3_table_exists_(ths, "jobs") )
 		{
 			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
-			goto Open_Error; /* cannot create the tables - maybe we cannot write? */
+			goto cleanup; /* cannot create the tables - maybe we cannot write? */
 		}
 	}
 
 	/* prepare statements that are used at different source code positions and/or are always needed.
 	other statements are prepared just-in-time as needed.
 	(we do it when the tables really exists, however, I do not know if sqlite relies on this) */
-	if( !mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
+	if( !mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
 	{
 		mrsqlite3_log_error(ths, "Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
-		goto Open_Error;
+		goto cleanup;
 	}
 
-	/* success */
 	mrlog_info("Opened \"%s\" successfully.", dbfile);
 	return 1;
 
-	/* error */
-Open_Error:
+cleanup:
 	mrsqlite3_close_(ths);
 	return 0;
 }
@@ -300,15 +288,14 @@ int mrsqlite3_is_open(const mrsqlite3_t* ths)
 }
 
 
-sqlite3_stmt* mrsqlite3_predefine(mrsqlite3_t* ths, size_t idx, const char* querystr)
+sqlite3_stmt* mrsqlite3_predefine_(mrsqlite3_t* ths, size_t idx, const char* querystr)
 {
 	/* predefines a statement or resets and reuses a statment.
 	Subsequent call may ommit the querystring.
 	CAVE: you must not call this function with different strings for the same index! */
 
 	if( ths == NULL || ths->m_cobj == NULL || idx >= PREDEFINED_CNT ) {
-		mrlog_error("mrsqlite3_predefine_stmt(): Bad argument.");
-		return NULL; /* error*/
+		return NULL;
 	}
 
 	if( ths->m_pd[idx] ) {
@@ -318,24 +305,22 @@ sqlite3_stmt* mrsqlite3_predefine(mrsqlite3_t* ths, size_t idx, const char* quer
 
 	/*prepare for the first time - this requires the querystring*/
 	if( querystr == NULL ) {
-		mrlog_error("mrsqlite3_predefine_stmt(): query not given.");
-		return NULL; /* error */
-	}
+		return NULL;	}
 
 	if( sqlite3_prepare_v2(ths->m_cobj,
 	         querystr, -1 /*read `sql` up to the first null-byte*/,
 	         &ths->m_pd[idx],
 	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
 	{
-		mrsqlite3_log_error(ths, "mrsqlite3_predefine_stmt(): sqlite3_prepare_v2() failed.");
-		return NULL; /* error */
+		mrsqlite3_log_error(ths, "Preparing statement \"%s\" failed.", querystr);
+		return NULL;
 	}
 
 	return ths->m_pd[idx];
 }
 
 
-int mrsqlite3_table_exists(mrsqlite3_t* ths, const char* name)
+int mrsqlite3_table_exists_(mrsqlite3_t* ths, const char* name)
 {
 	int           ret = 0;
 	char*         querystr = NULL;
@@ -344,11 +329,11 @@ int mrsqlite3_table_exists(mrsqlite3_t* ths, const char* name)
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
 		mrlog_error("mrsqlite3_table_exists_(): Out of memory.");
-		goto table_exists_Error;
+		goto cleanup;
 	}
 
 	if( (stmt=mrsqlite3_prepare_v2_(ths, querystr)) == NULL ) {
-		goto table_exists_Error; /* error already logged */
+		goto cleanup;
 	}
 
 	sqlState = sqlite3_step(stmt);
@@ -360,7 +345,7 @@ int mrsqlite3_table_exists(mrsqlite3_t* ths, const char* name)
 	;
 
 	/* error/cleanup */
-table_exists_Error:
+cleanup:
 	if( stmt ) {
 		sqlite3_finalize(stmt);
 	}
@@ -396,18 +381,18 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	if( value )
 	{
 		/* insert/update key=value */
-		stmt = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+		stmt = mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
 		sqlite3_bind_text (stmt, 1, key, -1, SQLITE_STATIC);
 		state=sqlite3_step(stmt);
 		if( state == SQLITE_DONE ) {
-			stmt = mrsqlite3_predefine(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
+			stmt = mrsqlite3_predefine_(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
 			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
 			state=sqlite3_step(stmt);
 
 		}
 		else if( state == SQLITE_ROW ) {
-			stmt = mrsqlite3_predefine(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
+			stmt = mrsqlite3_predefine_(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
 			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
 			state=sqlite3_step(stmt);
@@ -420,14 +405,14 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	else
 	{
 		/* delete key */
-		stmt = mrsqlite3_predefine(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
+		stmt = mrsqlite3_predefine_(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
 		sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 		state=sqlite3_step(stmt);
 	}
 
 	if( state != SQLITE_DONE )  {
 		mrlog_error("mrsqlite3_set_config(): Cannot change value.");
-		return 0; /* error */
+		return 0;
 	}
 
 	return 1;
@@ -442,7 +427,7 @@ char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) 
 		return safe_strdup(def);
 	}
 
-	stmt = mrsqlite3_predefine(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+	stmt = mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
@@ -508,7 +493,7 @@ void mrsqlite3_unlock(mrsqlite3_t* ths)
  ******************************************************************************/
 
 
-void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
+void mrsqlite3_begin_transaction_(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -516,7 +501,7 @@ void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 
 	if( ths->m_transactionCount == 1 )
 	{
-		stmt = mrsqlite3_predefine(ths, BEGIN_transaction, "BEGIN;");
+		stmt = mrsqlite3_predefine_(ths, BEGIN_transaction, "BEGIN;");
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			mrsqlite3_log_error(ths, "Cannot begin transaction.");
 		}
@@ -524,7 +509,7 @@ void mrsqlite3_begin_transaction(mrsqlite3_t* ths)
 }
 
 
-void mrsqlite3_rollback(mrsqlite3_t* ths)
+void mrsqlite3_rollback_(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -532,7 +517,7 @@ void mrsqlite3_rollback(mrsqlite3_t* ths)
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			stmt = mrsqlite3_predefine(ths, ROLLBACK_transaction, "ROLLBACK;");
+			stmt = mrsqlite3_predefine_(ths, ROLLBACK_transaction, "ROLLBACK;");
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot rollback transaction.");
 			}
@@ -543,7 +528,7 @@ void mrsqlite3_rollback(mrsqlite3_t* ths)
 }
 
 
-void mrsqlite3_commit(mrsqlite3_t* ths)
+void mrsqlite3_commit_(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -551,7 +536,7 @@ void mrsqlite3_commit(mrsqlite3_t* ths)
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			stmt = mrsqlite3_predefine(ths, COMMIT_transaction, "COMMIT;");
+			stmt = mrsqlite3_predefine_(ths, COMMIT_transaction, "COMMIT;");
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot commit transaction.");
 			}

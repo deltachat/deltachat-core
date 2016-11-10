@@ -136,7 +136,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 
 	to_list = carray_new(16);
 	if( to_list==NULL || mime_parser == NULL ) {
-		goto Imf2Msg_Done; /* out of memory */
+		goto cleanup;
 	}
 
 	/* parse the imf to mailimf_message {
@@ -153,13 +153,13 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( mime_parser->m_header == NULL ) {
-		goto Imf2Msg_Done; /* Error - even adding an empty record won't help as we do not know the message ID */
+		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
 
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-	mrsqlite3_begin_transaction(ths->m_sql);
+	mrsqlite3_begin_transaction_(ths->m_sql);
 	transaction_pending = 1;
 
 
@@ -303,7 +303,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			we do not use the folder-local id, as this will change if the mail is moved to another folder. */
 			rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_list);
 			if( rfc724_mid == NULL ) {
-				goto Imf2Msg_Done;
+				goto cleanup;
 			}
 		}
 
@@ -312,11 +312,11 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			if( mrmailbox_message_id_exists_(ths, rfc724_mid, &old_server_uid) ) {
 				/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
 				if( old_server_uid != server_uid ) {
-					mrsqlite3_rollback(ths->m_sql);
+					mrsqlite3_rollback_(ths->m_sql);
 					transaction_pending = 0;
 					mrmailbox_update_server_uid_(ths, rfc724_mid, server_uid);
 				}
-				goto Imf2Msg_Done;
+				goto cleanup;
 			}
 		}
 
@@ -328,7 +328,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		{
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
 
-			stmt = mrsqlite3_predefine(ths->m_sql, INSERT_INTO_msgs_mscftttstp,
+			stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_mscftttstp,
 				"INSERT INTO msgs (rfc724_mid,server_uid,chat_id,from_id, to_id,timestamp,type, state,txt,param) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
 			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt,  2, server_uid);
@@ -341,7 +341,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			sqlite3_bind_text (stmt,  9, part->m_msg, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 10, "", -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
+				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}
 
 			if( first_dblocal_id == 0 ) {
@@ -365,7 +365,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					ghost_chat_id = MR_CHAT_ID_STRANGERS;
 				}
 
-				stmt = mrsqlite3_predefine(ths->m_sql, INSERT_INTO_msgs_mscftttstp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_mscftttstp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  2, server_uid);
 				sqlite3_bind_int  (stmt,  3, ghost_chat_id);
@@ -377,7 +377,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				sqlite3_bind_text (stmt,  9, "cc", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 10, param, -1, SQLITE_STATIC);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
-					goto Imf2Msg_Done; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
+					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
 				created_db_entries++;
@@ -386,7 +386,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		}
 
 	/* end sql-transaction */
-	mrsqlite3_commit(ths->m_sql);
+	mrsqlite3_commit_(ths->m_sql);
 	transaction_pending = 0;
 
 	#if 0
@@ -408,9 +408,9 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	#endif
 
 	/* done */
-Imf2Msg_Done:
+cleanup:
 	if( transaction_pending ) {
-		mrsqlite3_rollback(ths->m_sql);
+		mrsqlite3_rollback_(ths->m_sql);
 	}
 
 	if( db_locked ) {
@@ -493,7 +493,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 void mrmailbox_unref(mrmailbox_t* ths)
 {
 	if( ths==NULL ) {
-		return; /* error */
+		return;
 	}
 
 	mrjob_exit_thread_(ths);
@@ -515,7 +515,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	int db_locked = 0;
 
 	if( ths == NULL || dbfile == NULL ) {
-		goto Open_Done;
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
@@ -526,7 +526,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 
 	/* Create/open sqlite database */
 	if( !mrsqlite3_open_(ths->m_sql, dbfile) ) {
-		goto Open_Done;
+		goto cleanup;
 	}
 
 	/* backup dbfile name */
@@ -545,7 +545,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	success = 1;
 
 	/* cleanup */
-Open_Done:
+cleanup:
 	if( !success ) {
 		if( mrsqlite3_is_open(ths->m_sql) ) {
 			mrsqlite3_close_(ths->m_sql);
@@ -614,12 +614,12 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	/* read file content to `data` */
 	if( (f=fopen(filename, "r")) == NULL ) {
 		mrlog_error("Import: Cannot open \"%s\".", filename);
-		goto ImportFile_Cleanup;
+		goto cleanup;
 	}
 
 	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
 		mrlog_error("Import: Cannot find out file size or file is empty for \"%s\".", filename);
-		goto ImportFile_Cleanup;
+		goto cleanup;
 	}
 
 	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
@@ -628,7 +628,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 
 	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
 		mrlog_error("Import: Read error in \"%s\".", filename);
-		goto ImportFile_Cleanup;
+		goto cleanup;
 	}
 
 	fclose(f);
@@ -643,7 +643,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	success = 1;
 
 	/* cleanup: */
-ImportFile_Cleanup:
+cleanup:
 	free(data);
 	if( f ) {
 		fclose(f);
@@ -667,7 +667,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 	if( !mrsqlite3_is_open(ths->m_sql) ) {
         mrlog_error("Import: Database not opened.");
-		goto ImportSpec_Cleanup;
+		goto cleanup;
 	}
 
 	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
@@ -685,7 +685,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
 			mrlog_error("Import: No file or folder given.");
-			goto ImportSpec_Cleanup;
+			goto cleanup;
 		}
 	}
 
@@ -699,7 +699,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
 			mrlog_error("Import: Cannot open directory \"%s\".", spec);
-			goto ImportSpec_Cleanup;
+			goto cleanup;
 		}
 
 		while( (dir_entry=readdir(dir))!=NULL ) {
@@ -726,7 +726,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	success = 1;
 
 	/* cleanup */
-ImportSpec_Cleanup:
+cleanup:
 	if( dir ) {
 		closedir(dir);
 	}
@@ -976,12 +976,12 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql);
 
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM chats_contacts;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM msgs;");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-		mrsqlite3_execute(ths->m_sql, "DELETE FROM jobs;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats_contacts;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM msgs;");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+		mrsqlite3_execute_(ths->m_sql, "DELETE FROM jobs;");
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -1006,7 +1006,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 	char*   ret = NULL;
 
 	if( ths == NULL || cmd == NULL || cmd[0]==0 ) {
-		goto Done;
+		goto done;
 	}
 
 	if( strncmp(cmd, "open", 4)==0 )
@@ -1161,7 +1161,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		ret = COMMAND_SUCCEEDED;
 	}
 
-Done:
+done:
 	if( ret == COMMAND_FAILED ) {
 		ret = safe_strdup("ERROR: Command failed.");
 	}

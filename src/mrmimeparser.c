@@ -381,7 +381,7 @@ mrmimepart_t* mrmimepart_new()
 	mrmimepart_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
-		return NULL; /* error */
+		return NULL;
 	}
 
 	ths->m_type    = MR_MSG_UNDEFINED;
@@ -393,7 +393,7 @@ mrmimepart_t* mrmimepart_new()
 void mrmimepart_unref(mrmimepart_t* ths)
 {
 	if( ths == NULL ) {
-		return; /* error */
+		return;
 	}
 
 	if( ths->m_msg ) {
@@ -475,7 +475,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 int mrmimeparser_get_mime_type_(struct mailmime_content* c)
 {
 	if( c == NULL || c->ct_type == NULL ) {
-		return 0; /* error */
+		return 0;
 	}
 
 	switch( c->ct_type->tp_type )
@@ -549,7 +549,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	mrsimplify_t*  simplifier = NULL;
 
 	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
-		goto AddSinglePart_Cleanup; /* error */
+		goto cleanup;
 	}
 
 	/* get mime type from `mime` */
@@ -560,7 +560,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	if( mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
 	 || mime_data->dt_data.dt_text.dt_data == NULL
 	 || mime_data->dt_data.dt_text.dt_length <= 0 ) {
-		goto AddSinglePart_Cleanup; /* error */
+		goto cleanup;
 	}
 
 	/* check headers in `mime` */
@@ -584,7 +584,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 		decoded_data       = mime_data->dt_data.dt_text.dt_data;
 		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
 		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
-			goto AddSinglePart_Cleanup; /* no error - but no data */
+			goto cleanup; /* no error - but no data */
 		}
 	}
 	else
@@ -595,7 +595,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 			&current_index, mime_transfer_encoding,
 			&transfer_decoding_buffer, &decoded_data_bytes);
 		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
-			goto AddSinglePart_Cleanup; /* error */
+			goto cleanup;
 		}
 		decoded_data = transfer_decoding_buffer;
 	}
@@ -608,7 +608,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				if( simplifier==NULL ) {
 					simplifier = mrsimplify_new();
 					if( simplifier==NULL ) {
-						goto AddSinglePart_Cleanup; /* error */
+						goto cleanup;
 					}
 				}
 
@@ -621,7 +621,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
-						goto AddSinglePart_Cleanup; /* no error - but nothing to add */
+						goto cleanup; /* no error - but nothing to add */
 					}
 					else  {
 						decoded_data = charset_buffer;
@@ -649,7 +649,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	}
 
 	/* add object? (we do not add all objetcs, eg. signatures etc. are ignored) */
-AddSinglePart_Cleanup:
+cleanup:
 	if( simplifier ) {
 		mrsimplify_unref(simplifier);
 	}
@@ -781,7 +781,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* parse body */
 	r = mailmime_parse(body_not_terminated, body_bytes, &index, &ths->m_mimeroot);
 	if(r != MAILIMF_NO_ERROR || ths->m_mimeroot == NULL ) {
-		goto Parse_Cleanup;
+		goto cleanup;
 	}
 
 	#if DEBUG_MIME_OUTPUT
@@ -794,7 +794,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
-Parse_Cleanup:
+cleanup:
 	if( carray_count(ths->m_parts)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
 		if( part!=NULL ) {

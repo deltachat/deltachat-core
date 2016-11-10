@@ -64,7 +64,7 @@ int mrosnative_setup_thread(void)
 {
 	if( s_jvm == NULL ) {
 		mrlog_error("Cannot setup thread. mrosnative_init_android() not called successfully.");
-		return 0; /* error */
+		return 0;
 	}
 
 	mrlog_info("Attaching C-thread to Java VM...");
@@ -74,7 +74,7 @@ int mrosnative_setup_thread(void)
 
 	mrlog_info("Attaching ok");
 
-	return 1; /* success */
+	return 1;
 }
 
 
