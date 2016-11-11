@@ -105,7 +105,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		/* init strings */
 		s_def_strings_added = 1;
 		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
-		mrstock_add_str(MR_STR_SELF,         "You");
+		mrstock_add_str(MR_STR_SELF,         "Me");
 		mrstock_add_str(MR_STR_DRAFT,        "Draft");
 		mrstock_add_str(MR_STR_MEMBER,       "_ member");
 		mrstock_add_str(MR_STR_MEMBERS,      "_ members");

@@ -641,7 +641,8 @@ static void* watch_thread_entry_point(void* entry_arg)
 							force_sleep = 0;
 
 							if( r == MAILSTREAM_IDLE_ERROR || r==MAILSTREAM_IDLE_CANCELLED ) {
-								mrlog_info("IDLE wait cancelled; we'll reconnect soon.");
+								mrlog_info("IDLE wait cancelled, r=%i; we'll reconnect soon.", (int)r);
+								force_sleep = SLEEP_ON_ERROR_SECONDS;
 								ths->m_should_reconnect = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
