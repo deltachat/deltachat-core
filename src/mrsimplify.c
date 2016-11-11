@@ -94,7 +94,7 @@ mrsimplify_t* mrsimplify_new()
 	mrsimplify_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrsimplify_t)))==NULL ) {
-		return NULL;
+		exit(31);
 	}
 
 	return ths;
@@ -180,6 +180,11 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 			}
 		}
 	}
+
+	/* remove lines that typically introduce a full quote (eg. `----- Original message -----` - as we do not parse the text 100%, we may
+	also loose forwarded messages, however, the user has always the option to show the full mail text. */
+
+	// TODO
 
 	/* remove full quotes at the beginning of the text */
 	{

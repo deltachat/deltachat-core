@@ -719,9 +719,38 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 					break;
 
 				default: /* eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
-					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-						if( mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur)) ) {
-							sth_added = 1;
+					{
+						/* HACK: the following lines are a hack for clients who use multipart/mixed instead of multipart/alternative for
+						combined text/html messages (eg. Stock Android "Mail" does so).  So, if I detect such a message below, I skip the HTML part.
+						However, I'm not sure, if there are useful situations to use plain+html in multipart/mixed - if so, we should disable the hack. */
+						struct mailmime* skip_part = NULL;
+						{
+							struct mailmime* html_part = NULL;
+							int plain_cnt = 0, html_cnt = 0;
+							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
+								if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+									plain_cnt++;
+								}
+								else if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_HTML ) {
+									html_part = childmime;
+									html_cnt++;
+								}
+							}
+							if( plain_cnt==1 && html_cnt==1 )  {
+								mrlog_warning("HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
+								skip_part = html_part;
+							}
+						}
+						/* /HACK */
+
+						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
+							if( childmime != skip_part ) {
+								if( mrmimeparser_parse_mime_recursive__(ths, childmime) ) {
+									sth_added = 1;
+								}
+							}
 						}
 					}
 					break;
