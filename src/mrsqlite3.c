@@ -204,15 +204,16 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 		#endif
 
 		mrsqlite3_execute_(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
-					" rfc724_mid TEXT DEFAULT ''," /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
-					" server_uid DEFAULT 0,"       /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
+					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
+					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
+					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
 					" chat_id INTEGER,"
 					" from_id INTEGER,"
-					" to_id INTEGER DEFAULT 0,"    /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat, may be unset */
+					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat, may be unset */
 					" timestamp INTEGER,"
 					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"
-					" txt TEXT,"                   /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
+					" txt TEXT,"                       /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");

@@ -44,6 +44,12 @@
 #define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
 #define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }
 
+#define INTERRUPT_IDLE  if( ths->m_can_idle && ths->m_hEtpan->imap_stream ) { \
+			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */ \
+			pthread_mutex_lock(&ths->m_inwait_mutex); \
+			pthread_mutex_unlock(&ths->m_inwait_mutex); \
+		}
+
 static int  setup_handle_if_needed_ (mrimap_t*);
 static void unsetup_handle_         (mrimap_t*);
 
@@ -408,7 +414,7 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 		goto cleanup;
 	}
 
-	ths->m_receive_imf(ths, msg_content, msg_bytes, server_uid, flags);
+	ths->m_receive_imf(ths, msg_content, msg_bytes, folder, server_uid, flags);
 
 cleanup:
 	if( fetch_result ) {
@@ -1002,21 +1008,19 @@ int mrimap_fetch(mrimap_t* ths)
 }
 
 
-int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_terminated, size_t data_bytes, uint32_t* ret_server_uid)
+int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	int                        success = 0, handle_locked = 0, idle_blocked = 0, r;
 	uint32_t                   ret_uidvalidity = 0;
 	struct mailimap_flag_list* flag_list = NULL;
 	struct mailimap_date_time* imap_date = NULL;
 
+	*ret_server_folder = NULL;
+
 	LOCK_HANDLE
 	BLOCK_IDLE
 
-		if( ths->m_can_idle && ths->m_hEtpan->imap_stream ) {
-			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
-			pthread_mutex_lock(&ths->m_inwait_mutex); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */
-			pthread_mutex_unlock(&ths->m_inwait_mutex);
-		}
+		INTERRUPT_IDLE
 
 		mrlog_info("Appending message IMAP-server...");
 
@@ -1046,6 +1050,8 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 			goto cleanup;
 		}
 
+		*ret_server_folder = safe_strdup(ths->m_sent_folder);
+
 		mrlog_info("Message appended to \"%s\".", ths->m_sent_folder);
 
 		success = 1;
@@ -1064,3 +1070,91 @@ cleanup:
 
 	return success;
 }
+
+
+static int add_flag_(mrimap_t* ths, const char* folder, uint32_t server_uid, struct mailimap_flag* flag)
+{
+	int                              r;
+	struct mailimap_flag_list*       flag_list = NULL;
+	struct mailimap_store_att_flags* store_att_flags = NULL;
+	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
+
+	if( select_folder_(ths, folder)==0 ) {
+		goto cleanup;
+	}
+
+	flag_list = mailimap_flag_list_new_empty();
+	mailimap_flag_list_add(flag_list, flag);
+
+	store_att_flags = mailimap_store_att_flags_new_add_flags(flag_list); /* FLAGS.SILENT does not return the new value */
+
+	r = mailimap_uid_store(ths->m_hEtpan, set, store_att_flags);
+	if( is_error(ths, r) ) {
+		goto cleanup;
+	}
+
+cleanup:
+	mailimap_store_att_flags_free(store_att_flags);
+	mailimap_set_free(set);
+	return ths->m_should_reconnect? 0 : 1; /* all non-connection states are treated as success - the mail may already be deleted or moved away on the server */
+}
+
+
+int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
+{
+	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
+	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
+	int success = 0, handle_locked = 0, idle_blocked = 0;
+
+	LOCK_HANDLE
+	BLOCK_IDLE
+
+		INTERRUPT_IDLE
+
+		mrlog_info("Marking message with server_uid=%i as seen...", (int)server_uid);
+
+		if( add_flag_(ths, folder, server_uid, mailimap_flag_new_seen())==0 ) {
+			mrlog_error("Cannot mark message as seen.");
+			goto cleanup;
+		}
+
+		mrlog_info("Message marked as seen.");
+
+		success = 1;
+
+cleanup:
+	UNBLOCK_IDLE
+	UNLOCK_HANDLE
+
+	return success;
+}
+
+
+int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder, uint32_t server_uid)
+{
+	// when deleting using server_uid, we have to check against rfc724_mid first - the UID validity or the mailbox may have change
+	int success = 0, handle_locked = 0, idle_blocked = 0;
+
+	LOCK_HANDLE
+	BLOCK_IDLE
+
+		INTERRUPT_IDLE
+
+		mrlog_info("Deleting message \"%s\", server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
+
+		if( add_flag_(ths, folder, server_uid, mailimap_flag_new_deleted())==0 ) {
+			mrlog_error("Cannot delete message.");
+			goto cleanup;
+		}
+
+		mrlog_info("Message deleted.");
+
+		success = 1;
+
+cleanup:
+	UNBLOCK_IDLE
+	UNLOCK_HANDLE
+
+	return success;
+}
+

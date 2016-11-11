@@ -363,7 +363,7 @@ int mrmailbox_markseen_chat_by_id(mrmailbox_t* ths, uint32_t chat_id)
 		{
 			msg_id = sqlite3_column_int(stmt, 0);
 			mrmailbox_update_msg_state_(ths, msg_id, MR_IN_SEEN);
-			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* TODO: maybe we can optimize this by a combined IMAP-STORE command */
+			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL);
 		}
 
 	mrsqlite3_commit_(ths->m_sql);
@@ -961,7 +961,7 @@ static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
                               mrmsg_t* ret_msg, char** ret_from, char** ret_displayname, clist* ret_recipients)
 {
 	mrsqlite3_lock(mailbox->m_sql);
-		if( mrmsg_load_from_db_(ret_msg, mailbox, msg_id) ) {
+		if( mrmsg_load_from_db_(ret_msg, mailbox->m_sql, msg_id) ) {
 			sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
 				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
@@ -983,6 +983,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
+	char*         server_folder = NULL;
 	uint32_t      server_uid = 0;
 
 	/* connect to IMAP-server */
@@ -1005,13 +1006,13 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	if( !mrimap_append_msg(mailbox->m_imap, msg->m_timestamp, data->str, data->len, &server_uid) ) {
+	if( !mrimap_append_msg(mailbox->m_imap, msg->m_timestamp, data->str, data->len, &server_folder, &server_uid) ) {
 		mrjob_try_again_later(job);
 		goto cleanup;
 	}
 	else {
 		mrsqlite3_lock(mailbox->m_sql);
-			mrmailbox_update_server_uid_(mailbox, msg->m_rfc724_mid, server_uid);
+			mrmailbox_update_server_uid_(mailbox, msg->m_rfc724_mid, server_folder, server_uid);
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
 
@@ -1022,6 +1023,7 @@ cleanup:
 	mmap_string_free(data);
 	free(from_addr);
 	free(from_displayname);
+	free(server_folder);
 }
 
 

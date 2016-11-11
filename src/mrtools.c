@@ -1034,3 +1034,11 @@ char* mr_get_filename(const char* pathNfilename)
 		return safe_strdup(pathNfilename);
 	}
 }
+
+
+int mr_delete_file(const char* pathNfilename)
+{
+	/* TODO */
+	return 1;
+}
+

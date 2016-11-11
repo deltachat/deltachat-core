@@ -107,7 +107,8 @@ static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mai
 }
 
 
-static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t server_uid, uint32_t flags)
+static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
+                          const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */
 	int              incoming = 0;
@@ -308,14 +309,16 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		}
 
 		{
+			char*    old_server_folder = NULL;
 			uint32_t old_server_uid = 0;
-			if( mrmailbox_message_id_exists_(ths, rfc724_mid, &old_server_uid) ) {
+			if( mrmailbox_message_id_exists_(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 				/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
-				if( old_server_uid != server_uid ) {
+				if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 					mrsqlite3_rollback_(ths->m_sql);
 					transaction_pending = 0;
-					mrmailbox_update_server_uid_(ths, rfc724_mid, server_uid);
+					mrmailbox_update_server_uid_(ths, rfc724_mid, server_folder, server_uid);
 				}
+				free(old_server_folder);
 				goto cleanup;
 			}
 		}
@@ -329,17 +332,18 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
 
 			stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_mscftttstp,
-				"INSERT INTO msgs (rfc724_mid,server_uid,chat_id,from_id, to_id,timestamp,type, state,txt,param) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
+				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,txt,param) VALUES (?,?,?,?,?, ?,?,?, ?,?,?);");
 			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (stmt,  2, server_uid);
-			sqlite3_bind_int  (stmt,  3, chat_id);
-			sqlite3_bind_int  (stmt,  4, from_id);
-			sqlite3_bind_int  (stmt,  5, to_id);
-			sqlite3_bind_int64(stmt,  6, message_timestamp);
-			sqlite3_bind_int  (stmt,  7, part->m_type);
-			sqlite3_bind_int  (stmt,  8, state);
-			sqlite3_bind_text (stmt,  9, part->m_msg, -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 10, "", -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt,  3, server_uid);
+			sqlite3_bind_int  (stmt,  4, chat_id);
+			sqlite3_bind_int  (stmt,  5, from_id);
+			sqlite3_bind_int  (stmt,  6, to_id);
+			sqlite3_bind_int64(stmt,  7, message_timestamp);
+			sqlite3_bind_int  (stmt,  8, part->m_type);
+			sqlite3_bind_int  (stmt,  9, state);
+			sqlite3_bind_text (stmt, 10, part->m_msg, -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 11, "", -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}
@@ -367,15 +371,16 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 
 				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_mscftttstp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt,  2, server_uid);
-				sqlite3_bind_int  (stmt,  3, ghost_chat_id);
-				sqlite3_bind_int  (stmt,  4, from_id);
-				sqlite3_bind_int  (stmt,  5, ghost_to_id);
-				sqlite3_bind_int64(stmt,  6, message_timestamp);
-				sqlite3_bind_int  (stmt,  7, MR_MSG_TEXT);
-				sqlite3_bind_int  (stmt,  8, state);
-				sqlite3_bind_text (stmt,  9, "cc", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 10, param, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt,  3, server_uid);
+				sqlite3_bind_int  (stmt,  4, ghost_chat_id);
+				sqlite3_bind_int  (stmt,  5, from_id);
+				sqlite3_bind_int  (stmt,  6, ghost_to_id);
+				sqlite3_bind_int64(stmt,  7, message_timestamp);
+				sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
+				sqlite3_bind_int  (stmt,  9, state);
+				sqlite3_bind_text (stmt, 10, "cc", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 11, param, -1, SQLITE_STATIC);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
@@ -461,10 +466,10 @@ static void cb_set_config_int(mrimap_t* imap, const char* key, int32_t def)
 		mrsqlite3_set_config_int_(mailbox->m_sql, key, def);
 	mrsqlite3_unlock(mailbox->m_sql);
 }
-static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t server_uid, uint32_t flags)
+static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
-	receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, server_uid, flags);
+	receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, server_folder, server_uid, flags);
 }
 
 
@@ -635,7 +640,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	f = NULL;
 
 	/* import `data` */
-	if( receive_imf(ths, data, stat_info.st_size, 0, 0) == 0 ) {
+	if( receive_imf(ths, data, stat_info.st_size, "import", 0, 0) == 0 ) {
 		mrlog_warning("Import: No message could be created from \"%s\".", filename);
 	}
 

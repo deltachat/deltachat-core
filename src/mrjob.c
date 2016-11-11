@@ -175,7 +175,9 @@ uint32_t mrjob_add_(mrmailbox_t* mailbox, int action, int foreign_id, const char
 
 	if( !mailbox->m_job_do_exit ) {
 		mrlog_info("Signal job thread to wake up...");
-		pthread_cond_signal(&mailbox->m_job_cond);
+		pthread_mutex_lock(&mailbox->m_job_condmutex);
+			pthread_cond_signal(&mailbox->m_job_cond);
+		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 	}
 
 	return job_id;

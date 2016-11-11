@@ -69,6 +69,7 @@ char* mr_create_outgoing_rfc724_mid(const char* addr);
 /* file tools */
 size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
+int     mr_delete_file             (const char* pathNFilename);
 
 /* macros */
 #define MR_INIT_REFERENCE \

@@ -43,7 +43,7 @@ typedef struct mrimap_t mrimap_t;
 
 typedef int32_t  (*mr_get_config_int_t)(mrimap_t*, const char*, int32_t);
 typedef void     (*mr_set_config_int_t)(mrimap_t*, const char*, int32_t);
-typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, uint32_t server_uid, uint32_t flags);
+typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
 
 typedef struct mrimap_t
@@ -89,7 +89,10 @@ void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
-int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, uint32_t* ret_server_uid);
+int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
+int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
+int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
+
 
 #ifdef __cplusplus
 } /* /extern "C" */
