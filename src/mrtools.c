@@ -166,14 +166,37 @@ void mr_remove_cr_chars(char* buf)
 }
 
 
-void mr_unwrap_str(char* buf, int approx_bytes)
+#if 0 /* not needed at the moment */
+static size_t mr_utf8_strlen(const char* s)
+{
+	size_t i = 0, j = 0;
+	while( s[i] ) {
+		if( (s[i]&0xC0) != 0x80 )
+			j++;
+		i++;
+	}
+	return j;
+}
+#endif
+
+
+static size_t mr_utf8_strnlen(const char* s, size_t n)
+{
+	size_t i = 0, j = 0;
+	while( i < n ) {
+		if( (s[i]&0xC0) != 0x80 )
+			j++;
+		i++;
+	}
+	return j;
+}
+
+
+void mr_unwrap_str(char* buf, int approx_characters)
 {
 	/* Function unwraps the given string and removes unnecessary whitespace.
-	Function stops processing after approx_bytes are processed.
-	(as we're using UTF-8, this is not always the lenght! Moreover, we cannot split the string at any place for the same reason).
-
-	TODO: we should use the UTF-8 lenght instead of the byte count */
-
+	Function stops processing after approx_characters are processed.
+	(as we're using UTF-8, for simplicity, we cut the string only at whitespaces). */
 	int lastIsCharacter = 0;
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	while( *p1 ) {
@@ -182,8 +205,13 @@ void mr_unwrap_str(char* buf, int approx_bytes)
 		}
 		else {
 			if( lastIsCharacter ) {
-				if( ((uintptr_t)p1 - (uintptr_t)buf) > (uintptr_t)approx_bytes ) {
-					*p1 = 0; /* approx_len approximately reached (take care when wraping at non-spaces - we're using UTF-8 characters)*/
+				size_t used_bytes = (size_t)((uintptr_t)p1 - (uintptr_t)buf);
+				if( mr_utf8_strnlen(buf, used_bytes) >= approx_characters ) {
+					const char* ellipse_utf8 = " ...";
+					size_t      buf_bytes = strlen(buf);
+					if( buf_bytes-used_bytes >= strlen(ellipse_utf8) /* check if we have room for the ellipse */ ) {
+						strcpy((char*)p1, ellipse_utf8);
+					}
 					break;
 				}
 				lastIsCharacter = 0;

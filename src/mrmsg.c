@@ -275,7 +275,7 @@ cleanup:
 }
 
 
-char* mrmsg_get_summary(const mrmsg_t* ths, int approx_bytes)
+char* mrmsg_get_summary(const mrmsg_t* ths, int approx_characters)
 {
 	char* ret = NULL;
 
@@ -287,7 +287,7 @@ char* mrmsg_get_summary(const mrmsg_t* ths, int approx_bytes)
 		default:
 			if( ths->m_text ) {
 				ret = safe_strdup(ths->m_text);
-				mr_unwrap_str(ret, approx_bytes);
+				mr_unwrap_str(ret, approx_characters);
 			}
 			break;
 	}

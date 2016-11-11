@@ -705,7 +705,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 		return ret;
 	}
 
-	#define SUMMARY_BYTES (160*5) /* 160 characters may take up 5 bytes each */
+	#define SUMMARY_CHARACTERS 160 /* in practice, the user additinally cuts the string himself pixel-accurate */
 
 	if( ths->m_draft_timestamp
 	 && ths->m_draft_text
@@ -716,7 +716,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 		ret->m_title_meaning = MR_TITLE_DRAFT;
 
 		ret->m_text = safe_strdup(ths->m_draft_text);
-		mr_unwrap_str(ret->m_text, SUMMARY_BYTES);
+		mr_unwrap_str(ret->m_text, SUMMARY_CHARACTERS);
 
 		ret->m_timestamp = ths->m_draft_timestamp;
 	}
@@ -735,18 +735,22 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 		else if( ths->m_type==MR_CHAT_GROUP ) { /* for non-groups, the title is not needed and would result in Strings as "Prename Familyname: Prename: last message ..." */
 			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
 			mrcontact_load_from_db_(contact, ths->m_last_msg_->m_from_id);
-			if( contact->m_name ) {
-				ret->m_title = mr_get_first_name(contact->m_name);
-				ret->m_title_meaning = MR_TITLE_USERNAME;
-				mrcontact_unref(contact);
-			}
-			else {
-				ret->m_title = safe_strdup("Unknown contact");
-				ret->m_title_meaning = MR_TITLE_USERNAME;
-			}
+				if( contact->m_name && contact->m_name[0] ) {
+					ret->m_title = mr_get_first_name(contact->m_name);
+					ret->m_title_meaning = MR_TITLE_USERNAME;
+				}
+				else if( contact->m_addr && contact->m_addr[0] ) {
+					ret->m_title = safe_strdup(contact->m_addr);
+					ret->m_title_meaning = MR_TITLE_USERNAME;
+				}
+				else {
+					ret->m_title = safe_strdup("Unknown contact");
+					ret->m_title_meaning = MR_TITLE_USERNAME;
+				}
+			mrcontact_unref(contact);
 		}
 
-		ret->m_text = mrmsg_get_summary(ths->m_last_msg_, SUMMARY_BYTES);
+		ret->m_text = mrmsg_get_summary(ths->m_last_msg_, SUMMARY_CHARACTERS);
 
 		ret->m_timestamp = ths->m_last_msg_->m_timestamp;
 		ret->m_state     = ths->m_last_msg_->m_state;
@@ -839,7 +843,10 @@ cleanup:
 
 static char* get_subject(const mrmsg_t* msg)
 {
-	char *ret, *raw_subject = mrmsg_get_summary(msg, 50);
+	#define APPROX_SUBJECT_CHATS 32  /* as we do not cut inside words, this results in about 32-42 characters.
+	                                 Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise. It should also be very clear, the subject is _not_ the whole message. */
+
+	char *ret, *raw_subject = mrmsg_get_summary(msg, APPROX_SUBJECT_CHATS);
 
 	#if 0
 		char *prefix = mrstock_str(MR_STR_SUBJECTPREFIX);

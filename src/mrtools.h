@@ -44,7 +44,7 @@ void    mr_trim                    (char*);
 char*   mr_strlower                (const char*); /* the result must be free()'d */
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d.  Internally, it's faster to call sqlite3_mprintf()/sqlite3_free() directly. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
-void    mr_unwrap_str              (char*, int approx_bytes); /* unwrap lines in the given buffer */
+void    mr_unwrap_str              (char*, int approx_characters); /* unwrap lines in the given buffer, returns 1 if additionally truncated */
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);
 char*   mr_decode_header_string    (const char*); /* the result must be free()'d */
