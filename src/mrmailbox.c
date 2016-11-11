@@ -52,8 +52,18 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids )
+static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
 {
+	if( check_self )
+	{
+		*check_self = 0;
+		char* self_addr = mrsqlite3_get_config_(ths->m_sql, "configured_addr", "");
+		if( strcmp(self_addr, addr_spec)==0 ) {
+			*check_self = 1;
+			return;
+		}
+	}
+
 	char* display_name_dec = NULL;
 	if( display_name_enc ) {
 		display_name_dec = mr_decode_header_string(display_name_enc);
@@ -72,19 +82,19 @@ static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display
 }
 
 
-static void add_or_lookup_contacts_by_mailbox_list_(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids)
+static void add_or_lookup_contacts_by_mailbox_list_(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
+			add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 		}
 	}
 }
 
 
-static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids)
+static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -93,13 +103,13 @@ static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mai
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids);
+					add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					add_or_lookup_contacts_by_mailbox_list_(ths, group->grp_mb_list, origin, ids);
+					add_or_lookup_contacts_by_mailbox_list_(ths, group->grp_mb_list, origin, ids, check_self);
 				}
 			}
 		}
@@ -167,7 +177,9 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		/* Check, if the mail comes from extern, resp. is not send by us.  This is a _really_ important step
 		as messages send by us are used to validate other mail senders and receivers.
 		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
-		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP. */
+		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
+		Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
+		However, we use `From:` as an additional hint below. */
 		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			field = (struct mailimf_field*)clist_content(cur1);
@@ -200,14 +212,23 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
 			if( fld_from )
 			{
+				int check_self;
 				carray* from_list = carray_new(16);
-				add_or_lookup_contacts_by_mailbox_list_(ths, fld_from->frm_mb_list,
-					MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list);
-				if( carray_count(from_list)>=1 )
+				add_or_lookup_contacts_by_mailbox_list_(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				if( check_self )
 				{
-					from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-					if( mrmailbox_is_known_contact_(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
-						incoming_from_known_sender = 1;
+					incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
+					              for these messages, the `Return-Path:` is set although we're the sender.  To correct these cases, we add an
+					              additional From: check - which, however, will not work for older From:-addresses used on the mailbox. */
+				}
+				else
+				{
+					if( carray_count(from_list)>=1 )
+					{
+						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
+						if( mrmailbox_is_known_contact_(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
+							incoming_from_known_sender = 1;
+						}
 					}
 				}
 				carray_free(from_list);
@@ -222,7 +243,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			if( fld_to )
 			{
 				add_or_lookup_contacts_by_address_list_(ths, fld_to->to_addr_list /*!= NULL*/,
-					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_list);
+					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_list, NULL);
 			}
 		}
 
@@ -245,7 +266,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 					if( fld_cc ) {
 						add_or_lookup_contacts_by_address_list_(ths, fld_cc->cc_addr_list,
-							outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list);
+							outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list, NULL);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_BCC )
@@ -253,7 +274,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
 					if( outgoing && fld_bcc ) {
 						add_or_lookup_contacts_by_address_list_(ths, fld_bcc->bcc_addr_list,
-							MR_ORIGIN_OUTGOING_BCC, to_list);
+							MR_ORIGIN_OUTGOING_BCC, to_list, NULL);
 					}
 				}
 				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
