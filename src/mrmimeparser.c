@@ -461,8 +461,10 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		carray_set_size(ths->m_parts, 0);
 	}
 
-	ths->m_header         = NULL; /* a pointer somewhere to the MIME data, must not be freed */
-	ths->m_subjectEncoded = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+
+	free(ths->m_subject);
+	ths->m_subject = NULL;
 
 	if( ths->m_mimeroot )
 	{
@@ -733,8 +735,8 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 				for( cur = clist_begin(ths->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
 					struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 					if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-						if( ths->m_subjectEncoded == NULL && field->fld_data.fld_subject ) {
-							ths->m_subjectEncoded = field->fld_data.fld_subject->sbj_value;
+						if( ths->m_subject == NULL && field->fld_data.fld_subject ) {
+							ths->m_subject = mr_decode_header_string(field->fld_data.fld_subject->sbj_value);
 						}
 						break; /* we're not interested in the other fields */
 					}
@@ -798,11 +800,9 @@ cleanup:
 	if( carray_count(ths->m_parts)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
 		if( part!=NULL ) {
-			char* subject_decoded = mr_decode_header_string(ths->m_subjectEncoded); /* may be NULL */
 			part->m_type = MR_MSG_TEXT;
-			part->m_msg = safe_strdup((char*)(subject_decoded? subject_decoded : "Empty message"));
+			part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
 			carray_add(ths->m_parts, (void*)part, NULL);
-			free(subject_decoded);
 		}
 	}
 }

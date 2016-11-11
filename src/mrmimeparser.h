@@ -60,7 +60,7 @@ typedef struct mrmimeparser_t
 	carray*                m_parts; /*array of mrmimepart_t objects*/
 	struct mailmime*       m_mimeroot;
 	struct mailimf_fields* m_header;
-	char*                  m_subjectEncoded;
+	char*                  m_subject;
 } mrmimeparser_t;
 
 

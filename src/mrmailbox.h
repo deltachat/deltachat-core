@@ -136,6 +136,7 @@ carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t
 
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg_by_id        (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
+char*                mrmailbox_get_txt_raw_by_id    (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
 int                  mrmailbox_delete_msg_by_id     (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_msg_by_id   (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_chat_by_id  (mrmailbox_t*, uint32_t chat_id);

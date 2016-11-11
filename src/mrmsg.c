@@ -275,6 +275,39 @@ cleanup:
 }
 
 
+char* mrmailbox_get_txt_raw_by_id(mrmailbox_t* mailbox, uint32_t msg_id)
+{
+	char*         ret = NULL;
+	int           locked = 0;
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
+			"SELECT txt_raw FROM msgs WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, msg_id);
+		if( sqlite3_step(stmt) != SQLITE_ROW ) {
+			goto cleanup;
+		}
+
+		ret = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	return ret? ret : safe_strdup(NULL);
+}
+
+
 char* mrmsg_get_summary(const mrmsg_t* ths, int approx_characters)
 {
 	char* ret = NULL;

@@ -214,6 +214,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"
 					" txt TEXT,"                       /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
+					" txt_raw TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
