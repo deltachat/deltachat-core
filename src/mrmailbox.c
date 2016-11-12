@@ -401,8 +401,8 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 
 				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt,  3, server_uid);
+				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt,  3, 0);
 				sqlite3_bind_int  (stmt,  4, ghost_chat_id);
 				sqlite3_bind_int  (stmt,  5, from_id);
 				sqlite3_bind_int  (stmt,  6, ghost_to_id);
