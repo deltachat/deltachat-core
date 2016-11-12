@@ -189,7 +189,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record_(mrmailbox_t* mailbox, uint32_t 
 	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE (chat_id=%i AND from_id=%i) OR (chat_id=%i AND to_id=%i);",
 		chat_id,
 		MR_CHAT_ID_STRANGERS, contact_id,
-		MR_CHAT_ID_STRANGERS_CC, contact_id);
+		MR_CHAT_ID_STRANGERS_GHOST_CC, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {

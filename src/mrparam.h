@@ -33,12 +33,12 @@
  * Known keys:
  * 'f'ile
  * 'o'riginal filename
- * 'O'riginal msg_id
  * 'w'idth
  * 'h'eight
  * 'd'uration in milliseconds
  * 'm'ime
  * 't'imstamp to try a job again
+ * 'G'host-CC, parameter is the original msg_id
  *
  ******************************************************************************/
 

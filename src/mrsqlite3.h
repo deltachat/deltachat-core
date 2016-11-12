@@ -84,6 +84,7 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
+	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_chat_id_AND_state
@@ -98,6 +99,7 @@ enum
 	,UPDATE_msgs_SET_state_WHERE_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
 	,DELETE_FROM_msgs_WHERE_id
+	,DELETE_FROM_msgs_WHERE_rfc724_mid
 
 	,INSERT_INTO_jobs_aafp
 	,SELECT_i_FROM_jobs

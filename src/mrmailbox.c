@@ -333,7 +333,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		{
 			char*    old_server_folder = NULL;
 			uint32_t old_server_uid = 0;
-			if( mrmailbox_message_id_exists_(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+			if( mrmailbox_rfc724_mid_exists_(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 				/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
 				if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 					mrsqlite3_rollback_(ths->m_sql);
@@ -389,7 +389,8 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
 		if( outgoing && carray_count(to_list)>1 && first_dblocal_id != 0 )
 		{
-			char* param = mr_mprintf("O=%i", (int)first_dblocal_id); /*O=Original Message Id*/
+			char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
+			char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=Ghost message flag with the original message ID */
 			char* ghost_txt = NULL;
 			{
 				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
@@ -403,12 +404,12 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			{
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
 				uint32_t ghost_chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, ghost_to_id);
-				if(ghost_chat_id==0) {
-					ghost_chat_id = MR_CHAT_ID_STRANGERS_CC;
+				if( ghost_chat_id==0 ) {
+					ghost_chat_id = MR_CHAT_ID_STRANGERS_GHOST_CC;
 				}
 
 				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
-				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, 0);
 				sqlite3_bind_int  (stmt,  4, ghost_chat_id);
@@ -419,15 +420,16 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				sqlite3_bind_int  (stmt,  9, state);
 				sqlite3_bind_text (stmt, 10, ghost_txt, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 11, "", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 12, param, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 12, ghost_param, -1, SQLITE_STATIC);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
 				created_db_entries++;
 			}
-			free(param);
 			free(ghost_txt);
+			free(ghost_param);
+			free(ghost_rfc724_mid_str);
 		}
 
 	/* end sql-transaction */
@@ -440,7 +442,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
 			if( debugDir ) {
 				char filename[512];
-				snprintf(filename, sizeof(filename), "%s/%i.eml", debugDir, (int)first_dblocal_id);
+				snprintf(filename, sizeof(filename), "%s/%s-%i.eml", debugDir, server_folder, (int)first_dblocal_id);
 				FILE* f = fopen(filename, "w");
 				if( f ) {
 					fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);

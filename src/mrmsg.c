@@ -144,7 +144,7 @@ size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
 
 size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
 {
-	if( mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
@@ -152,15 +152,32 @@ size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_STRANGERS);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql, "mr_get_unassigned_msg_cnt_() failed.");
 		return 0;
 	}
 
-	return sqlite3_column_int(stmt, 0); /* success */
+	return sqlite3_column_int(stmt, 0);
 }
 
 
-int mrmailbox_message_id_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
+int mrmailbox_rfc724_mid_cnt_(mrmailbox_t* mailbox, const char* rfc724_mid)
+{
+	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
+		return 0;
+	}
+
+	/* check the number of messages with the same rfc724_mid */
+	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid,
+		"SELECT COUNT(*) FROM msgs WHERE rfc724_mid=?;");
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+	return sqlite3_column_int(stmt, 0);
+}
+
+
+int mrmailbox_rfc724_mid_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
@@ -290,7 +307,7 @@ char* mrmailbox_get_txt_raw_by_id(mrmailbox_t* mailbox, uint32_t msg_id)
 	locked = 1;
 
 		mrmsg_load_from_db_(msg, mailbox->m_sql, msg_id);
-		msg_id = mrparam_get_int(msg->m_param, 'O', msg_id);
+		msg_id = mrparam_get_int(msg->m_param, 'G', msg_id);
 
 		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
@@ -345,16 +362,8 @@ char* mrmsg_get_summary(int type, const char* text, int approx_characters)
 
 void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
-	int      locked = 0;
+	int      locked = 0, delete_from_server = 1;
 	mrmsg_t* msg = mrmsg_new();
-
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job);
-			goto cleanup;
-		}
-	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -363,33 +372,57 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			goto cleanup;
 		}
 
+		if( mrmailbox_rfc724_mid_cnt_(mailbox, msg->m_rfc724_mid) != 1 ) {
+			mrlog_info("The message is deleted from the server when all message are deleted.");
+			delete_from_server = 0;
+		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
+	/* if this is the last existing part of the message (ghost messages not counted), we delete the message from the server */
+	if( delete_from_server )
 	{
-		/* if, and only if the message is really removed from the IMAP-server, we can safely delete the database entry.
-		(As long as the message is not removed from the IMAP-server, we need the database entry to avoid a re-download) */
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
-
-			sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id, "DELETE FROM msgs WHERE id=?;");
-			sqlite3_bind_int(stmt, 1, msg->m_id);
-			sqlite3_step(stmt);
-
-			char* pathNfilename = mrparam_get(job->m_param, 'f', NULL);
-			if( pathNfilename ) {
-				mr_delete_file(pathNfilename);
-				free(pathNfilename);
+		if( !mrimap_is_connected(mailbox->m_imap) ) {
+			mrmailbox_connect_to_imap(mailbox, NULL);
+			if( !mrimap_is_connected(mailbox->m_imap) ) {
+				mrjob_try_again_later(job);
+				goto cleanup;
 			}
+		}
 
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		if( !mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
+		{
+			mrjob_try_again_later(job);
+			goto cleanup;
+		}
 	}
-	else
-	{
-		mrjob_try_again_later(job);
-	}
+
+	/* we delete the database entry ...
+	- if the message is successfully removed from the server
+	- or if there are other parts of the messages in the database (in this case we have not deleted if from the server)
+	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id, "DELETE FROM msgs WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, msg->m_id);
+		sqlite3_step(stmt);
+
+		char* pathNfilename = mrparam_get(job->m_param, 'f', NULL);
+		if( pathNfilename ) {
+			mr_delete_file(pathNfilename);
+			free(pathNfilename);
+		}
+
+		char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, msg->m_id);
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_msgs_WHERE_rfc724_mid, "DELETE FROM msgs WHERE rfc724_mid=?;");
+		sqlite3_bind_text(stmt, 1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
+		sqlite3_step(stmt);
+		free(ghost_rfc724_mid_str);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 cleanup:
 	if( locked ) {
