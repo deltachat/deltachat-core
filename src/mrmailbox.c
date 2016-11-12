@@ -396,7 +396,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
 				uint32_t ghost_chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, ghost_to_id);
 				if(ghost_chat_id==0) {
-					ghost_chat_id = MR_CHAT_ID_STRANGERS;
+					ghost_chat_id = MR_CHAT_ID_STRANGERS_CC;
 				}
 
 				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
