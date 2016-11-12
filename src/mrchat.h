@@ -99,6 +99,12 @@ int           mrmailbox_get_unseen_count_            (mrmailbox_t*, uint32_t cha
 void          mrmailbox_send_msg_to_smtp             (mrmailbox_t*, mrjob_t*);
 void          mrmailbox_send_msg_to_imap             (mrmailbox_t*, mrjob_t*);
 
+#define APPROX_SUBJECT_CHARS 32  /* as we do not cut inside words, this results in about 32-42 characters.
+								 Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise.
+								 It should also be very clear, the subject is _not_ the whole message.
+								 The value is also used for CC:-summaries */
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

@@ -846,10 +846,7 @@ cleanup:
 
 static char* get_subject(const mrmsg_t* msg)
 {
-	#define APPROX_SUBJECT_CHATS 32  /* as we do not cut inside words, this results in about 32-42 characters.
-	                                 Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise. It should also be very clear, the subject is _not_ the whole message. */
-
-	char *ret, *raw_subject = mrmsg_get_summary(msg->m_type, msg->m_text, APPROX_SUBJECT_CHATS);
+	char *ret, *raw_subject = mrmsg_get_summary(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
 
 	#if 0
 		char *prefix = mrstock_str(MR_STR_SUBJECTPREFIX);

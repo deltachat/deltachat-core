@@ -280,6 +280,7 @@ char* mrmailbox_get_txt_raw_by_id(mrmailbox_t* mailbox, uint32_t msg_id)
 	char*         ret = NULL;
 	int           locked = 0;
 	sqlite3_stmt* stmt;
+	mrmsg_t*      msg = mrmsg_new();
 
 	if( mailbox == NULL ) {
 		goto cleanup;
@@ -287,6 +288,9 @@ char* mrmailbox_get_txt_raw_by_id(mrmailbox_t* mailbox, uint32_t msg_id)
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
+
+		mrmsg_load_from_db_(msg, mailbox->m_sql, msg_id);
+		msg_id = mrparam_get_int(msg->m_param, 'O', msg_id);
 
 		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
@@ -304,6 +308,7 @@ cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
+	mrmsg_unref(msg);
 	return ret? ret : safe_strdup(NULL);
 }
 
