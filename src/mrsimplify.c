@@ -137,18 +137,36 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 	    these are all lines starting with the character `>`
 	... remove a non-empty line before the removed quote (contains sth. like "On 2.9.2016, Bjoern wrote:" in different formats and lanugages) */
 
+	/* TODO: If we know, the mail is from another Messenger, we could skip most of this stuff */
 
 	/* split the given buffer into lines */
 	carray* lines = mr_split_into_lines(buf_terminated);
+	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
+	char* line;
 
 	/* search for the line `-- ` and ignore this and all following lines
 	If the line contains more characters, it is _not_ treated as the footer start mark (hi, Thorsten) */
-	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
-	char* line;
 	for( l = l_first; l <= l_last; l++ )
 	{
 		line = (char*)carray_get(lines, l);
-		if( strcmp(line, "-- ")==0 )
+		if( strcmp(line, "-- ")==0
+		 || strcmp(line, "--")==0 /* this is not documented, but occurs frequently; however, if we get problems with this, skip this HACK */ )
+		{
+			l_last = l - 1; /* if l_last is -1, there are no lines */
+			break; /* done */
+		}
+	}
+
+	/* remove lines that typically introduce a full quote (eg. `----- Original message -----` - as we do not parse the text 100%, we may
+	also loose forwarded messages, however, the user has always the option to show the full mail text. */
+	for( l = l_first; l <= l_last; l++ )
+	{
+		line = (char*)carray_get(lines, l);
+		if( strncmp(line, "-----", 5)==0
+		 || strncmp(line, "_____", 5)==0
+		 || strncmp(line, "=====", 5)==0
+		 || strncmp(line, "*****", 5)==0
+		 || strncmp(line, "~~~~~", 5)==0 )
 		{
 			l_last = l - 1; /* if l_last is -1, there are no lines */
 			break; /* done */
@@ -180,11 +198,6 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 			}
 		}
 	}
-
-	/* remove lines that typically introduce a full quote (eg. `----- Original message -----` - as we do not parse the text 100%, we may
-	also loose forwarded messages, however, the user has always the option to show the full mail text. */
-
-	// TODO
 
 	/* remove full quotes at the beginning of the text */
 	{

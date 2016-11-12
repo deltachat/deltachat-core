@@ -65,6 +65,8 @@ typedef struct mrsmtp_t mrsmtp_t;
 #define MR_VERSION_MINOR    1
 #define MR_VERSION_REVISION 2
 
+#define MR_DELTA_STR "[\xCE\xB4]"
+
 
 /* Callback function that is called on updates, state changes etc.
 - The callback may be called from _any_ thread, not only the main/GUI thread!

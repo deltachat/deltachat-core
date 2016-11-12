@@ -853,7 +853,7 @@ static char* get_subject(const mrmsg_t* msg)
 		ret = mr_mprintf("%s: %s", prefix, raw_subject);
 		free(prefix);
 	#else
-		ret = mr_mprintf("%s [\xCE\xB4]", raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
+		ret = mr_mprintf("%s " MR_DELTA_STR, raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
 	#endif
 
 	free(raw_subject);

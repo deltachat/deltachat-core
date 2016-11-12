@@ -824,6 +824,43 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* recursively check, whats parsed */
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
 
+	/* prepend subject to message? */
+	{
+		int prepend_subject = 1;
+		char* p = strchr(ths->m_subject, ':');
+		if( (p-ths->m_subject) == 2 /*To: etc.*/ || (p-ths->m_subject) == 3 /*Fwd: etc.*/ ) {
+			prepend_subject = 0;
+		}
+		else if( strstr(ths->m_subject, MR_DELTA_STR) != NULL ) {
+			prepend_subject = 0;
+		}
+
+		if( prepend_subject )
+		{
+			char* subj = safe_strdup(ths->m_subject);
+			p = strchr(subj, '['); /* do not add any tags as "[checked by XYZ]" */
+			if( p ) {
+				*p = 0;
+			}
+			mr_trim(subj);
+			if( subj[0] ) {
+				int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
+				for( i = 0; i < icnt; i++ ) {
+					mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+					if( part->m_type == MR_MSG_TEXT ) {
+						#define MR_NDASH "\xE2\x80\x93"
+						char* new_txt = mr_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
+						free(part->m_msg);
+						part->m_msg = new_txt;
+					}
+				}
+			}
+			free(subj);
+		}
+	}
+
+
+
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
 	if( carray_count(ths->m_parts)==0 ) {

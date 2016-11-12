@@ -354,7 +354,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
 
 			if( part->m_type == MR_MSG_TEXT ) {
-				txt_raw = mr_mprintf("Subject: %s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
+				txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 			}
 
 			stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp,
