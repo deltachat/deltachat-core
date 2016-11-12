@@ -308,18 +308,18 @@ cleanup:
 }
 
 
-char* mrmsg_get_summary(const mrmsg_t* ths, int approx_characters)
+char* mrmsg_get_summary(int type, const char* text, int approx_characters)
 {
 	char* ret = NULL;
 
-	switch( ths->m_type ) {
+	switch( type ) {
 		case MR_MSG_IMAGE: ret = mrstock_str(MR_STR_IMAGE); break;
 		case MR_MSG_VIDEO: ret = mrstock_str(MR_STR_VIDEO); break;
 		case MR_MSG_AUDIO: ret = mrstock_str(MR_STR_AUDIO); break;
 		case MR_MSG_FILE:  ret = mrstock_str(MR_STR_FILE);  break;
 		default:
-			if( ths->m_text ) {
-				ret = safe_strdup(ths->m_text);
+			if( text ) {
+				ret = safe_strdup(text);
 				mr_unwrap_str(ret, approx_characters);
 			}
 			break;

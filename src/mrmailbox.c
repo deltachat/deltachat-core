@@ -389,7 +389,15 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
 		if( outgoing && carray_count(to_list)>1 && first_dblocal_id != 0 )
 		{
-			char* param = sqlite3_mprintf("O=%i", (int)first_dblocal_id); /*O=Original Message Id*/
+			char* param = mr_mprintf("O=%i", (int)first_dblocal_id); /*O=Original Message Id*/
+			char* ghost_txt = NULL;
+			{
+				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
+				char* temp1 = mrmsg_get_summary(part->m_type, part->m_msg, 80);
+				ghost_txt = mr_mprintf("CC: %s", temp1);
+				free(temp1);
+			}
+
 			icnt = carray_count(to_list);
 			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
 			{
@@ -409,7 +417,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				sqlite3_bind_int64(stmt,  7, message_timestamp);
 				sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
 				sqlite3_bind_int  (stmt,  9, state);
-				sqlite3_bind_text (stmt, 10, "cc", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 10, ghost_txt, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 11, "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 12, param, -1, SQLITE_STATIC);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -418,7 +426,8 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 
 				created_db_entries++;
 			}
-			sqlite3_free(param);
+			free(param);
+			free(ghost_txt);
 		}
 
 	/* end sql-transaction */
