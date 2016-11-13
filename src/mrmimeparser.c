@@ -825,6 +825,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
 
 	/* prepend subject to message? */
+	if( ths->m_subject )
 	{
 		int prepend_subject = 1;
 		char* p = strchr(ths->m_subject, ':');

@@ -57,9 +57,14 @@ static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display
 	if( check_self )
 	{
 		*check_self = 0;
+
 		char* self_addr = mrsqlite3_get_config_(ths->m_sql, "configured_addr", "");
-		if( strcmp(self_addr, addr_spec)==0 ) {
-			*check_self = 1;
+			if( strcmp(self_addr, addr_spec)==0 ) {
+				*check_self = 1;
+			}
+		free(self_addr);
+
+		if( *check_self ) {
 			return;
 		}
 	}

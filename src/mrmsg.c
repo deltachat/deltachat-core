@@ -258,6 +258,9 @@ void mrmsg_empty(mrmsg_t* ths)
 	free(ths->m_rfc724_mid);
 	ths->m_rfc724_mid = NULL;
 
+	free(ths->m_server_folder);
+	ths->m_server_folder = NULL;
+
 	mrparam_set_packed(ths->m_param, NULL);
 }
 
