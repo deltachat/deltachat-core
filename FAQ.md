@@ -22,12 +22,6 @@ Frequently Asked Questions
 - Yes. Beside the plain text, all E-Mail-attachments are displayed as separate
   messages.  Outgoing messages will get attachments as needed automatically.
 
-**How does Delta Chat use the E-Mail-Subject?**
-
-- As the message content is displayed directly, the subject is not needed and will
-  not be shown therefore.  For outgoing messages, the subject will be set to an
-  excerpt of the message text.
-
 **Does Delta Chat support HTML-E-Mails?**
 
 - Yes.  If incoming E-Mail lacks a plain text part, we convert HTML-E-Mails to 
