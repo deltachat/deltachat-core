@@ -78,7 +78,8 @@ enum
 	,UPDATE_chats_SET_n_WHERE_c
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_i
+	,SELECT_COUNT_FROM_chats_contacts_WHERE_c
+	,SELECT_c_FROM_chats_contacts_WHERE_c
 
 	,SELECT_COUNT_FROM_msgs_WHERE_assigned
 	,SELECT_COUNT_FROM_msgs_WHERE_unassigned

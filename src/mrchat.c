@@ -434,7 +434,27 @@ carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_type);
 	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+	}
 
+cleanup:
+	return ret;
+}
+
+
+carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	carray*       ret = carray_new(100);
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || chat_id<=MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+		"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 	}
@@ -644,7 +664,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		}
 		else
 		{
-			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_i,
+			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_c,
 				"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ths->m_id);
 			if( sqlite3_step(stmt) == SQLITE_ROW ) {
