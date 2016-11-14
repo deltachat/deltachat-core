@@ -116,9 +116,15 @@ void mrsimplify_unref(mrsimplify_t* ths)
  ******************************************************************************/
 
 
-static char* mrsimplify_simplify_html(mrsimplify_t* ths, const char* buf_terminated)
+static char* mrsimplify_simplify_html(mrsimplify_t* ths, char* buf_terminated)
 {
-	return safe_strdup("[HTML-only messages not yet supported]");
+	mr_trim(buf_terminated);
+	if( buf_terminated[0] == 0 ) {
+		return safe_strdup(""); /* support at least empty HTML-messages; for empty messages, we'll replace the message by the subject later */
+	}
+	else {
+		return safe_strdup("[HTML-only messages not yet supported]");
+	}
 }
 
 
