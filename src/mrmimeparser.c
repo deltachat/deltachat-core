@@ -853,6 +853,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 						char* new_txt = mr_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
 						free(part->m_msg);
 						part->m_msg = new_txt;
+						break;
 					}
 				}
 			}
