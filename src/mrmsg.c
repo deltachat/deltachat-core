@@ -61,6 +61,10 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_bytes        =                     sqlite3_column_int  (row, row_offset++);
 
+	if( ths->m_chat_id == MR_CHAT_ID_STRANGERS ) {
+		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
+	}
+
 	return 1;
 }
 
@@ -345,7 +349,7 @@ char* mrmsg_get_summary(int type, const char* text, int approx_characters)
 		default:
 			if( text ) {
 				ret = safe_strdup(text);
-				mr_unwrap_str(ret, approx_characters);
+				mr_truncate_n_unwrap_str(ret, approx_characters, 1);
 			}
 			break;
 	}

@@ -192,7 +192,7 @@ static size_t mr_utf8_strnlen(const char* s, size_t n)
 }
 
 
-void mr_unwrap_str(char* buf, int approx_characters)
+void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 {
 	/* Function unwraps the given string and removes unnecessary whitespace.
 	Function stops processing after approx_characters are processed.
@@ -215,17 +215,23 @@ void mr_unwrap_str(char* buf, int approx_characters)
 					break;
 				}
 				lastIsCharacter = 0;
-				*p1 = ' ';
+				if( do_unwrap ) {
+					*p1 = ' ';
+				}
 			}
 			else {
-				*p1 = '\r'; /* removed below */
+				if( do_unwrap ) {
+					*p1 = '\r'; /* removed below */
+				}
 			}
 		}
 
 		p1++;
 	}
 
-	mr_remove_cr_chars(buf);
+	if( do_unwrap ) {
+		mr_remove_cr_chars(buf);
+	}
 }
 
 

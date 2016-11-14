@@ -719,7 +719,7 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 		ret->m_title_meaning = MR_TITLE_DRAFT;
 
 		ret->m_text = safe_strdup(ths->m_draft_text);
-		mr_unwrap_str(ret->m_text, SUMMARY_CHARACTERS);
+		mr_truncate_n_unwrap_str(ret->m_text, SUMMARY_CHARACTERS, 1);
 
 		ret->m_timestamp = ths->m_draft_timestamp;
 	}
