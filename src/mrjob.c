@@ -63,6 +63,8 @@ static void* job_thread_entry_point(void* entry_arg)
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 		if( mailbox->m_job_do_exit ) { goto exit_; }
 
+		mrlog_info("Job thread waked up.");
+
 		/* do all waiting jobs */
 		while( 1 )
 		{
