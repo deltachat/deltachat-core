@@ -448,7 +448,7 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 	carray*       ret = carray_new(100);
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || chat_id<=MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL ) {
 		goto cleanup;
 	}
 
