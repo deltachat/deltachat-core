@@ -116,11 +116,9 @@ void mrsimplify_unref(mrsimplify_t* ths)
  ******************************************************************************/
 
 
-static void mrsimplify_simplify_html(mrsimplify_t* ths, char* buf_terminated)
+static char* mrsimplify_simplify_html(mrsimplify_t* ths, const char* buf_terminated)
 {
-	if( strlen(buf_terminated) >= 4 ) {
-		strcpy(buf_terminated, "HTML");
-	}
+	return safe_strdup("[HTML-only messages not yet supported]");
 }
 
 
@@ -285,7 +283,11 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 
 	/* simplify the text in the buffer (characters to removed may be marked by `\r`) */
 	if( mimetype == MR_MIMETYPE_TEXT_HTML ) {
-		mrsimplify_simplify_html(ths, out);
+		char* temp = mrsimplify_simplify_html(ths, out);
+		if( temp ) {
+			free(out);
+			out = temp;
+		}
 	}
 	else {
 		mr_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
