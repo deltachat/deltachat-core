@@ -314,7 +314,7 @@ cleanup:
 }
 
 
-mrchat_t* mrmailbox_get_chat_by_id(mrmailbox_t* ths, uint32_t id)
+mrchat_t* mrmailbox_get_chat(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -346,7 +346,7 @@ cleanup:
 }
 
 
-int mrmailbox_markseen_chat_by_id(mrmailbox_t* ths, uint32_t chat_id)
+int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt;
 	uint32_t      msg_id;

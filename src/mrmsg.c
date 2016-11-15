@@ -269,7 +269,7 @@ void mrmsg_empty(mrmsg_t* ths)
 }
 
 
-mrmsg_t* mrmailbox_get_msg_by_id(mrmailbox_t* ths, uint32_t id)
+mrmsg_t* mrmailbox_get_msg(mrmailbox_t* ths, uint32_t id)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -299,7 +299,7 @@ cleanup:
 }
 
 
-char* mrmailbox_get_txt_raw_by_id(mrmailbox_t* mailbox, uint32_t msg_id)
+char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
 	char*         ret = NULL;
 	int           locked = 0;
@@ -439,7 +439,7 @@ cleanup:
 }
 
 
-int mrmailbox_delete_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
+int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
 {
 	if( ths == NULL ) {
 		return 0;
@@ -498,7 +498,7 @@ cleanup:
 }
 
 
-int mrmailbox_markseen_msg_by_id(mrmailbox_t* ths, uint32_t msg_id)
+int mrmailbox_markseen_msg(mrmailbox_t* ths, uint32_t msg_id)
 {
 	if( ths == NULL ) {
 		return 0;

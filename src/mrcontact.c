@@ -316,6 +316,54 @@ cleanup:
 }
 
 
+mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
+{
+	mrcontact_t* ret = mrcontact_new(ths);
+
+	if( contact_id == MR_CONTACT_ID_SELF )
+	{
+		ret->m_id   = contact_id;
+		ret->m_name = mrstock_str(MR_STR_SELF);
+	}
+	else
+	{
+		mrsqlite3_lock(ths->m_sql);
+
+			if( !mrcontact_load_from_db_(ret, contact_id) ) {
+				mrcontact_unref(ret);
+				ret = NULL;
+			}
+
+		mrsqlite3_unlock(ths->m_sql);
+	}
+
+	return ret; /* may be NULL */
+}
+
+
+int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int block)
+{
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_contacts_SET_b_WHERE_i,
+			"UPDATE contacts SET blocked=? WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, block);
+		sqlite3_bind_int(stmt, 2, contact_id);
+
+		sqlite3_step(stmt);
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+	return 1;
+}
+
+
 mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 {
 	mrcontact_t* ths = NULL;

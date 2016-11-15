@@ -1141,7 +1141,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		char* arg1 = (char*)strstr(cmd, " ");
 		if( arg1 ) {
 			int id = atoi(arg1);
-			ret = mrmailbox_delete_msg_by_id(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = mrmailbox_delete_msg(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");
@@ -1152,7 +1152,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		char* arg1 = (char*)strstr(cmd, " ");
 		if( arg1 ) {
 			int id = atoi(arg1);
-			ret = mrmailbox_markseen_msg_by_id(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = mrmailbox_markseen_msg(ths, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");

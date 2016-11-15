@@ -223,7 +223,7 @@ int main(int argc, char ** argv)
 				/* select a chat (argument 1 = name of chat to select) */
 				arg1++;
 				if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
-				sel_chat = mrmailbox_get_chat_by_id(mailbox, atoi(arg1)); /* may be NULL */
+				sel_chat = mrmailbox_get_chat(mailbox, atoi(arg1)); /* may be NULL */
 			}
 
 			/* show chat */
@@ -238,7 +238,7 @@ int main(int argc, char ** argv)
 					for( i = cnt-1; i >= 0; i-- )
 					{
 						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
-						mrcontact_t* contact = mrmailbox_get_contact_by_id(mailbox, msg->m_from_id);
+						mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
 						const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
 						int contact_id = contact? contact->m_id : 0;
 

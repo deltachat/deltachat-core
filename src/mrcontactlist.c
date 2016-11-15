@@ -105,26 +105,4 @@ mrcontactlist_t* mrmailbox_get_contactlist(mrmailbox_t* ths)
 }
 
 
-mrcontact_t* mrmailbox_get_contact_by_id(mrmailbox_t* ths, uint32_t contact_id)
-{
-	mrcontact_t* ret = mrcontact_new(ths);
 
-	if( contact_id == MR_CONTACT_ID_SELF )
-	{
-		ret->m_id   = contact_id;
-		ret->m_name = mrstock_str(MR_STR_SELF);
-	}
-	else
-	{
-		mrsqlite3_lock(ths->m_sql);
-
-			if( !mrcontact_load_from_db_(ret, contact_id) ) {
-				mrcontact_unref(ret);
-				ret = NULL;
-			}
-
-		mrsqlite3_unlock(ths->m_sql);
-	}
-
-	return ret; /* may be NULL */
-}
