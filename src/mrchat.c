@@ -478,9 +478,19 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
-			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
-		sqlite3_bind_int(stmt, 1, chat_id);
+		if( chat_id == MR_CHAT_ID_STRANGERS )
+		{
+			stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_id_FROM_CONTACTS_WHERE_chat_id,
+				"SELECT DISTINCT from_id FROM msgs WHERE chat_id=? ORDER BY id DESC;");
+			sqlite3_bind_int(stmt, 1, chat_id);
+		}
+		else
+		{
+			stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+				"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
+			sqlite3_bind_int(stmt, 1, chat_id);
+		}
+
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 		}

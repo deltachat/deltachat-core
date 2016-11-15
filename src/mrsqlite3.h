@@ -66,6 +66,7 @@ enum
 	,SELECT_inao_FROM_contacts_a
 	,SELECT_id_FROM_contacts_WHERE_id
 	,SELECT_addr_FROM_contacts_WHERE_chat_id
+	,SELECT_id_FROM_CONTACTS_WHERE_chat_id
 	,INSERT_INTO_contacts_neo
 	,UPDATE_contacts_nao_WHERE_i
 	,UPDATE_contacts_SET_origin_WHERE_id
