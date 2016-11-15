@@ -376,10 +376,24 @@ int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 }
 
 
+uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	uint32_t chat_id = 0;
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		chat_id = mrmailbox_real_chat_exists_(mailbox, MR_CHAT_NORMAL, contact_id);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	return chat_id;
+}
+
+
 uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
-	int           send_event = 0;
+	int           send_event = 0, locked = 0;
 	sqlite3_stmt* stmt;
 
 	if( ths == NULL ) {
@@ -387,6 +401,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+	locked = 1;
 
 		chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, contact_id);
 		if( chat_id ) {
@@ -409,8 +424,13 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 		sqlite3_bind_int(stmt, 2, contact_id);
 		sqlite3_step(stmt);
 
-cleanup:
 	mrsqlite3_unlock(ths->m_sql);
+	locked = 0;
+
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(ths->m_sql);
+	}
 
 	if( send_event ) {
 		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
