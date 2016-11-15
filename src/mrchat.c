@@ -449,14 +449,18 @@ carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg
 		goto cleanup;
 	}
 
-	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
-		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_bind_int(stmt, 2, msg_type);
-	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
-	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
-	}
+	mrsqlite3_lock(mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
+			"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
+		sqlite3_bind_int(stmt, 1, chat_id);
+		sqlite3_bind_int(stmt, 2, msg_type);
+		sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
 
 cleanup:
 	return ret;
@@ -472,12 +476,16 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
-		"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
-	}
+	mrsqlite3_lock(mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
+		sqlite3_bind_int(stmt, 1, chat_id);
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
 
 cleanup:
 	return ret;
@@ -658,39 +666,51 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	if( ths->m_type == MR_CHAT_NORMAL )
 	{
 		int r;
-		stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
-			"SELECT c.addr FROM chats_contacts cc "
-				" LEFT JOIN contacts c ON c.id=cc.contact_id "
-				" WHERE cc.chat_id=?;");
-		sqlite3_bind_int(stmt, 1, ths->m_id);
+		mrsqlite3_lock(ths->m_mailbox->m_sql);
 
-		r = sqlite3_step(stmt);
-		if( r == SQLITE_ROW ) {
-			ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
-		}
+			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
+				"SELECT c.addr FROM chats_contacts cc "
+					" LEFT JOIN contacts c ON c.id=cc.contact_id "
+					" WHERE cc.chat_id=?;");
+			sqlite3_bind_int(stmt, 1, ths->m_id);
+
+			r = sqlite3_step(stmt);
+			if( r == SQLITE_ROW ) {
+				ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
+			}
+
+		mrsqlite3_unlock(ths->m_mailbox->m_sql);
 	}
 	else if( ths->m_type == MR_CHAT_GROUP )
 	{
 		int cnt = 0;
 		if( ths->m_id == MR_CHAT_ID_STRANGERS )
 		{
-			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
-				"SELECT COUNT(DISTINCT from_id) FROM msgs WHERE chat_id=?;");
-			sqlite3_bind_int(stmt, 1, ths->m_id);
-			if( sqlite3_step(stmt) == SQLITE_ROW ) {
-				cnt = sqlite3_column_int(stmt, 0);
-				ret = mrstock_str_pl(MR_STR_CONTACT, cnt);
-			}
+			mrsqlite3_lock(ths->m_mailbox->m_sql);
+
+				stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
+					"SELECT COUNT(DISTINCT from_id) FROM msgs WHERE chat_id=?;");
+				sqlite3_bind_int(stmt, 1, ths->m_id);
+				if( sqlite3_step(stmt) == SQLITE_ROW ) {
+					cnt = sqlite3_column_int(stmt, 0);
+					ret = mrstock_str_pl(MR_STR_CONTACT, cnt);
+				}
+
+			mrsqlite3_unlock(ths->m_mailbox->m_sql);
 		}
 		else
 		{
-			stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_c,
-				"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
-			sqlite3_bind_int(stmt, 1, ths->m_id);
-			if( sqlite3_step(stmt) == SQLITE_ROW ) {
-				cnt = sqlite3_column_int(stmt, 0);
-				ret = mrstock_str_pl(MR_STR_MEMBER, cnt + 1 /*do not forget ourself!*/);
-			}
+			mrsqlite3_lock(ths->m_mailbox->m_sql);
+
+				stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_c,
+					"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
+				sqlite3_bind_int(stmt, 1, ths->m_id);
+				if( sqlite3_step(stmt) == SQLITE_ROW ) {
+					cnt = sqlite3_column_int(stmt, 0);
+					ret = mrstock_str_pl(MR_STR_MEMBER, cnt + 1 /*do not forget ourself!*/);
+				}
+
+			mrsqlite3_unlock(ths->m_mailbox->m_sql);
 		}
 	}
 
