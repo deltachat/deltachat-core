@@ -41,7 +41,7 @@ static char** s_obj = NULL;
 static int    s_def_strings_added = 0;
 
 
-static void mrstock_init_array_()
+static void mrstock_init_array()
 {
 	if( s_obj ) {
 		return; /* already initialized*/
@@ -82,7 +82,7 @@ void mrstock_add_str(int id, const char* str)
 		return;
 	}
 
-	mrstock_init_array_();
+	mrstock_init_array();
 
 	if( s_obj[id] ) {
 		free(s_obj[id]);
@@ -95,7 +95,7 @@ void mrstock_add_str(int id, const char* str)
 char* mrstock_str(int id) /* get the string with the given ID, the result must be free()'d! */
 {
 	/* init array */
-	mrstock_init_array_();
+	mrstock_init_array();
 
 	if( id < 0 || id >= MR_STR_COUNT_ ) {
 		return safe_strdup("StockRangeErr");

@@ -50,11 +50,11 @@ typedef struct mrjob_t {
 	time_t     m_start_again_at; /* 1=on next loop, >1=on timestamp, 0=delete job (default) */
 } mrjob_t;
 
-void     mrjob_init_thread_    (mrmailbox_t*);
-void     mrjob_exit_thread_    (mrmailbox_t*);
-uint32_t mrjob_add_            (mrmailbox_t*, int action, int foreign_id, const char* param); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
+void     mrjob_init_thread     (mrmailbox_t*);
+void     mrjob_exit_thread     (mrmailbox_t*);
+uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const char* param); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
 void     mrjob_try_again_later (mrjob_t*);
-void     mrjob_ping_           (mrmailbox_t*);
+void     mrjob_ping__          (mrmailbox_t*);
 
 
 #ifdef __cplusplus

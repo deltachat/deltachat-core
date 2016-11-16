@@ -25,11 +25,10 @@
  *
  *******************************************************************************
  *
- * NB: In general, function names ending with a `_` are private functions and
- * should not be called directly from outside the library.
- * For functions with database access, this generally also implies that _no_
+ * NB: In general, function names ending with a `__` implie that _no_
  * locking takes place inside the functions!  So the caller must make sure, the
- * database is locked as needed.
+ * database is locked as needed.  Of course, the same is true if you call any
+ * sqlite3-function directly.
  *
  ******************************************************************************/
 
@@ -136,21 +135,21 @@ typedef struct mrsqlite3_t
 
 mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
 void          mrsqlite3_unref            (mrsqlite3_t*);
-int           mrsqlite3_open_            (mrsqlite3_t*, const char* dbfile);
-void          mrsqlite3_close_           (mrsqlite3_t*);
+int           mrsqlite3_open__           (mrsqlite3_t*, const char* dbfile);
+void          mrsqlite3_close__          (mrsqlite3_t*);
 int           mrsqlite3_is_open          (const mrsqlite3_t*);
 
 /* handle configurations, private */
-int           mrsqlite3_set_config_      (mrsqlite3_t*, const char* key, const char* value);
-int           mrsqlite3_set_config_int_  (mrsqlite3_t*, const char* key, int32_t value);
-char*         mrsqlite3_get_config_      (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
-int32_t       mrsqlite3_get_config_int_  (mrsqlite3_t*, const char* key, int32_t def);
+int           mrsqlite3_set_config__     (mrsqlite3_t*, const char* key, const char* value);
+int           mrsqlite3_set_config_int__ (mrsqlite3_t*, const char* key, int32_t value);
+char*         mrsqlite3_get_config__     (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
+int32_t       mrsqlite3_get_config_int__ (mrsqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
-sqlite3_stmt* mrsqlite3_predefine_       (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
+sqlite3_stmt* mrsqlite3_predefine__      (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
 sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
-int           mrsqlite3_execute_         (mrsqlite3_t*, const char* sql);
-int           mrsqlite3_table_exists_    (mrsqlite3_t*, const char* name);
+int           mrsqlite3_execute__        (mrsqlite3_t*, const char* sql);
+int           mrsqlite3_table_exists__   (mrsqlite3_t*, const char* name);
 void          mrsqlite3_log_error        (mrsqlite3_t*, const char* msg, ...);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
@@ -161,9 +160,9 @@ void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; these 
 void          mrsqlite3_unlock           (mrsqlite3_t*);
 
 /* nestable transactions, only the outest is really used */
-void          mrsqlite3_begin_transaction_(mrsqlite3_t*);
-void          mrsqlite3_commit_           (mrsqlite3_t*);
-void          mrsqlite3_rollback_         (mrsqlite3_t*);
+void          mrsqlite3_begin_transaction__(mrsqlite3_t*);
+void          mrsqlite3_commit__           (mrsqlite3_t*);
+void          mrsqlite3_rollback__         (mrsqlite3_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

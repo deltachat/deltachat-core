@@ -89,13 +89,13 @@ uint32_t      mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save 
 /*** library-private **********************************************************/
 
 #define       MR_CHAT_FIELDS                         " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt "
-int           mrchat_set_from_stmt_                  (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
-int           mrchat_load_from_db_                   (mrchat_t*, uint32_t id);
-size_t        mrmailbox_get_chat_cnt_                (mrmailbox_t*);
-uint32_t      mrmailbox_create_or_lookup_chat_record_(mrmailbox_t*, uint32_t contact_id);
-uint32_t      mrmailbox_real_chat_exists_            (mrmailbox_t*, int type, uint32_t contact_id);
-int           mrmailbox_get_total_msg_count_         (mrmailbox_t*, uint32_t chat_id);
-int           mrmailbox_get_unseen_count_            (mrmailbox_t*, uint32_t chat_id);
+int           mrchat_set_from_stmt__                 (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
+int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);
+size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
+uint32_t      mrmailbox_create_or_lookup_chat_record__(mrmailbox_t*, uint32_t contact_id);
+uint32_t      mrmailbox_real_chat_exists__           (mrmailbox_t*, int type, uint32_t contact_id);
+int           mrmailbox_get_total_msg_count__        (mrmailbox_t*, uint32_t chat_id);
+int           mrmailbox_get_unseen_count__           (mrmailbox_t*, uint32_t chat_id);
 void          mrmailbox_send_msg_to_smtp             (mrmailbox_t*, mrjob_t*);
 void          mrmailbox_send_msg_to_imap             (mrmailbox_t*, mrjob_t*);
 

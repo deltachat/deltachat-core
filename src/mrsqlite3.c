@@ -76,7 +76,7 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 }
 
 
-int mrsqlite3_execute_(mrsqlite3_t* ths, const char* querystr)
+int mrsqlite3_execute__(mrsqlite3_t* ths, const char* querystr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -136,7 +136,9 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 	}
 
 	if( ths->m_cobj ) {
-		mrsqlite3_close_(ths);
+		pthread_mutex_lock(&ths->m_critical_); /* as a very exeception, we do the locking inside the mrsqlite3-class - normally, this should be done by the caller! */
+			mrsqlite3_close__(ths);
+		pthread_mutex_unlock(&ths->m_critical_);
 	}
 
 	pthread_mutex_destroy(&ths->m_critical_);
@@ -144,7 +146,7 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 }
 
 
-int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
+int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 {
 	if( ths == NULL || dbfile == NULL ) {
 		goto cleanup;
@@ -170,40 +172,40 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 
 	Some words to the "param" fields:  These fields contains a string with additonal, named parameters which must
 	not be accessed by a search and/or are very seldomly used. Moreover, this allows smart minor database updates. */
-	if( !mrsqlite3_table_exists_(ths, "contacts") )
+	if( !mrsqlite3_table_exists__(ths, "contacts") )
 	{
 		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
 
-		mrsqlite3_execute_(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		mrsqlite3_execute_(ths, "CREATE INDEX config_index1 ON config (keyname);");
+		mrsqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+		mrsqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-		mrsqlite3_execute_(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute__(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 					" name TEXT DEFAULT '',"
 					" addr TEXT DEFAULT '' COLLATE NOCASE,"
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
 					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
 					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
-		mrsqlite3_execute_(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
-		mrsqlite3_execute_(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
+		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (addr COLLATE NOCASE);");
+		mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
 		#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
 			#error
 		#endif
 
-		mrsqlite3_execute_(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+		mrsqlite3_execute__(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 					" type INTEGER,"
 					" name TEXT,"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");      /* param is for future use */
-		mrsqlite3_execute_(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
-		mrsqlite3_execute_(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
-		mrsqlite3_execute_(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'strangers_cc'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
+		mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+		mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'strangers_cc'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_STRANGERS!=1 || MR_CHAT_ID_TRASH!=2 || MR_CHAT_ID_BLOCKED_USERS!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_STRANGERS_GHOST_CC!=5
 			#error
 		#endif
 
-		mrsqlite3_execute_(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute__(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
@@ -216,22 +218,22 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 					" txt TEXT,"                       /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
-		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
-		mrsqlite3_execute_(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 
-		mrsqlite3_execute_(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"
 					" desired_timestamp INTEGER DEFAULT 0,"
 					" action INTEGER,"
 					" foreign_id INTEGER,"
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute_(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
+		mrsqlite3_execute__(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
 
-		if( !mrsqlite3_table_exists_(ths, "config") || !mrsqlite3_table_exists_(ths, "contacts")
-		 || !mrsqlite3_table_exists_(ths, "chats") || !mrsqlite3_table_exists_(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists_(ths, "msgs") || !mrsqlite3_table_exists_(ths, "jobs") )
+		if( !mrsqlite3_table_exists__(ths, "config") || !mrsqlite3_table_exists__(ths, "contacts")
+		 || !mrsqlite3_table_exists__(ths, "chats") || !mrsqlite3_table_exists__(ths, "chats_contacts")
+		 || !mrsqlite3_table_exists__(ths, "msgs") || !mrsqlite3_table_exists__(ths, "jobs") )
 		{
 			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
 			goto cleanup; /* cannot create the tables - maybe we cannot write? */
@@ -241,7 +243,7 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	/* prepare statements that are used at different source code positions and/or are always needed.
 	other statements are prepared just-in-time as needed.
 	(we do it when the tables really exists, however, I do not know if sqlite relies on this) */
-	if( !mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
+	if( !mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
 	{
 		mrsqlite3_log_error(ths, "Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
 		goto cleanup;
@@ -251,12 +253,12 @@ int mrsqlite3_open_(mrsqlite3_t* ths, const char* dbfile)
 	return 1;
 
 cleanup:
-	mrsqlite3_close_(ths);
+	mrsqlite3_close__(ths);
 	return 0;
 }
 
 
-void mrsqlite3_close_(mrsqlite3_t* ths)
+void mrsqlite3_close__(mrsqlite3_t* ths)
 {
 	int i;
 
@@ -290,7 +292,7 @@ int mrsqlite3_is_open(const mrsqlite3_t* ths)
 }
 
 
-sqlite3_stmt* mrsqlite3_predefine_(mrsqlite3_t* ths, size_t idx, const char* querystr)
+sqlite3_stmt* mrsqlite3_predefine__(mrsqlite3_t* ths, size_t idx, const char* querystr)
 {
 	/* predefines a statement or resets and reuses a statment.
 	Subsequent call may ommit the querystring.
@@ -322,7 +324,7 @@ sqlite3_stmt* mrsqlite3_predefine_(mrsqlite3_t* ths, size_t idx, const char* que
 }
 
 
-int mrsqlite3_table_exists_(mrsqlite3_t* ths, const char* name)
+int mrsqlite3_table_exists__(mrsqlite3_t* ths, const char* name)
 {
 	int           ret = 0;
 	char*         querystr = NULL;
@@ -365,7 +367,7 @@ cleanup:
  ******************************************************************************/
 
 
-int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
+int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 {
 	int           state;
 	sqlite3_stmt* stmt;
@@ -383,18 +385,18 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	if( value )
 	{
 		/* insert/update key=value */
-		stmt = mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+		stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
 		sqlite3_bind_text (stmt, 1, key, -1, SQLITE_STATIC);
 		state=sqlite3_step(stmt);
 		if( state == SQLITE_DONE ) {
-			stmt = mrsqlite3_predefine_(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
+			stmt = mrsqlite3_predefine__(ths, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
 			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
 			state=sqlite3_step(stmt);
 
 		}
 		else if( state == SQLITE_ROW ) {
-			stmt = mrsqlite3_predefine_(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
+			stmt = mrsqlite3_predefine__(ths, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
 			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
 			state=sqlite3_step(stmt);
@@ -407,7 +409,7 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 	else
 	{
 		/* delete key */
-		stmt = mrsqlite3_predefine_(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
+		stmt = mrsqlite3_predefine__(ths, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
 		sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 		state=sqlite3_step(stmt);
 	}
@@ -421,7 +423,7 @@ int mrsqlite3_set_config_(mrsqlite3_t* ths, const char* key, const char* value)
 }
 
 
-char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
+char* mrsqlite3_get_config__(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
 {
 	sqlite3_stmt* stmt;
 
@@ -429,7 +431,7 @@ char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) 
 		return safe_strdup(def);
 	}
 
-	stmt = mrsqlite3_predefine_(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+	stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
@@ -449,9 +451,9 @@ char* mrsqlite3_get_config_(mrsqlite3_t* ths, const char* key, const char* def) 
 }
 
 
-int32_t mrsqlite3_get_config_int_(mrsqlite3_t* ths, const char* key, int32_t def)
+int32_t mrsqlite3_get_config_int__(mrsqlite3_t* ths, const char* key, int32_t def)
 {
-    char* str = mrsqlite3_get_config_(ths, key, NULL);
+    char* str = mrsqlite3_get_config__(ths, key, NULL);
     if( str == NULL ) {
 		return def;
     }
@@ -461,13 +463,13 @@ int32_t mrsqlite3_get_config_int_(mrsqlite3_t* ths, const char* key, int32_t def
 }
 
 
-int mrsqlite3_set_config_int_(mrsqlite3_t* ths, const char* key, int32_t value)
+int mrsqlite3_set_config_int__(mrsqlite3_t* ths, const char* key, int32_t value)
 {
     char* value_str = sqlite3_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return 0;
     }
-    int ret = mrsqlite3_set_config_(ths, key, value_str);
+    int ret = mrsqlite3_set_config__(ths, key, value_str);
     sqlite3_free(value_str);
     return ret;
 }
@@ -495,7 +497,7 @@ void mrsqlite3_unlock(mrsqlite3_t* ths)
  ******************************************************************************/
 
 
-void mrsqlite3_begin_transaction_(mrsqlite3_t* ths)
+void mrsqlite3_begin_transaction__(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -503,7 +505,7 @@ void mrsqlite3_begin_transaction_(mrsqlite3_t* ths)
 
 	if( ths->m_transactionCount == 1 )
 	{
-		stmt = mrsqlite3_predefine_(ths, BEGIN_transaction, "BEGIN;");
+		stmt = mrsqlite3_predefine__(ths, BEGIN_transaction, "BEGIN;");
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			mrsqlite3_log_error(ths, "Cannot begin transaction.");
 		}
@@ -511,7 +513,7 @@ void mrsqlite3_begin_transaction_(mrsqlite3_t* ths)
 }
 
 
-void mrsqlite3_rollback_(mrsqlite3_t* ths)
+void mrsqlite3_rollback__(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -519,7 +521,7 @@ void mrsqlite3_rollback_(mrsqlite3_t* ths)
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			stmt = mrsqlite3_predefine_(ths, ROLLBACK_transaction, "ROLLBACK;");
+			stmt = mrsqlite3_predefine__(ths, ROLLBACK_transaction, "ROLLBACK;");
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot rollback transaction.");
 			}
@@ -530,7 +532,7 @@ void mrsqlite3_rollback_(mrsqlite3_t* ths)
 }
 
 
-void mrsqlite3_commit_(mrsqlite3_t* ths)
+void mrsqlite3_commit__(mrsqlite3_t* ths)
 {
 	sqlite3_stmt* stmt;
 
@@ -538,7 +540,7 @@ void mrsqlite3_commit_(mrsqlite3_t* ths)
 	{
 		if( ths->m_transactionCount == 1 )
 		{
-			stmt = mrsqlite3_predefine_(ths, COMMIT_transaction, "COMMIT;");
+			stmt = mrsqlite3_predefine__(ths, COMMIT_transaction, "COMMIT;");
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				mrsqlite3_log_error(ths, "Cannot commit transaction.");
 			}

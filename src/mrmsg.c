@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
+int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
 {
 	mrmsg_empty(ths);
 
@@ -69,7 +69,7 @@ int mrmsg_set_from_stmt_(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fie
 }
 
 
-int mrmsg_load_from_db_(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
+int mrmsg_load_from_db__(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
@@ -79,7 +79,7 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
 
 	mrmsg_empty(ths);
 
-	stmt = mrsqlite3_predefine_(sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = mrsqlite3_predefine__(sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -87,7 +87,7 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
 		return 0;
 	}
 
-	if( !mrmsg_set_from_stmt_(ths, stmt, 0) ) {
+	if( !mrmsg_set_from_stmt__(ths, stmt, 0) ) {
 		return 0;
 	}
 
@@ -95,9 +95,9 @@ int mrmsg_load_from_db_(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
 }
 
 
-void mrmailbox_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32_t chat_id)
+void mrmailbox_update_msg_chat_id__(mrmailbox_t* mailbox, uint32_t msg_id, uint32_t chat_id)
 {
-    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
+    sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
 		"UPDATE msgs SET chat_id=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -105,9 +105,9 @@ void mrmailbox_update_msg_chat_id_(mrmailbox_t* mailbox, uint32_t msg_id, uint32
 }
 
 
-void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int state)
+void mrmailbox_update_msg_state__(mrmailbox_t* mailbox, uint32_t msg_id, int state)
 {
-    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+    sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
 		"UPDATE msgs SET state=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, state);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -115,10 +115,10 @@ void mrmailbox_update_msg_state_(mrmailbox_t* mailbox, uint32_t msg_id, int stat
 }
 
 
-static int mrmailbox_update_msg_state_conditional_(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
+static int mrmailbox_update_msg_state_conditional__(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
 {
 	/* updates the message state only if the message has an given old state, returns the number of affected rows */
-    sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
+    sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
 		"UPDATE msgs SET state=? WHERE id=? AND state=?;");
 	sqlite3_bind_int(stmt, 1, new_state);
 	sqlite3_bind_int(stmt, 2, msg_id);
@@ -128,13 +128,13 @@ static int mrmailbox_update_msg_state_conditional_(mrmailbox_t* mailbox, uint32_
 }
 
 
-size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
+size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id>?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -146,13 +146,13 @@ size_t mrmailbox_get_real_msg_cnt_(mrmailbox_t* mailbox)
 }
 
 
-size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
+size_t mrmailbox_get_strangers_msg_cnt__(mrmailbox_t* mailbox)
 {
 	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_STRANGERS);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -163,14 +163,14 @@ size_t mrmailbox_get_strangers_msg_cnt_(mrmailbox_t* mailbox)
 }
 
 
-int mrmailbox_rfc724_mid_cnt_(mrmailbox_t* mailbox, const char* rfc724_mid)
+int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
 	/* check the number of messages with the same rfc724_mid */
-	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid,
 		"SELECT COUNT(*) FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -181,11 +181,11 @@ int mrmailbox_rfc724_mid_cnt_(mrmailbox_t* mailbox, const char* rfc724_mid)
 }
 
 
-int mrmailbox_rfc724_mid_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
+int mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
-	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
 		"SELECT server_folder, server_uid FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -200,9 +200,9 @@ int mrmailbox_rfc724_mid_exists_(mrmailbox_t* mailbox, const char* rfc724_mid, c
 }
 
 
-void mrmailbox_update_server_uid_(mrmailbox_t* mailbox, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
+void mrmailbox_update_server_uid__(mrmailbox_t* mailbox, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
 {
-	sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, UPDATE_msgs_SET_ss_WHERE_rfc724_mid,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_ss_WHERE_rfc724_mid,
 		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead "id" as there may be several db-entries refering to the same "rfc724_mid" */
 	sqlite3_bind_text(stmt, 1, server_folder, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, server_uid);
@@ -278,7 +278,7 @@ mrmsg_t* mrmailbox_get_msg(mrmailbox_t* ths, uint32_t id)
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-		if( !mrmsg_load_from_db_(obj, ths->m_sql, id) ) {
+		if( !mrmsg_load_from_db__(obj, ths->m_sql, id) ) {
 			goto cleanup;
 		}
 
@@ -313,10 +313,10 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		mrmsg_load_from_db_(msg, mailbox->m_sql, msg_id);
+		mrmsg_load_from_db__(msg, mailbox->m_sql, msg_id);
 		msg_id = mrparam_get_int(msg->m_param, 'G', msg_id);
 
-		stmt = mrsqlite3_predefine_(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -375,11 +375,11 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db_(msg, mailbox->m_sql, job->m_foreign_id) ) {
+		if( !mrmsg_load_from_db__(msg, mailbox->m_sql, job->m_foreign_id) ) {
 			goto cleanup;
 		}
 
-		if( mrmailbox_rfc724_mid_cnt_(mailbox, msg->m_rfc724_mid) != 1 ) {
+		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
 			mrlog_info("The message is deleted from the server when all message are deleted.");
 			delete_from_server = 0;
 		}
@@ -412,7 +412,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		sqlite3_stmt* stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id, "DELETE FROM msgs WHERE id=?;");
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id, "DELETE FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
@@ -423,7 +423,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 
 		char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, msg->m_id);
-		stmt = mrsqlite3_predefine_(mailbox->m_sql, DELETE_FROM_msgs_WHERE_rfc724_mid, "DELETE FROM msgs WHERE rfc724_mid=?;");
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_rfc724_mid, "DELETE FROM msgs WHERE rfc724_mid=?;");
 		sqlite3_bind_text(stmt, 1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
 		free(ghost_rfc724_mid_str);
@@ -446,12 +446,12 @@ int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction_(ths->m_sql);
+	mrsqlite3_begin_transaction__(ths->m_sql);
 
-		mrmailbox_update_msg_chat_id_(ths, msg_id, MR_CHAT_ID_TRASH);
-		mrjob_add_(ths, MRJ_DELETE_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
+		mrmailbox_update_msg_chat_id__(ths, msg_id, MR_CHAT_ID_TRASH);
+		mrjob_add__(ths, MRJ_DELETE_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
 
-	mrsqlite3_commit_(ths->m_sql);
+	mrsqlite3_commit__(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
@@ -479,7 +479,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db_(msg, mailbox->m_sql, job->m_foreign_id) ) {
+		if( !mrmsg_load_from_db__(msg, mailbox->m_sql, job->m_foreign_id) ) {
 			goto cleanup;
 		}
 
@@ -505,13 +505,13 @@ int mrmailbox_markseen_msg(mrmailbox_t* ths, uint32_t msg_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction_(ths->m_sql);
+	mrsqlite3_begin_transaction__(ths->m_sql);
 
-		if( mrmailbox_update_msg_state_conditional_(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) { /* avoid converting outgoing messages to incoming ones and protect against double calls */
-			mrjob_add_(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+		if( mrmailbox_update_msg_state_conditional__(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) { /* avoid converting outgoing messages to incoming ones and protect against double calls */
+			mrjob_add__(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 		}
 
-	mrsqlite3_commit_(ths->m_sql);
+	mrsqlite3_commit__(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;

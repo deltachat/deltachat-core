@@ -88,16 +88,16 @@ void         mrmsg_empty                  (mrmsg_t*);
 /*** library-private **********************************************************/
 
 #define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.txt, m.param,m.bytes "
-int          mrmsg_set_from_stmt_             (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
-int          mrmsg_load_from_db_              (mrmsg_t*, mrsqlite3_t*, uint32_t id);
+int          mrmsg_set_from_stmt__            (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+int          mrmsg_load_from_db__             (mrmsg_t*, mrsqlite3_t*, uint32_t id);
 char*        mrmsg_get_summary                (int type, const char* text, int approx_bytes); /* the returned values must be free()'d */
-size_t       mrmailbox_get_real_msg_cnt_      (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
-size_t       mrmailbox_get_strangers_msg_cnt_ (mrmailbox_t*);
-int          mrmailbox_rfc724_mid_cnt_        (mrmailbox_t*, const char* rfc724_mid);
-int          mrmailbox_rfc724_mid_exists_     (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
-void         mrmailbox_update_server_uid_     (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
-void         mrmailbox_update_msg_chat_id_    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
-void         mrmailbox_update_msg_state_      (mrmailbox_t*, uint32_t msg_id, int state);
+size_t       mrmailbox_get_real_msg_cnt__     (mrmailbox_t*); /* the number of messages assigned to real chat (!=strangers, !=trash) */
+size_t       mrmailbox_get_strangers_msg_cnt__(mrmailbox_t*);
+int          mrmailbox_rfc724_mid_cnt__       (mrmailbox_t*, const char* rfc724_mid);
+int          mrmailbox_rfc724_mid_exists__    (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
+void         mrmailbox_update_server_uid__    (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
+void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
+void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 

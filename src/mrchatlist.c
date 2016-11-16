@@ -35,7 +35,7 @@
  ******************************************************************************/
 
 
-int mrchatlist_load_from_db_(mrchatlist_t* ths)
+int mrchatlist_load_from_db__(mrchatlist_t* ths)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -49,10 +49,10 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
 
 	mrchatlist_empty(ths);
 
-	show_strangers = mrsqlite3_get_config_int_(ths->m_mailbox->m_sql, "show_strangers", 0);
+	show_strangers = mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_strangers", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine_(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
+	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
 		"SELECT " MR_CHAT_FIELDS "," MR_MSG_FIELDS " FROM chats c "
 			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
 			" WHERE c.id>? OR c.id=?"
@@ -68,10 +68,10 @@ int mrchatlist_load_from_db_(mrchatlist_t* ths)
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
 		chat = mrchat_new(ths->m_mailbox);
-		row_offset = mrchat_set_from_stmt_(chat, stmt);
+		row_offset = mrchat_set_from_stmt__(chat, stmt);
 
 		chat->m_last_msg_ = mrmsg_new();
-		mrmsg_set_from_stmt_(chat->m_last_msg_, stmt, row_offset);
+		mrmsg_set_from_stmt__(chat->m_last_msg_, stmt, row_offset);
 
 		carray_add(ths->m_chats, (void*)chat, NULL);
     }

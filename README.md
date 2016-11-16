@@ -75,7 +75,7 @@ Some hints:
 - Headers may cointain headlines as "library-private" - stull following there
   is not meant to be used by the library user.
 
-- The underscore at the end of a function-name may be a _hint_, that this
+- Two underscores at the end of a function-name may be a _hint_, that this
   function does no resource locking.
 
 - For objects, C-structures are used.  If not mentioned otherwise, you can

@@ -50,8 +50,8 @@
 			pthread_mutex_unlock(&ths->m_inwait_mutex); \
 		}
 
-static int  setup_handle_if_needed_ (mrimap_t*);
-static void unsetup_handle_         (mrimap_t*);
+static int  setup_handle_if_needed__ (mrimap_t*);
+static void unsetup_handle__         (mrimap_t*);
 
 
 /*******************************************************************************
@@ -175,7 +175,7 @@ typedef struct mrimapfolder_t
 } mrimapfolder_t;
 
 
-static clist* list_folders_(mrimap_t* ths)
+static clist* list_folders__(mrimap_t* ths)
 {
 	clist*     imap_list = NULL;
 	clistiter* iter1;
@@ -227,7 +227,7 @@ cleanup:
 }
 
 
-static void free_folders_(clist* folders)
+static void free_folders__(clist* folders)
 {
 	if( folders ) {
 		clistiter* iter1;
@@ -242,7 +242,7 @@ static void free_folders_(clist* folders)
 }
 
 
-static int init_sent_folder_(mrimap_t* ths)
+static int init_sent_folder__(mrimap_t* ths)
 {
 	int        success = 0;
 	clist*     folder_list = NULL;
@@ -254,7 +254,7 @@ static int init_sent_folder_(mrimap_t* ths)
 		goto cleanup;
 	}
 
-	folder_list = list_folders_(ths);
+	folder_list = list_folders__(ths);
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
 		if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
@@ -277,12 +277,12 @@ static int init_sent_folder_(mrimap_t* ths)
 	}
 
 cleanup:
-	free_folders_(folder_list);
+	free_folders__(folder_list);
 	return success;
 }
 
 
-static int select_folder_(mrimap_t* ths, const char* folder)
+static int select_folder__(mrimap_t* ths, const char* folder)
 {
 	if( strcmp(ths->m_selected_folder, folder)==0 ) {
 		return 1;
@@ -449,7 +449,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 		}
 		else
 		{
-			if( select_folder_(ths, folder)==0 ) {
+			if( select_folder__(ths, folder)==0 ) {
 				mrlog_error("Cannot select folder \"%s\".", folder);
 				goto cleanup;
 			}
@@ -551,7 +551,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	int        total_cnt = 0;
 
 	LOCK_HANDLE
-		folder_list = list_folders_(ths);
+		folder_list = list_folders__(ths);
 	UNLOCK_HANDLE
 
 	/* first, read the INBOX, this looks much better on the initial load as the INBOX
@@ -575,7 +575,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 		}
 	}
 
-	free_folders_(folder_list);
+	free_folders__(folder_list);
 
 	return total_cnt;
 }
@@ -622,8 +622,8 @@ static void* watch_thread_entry_point(void* entry_arg)
 				do_fetch = 0;
 				force_sleep = SLEEP_ON_ERROR_SECONDS;
 				uidvaliditiy = 0;
-				setup_handle_if_needed_(ths);
-				if( select_folder_(ths, "INBOX") )
+				setup_handle_if_needed__(ths);
+				if( select_folder__(ths, "INBOX") )
 				{
 					uidvaliditiy = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
 					r = mailimap_idle(ths->m_hEtpan);
@@ -706,7 +706,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 			}
 
 			LOCK_HANDLE
-				setup_handle_if_needed_(ths);
+				setup_handle_if_needed__(ths);
 			UNLOCK_HANDLE
 
 
@@ -763,12 +763,12 @@ exit_:
  ******************************************************************************/
 
 
-static int setup_handle_if_needed_(mrimap_t* ths)
+static int setup_handle_if_needed__(mrimap_t* ths)
 {
 	int r, success = 0;
 
     if( ths->m_should_reconnect ) {
-		unsetup_handle_(ths);
+		unsetup_handle__(ths);
     }
 
     if( ths->m_hEtpan ) {
@@ -797,7 +797,7 @@ static int setup_handle_if_needed_(mrimap_t* ths)
 
 cleanup:
 	if( success == 0 ) {
-		unsetup_handle_(ths);
+		unsetup_handle__(ths);
 	}
 
 	ths->m_should_reconnect = 0;
@@ -805,7 +805,7 @@ cleanup:
 }
 
 
-static void unsetup_handle_(mrimap_t* ths)
+static void unsetup_handle__(mrimap_t* ths)
 {
 	if( ths->m_hEtpan )
 	{
@@ -854,13 +854,13 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
 		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 
-		if( !setup_handle_if_needed_(ths) ) {
+		if( !setup_handle_if_needed__(ths) ) {
 			goto cleanup;
 		}
 
 		ths->m_connected = 1;
 
-		/* we set the following flags here and not in setup_handle_if_needed_() as they must not change during connection */
+		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
 		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
 		mrlog_info("Can Idle? %s", ths->m_can_idle? "Yes" : "No");
 
@@ -878,7 +878,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 
 cleanup:
 	if( success == 0 ) {
-		unsetup_handle_(ths);
+		unsetup_handle__(ths);
 	}
 
 	return success;
@@ -916,7 +916,7 @@ void mrimap_disconnect(mrimap_t* ths)
 		mrlog_info("IMAP-watch-thread stopped.");
 
 		LOCK_HANDLE
-			unsetup_handle_(ths);
+			unsetup_handle__(ths);
 			ths->m_can_idle  = 0;
 			ths->m_has_xlist = 0;
 			ths->m_connected = 0;
@@ -1025,12 +1025,12 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 
 		mrlog_info("Appending message IMAP-server...");
 
-		if( !init_sent_folder_(ths) ) {
+		if( !init_sent_folder__(ths) ) {
 			mrlog_error("Cannot find out IMAP-sent-folder.");
 			goto cleanup;
 		}
 
-		if( !select_folder_(ths, ths->m_sent_folder) ) {
+		if( !select_folder__(ths, ths->m_sent_folder) ) {
 			mrlog_error("Cannot select IMAP-sent-folder \"%s\".", ths->m_sent_folder);
 			ths->m_sent_folder[0] = 0; /* force re-init */
 			goto cleanup;
@@ -1073,14 +1073,14 @@ cleanup:
 }
 
 
-static int add_flag_(mrimap_t* ths, const char* folder, uint32_t server_uid, struct mailimap_flag* flag)
+static int add_flag__(mrimap_t* ths, const char* folder, uint32_t server_uid, struct mailimap_flag* flag)
 {
 	int                              r;
 	struct mailimap_flag_list*       flag_list = NULL;
 	struct mailimap_store_att_flags* store_att_flags = NULL;
 	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
 
-	if( select_folder_(ths, folder)==0 ) {
+	if( select_folder__(ths, folder)==0 ) {
 		goto cleanup;
 	}
 
@@ -1114,7 +1114,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
 
 		mrlog_info("Marking message with server_uid=%i as seen...", (int)server_uid);
 
-		if( add_flag_(ths, folder, server_uid, mailimap_flag_new_seen())==0 ) {
+		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_seen())==0 ) {
 			mrlog_error("Cannot mark message as seen.");
 			goto cleanup;
 		}
@@ -1143,7 +1143,7 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 
 		mrlog_info("Deleting message \"%s\", server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
 
-		if( add_flag_(ths, folder, server_uid, mailimap_flag_new_deleted())==0 ) {
+		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_deleted())==0 ) {
 			mrlog_error("Cannot delete message.");
 			goto cleanup;
 		}

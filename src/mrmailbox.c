@@ -52,13 +52,13 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
+static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
 {
 	if( check_self )
 	{
 		*check_self = 0;
 
-		char* self_addr = mrsqlite3_get_config_(ths->m_sql, "configured_addr", "");
+		char* self_addr = mrsqlite3_get_config__(ths->m_sql, "configured_addr", "");
 			if( strcmp(self_addr, addr_spec)==0 ) {
 				*check_self = 1;
 			}
@@ -75,7 +75,7 @@ static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display
 		mr_normalize_name(display_name_dec);
 	}
 
-	uint32_t row_id = mrmailbox_add_or_lookup_contact_(ths, display_name_dec /*can be NULL*/, addr_spec, origin);
+	uint32_t row_id = mrmailbox_add_or_lookup_contact__(ths, display_name_dec /*can be NULL*/, addr_spec, origin);
 
 	free(display_name_dec);
 
@@ -87,19 +87,19 @@ static void add_or_lookup_contact_by_addr_(mrmailbox_t* ths, const char* display
 }
 
 
-static void add_or_lookup_contacts_by_mailbox_list_(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self)
+static void add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
+			add_or_lookup_contact_by_addr__(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 		}
 	}
 }
 
 
-static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self)
+static void add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -108,13 +108,13 @@ static void add_or_lookup_contacts_by_address_list_(mrmailbox_t* ths, struct mai
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					add_or_lookup_contact_by_addr_(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
+					add_or_lookup_contact_by_addr__(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					add_or_lookup_contacts_by_mailbox_list_(ths, group->grp_mb_list, origin, ids, check_self);
+					add_or_lookup_contacts_by_mailbox_list__(ths, group->grp_mb_list, origin, ids, check_self);
 				}
 			}
 		}
@@ -176,7 +176,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-	mrsqlite3_begin_transaction_(ths->m_sql);
+	mrsqlite3_begin_transaction__(ths->m_sql);
 	transaction_pending = 1;
 
 
@@ -220,7 +220,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			{
 				int check_self;
 				carray* from_list = carray_new(16);
-				add_or_lookup_contacts_by_mailbox_list_(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
@@ -232,7 +232,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "strangers" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-						if( mrmailbox_is_known_contact_(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
+						if( mrmailbox_is_known_contact__(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
 							incoming_from_known_sender = 1;
 						}
 					}
@@ -248,7 +248,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
 			{
-				add_or_lookup_contacts_by_address_list_(ths, fld_to->to_addr_list /*!= NULL*/,
+				add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
 					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_list, NULL);
 			}
 		}
@@ -271,7 +271,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				{
 					struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 					if( fld_cc ) {
-						add_or_lookup_contacts_by_address_list_(ths, fld_cc->cc_addr_list,
+						add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
 							outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list, NULL);
 					}
 				}
@@ -279,7 +279,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				{
 					struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
 					if( outgoing && fld_bcc ) {
-						add_or_lookup_contacts_by_address_list_(ths, fld_bcc->bcc_addr_list,
+						add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
 							MR_ORIGIN_OUTGOING_BCC, to_list, NULL);
 					}
 				}
@@ -303,9 +303,9 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		{
 			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
 			to_id = MR_CONTACT_ID_SELF;
-			chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, from_id);
+			chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, from_id);
 			if( chat_id == 0 && incoming_from_known_sender ) {
-				chat_id = mrmailbox_create_or_lookup_chat_record_(ths, from_id);
+				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, from_id);
 			}
 		}
 		else /* outgoing */
@@ -314,7 +314,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-				chat_id = mrmailbox_create_or_lookup_chat_record_(ths, to_id);
+				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, to_id);
 			}
 		}
 
@@ -338,12 +338,12 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		{
 			char*    old_server_folder = NULL;
 			uint32_t old_server_uid = 0;
-			if( mrmailbox_rfc724_mid_exists_(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+			if( mrmailbox_rfc724_mid_exists__(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 				/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
 				if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
-					mrsqlite3_rollback_(ths->m_sql);
+					mrsqlite3_rollback__(ths->m_sql);
 					transaction_pending = 0;
-					mrmailbox_update_server_uid_(ths, rfc724_mid, server_folder, server_uid);
+					mrmailbox_update_server_uid__(ths, rfc724_mid, server_folder, server_uid);
 				}
 				free(old_server_folder);
 				goto cleanup;
@@ -362,7 +362,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 			}
 
-			stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp,
+			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp,
 				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,txt,txt_raw,param) VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?);");
 			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
@@ -408,12 +408,12 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
 			{
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
-				uint32_t ghost_chat_id = mrmailbox_real_chat_exists_(ths, MR_CHAT_NORMAL, ghost_to_id);
+				uint32_t ghost_chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, ghost_to_id);
 				if( ghost_chat_id==0 ) {
 					ghost_chat_id = MR_CHAT_ID_STRANGERS_GHOST_CC;
 				}
 
-				stmt = mrsqlite3_predefine_(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, 0);
@@ -438,7 +438,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 		}
 
 	/* end sql-transaction */
-	mrsqlite3_commit_(ths->m_sql);
+	mrsqlite3_commit__(ths->m_sql);
 	transaction_pending = 0;
 
 	#if 0
@@ -462,7 +462,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	/* done */
 cleanup:
 	if( transaction_pending ) {
-		mrsqlite3_rollback_(ths->m_sql);
+		mrsqlite3_rollback__(ths->m_sql);
 	}
 
 	if( db_locked ) {
@@ -504,7 +504,7 @@ static int32_t cb_get_config_int(mrimap_t* imap, const char* key, int32_t value)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
-		int32_t ret = mrsqlite3_get_config_int_(mailbox->m_sql, key, value);
+		int32_t ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, value);
 	mrsqlite3_unlock(mailbox->m_sql);
 	return ret;
 }
@@ -512,7 +512,7 @@ static void cb_set_config_int(mrimap_t* imap, const char* key, int32_t def)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
-		mrsqlite3_set_config_int_(mailbox->m_sql, key, def);
+		mrsqlite3_set_config_int__(mailbox->m_sql, key, def);
 	mrsqlite3_unlock(mailbox->m_sql);
 }
 static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
@@ -538,7 +538,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths);
 	ths->m_smtp     = mrsmtp_new();
 
-	mrjob_init_thread_(ths);
+	mrjob_init_thread(ths);
 
 	return ths;
 }
@@ -550,7 +550,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 		return;
 	}
 
-	mrjob_exit_thread_(ths);
+	mrjob_exit_thread(ths);
 
 	if( mrmailbox_is_open(ths) ) {
 		mrmailbox_close(ths);
@@ -579,7 +579,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	from which all configuration is read/written to. */
 
 	/* Create/open sqlite database */
-	if( !mrsqlite3_open_(ths->m_sql, dbfile) ) {
+	if( !mrsqlite3_open__(ths->m_sql, dbfile) ) {
 		goto cleanup;
 	}
 
@@ -602,7 +602,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 cleanup:
 	if( !success ) {
 		if( mrsqlite3_is_open(ths->m_sql) ) {
-			mrsqlite3_close_(ths->m_sql);
+			mrsqlite3_close__(ths->m_sql);
 		}
 	}
 
@@ -626,7 +626,7 @@ void mrmailbox_close(mrmailbox_t* ths)
 	mrsqlite3_lock(ths->m_sql);
 
 		if( mrsqlite3_is_open(ths->m_sql) ) {
-			mrsqlite3_close_(ths->m_sql);
+			mrsqlite3_close__(ths->m_sql);
 		}
 
 		free(ths->m_dbfile);
@@ -728,12 +728,12 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	if( spec )
 	{
 		mrsqlite3_lock(ths->m_sql);
-			mrsqlite3_set_config_(ths->m_sql, "import_spec", spec);
+			mrsqlite3_set_config__(ths->m_sql, "import_spec", spec);
 		mrsqlite3_unlock(ths->m_sql);
 	}
 	else {
 		mrsqlite3_lock(ths->m_sql);
-			spec_memory = mrsqlite3_get_config_(ths->m_sql, "import_spec", NULL);
+			spec_memory = mrsqlite3_get_config__(ths->m_sql, "import_spec", NULL);
 		mrsqlite3_unlock(ths->m_sql);
 
 		spec = spec_memory; /* may still  be NULL */
@@ -803,7 +803,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-		ret = mrsqlite3_set_config_(ths->m_sql, key, value);
+		ret = mrsqlite3_set_config__(ths->m_sql, key, value);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -819,7 +819,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-		ret = mrsqlite3_get_config_(ths->m_sql, key, def);
+		ret = mrsqlite3_get_config__(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret; /* the returned string must be free()'d, returns NULL on errors */
@@ -835,7 +835,7 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-		ret = mrsqlite3_set_config_int_(ths->m_sql, key, value);
+		ret = mrsqlite3_set_config_int__(ths->m_sql, key, value);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -851,7 +851,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-		ret = mrsqlite3_get_config_int_(ths->m_sql, key, def);
+		ret = mrsqlite3_get_config_int__(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -873,7 +873,7 @@ int mrmailbox_configure(mrmailbox_t* ths)
 	param = mrloginparam_new();
 
 	mrsqlite3_lock(ths->m_sql);
-		mrloginparam_read_(param, ths->m_sql, "");
+		mrloginparam_read__(param, ths->m_sql, "");
 	mrsqlite3_unlock(ths->m_sql);
 
 	/* complete the parameters; in the future we may also try some server connections here */
@@ -891,12 +891,12 @@ int mrmailbox_configure(mrmailbox_t* ths)
 		 && param->m_send_user
 		 && param->m_send_pw )
 		{
-			mrloginparam_write_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
-			mrsqlite3_set_config_int_(ths->m_sql, "configured", 1);
+			mrloginparam_write__(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+			mrsqlite3_set_config_int__(ths->m_sql, "configured", 1);
 		}
 		else
 		{
-			mrsqlite3_set_config_int_(ths->m_sql, "configured", 0);
+			mrsqlite3_set_config_int__(ths->m_sql, "configured", 0);
 		}
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -923,7 +923,7 @@ int mrmailbox_is_configured(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql);
 
-		is_configured = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
+		is_configured = mrsqlite3_get_config_int__(ths->m_sql, "configured", 0);
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -949,17 +949,17 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql);
 
-		mrloginparam_read_(l, ths->m_sql, "");
-		mrloginparam_read_(l2, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+		mrloginparam_read__(l, ths->m_sql, "");
+		mrloginparam_read__(l2, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-		displayname     = mrsqlite3_get_config_(ths->m_sql, "displayname", NULL);
+		displayname     = mrsqlite3_get_config__(ths->m_sql, "displayname", NULL);
 
-		chats           = mrmailbox_get_chat_cnt_(ths);
-		real_msgs       = mrmailbox_get_real_msg_cnt_(ths);
-		strangers_msgs  = mrmailbox_get_strangers_msg_cnt_(ths);
-		contacts        = mrmailbox_get_real_contact_cnt_(ths);
+		chats           = mrmailbox_get_chat_cnt__(ths);
+		real_msgs       = mrmailbox_get_real_msg_cnt__(ths);
+		strangers_msgs  = mrmailbox_get_strangers_msg_cnt__(ths);
+		contacts        = mrmailbox_get_real_contact_cnt__(ths);
 
-		is_configured   = mrsqlite3_get_config_int_(ths->m_sql, "configured", 0);
+		is_configured   = mrsqlite3_get_config_int__(ths->m_sql, "configured", 0);
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -1030,12 +1030,12 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql);
 
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM chats_contacts;");
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM msgs;");
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-		mrsqlite3_execute_(ths->m_sql, "DELETE FROM jobs;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -1210,7 +1210,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 	else if( strcmp(cmd, "ping")==0 )
 	{
 		mrsqlite3_lock(ths->m_sql);
-			mrjob_ping_(ths);
+			mrjob_ping__(ths);
 		mrsqlite3_unlock(ths->m_sql);
 		ret = COMMAND_SUCCEEDED;
 	}
@@ -1244,12 +1244,12 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	mrsqlite3_lock(ths->m_sql);
 	is_locked = 1;
 
-		if( mrsqlite3_get_config_int_(ths->m_sql, "configured", 0) == 0 ) {
+		if( mrsqlite3_get_config_int__(ths->m_sql, "configured", 0) == 0 ) {
 			mrlog_error("Not configured.");
 			goto cleanup;
 		}
 
-		mrloginparam_read_(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+		mrloginparam_read__(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 	mrsqlite3_unlock(ths->m_sql);
 	is_locked = 0;
@@ -1275,7 +1275,9 @@ int mrmailbox_connect(mrmailbox_t* ths)
 		return 0;
 	}
 
-	mrjob_add_(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
+	mrsqlite3_lock(ths->m_sql);
+		mrjob_add__(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
+	mrsqlite3_unlock(ths->m_sql);
 	return 1;
 }
 
