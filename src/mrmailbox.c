@@ -229,7 +229,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				}
 				else
 				{
-					if( carray_count(from_list)>=1 )
+					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "strangers" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
 						if( mrmailbox_is_known_contact_(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
