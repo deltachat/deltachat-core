@@ -412,7 +412,7 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int block
 
 		sqlite3_step(stmt);
 
-	mrsqlite3_lock(mailbox->m_sql);
+	mrsqlite3_unlock(mailbox->m_sql);
 
 	return 1;
 }
