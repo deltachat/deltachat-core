@@ -197,6 +197,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" name TEXT,"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
+					" blocked INTEGER DEFAULT 0,"
 					" param TEXT DEFAULT '');");      /* param is for future use */
 		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");

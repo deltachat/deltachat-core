@@ -256,11 +256,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, uint32_t contact_id)
 
 	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
 		"SELECT name, addr, origin, blocked FROM contacts WHERE id=?;");
-	if( stmt == NULL ) {
-		goto cleanup;
-	}
 	sqlite3_bind_int(stmt, 1, contact_id);
-
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
@@ -395,8 +391,10 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 }
 
 
-int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int block)
+int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_blocking)
 {
+	int success = 0, locked = 0, send_event = 0, transaction_pending = 0;
+	mrcontact_t*  contact = mrcontact_new(mailbox);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -404,19 +402,61 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int block
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_SET_b_WHERE_i,
-			"UPDATE contacts SET blocked=? WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, block);
-		sqlite3_bind_int(stmt, 2, contact_id);
+		if( mrcontact_load_from_db__(contact, contact_id)
+		 && contact->m_blocked != new_blocking )
+		{
+			mrsqlite3_begin_transaction__(mailbox->m_sql);
+			transaction_pending = 1;
 
-		sqlite3_step(stmt);
+				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_SET_b_WHERE_i,
+					"UPDATE contacts SET blocked=? WHERE id=?;");
+				sqlite3_bind_int(stmt, 1, new_blocking);
+				sqlite3_bind_int(stmt, 2, contact_id);
+				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+					goto cleanup;
+				}
+
+				/* also (un)block all chats with _only_ this contact - we do not delete them to allow a non-destructive blocking->unblocking.
+				(Maybe, beside normal chats (type=100) we should also block group chats with only this user.
+				However, I'm not sure about this point; it may be confusing if the user wants to add other people;
+				this would result in recreating the same group...) */
+				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_blocked,
+					"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
+				sqlite3_bind_int(stmt, 1, new_blocking);
+				sqlite3_bind_int(stmt, 2, MR_CHAT_NORMAL);
+				sqlite3_bind_int(stmt, 3, contact_id);
+				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+					goto cleanup;
+				}
+
+			mrsqlite3_commit__(mailbox->m_sql);
+			transaction_pending = 0;
+
+			send_event = 1;
+		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_BLOCKING_CHANGED, 0, 0);
+	if( send_event ) {
+		mailbox->m_cb(mailbox, MR_EVENT_BLOCKING_CHANGED, 0, 0);
+	}
 
-	return 1;
+	success = 1;
+
+cleanup:
+	if( transaction_pending ) {
+		mrsqlite3_rollback__(mailbox->m_sql);
+	}
+
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+
+	mrcontact_unref(contact);
+	return success;
 }
 
 
