@@ -414,6 +414,8 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int block
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
+	mailbox->m_cb(mailbox, MR_EVENT_BLOCKING_CHANGED, 0, 0);
+
 	return 1;
 }
 

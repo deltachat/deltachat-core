@@ -68,14 +68,16 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 
 /* Callback function that is called on updates, state changes etc.
-- The callback may be called from _any_ thread, not only the main/GUI thread!
-- The callback should return _fast_, for GUI updates etc. you should
+- The callback MAY be called from _any_ thread, not only the main/GUI thread!
+- The callback MUST NOT call any mrmailbox_* and related functions unless stated otherwise!
+- The callback SHOULD return _fast_, for GUI updates etc. you should
   post yourself an asynchronous message to your GUI thread.
 - If not mentioned otherweise, the callback should return 0. */
-#define MR_EVENT_MSGS_UPDATED    2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
-#define MR_EVENT_IS_EMAIL_KNOWN  2010 /* data1: email address, ret=1=email is known, create a chat, ret=0=email is unknown */
-#define MR_EVENT_MSG_DELIVERED   3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSG_READ        3010 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
+#define MR_EVENT_MSGS_UPDATED     2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
+#define MR_EVENT_IS_EMAIL_KNOWN   2010 /* data1: email address, ret=1=email is known, create a chat, ret=0=email is unknown */
+#define MR_EVENT_BLOCKING_CHANGED 2020 /* contact blocking has changed */
+#define MR_EVENT_MSG_DELIVERED    3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
+#define MR_EVENT_MSG_READ         3010 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 
@@ -149,7 +151,7 @@ carray*              mrmailbox_get_known_contacts   (mrmailbox_t*); /* returns k
 mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, uint32_t contact_id);
 uint32_t             mrmailbox_create_contact       (mrmailbox_t*, const char* name, const char* addr);
 carray*              mrmailbox_get_blocked_contacts (mrmailbox_t*);
-int                  mrmailbox_block_contact        (mrmailbox_t*, uint32_t contact_id, int block);
+int                  mrmailbox_block_contact        (mrmailbox_t*, uint32_t contact_id, int block); /* may or may not result in a MR_EVENT_BLOCKING_CHANGED event */
 
 /* Handle configurations as:
 - addr
