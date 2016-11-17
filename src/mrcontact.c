@@ -316,6 +316,34 @@ cleanup:
 }
 
 
+carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox)
+{
+	carray*       ret = carray_new(100);
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_ORDER_BY,
+			"SELECT id FROM contacts"
+				" WHERE id>? AND origin>=? AND blocked=0"
+				" ORDER BY LOWER(name||addr),id;");
+		sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
+		sqlite3_bind_int(stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+
+cleanup:
+	return ret;
+}
+
+
 mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 {
 	mrcontact_t* ret = mrcontact_new(ths);

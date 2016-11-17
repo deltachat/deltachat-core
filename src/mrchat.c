@@ -480,7 +480,7 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 
 		if( chat_id == MR_CHAT_ID_STRANGERS )
 		{
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CONTACTS_WHERE_chat_id,
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_chat_id,
 				"SELECT DISTINCT from_id FROM msgs WHERE chat_id=? and from_id!=0 ORDER BY id DESC;"); /* from_id in the strangers chat may be 0, see comment [**] */
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
