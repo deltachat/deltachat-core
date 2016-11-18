@@ -45,6 +45,7 @@ extern "C" {
 
 /* contact origins */
 #define MR_ORIGIN_UNSET                         0
+#define MR_ORIGIN_MANUALLY_DELETED            0x1 /* Currently not used: Contact manually deleted - we keep the record to save this state if a new mail arrives */
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
@@ -54,7 +55,8 @@ extern "C" {
 #define MR_ORIGIN_OUTGOING_CC              0x2000 /* message send by us */
 #define MR_ORIGIN_OUTGOING_TO              0x4000 /* message send by us */
 #define MR_ORIGIN_INTERNAL                0x40000 /* internal use */
-#define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in out address book */
+#define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
+#define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
 
 
 typedef struct mrcontact_t

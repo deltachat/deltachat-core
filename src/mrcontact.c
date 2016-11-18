@@ -281,6 +281,25 @@ cleanup:
  ******************************************************************************/
 
 
+uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const char* addr)
+{
+	uint32_t contact_id = 0;
+
+	if( mailbox == NULL || addr == NULL || addr[0]==0 ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		contact_id = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_MANUALLY_CREATED);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+
+cleanup:
+	return contact_id;
+}
+
+
 void mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
 {
 	carray* lines = NULL;
