@@ -295,6 +295,8 @@ uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const 
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
+	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
+
 cleanup:
 	return contact_id;
 }
