@@ -45,7 +45,6 @@ extern "C" {
 
 /* contact origins */
 #define MR_ORIGIN_UNSET                         0
-#define MR_ORIGIN_MANUALLY_DELETED            0x1 /* Currently not used: Contact manually deleted - we keep the record to save this state if a new mail arrives */
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
