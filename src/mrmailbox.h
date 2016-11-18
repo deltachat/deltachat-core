@@ -147,7 +147,7 @@ int                  mrmailbox_markseen_msg         (mrmailbox_t*, uint32_t msg_
 int                  mrmailbox_markseen_chat        (mrmailbox_t*, uint32_t chat_id);
 
 /* handle contacts. */
-carray*              mrmailbox_get_known_contacts   (mrmailbox_t*); /* returns known and unblocked contacts, the result must be carray_free()'d */
+carray*              mrmailbox_get_known_contacts   (mrmailbox_t*, const char* query); /* returns known and unblocked contacts, the result must be carray_free()'d */
 mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, uint32_t contact_id);
 uint32_t             mrmailbox_create_contact       (mrmailbox_t*, const char* name, const char* addr);
 carray*              mrmailbox_get_blocked_contacts (mrmailbox_t*);

@@ -312,9 +312,11 @@ cleanup:
 }
 
 
-carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox)
+carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 {
+	int           locked = 0;
 	carray*       ret = carray_new(100);
+	char*         s3strLikeCmd = NULL;
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -322,20 +324,44 @@ carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox)
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_ORDER_BY,
-			"SELECT id FROM contacts"
-				" WHERE id>? AND origin>=? AND blocked=0"
-				" ORDER BY LOWER(name||addr),id;");
-		sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-		sqlite3_bind_int(stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+		if( query ) {
+			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query))==NULL ) {
+				goto cleanup;
+			}
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
+				"SELECT id FROM contacts"
+					" WHERE id>? AND origin>=? AND blocked=0 AND (name LIKE ? OR addr LIKE ?)"
+					" ORDER BY LOWER(name||addr),id;");
+			sqlite3_bind_int (stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
+			sqlite3_bind_int (stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
+			sqlite3_bind_text(stmt, 4, s3strLikeCmd, -1, SQLITE_STATIC);
+		}
+		else {
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_ORDER_BY,
+				"SELECT id FROM contacts"
+					" WHERE id>? AND origin>=? AND blocked=0"
+					" ORDER BY LOWER(name||addr),id;");
+			sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
+			sqlite3_bind_int(stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+		}
+
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	if( s3strLikeCmd ) {
+		sqlite3_free(s3strLikeCmd);
+	}
 	return ret;
 }
 

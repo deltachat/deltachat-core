@@ -61,7 +61,7 @@ typedef struct mrcontact_t
 {
 	uint32_t            m_id;
 	char*               m_name;  /* may be NULL or empty */
-	char*               m_addr;
+	char*               m_addr;  /* may be NULL or empty */
 	int                 m_origin;
 	int                 m_blocked;
 	mrmailbox_t*        m_mailbox;

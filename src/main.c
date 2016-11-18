@@ -159,6 +159,7 @@ int main(int argc, char ** argv)
 			printf("delmsg <id>         delete message\n");
 			printf("event <id>          test the given event\n");
 			printf("createchat <id>     create chat by the given contact id\n");
+			printf("contacts [<query>]  list known contacts\n");
 			printf("adr <name>;<addr>   add entry to address book\n");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
@@ -346,6 +347,26 @@ int main(int argc, char ** argv)
 			else {
 				printf("No chat selected.\n");
 			}
+		}
+		else if( strncmp(cmd, "contacts", 8)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) {
+				arg1++;
+			}
+			carray* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
+			if( contacts ) {
+				int i, cnt = carray_count(contacts);
+				for( i = 0; i < cnt; i++ ) {
+					mrcontact_t* contact = mrmailbox_get_contact(mailbox, (uint32_t)(uintptr_t)carray_get(contacts, i));
+					if( contact ) {
+						printf("Contact #%i: %s, %s\n", (int)contact->m_id,
+							(contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>",
+							(contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+					}
+				}
+			}
+
 		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
