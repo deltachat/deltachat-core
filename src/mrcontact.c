@@ -488,7 +488,7 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_b
 	locked = 0;
 
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_BLOCKING_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
 	}
 
 	success = 1;
@@ -545,6 +545,8 @@ int mrmailbox_delete_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
+
+	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
 
 	success = 1;
 
