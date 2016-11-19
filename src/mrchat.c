@@ -712,7 +712,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		{
 			mrsqlite3_lock(ths->m_mailbox->m_sql);
 
-				stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_c,
+				stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
 					"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
 				sqlite3_bind_int(stmt, 1, ths->m_id);
 				if( sqlite3_step(stmt) == SQLITE_ROW ) {

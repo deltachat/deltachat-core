@@ -507,6 +507,55 @@ cleanup:
 }
 
 
+int mrmailbox_delete_contact(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	int           locked = 0, success = 0;
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		/* we can only delete contacts that are not in use anywhere; this function is mainly for the user who has just
+		created an contact manually and wants to delete it a moment later */
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id,
+			"SELECT COUNT(*) FROM chats_contacts WHERE contact_id=?;");
+		sqlite3_bind_int(stmt, 1, contact_id);
+		if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
+			goto cleanup;
+		}
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_ft,
+			"SELECT COUNT(*) FROM msgs WHERE from_id=? OR to_id=?;");
+		sqlite3_bind_int(stmt, 1, contact_id);
+		sqlite3_bind_int(stmt, 2, contact_id);
+		if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
+			goto cleanup;
+		}
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_contacts_WHERE_id,
+			"DELETE FROM contacts WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, contact_id);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	success = 1;
+
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	return success;
+}
+
+
 mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 {
 	mrcontact_t* ths = NULL;

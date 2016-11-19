@@ -73,6 +73,7 @@ enum
 	,UPDATE_contacts_nao_WHERE_i
 	,UPDATE_contacts_SET_origin_WHERE_id
 	,UPDATE_contacts_SET_b_WHERE_i
+	,DELETE_FROM_contacts_WHERE_id
 
 	,SELECT_COUNT_FROM_chats
 	,SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs
@@ -83,7 +84,8 @@ enum
 	,UPDATE_chats_SET_blocked
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_c
+	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
+	,SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id
 	,SELECT_c_FROM_chats_contacts_WHERE_c
 
 	,SELECT_COUNT_FROM_msgs_WHERE_assigned
@@ -91,6 +93,7 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
+	,SELECT_COUNT_FROM_msgs_WHERE_ft
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_chat_id_AND_state

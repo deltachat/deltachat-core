@@ -130,6 +130,8 @@ int main(int argc, char ** argv)
 		printf("ERROR: Bad arguments\n");
 	}
 
+	mrmailbox_delete_contact(mailbox, 24);
+
 	/* wait for command */
 	while(1)
 	{
