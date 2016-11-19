@@ -75,7 +75,7 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* displa
 		mr_normalize_name(display_name_dec);
 	}
 
-	uint32_t row_id = mrmailbox_add_or_lookup_contact__(ths, display_name_dec /*can be NULL*/, addr_spec, origin);
+	uint32_t row_id = mrmailbox_add_or_lookup_contact__(ths, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
 
 	free(display_name_dec);
 

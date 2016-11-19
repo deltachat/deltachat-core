@@ -80,7 +80,7 @@ void         mrcontact_empty           (mrcontact_t*);
 
 int          mrcontact_load_from_db__         (mrcontact_t*, uint32_t id);
 size_t       mrmailbox_get_real_contact_cnt__ (mrmailbox_t*);
-uint32_t     mrmailbox_add_or_lookup_contact__(mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin);
+uint32_t     mrmailbox_add_or_lookup_contact__(mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
 int          mrmailbox_is_known_contact__     (mrmailbox_t*, uint32_t id);
 int          mrmailbox_real_contact_exists__  (mrmailbox_t*, uint32_t id);
 void         mr_normalize_name                (char* full_name);
