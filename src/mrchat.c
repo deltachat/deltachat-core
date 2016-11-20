@@ -189,7 +189,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t
 	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE (chat_id=%i AND from_id=%i) OR (chat_id=%i AND to_id=%i);",
 		chat_id,
 		MR_CHAT_ID_STRANGERS, contact_id,
-		MR_CHAT_ID_STRANGERS_GHOST_CC, contact_id);
+		MR_CHAT_ID_TO_STRANGERS, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -463,7 +463,13 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 			mrsqlite3_begin_transaction__(mailbox->m_sql);
 			pending_transaction = 1;
 
-			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i;", MR_CHAT_ID_STRANGERS, chat_id);
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=1;", MR_CHAT_ID_TO_STRANGERS, chat_id);
+			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+				goto cleanup;
+			}
+
+			sqlite3_free(q3);
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_STRANGERS, chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
@@ -495,6 +501,8 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
+
+	success = 1;
 
 cleanup:
 	if( pending_transaction ) {

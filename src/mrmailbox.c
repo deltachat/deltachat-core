@@ -307,6 +307,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
 				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, from_id);
 			}
+
+			if( chat_id == 0 ) {
+				chat_id = MR_CHAT_ID_STRANGERS;
+			}
 		}
 		else /* outgoing */
 		{
@@ -319,10 +323,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					chat_id = mrmailbox_create_or_lookup_chat_record__(ths, to_id);
 				}
 			}
-		}
 
-		if( chat_id == 0 ) {
-			chat_id = MR_CHAT_ID_STRANGERS;
+			if( chat_id == 0 ) {
+				chat_id = MR_CHAT_ID_TO_STRANGERS;
+			}
 		}
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do
@@ -413,7 +417,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
 				uint32_t ghost_chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, ghost_to_id);
 				if( ghost_chat_id==0 ) {
-					ghost_chat_id = MR_CHAT_ID_STRANGERS_GHOST_CC;
+					ghost_chat_id = MR_CHAT_ID_TO_STRANGERS;
 				}
 
 				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
