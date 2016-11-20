@@ -145,7 +145,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 		return 0;
 	}
 
-	if( strlen(addr) < 3 || strchr(addr, '@')==NULL ) {
+	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
 		mrlog_warning("Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
 		return 0;
 	}
