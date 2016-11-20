@@ -57,64 +57,13 @@ static char* read_cmd(void)
 
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
-	switch( event ) {
-		case MR_EVENT_IS_EMAIL_KNOWN:
-			//printf("{{Received event #%i, MR_EVENT_IS_EMAIL_KNOWN (%s, %i)}}\n", (int)event, (const char*)data1, (int)data2);
-			break;
-
-		default:
-			//printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
-			break;
-	}
-
+	printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
 	return 0;
 }
 
 
 int main(int argc, char ** argv)
 {
-	#if 0 /* mrparam_t stressing */
-	{
-		mrparam_t* p = mrparam_new();
-		char* v1;
-		int32_t v2;
-
-		mrparam_set_packed(p, "\n\na=test\nb=foo\nd=13\nc=bar\n");
-
-		v1 = mrparam_get(p, 'a', NULL);
-		free(v1);
-
-		v1 = mrparam_get(p, 'b', NULL);
-		free(v1);
-
-		v1 = mrparam_get(p, 'c', NULL);
-		free(v1);
-
-		v2 = mrparam_get_int(p, 'd', 0);
-		if( v2 != 13 ) { printf("ERROR!!!!!\n"); }
-
-		mrparam_set(p, 'a', "more data");
-		mrparam_set(p, 'b', "evenMore");
-		mrparam_set(p, 'c', "morearegood");
-		mrparam_set_int(p, 'd', -1);
-		printf("%s\n", p->m_packed);
-
-		mrparam_set(p, 'f', NULL);
-		mrparam_set(p, 'b', NULL);
-		mrparam_set(p, 'a', NULL);
-		mrparam_set(p, 'c', NULL);
-		mrparam_set(p, 'd', NULL);
-		mrparam_set(p, 'e', NULL);
-
-		mrparam_set_int(p, 'X', 1000);
-		mrparam_set_int(p, 'Y', 2000);
-
-
-		mrparam_unref(p);
-	}
-	return 0;
-	#endif
-
 	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
 	mrchat_t*    sel_chat = NULL;
 
@@ -129,8 +78,6 @@ int main(int argc, char ** argv)
 	else if( argc != 1 ) {
 		printf("ERROR: Bad arguments\n");
 	}
-
-	mrmailbox_delete_contact(mailbox, 24);
 
 	/* wait for command */
 	while(1)

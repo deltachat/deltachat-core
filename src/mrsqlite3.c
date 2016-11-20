@@ -89,7 +89,7 @@ int mrsqlite3_execute__(mrsqlite3_t* ths, const char* querystr)
 
 	sqlState = sqlite3_step(stmt);
 	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
-		mrsqlite3_log_error(ths, "Cannot step though query \"%s\".", querystr);
+		mrsqlite3_log_error(ths, "Cannot excecute \"%s\".", querystr);
 		goto cleanup;
 	}
 
