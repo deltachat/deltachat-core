@@ -329,6 +329,8 @@ int mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format
 
 	mrsqlite3_lock(ths->m_sql);
 
+		mrsqlite3_begin_transaction__(ths->m_sql);
+
 		iCnt = carray_count(lines);
 		for( i = 0; i+1 < iCnt; i += 2 ) {
 			char* name = (char*)carray_get(lines, i);
@@ -340,6 +342,8 @@ int mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format
 				modify_cnt++;
 			}
 		}
+
+		mrsqlite3_commit__(ths->m_sql);
 
 	mrsqlite3_unlock(ths->m_sql);
 
