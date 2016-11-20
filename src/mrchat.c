@@ -923,13 +923,7 @@ static char* get_subject(const mrmsg_t* msg)
 {
 	char *ret, *raw_subject = mrmsg_get_summary(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
 
-	#if 0
-		char *prefix = mrstock_str(MR_STR_SUBJECTPREFIX);
-		ret = mr_mprintf("%s: %s", prefix, raw_subject);
-		free(prefix);
-	#else
-		ret = mr_mprintf("%s " MR_DELTA_STR, raw_subject); /* use UTF-8 escape; the universal character name `\u03B4` is only valid in C++ and C99 */
-	#endif
+	ret = mr_mprintf(MR_CHAT_PREFIX " %s", raw_subject);
 
 	free(raw_subject);
 	return ret;

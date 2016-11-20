@@ -832,7 +832,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		if( (p-ths->m_subject) == 2 /*To: etc.*/ || (p-ths->m_subject) == 3 /*Fwd: etc.*/ ) {
 			prepend_subject = 0;
 		}
-		else if( strstr(ths->m_subject, MR_DELTA_STR) != NULL ) {
+		else if( strstr(ths->m_subject, MR_CHAT_PREFIX)!=NULL || strstr(ths->m_subject, MR_CHAT_ALT_MAGIC1)!=NULL || strstr(ths->m_subject, MR_CHAT_ALT_MAGIC2)!=NULL ) {
 			prepend_subject = 0;
 		}
 

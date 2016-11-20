@@ -64,8 +64,6 @@ typedef struct mrsmtp_t mrsmtp_t;
 #define MR_VERSION_MINOR    1
 #define MR_VERSION_REVISION 2
 
-#define MR_DELTA_STR "[\xCE\xB4]"
-
 
 /* Callback function that is called on updates, state changes etc.
 - The callback MAY be called from _any_ thread, not only the main/GUI thread!
@@ -177,9 +175,16 @@ char*                mrmailbox_execute              (mrmailbox_t*, const char* c
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
 
+
 /*** library-private **********************************************************/
 
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
+
+
+#define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
+#define MR_CHAT_ALT_MAGIC1  "[\xCE\xB4]" /* an alternative, maybe we will switch to the postfix "greek letter delta in square brackets" ... */
+#define MR_CHAT_ALT_MAGIC2  "\xCE\xB4:"  /* ... or to the prefix "greek letter lelta with doublepoint"  */
+#define MR_CHAT_FOLDER      "Chats"
 
 
 #ifdef __cplusplus
