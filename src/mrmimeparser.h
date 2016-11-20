@@ -61,6 +61,7 @@ typedef struct mrmimeparser_t
 	struct mailmime*       m_mimeroot;
 	struct mailimf_fields* m_header;
 	char*                  m_subject;
+	int                    m_is_send_by_messenger;
 } mrmimeparser_t;
 
 

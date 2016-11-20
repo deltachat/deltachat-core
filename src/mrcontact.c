@@ -225,12 +225,28 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 }
 
 
+int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	int          is_blocked = 0;
+	mrcontact_t* ths = mrcontact_new(mailbox);
+
+	if( mrcontact_load_from_db__(ths, contact_id) ) { /* we could optimize this by loading only the needed fields */
+		if( ths->m_blocked ) {
+			is_blocked = 1;
+		}
+	}
+
+	mrcontact_unref(ths);
+	return is_blocked;
+}
+
+
 int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_known = 0;
 	mrcontact_t* ths = mrcontact_new(mailbox);
 
-	if( !mrcontact_load_from_db__(ths, contact_id) ) {
+	if( !mrcontact_load_from_db__(ths, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		goto cleanup;
 	}
 
@@ -238,12 +254,7 @@ int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 		goto cleanup;
 	}
 
-    if( ths->m_origin > MR_ORIGIN_INCOMING_UNKNOWN_FROM ) {
-		is_known = 1;
-		goto cleanup;
-    }
-
-	if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_EMAIL_KNOWN, (uintptr_t)ths->m_addr, 0)==1 ) {
+	if( ths->m_origin > MR_ORIGIN_INCOMING_UNKNOWN_FROM ) {
 		is_known = 1;
 		goto cleanup;
 	}

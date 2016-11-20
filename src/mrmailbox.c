@@ -232,7 +232,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "strangers" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-						if( mrmailbox_is_known_contact__(ths, from_id) ) { /* currently, this checks if the contact is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
+						if( mrmailbox_is_known_contact__(ths, from_id) ) { /* currently, this checks if the contact is non-blocked and is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
 							incoming_from_known_sender = 1;
 						}
 					}
@@ -296,15 +296,15 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 
 
 		/* check if the message introduces a new chat:
-		- outgoing messages introduce a chat with the first to: address
-		- incoming messages introduce a chat only for known contacts (eg. used for outgoing cc: before or in the system''s address book)
-		only these messages reflect the will of the sender IMHO (of course, the user can add other chats manually) */
+		- outgoing messages introduce a chat with the first to: address if they are send by a messenger
+		- incoming messages introduce a chat only for known contacts if they are send by a messenger
+		(of course, the user can add other chats manually later) */
 		if( incoming )
 		{
 			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
 			to_id = MR_CONTACT_ID_SELF;
 			chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, from_id);
-			if( chat_id == 0 && incoming_from_known_sender ) {
+			if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
 				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, from_id);
 			}
 		}
@@ -314,7 +314,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, to_id);
+				chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, to_id);
+				if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
+					chat_id = mrmailbox_create_or_lookup_chat_record__(ths, to_id);
+				}
 			}
 		}
 
