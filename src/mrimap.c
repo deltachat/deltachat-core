@@ -242,42 +242,71 @@ static void free_folders__(clist* folders)
 }
 
 
-static int init_sent_folder__(mrimap_t* ths)
+static int init_chat_folders__(mrimap_t* ths)
 {
 	int        success = 0;
 	clist*     folder_list = NULL;
 	clistiter* iter1;
-	char       *normal_folder = NULL, *sent_folder = NULL;
+	char       *normal_folder = NULL, *sent_folder = NULL, *chats_folder = NULL;
 
-	if( ths->m_sent_folder[0] ) {
+	if( ths->m_sent_folder && ths->m_sent_folder[0] ) {
 		success = 1;
 		goto cleanup;
 	}
 
+	free(ths->m_sent_folder);
+	ths->m_sent_folder = NULL;
+
+	free(ths->m_moveto_folder);
+	ths->m_moveto_folder = NULL;
+
 	folder_list = list_folders__(ths);
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
-		if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
-			sent_folder = folder->m_name_to_select;
+		if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER)==0 ) {
+			chats_folder = safe_strdup(folder->m_name_to_select);
+			break;
+		}
+		else if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
+			sent_folder = safe_strdup(folder->m_name_to_select);
 		}
 		else if( folder->m_meaning == MEANING_NORMAL && normal_folder == NULL ) {
-			normal_folder = folder->m_name_to_select;
+			normal_folder = safe_strdup(folder->m_name_to_select);
 		}
 	}
 
-	if( sent_folder == NULL && normal_folder ) {
-		sent_folder = normal_folder;
-		normal_folder = NULL;
+	if( chats_folder == NULL ) {
+		mrlog_info("Creating IMAP-folder \"%s\"...", MR_CHATS_FOLDER);
+		int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
+		if( is_error(ths, r) ) {
+			/* continue on errors, we'll just use a different folder then */
+			mrlog_error("Cannot create IMAP-folder, using default.");
+		}
+		else {
+			chats_folder = safe_strdup(MR_CHATS_FOLDER);
+			mrlog_info("IMAP-folder created.");
+		}
 	}
 
-	if( sent_folder ) {
-		free(ths->m_sent_folder);
+	if( chats_folder ) {
+		ths->m_moveto_folder = safe_strdup(chats_folder);
+		ths->m_sent_folder   = safe_strdup(chats_folder);
+		success = 1;
+	}
+	else if( sent_folder ) {
 		ths->m_sent_folder = safe_strdup(sent_folder);
+		success = 1;
+	}
+	else if( normal_folder ) {
+		ths->m_sent_folder = safe_strdup(normal_folder);
 		success = 1;
 	}
 
 cleanup:
 	free_folders__(folder_list);
+	free(chats_folder);
+	free(sent_folder);
+	free(normal_folder);
 	return success;
 }
 
@@ -956,7 +985,8 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
 	ths->m_selected_folder = calloc(1, 1);
-	ths->m_sent_folder = calloc(1, 1);
+	ths->m_moveto_folder   = NULL;
+	ths->m_sent_folder     = NULL;
 
 	/* create some useful objects */
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
@@ -988,7 +1018,9 @@ void mrimap_unref(mrimap_t* ths)
 	free(ths->m_imap_user);
 	free(ths->m_imap_pw);
 	free(ths->m_selected_folder);
+	free(ths->m_moveto_folder);
 	free(ths->m_sent_folder);
+
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
@@ -1025,13 +1057,13 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 
 		mrlog_info("Appending message IMAP-server...");
 
-		if( !init_sent_folder__(ths) ) {
+		if( !init_chat_folders__(ths) ) {
 			mrlog_error("Cannot find out IMAP-sent-folder.");
 			goto cleanup;
 		}
 
 		if( !select_folder__(ths, ths->m_sent_folder) ) {
-			mrlog_error("Cannot select IMAP-sent-folder \"%s\".", ths->m_sent_folder);
+			mrlog_error("Cannot select IMAP-folder \"%s\".", ths->m_sent_folder);
 			ths->m_sent_folder[0] = 0; /* force re-init */
 			goto cleanup;
 		}
