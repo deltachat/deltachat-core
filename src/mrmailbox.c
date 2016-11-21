@@ -369,8 +369,9 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 			}
 
-			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp,
-				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,txt,txt_raw,param) VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?);");
+			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttp,
+				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param)"
+				" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?);");
 			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt,  3, server_uid);
@@ -380,9 +381,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			sqlite3_bind_int64(stmt,  7, message_timestamp);
 			sqlite3_bind_int  (stmt,  8, part->m_type);
 			sqlite3_bind_int  (stmt,  9, state);
-			sqlite3_bind_text (stmt, 10, part->m_msg, -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 11, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
+			sqlite3_bind_text (stmt, 11, part->m_msg, -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 13, "", -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}
@@ -420,7 +422,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
 				}
 
-				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, 0);
@@ -430,9 +432,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				sqlite3_bind_int64(stmt,  7, message_timestamp);
 				sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
 				sqlite3_bind_int  (stmt,  9, state);
-				sqlite3_bind_text (stmt, 10, ghost_txt, -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 11, "", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 12, ghost_param, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
+				sqlite3_bind_text (stmt, 11, ghost_txt, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}

@@ -56,6 +56,7 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 
 	ths->m_type         =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_state        =                     sqlite3_column_int  (row, row_offset++);
+	ths->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_text         =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
@@ -486,7 +487,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid)==0 ) {
+	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid, msg->m_is_msgrmsg /*move to chats folder?*/)==0 ) {
 		mrjob_try_again_later(job);
 	}
 

@@ -91,7 +91,7 @@ int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
-int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
+int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int also_move); /* only returns 0 on connection problems; we should try later again in this case */
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
 

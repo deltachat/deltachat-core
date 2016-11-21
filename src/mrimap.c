@@ -1133,7 +1133,7 @@ cleanup:
 }
 
 
-int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
+int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int also_move_to_chats_folder)
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
@@ -1144,7 +1144,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
 
 		INTERRUPT_IDLE
 
-		mrlog_info("Marking message with server_uid=%i as seen...", (int)server_uid);
+		mrlog_info("Marking message %s/%i as seen...", folder, (int)server_uid);
 
 		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_seen())==0 ) {
 			mrlog_error("Cannot mark message as seen.");
@@ -1152,6 +1152,12 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
 		}
 
 		mrlog_info("Message marked as seen.");
+
+		if( also_move_to_chats_folder && ths->m_moveto_folder )
+		{
+			mrlog_info("Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
+			mrlog_info("Cannot move message.");
+		}
 
 		success = 1;
 

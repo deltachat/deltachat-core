@@ -215,7 +215,9 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" from_id INTEGER,"
 					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "deaddrop" to a normal chat, may be unset */
 					" timestamp INTEGER,"
-					" type INTEGER, state INTEGER,"
+					" type INTEGER,"
+					" state INTEGER,"
+					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? */
 					" bytes INTEGER DEFAULT 0,"
 					" txt TEXT,"                       /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"
