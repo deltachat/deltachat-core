@@ -188,8 +188,8 @@ uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t
 
 	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE (chat_id=%i AND from_id=%i) OR (chat_id=%i AND to_id=%i);",
 		chat_id,
-		MR_CHAT_ID_STRANGERS, contact_id,
-		MR_CHAT_ID_TO_STRANGERS, contact_id);
+		MR_CHAT_ID_DEADDROP, contact_id,
+		MR_CHAT_ID_TO_DEADDROP, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
     if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -240,9 +240,9 @@ int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 	}
 
 	/* correct the title of some special groups */
-	if( ths->m_id == MR_CHAT_ID_STRANGERS ) {
+	if( ths->m_id == MR_CHAT_ID_DEADDROP ) {
 		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_STRANGERS);
+		ths->m_name = mrstock_str(MR_STR_DEADDROP);
 	}
 
 	return row_offset; /* success, return the next row offset */
@@ -459,17 +459,17 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 
         if( obj->m_type == MR_CHAT_NORMAL )
         {
-			/* delete a single-user-chat; all messages go to the strangers chat */
+			/* delete a single-user-chat; all messages go to the deaddrop chat */
 			mrsqlite3_begin_transaction__(mailbox->m_sql);
 			pending_transaction = 1;
 
-			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=1;", MR_CHAT_ID_TO_STRANGERS, chat_id);
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=1;", MR_CHAT_ID_TO_DEADDROP, chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
 
 			sqlite3_free(q3);
-			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_STRANGERS, chat_id);
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_DEADDROP, chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
@@ -558,10 +558,10 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		if( chat_id == MR_CHAT_ID_STRANGERS )
+		if( chat_id == MR_CHAT_ID_DEADDROP )
 		{
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_chat_id,
-				"SELECT DISTINCT from_id FROM msgs WHERE chat_id=? and from_id!=0 ORDER BY id DESC;"); /* from_id in the strangers chat may be 0, see comment [**] */
+				"SELECT DISTINCT from_id FROM msgs WHERE chat_id=? and from_id!=0 ORDER BY id DESC;"); /* from_id in the deaddrop chat may be 0, see comment [**] */
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
 		else
@@ -774,7 +774,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 	else if( ths->m_type == MR_CHAT_GROUP )
 	{
 		int cnt = 0;
-		if( ths->m_id == MR_CHAT_ID_STRANGERS )
+		if( ths->m_id == MR_CHAT_ID_DEADDROP )
 		{
 			mrsqlite3_lock(ths->m_mailbox->m_sql);
 

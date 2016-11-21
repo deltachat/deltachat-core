@@ -41,7 +41,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths)
 	sqlite3_stmt* stmt = NULL;
 	mrchat_t*     chat = NULL;
 	int           row_offset;
-	int           show_strangers;
+	int           show_deaddrop;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
 		goto cleanup;
@@ -49,7 +49,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths)
 
 	mrchatlist_empty(ths);
 
-	show_strangers = mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_strangers", 0);
+	show_deaddrop = mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs,
@@ -63,7 +63,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths)
 		goto cleanup;
 	}
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
-	sqlite3_bind_int(stmt, 2, show_strangers? MR_CHAT_ID_STRANGERS : 0);
+	sqlite3_bind_int(stmt, 2, show_deaddrop? MR_CHAT_ID_DEADDROP : 0);
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {

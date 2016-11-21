@@ -61,7 +61,7 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_bytes        =                     sqlite3_column_int  (row, row_offset++);
 
-	if( ths->m_chat_id == MR_CHAT_ID_STRANGERS ) {
+	if( ths->m_chat_id == MR_CHAT_ID_DEADDROP ) {
 		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
 	}
 
@@ -146,7 +146,7 @@ size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 }
 
 
-size_t mrmailbox_get_strangers_msg_cnt__(mrmailbox_t* mailbox)
+size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
 {
 	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
@@ -154,7 +154,7 @@ size_t mrmailbox_get_strangers_msg_cnt__(mrmailbox_t* mailbox)
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
 		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
-	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_STRANGERS);
+	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_DEADDROP);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}

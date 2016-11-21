@@ -229,7 +229,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				}
 				else
 				{
-					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "strangers" chat) to avoid a re-download from the server. See also [**] */
+					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
 						if( mrmailbox_is_known_contact__(ths, from_id) ) { /* currently, this checks if the contact is non-blocked and is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
@@ -309,7 +309,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			}
 
 			if( chat_id == 0 ) {
-				chat_id = MR_CHAT_ID_STRANGERS;
+				chat_id = MR_CHAT_ID_DEADDROP;
 			}
 		}
 		else /* outgoing */
@@ -325,7 +325,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			}
 
 			if( chat_id == 0 ) {
-				chat_id = MR_CHAT_ID_TO_STRANGERS;
+				chat_id = MR_CHAT_ID_TO_DEADDROP;
 			}
 		}
 
@@ -417,7 +417,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
 				uint32_t ghost_chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, ghost_to_id);
 				if( ghost_chat_id==0 ) {
-					ghost_chat_id = MR_CHAT_ID_TO_STRANGERS;
+					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
 				}
 
 				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
@@ -944,7 +944,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char  set[] = "<set>";
 	char *displayname, *info;
 	mrloginparam_t *l, *l2;
-	int contacts, chats, real_msgs, strangers_msgs, is_configured;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured;
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -963,7 +963,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		chats           = mrmailbox_get_chat_cnt__(ths);
 		real_msgs       = mrmailbox_get_real_msg_cnt__(ths);
-		strangers_msgs  = mrmailbox_get_strangers_msg_cnt__(ths);
+		deaddrop_msgs   = mrmailbox_get_deaddrop_msg_cnt__(ths);
 		contacts        = mrmailbox_get_real_contact_cnt__(ths);
 
 		is_configured   = mrsqlite3_get_config_int__(ths->m_sql, "configured", 0);
@@ -976,7 +976,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	info = mr_mprintf(
 		"Messenger Backend %i.%i.%i - (C) Björn Petersen Software Design and Development and contributors\n" /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
 		"\n"
-		"%i chats with %i messages, %i messages from strangers, %i contacts\n"
+		"%i chats with %i messages, %i messages in mailbox, %i contacts\n"
 		"Database file: %s, blob directory: %s\n"
 		"\n"
 		"displayname=%s\n"
@@ -997,7 +997,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 
-		, chats, real_msgs, strangers_msgs, contacts
+		, chats, real_msgs, deaddrop_msgs, contacts
 		, ths->m_dbfile? ths->m_dbfile : unset   ,  ths->m_blobdir? ths->m_blobdir : unset
 
         , displayname? displayname : unset

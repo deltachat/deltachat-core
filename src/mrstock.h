@@ -41,7 +41,7 @@ extern "C" {
 #define MR_STR_MEMBERS          5 /* must be MR_STR_MEMBERS+1 */
 #define MR_STR_CONTACT          6
 #define MR_STR_CONTACTS         7 /* must be MR_STR_CONTACT+1 */
-#define MR_STR_STRANGERS        8
+#define MR_STR_DEADDROP         8
 #define MR_STR_IMAGE            9
 #define MR_STR_VIDEO            10
 #define MR_STR_AUDIO            11

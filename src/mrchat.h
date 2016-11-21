@@ -47,11 +47,10 @@ typedef struct mrjob_t mrjob_t;
 
 
 /* specical chat IDs */
-#define MR_CHAT_ID_STRANGERS          1 /* messages send from strangers to us, chats_contacts is not set up. This group may be shown normally. */
-#define MR_CHAT_ID_TRASH              2 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again) */
-#define MR_CHAT_ID_BLOCKED_USERS      3 /* messages of blocked users go here; they do not even pop up in the "strangers" chat */
+#define MR_CHAT_ID_DEADDROP           1 /* messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally. */
+#define MR_CHAT_ID_TO_DEADDROP        2 /* messages send from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the e-mail-program) */
+#define MR_CHAT_ID_TRASH              3 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again) */
 #define MR_CHAT_ID_MSGS_IN_CREATION   4 /* a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be send and shown) */
-#define MR_CHAT_ID_TO_STRANGERS       5 /* messages send from us to strangers (this may happen when deleting chats or when using CC: in the e-mail-program) */
 #define MR_CHAT_ID_LAST_SPECIAL       9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
 
 

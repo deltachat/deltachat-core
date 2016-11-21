@@ -202,8 +202,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" param TEXT DEFAULT '');");      /* param is for future use */
 		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);"); /* the other way round, an index on contact_id is only needed for blocking users */
-		mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'strangers'), (2,120,'trash'), (3,120,'blocked_users'), (4,120,'msgs_in_creation'), (5,120,'strangers_cc'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_STRANGERS!=1 || MR_CHAT_ID_TRASH!=2 || MR_CHAT_ID_BLOCKED_USERS!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_TO_STRANGERS!=5
+		mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TO_DEADDROP!=2 || MR_CHAT_ID_TRASH!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
 			#error
 		#endif
 
@@ -213,7 +213,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
 					" chat_id INTEGER,"
 					" from_id INTEGER,"
-					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "strangers" to a normal chat, may be unset */
+					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "deaddrop" to a normal chat, may be unset */
 					" timestamp INTEGER,"
 					" type INTEGER, state INTEGER,"
 					" bytes INTEGER DEFAULT 0,"
