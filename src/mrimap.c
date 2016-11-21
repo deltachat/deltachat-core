@@ -1133,11 +1133,15 @@ cleanup:
 }
 
 
-int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int also_move_to_chats_folder)
+int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int also_move, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
-	int success = 0, handle_locked = 0, idle_blocked = 0;
+	int                  handle_locked = 0, idle_blocked = 0, r;
+	struct mailimap_set* set = NULL;
+
+	*ret_server_folder = NULL;
+	*ret_server_uid = 0;
 
 	LOCK_HANDLE
 	BLOCK_IDLE
@@ -1153,19 +1157,51 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 
 		mrlog_info("Message marked as seen.");
 
-		if( also_move_to_chats_folder && ths->m_moveto_folder )
+		if( also_move )
 		{
-			mrlog_info("Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
-			mrlog_info("Cannot move message.");
-		}
+			init_chat_folders__(ths);
+			if( ths->m_moveto_folder )
+			{
+				mrlog_info("Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
+				set = mailimap_set_new_single(server_uid);
 
-		success = 1;
+				/* TODO/TOCHECK: MOVE may not be supported on servers, if this is often the case, we should fallback to a COPY/DELETE implementation.
+				Same for the UIDPLUS extension (if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then). */
+				uint32_t             res_uid = 0;
+				struct mailimap_set* res_setsrc = NULL;
+				struct mailimap_set* res_setdest = NULL;
+				r = mailimap_uidplus_uid_move(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag__() above */
+				if( is_error(ths, r) ) {
+					mrlog_info("Cannot move message.");
+					goto cleanup;
+				}
+
+				if( res_setsrc ) {
+					mailimap_set_free(res_setsrc);
+				}
+
+				if( res_setdest ) {
+					clistiter* cur = clist_begin(res_setdest->set_list);
+					if (cur != NULL) {
+						struct mailimap_set_item* item;
+						item = clist_content(cur);
+						*ret_server_uid = item->set_first;
+						*ret_server_folder = safe_strdup(ths->m_moveto_folder);
+					}
+					mailimap_set_free(res_setdest);
+				}
+
+				mrlog_info("Message moved.");
+			}
+		}
 
 cleanup:
 	UNBLOCK_IDLE
 	UNLOCK_HANDLE
-
-	return success;
+	if( set ) {
+		mailimap_set_free(set);
+	}
+	return ths->m_should_reconnect? 0 : 1;
 }
 
 

@@ -468,6 +468,8 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	int      locked = 0;
 	mrmsg_t* msg = mrmsg_new();
+	char*    new_server_folder = NULL;
+	uint32_t new_server_uid = 0;
 
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
 		mrmailbox_connect_to_imap(mailbox, NULL);
@@ -487,7 +489,22 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid, msg->m_is_msgrmsg /*move to chats folder?*/)==0 ) {
+	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
+		  msg->m_is_msgrmsg /*move to chats folder?*/, &new_server_folder, &new_server_uid) != 0 )
+	{
+		if( new_server_folder && new_server_uid )
+		{
+			mrsqlite3_lock(mailbox->m_sql);
+			locked = 1;
+
+				mrmailbox_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
+
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
+		}
+	}
+	else
+	{
 		mrjob_try_again_later(job);
 	}
 
@@ -496,6 +513,7 @@ cleanup:
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
 	mrmsg_unref(msg);
+	free(new_server_folder);
 }
 
 
