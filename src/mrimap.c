@@ -1140,6 +1140,10 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 	int                  handle_locked = 0, idle_blocked = 0, r;
 	struct mailimap_set* set = NULL;
 
+	if( ths==NULL || folder==NULL || server_uid==0 ) {
+		return 1; /* job done */
+	}
+
 	*ret_server_folder = NULL;
 	*ret_server_uid = 0;
 
@@ -1209,6 +1213,10 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 {
 	// when deleting using server_uid, we have to check against rfc724_mid first - the UID validity or the mailbox may have change
 	int success = 0, handle_locked = 0, idle_blocked = 0;
+
+	if( ths==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0 || server_uid==0 ) {
+		return 1; /* job done */
+	}
 
 	LOCK_HANDLE
 	BLOCK_IDLE
