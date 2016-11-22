@@ -28,6 +28,10 @@
 
 #include <stdlib.h>
 #include "mrmailbox.h"
+#include "mrtools.h"
+#include "mrlog.h"
+
+#define CLASS_MAGIC 1479776085
 
 
 /*******************************************************************************
@@ -43,6 +47,8 @@ mrmsglist_t* mrmsglist_new(mrchat_t* chat)
 		exit(21); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	MR_INIT_REFERENCE
+
 	ths->m_chat = chat;
 	ths->m_msgs = carray_new(128);
 
@@ -52,9 +58,7 @@ mrmsglist_t* mrmsglist_new(mrchat_t* chat)
 
 void mrmsglist_unref(mrmsglist_t* ths)
 {
-	if( ths == NULL ) {
-		return;
-	}
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrmsglist_empty(ths);
 	if( ths->m_msgs ) {

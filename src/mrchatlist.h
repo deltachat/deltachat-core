@@ -35,8 +35,10 @@ extern "C" {
 
 typedef struct mrchatlist_t
 {
+	uint32_t     m_magic;
 	carray*      m_chats; /* contains mrchat_t objects */
 	mrmailbox_t* m_mailbox;
+	int          m_refcnt;
 } mrchatlist_t;
 
 

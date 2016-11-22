@@ -37,6 +37,9 @@ extern "C" {
 
 typedef struct mrloginparam_t
 {
+	uint32_t      m_magic;
+	int           m_refcnt;
+
 	/* IMAP/POP3 - all pointers may be NULL if unset, public read */
 	char*         m_addr;
 	char*         m_mail_server;

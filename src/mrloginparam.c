@@ -33,6 +33,8 @@
 #include "mrtools.h"
 #include "mrlog.h"
 
+#define CLASS_MAGIC 1479776404
+
 
 /*******************************************************************************
  * Main interface
@@ -47,15 +49,15 @@ mrloginparam_t* mrloginparam_new()
 		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	MR_INIT_REFERENCE
+
 	return ths;
 }
 
 
 void mrloginparam_unref(mrloginparam_t* ths)
 {
-	if( ths == NULL ) {
-		return; /* ok, but nothing to do */
-	}
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrloginparam_empty(ths);
 	free(ths);

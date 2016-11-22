@@ -74,6 +74,7 @@ int     mr_delete_file             (const char* pathNFilename);
 /* macros */
 #define MR_INIT_REFERENCE \
 	if( ths == NULL ) { return NULL; } \
+	ths->m_magic  = CLASS_MAGIC; \
 	ths->m_refcnt = 1;
 
 #define MR_INC_REFERENCE \
@@ -83,6 +84,7 @@ int     mr_delete_file             (const char* pathNFilename);
 
 #define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
 	if( ths == NULL ) { return; } \
+	if( ths->m_magic!=CLASS_MAGIC ) { mrlog_error("!!!%lu", CLASS_MAGIC); return; } \
 	ths->m_refcnt--; \
 	if( ths->m_refcnt > 0 ) { return; }
 

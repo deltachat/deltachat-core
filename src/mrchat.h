@@ -56,6 +56,7 @@ typedef struct mrjob_t mrjob_t;
 
 typedef struct mrchat_t
 {
+	uint32_t        m_magic;
 	uint32_t        m_id;
 	int             m_type;
 	char*           m_name;            /* NULL if unset */

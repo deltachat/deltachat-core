@@ -81,6 +81,8 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 typedef struct mrmailbox_t
 {
+	uint32_t        m_magic;
+
 	/* members should be treated as library private */
 	mrsqlite3_t*    m_sql;      /* != NULL */
 	char*           m_dbfile;
@@ -96,6 +98,8 @@ typedef struct mrmailbox_t
 
 	mrmailboxcb_t   m_cb;
 	void*           m_userData;
+
+	int             m_refcnt;
 } mrmailbox_t;
 
 

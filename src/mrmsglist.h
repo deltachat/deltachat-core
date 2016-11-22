@@ -38,8 +38,10 @@ typedef struct mrchat_t mrchat_t;
 
 typedef struct mrmsglist_t
 {
+	uint32_t     m_magic;
 	carray*      m_msgs; /* contains mrmsg_t objects */
 	mrchat_t*    m_chat;
+	int          m_refcnt;
 } mrmsglist_t;
 
 

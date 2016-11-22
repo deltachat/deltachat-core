@@ -32,6 +32,9 @@
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrparam.h"
+#include "mrlog.h"
+
+#define CLASS_MAGIC 1379776140
 
 
 /*******************************************************************************

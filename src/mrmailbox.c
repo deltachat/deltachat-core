@@ -46,6 +46,8 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 
+#define CLASS_MAGIC 1479776513
+
 
 /*******************************************************************************
  * Receive a message and add it to the database
@@ -542,6 +544,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	MR_INIT_REFERENCE
+
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userData = userData;
@@ -556,9 +560,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 void mrmailbox_unref(mrmailbox_t* ths)
 {
-	if( ths==NULL ) {
-		return;
-	}
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
 	mrjob_exit_thread(ths);
 
