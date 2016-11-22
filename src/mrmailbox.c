@@ -1204,7 +1204,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
-	else if( strncmp(cmd, "adr", 3)==0 )
+	else if( strncmp(cmd, "delchat ", 8)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int chat_id = atoi(arg1);
+			ret = mrmailbox_delete_chat(ths, chat_id)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <chat-id> missing.");
+		}
+	}	else if( strncmp(cmd, "adr", 3)==0 )
 	{
 		char *arg1 = (char*)strstr(cmd, " "), *arg2 = NULL;
 		if( arg1 ) { arg1++; arg2 = strstr(arg1, ";"); }

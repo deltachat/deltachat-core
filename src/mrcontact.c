@@ -230,9 +230,9 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_blocked = 0;
-	mrcontact_t* ths = mrcontact_new(mailbox);
+	mrcontact_t* ths = mrcontact_new();
 
-	if( mrcontact_load_from_db__(ths, contact_id) ) { /* we could optimize this by loading only the needed fields */
+	if( mrcontact_load_from_db__(ths, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		if( ths->m_blocked ) {
 			is_blocked = 1;
 		}
@@ -246,9 +246,9 @@ int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_known = 0;
-	mrcontact_t* ths = mrcontact_new(mailbox);
+	mrcontact_t* ths = mrcontact_new();
 
-	if( !mrcontact_load_from_db__(ths, contact_id) ) { /* we could optimize this by loading only the needed fields */
+	if( !mrcontact_load_from_db__(ths, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		goto cleanup;
 	}
 
@@ -267,18 +267,18 @@ cleanup:
 }
 
 
-int mrcontact_load_from_db__(mrcontact_t* ths, uint32_t contact_id)
+int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths == NULL || ths->m_mailbox == NULL ) {
+	if( ths == NULL || sql == NULL ) {
 		return 0;
 	}
 
 	mrcontact_empty(ths);
 
-	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_naob_FROM_contacts_i,
+	stmt = mrsqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
 		"SELECT name, addr, origin, blocked FROM contacts WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -449,7 +449,7 @@ cleanup:
 
 mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 {
-	mrcontact_t* ret = mrcontact_new(ths);
+	mrcontact_t* ret = mrcontact_new();
 
 	if( contact_id == MR_CONTACT_ID_SELF )
 	{
@@ -460,7 +460,7 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 	{
 		mrsqlite3_lock(ths->m_sql);
 
-			if( !mrcontact_load_from_db__(ret, contact_id) ) {
+			if( !mrcontact_load_from_db__(ret, ths->m_sql, contact_id) ) {
 				mrcontact_unref(ret);
 				ret = NULL;
 			}
@@ -475,7 +475,7 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_blocking)
 {
 	int success = 0, locked = 0, send_event = 0, transaction_pending = 0;
-	mrcontact_t*  contact = mrcontact_new(mailbox);
+	mrcontact_t*  contact = mrcontact_new();
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -485,7 +485,7 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_b
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( mrcontact_load_from_db__(contact, contact_id)
+		if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id)
 		 && contact->m_blocked != new_blocking )
 		{
 			mrsqlite3_begin_transaction__(mailbox->m_sql);
@@ -592,7 +592,7 @@ cleanup:
 }
 
 
-mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
+mrcontact_t* mrcontact_new()
 {
 	mrcontact_t* ths = NULL;
 
@@ -601,8 +601,6 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 	}
 
 	MR_INIT_REFERENCE
-
-	ths->m_mailbox  = mailbox;
 
 	return ths;
 }

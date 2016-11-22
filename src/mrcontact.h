@@ -66,12 +66,11 @@ typedef struct mrcontact_t
 	char*               m_addr;  /* may be NULL or empty */
 	int                 m_origin;
 	int                 m_blocked;
-	mrmailbox_t*        m_mailbox;
 	int                 m_refcnt;
 } mrcontact_t;
 
 
-mrcontact_t* mrcontact_new             (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
+mrcontact_t* mrcontact_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
 mrcontact_t* mrcontact_ref             (mrcontact_t*);
 void         mrcontact_unref           (mrcontact_t*);
 void         mrcontact_empty           (mrcontact_t*);
@@ -79,7 +78,7 @@ void         mrcontact_empty           (mrcontact_t*);
 
 /*** library-private **********************************************************/
 
-int          mrcontact_load_from_db__         (mrcontact_t*, uint32_t id);
+int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t id);
 size_t       mrmailbox_get_real_contact_cnt__ (mrmailbox_t*);
 uint32_t     mrmailbox_add_or_lookup_contact__(mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
 int          mrmailbox_is_known_contact__     (mrmailbox_t*, uint32_t id);

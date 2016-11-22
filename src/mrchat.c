@@ -149,7 +149,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t
 
 	/* get fine chat name */
 	contact = mrcontact_new(mailbox);
-	if( !mrcontact_load_from_db__(contact, contact_id) ) {
+	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 		goto cleanup;
 	}
 
@@ -490,7 +490,9 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
         }
         else
         {
-			/* cannot delete chats of other types, for now */
+			/* cannot delete chats of other types, for now.
+			If we do, we should think over, how and if they can be restored - to_id as used to restore single-user-chats is not sufficient.
+			Maybe it is okay (and maybe even expected) that messages from deleted chats do not show up again if a chat is re-created. */
 			goto cleanup;
         }
 
@@ -568,8 +570,8 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		}
 		else
 		{
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
-				"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
+			#define GET_CHATS_CONTACTS "SELECT contact_id FROM chats_contacts WHERE chat_id=?;"
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c, GET_CHATS_CONTACTS);
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
 
@@ -888,10 +890,10 @@ mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
 			ret->m_title_meaning = MR_TITLE_SELF;
 		}
 		else if( ths->m_type==MR_CHAT_GROUP ) { /* for non-groups, the title is not needed and would result in Strings as "Prename Familyname: Prename: last message ..." */
-			mrcontact_t* contact = mrcontact_new(ths->m_mailbox);
+			mrcontact_t* contact = mrcontact_new();
 
 				mrsqlite3_lock(ths->m_mailbox->m_sql);
-					mrcontact_load_from_db__(contact, ths->m_last_msg_->m_from_id);
+					mrcontact_load_from_db__(contact, ths->m_mailbox->m_sql, ths->m_last_msg_->m_from_id);
 				mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 				if( contact->m_name && contact->m_name[0] ) {
@@ -1253,17 +1255,12 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	char*         text = NULL;
 	mrparam_t*    param = mrparam_new();
 	size_t        bytes = 0;
-	uint32_t      msg_id = 0;
+	uint32_t      msg_id = 0, to_id = 0;
 	char*         rfc724_mid = NULL;
 	int           locked = 0, transaction_pending = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths == NULL || msg == NULL ) {
-		return 0;
-	}
-
-	if( ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		mrlog_warning("Cannot send messages to special chat #%i.", (int)ths->m_id);
+	if( ths == NULL || msg == NULL || ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -1307,18 +1304,29 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 			free(from);
 		}
 
+		if( ths->m_type == MR_CHAT_NORMAL )
+		{
+			stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c, GET_CHATS_CONTACTS);
+			sqlite3_bind_int(stmt, 1, ths->m_id);
+			if( sqlite3_step(stmt) != SQLITE_ROW ) {
+				goto cleanup;
+			}
+			to_id = sqlite3_column_int(stmt, 0);
+		}
+
 		/* add message to the database */
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_cfttstpb,
-			"INSERT INTO msgs (rfc724_mid,chat_id,from_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?, ?,?,?, ?,?,?);");
-		sqlite3_bind_text (stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (stmt, 2, MR_CHAT_ID_MSGS_IN_CREATION);
-		sqlite3_bind_int  (stmt, 3, MR_CONTACT_ID_SELF);
-		sqlite3_bind_int64(stmt, 4, timestamp);
-		sqlite3_bind_int  (stmt, 5, msg->m_type);
-		sqlite3_bind_int  (stmt, 6, MR_OUT_PENDING);
-		sqlite3_bind_text (stmt, 7, text? text : "",  -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 8, param->m_packed, -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 9, bytes);
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,
+			"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
+		sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (stmt,  2, MR_CHAT_ID_MSGS_IN_CREATION);
+		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SELF);
+		sqlite3_bind_int  (stmt,  4, to_id);
+		sqlite3_bind_int64(stmt,  5, timestamp);
+		sqlite3_bind_int  (stmt,  6, msg->m_type);
+		sqlite3_bind_int  (stmt,  7, MR_OUT_PENDING);
+		sqlite3_bind_text (stmt,  8, text? text : "",  -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt,  9, param->m_packed, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 10, bytes);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -1331,7 +1339,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 		mrmailbox_update_msg_chat_id__(ths->m_mailbox, msg_id, ths->m_id);
-		mrjob_add__(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrchat_send_msg_to_smtp_()  */
+		mrjob_add__(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
 	transaction_pending = 0;
