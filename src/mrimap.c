@@ -227,7 +227,7 @@ cleanup:
 }
 
 
-static void free_folders__(clist* folders)
+static void free_folders(clist* folders)
 {
 	if( folders ) {
 		clistiter* iter1;
@@ -303,7 +303,7 @@ static int init_chat_folders__(mrimap_t* ths)
 	}
 
 cleanup:
-	free_folders__(folder_list);
+	free_folders(folder_list);
 	free(chats_folder);
 	free(sent_folder);
 	free(normal_folder);
@@ -604,7 +604,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 		}
 	}
 
-	free_folders__(folder_list);
+	free_folders(folder_list);
 
 	return total_cnt;
 }
