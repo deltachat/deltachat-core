@@ -154,7 +154,9 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 	{
 		line = (char*)carray_get(lines, l);
 		if( strcmp(line, "-- ")==0
-		 || strcmp(line, "--")==0 /* this is not documented, but occurs frequently; however, if we get problems with this, skip this HACK */ )
+		 || strcmp(line, "--")==0   /* this is not documented, but occurs frequently; however, if we get problems with this, skip this HACK */
+		 || strcmp(line, "---")==0  /*       - " -                                                                                          */
+		 || strcmp(line, "----")==0 /*       - " -                                                                                          */ )
 		{
 			l_last = l - 1; /* if l_last is -1, there are no lines */
 			break; /* done */
@@ -194,6 +196,13 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 		if( l_lastQuotedLine != -1 )
 		{
 			l_last = l_lastQuotedLine-1; /* if l_last is -1, there are no lines */
+
+			if( l_last > 0 ) {
+				if( mr_is_empty_line((char*)carray_get(lines, l_last)) ) { /* allow one empty line between quote and quote headline (eg. mails from Jürgen) */
+					l_last--;
+				}
+			}
+
 			if( l_last > 0 ) {
 				line = (char*)carray_get(lines, l_last);
 				if( mr_is_quoted_headline(line) ) {
