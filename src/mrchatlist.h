@@ -36,21 +36,22 @@ extern "C" {
 typedef struct mrchatlist_t
 {
 	uint32_t     m_magic;
-	carray*      m_chats; /* contains mrchat_t objects */
+	size_t       m_cnt;
+	carray*      m_chatNlastmsg_ids;
 	mrmailbox_t* m_mailbox;
-	int          m_refcnt;
 } mrchatlist_t;
 
 
-void          mrchatlist_unref             (mrchatlist_t*);
-size_t        mrchatlist_get_cnt           (mrchatlist_t*);
-mrchat_t*     mrchatlist_get_chat_by_index (mrchatlist_t*, size_t index); /* result must be unref'd, you can also use m_chats directly */
+mrchatlist_t* mrchatlist_new                 (mrmailbox_t*);
+void          mrchatlist_unref               (mrchatlist_t*);
+void          mrchatlist_empty               (mrchatlist_t*);
+size_t        mrchatlist_get_cnt             (mrchatlist_t*);
+mrchat_t*     mrchatlist_get_chat_by_index   (mrchatlist_t*, size_t index); /* result must be unref'd */
+mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t*, size_t index, mrchat_t*); /* result must be unref'd, the 3rd parameter is only to speed up things */
 
 
 /*** library-private **********************************************************/
 
-mrchatlist_t* mrchatlist_new               (mrmailbox_t*);
-void          mrchatlist_empty             (mrchatlist_t*);
 int           mrchatlist_load_from_db__    (mrchatlist_t*);
 
 

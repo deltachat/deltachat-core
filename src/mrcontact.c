@@ -606,12 +606,6 @@ mrcontact_t* mrcontact_new()
 }
 
 
-mrcontact_t* mrcontact_ref(mrcontact_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
 void mrcontact_unref(mrcontact_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0

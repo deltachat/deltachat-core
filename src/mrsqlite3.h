@@ -76,7 +76,7 @@ enum
 	,DELETE_FROM_contacts_WHERE_id
 
 	,SELECT_COUNT_FROM_chats
-	,SELECT_itndd_ircftttstpb_FROM_chats_LEFT_JOIN_msgs
+	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs
 	,SELECT_itndd_FROM_chats_WHERE_i
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,UPDATE_chats_SET_draft_WHERE_id

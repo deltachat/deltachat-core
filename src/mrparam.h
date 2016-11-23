@@ -54,12 +54,10 @@ typedef struct mrparam_t
 {
 	uint32_t m_magic;
 	char*    m_packed;    /* != NULL */
-	int      m_refcnt;
 } mrparam_t;
 
 
 mrparam_t*    mrparam_new          ();
-mrparam_t*    mrparam_ref          (mrparam_t*);
 void          mrparam_unref        (mrparam_t*);
 
 void          mrparam_empty        (mrparam_t*);

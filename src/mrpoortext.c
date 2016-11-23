@@ -55,12 +55,6 @@ mrpoortext_t* mrpoortext_new()
 }
 
 
-mrpoortext_t* mrpoortext_ref(mrpoortext_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
 void mrpoortext_unref(mrpoortext_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0

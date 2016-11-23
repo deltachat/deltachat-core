@@ -66,12 +66,10 @@ typedef struct mrcontact_t
 	char*               m_addr;  /* may be NULL or empty */
 	int                 m_origin;
 	int                 m_blocked;
-	int                 m_refcnt;
 } mrcontact_t;
 
 
 mrcontact_t* mrcontact_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
-mrcontact_t* mrcontact_ref             (mrcontact_t*);
 void         mrcontact_unref           (mrcontact_t*);
 void         mrcontact_empty           (mrcontact_t*);
 

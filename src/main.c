@@ -124,12 +124,12 @@ int main(int argc, char ** argv)
 		{
 			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox);
 			if( chatlist ) {
-				int i, cnt = carray_count(chatlist->m_chats);
+				int i, cnt = mrchatlist_get_cnt(chatlist);
 				if( cnt ) {
 					printf("================================================================================\n");
 					for( i = 0; i < cnt; i++ )
 					{
-						mrchat_t* chat = (mrchat_t*)carray_get(chatlist->m_chats, i);
+						mrchat_t* chat = mrchatlist_get_chat_by_index(chatlist, i);
 						char *temp;
 
 						temp = mrchat_get_subtitle(chat);
@@ -137,7 +137,7 @@ int main(int argc, char ** argv)
 							printf(" #%i: %s [%s] [%i unseen]\n", (int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unseen_count(chat));
 						free(temp);
 
-						mrpoortext_t* poortext = mrchat_get_summary(chat);
+						mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
 
 							if( poortext->m_title ) { printf("%s: ", poortext->m_title); }
 							if( poortext->m_text ) { printf("%s", poortext->m_text); }
@@ -154,6 +154,8 @@ int main(int argc, char ** argv)
 							free(temp3);
 
 						mrpoortext_unref(poortext);
+
+						mrchat_unref(chat);
 
 						printf("================================================================================\n");
 					}

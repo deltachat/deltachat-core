@@ -50,12 +50,10 @@ typedef struct mrpoortext_t
 	char*    m_text;          /* may be NULL */
 	time_t   m_timestamp;     /* may be 0 */
 	int      m_state;         /* may be 0 */
-	int      m_refcnt;
 } mrpoortext_t;
 
 
 mrpoortext_t* mrpoortext_new       ();
-mrpoortext_t* mrpoortext_ref       (mrpoortext_t*);
 void          mrpoortext_unref     (mrpoortext_t*);
 
 void          mrpoortext_empty     (mrpoortext_t*);

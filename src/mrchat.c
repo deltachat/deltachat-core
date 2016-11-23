@@ -603,12 +603,6 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 }
 
 
-mrchat_t* mrchat_ref(mrchat_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
 void mrchat_unref(mrchat_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
@@ -626,9 +620,6 @@ void mrchat_empty(mrchat_t* ths)
 
 	free(ths->m_name);
 	ths->m_name = NULL;
-
-	mrmsg_unref(ths->m_last_msg_);
-	ths->m_last_msg_ = NULL;
 
 	ths->m_draft_timestamp = 0;
 
@@ -830,85 +821,6 @@ int mrchat_get_unseen_count(mrchat_t* ths)
 
 	return ret;
 }
-
-
-mrpoortext_t* mrchat_get_summary(mrchat_t* ths)
-{
-	/* The summary is created by the chat, not by the last message.
-	This is because we may want to display drafts here or stuff as
-	"is typing".
-	Also, sth. as "No messages" would not work if the summary comes from a
-	message. */
-
-	mrpoortext_t* ret = mrpoortext_new();
-	if( ret == NULL ) {
-		return NULL;
-	}
-
-	if( ths == NULL ) {
-		ret->m_text = safe_strdup("ErrNoChat"); /* should not happen */
-		return ret;
-	}
-
-	#define SUMMARY_CHARACTERS 160 /* in practice, the user additinally cuts the string himself pixel-accurate */
-
-	if( ths->m_draft_timestamp
-	 && ths->m_draft_text
-	 && (ths->m_last_msg_ == NULL || ths->m_draft_timestamp>ths->m_last_msg_->m_timestamp) )
-	{
-		/* show the draft as the last message */
-		ret->m_title = mrstock_str(MR_STR_DRAFT);
-		ret->m_title_meaning = MR_TITLE_DRAFT;
-
-		ret->m_text = safe_strdup(ths->m_draft_text);
-		mr_truncate_n_unwrap_str(ret->m_text, SUMMARY_CHARACTERS, 1);
-
-		ret->m_timestamp = ths->m_draft_timestamp;
-	}
-	else if( ths->m_last_msg_ == NULL || ths->m_last_msg_->m_from_id == 0 )
-	{
-		/* no messages */
-		ret->m_text = mrstock_str(MR_STR_NO_MESSAGES);
-	}
-	else
-	{
-		/* show the last message */
-		if( ths->m_last_msg_->m_from_id == MR_CONTACT_ID_SELF ) {
-			ret->m_title = mrstock_str(MR_STR_SELF);
-			ret->m_title_meaning = MR_TITLE_SELF;
-		}
-		else if( ths->m_type==MR_CHAT_GROUP ) { /* for non-groups, the title is not needed and would result in Strings as "Prename Familyname: Prename: last message ..." */
-			mrcontact_t* contact = mrcontact_new();
-
-				mrsqlite3_lock(ths->m_mailbox->m_sql);
-					mrcontact_load_from_db__(contact, ths->m_mailbox->m_sql, ths->m_last_msg_->m_from_id);
-				mrsqlite3_unlock(ths->m_mailbox->m_sql);
-
-				if( contact->m_name && contact->m_name[0] ) {
-					ret->m_title = mr_get_first_name(contact->m_name);
-					ret->m_title_meaning = MR_TITLE_USERNAME;
-				}
-				else if( contact->m_addr && contact->m_addr[0] ) {
-					ret->m_title = safe_strdup(contact->m_addr);
-					ret->m_title_meaning = MR_TITLE_USERNAME;
-				}
-				else {
-					ret->m_title = safe_strdup("Unknown contact");
-					ret->m_title_meaning = MR_TITLE_USERNAME;
-				}
-
-			mrcontact_unref(contact);
-		}
-
-		ret->m_text = mrmsg_get_summary(ths->m_last_msg_->m_type, ths->m_last_msg_->m_text, SUMMARY_CHARACTERS);
-
-		ret->m_timestamp = ths->m_last_msg_->m_timestamp;
-		ret->m_state     = ths->m_last_msg_->m_state;
-	}
-
-	return ret;
-}
-
 
 
 /*******************************************************************************

@@ -237,12 +237,6 @@ mrmsg_t* mrmsg_new()
 }
 
 
-mrmsg_t* mrmsg_ref(mrmsg_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
 void mrmsg_unref(mrmsg_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0

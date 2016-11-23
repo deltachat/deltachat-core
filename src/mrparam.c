@@ -95,12 +95,6 @@ mrparam_t* mrparam_new()
 }
 
 
-mrparam_t* mrparam_ref(mrparam_t* ths)
-{
-	MR_INC_REFERENCE
-}
-
-
 void mrparam_unref(mrparam_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0

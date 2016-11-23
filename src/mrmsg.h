@@ -76,13 +76,10 @@ typedef struct mrmsg_t
 	char*         m_text;      /* message text or NULL if unset */
 	mrparam_t*    m_param;     /* 'f'ile, 'm'ime, 'w', 'h', 'd'uration/ms etc. depends on the type, != NULL */
 	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
-
-	int           m_refcnt;
 } mrmsg_t;
 
 
 mrmsg_t*     mrmsg_new                    ();
-mrmsg_t*     mrmsg_ref                    (mrmsg_t*);
 void         mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
 void         mrmsg_empty                  (mrmsg_t*);
 
