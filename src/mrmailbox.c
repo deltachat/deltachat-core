@@ -1255,12 +1255,12 @@ done:
 
 void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
-	int             is_locked = 0;
+	int             is_locked = 0, success = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mrimap_is_connected(ths->m_imap) ) {
-		mrlog_info("Already connected or trying to connect.");
-		goto cleanup;
+		mrlog_error("Already connected or trying to connect.");
+		goto cleanup; /* this is no success */
 	}
 
 	mrsqlite3_lock(ths->m_sql);
@@ -1280,6 +1280,8 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 		goto cleanup;
 	}
 
+	success = 1;
+
 cleanup:
 	if( param ) {
 		mrloginparam_unref(param);
@@ -1288,6 +1290,8 @@ cleanup:
 	if( is_locked ) {
 		mrsqlite3_unlock(ths->m_sql);
 	}
+
+	ths->m_cb(ths, MR_EVENT_CONNECTION_STATE_CHANGED, success, 0);
 }
 
 

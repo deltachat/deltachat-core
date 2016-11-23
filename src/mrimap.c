@@ -909,7 +909,7 @@ cleanup:
 	if( success == 0 ) {
 		unsetup_handle__(ths);
 	}
-
+	UNLOCK_HANDLE
 	return success;
 }
 
@@ -1194,6 +1194,9 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 					}
 					mailimap_set_free(res_setdest);
 				}
+
+				// TODO: If the new UID is equal to lastuid.Chats, we should increase lastuid.Chats by one
+				// (otherwise, we'll download the mail in moment again from the chats folder ...)
 
 				mrlog_info("Message moved.");
 			}
