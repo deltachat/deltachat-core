@@ -35,7 +35,6 @@ extern "C" {
 
 
 #include "mrmsg.h"
-#include "mrmsglist.h"
 typedef struct mrpoortext_t mrpoortext_t;
 typedef struct mrjob_t mrjob_t;
 
@@ -73,7 +72,6 @@ mrchat_t*     mrchat_ref                   (mrchat_t*);
 void          mrchat_empty                 (mrchat_t*);
 void          mrchat_unref                 (mrchat_t*);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
-mrmsglist_t*  mrchat_get_msglist           (mrchat_t*, size_t offset, size_t amount); /* the caller must unref the result */
 int           mrchat_get_total_msg_count   (mrchat_t*);
 int           mrchat_get_unseen_count      (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_UPDATED".  Returns true/false. */

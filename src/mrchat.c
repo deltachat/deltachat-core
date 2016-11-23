@@ -640,63 +640,51 @@ void mrchat_empty(mrchat_t* ths)
 }
 
 
-mrmsglist_t* mrchat_get_msglist(mrchat_t* ths, size_t offset, size_t amount) /* the caller must unref the result */
+carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 {
-	int           success = 0;
-	mrmsglist_t*  ret = NULL;
+	int           success = 0, locked = 0;
+	carray*       ret = carray_new(512);
 	sqlite3_stmt* stmt = NULL;
 
-	if( ths==NULL ) {
-		return NULL;
+	if( mailbox==NULL || ret == NULL ) {
+		goto cleanup;
 	}
 
-	mrsqlite3_lock(ths->m_mailbox->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-			/* create return object */
-			if( (ret=mrmsglist_new(ths)) == NULL ) {
-				goto cleanup;
-			}
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
+			"SELECT m.id"
+				" FROM msgs m"
+				" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.chat_id=? AND ct.blocked=0"
+				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
+		sqlite3_bind_int(stmt, 1, chat_id);
 
-			/* query */
-			stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ircftttstpb_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
-				"SELECT " MR_MSG_FIELDS
-					" FROM msgs m"
-					" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.chat_id=? AND ct.blocked=0"
-					" ORDER BY m.timestamp DESC,m.id DESC" /* the list starts with the newest messages*/
-					" LIMIT ? OFFSET ?;");
-			if( stmt == NULL ) {
-				goto cleanup;
-			}
-			sqlite3_bind_int(stmt, 1, ths->m_id);
-			sqlite3_bind_int(stmt, 2, amount);
-			sqlite3_bind_int(stmt, 3, offset);
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
 
-			while( sqlite3_step(stmt) == SQLITE_ROW )
-			{
-				mrmsg_t* msg = mrmsg_new();
-				mrmsg_set_from_stmt__(msg, stmt, 0);
+		/* success */
+		mrjob_ping__(mailbox);
 
-				carray_add(ret->m_msgs, (void*)msg, NULL);
-			}
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
-			/* success */
-			mrjob_ping__(ths->m_mailbox);
+	success = 1;
 
-			success = 1;
-
-			/* cleanup */
-		cleanup:
-
-			/* (nothing to cleanup at the moment) */
-
-	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
 
 	if( success ) {
 		return ret;
 	}
 	else {
-		mrmsglist_unref(ret);
+		if( ret ) {
+			carray_free(ret);
+		}
 		return NULL;
 	}
 }

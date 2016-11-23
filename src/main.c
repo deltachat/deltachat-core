@@ -179,16 +179,16 @@ int main(int argc, char ** argv)
 
 			/* show chat */
 			if( sel_chat ) {
-				mrmsglist_t* msglist = mrchat_get_msglist(sel_chat, 0, 100);
+				carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id);
 				char* temp2 = mrchat_get_subtitle(sel_chat);
 					printf("Chat #%i: %s [%s]\n", sel_chat->m_id, sel_chat->m_name, temp2);
 				free(temp2);
 				if( msglist ) {
-					int i, cnt = carray_count(msglist->m_msgs);
+					int i, cnt = carray_count(msglist);
 					printf("--------------------------------------------------------------------------------\n");
 					for( i = cnt-1; i >= 0; i-- )
 					{
-						mrmsg_t* msg = (mrmsg_t*)carray_get(msglist->m_msgs, i);
+						mrmsg_t* msg = mrmailbox_get_msg(mailbox, (uint32_t)(uintptr_t)carray_get(msglist, i));
 						mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
 						const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
 						int contact_id = contact? contact->m_id : 0;
@@ -200,9 +200,10 @@ int main(int argc, char ** argv)
 						free(temp2);
 
 						mrcontact_unref(contact);
+						mrmsg_unref(msg);
 						printf("--------------------------------------------------------------------------------\n");
 					}
-					mrmsglist_unref(msglist);
+					carray_free(msglist);
 				}
 				if( sel_chat->m_draft_timestamp ) {
 					char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
@@ -313,8 +314,10 @@ int main(int argc, char ** argv)
 						printf("Contact #%i: %s, %s\n", (int)contact->m_id,
 							(contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>",
 							(contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+						mrcontact_unref(contact);
 					}
 				}
+				carray_free(contacts);
 			}
 
 		}
