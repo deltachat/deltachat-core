@@ -57,6 +57,8 @@ static void* job_thread_entry_point(void* entry_arg)
 	while( 1 )
 	{
 		/* wait for condition */
+		mrlog_info("Job thread waiting...");
+
 		if( mailbox->m_job_do_exit ) { goto exit_; }
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
 			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
