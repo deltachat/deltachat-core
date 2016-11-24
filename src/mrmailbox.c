@@ -947,8 +947,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char  unset[] = "<unset>";
 	const char  set[] = "<set>";
-	char *displayname, *info;
-	mrloginparam_t *l, *l2;
+	char *displayname = NULL, *info = NULL;
+	mrloginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured;
 
 	if( ths == NULL ) {
