@@ -40,9 +40,10 @@ extern "C" {
 
 typedef struct mrsmtp_t
 {
-	mailsmtp*    m_hEtpan;
-	char*        m_from;
-	int          m_esmtp;
+	mailsmtp*       m_hEtpan;
+	char*           m_from;
+	int             m_esmtp;
+	pthread_mutex_t m_mutex;
 } mrsmtp_t;
 
 mrsmtp_t*    mrsmtp_new          (void);
