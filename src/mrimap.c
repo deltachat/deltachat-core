@@ -868,10 +868,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		return 0;
 	}
 
-	if( pthread_mutex_trylock(&ths->m_hEtpanmutex)!=0 ) {
-		goto cleanup;
-	}
-	handle_locked = 1;
+	LOCK_HANDLE
 
 		if( ths->m_connected ) {
 			success = 1;
