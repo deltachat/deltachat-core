@@ -121,6 +121,33 @@ char* mr_strlower(const char* in) /* the result must be free()'d */
 
 char* mr_mprintf(const char* format, ...)
 {
+	char  testbuf[1];
+	char* buf;
+	int   char_cnt_without_zero;
+
+	va_list argp;
+	va_list argp_copy;
+	va_start(argp, format);
+	va_copy(argp_copy, argp);
+
+	char_cnt_without_zero = vsnprintf(testbuf, 0, format, argp);
+	va_end(argp);
+	if( char_cnt_without_zero < 0) {
+		va_end(argp_copy);
+		return safe_strdup("ErrFmt");
+	}
+
+	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
+	if( buf == NULL ) {
+		va_end(argp_copy);
+		return safe_strdup("ErrMem");
+	}
+
+	vsnprintf(buf, char_cnt_without_zero+1, format, argp_copy);
+	va_end(argp_copy);
+	return buf;
+
+	#if 0 /* old implementation based upon sqlite3 */
 	char *sqlite_str, *c_string;
 
 	va_list argp;
@@ -136,6 +163,7 @@ char* mr_mprintf(const char* format, ...)
 	c_string = safe_strdup(sqlite_str); /* exists on errors */
 	sqlite3_free(sqlite_str);
 	return c_string; /* success - the result must be free()'d */
+	#endif /* /old implementation based upon sqlite3 */
 }
 
 

@@ -225,10 +225,10 @@ void mrparam_set_int(mrparam_t* ths, int key, int32_t value)
 		return;
 	}
 
-    char* value_str = sqlite3_mprintf("%i", (int)value);
+    char* value_str = mr_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return;
     }
     mrparam_set(ths, key, value_str);
-    sqlite3_free(value_str);
+    free(value_str);
 }

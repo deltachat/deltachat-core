@@ -42,7 +42,7 @@ void    mr_ltrim                   (char*);
 void    mr_rtrim                   (char*);
 void    mr_trim                    (char*);
 char*   mr_strlower                (const char*); /* the result must be free()'d */
-char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d.  Internally, it's faster to call sqlite3_mprintf()/sqlite3_free() directly. */
+char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/

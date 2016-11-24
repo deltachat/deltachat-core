@@ -114,6 +114,25 @@ void mrlog_set_handler(mrlogcb_t cb)
 
 static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 {
+	#define BUFSIZE 1024
+	char buf1[BUFSIZE];
+	char buf2[BUFSIZE];
+
+	if( type != 'e' && type != 'w' && type != 'i' ) {
+		mrlog_cb_('e', "Bad log type.");
+		return;
+	}
+
+	if( msg_format == NULL ) {
+		mrlog_cb_('e', "Log format string missing.");
+		return;
+	}
+
+	vsnprintf(buf1, BUFSIZE, msg_format, va);
+	snprintf(buf2, BUFSIZE, "T%i: %s", mrlog_get_thread_index(), buf1);
+	mrlog_cb_(type, buf2);
+
+	#if 0 /* old implementation based upon sqlite3 */
 	char* msg;
 	char* msg2;
 
@@ -132,6 +151,7 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 			mrlog_cb_(type, msg2);
 		sqlite3_free(msg2);
 	sqlite3_free(msg);
+	#endif /* /old implementation based upon sqlite3 */
 }
 
 

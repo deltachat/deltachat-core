@@ -469,12 +469,12 @@ int32_t mrsqlite3_get_config_int__(mrsqlite3_t* ths, const char* key, int32_t de
 
 int mrsqlite3_set_config_int__(mrsqlite3_t* ths, const char* key, int32_t value)
 {
-    char* value_str = sqlite3_mprintf("%i", (int)value);
+    char* value_str = mr_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return 0;
     }
     int ret = mrsqlite3_set_config__(ths, key, value_str);
-    sqlite3_free(value_str);
+    free(value_str);
     return ret;
 }
 
