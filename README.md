@@ -27,12 +27,12 @@ Some features at a glance
 Download
 --------------------------------------------------------------------------------
 
-Currently, the project is in alpha state under heavy development.  There is
-_no working prototype yet_ - only this bunch of files and the frontends as
-https://github.com/r10s/messenger-android .
+Currently, the project is in alpha state under heavy development.  If you are 
+interesing in a working **Android version**, please contact me at 
+_r10s at b44t dotcom_. 
 
-If you're interested in this project, you can contact me using
-_r10s at b44t dotcom_.
+The source code for the Android version is available at
+https://github.com/r10s/messenger-android .
 
 
 Build
