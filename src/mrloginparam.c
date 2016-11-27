@@ -172,7 +172,7 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		if( ths->m_send_port == 0 )                    { ths->m_send_port   = 465; } /* SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587 */
 		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_addr); }
 		if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
-		if( ths->m_send_flags == 0 )                   { ths->m_send_flags  = MR_SMTP_SSL_TLS; }
+		if( ths->m_send_flags == 0 )                   { ths->m_send_flags  = MR_SMTP_SSL_TLS|MR_SMTP_NO_UPLOAD_TO_IMAP; }
 		return;
 	}
 

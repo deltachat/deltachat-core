@@ -127,6 +127,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 		free(ths->m_from);
 		ths->m_from = safe_strdup(lp->m_addr);
+		ths->m_send_flags = lp->m_send_flags;
 
 		ths->m_hEtpan = mailsmtp_new(0, NULL);
 		if( ths->m_hEtpan == NULL ) {
