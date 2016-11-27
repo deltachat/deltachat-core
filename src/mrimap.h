@@ -60,6 +60,8 @@ typedef struct mrimap_t
 	int                   m_should_reconnect;
 	int                   m_manual_fetch;
 
+	char*                 m_error_descr; /* != NULL, non-empty eg. on connection errors */
+
 	int                   m_can_idle;
 	int                   m_has_xlist;
 	char*                 m_moveto_folder;/* Folder, where reveived chat messages should go to.  Normally "Chats" but may be NULL to leave them in the INBOX */

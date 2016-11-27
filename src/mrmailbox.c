@@ -1327,3 +1327,12 @@ int mrmailbox_fetch(mrmailbox_t* ths)
 
 	return mrimap_fetch(ths->m_imap);
 }
+
+
+char* mrmailbox_get_error_descr(mrmailbox_t* ths)
+{
+	if( ths == NULL || ths->m_imap == NULL || ths->m_imap->m_error_descr == NULL ) {
+		return safe_strdup("");
+	}
+	return safe_strdup(ths->m_imap->m_error_descr);
+}

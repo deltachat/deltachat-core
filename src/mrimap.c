@@ -809,7 +809,9 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		ths->m_hEtpan = mailimap_new(0, NULL);
 		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
-			mrlog_error("Could not connect to IMAP-server.");
+			free(ths->m_error_descr);
+			ths->m_error_descr = mr_mprintf("Could not connect to IMAP-server \"%s:%i\" (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			mrlog_error(ths->m_error_descr);
 			goto cleanup;
 		}
 	mrlog_info("Connection to IMAP-server ok.");
@@ -817,7 +819,9 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
 		r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
 		if( is_error(ths, r) ) {
-			mrlog_error("Could not login.");
+			free(ths->m_error_descr);
+			ths->m_error_descr = mr_mprintf("Could not login: %s (Error #%i)", ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
+			mrlog_error(ths->m_error_descr);
 			goto cleanup;
 		}
 	mrlog_info("Login ok.");
@@ -984,6 +988,7 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	ths->m_selected_folder = calloc(1, 1);
 	ths->m_moveto_folder   = NULL;
 	ths->m_sent_folder     = NULL;
+	ths->m_error_descr     = calloc(1, 1);
 
 	/* create some useful objects */
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
@@ -1018,6 +1023,7 @@ void mrimap_unref(mrimap_t* ths)
 	free(ths->m_moveto_folder);
 	free(ths->m_sent_folder);
 
+	free(ths->m_error_descr);
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }

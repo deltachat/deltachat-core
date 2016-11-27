@@ -130,6 +130,7 @@ if this fails, we fallback to a smart pull-mode. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
+char*                mrmailbox_get_error_descr      (mrmailbox_t*);
 
 /* Handle chats. */
 mrchatlist_t*        mrmailbox_get_chatlist              (mrmailbox_t*); /* the result must be unref'd */
