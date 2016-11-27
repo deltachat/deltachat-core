@@ -995,7 +995,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"send_port=%i (%i)\n"
 		"send_user=%s (%s)\n"
 		"send_pw=%s (%s)\n"
-		"send_flags=%i (%i)\n"
+		"server_flags=%i (%i)\n"
 		"\n"
 		"Using SQLite %s-ts%i and libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
@@ -1016,7 +1016,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, l->m_send_port? l->m_send_port : 0           , l2->m_send_port? l2->m_send_port : 0
 		, l->m_send_user? l->m_send_user : unset       , l2->m_send_user? l2->m_send_user : unset
 		, l->m_send_pw? set : unset                    , l2->m_send_pw? set : unset
-		, l->m_send_flags? l->m_send_flags : 0         , l2->m_send_flags? l2->m_send_flags : 0
+		, l->m_server_flags? l->m_server_flags : 0     , l2->m_server_flags? l2->m_server_flags : 0
 
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(), sizeof(void*)*8
 

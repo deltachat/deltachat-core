@@ -127,7 +127,6 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 		free(ths->m_from);
 		ths->m_from = safe_strdup(lp->m_addr);
-		ths->m_send_flags = lp->m_send_flags;
 
 		ths->m_hEtpan = mailsmtp_new(0, NULL);
 		if( ths->m_hEtpan == NULL ) {
@@ -140,7 +139,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		#endif
 
 		/* first open the stream */
-		if( lp->m_send_flags&MR_SMTP_SSL_TLS ) {
+		if( lp->m_server_flags&MR_SMTP_SSL_TLS ) {
 			/* use SMTP over SSL */
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 				mrlog_error("SSL-connect failed: %s\n", mailsmtp_strerror(r));
@@ -156,7 +155,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		/* then introduce ourselves */
-		try_esmtp = (lp->m_send_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
+		try_esmtp = (lp->m_server_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
 		ths->m_esmtp = 0;
 		if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 			ths->m_esmtp = 1;
@@ -171,13 +170,13 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( ths->m_esmtp
-		 && (lp->m_send_flags&MR_SMTP_STARTTLS)
+		 && (lp->m_server_flags&MR_SMTP_STARTTLS)
 		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
 			mrlog_error("mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
-		if( ths->m_esmtp && (lp->m_send_flags&MR_SMTP_STARTTLS) ) {
+		if( ths->m_esmtp && (lp->m_server_flags&MR_SMTP_STARTTLS) ) {
 			/* introduce ourselves again */
 			if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 				ths->m_esmtp = 1;

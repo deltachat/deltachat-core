@@ -1133,7 +1133,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_OUT_DELIVERED);
-		if( (mailbox->m_smtp->m_send_flags&MR_SMTP_NO_UPLOAD_TO_IMAP)==0 ) {
+		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0 ) {
 			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
 		}
 	mrsqlite3_commit__(mailbox->m_sql);

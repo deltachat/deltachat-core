@@ -51,12 +51,17 @@ typedef struct mrloginparam_t
 	char*         m_send_user;
 	char*         m_send_pw;
 	int           m_send_port;
-	#define       MR_SMTP_DUMMY             0x00001 /* just to force the value to be not-null */
-	#define       MR_SMTP_STARTTLS          0x00002
-	#define       MR_SMTP_SSL_TLS           0x00004
-	#define       MR_SMTP_NO_ESMPT          0x01000
-	#define       MR_SMTP_NO_UPLOAD_TO_IMAP 0x10000
-	int           m_send_flags;
+
+	/* Server options*/
+	#define       MR_AUTH_TYPE             0x000000FF
+	#define       MR_AUTH_NORMAL                    1
+	#define       MR_AUTH_XOAUTH2                   2
+	#define       MR_SMTP_STARTTLS         0x00010000
+	#define       MR_SMTP_SSL_TLS          0x00020000
+	#define       MR_SMTP_NO_ESMPT         0x01000000
+	#define       MR_NO_EXTRA_IMAP_UPLOAD  0x02000000
+	#define       MR_NO_MOVE_TO_CHATS      0x04000000
+	int           m_server_flags;
 } mrloginparam_t;
 
 

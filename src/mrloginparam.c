@@ -79,7 +79,7 @@ void mrloginparam_empty(mrloginparam_t* ths)
 	                          ths->m_send_port   = 0;
 	free(ths->m_send_user);   ths->m_send_user   = NULL;
 	free(ths->m_send_pw);     ths->m_send_pw     = NULL;
-	                          ths->m_send_flags  = 0;
+	                          ths->m_server_flags= 0;
 }
 
 
@@ -101,7 +101,8 @@ void mrloginparam_read__(mrloginparam_t* ths, mrsqlite3_t* sql, const char* pref
 	MR_PREFIX("send_port");   ths->m_send_port   = mrsqlite3_get_config_int__(sql, key, 0);
 	MR_PREFIX("send_user");   ths->m_send_user   = mrsqlite3_get_config__    (sql, key, NULL);
 	MR_PREFIX("send_pw");     ths->m_send_pw     = mrsqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("send_flags");  ths->m_send_flags  = mrsqlite3_get_config_int__(sql, key, 0);
+
+	MR_PREFIX("server_flags");ths->m_server_flags= mrsqlite3_get_config_int__(sql, key, 0);
 
 	sqlite3_free(key);
 }
@@ -122,7 +123,8 @@ void mrloginparam_write__(const mrloginparam_t* ths, mrsqlite3_t* sql, const cha
 	MR_PREFIX("send_port");    mrsqlite3_set_config_int__(sql, key, ths->m_send_port);
 	MR_PREFIX("send_user");    mrsqlite3_set_config__    (sql, key, ths->m_send_user);
 	MR_PREFIX("send_pw");      mrsqlite3_set_config__    (sql, key, ths->m_send_pw);
-	MR_PREFIX("send_flags");   mrsqlite3_set_config_int__(sql, key, ths->m_send_flags);
+
+	MR_PREFIX("server_flags"); mrsqlite3_set_config_int__(sql, key, ths->m_server_flags);
 
 	sqlite3_free(key);
 }
@@ -172,7 +174,7 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		if( ths->m_send_port == 0 )                    { ths->m_send_port   = 465; } /* SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587 */
 		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_addr); }
 		if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
-		if( ths->m_send_flags == 0 )                   { ths->m_send_flags  = MR_SMTP_SSL_TLS|MR_SMTP_NO_UPLOAD_TO_IMAP; }
+		if( ths->m_server_flags == 0 )                 { ths->m_server_flags= MR_AUTH_XOAUTH2 | MR_SMTP_SSL_TLS | MR_NO_EXTRA_IMAP_UPLOAD | MR_NO_MOVE_TO_CHATS; }
 		return;
 	}
 
@@ -209,8 +211,8 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		ths->m_send_pw = safe_strdup(ths->m_mail_pw);
 	}
 
-	if( ths->m_send_flags == 0 ) {
-		ths->m_send_flags  = MR_SMTP_SSL_TLS;
+	if( ths->m_server_flags == 0 ) {
+		ths->m_server_flags = MR_SMTP_SSL_TLS;
 	}
 }
 

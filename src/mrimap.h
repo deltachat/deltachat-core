@@ -52,6 +52,7 @@ typedef struct mrimap_t
 	int                   m_imap_port;
 	char*                 m_imap_user;
 	char*                 m_imap_pw;
+	int                   m_server_flags;
 
 	int                   m_connected; /* initally connected and watch thread installed */
 	mailimap*             m_hEtpan;    /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */

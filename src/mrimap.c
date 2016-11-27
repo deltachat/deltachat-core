@@ -275,7 +275,7 @@ static int init_chat_folders__(mrimap_t* ths)
 		}
 	}
 
-	if( chats_folder == NULL ) {
+	if( chats_folder == NULL && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 ) {
 		mrlog_info("Creating IMAP-folder \"%s\"...", MR_CHATS_FOLDER);
 		int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
 		if( is_error(ths, r) ) {
@@ -817,13 +817,35 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 	mrlog_info("Connection to IMAP-server ok.");
 
 	mrlog_info("Login to IMAP-server as \"%s\"...", ths->m_imap_user);
-		r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
+
+		switch( ths->m_server_flags&MR_AUTH_TYPE )
+		{
+			/* TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
+			https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
+			case MR_AUTH_XOAUTH2:
+				if (mOAuth2Token == NULL) {
+					r = MAILIMAP_ERROR_STREAM;
+				}
+				else {
+					r = mailimap_oauth2_authenticate(ths->m_hEtpan, ths->m_imap_use, mOAuth2Token);
+				}
+				break;
+			*/
+
+			/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
+
+			default:
+				r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
+				break;
+		}
+
 		if( is_error(ths, r) ) {
 			free(ths->m_error_descr);
 			ths->m_error_descr = mr_mprintf("Could not login: %s (Error #%i)", ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
 			mrlog_error(ths->m_error_descr);
 			goto cleanup;
 		}
+
 	mrlog_info("Login ok.");
 
 	success = 1;
@@ -880,9 +902,10 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		}
 
 		free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);
-								  ths->m_imap_port    = lp->m_mail_port;
+		                          ths->m_imap_port    = lp->m_mail_port;
 		free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
 		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
+		                          ths->m_server_flags = lp->m_server_flags;
 
 		if( !setup_handle_if_needed__(ths) ) {
 			goto cleanup;
@@ -1164,7 +1187,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 
 		mrlog_info("Message marked as seen.");
 
-		if( also_move )
+		if( also_move && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
 		{
 			init_chat_folders__(ths);
 			if( ths->m_moveto_folder )

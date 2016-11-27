@@ -42,7 +42,6 @@ typedef struct mrsmtp_t
 {
 	mailsmtp*       m_hEtpan;
 	char*           m_from;
-	uint32_t        m_send_flags;
 	int             m_esmtp;
 	pthread_mutex_t m_mutex;
 } mrsmtp_t;
