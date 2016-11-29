@@ -124,7 +124,7 @@ static void add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct ma
 }
 
 
-static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
+static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
                           const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */
@@ -149,12 +149,12 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 	int              transaction_pending = 0;
 	clistiter*       cur1;
 	struct mailimf_field* field;
-	size_t           created_db_entries = 0;
+	carray*          created_db_entries = carray_new(16);
 	int              has_return_path = 0;
 	char*            txt_raw = NULL;
 
 	to_list = carray_new(16);
-	if( to_list==NULL || mime_parser == NULL ) {
+	if( to_list==NULL || created_db_entries==NULL || mime_parser == NULL ) {
 		goto cleanup;
 	}
 
@@ -398,7 +398,8 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 				first_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
 			}
 
-			created_db_entries++;
+			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
+			carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
 		}
 
 		/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
@@ -420,6 +421,7 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 			{
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
 				uint32_t ghost_chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, ghost_to_id);
+				uint32_t ghost_dblocal_id;
 				if( ghost_chat_id==0 ) {
 					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
 				}
@@ -442,7 +444,10 @@ static size_t receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, 
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
-				created_db_entries++;
+				ghost_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
+
+				carray_add(created_db_entries, (void*)(uintptr_t)ghost_chat_id, NULL);
+				carray_add(created_db_entries, (void*)(uintptr_t)ghost_dblocal_id, NULL);
 			}
 			free(ghost_txt);
 			free(ghost_param);
@@ -493,13 +498,15 @@ cleanup:
 		carray_free(to_list);
 	}
 
-	if( created_db_entries > 0 ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
+	if( created_db_entries ) {
+		size_t i, icnt = carray_count(created_db_entries);
+		for( i = 0; i < icnt; i += 2 ) {
+			ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+		}
+		carray_free(created_db_entries);
 	}
 
 	free(txt_raw);
-
-	return created_db_entries;
 }
 
 
@@ -701,9 +708,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 	f = NULL;
 
 	/* import `data` */
-	if( receive_imf(ths, data, stat_info.st_size, "import", 0, 0) == 0 ) {
-		mrlog_warning("Import: No message could be created from \"%s\".", filename);
-	}
+	receive_imf(ths, data, stat_info.st_size, "import", 0, 0);
 
 	/* success */
 	success = 1;

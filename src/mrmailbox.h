@@ -70,7 +70,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 - The callback SHOULD return _fast_, for GUI updates etc. you should
   post yourself an asynchronous message to your GUI thread.
 - If not mentioned otherweise, the callback should return 0. */
-#define MR_EVENT_MSGS_UPDATED             2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. */
+#define MR_EVENT_MSGS_UPDATED             2000 /* messages updated in database. This may be new messages or old ones that are loaded by a request. Even more, messages may be removed. For added messages, data1=chat_id, data2=msg_id. */
 #define MR_EVENT_IS_EMAIL_KNOWN           2010 /* data1: email address, ret=1=email is known, create a chat, ret=0=email is unknown */
 #define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
 #define MR_EVENT_MSG_DELIVERED            3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
