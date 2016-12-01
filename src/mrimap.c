@@ -61,15 +61,15 @@ static void unsetup_handle__         (mrimap_t*);
 
 static int is_error(mrimap_t* ths, int code)
 {
-	if( code == MAILIMAP_NO_ERROR
-	 || code == MAILIMAP_NO_ERROR_AUTHENTICATED
-	 || code == MAILIMAP_NO_ERROR_NON_AUTHENTICATED )
+	if( code == MAILIMAP_NO_ERROR /*0*/
+	 || code == MAILIMAP_NO_ERROR_AUTHENTICATED /*1*/
+	 || code == MAILIMAP_NO_ERROR_NON_AUTHENTICATED /*2*/ )
 	{
 		return 0;
 	}
 
-	if( code == MAILIMAP_ERROR_STREAM
-	 || code == MAILIMAP_ERROR_PARSE )
+	if( code == MAILIMAP_ERROR_STREAM /*4*/
+	 || code == MAILIMAP_ERROR_PARSE /*5*/ )
 	{
 		mrlog_info("IMAP stream lost; we'll reconnect soon.");
 		ths->m_should_reconnect = 1;
@@ -669,27 +669,24 @@ static void* watch_thread_entry_point(void* entry_arg)
 							pthread_mutex_unlock(&ths->m_inwait_mutex);
 							force_sleep = 0;
 
-							if( r == MAILSTREAM_IDLE_ERROR || r==MAILSTREAM_IDLE_CANCELLED ) {
-								mrlog_info("IDLE wait cancelled, r=%i; we'll reconnect soon.", (int)r);
+							if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
+								mrlog_info("IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", (int)r, (int)r2);
 								force_sleep = SLEEP_ON_ERROR_SECONDS;
 								ths->m_should_reconnect = 1;
 							}
-							else if( r == MAILSTREAM_IDLE_INTERRUPTED ) {
+							else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
 								mrlog_info("IDLE interrupted.");
 								if( !ths->m_watch_do_exit ) {
 									force_sleep = SLEEP_ON_INTERRUPT_SECONDS;
 								}
 							}
-							else if( r == MAILSTREAM_IDLE_TIMEOUT ) {
-								mrlog_info("IDLE timeout.");
-								do_fetch = 2; /* fetch from all folders */
-							}
-							else if( r ==  MAILSTREAM_IDLE_HASDATA ) {
-								mrlog_info("IDLE got data.");
+							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
+								mrlog_info("IDLE has data.");
 								do_fetch = 1; /* fetch from currently selected folder, the INBOX */
 							}
-							else if( is_error(ths, r) ) {
-								; /* this check is needed and should be last as is_error() also sets m_should_reconnect */
+							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
+								mrlog_info("IDLE timeout.");
+								do_fetch = 2; /* fetch from all folders */
 							}
 
 							if( is_error(ths, r2) ) {
