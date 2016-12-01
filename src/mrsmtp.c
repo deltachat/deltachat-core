@@ -255,6 +255,10 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 
 	LOCK_SMTP
 
+		if( ths->m_hEtpan==NULL ) {
+			goto cleanup;
+		}
+
 		/* set source */
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
