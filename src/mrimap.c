@@ -44,7 +44,7 @@
 #define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
 #define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }
 
-#define INTERRUPT_IDLE  if( ths->m_can_idle && ths->m_hEtpan->imap_stream ) { \
+#define INTERRUPT_IDLE  if( ths && ths->m_can_idle && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { \
 			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */ \
 			pthread_mutex_lock(&ths->m_inwait_mutex); \
 			pthread_mutex_unlock(&ths->m_inwait_mutex); \
@@ -182,6 +182,10 @@ static clist* list_folders__(mrimap_t* ths)
 	clist *    ret_list = clist_new();
 	int        r, xlist_works = 0;
 
+	if( ths==NULL || ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
+
 	/* the "*" not only gives us the folders from the main directory, but also all subdirectories; so the resulting foldernames may contain
 	delimiters as "folder/subdir/subsubdir" etc.  However, as we do not really use folders, this is just fine (otherwise we'd implement this
 	functinon recursively. */
@@ -249,6 +253,10 @@ static int init_chat_folders__(mrimap_t* ths)
 	clistiter* iter1;
 	char       *normal_folder = NULL, *sent_folder = NULL, *chats_folder = NULL;
 
+	if( ths==NULL || ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
+
 	if( ths->m_sent_folder && ths->m_sent_folder[0] ) {
 		success = 1;
 		goto cleanup;
@@ -313,6 +321,10 @@ cleanup:
 
 static int select_folder__(mrimap_t* ths, const char* folder)
 {
+	if( ths==NULL || ths->m_hEtpan==NULL ) {
+		return 0;
+	}
+
 	if( strcmp(ths->m_selected_folder, folder)==0 ) {
 		return 1;
 	}
@@ -415,7 +427,15 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	clist*      fetch_result = NULL;
 	clistiter*  cur;
 
+	if( ths==NULL ) {
+		goto cleanup;
+	}
+
 	LOCK_HANDLE
+
+		if( ths->m_hEtpan==NULL ) {
+			goto cleanup;
+		}
 
 		{
 			struct mailimap_set* set = mailimap_set_new_single(server_uid);
@@ -446,6 +466,8 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	ths->m_receive_imf(ths, msg_content, msg_bytes, folder, server_uid, flags);
 
 cleanup:
+	UNLOCK_HANDLE
+
 	if( fetch_result ) {
 		mailimap_fetch_list_free(fetch_result);
 	}
@@ -464,7 +486,15 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	uint32_t   lastuid = 0; /* The last uid fetched, we fetch from lastuid+1. If 0, we get some of the newest ones. */
 	char*      lastuid_config_key = NULL;
 
+	if( ths==NULL ) {
+		goto cleanup;
+	}
+
 	LOCK_HANDLE
+
+		if( ths->m_hEtpan==NULL ) {
+			goto cleanup;
+		}
 
 		if( uidvalidity )
 		{
@@ -668,8 +698,11 @@ static void* watch_thread_entry_point(void* entry_arg)
 						UNBLOCK_IDLE
 
 							pthread_mutex_lock(&ths->m_inwait_mutex);
-								r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
-								r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
+								r = 0; r2 = 0;
+								if( ths->m_hEtpan ) {
+									r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+									r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
+								}
 							pthread_mutex_unlock(&ths->m_inwait_mutex);
 							force_sleep = 0;
 
@@ -793,6 +826,10 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 {
 	int r, success = 0;
 
+	if( ths==NULL ) {
+		goto cleanup;
+	}
+
     if( ths->m_should_reconnect ) {
 		unsetup_handle__(ths);
     }
@@ -859,6 +896,10 @@ cleanup:
 
 static void unsetup_handle__(mrimap_t* ths)
 {
+	if( ths==NULL ) {
+		return;
+	}
+
 	if( ths->m_hEtpan )
 	{
 		mrlog_info("Disconnecting...");
@@ -894,7 +935,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 {
 	int success = 0, handle_locked = 0;
 
-	if( ths == NULL || lp==NULL || lp->m_mail_server==NULL || lp->m_mail_user==NULL || lp->m_mail_pw==NULL ) {
+	if( ths==NULL || lp==NULL || lp->m_mail_server==NULL || lp->m_mail_user==NULL || lp->m_mail_pw==NULL ) {
 		return 0;
 	}
 
@@ -946,12 +987,12 @@ void mrimap_disconnect(mrimap_t* ths)
 {
 	int handle_locked = 0, connected;
 
-	if( ths == NULL ) {
+	if( ths==NULL ) {
 		return;
 	}
 
 	LOCK_HANDLE
-		connected = ths->m_connected;
+		connected = (ths->m_hEtpan && ths->m_connected);
 	UNLOCK_HANDLE
 
 	if( connected )
@@ -1031,7 +1072,7 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 
 void mrimap_unref(mrimap_t* ths)
 {
-	if( ths == NULL ) {
+	if( ths==NULL ) {
 		return;
 	}
 
@@ -1061,7 +1102,7 @@ void mrimap_unref(mrimap_t* ths)
 
 int mrimap_fetch(mrimap_t* ths)
 {
-	if( ths == NULL || !ths->m_connected ) {
+	if( ths==NULL || !ths->m_connected ) {
 		return 0;
 	}
 
@@ -1080,7 +1121,16 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 
 	*ret_server_folder = NULL;
 
+	if( ths==NULL ) {
+		goto cleanup;
+	}
+
 	LOCK_HANDLE
+
+	if( ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
+
 	BLOCK_IDLE
 
 		INTERRUPT_IDLE
@@ -1142,6 +1192,10 @@ static int add_flag__(mrimap_t* ths, const char* folder, uint32_t server_uid, st
 	struct mailimap_store_att_flags* store_att_flags = NULL;
 	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
 
+	if( ths==NULL || ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
+
 	if( select_folder__(ths, folder)==0 ) {
 		goto cleanup;
 	}
@@ -1178,6 +1232,11 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 	*ret_server_uid = 0;
 
 	LOCK_HANDLE
+
+	if( ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
+
 	BLOCK_IDLE
 
 		INTERRUPT_IDLE
