@@ -621,7 +621,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	int             handle_locked = 0, idle_blocked = 0, unsetup_idle = 0, force_sleep = 0, do_fetch = 0;
+	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* let the job thread a little bit time before we IDLE again, otherweise there will be many idle-interrupt sequences */
 	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
@@ -639,11 +639,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
 
-		LOCK_HANDLE
-			mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-			unsetup_idle = 1;
-		UNLOCK_HANDLE
-
 		while( 1 )
 		{
 			if( ths->m_watch_do_exit ) { goto exit_; }
@@ -654,7 +649,13 @@ static void* watch_thread_entry_point(void* entry_arg)
 				do_fetch = 0;
 				force_sleep = SLEEP_ON_ERROR_SECONDS;
 				uidvaliditiy = 0;
+
 				setup_handle_if_needed__(ths);
+				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
+					mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+					ths->m_idle_set_up = 1;
+				}
+
 				if( select_folder__(ths, "INBOX") )
 				{
 					uidvaliditiy = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
@@ -686,7 +687,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrlog_info("IDLE has data.");
 								do_fetch = 1; /* fetch from currently selected folder, the INBOX */
-								ths->m_should_reconnect = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
 								mrlog_info("IDLE timeout.");
@@ -778,11 +778,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 exit_:
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
-	if( unsetup_idle ) {
-		LOCK_HANDLE
-			mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
-		UNLOCK_HANDLE
-	}
+
 	mrosnative_unsetup_thread();
 	return NULL;
 }
@@ -866,6 +862,12 @@ static void unsetup_handle__(mrimap_t* ths)
 	if( ths->m_hEtpan )
 	{
 		mrlog_info("Disconnecting...");
+
+			if( ths->m_idle_set_up ) {
+				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
+				ths->m_idle_set_up = 0;
+			}
+
 			if( ths->m_hEtpan->imap_stream != NULL ) {
 				mailstream_close(ths->m_hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
 				ths->m_hEtpan->imap_stream = NULL;
@@ -873,6 +875,7 @@ static void unsetup_handle__(mrimap_t* ths)
 
 			mailimap_free(ths->m_hEtpan);
 			ths->m_hEtpan = NULL;
+
 		mrlog_info("Disconnect done.");
 	}
 

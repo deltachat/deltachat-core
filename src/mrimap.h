@@ -57,6 +57,7 @@ typedef struct mrimap_t
 	int                   m_connected; /* initally connected and watch thread installed */
 	mailimap*             m_hEtpan;    /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
 	pthread_mutex_t       m_hEtpanmutex;
+	int                   m_idle_set_up;
 	char*                 m_selected_folder;
 	int                   m_should_reconnect;
 	int                   m_manual_fetch;
