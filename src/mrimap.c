@@ -455,7 +455,7 @@ cleanup:
 
 static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t uidvalidity)
 {
-	int        r, handle_locked = 0;
+	int        r, handle_locked = 0, log_summary = 1;
 	clist*     fetch_result = NULL;
 	uint32_t   out_largetst_uid = 0;
 	size_t     read_cnt = 0, read_errors = 0;
@@ -480,6 +480,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 		{
 			if( select_folder__(ths, folder)==0 ) {
 				mrlog_error("Cannot select folder \"%s\".", folder);
+				log_summary = 0;
 				goto cleanup;
 			}
 
@@ -521,6 +522,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
 		mrlog_error("Cannot fetch message list from folder \"%s\".", folder);
+		log_summary = 0;
 		goto cleanup;
 	}
 
@@ -549,7 +551,8 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 cleanup:
 	UNLOCK_HANDLE
 
-    {
+	if( log_summary )
+	{
 		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
 		if( read_errors ) {
 			mrlog_error(temp);
@@ -558,7 +561,7 @@ cleanup:
 			mrlog_info(temp);
 		}
 		free(temp);
-    }
+	}
 
 	if( fetch_result ) {
 		mailimap_fetch_list_free(fetch_result);
@@ -683,6 +686,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrlog_info("IDLE has data.");
 								do_fetch = 1; /* fetch from currently selected folder, the INBOX */
+								ths->m_should_reconnect = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
 								mrlog_info("IDLE timeout.");
