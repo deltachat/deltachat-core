@@ -350,6 +350,7 @@ cleanup:
 
 int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 {
+	int           transaction_pending = 0;
 	sqlite3_stmt* stmt;
 	uint32_t      msg_id;
 
@@ -358,7 +359,6 @@ int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction__(ths->m_sql);
 
 		stmt = mrsqlite3_predefine__(ths->m_sql, SELECT_id_FROM_msgs_WHERE_chat_id_AND_state,
 			"SELECT id FROM msgs WHERE chat_id=? AND state=?;");
@@ -366,12 +366,20 @@ int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 		sqlite3_bind_int(stmt, 2, MR_IN_UNSEEN);
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{
+			if( transaction_pending == 0 ) {
+				mrsqlite3_begin_transaction__(ths->m_sql);
+				transaction_pending = 1;
+			}
+
 			msg_id = sqlite3_column_int(stmt, 0);
 			mrmailbox_update_msg_state__(ths, msg_id, MR_IN_SEEN);
 			mrjob_add__(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL);
 		}
 
-	mrsqlite3_commit__(ths->m_sql);
+		if( transaction_pending ) {
+			mrsqlite3_commit__(ths->m_sql);
+		}
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
