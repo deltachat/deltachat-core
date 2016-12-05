@@ -520,13 +520,11 @@ int mrmailbox_markseen_msg(mrmailbox_t* ths, uint32_t msg_id)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
-	mrsqlite3_begin_transaction__(ths->m_sql);
 
 		if( mrmailbox_update_msg_state_conditional__(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) { /* avoid converting outgoing messages to incoming ones and protect against double calls */
 			mrjob_add__(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 		}
 
-	mrsqlite3_commit__(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
