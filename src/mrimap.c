@@ -521,9 +521,14 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			if( lastuid > 0 )
 			{
 				/* Get messages with an ID larger than the one we got last time */
+
+				/* check if the predicted "next uid on insert" is equal to the one we start for fetching
+				-> no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap)
+				--> unfortunately, this check does not work with our cached select!
 				if( ths->m_hEtpan->imap_selection_info->sel_uidnext == lastuid+1 ) {
-					goto cleanup; /* the predicted "next uid on insert" is equal to the one we start for fetching - no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap) */
+					goto cleanup;
 				}
+				*/
 
 				struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
 					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
@@ -671,7 +676,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 		while( 1 )
 		{
-			if( ths->m_watch_do_exit ) { goto exit_; }
+			if( ths->m_watch_do_exit ) {
+				goto exit_;
+			}
 
 			BLOCK_IDLE /* must be done before LOCK_HANDLE; this allows other threads to block IDLE */
 			LOCK_HANDLE
@@ -713,9 +720,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 							}
 							else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
 								mrlog_info("IDLE interrupted.");
-								if( !ths->m_watch_do_exit ) {
-									force_sleep = SLEEP_ON_INTERRUPT_SECONDS;
-								}
+								force_sleep = SLEEP_ON_INTERRUPT_SECONDS;
 							}
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrlog_info("IDLE has data.");
@@ -730,7 +735,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 								do_fetch = 0;
 							}
 
-							if( ths->m_watch_do_exit ) { goto exit_; }
+							if( ths->m_watch_do_exit ) { /* check after is_error() to allow reconnections on errors */
+								goto exit_;
+							}
 
 						BLOCK_IDLE
 						LOCK_HANDLE
@@ -758,7 +765,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 		mrlog_info("IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), last_fullread_time=0, now, seconds_to_wait;
-		struct timespec timeToWait;
 		while( 1 )
 		{
 			/* get the latest messages */
@@ -798,13 +804,22 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 			/* wait */
 			mrlog_info("IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
-			if( ths->m_watch_do_exit ) { goto exit_; }
 			pthread_mutex_lock(&ths->m_watch_condmutex);
-				timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
-				timeToWait.tv_nsec = 0;
-				pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait);
+
+				if( ths->m_watch_condflag == 0 ) {
+					struct timespec timeToWait;
+					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
+					timeToWait.tv_nsec = 0;
+					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+				}
+				ths->m_watch_condflag = 0;
+
+				if( ths->m_watch_do_exit ) {
+					pthread_mutex_unlock(&ths->m_watch_condmutex);
+					goto exit_;
+				}
+
 			pthread_mutex_unlock(&ths->m_watch_condmutex);
-			if( ths->m_watch_do_exit ) { goto exit_; }
 		}
 	}
 
@@ -998,19 +1013,26 @@ void mrimap_disconnect(mrimap_t* ths)
 	if( connected )
 	{
 		mrlog_info("Stopping IMAP-watch-thread...");
-			ths->m_watch_do_exit = 1;
+
 			if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
 			{
+				ths->m_watch_do_exit = 1;
+
 				LOCK_HANDLE
 					mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
 				UNLOCK_HANDLE
-				pthread_join(ths->m_watch_thread, NULL);
 			}
 			else
 			{
-				pthread_cond_signal(&ths->m_watch_cond);
-				pthread_join(ths->m_watch_thread, NULL);
+				pthread_mutex_lock(&ths->m_watch_condmutex);
+					ths->m_watch_condflag = 1;
+					ths->m_watch_do_exit  = 1;
+					pthread_cond_signal(&ths->m_watch_cond);
+				pthread_mutex_unlock(&ths->m_watch_condmutex);
 			}
+
+			pthread_join(ths->m_watch_thread, NULL);
+
 		mrlog_info("IMAP-watch-thread stopped.");
 
 		LOCK_HANDLE
@@ -1106,8 +1128,11 @@ int mrimap_fetch(mrimap_t* ths)
 		return 0;
 	}
 
-	ths->m_manual_fetch = 1;
-	pthread_cond_signal(&ths->m_watch_cond);
+	/* the following code has no effect in IDLE mode, however, it also does not disturb */
+	pthread_mutex_lock(&ths->m_watch_condmutex);
+		ths->m_watch_condflag = 1;
+		pthread_cond_signal(&ths->m_watch_cond);
+	pthread_mutex_unlock(&ths->m_watch_condmutex);
 	return 1;
 }
 

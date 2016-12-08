@@ -60,7 +60,6 @@ typedef struct mrimap_t
 	int                   m_idle_set_up;
 	char*                 m_selected_folder;
 	int                   m_should_reconnect;
-	int                   m_manual_fetch;
 
 	char*                 m_error_descr; /* != NULL, non-empty eg. on connection errors */
 
@@ -74,6 +73,7 @@ typedef struct mrimap_t
 	pthread_t             m_watch_thread;
 	pthread_cond_t        m_watch_cond;
 	pthread_mutex_t       m_watch_condmutex;
+	int                   m_watch_condflag;
 	int                   m_watch_do_exit;
 
 	struct mailimap_fetch_type* m_fetch_type_uid;
