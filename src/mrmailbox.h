@@ -61,7 +61,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 5
+#define MR_VERSION_REVISION 6
 
 
 /* Callback function that is called on updates, state changes etc.
@@ -94,6 +94,7 @@ typedef struct mrmailbox_t
 	pthread_t       m_job_thread;
 	pthread_cond_t  m_job_cond;
 	pthread_mutex_t m_job_condmutex;
+	int             m_job_condflag;
 	int             m_job_do_exit;
 
 	mrmailboxcb_t   m_cb;

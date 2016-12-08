@@ -59,17 +59,25 @@ static void* job_thread_entry_point(void* entry_arg)
 		/* wait for condition */
 		mrlog_info("Job thread waiting...");
 
-		if( mailbox->m_job_do_exit ) { goto exit_; }
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
-			pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+			while( mailbox->m_job_condflag == 0 ) {
+				pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+			}
+			mailbox->m_job_condflag = 0;
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
-		if( mailbox->m_job_do_exit ) { goto exit_; }
 
 		mrlog_info("Job thread waked up.");
 
 		/* do all waiting jobs */
 		while( 1 )
 		{
+			pthread_mutex_lock(&mailbox->m_job_condmutex);
+				if( mailbox->m_job_do_exit ) {
+					pthread_mutex_unlock(&mailbox->m_job_condmutex);
+					goto exit_;
+				}
+			pthread_mutex_unlock(&mailbox->m_job_condmutex);
+
 			/* get next waiting job */
 			job.m_job_id = 0;
 			mrsqlite3_lock(mailbox->m_sql);
@@ -86,9 +94,6 @@ static void* job_thread_entry_point(void* entry_arg)
 
 			if( job.m_job_id == 0 ) {
 				break;
-			}
-			else if( mailbox->m_job_do_exit ) {
-				goto exit_;
 			}
 
 			/* execute job */
@@ -112,7 +117,7 @@ static void* job_thread_entry_point(void* entry_arg)
 					sqlite3_bind_int  (stmt, 3, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
-				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
+				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL))); // TODO: The job may be started _far_ later as the thread does not wakes up for delayed jobs (however, they're executed together with following "normal" jobs)
 			}
 			else {
 				mrsqlite3_lock(mailbox->m_sql);
@@ -151,8 +156,12 @@ void mrjob_init_thread(mrmailbox_t* mailbox)
 
 void mrjob_exit_thread(mrmailbox_t* mailbox)
 {
-	mailbox->m_job_do_exit = 1;
-	pthread_cond_signal(&mailbox->m_job_cond);
+	pthread_mutex_lock(&mailbox->m_job_condmutex);
+		mailbox->m_job_condflag = 1;
+		mailbox->m_job_do_exit = 1;
+		pthread_cond_signal(&mailbox->m_job_cond);
+	pthread_mutex_unlock(&mailbox->m_job_condmutex);
+
 	pthread_join(mailbox->m_job_thread, NULL);
 	pthread_cond_destroy(&mailbox->m_job_cond);
 	pthread_mutex_destroy(&mailbox->m_job_condmutex);
@@ -177,12 +186,13 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 	job_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
 
-	if( !mailbox->m_job_do_exit ) {
-		mrlog_info("Signal job thread to wake up...");
-		pthread_mutex_lock(&mailbox->m_job_condmutex);
+	pthread_mutex_lock(&mailbox->m_job_condmutex);
+		if( !mailbox->m_job_do_exit ) {
+			mrlog_info("Signal job thread to wake up...");
+			mailbox->m_job_condflag = 1;
 			pthread_cond_signal(&mailbox->m_job_cond);
-		pthread_mutex_unlock(&mailbox->m_job_condmutex);
-	}
+		}
+	pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
 	return job_id;
 }
@@ -196,7 +206,10 @@ void mrjob_ping__(mrmailbox_t* mailbox)
 	sqlite3_bind_int64(stmt, 1, time(NULL));
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
 		mrlog_info("Ping does signal job thread to wake up...");
-		pthread_cond_signal(&mailbox->m_job_cond);
+		pthread_mutex_lock(&mailbox->m_job_condmutex);
+			mailbox->m_job_condflag = 1;
+			pthread_cond_signal(&mailbox->m_job_cond);
+		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 	}
 }
 
