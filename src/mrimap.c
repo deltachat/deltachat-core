@@ -665,9 +665,11 @@ static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
+	time_t          last_fullread_time = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* let the job thread a little bit time before we IDLE again, otherweise there will be many idle-interrupt sequences */
 	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
+	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minute (typically together the IDLE delay break) */
 
 	mrlog_info("IMAP-watch-thread started.");
 	mrosnative_setup_thread();
@@ -681,6 +683,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 		uint32_t uidvaliditiy;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
+		last_fullread_time = time(NULL);
 
 		while( 1 )
 		{
@@ -732,11 +735,11 @@ static void* watch_thread_entry_point(void* entry_arg)
 							}
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrlog_info("IDLE has data.");
-								do_fetch = 1; /* fetch from currently selected folder, the INBOX */
+								do_fetch = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
 								mrlog_info("IDLE timeout.");
-								do_fetch = 2; /* fetch from all folders */
+								do_fetch = 1;
 							}
 
 							if( is_error(ths, r2) ) {
@@ -755,11 +758,16 @@ static void* watch_thread_entry_point(void* entry_arg)
 			UNLOCK_HANDLE
 			UNBLOCK_IDLE
 
+			if( do_fetch == 1 && time(NULL)-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+				do_fetch = 2;
+			}
+
 			if( do_fetch == 1 ) {
 				fetch_from_single_folder(ths, "INBOX", uidvaliditiy);
 			}
 			else if( do_fetch == 2 ) {
 				fetch_from_all_folders(ths);
+				last_fullread_time = time(NULL);
 			}
 			else if( force_sleep ) {
 				sleep(force_sleep);
@@ -772,13 +780,13 @@ static void* watch_thread_entry_point(void* entry_arg)
 		 **********************************************************************/
 
 		mrlog_info("IMAP-watch-thread will poll for messages.");
-		time_t last_message_time=time(NULL), last_fullread_time=0, now, seconds_to_wait;
+		time_t last_message_time=time(NULL), now, seconds_to_wait;
 		while( 1 )
 		{
 			/* get the latest messages */
 			now = time(NULL);
 			do_fetch = 1;
-			if( now-last_fullread_time > IDLE_DELAY_SECONDS ) {
+			if( now-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
 				do_fetch = 2;
 			}
 
