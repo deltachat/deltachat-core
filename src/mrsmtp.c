@@ -263,7 +263,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
 				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_mail: %s, %s\n", ths->m_from, mailsmtp_strerror(r));
+			mrlog_error("mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
 			goto cleanup;
 		}
 

@@ -390,14 +390,14 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
 			mrmailbox_connect_to_imap(mailbox, NULL);
 			if( !mrimap_is_connected(mailbox->m_imap) ) {
-				mrjob_try_again_later(job);
+				mrjob_try_again_later(job, MR_STANDARD_DELAY);
 				goto cleanup;
 			}
 		}
 
 		if( !mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
 		{
-			mrjob_try_again_later(job);
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -470,7 +470,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
 		mrmailbox_connect_to_imap(mailbox, NULL);
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job);
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -501,7 +501,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 	else
 	{
-		mrjob_try_again_later(job);
+		mrjob_try_again_later(job, MR_STANDARD_DELAY);
 	}
 
 cleanup:

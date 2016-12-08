@@ -214,13 +214,13 @@ void mrjob_ping__(mrmailbox_t* mailbox)
 }
 
 
-void mrjob_try_again_later(mrjob_t* ths)
+void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 {
 	int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;
 	mrparam_set_int(ths->m_param, 't', tries);
 
 	if( tries == 1 ) {
-		ths->m_start_again_at = time(NULL)+3;
+		ths->m_start_again_at = time(NULL)+initial_delay_seconds;
 	}
 	else if( tries < 5 ) {
 		ths->m_start_again_at = time(NULL)+60;

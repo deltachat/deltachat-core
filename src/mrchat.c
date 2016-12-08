@@ -1058,7 +1058,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
 		mrmailbox_connect_to_imap(mailbox, NULL);
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job);
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -1075,7 +1075,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	if( !mrimap_append_msg(mailbox->m_imap, msg->m_timestamp, data->str, data->len, &server_folder, &server_uid) ) {
-		mrjob_try_again_later(job);
+		mrjob_try_again_later(job, MR_STANDARD_DELAY);
 		goto cleanup;
 	}
 	else {
@@ -1112,7 +1112,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 			int connected = mrsmtp_connect(mailbox->m_smtp, loginparam);
 		mrloginparam_unref(loginparam);
 		if( !connected ) {
-			mrjob_try_again_later(job);
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -1133,7 +1133,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, data->str, data->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
-		mrjob_try_again_later(job);
+		mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 		goto cleanup;
 	}
 

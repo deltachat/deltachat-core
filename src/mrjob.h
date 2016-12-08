@@ -53,7 +53,11 @@ typedef struct mrjob_t {
 void     mrjob_init_thread     (mrmailbox_t*);
 void     mrjob_exit_thread     (mrmailbox_t*);
 uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const char* param); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
-void     mrjob_try_again_later (mrjob_t*);
+
+#define  MR_AT_ONCE            0
+#define  MR_STANDARD_DELAY     3
+void     mrjob_try_again_later (mrjob_t*, int initial_delay_seconds);
+
 void     mrjob_ping__          (mrmailbox_t*);
 
 
