@@ -319,7 +319,7 @@ cleanup:
 }
 
 
-static void forget_folder_selection(mrimap_t* ths)
+static void forget_folder_selection__(mrimap_t* ths)
 {
 	ths->m_selected_folder[0] = 0;
 }
@@ -452,8 +452,10 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	UNLOCK_HANDLE
 
 	if( is_error(ths, r) ) {
-		mrlog_error("Problem on fetching message #%i from folder \"%s\".  Try again later.", (int)server_uid, folder);
-		retry_later = 1;
+		mrlog_error("Error #%i on fetching message #%i from folder \"%s\"; retry=%i.", (int)r, (int)server_uid, folder, (int)ths->m_should_reconnect);
+		if( ths->m_should_reconnect ) {
+			retry_later = 1; /* maybe we should also retry on other errors, however, we should check this carefully, as this may result in a dead lock! */
+		}
 		goto cleanup; /* this is an error that should be recovered; the caller should try over later to fetch the message again (if there is no such message, we simply get an empty result) */
 	}
 
@@ -782,17 +784,15 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 			LOCK_HANDLE
 				setup_handle_if_needed__(ths);
+				forget_folder_selection__(ths); /* seems to be needed - otherwise, we'll get a new message only every _twice_ polls. WTF? */
 			UNLOCK_HANDLE
 
-
 			if( do_fetch == 1 ) {
-				forget_folder_selection(ths); /* seems to be needed */
 				if( fetch_from_single_folder(ths, "INBOX", 0) > 0 ) {
 					last_message_time = now;
 				}
 			}
 			else if( do_fetch == 2 ) {
-				forget_folder_selection(ths); /* seems to be needed */
 				if( fetch_from_all_folders(ths) > 0 ) {
 					last_message_time = now;
 				}
