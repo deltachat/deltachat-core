@@ -319,6 +319,12 @@ cleanup:
 }
 
 
+static void forget_folder_selection(mrimap_t* ths)
+{
+	ths->m_selected_folder[0] = 0;
+}
+
+
 static int select_folder__(mrimap_t* ths, const char* folder)
 {
 	if( ths==NULL || ths->m_hEtpan==NULL ) {
@@ -780,11 +786,13 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 
 			if( do_fetch == 1 ) {
+				forget_folder_selection(ths); /* seems to be needed */
 				if( fetch_from_single_folder(ths, "INBOX", 0) > 0 ) {
 					last_message_time = now;
 				}
 			}
 			else if( do_fetch == 2 ) {
+				forget_folder_selection(ths); /* seems to be needed */
 				if( fetch_from_all_folders(ths) > 0 ) {
 					last_message_time = now;
 				}
