@@ -526,6 +526,13 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
 			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
 
+			if( lastuid == 0 ) {
+				if( ths->m_hEtpan->imap_selection_info->sel_uidnext != 0 ) {
+					lastuid = ths->m_hEtpan->imap_selection_info->sel_uidnext - 1; /* this is not always exact, however, as we only use this as "range start", this is no real problem */
+					ths->m_set_config_int(ths, lastuid_config_key, lastuid);  /* write back the UID as otherwise we'll never receive new messages as UIDNEXT grows as messages come in */
+				}
+			}
+
 			if( lastuid > 0 )
 			{
 				/* Get messages with an ID larger than the one we got last time */
@@ -544,16 +551,24 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			}
 			else
 			{
-				/* fetch the last 200 messages by one-based-index.  Maybe we shoud implement a method to fetch more older ones if the user scrolls up. */
-				int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
-				if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
-					i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
-					i_first = MR_MAX(i_last-200, 1);
-				}
-
-				struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
+				/* fetch the newest message to get the UID */
+				struct mailimap_set* set = mailimap_set_new_single(0); // 0=*=the _largest_ index (results in `FETCH * (UID)` to get the latest message)
 					r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
 				mailimap_set_free(set);
+
+				#if 0
+					/* fetch the last 200 messages by one-based-index.
+					This implementation seems to make problems if we cannot get the count for any reasons ... see mailbox.org ... */
+					int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
+					if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
+						i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
+						i_first = MR_MAX(i_last-200, 1);
+					}
+
+					struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
+						r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
+					mailimap_set_free(set);
+				#endif
 			}
 		}
 
