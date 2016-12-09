@@ -76,6 +76,10 @@ typedef struct mrimap_t
 	int                   m_watch_condflag;
 	int                   m_watch_do_exit;
 
+	pthread_t             m_restore_thread;
+	int                   m_restore_thread_created;
+	int                   m_restore_do_exit;
+
 	struct mailimap_fetch_type* m_fetch_type_uid;
 	struct mailimap_fetch_type* m_fetch_type_body;
 
@@ -93,6 +97,7 @@ int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
 void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
+int       mrimap_restore           (mrimap_t*, time_t seconds_to_restore);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int also_move, char** ret_server_folder, uint32_t* ret_server_uid); /* only returns 0 on connection problems; we should try later again in this case */

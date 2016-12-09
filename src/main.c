@@ -97,6 +97,7 @@ int main(int argc, char ** argv)
 			printf("connect             connect to server\n");
 			printf("disconnect          disconnect from server\n");
 			printf("fetch               fetch messages\n");
+			printf("restore <days>      restore messages of the last days\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");
 			printf("chat [<id>]         list chat/select chat by id\n");

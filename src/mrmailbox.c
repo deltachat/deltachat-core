@@ -1117,6 +1117,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 	{
 		ret = mrmailbox_fetch(ths)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
+	else if( strncmp(cmd, "restore", 7)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int days = atoi(arg1);
+			ret = mrmailbox_restore(ths, days*24*60*60)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <days> missing.");
+		}
+	}
 	else if( strncmp(cmd, "set", 3)==0 )
 	{
 		char* arg1 = (char*)strstr(cmd, " ");
@@ -1217,7 +1228,8 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		else {
 			ret = safe_strdup("ERROR: Argument <chat-id> missing.");
 		}
-	}	else if( strncmp(cmd, "adr", 3)==0 )
+	}
+	else if( strncmp(cmd, "adr", 3)==0 )
 	{
 		char *arg1 = (char*)strstr(cmd, " "), *arg2 = NULL;
 		if( arg1 ) { arg1++; arg2 = strstr(arg1, ";"); }
@@ -1329,6 +1341,16 @@ int mrmailbox_fetch(mrmailbox_t* ths)
 	}
 
 	return mrimap_fetch(ths->m_imap);
+}
+
+
+int mrmailbox_restore(mrmailbox_t* ths, time_t seconds_to_restore)
+{
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	return mrimap_restore(ths->m_imap, seconds_to_restore);
 }
 
 

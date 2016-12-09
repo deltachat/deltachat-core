@@ -423,14 +423,14 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 }
 
 
-static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
+static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int block_idle)
 {
 	/* the function returns:
 	    0  the caller should try over again later
 	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
 	char*       msg_content;
 	size_t      msg_bytes;
-	int         r, retry_later = 0, deleted = 0, handle_locked = 0;
+	int         r, retry_later = 0, deleted = 0, handle_locked = 0, idle_blocked = 0;
 	uint32_t    flags = 0;
 	clist*      fetch_result = NULL;
 	clistiter*  cur;
@@ -445,10 +445,19 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 			goto cleanup;
 		}
 
+		if( block_idle ) {
+			BLOCK_IDLE
+			INTERRUPT_IDLE
+		}
+
 		{
 			struct mailimap_set* set = mailimap_set_new_single(server_uid);
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 			mailimap_set_free(set);
+		}
+
+		if( block_idle ) {
+			UNBLOCK_IDLE
 		}
 
 	UNLOCK_HANDLE
@@ -476,6 +485,9 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	ths->m_receive_imf(ths, msg_content, msg_bytes, folder, server_uid, flags);
 
 cleanup:
+	if( block_idle ) {
+		UNBLOCK_IDLE
+	}
 	UNLOCK_HANDLE
 
 	if( fetch_result ) {
@@ -594,7 +606,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 		if( cur_uid && (lastuid==0 || cur_uid>lastuid) ) /* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs under some curcumstances. Mailcore2 does the same check, see see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp */
 		{
 			read_cnt++;
-			if( fetch_single_msg(ths, folder, cur_uid) == 0 ) {
+			if( fetch_single_msg(ths, folder, cur_uid, 0) == 0 ) {
 				read_errors++;
 			}
 			else if( cur_uid > out_largetst_uid ) {
@@ -1068,6 +1080,14 @@ void mrimap_disconnect(mrimap_t* ths)
 
 		mrlog_info("IMAP-watch-thread stopped.");
 
+		if( ths->m_restore_thread_created )
+		{
+			mrlog_info("Stopping IMAP-restore-thread...");
+				ths->m_restore_do_exit = 1;
+				pthread_join(ths->m_restore_thread, NULL);
+			mrlog_info("IMAP-restore-thread stopped.");
+		}
+
 		LOCK_HANDLE
 			unsetup_handle__(ths);
 			ths->m_can_idle  = 0;
@@ -1085,6 +1105,127 @@ int mrimap_is_connected(mrimap_t* ths)
 
 
 /*******************************************************************************
+ * Restoring
+ ******************************************************************************/
+
+
+static void* restore_thread_entry_point(void* entry_arg)
+{
+	mrimap_t*  ths = (mrimap_t*)entry_arg;
+	int        r, handle_locked = 0, idle_blocked = 0;
+	clist      *folder_list = NULL, *fetch_result = NULL;
+	clistiter  *folder_iter, *fetch_iter;
+	#define    CHECK_EXIT if( ths->m_restore_do_exit ) { goto exit_; }
+
+	mrlog_info("IMAP-restore-thread started.");
+	mrosnative_setup_thread();
+
+	LOCK_HANDLE
+	BLOCK_IDLE
+		INTERRUPT_IDLE
+		mrlog_info("IMAP-restore-thread gets folders.");
+		if( !setup_handle_if_needed__(ths)
+		 || (folder_list=list_folders__(ths))==NULL ) {
+			goto exit_;
+		}
+	UNBLOCK_IDLE
+	UNLOCK_HANDLE
+
+	for( folder_iter = clist_begin(folder_list); folder_iter != NULL ; folder_iter = clist_next(folder_iter) )
+	{
+		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(folder_iter);
+
+		CHECK_EXIT
+
+		LOCK_HANDLE
+		BLOCK_IDLE
+			INTERRUPT_IDLE
+			mrlog_info("IMAP-restore-thread gets messages in \"%s\".", folder->m_name_utf8);
+			if( select_folder__(ths, folder->m_name_to_select)
+			 && ths->m_hEtpan->imap_selection_info->sel_has_exists )
+			{
+				/* fetch the last 200 messages by one-based-index. TODO: we should regard the given timespan somehow */
+				int32_t i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
+				int32_t i_first = MR_MAX(i_last-200, 1);
+
+				struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
+					r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
+				mailimap_set_free(set);
+			}
+		UNBLOCK_IDLE
+		UNLOCK_HANDLE
+
+		if( !is_error(ths, r) )
+		{
+			if( fetch_result != NULL )
+			{
+				for( fetch_iter = clist_begin(fetch_result); fetch_iter != NULL ; fetch_iter = clist_next(fetch_iter) )
+				{
+					CHECK_EXIT
+
+					struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(fetch_iter); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
+					uint32_t cur_uid = peek_uid(msg_att);
+					if( cur_uid )
+					{
+						fetch_single_msg(ths, folder->m_name_to_select, cur_uid, 1);
+					}
+				}
+
+				mailimap_fetch_list_free(fetch_result);
+				fetch_result = NULL;
+			}
+		}
+	}
+
+	mrlog_info("IMAP-restore-thread finished.");
+
+exit_:
+	UNBLOCK_IDLE
+	UNLOCK_HANDLE /* needed before the follow lock as the handle may be locked or unlocked when arriving in exit_*/
+
+	if( fetch_result ) {
+		mailimap_fetch_list_free(fetch_result);
+	}
+
+	if( folder_list ) {
+		free_folders(folder_list);
+	}
+
+	LOCK_HANDLE
+		ths->m_restore_thread_created = 0;
+	UNLOCK_HANDLE
+	mrosnative_unsetup_thread();
+	return NULL;
+}
+
+
+int mrimap_restore(mrimap_t* ths, time_t seconds_to_restore)
+{
+	int success = 0, handle_locked = 0;
+
+	if( ths==NULL || !ths->m_connected || seconds_to_restore <= 0 ) {
+		goto cleanup;
+	}
+
+	LOCK_HANDLE
+		if( ths->m_restore_thread_created ) {
+			goto cleanup;
+		}
+		ths->m_restore_thread_created = 1;
+		ths->m_restore_do_exit = 0;
+	UNLOCK_HANDLE
+
+	pthread_create(&ths->m_restore_thread, NULL, restore_thread_entry_point, ths);
+
+	success = 1;
+
+cleanup:
+	return success;
+}
+
+
+
+ /*******************************************************************************
  * Main interface
  ******************************************************************************/
 

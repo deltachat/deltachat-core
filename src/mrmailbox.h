@@ -131,6 +131,7 @@ if this fails, we fallback to a smart pull-mode. */
 int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
+int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
 char*                mrmailbox_get_error_descr      (mrmailbox_t*);
 
 /* Handle chats. */
