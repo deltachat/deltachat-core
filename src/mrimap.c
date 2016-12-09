@@ -448,6 +448,7 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 		if( block_idle ) {
 			BLOCK_IDLE
 			INTERRUPT_IDLE
+			select_folder__(ths, folder); /* if we need to block IDLE, we'll also need to select the folder as it may have changed by IDLE */
 		}
 
 		{
@@ -1155,9 +1156,9 @@ static void* restore_thread_entry_point(void* entry_arg)
 		UNBLOCK_IDLE
 		UNLOCK_HANDLE
 
-		if( !is_error(ths, r) )
+		if( fetch_result != NULL )
 		{
-			if( fetch_result != NULL )
+			if( !is_error(ths, r) )
 			{
 				for( fetch_iter = clist_begin(fetch_result); fetch_iter != NULL ; fetch_iter = clist_next(fetch_iter) )
 				{
@@ -1170,10 +1171,10 @@ static void* restore_thread_entry_point(void* entry_arg)
 						fetch_single_msg(ths, folder->m_name_to_select, cur_uid, 1);
 					}
 				}
-
-				mailimap_fetch_list_free(fetch_result);
-				fetch_result = NULL;
 			}
+
+			mailimap_fetch_list_free(fetch_result);
+			fetch_result = NULL;
 		}
 	}
 
