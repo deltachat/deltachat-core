@@ -41,11 +41,39 @@
  ******************************************************************************/
 
 
+static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do not wait, <0: wait until signal
+{
+	int           ret = -1;
+	sqlite3_stmt* stmt;
+
+	mrsqlite3_lock(mailbox->m_sql);
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MIN_d_FROM_jobs, "SELECT MIN(desired_timestamp) FROM jobs;");
+		if( sqlite3_step(stmt) == SQLITE_ROW )
+		{
+			if( sqlite3_column_type(stmt, 0)!=SQLITE_NULL )
+			{
+				time_t min_desired_timestamp = (time_t)sqlite3_column_int64(stmt, 0);
+				time_t now = time(NULL);
+				if( min_desired_timestamp <= now ) {
+					ret = 0;
+				}
+				else {
+					ret = (int)(min_desired_timestamp-now) + 1 /*wait a second longer, pthread_cond_timedwait() is not _that_ exact and we want to be sure to catch the jobs in the first try*/;
+				}
+			}
+		}
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	return ret;
+}
+
+
 static void* job_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg;
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
+	int           seconds_to_wait;
 
 	memset(&job, 0, sizeof(mrjob_t));
 	job.m_param = mrparam_new();
@@ -57,18 +85,28 @@ static void* job_thread_entry_point(void* entry_arg)
 	while( 1 )
 	{
 		/* wait for condition */
-		mrlog_info("Job thread waiting...");
-
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
-			while( mailbox->m_job_condflag == 0 ) {
-				pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+			seconds_to_wait = get_wait_seconds(mailbox);
+			if( seconds_to_wait > 0 ) {
+				mrlog_info("Job thread waiting for %i seconds or signal...", seconds_to_wait);
+				if( mailbox->m_job_condflag == 0 ) {
+					struct timespec timeToWait;
+					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
+					timeToWait.tv_nsec = 0;
+					pthread_cond_timedwait(&mailbox->m_job_cond, &mailbox->m_job_condmutex, &timeToWait);
+				}
+			}
+			else if( seconds_to_wait < 0 ) {
+				mrlog_info("Job thread waiting for signal...");
+				while( mailbox->m_job_condflag == 0 ) {
+					pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
+				}
 			}
 			mailbox->m_job_condflag = 0;
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
-		mrlog_info("Job thread waked up.");
-
 		/* do all waiting jobs */
+		mrlog_info("Job thread checks for pending jobs...");
 		while( 1 )
 		{
 			pthread_mutex_lock(&mailbox->m_job_condmutex);
@@ -117,7 +155,7 @@ static void* job_thread_entry_point(void* entry_arg)
 					sqlite3_bind_int  (stmt, 3, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
-				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL))); // TODO: The job may be started _far_ later as the thread does not wakes up for delayed jobs (however, they're executed together with following "normal" jobs)
+				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
 			}
 			else {
 				mrsqlite3_lock(mailbox->m_sql);
@@ -195,22 +233,6 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 	pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
 	return job_id;
-}
-
-
-void mrjob_ping__(mrmailbox_t* mailbox)
-{
-	sqlite3_stmt* stmt;
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_jobs,
-		"SELECT id FROM jobs WHERE desired_timestamp<=? LIMIT 1;");
-	sqlite3_bind_int64(stmt, 1, time(NULL));
-	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		mrlog_info("Ping does signal job thread to wake up...");
-		pthread_mutex_lock(&mailbox->m_job_condmutex);
-			mailbox->m_job_condflag = 1;
-			pthread_cond_signal(&mailbox->m_job_cond);
-		pthread_mutex_unlock(&mailbox->m_job_condmutex);
-	}
 }
 
 

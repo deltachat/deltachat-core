@@ -1244,13 +1244,6 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <name>;<addr> expected.");
 		}
 	}
-	else if( strcmp(cmd, "ping")==0 )
-	{
-		mrsqlite3_lock(ths->m_sql);
-			mrjob_ping__(ths);
-		mrsqlite3_unlock(ths->m_sql);
-		ret = COMMAND_SUCCEEDED;
-	}
 
 done:
 	if( ret == COMMAND_FAILED ) {

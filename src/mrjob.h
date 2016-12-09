@@ -58,8 +58,6 @@ uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const 
 #define  MR_STANDARD_DELAY     3
 void     mrjob_try_again_later (mrjob_t*, int initial_delay_seconds);
 
-void     mrjob_ping__          (mrmailbox_t*);
-
 
 #ifdef __cplusplus
 } /* /extern "C" */

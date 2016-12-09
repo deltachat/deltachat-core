@@ -296,7 +296,6 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	}
 
 	/* success */
-	mrjob_ping__(ths);
 
 	success = 1;
 
@@ -665,7 +664,6 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 		}
 
 		/* success */
-		mrjob_ping__(mailbox);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;

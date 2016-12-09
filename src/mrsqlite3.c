@@ -233,7 +233,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" action INTEGER,"
 					" foreign_id INTEGER,"
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX jobs_index1 ON jobs (action);");
+		mrsqlite3_execute__(ths, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
 
 		if( !mrsqlite3_table_exists__(ths, "config") || !mrsqlite3_table_exists__(ths, "contacts")
 		 || !mrsqlite3_table_exists__(ths, "chats") || !mrsqlite3_table_exists__(ths, "chats_contacts")

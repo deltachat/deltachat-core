@@ -111,7 +111,7 @@ enum
 	,DELETE_FROM_msgs_WHERE_rfc724_mid
 
 	,INSERT_INTO_jobs_aafp
-	,SELECT_i_FROM_jobs
+	,SELECT_MIN_d_FROM_jobs
 	,SELECT_iafp_FROM_jobs
 	,DELETE_FROM_jobs_WHERE_id
 	,UPDATE_jobs_SET_dp_WHERE_id
