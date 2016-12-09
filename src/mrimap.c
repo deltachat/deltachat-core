@@ -43,12 +43,14 @@
 
 #define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
 #define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }
-
-#define INTERRUPT_IDLE  if( ths && ths->m_can_idle && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { \
-			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */ \
-			pthread_mutex_lock(&ths->m_inwait_mutex); \
-			pthread_mutex_unlock(&ths->m_inwait_mutex); \
-		}
+#define INTERRUPT_IDLE  \
+	if( ths && ths->m_can_idle && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { \
+		if( pthread_mutex_trylock(&ths->m_inwait_mutex)!=0 ) { \
+			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream); \
+			pthread_mutex_lock(&ths->m_inwait_mutex); /* make sure, mailimap_idle_done() is called - otherwise the other routines do not work */ \
+		} \
+		pthread_mutex_unlock(&ths->m_inwait_mutex); \
+	}
 
 static int  setup_handle_if_needed__ (mrimap_t*);
 static void unsetup_handle__         (mrimap_t*);
