@@ -448,6 +448,8 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 		if( block_idle ) {
 			BLOCK_IDLE
 			INTERRUPT_IDLE
+			setup_handle_if_needed__(ths);
+			forget_folder_selection__(ths);
 			select_folder__(ths, folder); /* if we need to block IDLE, we'll also need to select the folder as it may have changed by IDLE */
 		}
 
@@ -1141,6 +1143,7 @@ static void* restore_thread_entry_point(void* entry_arg)
 		LOCK_HANDLE
 		BLOCK_IDLE
 			INTERRUPT_IDLE
+			setup_handle_if_needed__(ths);
 			mrlog_info("IMAP-restore-thread gets messages in \"%s\".", folder->m_name_utf8);
 			if( select_folder__(ths, folder->m_name_to_select)
 			 && ths->m_hEtpan->imap_selection_info->sel_has_exists )
