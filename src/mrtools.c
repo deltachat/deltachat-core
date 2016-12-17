@@ -1104,3 +1104,16 @@ int mr_delete_file(const char* pathNfilename)
 	return 1;
 }
 
+
+int mr_create_folder(const char* pathNfilename)
+{
+	struct stat st;
+	if (stat(pathNfilename, &st) == -1) {
+		if( mkdir(pathNfilename, 0755) != 0 ) {
+			mrlog_error("Cannot create directory \"%s\".", pathNfilename);
+			return 0;
+		}
+	}
+	return 1;
+}
+

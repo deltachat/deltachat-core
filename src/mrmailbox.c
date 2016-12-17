@@ -610,6 +610,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	}
 	else {
 		ths->m_blobdir = mr_mprintf("%s-blobs", dbfile);
+		mr_create_folder(ths->m_blobdir);
 	}
 
 	/* success */

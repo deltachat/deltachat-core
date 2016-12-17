@@ -70,6 +70,7 @@ char* mr_create_outgoing_rfc724_mid(const char* addr);
 size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
 int     mr_delete_file             (const char* pathNFilename);
+int     mr_create_folder           (const char* pathNfilename);
 
 /* macros */
 #define MR_INIT_REFERENCE \
