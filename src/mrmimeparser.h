@@ -47,7 +47,8 @@ typedef struct mrmimepart_t
 	int                 m_type; /*one of MR_MSG_* */
 	char*               m_msg;
 	char*               m_msg_raw;
-
+	int                 m_bytes;
+	mrparam_t*          m_param;
 } mrmimepart_t;
 
 mrmimepart_t* mrmimepart_new    ();
@@ -62,10 +63,11 @@ typedef struct mrmimeparser_t
 	struct mailimf_fields* m_header;
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
+	const char*            m_blobdir;
 } mrmimeparser_t;
 
 
-mrmimeparser_t*       mrmimeparser_new            ();
+mrmimeparser_t*       mrmimeparser_new            (const char* blobdir);
 void                  mrmimeparser_unref          (mrmimeparser_t*);
 void                  mrmimeparser_empty          (mrmimeparser_t*);
 

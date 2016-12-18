@@ -144,7 +144,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
-	mrmimeparser_t*  mime_parser = mrmimeparser_new();
+	mrmimeparser_t*  mime_parser = mrmimeparser_new(ths->m_blobdir);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
@@ -384,9 +384,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			sqlite3_bind_int  (stmt,  8, part->m_type);
 			sqlite3_bind_int  (stmt,  9, state);
 			sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
-			sqlite3_bind_text (stmt, 11, part->m_msg, -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 13, "", -1, SQLITE_STATIC);
+			sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}

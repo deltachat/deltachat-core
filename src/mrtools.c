@@ -37,6 +37,7 @@
 #include <libetpan/libetpan.h>
 #include <libetpan/mailimap_types.h>
 #include "mrtools.h"
+#include "mrlog.h"
 
 
 /*******************************************************************************
@@ -1117,3 +1118,53 @@ int mr_create_folder(const char* pathNfilename)
 	return 1;
 }
 
+
+char* mr_get_filesuffix(const char* pathNfilename)
+{
+	if( pathNfilename ) {
+		const char* p = strrchr(pathNfilename, '.');
+		if( p ) {
+			p++;
+			return safe_strdup(p);
+		}
+	}
+	return NULL;
+}
+
+
+char* mr_get_random_filename(const char* folder, const char* suffix)
+{
+	time_t      now = time(NULL);
+	struct stat st;
+	int         i;
+	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
+		char* test = mr_mprintf("%s/in-%lu-%i.%s", folder, (unsigned long)now, i, suffix);
+		if (stat(test, &st) == -1) {
+			return test; /* fine filename found */
+		}
+		free(test); /* try over with the nex index */
+	}
+	return NULL;
+}
+
+
+int mr_write_file(const char* pathNfilename, const void* buf, uint32_t buf_bytes)
+{
+	int success = 0;
+
+	FILE* f = fopen(pathNfilename, "wb");
+	if( f ) {
+		if( fwrite(buf, 1, buf_bytes, f) == buf_bytes ) {
+			success = 1;
+		}
+		else {
+			mrlog_error("Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
+		}
+		fclose(f);
+	}
+	else {
+		mrlog_error("Cannot open \"%s\" for writing.", pathNfilename);
+	}
+
+	return success;
+}

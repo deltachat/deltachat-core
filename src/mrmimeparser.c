@@ -381,10 +381,11 @@ mrmimepart_t* mrmimepart_new()
 	mrmimepart_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
-		return NULL;
+		exit(33);
 	}
 
 	ths->m_type    = MR_MSG_UNDEFINED;
+	ths->m_param   = mrparam_new();
 
 	return ths;
 }
@@ -406,6 +407,7 @@ void mrmimepart_unref(mrmimepart_t* ths)
 		ths->m_msg_raw = NULL;
 	}
 
+	mrparam_unref(ths->m_param);
 	free(ths);
 }
 
@@ -415,7 +417,7 @@ void mrmimepart_unref(mrmimepart_t* ths)
  ******************************************************************************/
 
 
-mrmimeparser_t* mrmimeparser_new()
+mrmimeparser_t* mrmimeparser_new(const char* blobdir)
 {
 	mrmimeparser_t* ths = NULL;
 
@@ -423,7 +425,8 @@ mrmimeparser_t* mrmimeparser_new()
 		exit(30);
 	}
 
-	ths->m_parts = carray_new(16);
+	ths->m_parts   = carray_new(16);
+	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 
 	return ths;
 }
@@ -475,8 +478,11 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 }
 
 
-int mrmimeparser_get_mime_type_(struct mailmime_content* c)
+static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type)
 {
+	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
+	*msg_type = MR_MSG_UNDEFINED;
+
 	if( c == NULL || c->ct_type == NULL ) {
 		return 0;
 	}
@@ -487,6 +493,7 @@ int mrmimeparser_get_mime_type_(struct mailmime_content* c)
 			switch( c->ct_type->tp_data.tp_discrete_type->dt_type )
 			{
 				case MAILMIME_DISCRETE_TYPE_TEXT:
+					*msg_type = MR_MSG_TEXT;
 					if( strcmp(c->ct_subtype, "plain")==0 ) {
 						return MR_MIMETYPE_TEXT_PLAIN;
                     }
@@ -498,15 +505,19 @@ int mrmimeparser_get_mime_type_(struct mailmime_content* c)
                     }
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
+					*msg_type = MR_MSG_IMAGE;
 					return MR_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
+					*msg_type = MR_MSG_AUDIO;
 					return MR_MIMETYPE_AUDIO;
 
 				case MAILMIME_DISCRETE_TYPE_VIDEO:
+					*msg_type = MR_MSG_VIDEO;
 					return MR_MIMETYPE_VIDEO;
 
 				default:
+					*msg_type = MR_MSG_FILE;
 					return MR_MIMETYPE_FILE;
 			}
 			break;
@@ -536,27 +547,29 @@ int mrmimeparser_get_mime_type_(struct mailmime_content* c)
 
 static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct mailmime* mime)
 {
-	mrmimepart_t*  part = mrmimepart_new();
-	int            do_add_part = 0;
+	mrmimepart_t*                part = mrmimepart_new();
+	int                          do_add_part = 0;
 
-	int            mime_type;
-	struct mailmime_data* mime_data;
-	int            mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	int                          mime_type;
+	struct mailmime_data*        mime_data;
+	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
+	char*                        file_name = NULL;
+	char*                        file_suffix = NULL;
+	int                          msg_type;
 
-	char*          transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
-	char*          charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
-
-	const char*    decoded_data = NULL; /* must not be free()'d */
-	size_t         decoded_data_bytes = 0;
-
-	mrsimplify_t*  simplifier = NULL;
+	char*                        transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
+	char*                        charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
+	const char*                  decoded_data = NULL; /* must not be free()'d */
+	size_t                       decoded_data_bytes = 0;
+	mrsimplify_t*                simplifier = NULL;
 
 	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
 		goto cleanup;
 	}
 
 	/* get mime type from `mime` */
-	mime_type = mrmimeparser_get_mime_type_(mime->mm_content_type);
+	mime_type = mrmimeparser_get_mime_type_(mime->mm_content_type, &msg_type);
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -574,6 +587,9 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 			if( field ) {
 				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
 					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
+				}
+				else if( field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition ) {
+					file_disposition = field->fld_data.fld_disposition;
 				}
 			}
 		}
@@ -642,9 +658,47 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 			break;
 
 		case MR_MIMETYPE_IMAGE:
-			part->m_type = MR_MSG_IMAGE;
-			part->m_msg  = safe_strdup("IMAGE");
-			do_add_part = 1;
+		case MR_MIMETYPE_AUDIO:
+		case MR_MIMETYPE_VIDEO:
+		case MR_MIMETYPE_FILE:
+			{
+				// get the extension of the file to create
+				if( file_disposition ) {
+					clistiter* cur;
+					for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
+						struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
+						if( dsp_param ) {
+							if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
+								file_suffix = mr_get_filesuffix(dsp_param->pa_data.pa_filename);
+							}
+						}
+					}
+				}
+
+                if( file_suffix==NULL ) {
+					if( mime->mm_content_type && mime->mm_content_type->ct_subtype ) {
+						file_suffix = safe_strdup(mime->mm_content_type->ct_subtype);
+					}
+					else {
+						goto cleanup;
+					}
+                }
+
+				// create a free file name to use
+				if( (file_name=mr_get_random_filename(ths->m_blobdir, file_suffix)) == NULL ) {
+					goto cleanup;
+				}
+
+				// copy data to file
+                if( mr_write_file(file_name, decoded_data, decoded_data_bytes)==0 ) {
+					goto cleanup;
+                }
+
+				part->m_type  = msg_type;
+				part->m_bytes = decoded_data_bytes;
+				mrparam_set(part->m_param, 'f', file_name);
+				do_add_part   = 1;
+			}
 			break;
 
 		default:
@@ -664,6 +718,9 @@ cleanup:
 	if( transfer_decoding_buffer ) {
 		mmap_string_unref(transfer_decoding_buffer);
 	}
+
+	free(file_name);
+	free(file_suffix);
 
 	if( do_add_part ) {
 		carray_add(ths->m_parts, (void*)part, NULL);
@@ -688,13 +745,13 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch( mrmimeparser_get_mime_type_(mime->mm_content_type) )
+			switch( mrmimeparser_get_mime_type_(mime->mm_content_type, NULL) )
 			{
 				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
 					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+							if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
 								sth_added = mrmimeparser_parse_mime_recursive__(ths, childmime);
 								break;
 							}
@@ -730,10 +787,10 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 							int plain_cnt = 0, html_cnt = 0;
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-								if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_PLAIN ) {
+								if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
 									plain_cnt++;
 								}
-								else if( mrmimeparser_get_mime_type_(childmime->mm_content_type) == MR_MIMETYPE_TEXT_HTML ) {
+								else if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_HTML ) {
 									html_part = childmime;
 									html_cnt++;
 								}
@@ -878,10 +935,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 cleanup:
 	if( carray_count(ths->m_parts)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
-		if( part!=NULL ) {
-			part->m_type = MR_MSG_TEXT;
-			part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
-			carray_add(ths->m_parts, (void*)part, NULL);
-		}
+		part->m_type = MR_MSG_TEXT;
+		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
+		carray_add(ths->m_parts, (void*)part, NULL);
 	}
 }
