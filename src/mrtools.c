@@ -1148,7 +1148,7 @@ char* mr_get_random_filename(const char* folder, const char* suffix)
 }
 
 
-int mr_write_file(const char* pathNfilename, const void* buf, uint32_t buf_bytes)
+int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes)
 {
 	int success = 0;
 
@@ -1167,4 +1167,93 @@ int mr_write_file(const char* pathNfilename, const void* buf, uint32_t buf_bytes
 	}
 
 	return success;
+}
+
+
+int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes)
+{
+	int success = 0;
+
+	if( pathNfilename==NULL || buf==NULL || buf_bytes==NULL ) {
+		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
+	}
+
+	*buf = NULL;
+	*buf_bytes = 0;
+	FILE* f = fopen(pathNfilename, "rb");
+	if( f==NULL ) { goto cleanup; }
+
+	fseek(f, 0, SEEK_END);
+	*buf_bytes = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	if( *buf_bytes <= 0 ) { goto cleanup; }
+
+	*buf = malloc(*buf_bytes);
+	if( *buf==NULL ) { goto cleanup; }
+
+	if( fread(*buf, 1, *buf_bytes, f)!=*buf_bytes ) { goto cleanup; }
+
+	success = 1;
+
+cleanup:
+	if( f ) {
+		fclose(f);
+	}
+	if( success==0 ) {
+		free(*buf);
+		*buf = NULL;
+		*buf_bytes = 0;
+		mrlog_error("Cannot read \"%s\" or file is empty.", pathNfilename);
+	}
+	return success; /* buf must be free()'d by the caller */
+}
+
+
+int mr_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height)
+{
+	/* Strategy:
+	reading GIF dimensions requires the first 10 bytes of the file
+	reading PNG dimensions requires the first 24 bytes of the file
+	reading JPEG dimensions requires scanning through jpeg chunks
+	In all formats, the file is at least 24 bytes big, so we'll read that always
+	inspired by http://www.cplusplus.com/forum/beginner/45217/ */
+	const unsigned char* buf = buf_start;
+	if (buf_bytes<24) {
+		return 0;
+	}
+
+	/* For JPEGs, we need to check the first bytes of each DCT chunk. */
+	if( buf[0]==0xFF && buf[1]==0xD8 && buf[2]==0xFF )
+	{
+		long pos = 2;
+		while( buf[pos]==0xFF )
+		{
+			if (buf[pos+1]==0xC0 || buf[pos+1]==0xC1 || buf[pos+1]==0xC2 || buf[pos+1]==0xC3 || buf[pos+1]==0xC9 || buf[pos+1]==0xCA || buf[pos+1]==0xCB) {
+				*ret_height = (buf[pos+5]<<8) + buf[pos+6]; /* sic! height is first */
+				*ret_width  = (buf[pos+7]<<8) + buf[pos+8];
+				return 1;
+			}
+			pos += 2+(buf[pos+2]<<8)+buf[pos+3];
+			if (pos+12>buf_bytes) { break; }
+		}
+	}
+
+	/* GIF: first three bytes say "GIF", next three give version number. Then dimensions */
+	if( buf[0]=='G' && buf[1]=='I' && buf[2]=='F' )
+	{
+		*ret_width  = buf[6] + (buf[7]<<8);
+		*ret_height = buf[8] + (buf[9]<<8);
+		return 1;
+	}
+
+	/* PNG: the first frame is by definition an IHDR frame, which gives dimensions */
+	if( buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G' && buf[4]==0x0D && buf[5]==0x0A && buf[6]==0x1A && buf[7]==0x0A
+	 && buf[12]=='I' && buf[13]=='H' && buf[14]=='D' && buf[15]=='R' )
+	{
+		*ret_width  = (buf[16]<<24) + (buf[17]<<16) + (buf[18]<<8) + (buf[19]<<0);
+		*ret_height = (buf[20]<<24) + (buf[21]<<16) + (buf[22]<<8) + (buf[23]<<0);
+		return 1;
+	}
+
+	return 0;
 }

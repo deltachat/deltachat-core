@@ -697,6 +697,15 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				part->m_type  = msg_type;
 				part->m_bytes = decoded_data_bytes;
 				mrparam_set(part->m_param, 'f', file_name);
+
+				if( mime_type == MR_MIMETYPE_IMAGE ) {
+					uint32_t w = 0, h = 0;
+					if( mr_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
+						mrparam_set_int(part->m_param, 'w', w);
+						mrparam_set_int(part->m_param, 'h', h);
+					}
+				}
+
 				do_add_part   = 1;
 			}
 			break;

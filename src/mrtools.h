@@ -71,9 +71,11 @@ size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
 int     mr_delete_file             (const char* pathNFilename);
 int     mr_create_folder           (const char* pathNfilename);
+int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes);
+int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes);
 char*   mr_get_filesuffix          (const char* pathNfilename);
+int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
 char*   mr_get_random_filename     (const char* folder, const char* suffix);
-int     mr_write_file              (const char* pathNfilename, const void* buf, uint32_t buf_bytes);
 
 /* macros */
 #define MR_INIT_REFERENCE \

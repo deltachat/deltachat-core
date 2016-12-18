@@ -112,6 +112,7 @@ int main(int argc, char ** argv)
 			printf("contacts [<query>]  list known contacts\n");
 			printf("adr <name>;<addr>   add entry to address book\n");
 			printf("event <id>          test the given event\n");
+			printf("fileinfo <file>     show eg. width/height of the given file");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
 			printf("exit                exit program\n");
@@ -323,6 +324,24 @@ int main(int argc, char ** argv)
 				carray_free(contacts);
 			}
 
+		}
+		else if( strncmp(cmd, "fileinfo", 8)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) {
+				arg1++;
+				unsigned char* buf; size_t buf_bytes; uint32_t w, h;
+				if( mr_read_file(arg1, (void**)&buf, &buf_bytes) ) {
+					mr_get_filemeta(buf, buf_bytes, &w, &h);
+					printf("width=%i, height=%i\n", (int)w, (int)h);
+				}
+				else {
+					printf("ERROR: Command failed.\n");
+				}
+			}
+			else {
+				printf("ERROR: Argument <file> missing.\n");
+			}
 		}
 		else if( strcmp(cmd, "exit")==0 )
 		{

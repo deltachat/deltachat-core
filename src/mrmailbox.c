@@ -674,50 +674,24 @@ int mrmailbox_is_open(const mrmailbox_t* ths)
 
 int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 {
-	int         success = 0;
-	FILE*       f = NULL;
-	struct stat stat_info;
-	char*       data = NULL;
+	int     success = 0;
+	char*   data = NULL;
+	size_t  data_bytes;
 
 	if( ths == NULL ) {
 		return 0;
 	}
 
-	/* read file content to `data` */
-	if( (f=fopen(filename, "r")) == NULL ) {
-		mrlog_error("Import: Cannot open \"%s\".", filename);
+	if( mr_read_file(filename, (void**)&data, &data_bytes) == 0 ) {
 		goto cleanup;
 	}
 
-	if( stat(filename, &stat_info) != 0 || stat_info.st_size == 0 ) {
-		mrlog_error("Import: Cannot find out file size or file is empty for \"%s\".", filename);
-		goto cleanup;
-	}
-
-	if( (data=(char*)malloc(stat_info.st_size))==NULL ) {
-		exit(26); /* cannot allocate little memory, unrecoverable error */
-	}
-
-	if( fread(data, 1, stat_info.st_size, f)!=(size_t)stat_info.st_size ) {
-		mrlog_error("Import: Read error in \"%s\".", filename);
-		goto cleanup;
-	}
-
-	fclose(f);
-	f = NULL;
-
-	/* import `data` */
-	receive_imf(ths, data, stat_info.st_size, "import", 0, 0);
-
-	/* success */
+	receive_imf(ths, data, data_bytes, "import", 0, 0);
 	success = 1;
 
-	/* cleanup: */
 cleanup:
 	free(data);
-	if( f ) {
-		fclose(f);
-	}
+
 	return success;
 }
 
