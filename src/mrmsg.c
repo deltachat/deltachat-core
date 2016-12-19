@@ -413,7 +413,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
-		char* pathNfilename = mrparam_get(job->m_param, 'f', NULL);
+		char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 		if( pathNfilename ) {
 			mr_delete_file(pathNfilename);
 			free(pathNfilename);

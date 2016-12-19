@@ -1101,7 +1101,14 @@ char* mr_get_filename(const char* pathNfilename)
 
 int mr_delete_file(const char* pathNfilename)
 {
-	/* TODO */
+	if( pathNfilename==NULL ) {
+		return 0;
+	}
+
+	if( remove(pathNfilename)!=0 ) {
+		return 0;
+	}
+
 	return 1;
 }
 
