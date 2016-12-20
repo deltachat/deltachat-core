@@ -604,7 +604,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	ths->m_dbfile = safe_strdup(dbfile);
 
 	/* set blob-directory
-	(the directory may or may not end with an slash, we check this later) */
+	(to avoid double slashed, the given directory should not end with an slash) */
 	if( blobdir && blobdir[0] ) {
 		ths->m_blobdir = safe_strdup(blobdir);
 	}

@@ -111,7 +111,8 @@ void                 mrmailbox_unref                (mrmailbox_t*);
 /* Open/close a mailbox database, if the given file does not exist, it is created
 and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
-for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one. */
+for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one.
+If you give Use NULL as blobdir, "dbfile-blobs" is used. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (const mrmailbox_t*);

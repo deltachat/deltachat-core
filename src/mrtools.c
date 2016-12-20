@@ -1146,7 +1146,7 @@ char* mr_get_random_filename(const char* folder, const char* suffix)
 	struct stat st;
 	int         i;
 	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
-		char* test = mr_mprintf("%s/in-%lu-%i.%s", folder, (unsigned long)now, i, suffix);
+		char* test = mr_mprintf("%s/b-%lu-%i.%s", folder, (unsigned long)now, i, suffix);
 		if (stat(test, &st) == -1) {
 			return test; /* fine filename found */
 		}
