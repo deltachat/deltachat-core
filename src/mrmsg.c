@@ -320,10 +320,30 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			goto cleanup;
 		}
 
-		ret = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+		{
+			char* txt = (char*)sqlite3_column_text(stmt, 0);
+			if( txt && txt[0] ) {
+				ret = safe_strdup(txt);
+			}
+			else {
+				ret = safe_strdup("No text.");
+			}
+		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
+
+	{
+		char* file = mrparam_get(msg->m_param, 'f', NULL);
+		if( file || msg->m_bytes ) {
+			char* txt = ret;
+				ret = mr_mprintf("%s\n\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms", txt, file? file : "",
+					(int)msg->m_bytes,
+					mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0));
+			free(txt);
+		}
+		free(file);
+	}
 
 cleanup:
 	if( locked ) {

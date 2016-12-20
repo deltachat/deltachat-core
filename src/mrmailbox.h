@@ -146,7 +146,7 @@ int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t
 
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
-char*                mrmailbox_get_txt_raw          (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
+char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
 int                  mrmailbox_delete_msg           (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_msg         (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_chat        (mrmailbox_t*, uint32_t chat_id);

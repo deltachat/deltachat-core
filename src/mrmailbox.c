@@ -1148,6 +1148,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");
 		}
 	}
+	else if( strncmp(cmd, "msginfo ", 8)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			int id = atoi(arg1);
+			ret = mrmailbox_get_msg_info(ths, id);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+		}
+	}
 	else if( strncmp(cmd, "markseen ", 9)==0 )
 	{
 		char* arg1 = (char*)strstr(cmd, " ");
