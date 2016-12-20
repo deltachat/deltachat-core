@@ -1106,6 +1106,7 @@ int mr_delete_file(const char* pathNfilename)
 	}
 
 	if( remove(pathNfilename)!=0 ) {
+		mrlog_error("Cannot delete \"%s\".", pathNfilename);
 		return 0;
 	}
 

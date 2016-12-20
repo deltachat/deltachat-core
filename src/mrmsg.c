@@ -435,7 +435,9 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 		char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 		if( pathNfilename ) {
-			mr_delete_file(pathNfilename);
+			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 ) {
+				mr_delete_file(pathNfilename);
+			}
 			free(pathNfilename);
 		}
 
