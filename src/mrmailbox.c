@@ -499,7 +499,9 @@ cleanup:
 	if( created_db_entries ) {
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
-			ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+			ths->m_cb(ths,
+				(incoming&&state==MR_IN_UNSEEN)? MR_EVENT_INCOMING_MSG : MR_EVENT_MSGS_CHANGED,
+				(uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
 		}
 		carray_free(created_db_entries);
 	}
@@ -763,7 +765,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 	mrlog_info("Import: %i mails read from \"%s\".", read_cnt, spec);
 	if( read_cnt > 0 ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+		ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
 
 	/* success */
@@ -1031,7 +1033,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrlog_info("Tables emptied.");
 
-	ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
+	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 
 	return 1;
 }

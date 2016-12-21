@@ -442,7 +442,7 @@ cleanup:
 	}
 
 	if( send_event ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_UPDATED, 0, 0);
+		ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}
 
 	return chat_id;
@@ -523,7 +523,7 @@ cleanup:
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}
 	mrchat_unref(obj);
 	sqlite3_free(q3);
@@ -726,7 +726,7 @@ int mrchat_set_draft(mrchat_t* ths, const char* msg)
 
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
-	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_UPDATED, 0, 0);
+	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 
 	return 1;
 }
