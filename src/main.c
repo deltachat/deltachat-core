@@ -106,6 +106,8 @@ int main(int argc, char ** argv)
 			printf("sendimage <file>    send image to selected chat\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("showmedia           show media in selected chat\n");
+			printf("msginfo <id>        show message information\n");
+			printf("unseen              list unseen messages\n");
 			printf("markseen <id>       mark message as seen\n");
 			printf("delmsg <id>         delete message\n");
 			printf("delchat <id>        delete chat\n");
@@ -341,6 +343,19 @@ int main(int argc, char ** argv)
 			}
 			else {
 				printf("ERROR: Argument <file> missing.\n");
+			}
+		}
+		else if( strncmp(cmd, "unseen", 6)==0 )
+		{
+			carray* msglist = mrmailbox_get_unseen_msgs(mailbox);
+			if( msglist ) {
+				int i, cnt = carray_count(msglist);
+				printf("%i unseen messages: ", cnt);
+				for( i = 0; i < cnt; i++ ) {
+					printf("%s%i", i? ", " : "", (int)(uintptr_t)carray_get(msglist, i));
+				}
+				printf("\n");
+				carray_free(msglist);
 			}
 		}
 		else if( strcmp(cmd, "exit")==0 )

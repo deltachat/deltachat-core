@@ -144,6 +144,7 @@ uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t
 carray*              mrmailbox_get_chat_msgs             (mrmailbox_t*, uint32_t chat_id); /* returns message IDs, the result must be carray_free()'d */
 carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
 carray*              mrmailbox_get_chat_contacts         (mrmailbox_t*, uint32_t chat_id); /* returns contact IDs, the result must be carray_free()'d */
+carray*              mrmailbox_get_unseen_msgs           (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, no messages are deleted (we do not so as we cannot distinguish between chat messages and normal mails) */
 
 /* Get messages - for a list, see mrchat_get_msglist() */

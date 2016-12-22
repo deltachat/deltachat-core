@@ -500,7 +500,7 @@ cleanup:
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
 			ths->m_cb(ths,
-				(incoming&&state==MR_IN_UNSEEN)? MR_EVENT_INCOMING_MSG : MR_EVENT_MSGS_CHANGED,
+				(incoming&&state==MR_IN_UNSEEN)? MR_EVENT_INCOMING_MSG : MR_EVENT_MSGS_CHANGED, // TOCHECK: maybe we should not mark blocked/deaddrop messages as incoming
 				(uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
 		}
 		carray_free(created_db_entries);

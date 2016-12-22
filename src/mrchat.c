@@ -638,6 +638,56 @@ void mrchat_empty(mrchat_t* ths)
 }
 
 
+carray* mrmailbox_get_unseen_msgs(mrmailbox_t* mailbox)
+{
+	int           show_deaddrop, success = 0, locked = 0;
+	carray*       ret = carray_new(128);
+	sqlite3_stmt* stmt = NULL;
+
+	if( mailbox==NULL || ret == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		show_deaddrop = mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0);
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_unseen,
+			"SELECT m.id"
+				" FROM msgs m"
+				" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.state=? AND m.chat_id!=? AND ct.blocked=0"
+				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
+		sqlite3_bind_int(stmt, 1, MR_IN_UNSEEN);
+		sqlite3_bind_int(stmt, 2, show_deaddrop? 0 : MR_CHAT_ID_DEADDROP);
+
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	success = 1;
+
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+
+	if( success ) {
+		return ret;
+	}
+	else {
+		if( ret ) {
+			carray_free(ret);
+		}
+		return NULL;
+	}
+}
+
+
 carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	int           success = 0, locked = 0;
@@ -662,8 +712,6 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 		}
-
-		/* success */
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
