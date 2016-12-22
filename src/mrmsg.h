@@ -82,6 +82,8 @@ typedef struct mrmsg_t
 mrmsg_t*     mrmsg_new                    ();
 void         mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
 void         mrmsg_empty                  (mrmsg_t*);
+char*        mrmsg_get_summary            (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
+char*        mrmsg_get_summary_by_raw     (int type, const char* text, int approx_bytes); /* the returned value must be free()'d */
 
 
 /*** library-private **********************************************************/
@@ -89,7 +91,6 @@ void         mrmsg_empty                  (mrmsg_t*);
 #define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.bytes "
 int          mrmsg_set_from_stmt__            (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int          mrmsg_load_from_db__             (mrmsg_t*, mrsqlite3_t*, uint32_t id);
-char*        mrmsg_get_summary                (int type, const char* text, int approx_bytes); /* the returned values must be free()'d */
 size_t       mrmailbox_get_real_msg_cnt__     (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t       mrmailbox_get_deaddrop_msg_cnt__ (mrmailbox_t*);
 int          mrmailbox_rfc724_mid_cnt__       (mrmailbox_t*, const char* rfc724_mid);

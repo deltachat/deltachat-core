@@ -33,6 +33,9 @@ extern "C" {
 #endif
 
 
+typedef struct mrpoortext_t mrpoortext_t;
+
+
 typedef struct mrchatlist_t
 {
 	uint32_t     m_magic;

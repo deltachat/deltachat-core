@@ -35,7 +35,6 @@ extern "C" {
 
 
 #include "mrmsg.h"
-typedef struct mrpoortext_t mrpoortext_t;
 typedef struct mrjob_t mrjob_t;
 
 

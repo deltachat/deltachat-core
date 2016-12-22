@@ -222,7 +222,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 			}
 		}
 
-		ret->m_text = mrmsg_get_summary(lastmsg->m_type, lastmsg->m_text, SUMMARY_CHARACTERS);
+		ret->m_text = mrmsg_get_summary_by_raw(lastmsg->m_type, lastmsg->m_text, SUMMARY_CHARACTERS);
 
 		ret->m_timestamp = lastmsg->m_timestamp;
 		ret->m_state     = lastmsg->m_state;

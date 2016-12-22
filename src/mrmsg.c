@@ -27,6 +27,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "mrmailbox.h"
 #include "mrimap.h"
 #include "mrcontact.h"
@@ -354,7 +355,17 @@ cleanup:
 }
 
 
-char* mrmsg_get_summary(int type, const char* text, int approx_characters)
+char* mrmsg_get_summary(mrmsg_t* msg, int approx_characters)
+{
+	if( msg==NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	return mrmsg_get_summary_by_raw(msg->m_type, msg->m_text, approx_characters);
+}
+
+
+char* mrmsg_get_summary_by_raw(int type, const char* text, int approx_characters)
 {
 	char* ret = NULL;
 
