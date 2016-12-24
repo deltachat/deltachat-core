@@ -243,16 +243,20 @@ int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 }
 
 
-int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
+int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id, int* ret_blocked)
 {
 	int          is_known = 0;
+	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
 	mrcontact_t* ths = mrcontact_new();
+
+	*ret_blocked = 0;
 
 	if( !mrcontact_load_from_db__(ths, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		goto cleanup;
 	}
 
 	if( ths->m_blocked ) {
+		*ret_blocked = 1;
 		goto cleanup;
 	}
 

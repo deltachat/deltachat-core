@@ -135,9 +135,11 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	carray*          to_list = NULL;
 
 	uint32_t         from_id = 0;
+	int              from_id_blocked = 0;
 	uint32_t         to_id   = 0;
 	uint32_t         chat_id = 0;
 	int              state   = MR_STATE_UNDEFINED;
+	int              event_to_send = MR_EVENT_MSGS_CHANGED;
 
 	sqlite3_stmt*    stmt;
 	size_t           i, icnt;
@@ -234,7 +236,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-						if( mrmailbox_is_known_contact__(ths, from_id) ) { /* currently, this checks if the contact is non-blocked and is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
+						if( mrmailbox_is_known_contact__(ths, from_id, &from_id_blocked) ) { /* currently, this checks if the contact is non-blocked and is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
 							incoming_from_known_sender = 1;
 						}
 					}
@@ -452,6 +454,22 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			free(ghost_rfc724_mid_str);
 		}
 
+		/* check event to send */
+		if( incoming && state==MR_IN_UNSEEN )
+		{
+			if( from_id_blocked ) {
+				event_to_send = 0;
+			}
+			else if( chat_id == MR_CHAT_ID_DEADDROP ) {
+				if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
+					event_to_send = MR_EVENT_INCOMING_MSG;
+				}
+			}
+			else {
+				event_to_send = MR_EVENT_INCOMING_MSG;
+			}
+		}
+
 	/* end sql-transaction */
 	mrsqlite3_commit__(ths->m_sql);
 	transaction_pending = 0;
@@ -496,12 +514,10 @@ cleanup:
 		carray_free(to_list);
 	}
 
-	if( created_db_entries ) {
+	if( created_db_entries && event_to_send ) {
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
-			ths->m_cb(ths,
-				(incoming&&state==MR_IN_UNSEEN)? MR_EVENT_INCOMING_MSG : MR_EVENT_MSGS_CHANGED, // TOCHECK: maybe we should not mark blocked/deaddrop messages as incoming
-				(uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+			ths->m_cb(ths, event_to_send, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
 		}
 		carray_free(created_db_entries);
 	}
