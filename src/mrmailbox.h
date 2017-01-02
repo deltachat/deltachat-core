@@ -61,7 +61,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 11
+#define MR_VERSION_REVISION 12
 
 
 /* Callback function that is called on updates, state changes etc.
@@ -158,6 +158,7 @@ int                  mrmailbox_markseen_chat        (mrmailbox_t*, uint32_t chat
 carray*              mrmailbox_get_known_contacts   (mrmailbox_t*, const char* query); /* returns known and unblocked contacts, the result must be carray_free()'d */
 mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, uint32_t contact_id);
 uint32_t             mrmailbox_create_contact       (mrmailbox_t*, const char* name, const char* addr);
+int                  mrmailbox_get_blocked_count    (mrmailbox_t*);
 carray*              mrmailbox_get_blocked_contacts (mrmailbox_t*);
 int                  mrmailbox_block_contact        (mrmailbox_t*, uint32_t contact_id, int block); /* may or may not result in a MR_EVENT_BLOCKING_CHANGED event */
 int                  mrmailbox_delete_contact       (mrmailbox_t*, uint32_t contact_id);

@@ -451,6 +451,34 @@ cleanup:
 	return ret;
 }
 
+
+int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
+{
+	int           ret = 0;
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_contacts_WHERE_blocked,
+			"SELECT COUNT(*) FROM contacts"
+				" WHERE id>? AND blocked!=0");
+		sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
+		if( sqlite3_step(stmt) != SQLITE_ROW ) {
+			goto cleanup;
+		}
+		ret = sqlite3_column_int(stmt, 0);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+
+cleanup:
+	return ret;
+}
+
+
 mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 {
 	mrcontact_t* ret = mrcontact_new();

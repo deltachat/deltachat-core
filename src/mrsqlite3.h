@@ -68,6 +68,7 @@ enum
 	,SELECT_id_FROM_contacts_WHERE_chat_id
 	,SELECT_id_FROM_contacts_ORDER_BY
 	,SELECT_id_FROM_contacts_WHERE_query_ORDER_BY
+	,SELECT_COUNT_FROM_contacts_WHERE_blocked
 	,SELECT_id_FROM_contacts_WHERE_blocked
 	,INSERT_INTO_contacts_neo
 	,UPDATE_contacts_nao_WHERE_i
