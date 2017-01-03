@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
+ *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,6 @@
  *******************************************************************************
  *
  * File:    mrcontact.h
- * Authors: Björn Petersen
  * Purpose: mrcontact_t represents a single contact - if in doubt a contact is
  *          every (email-)adresses the user has _send_ a mail to (only receiving
  *          is not sufficient).

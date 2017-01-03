@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
+ *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,6 @@
  *******************************************************************************
  *
  * File:    mrmailbox.h
- * Authors: Björn Petersen
  * Purpose: mrmailbox_t represents a single mailbox, normally, typically only
  *          one instance of this class is present.
  *          Each mailbox is linked to an IMAP/POP3 account and uses a separate

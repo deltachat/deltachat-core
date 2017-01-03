@@ -1,7 +1,6 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +19,6 @@
  *******************************************************************************
  *
  * File:    mrjob.h
- * Authors: Björn Petersen
  * Purpose: Handle jobs
  *
  ******************************************************************************/

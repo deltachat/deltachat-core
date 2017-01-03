@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
+ *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,6 @@
  *******************************************************************************
  *
  * File:    mrtools.h
- * Authors: Björn Petersen
  * Purpose: Some tools and enhancements to the used libraries, there should be
  *          no references to mrmailbox_t and other "larger" classes here.
  *

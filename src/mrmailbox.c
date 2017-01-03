@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
+ *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,6 @@
  *******************************************************************************
  *
  * File:    mrmailbox.c
- * Authors: Björn Petersen
  * Purpose: mrmailbox_t represents a single mailbox, see header for details.
  *
  *******************************************************************************
@@ -973,9 +972,11 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
-	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw` */
+	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
+	- use neutral speach; the messenger backend is not directly related to any front end or end-product
+	- contributors: You're welcome to add your names here */
 	info = mr_mprintf(
-		"Messenger Backend %i.%i.%i - (C) Björn Petersen Software Design and Development and contributors\n" /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
+		"Messenger Backend %i.%i.%i - (C) Björn Petersen and contributors\n"
 		"\n"
 		"%i chats with %i messages, %i messages in mailbox, %i contacts\n"
 		"Database file: %s, blob directory: %s\n"

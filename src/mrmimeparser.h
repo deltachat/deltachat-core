@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
  *                             Messenger Backend
- *     Copyright (C) 2017 Björn Petersen Software Design and Development
+ *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
  * This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,6 @@
  *******************************************************************************
  *
  * File:    mrmimeparser.h
- * Authors: Björn Petersen
  * Purpose: Parse MIME body; this is the text part of an IMF, see
  *          https://tools.ietf.org/html/rfc5322
  *          mrmimeparser_t has no dependencies to mrmailbox_t or to the
