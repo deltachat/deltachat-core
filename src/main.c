@@ -191,22 +191,28 @@ int main(int argc, char ** argv)
 				if( msglist ) {
 					int i, cnt = carray_count(msglist);
 					printf("--------------------------------------------------------------------------------\n");
-					for( i = cnt-1; i >= 0; i-- )
+					for( i = 0; i < cnt; i++ )
 					{
-						mrmsg_t* msg = mrmailbox_get_msg(mailbox, (uint32_t)(uintptr_t)carray_get(msglist, i));
-						mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
-						const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
-						int contact_id = contact? contact->m_id : 0;
+						uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
+						if( msg_id == 0 ) { /* 0 marks a new day */
+							printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n");
+						}
+						else if( msg_id > 0 ) {
+							mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
+							mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
+							const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
+							int contact_id = contact? contact->m_id : 0;
 
-						temp2 = mr_timestamp_to_str(msg->m_timestamp);
-							printf("Msg #%i: %s (Contact #%i): %s %s[%s]\n", (int)msg->m_id, contact_name, contact_id, msg->m_text,
-								msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
-								temp2);
-						free(temp2);
+							temp2 = mr_timestamp_to_str(msg->m_timestamp);
+								printf("Msg #%i: %s (Contact #%i): %s %s[%s]\n", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+									msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
+									temp2);
+							free(temp2);
 
-						mrcontact_unref(contact);
-						mrmsg_unref(msg);
-						printf("--------------------------------------------------------------------------------\n");
+							mrcontact_unref(contact);
+							mrmsg_unref(msg);
+							printf("--------------------------------------------------------------------------------\n");
+						}
 					}
 					carray_free(msglist);
 				}

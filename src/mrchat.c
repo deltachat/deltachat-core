@@ -701,14 +701,15 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 	locked = 1;
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
-			"SELECT m.id"
+			"SELECT m.id, m.timestamp"
 				" FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
 				" WHERE m.chat_id=? AND ct.blocked=0"
-				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		sqlite3_bind_int(stmt, 1, chat_id);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)0, NULL); /* date headline */
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 		}
 
