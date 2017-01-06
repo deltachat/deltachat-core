@@ -60,6 +60,7 @@ void    clist_free_content         (const clist*); /* calls free() for each item
 time_t                     mr_timestamp_from_date             (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
 char*                      mr_timestamp_to_str                (time_t); /* the return value must be free()'d */
 struct mailimap_date_time* mr_timestamp_to_mailimap_date_time (time_t);
+long                       mr_gm2local_offset                 ();
 
 /* generate Message-IDs */
 char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);

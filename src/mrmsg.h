@@ -57,6 +57,11 @@ typedef struct mrjob_t mrjob_t;
 #define MR_OUT_READ        28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 
 
+/* special message IDs (only returned if requested) */
+#define MR_MSG_ID_MARKER1      1 /* any user-defined marker */
+#define MR_MSG_ID_DAYMARKER    9 /* in a list, the next message is on a new day, useful to show headlines */
+#define MR_MSG_ID_LAST_SPECIAL 9
+
 typedef struct mrmsg_t
 {
 	uint32_t      m_magic;

@@ -210,21 +210,22 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
-					" chat_id INTEGER,"
-					" from_id INTEGER,"
+					" chat_id INTEGER DEFAULT 0,"
+					" from_id INTEGER DEFAULT 0,"
 					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "deaddrop" to a normal chat, may be unset */
-					" timestamp INTEGER,"
-					" type INTEGER,"
-					" state INTEGER,"
+					" timestamp INTEGER DEFAULT 0,"
+					" type INTEGER DEFAULT 0,"
+					" state INTEGER DEFAULT 0,"
 					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? */
 					" bytes INTEGER DEFAULT 0,"
-					" txt TEXT,"                       /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
+					" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+		mrsqlite3_execute__(ths, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
 
 		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"

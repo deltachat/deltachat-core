@@ -687,11 +687,17 @@ cleanup:
 }
 
 
-carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
+carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
 {
 	int           success = 0, locked = 0;
 	carray*       ret = carray_new(512);
 	sqlite3_stmt* stmt = NULL;
+
+	uint32_t      curr_id;
+	time_t        curr_local_timestamp;
+	int           curr_day, last_day = 0;
+	long          cnv_to_local = mr_gm2local_offset();
+	#define       SECONDS_PER_DAY 86400
 
 	if( mailbox==NULL || ret == NULL ) {
 		goto cleanup;
@@ -708,9 +714,26 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id)
 				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		sqlite3_bind_int(stmt, 1, chat_id);
 
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)0, NULL); /* date headline */
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		while( sqlite3_step(stmt) == SQLITE_ROW )
+		{
+			curr_id = sqlite3_column_int(stmt, 0);
+
+			/* add user marker */
+			if( curr_id == marker1before ) {
+				carray_add(ret, (void*)MR_MSG_ID_MARKER1, NULL);
+			}
+
+			/* add daymarker, if needed */
+			if( flags&MR_GCM_ADDDAYMARKER ) {
+				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
+				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
+				if( curr_day != last_day ) {
+					carray_add(ret, (void*)MR_MSG_ID_DAYMARKER, NULL);
+					last_day = curr_day;
+				}
+			}
+
+			carray_add(ret, (void*)(uintptr_t)curr_id, NULL);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);

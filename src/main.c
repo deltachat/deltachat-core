@@ -113,7 +113,7 @@ int main(int argc, char ** argv)
 			printf("contacts [<query>]  list known contacts\n");
 			printf("adr <name>;<addr>   add entry to address book\n");
 			printf("event <id>          test the given event\n");
-			printf("fileinfo <file>     show eg. width/height of the given file");
+			printf("fileinfo <file>     show eg. width/height of the given file\n");
 			printf("empty               empty database but server config\n");
 			printf("clear               clear screen\n");
 			printf("exit                exit program\n");
@@ -184,7 +184,7 @@ int main(int argc, char ** argv)
 
 			/* show chat */
 			if( sel_chat ) {
-				carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id);
+				carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
 				char* temp2 = mrchat_get_subtitle(sel_chat);
 					printf("Chat #%i: %s [%s]\n", sel_chat->m_id, sel_chat->m_name, temp2);
 				free(temp2);
@@ -194,7 +194,7 @@ int main(int argc, char ** argv)
 					for( i = 0; i < cnt; i++ )
 					{
 						uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
-						if( msg_id == 0 ) { /* 0 marks a new day */
+						if( msg_id == MR_MSG_ID_DAYMARKER ) {
 							printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n");
 						}
 						else if( msg_id > 0 ) {

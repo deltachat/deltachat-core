@@ -138,8 +138,9 @@ size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 	}
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id>?;");
-	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
+		"SELECT COUNT(*) FROM msgs WHERE id>? AND chat_id>?;");
+	sqlite3_bind_int(stmt, 1, MR_MSG_ID_LAST_SPECIAL);
+	sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_assigned_msg_cnt_() failed.");
 		return 0;

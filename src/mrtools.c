@@ -963,6 +963,17 @@ time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
 }
 
 
+long mr_gm2local_offset()
+{
+	/* returns the offset that must be _added_ to an UTC/GMT-time to create the localtime.
+	the function may return nagative values. */
+	time_t gmtime = time(NULL);
+	struct tm timeinfo = {0};
+	localtime_r(&gmtime, &timeinfo);
+    return timeinfo.tm_gmtoff;
+}
+
+
 char* mr_timestamp_to_str(time_t wanted)
 {
 	struct tm wanted_struct;

@@ -1042,7 +1042,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
 
