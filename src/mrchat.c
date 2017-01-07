@@ -758,14 +758,20 @@ cleanup:
 }
 
 
-carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
+carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query__)
 {
 	int           success = 0, locked = 0;
 	carray*       ret = carray_new(100);
-	char*         strLikeCmd = NULL;
+	char*         strLikeCmd = NULL, *query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox==NULL || ret == NULL || query == NULL ) {
+	if( mailbox==NULL || ret == NULL || query__ == NULL ) {
+		goto cleanup;
+	}
+
+	query = safe_strdup(query__);
+	mr_trim(query);
+	if( query[0]==0 ) {
 		goto cleanup;
 	}
 
@@ -804,6 +810,7 @@ cleanup:
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
 	free(strLikeCmd);
+	free(query);
 	if( success ) {
 		return ret;
 	}
