@@ -148,10 +148,16 @@ int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t
 /* mrmailbox_get_chat_msgs() returns a view on a chat.
 The function returns an array of message IDs, which must be carray_free()'d by the caller.
 Optionally, some special markers added to the ID-array may help to implement virtual lists:
-- if you add the flag MR_GCM_ADD_DAY_MARKER, the marker MR_MSG_ID_DAYMARKER will be added before each day (regarding the local timezone)
-- if you specify marker1before, the id MR_MSG_ID_MARKER1 will be added just before the given ID.*/
+- If you add the flag MR_GCM_ADD_DAY_MARKER, the marker MR_MSG_ID_DAYMARKER will be added before each day (regarding the local timezone)
+- If you specify marker1before, the id MR_MSG_ID_MARKER1 will be added just before the given ID.*/
 #define MR_GCM_ADDDAYMARKER 0x01
-carray*              mrmailbox_get_chat_msgs             (mrmailbox_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
+carray* mrmailbox_get_chat_msgs (mrmailbox_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
+
+/* Search messages containing the given query string.
+Searching can be done globally (chat_id=0) or in a specified chat only (chat_id set).
+- The function returns an array of messages IDs which must be carray_free()'d by the caller.
+- If nothing can be found, the function returns NULL.  */
+carray*  mrmailbox_search_msgs (mrmailbox_t*, uint32_t chat_id, const char* query);
 
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */

@@ -102,6 +102,7 @@ enum
 	,SELECT_ss_FROM_msgs_WHERE_m
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_unseen
+	,SELECT_i_FROM_msgs_WHERE_query
 	,INSERT_INTO_msgs_msscftttsmttp
 	,INSERT_INTO_msgs_mcftttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id

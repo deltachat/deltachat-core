@@ -758,6 +758,64 @@ cleanup:
 }
 
 
+carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
+{
+	int           success = 0, locked = 0;
+	carray*       ret = carray_new(100);
+	char*         strLikeCmd = NULL;
+	sqlite3_stmt* stmt = NULL;
+
+	if( mailbox==NULL || ret == NULL || query == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		strLikeCmd = mr_mprintf("%%%s%%", query);
+
+		/* Incremental search with "LIKE %query%" cannot take advantages from any index
+		("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
+		An alternative may be the FULLTEXT sqlite stuff, however, this does not really help with incremental search.
+		An extra table with all words and a COLLATE NOCASE indexes may help, however,
+		this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
+		For now, we just expect the following query to be fast enough :-) */
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_query,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE (? OR m.chat_id=?) AND ct.blocked=0 AND txt LIKE ?"
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		sqlite3_bind_int (stmt, 1, chat_id? 0 : 1);
+		sqlite3_bind_int (stmt, 2, chat_id);
+		sqlite3_bind_text(stmt, 3, strLikeCmd, -1, SQLITE_STATIC);
+
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	success = 1;
+
+cleanup:
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	free(strLikeCmd);
+	if( success ) {
+		return ret;
+	}
+	else {
+		if( ret ) {
+			carray_free(ret);
+		}
+		return NULL;
+	}
+}
+
+
 int mrchat_set_draft(mrchat_t* ths, const char* msg)
 {
 	sqlite3_stmt* stmt;

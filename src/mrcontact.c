@@ -390,7 +390,7 @@ carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 			}
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
 				"SELECT id FROM contacts"
-					" WHERE id>? AND origin>=? AND blocked=0 AND (name LIKE ? OR addr LIKE ?)"
+					" WHERE id>? AND origin>=? AND blocked=0 AND (name LIKE ? OR addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
 					" ORDER BY LOWER(name||addr),id;");
 			sqlite3_bind_int (stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 			sqlite3_bind_int (stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);

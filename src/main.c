@@ -61,6 +61,38 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 }
 
 
+static void print_msglist(mrmailbox_t* mailbox, carray* msglist)
+{
+	int i, cnt = carray_count(msglist), lines_out = 0;
+	for( i = 0; i < cnt; i++ )
+	{
+		uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
+		if( msg_id == MR_MSG_ID_DAYMARKER ) {
+			printf("--------------------------------------------------------------------------------\n"); lines_out++;
+		}
+		else if( msg_id > 0 ) {
+			if( lines_out==0 ) { printf("--------------------------------------------------------------------------------\n"); lines_out++; }
+
+			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
+			mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
+			const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
+			int contact_id = contact? contact->m_id : 0;
+
+			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
+				printf("Msg #%i: %s (Contact #%i): %s %s[%s]\n", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
+					temp2);
+			free(temp2);
+
+			mrcontact_unref(contact);
+			mrmsg_unref(msg);
+		}
+	}
+
+	if( lines_out > 0 ) { printf("--------------------------------------------------------------------------------\n"); }
+}
+
+
 int main(int argc, char ** argv)
 {
 	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
@@ -99,10 +131,11 @@ int main(int argc, char ** argv)
 			printf("restore <days>      restore messages of the last days\n");
 			printf("info                show database information\n");
 			printf("chats               list all chats\n");
-			printf("chat [<id>]         list chat/select chat by id\n");
+			printf("chat [<id>]         list chat/select chat by id/deselect with id 0\n");
 			printf("createchat <id>     create chat by the given contact id\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("sendimage <file>    send image to selected chat\n");
+			printf("search <query>      search messages in the selected chat or globally\n");
 			printf("draft [<text>]      save/delete draft in selected chat\n");
 			printf("showmedia           show media in selected chat\n");
 			printf("msginfo <id>        show message information\n");
@@ -189,31 +222,7 @@ int main(int argc, char ** argv)
 					printf("Chat #%i: %s [%s]\n", sel_chat->m_id, sel_chat->m_name, temp2);
 				free(temp2);
 				if( msglist ) {
-					int i, cnt = carray_count(msglist);
-					printf("--------------------------------------------------------------------------------\n");
-					for( i = 0; i < cnt; i++ )
-					{
-						uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
-						if( msg_id == MR_MSG_ID_DAYMARKER ) {
-							printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n");
-						}
-						else if( msg_id > 0 ) {
-							mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
-							mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
-							const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
-							int contact_id = contact? contact->m_id : 0;
-
-							temp2 = mr_timestamp_to_str(msg->m_timestamp);
-								printf("Msg #%i: %s (Contact #%i): %s %s[%s]\n", (int)msg->m_id, contact_name, contact_id, msg->m_text,
-									msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
-									temp2);
-							free(temp2);
-
-							mrcontact_unref(contact);
-							mrmsg_unref(msg);
-							printf("--------------------------------------------------------------------------------\n");
-						}
-					}
+					print_msglist(mailbox, msglist);
 					carray_free(msglist);
 				}
 				if( sel_chat->m_draft_timestamp ) {
@@ -354,13 +363,25 @@ int main(int argc, char ** argv)
 		{
 			carray* msglist = mrmailbox_get_unseen_msgs(mailbox);
 			if( msglist ) {
-				int i, cnt = carray_count(msglist);
-				printf("%i unseen messages: ", cnt);
-				for( i = 0; i < cnt; i++ ) {
-					printf("%s%i", i? ", " : "", (int)(uintptr_t)carray_get(msglist, i));
-				}
-				printf("\n");
+				print_msglist(mailbox, msglist);
+				printf("%i unseen messages.\n", (int)carray_count(msglist));
 				carray_free(msglist);
+			}
+		}
+		else if( strncmp(cmd, "search ", 7)==0 )
+		{
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) {
+				arg1++;
+				carray* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
+				if( msglist ) {
+					print_msglist(mailbox, msglist);
+					printf("%i messages found.\n", (int)carray_count(msglist));
+					carray_free(msglist);
+				}
+			}
+			else {
+				printf("ERROR: Argument <query> missing.\n");
 			}
 		}
 		else if( strcmp(cmd, "exit")==0 )
@@ -391,5 +412,4 @@ int main(int argc, char ** argv)
 	mrstock_exit();
 	return 0;
 }
-
 
