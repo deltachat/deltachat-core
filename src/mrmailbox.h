@@ -136,7 +136,7 @@ int                  mrmailbox_restore              (mrmailbox_t*, time_t second
 char*                mrmailbox_get_error_descr      (mrmailbox_t*);
 
 /* Handle chats. */
-mrchatlist_t*        mrmailbox_get_chatlist              (mrmailbox_t*); /* the result must be unref'd */
+mrchatlist_t*        mrmailbox_get_chatlist              (mrmailbox_t*, const char* query); /* the result must be unref'd */
 mrchat_t*            mrmailbox_get_chat                  (mrmailbox_t*, uint32_t chat_id); /* the result must be unref'd */
 uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* does a chat with a given single user exist? */
 uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* create a new chat with a single user */

@@ -281,7 +281,7 @@ int mrchat_load_from_db__(mrchat_t* ths, uint32_t id)
  ******************************************************************************/
 
 
-mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
+mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths, const char* query)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -290,7 +290,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* ths)
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-	if( !mrchatlist_load_from_db__(obj) ) {
+	if( !mrchatlist_load_from_db__(obj, query) ) {
 		goto cleanup;
 	}
 

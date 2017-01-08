@@ -130,7 +130,7 @@ int main(int argc, char ** argv)
 			printf("fetch               fetch messages\n");
 			printf("restore <days>      restore messages of the last days\n");
 			printf("info                show database information\n");
-			printf("chats               list all chats\n");
+			printf("chats [<query>]     list chats\n");
 			printf("chat [<id>]         list chat/select chat by id/deselect with id 0\n");
 			printf("createchat <id>     create chat by the given contact id\n");
 			printf("send <text>         send message to selected chat\n");
@@ -156,9 +156,11 @@ int main(int argc, char ** argv)
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
 			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
-		else if( strcmp(cmd, "chats")==0 )
+		else if( strncmp(cmd, "chats", 5)==0 )
 		{
-			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox);
+			char* arg1 = (char*)strstr(cmd, " ");
+			if( arg1 ) { arg1++; }
+			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, arg1);
 			if( chatlist ) {
 				int i, cnt = mrchatlist_get_cnt(chatlist);
 				if( cnt ) {

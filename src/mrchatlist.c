@@ -38,11 +38,12 @@
  ******************************************************************************/
 
 
-int mrchatlist_load_from_db__(mrchatlist_t* ths)
+int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 	int           show_deaddrop;
+	char*         strLikeCmd = NULL, *query = NULL;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
 		goto cleanup;
@@ -53,15 +54,34 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths)
 	show_deaddrop = mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
-	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
-		"SELECT c.id, m.id FROM chats c "
-			" LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) "
-			" WHERE (c.id>? OR c.id=?) AND blocked=0"
-			" GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */
-			" ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
-			);
+	#define QUR1 "SELECT c.id, m.id FROM chats c " \
+	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) " \
+	                " WHERE (c.id>? OR c.id=?) AND blocked=0"
+	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
+	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
+
+	if( query__ )
+	{
+		query = safe_strdup(query__);
+		mr_trim(query);
+		if( query[0]==0 ) {
+			success = 1; /*empty result*/
+			goto cleanup;
+		}
+		strLikeCmd = mr_mprintf("%%%s%%", query);
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
+			QUR1 " AND c.name LIKE ? " QUR2);
+		sqlite3_bind_text(stmt, 3, strLikeCmd, -1, SQLITE_STATIC);
+	}
+	else
+	{
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
+			QUR1 QUR2);
+	}
+
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 	sqlite3_bind_int(stmt, 2, show_deaddrop? MR_CHAT_ID_DEADDROP : 0);
+
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
@@ -74,6 +94,8 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths)
 	success = 1;
 
 cleanup:
+	free(query);
+	free(strLikeCmd);
 	return success;
 }
 
