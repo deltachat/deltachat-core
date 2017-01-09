@@ -306,9 +306,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		{
 			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
 			to_id = MR_CONTACT_ID_SELF;
-			chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, from_id);
+			chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
 			if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
-				chat_id = mrmailbox_create_or_lookup_chat_record__(ths, from_id);
+				chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
 			}
 
 			if( chat_id == 0 ) {
@@ -321,9 +321,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-				chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, to_id);
+				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
 				if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
-					chat_id = mrmailbox_create_or_lookup_chat_record__(ths, to_id);
+					chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
 				}
 			}
 
@@ -419,7 +419,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
 			{
 				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
-				uint32_t ghost_chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, ghost_to_id);
+				uint32_t ghost_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, ghost_to_id);
 				uint32_t ghost_dblocal_id;
 				if( ghost_chat_id==0 ) {
 					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;

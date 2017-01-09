@@ -97,7 +97,7 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 }
 
 
-uint32_t mrmailbox_real_chat_exists__(mrmailbox_t* mailbox, int type, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
+uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
 {
 	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
@@ -106,27 +106,24 @@ uint32_t mrmailbox_real_chat_exists__(mrmailbox_t* mailbox, int type, uint32_t c
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	if( type == MR_CHAT_NORMAL )
-	{
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
-				"SELECT c.id"
-				" FROM chats c"
-				" INNER JOIN chats_contacts j ON c.id=j.chat_id"
-				" WHERE c.type=? AND c.id>? AND j.contact_id=?;");
-		sqlite3_bind_int(stmt, 1, type);
-		sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
-		sqlite3_bind_int(stmt, 3, contact_id);
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
+			"SELECT c.id"
+			" FROM chats c"
+			" INNER JOIN chats_contacts j ON c.id=j.chat_id"
+			" WHERE c.type=? AND c.id>? AND j.contact_id=?;");
+	sqlite3_bind_int(stmt, 1, MR_CHAT_NORMAL);
+	sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
+	sqlite3_bind_int(stmt, 3, contact_id);
 
-		if( sqlite3_step(stmt) == SQLITE_ROW ) {
-			chat_id = sqlite3_column_int(stmt, 0);
-		}
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		chat_id = sqlite3_column_int(stmt, 0);
 	}
 
 	return chat_id;
 }
 
 
-uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t contact_id)
+uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
 	mrcontact_t*  contact = NULL;
@@ -142,7 +139,7 @@ uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t
 		return 0;
 	}
 
-	if( (chat_id=mrmailbox_real_chat_exists__(mailbox, MR_CHAT_NORMAL, contact_id)) != 0 ) {
+	if( (chat_id=mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id)) != 0 ) {
 		return chat_id; /* soon success */
 	}
 
@@ -172,21 +169,20 @@ uint32_t mrmailbox_create_or_lookup_chat_record__(mrmailbox_t* mailbox, uint32_t
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-    /* add contact IDs to the new chat record */
+	/* add contact IDs to the new chat record (may be replaced by mrmailbox_add_contact_to_chat__()) */
 	q = sqlite3_mprintf("INSERT INTO chats_contacts (chat_id, contact_id) VALUES(%i, %i)", chat_id, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
-    if( sqlite3_step(stmt) != SQLITE_DONE ) {
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
-    }
-
-	/* add already existing messages to the chat record */
+	}
 
 	sqlite3_free(q);
 	q = NULL;
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
+	/* add already existing messages to the chat record */
 	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE (chat_id=%i AND from_id=%i) OR (chat_id=%i AND to_id=%i);",
 		chat_id,
 		MR_CHAT_ID_DEADDROP, contact_id,
@@ -390,7 +386,7 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		chat_id = mrmailbox_real_chat_exists__(mailbox, MR_CHAT_NORMAL, contact_id);
+		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
@@ -411,7 +407,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 	mrsqlite3_lock(ths->m_sql);
 	locked = 1;
 
-		chat_id = mrmailbox_real_chat_exists__(ths, MR_CHAT_NORMAL, contact_id);
+		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, contact_id);
 		if( chat_id ) {
 			mrlog_warning("Chat with contact %i already exists.", (int)contact_id);
 			goto cleanup;
@@ -422,7 +418,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 			goto cleanup;
         }
 
-		chat_id = mrmailbox_create_or_lookup_chat_record__(ths, contact_id);
+		chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, contact_id);
 		if( chat_id ) {
 			send_event = 1;
 		}
@@ -475,32 +471,50 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
-
 			sqlite3_free(q3);
+			q3 = NULL;
+
 			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_DEADDROP, chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
-
 			sqlite3_free(q3);
-			q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
+			q3 = NULL;
+        }
+        else if( obj->m_type == MR_CHAT_GROUP )
+        {
+			/* delete a group-chat; all messages are deleted from the device but stay on the server.
+			Currently, they cannot be restored - "to_id" as used to restore single-user-chats is not sufficient.
+			Maybe it is okay (and maybe even expected :-) that messages from deleted chats do not show up again if a chat is re-created. */
+			mrsqlite3_begin_transaction__(mailbox->m_sql);
+			pending_transaction = 1;
+
+			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
-
 			sqlite3_free(q3);
-			q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
-			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-				goto cleanup;
-			}
+			q3 = NULL;
         }
         else
         {
-			/* cannot delete chats of other types, for now.
-			If we do, we should think over, how and if they can be restored - to_id as used to restore single-user-chats is not sufficient.
-			Maybe it is okay (and maybe even expected) that messages from deleted chats do not show up again if a chat is re-created. */
+			/* Bad type. */
 			goto cleanup;
         }
+
+		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
+
+		q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
 
         if( pending_transaction ) {
 			mrsqlite3_commit__(mailbox->m_sql);
@@ -525,7 +539,9 @@ cleanup:
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}
 	mrchat_unref(obj);
-	sqlite3_free(q3);
+	if( q3 ) {
+		sqlite3_free(q3);
+	}
 	return success;
 }
 
@@ -1417,4 +1433,147 @@ cleanup:
 	free(rfc724_mid);
 	mrparam_unref(param);
 	return msg_id;
+}
+
+
+/*******************************************************************************
+ * Handle Group Chats
+ ******************************************************************************/
+
+
+static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt;
+	int           ret = 0;
+
+	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
+	 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_id,
+		"SELECT id FROM chats WHERE id=? AND type=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, MR_CHAT_GROUP);
+
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		ret = 1;
+	}
+
+	return ret;
+}
+
+
+uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name)
+{
+	uint32_t      chat_id = 0;
+	int           locked = 0;
+	char*         q3 = NULL;
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || chat_name==NULL || chat_name[0]==0 ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		q3 = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_GROUP, chat_name);
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+		if( stmt == NULL) {
+			goto cleanup;
+		}
+
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+
+		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_free(q3);
+
+	if( chat_id ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	}
+
+	return chat_id;
+}
+
+
+static int mrmailbox_is_contact_in_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,
+		"SELECT contact_id FROM chats_contacts WHERE chat_id=? AND contact_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, contact_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+    return 1;
+}
+
+
+static int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_chats_contacts,
+		"INSERT INTO chats_contacts (chat_id, contact_id) VALUES(?, ?)");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, contact_id);
+
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	int success = 0, locked = 0;
+
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
+		 || 0==mrmailbox_real_contact_exists__(mailbox, contact_id) ) {
+			goto cleanup;
+		}
+
+		if( 1==mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) ) {
+			success = 1;
+			goto cleanup;
+		}
+
+		if( 0==mrmailbox_add_contact_to_chat__(mailbox, chat_id, contact_id) ) {
+			goto cleanup;
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	return success;
 }

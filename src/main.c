@@ -110,6 +110,11 @@ int main(int argc, char ** argv)
 		printf("ERROR: Bad arguments\n");
 	}
 
+	{
+		uint32_t chat_id = mrmailbox_create_group_chat(mailbox, "foobar");
+		mrmailbox_add_contact_to_chat(mailbox, chat_id, 10);
+	}
+
 	/* wait for command */
 	while(1)
 	{
