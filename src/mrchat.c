@@ -790,7 +790,7 @@ carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char
 			"SELECT m.id, m.timestamp"
 				" FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE (? OR m.chat_id=?) AND ct.blocked=0 AND txt LIKE ?"
+				" WHERE (? OR m.chat_id=?) AND m.chat_id>9 AND ct.blocked=0 AND txt LIKE ?"
 				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		sqlite3_bind_int (stmt, 1, chat_id? 0 : 1);
 		sqlite3_bind_int (stmt, 2, chat_id);
