@@ -61,6 +61,10 @@ void          mrpoortext_empty     (mrpoortext_t*);
 /*** library-private **********************************************************/
 
 
+#define MR_SUMMARY_CHARACTERS 160 /* in practice, the user additinally cuts the string himself pixel-accurate */
+void mrpoortext_fill(mrpoortext_t*, const mrmsg_t*, const mrchat_t*, const mrcontact_t*);
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

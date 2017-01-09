@@ -79,3 +79,47 @@ void mrpoortext_empty(mrpoortext_t* ths)
 	ths->m_timestamp = 0;
 	ths->m_state = 0;
 }
+
+
+void mrpoortext_fill(mrpoortext_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mrcontact_t* contact)
+{
+	if( ths == NULL || msg == NULL ) {
+		return;
+	}
+
+	if( msg->m_from_id == MR_CONTACT_ID_SELF )
+	{
+		ths->m_title = mrstock_str(MR_STR_SELF);
+		ths->m_title_meaning = MR_TITLE_SELF;
+	}
+	else if( chat == NULL )
+	{
+		free(ths->m_title);
+		ths->m_title = NULL;
+		ths->m_title_meaning = MR_TITLE_NORMAL;
+	}
+	else if( chat->m_type==MR_CHAT_GROUP )
+	{
+		if( contact==NULL ) {
+			free(ths->m_title);
+			ths->m_title = NULL;
+			ths->m_title_meaning = MR_TITLE_NORMAL;
+		}
+		else if( contact->m_name && contact->m_name[0] ) {
+			ths->m_title = mr_get_first_name(contact->m_name);
+			ths->m_title_meaning = MR_TITLE_USERNAME;
+		}
+		else if( contact->m_addr && contact->m_addr[0] ) {
+			ths->m_title = safe_strdup(contact->m_addr);
+			ths->m_title_meaning = MR_TITLE_USERNAME;
+		}
+		else {
+			ths->m_title = safe_strdup("Unnamed contact");
+			ths->m_title_meaning = MR_TITLE_USERNAME;
+		}
+	}
+
+	ths->m_text      = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, MR_SUMMARY_CHARACTERS);
+	ths->m_timestamp = msg->m_timestamp;
+	ths->m_state     = msg->m_state;
+}

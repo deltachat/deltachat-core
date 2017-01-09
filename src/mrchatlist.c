@@ -171,7 +171,6 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	Also, sth. as "No messages" would not work if the summary comes from a
 	message. */
 
-	#define       SUMMARY_CHARACTERS 160 /* in practice, the user additinally cuts the string himself pixel-accurate */
 	mrpoortext_t* ret = mrpoortext_new();
 	uint32_t      lastmsg_id = 0;
 	mrmsg_t*      lastmsg = NULL;
@@ -210,7 +209,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 		ret->m_title_meaning = MR_TITLE_DRAFT;
 
 		ret->m_text = safe_strdup(chat->m_draft_text);
-		mr_truncate_n_unwrap_str(ret->m_text, SUMMARY_CHARACTERS, 1);
+		mr_truncate_n_unwrap_str(ret->m_text, MR_SUMMARY_CHARACTERS, 1);
 
 		ret->m_timestamp = chat->m_draft_timestamp;
 	}
@@ -222,31 +221,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	else
 	{
 		/* show the last message */
-		if( lastmsg->m_from_id == MR_CONTACT_ID_SELF )
-		{
-			ret->m_title = mrstock_str(MR_STR_SELF);
-			ret->m_title_meaning = MR_TITLE_SELF;
-		}
-		else if( chat->m_type==MR_CHAT_GROUP )
-		{
-			if( lastcontact->m_name && lastcontact->m_name[0] ) {
-				ret->m_title = mr_get_first_name(lastcontact->m_name);
-				ret->m_title_meaning = MR_TITLE_USERNAME;
-			}
-			else if( lastcontact->m_addr && lastcontact->m_addr[0] ) {
-				ret->m_title = safe_strdup(lastcontact->m_addr);
-				ret->m_title_meaning = MR_TITLE_USERNAME;
-			}
-			else {
-				ret->m_title = safe_strdup("Unknown contact");
-				ret->m_title_meaning = MR_TITLE_USERNAME;
-			}
-		}
-
-		ret->m_text = mrmsg_get_summary_by_raw(lastmsg->m_type, lastmsg->m_text, SUMMARY_CHARACTERS);
-
-		ret->m_timestamp = lastmsg->m_timestamp;
-		ret->m_state     = lastmsg->m_state;
+		mrpoortext_fill(ret, lastmsg, chat, lastcontact);
 	}
 
 cleanup:

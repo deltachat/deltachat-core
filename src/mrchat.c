@@ -1062,7 +1062,7 @@ cleanup:
 
 static char* get_subject(const mrmsg_t* msg)
 {
-	char *ret, *raw_subject = mrmsg_get_summary_by_raw(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
+	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
 
 	ret = mr_mprintf(MR_CHAT_PREFIX " %s", raw_subject);
 

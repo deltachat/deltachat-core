@@ -355,17 +355,38 @@ cleanup:
 }
 
 
-char* mrmsg_get_summary(mrmsg_t* msg, int approx_characters)
+mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, const mrchat_t* chat)
+{
+	mrpoortext_t* ret = mrpoortext_new();
+	mrcontact_t*  contact = NULL;
+
+	if( msg==NULL || chat==NULL ) {
+		goto cleanup;
+	}
+
+	if( msg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_GROUP ) {
+		contact = mrmailbox_get_contact(chat->m_mailbox, msg->m_from_id);
+	}
+
+	mrpoortext_fill(ret, msg, chat, contact);
+
+cleanup:
+	mrcontact_unref(contact);
+	return ret;
+}
+
+
+char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 {
 	if( msg==NULL ) {
 		return safe_strdup(NULL);
 	}
 
-	return mrmsg_get_summary_by_raw(msg->m_type, msg->m_text, approx_characters);
+	return mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, approx_characters);
 }
 
 
-char* mrmsg_get_summary_by_raw(int type, const char* text, int approx_characters)
+char* mrmsg_get_summarytext_by_raw(int type, const char* text, int approx_characters)
 {
 	char* ret = NULL;
 

@@ -35,6 +35,8 @@ extern "C" {
 
 #include "mrparam.h"
 typedef struct mrjob_t mrjob_t;
+typedef struct mrpoortext_t mrpoortext_t;
+typedef struct mrchat_t mrchat_t;
 
 
 /* message types */
@@ -83,11 +85,12 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-mrmsg_t*     mrmsg_new                    ();
-void         mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
-void         mrmsg_empty                  (mrmsg_t*);
-char*        mrmsg_get_summary            (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
-char*        mrmsg_get_summary_by_raw     (int type, const char* text, int approx_bytes); /* the returned value must be free()'d */
+mrmsg_t*      mrmsg_new                    ();
+void          mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
+void          mrmsg_empty                  (mrmsg_t*);
+mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
+char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
+char*         mrmsg_get_summarytext_by_raw (int type, const char* text, int approx_bytes); /* the returned value must be free()'d */
 
 
 /*** library-private **********************************************************/
