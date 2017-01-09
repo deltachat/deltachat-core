@@ -762,7 +762,7 @@ carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char
 {
 	int           success = 0, locked = 0;
 	carray*       ret = carray_new(100);
-	char*         strLikeCmd = NULL, *query = NULL;
+	char*         strLikeInText = NULL, *strLikeBeg=NULL, *query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox==NULL || ret == NULL || query__ == NULL ) {
@@ -772,13 +772,15 @@ carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char
 	query = safe_strdup(query__);
 	mr_trim(query);
 	if( query[0]==0 ) {
+		success = 1; /*empty result*/
 		goto cleanup;
 	}
 
+	strLikeInText = mr_mprintf("%%%s%%", query);
+	strLikeBeg = mr_mprintf("%s%%", query); /*for the name search, we use "Name%" which is fast as it can use the index ("%Name%" could not). */
+
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
-
-		strLikeCmd = mr_mprintf("%%%s%%", query);
 
 		/* Incremental search with "LIKE %query%" cannot take advantages from any index
 		("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
@@ -786,15 +788,27 @@ carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char
 		An extra table with all words and a COLLATE NOCASE indexes may help, however,
 		this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
 		For now, we just expect the following query to be fast enough :-) */
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_query,
-			"SELECT m.id, m.timestamp"
-				" FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE (? OR m.chat_id=?) AND m.chat_id>9 AND ct.blocked=0 AND txt LIKE ?"
-				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		sqlite3_bind_int (stmt, 1, chat_id? 0 : 1);
-		sqlite3_bind_int (stmt, 2, chat_id);
-		sqlite3_bind_text(stmt, 3, strLikeCmd, -1, SQLITE_STATIC);
+		#define QUR1  "SELECT m.id, m.timestamp" \
+		                  " FROM msgs m" \
+		                  " LEFT JOIN contacts ct ON m.from_id=ct.id" \
+		                  " WHERE"
+		#define QUR2      " AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
+		if( chat_id ) {
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_chat_id_AND_query,
+				QUR1 " m.chat_id=? " QUR2 " ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
+			sqlite3_bind_int (stmt, 1, chat_id);
+			sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
+			sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
+		}
+		else {
+			int show_deaddrop = mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0);
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_query,
+				QUR1 " (m.chat_id>? OR m.chat_id=?) " QUR2 " ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
+			sqlite3_bind_int (stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
+			sqlite3_bind_int (stmt, 2, show_deaddrop? MR_CHAT_ID_DEADDROP : MR_CHAT_ID_LAST_SPECIAL+1 /*just any ID that is already selected*/);
+			sqlite3_bind_text(stmt, 3, strLikeInText, -1, SQLITE_STATIC);
+			sqlite3_bind_text(stmt, 4, strLikeBeg, -1, SQLITE_STATIC);
+		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
@@ -809,7 +823,8 @@ cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
-	free(strLikeCmd);
+	free(strLikeInText);
+	free(strLikeBeg);
 	free(query);
 	if( success ) {
 		return ret;
