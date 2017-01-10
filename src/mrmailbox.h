@@ -141,13 +141,21 @@ mrchat_t*            mrmailbox_get_chat                  (mrmailbox_t*, uint32_t
 uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* does a chat with a given single user exist? */
 uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* create a normal chat with a single user */
 carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
-carray*              mrmailbox_get_chat_contacts         (mrmailbox_t*, uint32_t chat_id); /* returns contact IDs, the result must be carray_free()'d */
 carray*              mrmailbox_get_unseen_msgs           (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, no messages are deleted (we do not so as we cannot distinguish between chat messages and normal mails) */
 
+/* mrmailbox_get_chat_contacts() returns contact IDs, the result must be carray_free()'d.
+- for normal chats, the function always returns exactly one contact MR_CONTACT_ID_SELF is _not_ returned.
+- for group chats all members are returned, MR_CONTACT_ID_SELF is returned explicitly as it may happen that oneself gets removed from a still existing group
+- for the deaddrop, all contacts are returned, MR_CONTACT_ID_SELF is not added */
+carray*              mrmailbox_get_chat_contacts         (mrmailbox_t*, uint32_t chat_id);
+
 /* Handle group chats. */
 uint32_t             mrmailbox_create_group_chat         (mrmailbox_t*, const char* name);
-int                  mrmailbox_add_contact_to_chat       (mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id);
+int                  mrmailbox_is_contact_in_chat        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int                  mrmailbox_add_contact_to_chat       (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int                  mrmailbox_remove_contact_from_chat  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+
 
 /* mrmailbox_get_chat_msgs() returns a view on a chat.
 The function returns an array of message IDs, which must be carray_free()'d by the caller.

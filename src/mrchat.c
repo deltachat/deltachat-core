@@ -575,6 +575,8 @@ cleanup:
 
 carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 {
+	/* Normal chats to not include SELF.  Group chats do (as it may happen that one is deleted from a
+	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
 	carray*       ret = carray_new(100);
 	sqlite3_stmt* stmt;
 
@@ -592,8 +594,11 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		}
 		else
 		{
-			#define GET_CHATS_CONTACTS "SELECT contact_id FROM chats_contacts WHERE chat_id=?;"
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c, GET_CHATS_CONTACTS);
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c_ORDER_BY,
+				"SELECT cc.contact_id FROM chats_contacts cc"
+					" LEFT JOIN contacts c ON c.id=cc.contact_id"
+					" WHERE cc.chat_id=?"
+					" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
 
@@ -953,7 +958,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 				sqlite3_bind_int(stmt, 1, ths->m_id);
 				if( sqlite3_step(stmt) == SQLITE_ROW ) {
 					cnt = sqlite3_column_int(stmt, 0);
-					ret = mrstock_str_pl(MR_STR_MEMBER, cnt + 1 /*do not forget ourself!*/);
+					ret = mrstock_str_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 				}
 
 			mrsqlite3_unlock(ths->m_mailbox->m_sql);
@@ -1196,8 +1201,9 @@ static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 	mrsqlite3_lock(mailbox->m_sql);
 		if( mrmsg_load_from_db__(ret_msg, mailbox->m_sql, msg_id) ) {
 			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
-				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=?;");
+				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
+			sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
 			while( sqlite3_step(stmt) == SQLITE_ROW ) {
 				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
 				clist_append(ret_recipients, (void*)safe_strdup(rcpt));
@@ -1381,7 +1387,8 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 		if( ths->m_type == MR_CHAT_NORMAL )
 		{
-			stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c, GET_CHATS_CONTACTS);
+			stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+				"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
 			sqlite3_bind_int(stmt, 1, ths->m_id);
 			if( sqlite3_step(stmt) != SQLITE_ROW ) {
 				goto cleanup;
@@ -1464,12 +1471,22 @@ static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
+static int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_chats_contacts,
+		"INSERT INTO chats_contacts (chat_id, contact_id) VALUES(?, ?)");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, contact_id);
+	return (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
+}
+
+
 uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name)
 {
 	uint32_t      chat_id = 0;
 	int           locked = 0;
 	char*         q3 = NULL;
-	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || chat_name==NULL || chat_name[0]==0 ) {
 		return 0;
@@ -1479,20 +1496,20 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 	locked = 1;
 
 		q3 = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_GROUP, chat_name);
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
-		if( stmt == NULL) {
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 			goto cleanup;
 		}
 
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		if( (chat_id=sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj)) == 0 ) {
 			goto cleanup;
 		}
 
-		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		if( mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF) ) {
+			goto cleanup;
+		}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt ) { sqlite3_finalize(stmt); }
 	sqlite3_free(q3);
 
 	if( chat_id ) {
@@ -1505,48 +1522,29 @@ cleanup:
 
 static int mrmailbox_is_contact_in_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
-	sqlite3_stmt* stmt;
-
-	if( mailbox == NULL ) {
-		return 0;
-	}
-
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,
 		"SELECT contact_id FROM chats_contacts WHERE chat_id=? AND contact_id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, contact_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-    return 1;
+	return (sqlite3_step(stmt) == SQLITE_ROW)? 1 : 0;
 }
 
 
-static int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
-	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
-	sqlite3_stmt* stmt;
-
-	if( mailbox == NULL ) {
-		return 0;
+	/* this function works for group and for normal chats, however, it is more useful for group chats.
+	MR_CONTACT_ID_SELF may be used to check, if the user itself is in a group chat (MR_CONTACT_ID_SELF is not added to normal chats) */
+	int ret = 0;
+	if( mailbox ) {
+		mrsqlite3_lock(mailbox->m_sql);
+			ret = mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id);
+		mrsqlite3_unlock(mailbox->m_sql);
 	}
-
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_chats_contacts,
-		"INSERT INTO chats_contacts (chat_id, contact_id) VALUES(?, ?)");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_bind_int(stmt, 2, contact_id);
-
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		return 0;
-	}
-
-	return 1;
+	return ret;
 }
 
 
-int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	int success = 0, locked = 0;
 
@@ -1558,7 +1556,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	locked = 1;
 
 		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
-		 || 0==mrmailbox_real_contact_exists__(mailbox, contact_id) ) {
+		 || (0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF) ) {
 			goto cleanup;
 		}
 
@@ -1577,3 +1575,33 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return success;
 }
+
+
+int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+{
+	int   success = 0, locked = 0;
+	char* q3 = NULL;
+
+	if( mailbox == NULL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
+		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
+	}                 /* this allows to delete pending references to deleted contacts.  Of course, this should _not_ happen. */
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) ) {
+			goto cleanup;
+		}
+
+		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( q3 ) { sqlite3_free(q3); }
+	return success;
+}
+
+

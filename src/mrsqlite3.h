@@ -89,6 +89,7 @@ enum
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id
 	,SELECT_c_FROM_chats_contacts_WHERE_c
+	,SELECT_c_FROM_chats_contacts_WHERE_c_ORDER_BY
 	,SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id
 	,INSERT_INTO_chats_contacts
 

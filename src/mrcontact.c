@@ -482,22 +482,23 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 {
 	mrcontact_t* ret = mrcontact_new();
 
-	if( contact_id == MR_CONTACT_ID_SELF )
-	{
-		ret->m_id   = contact_id;
-		ret->m_name = mrstock_str(MR_STR_SELF);
-	}
-	else
-	{
-		mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_lock(ths->m_sql);
 
+		if( contact_id == MR_CONTACT_ID_SELF )
+		{
+			ret->m_id   = contact_id;
+			ret->m_name = mrstock_str(MR_STR_SELF);
+			ret->m_addr = mrsqlite3_get_config__(ths->m_sql, "addr", NULL);
+		}
+		else
+		{
 			if( !mrcontact_load_from_db__(ret, ths->m_sql, contact_id) ) {
 				mrcontact_unref(ret);
 				ret = NULL;
 			}
+		}
 
-		mrsqlite3_unlock(ths->m_sql);
-	}
+	mrsqlite3_unlock(ths->m_sql);
 
 	return ret; /* may be NULL */
 }
