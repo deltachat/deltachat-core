@@ -1520,6 +1520,42 @@ cleanup:
 }
 
 
+int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* name)
+{
+	/* the function only sets the names of group chats; normal chats get their names from the contects */
+	int   success = 0, locked = 0;
+	char* q3 = NULL;
+
+	if( mailbox==NULL || name==NULL || name[0]==0 ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) ) {
+			goto cleanup;
+		}
+
+		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", name, chat_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+
+	success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( q3 ) { sqlite3_free(q3); }
+	return success;
+}
+
+
 static int mrmailbox_is_contact_in_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,

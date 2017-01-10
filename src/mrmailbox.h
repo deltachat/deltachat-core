@@ -155,7 +155,7 @@ uint32_t             mrmailbox_create_group_chat         (mrmailbox_t*, const ch
 int                  mrmailbox_is_contact_in_chat        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int                  mrmailbox_add_contact_to_chat       (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int                  mrmailbox_remove_contact_from_chat  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-
+int                  mrmailbox_set_chat_name             (mrmailbox_t*, uint32_t chat_id, const char* name);
 
 /* mrmailbox_get_chat_msgs() returns a view on a chat.
 The function returns an array of message IDs, which must be carray_free()'d by the caller.
