@@ -60,6 +60,7 @@ typedef struct mrchat_t
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_text;      /* NULL if unset */
 	mrmailbox_t*    m_mailbox;         /* != NULL */
+	char*           m_grpid;           /* NULL if unset */
 	mrparam_t*      m_param;           /* != NULL */
 } mrchat_t;
 

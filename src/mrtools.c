@@ -1032,7 +1032,22 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
  ******************************************************************************/
 
 
-char* mr_create_outgoing_rfc724_mid(const char* from_addr)
+char* mr_create_grpid(void)
+{
+	/* the generated ID should be as short and as unique as possible:
+	- short, because it is also used as part of Message-ID headers (idea: add time and pid as in message-id and make the strings shorter using Base64)
+	- unique as two IDs generated on two devices should not be the same. However, collisions are not world-wide but only by the few contacts.
+
+	Additional information:
+	- for OUTGOING messages this ID is written to the header as `X-MrGrpId:` and is added to the message ID as gRp<grp-id>.<random>@<random>
+	- for INCOMING messages, the ID is taken from the X-MrGrpId-header or from the Message-ID in the In-Reply-To: or References:-Header
+	- the group ID should be a string with the characters [a-zA-Z0-9\-_] */
+	long rnd = random();
+	return mr_mprintf("%lx", (long)rnd);
+}
+
+
+char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 {
 	/* Function generates a Message-ID that can be used for a new outgoing message.
 	- this function is called for all outgoing messages.
@@ -1043,7 +1058,13 @@ char* mr_create_outgoing_rfc724_mid(const char* from_addr)
 	long pid = getpid();
 	long rnd = random();
 
-	return mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from_addr);
+	if( grpid ) {
+		return mr_mprintf("gRp%s.%lx%lx%lx.%s", grpid, (long)now, (long)pid, (long)rnd, from_addr);
+		                /* ^^^ gRp must never change as this is used to identify group messages in normal-clients-replies */
+	}
+	else {
+		return mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from_addr);
+	}
 }
 
 

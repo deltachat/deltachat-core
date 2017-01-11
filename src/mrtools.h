@@ -63,8 +63,9 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time (time_t);
 long                       mr_gm2local_offset                 ();
 
 /* generate Message-IDs */
+char* mr_create_grpid              (void);
 char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);
-char* mr_create_outgoing_rfc724_mid(const char* addr);
+char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* addr);
 
 /* file tools */
 size_t  mr_get_filebytes           (const char* pathNfilename);

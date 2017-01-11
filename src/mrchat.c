@@ -233,12 +233,13 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 
 	mrchat_empty(ths);
 
-	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.param "
+	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param "
 	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
 	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
+	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	mrparam_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
@@ -672,6 +673,9 @@ void mrchat_empty(mrchat_t* ths)
 	ths->m_type = MR_CHAT_UNDEFINED;
 	ths->m_id   = 0;
 
+	free(ths->m_grpid);
+	ths->m_grpid = NULL;
+
 	mrparam_set_packed(ths->m_param, NULL);
 }
 
@@ -1099,18 +1103,25 @@ cleanup:
 }
 
 
-static char* get_subject(const mrmsg_t* msg)
+static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg)
 {
 	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
 
-	ret = mr_mprintf(MR_CHAT_PREFIX " %s", raw_subject);
+	if( chat->m_type==MR_CHAT_GROUP )
+	{
+		ret = mr_mprintf(MR_CHAT_PREFIX " %s: %s", chat->m_name, raw_subject);
+	}
+	else
+	{
+		ret = mr_mprintf(MR_CHAT_PREFIX " %s", raw_subject);
+	}
 
 	free(raw_subject);
 	return ret;
 }
 
 
-static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
+static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1134,14 +1145,18 @@ static MMAPString* create_mime_msg(const mrmsg_t* msg, const char* from_addr, co
 			}
 		}
 
-		char* subject = get_subject(msg);
+		char* subject = get_subject(chat, msg);
 		imf_fields = mailimf_fields_new_with_data(from,
 			NULL /* sender */, NULL /* reply-to */,
 			to, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
 			NULL /* references */,
 			mr_encode_header_string(subject));
-		/* mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), strdup("Messenger Backend"))); */
 		free(subject);
+
+		if( chat->m_type==MR_CHAT_GROUP ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
+		}
 	}
 
 	message = mailmime_new_message_data(NULL);
@@ -1213,11 +1228,14 @@ cleanup:
  ******************************************************************************/
 
 
-static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
-                              mrmsg_t* ret_msg, char** ret_from, char** ret_displayname, clist* ret_recipients)
+static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
+                             mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname, clist* ret_recipients)
 {
+	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
-		if( mrmsg_load_from_db__(ret_msg, mailbox->m_sql, msg_id) ) {
+		if( mrmsg_load_from_db__(ret_msg, mailbox->m_sql, msg_id)
+		 && mrchat_load_from_db__(ret_chat, ret_msg->m_chat_id) )
+		{
 			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
 				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
@@ -1226,15 +1244,20 @@ static void load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
 				clist_append(ret_recipients, (void*)safe_strdup(rcpt));
 			}
+
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 			*ret_displayname = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
+
+			success = 1;
 		}
 	mrsqlite3_unlock(mailbox->m_sql);
+	return success;
 }
 
 
 void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
+	mrchat_t*     chat = mrchat_new(mailbox);
 	mrmsg_t*      msg = mrmsg_new();
 	clist*	      recipients = clist_new();
 	MMAPString*   data = NULL;
@@ -1253,12 +1276,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	load_data_to_send(mailbox, job->m_foreign_id, msg, &from_addr, &from_displayname, recipients);
-	if( from_addr == NULL || clist_count(recipients) == 0 ) {
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients)==0
+	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(msg, from_addr, from_displayname, recipients);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1277,6 +1300,7 @@ cleanup:
 	clist_free_content(recipients);
 	clist_free(recipients);
 	mrmsg_unref(msg);
+	mrchat_unref(chat);
 	mmap_string_free(data);
 	free(from_addr);
 	free(from_displayname);
@@ -1286,6 +1310,7 @@ cleanup:
 
 void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
+	mrchat_t*     chat = mrchat_new(mailbox);
 	mrmsg_t*      msg = mrmsg_new();
 	clist*	      recipients = clist_new();
 	MMAPString*   data = NULL;
@@ -1307,15 +1332,15 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	load_data_to_send(mailbox, job->m_foreign_id, msg, &from_addr, &from_displayname, recipients);
-	if( from_addr == NULL ) {
-		mrlog_error("No sender address.");
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients)==0
+	 || from_addr == NULL ) {
+		mrlog_error("Cannot load data to send.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 	}
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients) > 0 ) {
-		data = create_mime_msg(msg, from_addr, from_displayname, recipients);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients);
 		if( data == NULL ) {
 			mrlog_error("Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1344,6 +1369,7 @@ cleanup:
 	clist_free_content(recipients);
 	clist_free(recipients);
 	mrmsg_unref(msg);
+	mrchat_unref(chat);
 	mmap_string_free(data);
 	free(from_addr);
 	free(from_displayname);
@@ -1401,7 +1427,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		{
 			char* from = mrsqlite3_get_config__(ths->m_mailbox->m_sql, "configured_addr", NULL);
 			if( from == NULL ) { goto cleanup; }
-				rfc724_mid = mr_create_outgoing_rfc724_mid(from);
+				rfc724_mid = mr_create_outgoing_rfc724_mid(ths->m_type==MR_CHAT_GROUP? ths->m_grpid : NULL, from);
 			free(from);
 		}
 
@@ -1514,7 +1540,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 {
 	uint32_t      chat_id = 0;
 	int           locked = 0;
-	char*         draft_txt = NULL;
+	char*         draft_txt = NULL, *grpid = NULL;
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox == NULL || chat_name==NULL || chat_name[0]==0 ) {
@@ -1525,13 +1551,15 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 	locked = 1;
 
 		draft_txt = mrstock_str_repl_string(MR_STR_NEWGROUPDRAFT, chat_name);
+		grpid = mr_create_grpid();
 
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, param) VALUES(?, ?, ?, ?, 'U=1');" /*'U'npromoted group*/ );
+			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*'U'npromoted group*/ );
 		sqlite3_bind_int  (stmt, 1, MR_CHAT_GROUP);
 		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
 		sqlite3_bind_int64(stmt, 3, time(NULL));
 		sqlite3_bind_text (stmt, 4, draft_txt, -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 5, grpid, -1, SQLITE_STATIC);
 		if(  sqlite3_step(stmt)!=SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -1548,6 +1576,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( stmt) { sqlite3_finalize(stmt); }
 	free(draft_txt);
+	free(grpid);
 
 	if( chat_id ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);

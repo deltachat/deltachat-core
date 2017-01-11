@@ -1212,7 +1212,7 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 			ret = safe_strdup("ERROR: Argument <id> missing.");
 		}
 	}
-	else if( strncmp(cmd, "createchat", 10)==0 )
+	else if( strncmp(cmd, "createchat ", 11)==0 )
 	{
 		char* arg1 = (char*)strstr(cmd, " ");
 		if( arg1 ) {
@@ -1221,6 +1221,17 @@ char* mrmailbox_execute(mrmailbox_t* ths, const char* cmd)
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+		}
+	}
+	else if( strncmp(cmd, "creategroup ", 12)==0 )
+	{
+		char* arg1 = (char*)strstr(cmd, " ");
+		if( arg1 ) {
+			arg1++;;
+			ret = mrmailbox_create_group_chat(ths, arg1)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <name> missing.");
 		}
 	}
 	else if( strncmp(cmd, "delchat ", 8)==0 )

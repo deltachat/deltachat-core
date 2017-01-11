@@ -198,7 +198,9 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
 					" blocked INTEGER DEFAULT 0,"
+					" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
 					" param TEXT DEFAULT '');");
+		mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
 		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);"); /* the other way round, an index on contact_id is only needed for blocking users */
 		mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
