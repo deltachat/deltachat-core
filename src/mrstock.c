@@ -116,7 +116,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_AUDIO,        "Voice message");
 		mrstock_add_str(MR_STR_FILE,         "File");
 		mrstock_add_str(MR_STR_STATUSLINE,   "Sent with my Delta Chat Messenger");
-		mrstock_add_str(MR_STR_SUBJECTPREFIX,"Instant message");
+		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"_\" for us.");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");
@@ -135,6 +135,23 @@ char* mrstock_str_repl_number(int id, int cnt)
 	*p2 = 0;
 	p2++;
 	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
+	free(p1);
+	return ret;
+}
+
+
+char* mrstock_str_repl_string(int id, const char* to_insert)
+{
+	char* p1 = mrstock_str(id);
+	char* p2 = strchr(p1, '_'), *ret;
+	if( p2==NULL ) {
+		return p1; /* `_` not found */
+	}
+
+	/* replace `_` by string */
+	*p2 = 0;
+	p2++;
+	ret = mr_mprintf("%s%s%s", p1, to_insert, p2);
 	free(p1);
 	return ret;
 }

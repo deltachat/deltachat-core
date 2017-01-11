@@ -38,6 +38,7 @@
  * 'm'ime
  * 't'imstamp to try a job again
  * 'G'host-CC, parameter is the original msg_id
+ * 'U'npromoted group
  *
  ******************************************************************************/
 

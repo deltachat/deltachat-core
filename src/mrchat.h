@@ -60,6 +60,7 @@ typedef struct mrchat_t
 	time_t          m_draft_timestamp; /* 0 if there is no draft */
 	char*           m_draft_text;      /* NULL if unset */
 	mrmailbox_t*    m_mailbox;         /* != NULL */
+	mrparam_t*      m_param;           /* != NULL */
 } mrchat_t;
 
 
@@ -75,8 +76,6 @@ uint32_t      mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save 
 
 /*** library-private **********************************************************/
 
-#define       MR_CHAT_FIELDS                         " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt "
-int           mrchat_set_from_stmt__                 (mrchat_t* ths, sqlite3_stmt* row); /* `row` must be MR_CHAT_FIELDS */
 int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);
 size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
 uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);

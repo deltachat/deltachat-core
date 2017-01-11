@@ -46,7 +46,7 @@ extern "C" {
 #define MR_STR_AUDIO            11
 #define MR_STR_FILE             12
 #define MR_STR_STATUSLINE       13
-#define MR_STR_SUBJECTPREFIX    14
+#define MR_STR_NEWGROUPDRAFT    14
 #define MR_STR_COUNT_           15
 
 
@@ -64,7 +64,8 @@ void         mrstock_exit    (void);
 /*** library-private **********************************************************/
 
 char*  mrstock_str             (int id);             /* the result must be free()'d! */
-char*  mrstock_str_repl_number (int id, int number); /* replaces the first ? by the given number, the result must be free()'d! */
+char*  mrstock_str_repl_number (int id, int number); /* replaces the first `_` by the given number, the result must be free()'d! */
+char*  mrstock_str_repl_string (int id, const char*);/* replaces the first `_` by the given string, the result must be free()'d! */
 char*  mrstock_str_pl          (int id, int cnt);    /* id+0 should be singular, id+1 should be plural, replaces the first ? by the given number, the result must be free()'d! */
 
 
