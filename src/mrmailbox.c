@@ -110,6 +110,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
+	int                   i, to_list_cnt = 0;
 
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
@@ -151,13 +152,23 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		goto cleanup;
 	}
 
-	/* check, if we have a chat with this group ID.  TODO: also check the number of receivers - it must not be smaller than the members in the group! */
+	/* check, if we have a chat with this group ID */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
 		"SELECT id FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
 		chat_id = sqlite3_column_int(stmt, 0);
 		goto cleanup;
+	}
+
+	/* check the number of receivers -
+	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client  */
+	to_list_cnt = carray_count(to_list);
+	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
+		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
+		if( is_contact_cnt > 2 ) {
+			goto cleanup;
+		}
 	}
 
 	/* create a new chat, if wanted */
@@ -181,14 +192,11 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
 			mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
 		}
-		int i, icnt = carray_count(to_list);
-		for( i = 0; i < icnt; i++ )
+
+		for( i = 0; i < to_list_cnt; i++ )
 		{
-			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i);
-			if( to_id > MR_CONTACT_ID_LAST_SPECIAL
-			 && mrmailbox_is_contact_in_chat__(mailbox, chat_id, to_id) == 0 ) {
-				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
-			}
+			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i); /* to_id is only once in to_list and is non-special */
+			mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
 		}
 	}
 

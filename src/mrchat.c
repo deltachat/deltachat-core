@@ -975,13 +975,8 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		{
 			mrsqlite3_lock(ths->m_mailbox->m_sql);
 
-				stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
-					"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
-				sqlite3_bind_int(stmt, 1, ths->m_id);
-				if( sqlite3_step(stmt) == SQLITE_ROW ) {
-					cnt = sqlite3_column_int(stmt, 0);
-					ret = mrstock_str_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
-				}
+				cnt = mrmailbox_get_chat_contact_count__(ths->m_mailbox, ths->m_id);
+				ret = mrstock_str_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
 			mrsqlite3_unlock(ths->m_mailbox->m_sql);
 		}
@@ -1620,6 +1615,18 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( q3 ) { sqlite3_free(q3); }
 	return success;
+}
+
+
+int mrmailbox_get_chat_contact_count__(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
+		"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		return sqlite3_column_int(stmt, 0);
+	}
+	return 0;
 }
 
 
