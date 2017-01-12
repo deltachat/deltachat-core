@@ -106,7 +106,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	uint32_t              chat_id = 0;
 	clistiter*            cur;
 	struct mailimf_field* field;
-	char*                 grpid1 = NULL, *grpid2 = NULL, *grpid3 = NULL;
+	char*                 grpid1 = NULL, *grpid2 = NULL, *grpid3 = NULL, *grpid4 = NULL;
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
@@ -130,25 +130,32 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 					}
 				}
 			}
+			else if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+			{
+				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
+				if( fld_message_id ) {
+					grpid2 = extract_grpid_from_messageid(fld_message_id->mid_value);
+				}
+			}
 			else if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
 			{
 				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
 				if( fld_in_reply_to ) {
-					grpid2 = get_first_grpid_from_char_clist(fld_in_reply_to->mid_list);
+					grpid3 = get_first_grpid_from_char_clist(fld_in_reply_to->mid_list);
 				}
 			}
 			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
 			{
 				struct mailimf_references* fld_references = field->fld_data.fld_references;
 				if( fld_references ) {
-					grpid3 = get_first_grpid_from_char_clist(fld_references->mid_list);
+					grpid4 = get_first_grpid_from_char_clist(fld_references->mid_list);
 				}
 			}
 
 		}
 	}
 
-	grpid = grpid1? grpid1 : (grpid2? grpid2 : grpid3);
+	grpid = grpid1? grpid1 : (grpid2? grpid2 : (grpid3? grpid3 : grpid4));
 	if( grpid == NULL ) {
 		goto cleanup;
 	}
@@ -211,6 +218,7 @@ cleanup:
 	free(grpid1);
 	free(grpid2);
 	free(grpid3);
+	free(grpid4);
 	free(grpname);
 	free(self_addr);
 	return chat_id;
