@@ -1043,7 +1043,7 @@ char* mr_create_grpid(void)
 	- for INCOMING messages, the ID is taken from the X-MrGrpId-header or from the Message-ID in the In-Reply-To: or References:-Header
 	- the group ID should be a string with the characters [a-zA-Z0-9\-_] */
 	long rnd = random();
-	return mr_mprintf("%lx", (long)rnd);
+	return mr_mprintf("%08lx", (long)rnd);
 }
 
 
@@ -1059,8 +1059,8 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	long rnd = random();
 
 	if( grpid ) {
-		return mr_mprintf("gRp%s.%lx%lx%lx.%s", grpid, (long)now, (long)pid, (long)rnd, from_addr);
-		                /* ^^^ gRp must never change as this is used to identify group messages in normal-clients-replies */
+		return mr_mprintf("Gr.%s.%lx%lx%lx.%s", grpid, (long)now, (long)pid, (long)rnd, from_addr);
+		                /* ^^^ Gr. must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
 	}
 	else {
 		return mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from_addr);

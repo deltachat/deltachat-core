@@ -49,6 +49,126 @@
 
 
 /*******************************************************************************
+ * Get our group ID from MIME header
+ ******************************************************************************/
+
+
+static char* extract_grpid_from_messageid(const char* mid)
+{
+	/* extract our group ID from Message-IDs as `Gr.12345678.morerandom.user@domain.de`; "12345678" is the wanted ID in this example. */
+	int success = 0;
+	char* ret = NULL, *p1;
+
+    if( mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.' ) {
+		goto cleanup;
+    }
+
+	ret = safe_strdup(&mid[3]);
+
+	p1 = strchr(ret, '.');
+	if( p1 == NULL ) {
+		goto cleanup;
+	}
+	*p1 = 0;
+
+	if( strlen(ret)!=MR_VALID_GRPID_LEN ) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	if( success == 0 ) { free(ret); ret = NULL; }
+    return success? ret : NULL;
+}
+
+
+static char* get_first_grpid_from_char_clist(const clist* list)
+{
+	clistiter* cur;
+	if( list ) {
+		for( cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur) ) {
+			const char* mid = clist_content(cur);
+			char* grpid = extract_grpid_from_messageid(mid);
+			if( grpid ) {
+				return grpid;
+			}
+		}
+	}
+	return NULL;
+}
+
+
+static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_as_needed)
+{
+	/* search the grpid in the header */
+	uint32_t              chat_id = 0;
+	clistiter*            cur;
+	struct mailimf_field* field;
+	char*                 grpid1 = NULL, *grpid2 = NULL, *grpid3 = NULL;
+	const char*           grpid = NULL; /* must not be freed, just one of the others */
+	sqlite3_stmt*         stmt;
+
+	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	{
+		field = (struct mailimf_field*)clist_content(cur);
+		if( field )
+		{
+			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+			{
+				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+				if( optional_field ) {
+					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 ) {
+						grpid1 = safe_strdup(optional_field->fld_value);
+					}
+				}
+			}
+			else if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
+			{
+				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+				if( fld_in_reply_to ) {
+					grpid2 = get_first_grpid_from_char_clist(fld_in_reply_to->mid_list);
+				}
+			}
+			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
+			{
+				struct mailimf_references* fld_references = field->fld_data.fld_references;
+				if( fld_references ) {
+					grpid3 = get_first_grpid_from_char_clist(fld_references->mid_list);
+				}
+			}
+
+		}
+	}
+
+	grpid = grpid1? grpid1 : (grpid2? grpid2 : grpid3);
+	if( grpid == NULL ) {
+		goto cleanup;
+	}
+
+	/* check, if we have a chat with this group ID.  TODO: also check the number of receivers - it must not be smaller than the members in the group! */
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
+		"SELECT id FROM chats WHERE grpid=?;");
+	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt)==SQLITE_ROW ) {
+		chat_id = sqlite3_column_int(stmt, 0);
+		goto cleanup;
+	}
+
+	/* TODO: create a new chat, if wanted */
+	if( create_as_needed ) {
+		/* moreover, add missing members! */
+	}
+
+cleanup:
+	free(grpid1);
+	free(grpid2);
+	free(grpid3);
+	return chat_id;
+}
+
+
+/*******************************************************************************
  * Receive a message and add it to the database
  ******************************************************************************/
 
@@ -130,6 +250,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              incoming = 0;
 	int              incoming_from_known_sender = 0;
 	#define          outgoing (!incoming)
+	int              is_group = 0;
 
 	carray*          to_list = NULL;
 
@@ -306,13 +427,23 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		{
 			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
 			to_id = MR_CONTACT_ID_SELF;
-			chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
-			if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
-				chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
-			}
 
-			if( chat_id == 0 ) {
-				chat_id = MR_CHAT_ID_DEADDROP;
+			chat_id = lookup_group_by_grpid__(ths, mime_parser,
+				(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/);
+			if( chat_id )
+			{
+				is_group = 1;
+			}
+			else
+			{
+				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
+				if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
+					chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+				}
+
+				if( chat_id == 0 ) {
+					chat_id = MR_CHAT_ID_DEADDROP;
+				}
 			}
 		}
 		else /* outgoing */
@@ -321,9 +452,18 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			from_id = MR_CONTACT_ID_SELF;
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
-				if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
-					chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
+
+				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/);
+				if( chat_id )
+				{
+					is_group = 1;
+				}
+				else
+				{
+					chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
+					if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
+						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
+					}
 				}
 			}
 
@@ -405,7 +545,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
 		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
-		if( outgoing && carray_count(to_list)>1 && first_dblocal_id != 0 )
+		if( outgoing && is_group == 0 && carray_count(to_list)>1 && first_dblocal_id != 0 )
 		{
 			char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
 			char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=Ghost message flag with the original message ID */
