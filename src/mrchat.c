@@ -1551,7 +1551,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 	locked = 1;
 
 		draft_txt = mrstock_str_repl_string(MR_STR_NEWGROUPDRAFT, chat_name);
-		grpid = mr_create_grpid();
+		grpid = mr_create_id();
 
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*'U'npromoted group*/ );

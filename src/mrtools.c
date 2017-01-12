@@ -1032,18 +1032,44 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
  ******************************************************************************/
 
 
-char* mr_create_grpid(void)
+static char* encode_66bits_as_base64(uint32_t v1, uint32_t v2, uint32_t fill /*only the lower 2 bits are used*/)
+{
+	/* encode 66 bits as a base64 string. This is useful for ID generating with short strings as
+	we save 5 character in each id compared to 64 bit hex encoding, for a typical group ID, these are 10 characters (grpid+msgid):
+	hex:    64 bit, 4 bits/character, length = 64/4 = 16 characters
+	base64: 64 bit, 6 bits/character, length = 64/6 = 11 characters (plus 2 additional bits) */
+	char* ret = malloc(12); if( ret==NULL ) { exit(34); }
+	static const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	ret[ 0] = chars[   (v1>>26) & 0x3F  ];
+	ret[ 1] = chars[   (v1>>20) & 0x3F  ];
+	ret[ 2] = chars[   (v1>>14) & 0x3F  ];
+	ret[ 3] = chars[   (v1>> 8) & 0x3F  ];
+	ret[ 4] = chars[   (v1>> 2) & 0x3F  ];
+	ret[ 5] = chars[ ( (v1<< 4) & 0x30 ) | ( (v2>>28) & 0x0F ) ];
+	ret[ 6] = chars[                         (v2>>22) & 0x3F   ];
+	ret[ 7] = chars[                         (v2>>16) & 0x3F   ];
+	ret[ 8] = chars[                         (v2>>10) & 0x3F   ];
+	ret[ 9] = chars[                         (v2>> 4) & 0x3F   ];
+	ret[10] = chars[                       ( (v2<< 2) & 0x3C ) | (fill & 0x03) ];
+	ret[11] = 0;
+	return ret;
+}
+
+
+char* mr_create_id(void)
 {
 	/* the generated ID should be as short and as unique as possible:
-	- short, because it is also used as part of Message-ID headers (idea: add time and pid as in message-id and make the strings shorter using Base64)
+	- short, because it is also used as part of Message-ID headers
 	- unique as two IDs generated on two devices should not be the same. However, collisions are not world-wide but only by the few contacts.
 
 	Additional information:
-	- for OUTGOING messages this ID is written to the header as `X-MrGrpId:` and is added to the message ID as gRp<grp-id>.<random>@<random>
+	- for OUTGOING messages this ID is written to the header as `X-MrGrpId:` and is added to the message ID as Gr.<grpid>.<random>@<random>
 	- for INCOMING messages, the ID is taken from the X-MrGrpId-header or from the Message-ID in the In-Reply-To: or References:-Header
 	- the group ID should be a string with the characters [a-zA-Z0-9\-_] */
-	long rnd = random();
-	return mr_mprintf("%08lx", (long)rnd);
+	uint32_t now = time(NULL);
+	uint32_t pid = getpid();
+	uint32_t rnd = random() ^ pid;
+	return encode_66bits_as_base64(now, rnd, pid/*only the lower 2 bits are taken from this value*/);
 }
 
 
@@ -1054,17 +1080,17 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	- the message ID should be globally unique
 	- do not add a counter or any private data as as this may give unneeded information to the receiver	*/
 
-	long now = time(NULL);
-	long pid = getpid();
-	long rnd = random();
-
+	char* msgid = mr_create_id(), *ret = NULL;
 	if( grpid ) {
-		return mr_mprintf("Gr.%s.%lx%lx%lx.%s", grpid, (long)now, (long)pid, (long)rnd, from_addr);
-		                /* ^^^ Gr. must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
+		ret = mr_mprintf("Gr.%s.%s.%s", grpid, msgid, from_addr);
+		               /* ^^^ `Gr.` must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
 	}
 	else {
-		return mr_mprintf("%lx%lx%lx.%s", (long)now, (long)pid, (long)rnd, from_addr);
+		ret = mr_mprintf("Mr.%s.%s", msgid, from_addr);
+		               /* ^^^ `Mr.` is currently not used, however, this may change in future */
 	}
+	free(msgid);
+	return ret;
 }
 
 

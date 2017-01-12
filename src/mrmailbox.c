@@ -71,7 +71,7 @@ static char* extract_grpid_from_messageid(const char* mid)
 	}
 	*p1 = 0;
 
-	if( strlen(ret)!=MR_VALID_GRPID_LEN ) {
+	if( strlen(ret)!=MR_VALID_ID_LEN ) {
 		goto cleanup;
 	}
 
