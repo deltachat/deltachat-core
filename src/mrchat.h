@@ -85,6 +85,8 @@ int           mrmailbox_get_total_msg_count__        (mrmailbox_t*, uint32_t cha
 int           mrmailbox_get_unseen_count__           (mrmailbox_t*, uint32_t chat_id);
 void          mrmailbox_send_msg_to_smtp             (mrmailbox_t*, mrjob_t*);
 void          mrmailbox_send_msg_to_imap             (mrmailbox_t*, mrjob_t*);
+int           mrmailbox_add_contact_to_chat__        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int           mrmailbox_is_contact_in_chat__         (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 
 #define APPROX_SUBJECT_CHARS 32  /* as we do not cut inside words, this results in about 32-42 characters.
 								 Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise.

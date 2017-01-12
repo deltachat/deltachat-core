@@ -891,7 +891,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
 
 	/* check, if the message was send by a messenger -
-	currently, we rely on the subject, however, we will also use a special message ID soon */
+	currently, we rely on the subject; TODO: we should use the X-MrMsg-header instead */
 	if( ths->m_subject ) {
 		if( strstr(ths->m_subject, MR_CHAT_PREFIX)!=NULL
 		 || strstr(ths->m_subject, MR_CHAT_ALT_MAGIC1)!=NULL
@@ -908,7 +908,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		if( (p-ths->m_subject) == 2 /*To: etc.*/ || (p-ths->m_subject) == 3 /*Fwd: etc.*/ ) {
 			prepend_subject = 0;
 		}
-		else if( ths->m_is_send_by_messenger ) {
+		else if( ths->m_is_send_by_messenger /*TODO: m_is_send_by_messenger should not regard the subject, however, here we should regard Chat:-prefix */ ) {
 			prepend_subject = 0;
 		}
 

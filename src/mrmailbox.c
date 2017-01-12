@@ -99,7 +99,8 @@ static char* get_first_grpid_from_char_clist(const clist* list)
 }
 
 
-static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_as_needed)
+static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_as_needed,
+                                        uint32_t from_id, carray* to_list)
 {
 	/* search the grpid in the header */
 	uint32_t              chat_id = 0;
@@ -107,6 +108,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	struct mailimf_field* field;
 	char*                 grpid1 = NULL, *grpid2 = NULL, *grpid3 = NULL;
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
+	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
 
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
@@ -120,6 +122,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 				if( optional_field ) {
 					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 ) {
 						grpid1 = safe_strdup(optional_field->fld_value);
+					}
+					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 ) {
+						grpname = mr_decode_header_string(optional_field->fld_value);
 					}
 				}
 			}
@@ -155,15 +160,43 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		goto cleanup;
 	}
 
-	/* TODO: create a new chat, if wanted */
-	if( create_as_needed ) {
-		/* moreover, add missing members! */
+	/* create a new chat, if wanted */
+	if( create_as_needed && grpname )
+	{
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+			"INSERT INTO chats (type, name, grpid) VALUES(?, ?, ?);");
+		sqlite3_bind_int (stmt, 1, MR_CHAT_GROUP);
+		sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+			goto cleanup;
+		}
+		sqlite3_finalize(stmt);
+		if( (chat_id=sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj)) == 0 ) {
+			goto cleanup;
+		}
+
+		/* add all contacts to group*/
+		mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
+		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
+			mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
+		}
+		int i, icnt = carray_count(to_list);
+		for( i = 0; i < icnt; i++ )
+		{
+			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i);
+			if( to_id > MR_CONTACT_ID_LAST_SPECIAL
+			 && mrmailbox_is_contact_in_chat__(mailbox, chat_id, to_id) == 0 ) {
+				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
+			}
+		}
 	}
 
 cleanup:
 	free(grpid1);
 	free(grpid2);
 	free(grpid3);
+	free(grpname);
 	return chat_id;
 }
 
@@ -429,7 +462,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			to_id = MR_CONTACT_ID_SELF;
 
 			chat_id = lookup_group_by_grpid__(ths, mime_parser,
-				(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/);
+				(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_list);
 			if( chat_id )
 			{
 				is_group = 1;
@@ -453,7 +486,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
 
-				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/);
+				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, 0, to_list);
 				if( chat_id )
 				{
 					is_group = 1;
