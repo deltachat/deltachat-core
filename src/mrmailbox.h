@@ -217,8 +217,6 @@ void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
 
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
-#define MR_CHAT_ALT_MAGIC1  "[\xCE\xB4]" /* an alternative, maybe we will switch to the postfix "greek letter delta in square brackets" ... */
-#define MR_CHAT_ALT_MAGIC2  "\xCE\xB4:"  /* ... or to the prefix "greek letter lelta with doublepoint"  */
 #define MR_CHATS_FOLDER     "Chats"
 
 
