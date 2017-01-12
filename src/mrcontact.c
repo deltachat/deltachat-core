@@ -624,6 +624,24 @@ cleanup:
 }
 
 
+int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, const char* other_addr)
+{
+	int addr_are_equal = 0;
+	if( other_addr ) {
+		mrcontact_t* contact = mrcontact_new();
+		if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
+			if( contact->m_addr ) {
+				if( strcmp(contact->m_addr, other_addr)==0 ) {
+					addr_are_equal = 1;
+				}
+			}
+		}
+		mrcontact_unref(contact);
+	}
+	return addr_are_equal;
+}
+
+
 mrcontact_t* mrcontact_new()
 {
 	mrcontact_t* ths = NULL;

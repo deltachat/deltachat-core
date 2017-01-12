@@ -81,6 +81,7 @@ uint32_t     mrmailbox_add_or_lookup_contact__(mrmailbox_t*, const char* display
 int          mrmailbox_is_known_contact__     (mrmailbox_t*, uint32_t id, int* ret_blocked);
 int          mrmailbox_is_contact_blocked__   (mrmailbox_t*, uint32_t id);
 int          mrmailbox_real_contact_exists__  (mrmailbox_t*, uint32_t id);
+int          mrmailbox_contact_addr_equals__  (mrmailbox_t*, uint32_t contact_id, const char* other_addr);
 void         mr_normalize_name                (char* full_name);
 char*        mr_get_first_name                (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
 

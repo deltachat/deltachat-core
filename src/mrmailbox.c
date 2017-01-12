@@ -49,7 +49,7 @@
 
 
 /*******************************************************************************
- * Get our group ID from MIME header
+ * Handle Groups
  ******************************************************************************/
 
 
@@ -111,6 +111,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
 	int                   i, to_list_cnt = 0;
+	char*                 self_addr = NULL;
 
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
@@ -188,15 +189,21 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		}
 
 		/* add all contacts to group*/
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+
 		mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
 		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
-			mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
+			if( mrmailbox_contact_addr_equals__(mailbox, from_id, self_addr) == 0 ) {
+				mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
+			}
 		}
 
 		for( i = 0; i < to_list_cnt; i++ )
 		{
 			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i); /* to_id is only once in to_list and is non-special */
-			mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
+			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr) == 0 ) {
+				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
+			}
 		}
 	}
 
@@ -205,6 +212,7 @@ cleanup:
 	free(grpid2);
 	free(grpid3);
 	free(grpname);
+	free(self_addr);
 	return chat_id;
 }
 
