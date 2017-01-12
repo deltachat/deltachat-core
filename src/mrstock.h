@@ -47,12 +47,16 @@ extern "C" {
 #define MR_STR_FILE             12
 #define MR_STR_STATUSLINE       13
 #define MR_STR_NEWGROUPDRAFT    14
-#define MR_STR_COUNT_           15
+#define MR_STR_MSGGRPNAME       15
+#define MR_STR_MSGADDMEMBER     16
+#define MR_STR_MSGDELMEMBER     17
+#define MR_STR_COUNT_           18
 
 
 /* mrstock_set_str() adds a string to the repository. A copy of the given string
 is made. Usually, this is used to pass translated strings to the backend. */
 void         mrstock_add_str (int id, const char*);
+
 
 /* frees all strings allocated by mrstock_set_str().  Usually, there is no need
 to call this function - when the program terminates, usually all strings are
@@ -63,10 +67,31 @@ void         mrstock_exit    (void);
 
 /*** library-private **********************************************************/
 
-char*  mrstock_str             (int id);             /* the result must be free()'d! */
-char*  mrstock_str_repl_number (int id, int number); /* replaces the first `_` by the given number, the result must be free()'d! */
-char*  mrstock_str_repl_string (int id, const char*);/* replaces the first `_` by the given string, the result must be free()'d! */
-char*  mrstock_str_pl          (int id, int cnt);    /* id+0 should be singular, id+1 should be plural, replaces the first ? by the given number, the result must be free()'d! */
+/* Teturn the string with the given ID.
+The result must be free()'d! */
+char* mrstock_str (int id);
+
+
+/* Replaces the first `_` in the given String-ID by the given string.
+The result must be free()'d! */
+char* mrstock_str_repl_string (int id, const char*);
+
+
+/* Replaces the first two `_` in the given String-ID by the given strings.
+The result must be free()'d! */
+char* mrstock_str_repl_string2 (int id, const char*, const char*);
+
+
+/* Replaces the first `_` in the given String-ID by the given number.
+The result must be free()'d! */
+char* mrstock_str_repl_number (int id, int number);
+
+
+/* Replaces the first `_` in the given String-ID by the given number.
+The result must be free()'d!
+For cnt==1, the function uses the given ID (singular string), for all other
+values of cnt, the function uses id+1 (should be a plural string, then) */
+char* mrstock_str_repl_pl (int id, int cnt);
 
 
 #ifdef __cplusplus

@@ -966,7 +966,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 				sqlite3_bind_int(stmt, 1, ths->m_id);
 				if( sqlite3_step(stmt) == SQLITE_ROW ) {
 					cnt = sqlite3_column_int(stmt, 0);
-					ret = mrstock_str_pl(MR_STR_CONTACT, cnt);
+					ret = mrstock_str_repl_pl(MR_STR_CONTACT, cnt);
 				}
 
 			mrsqlite3_unlock(ths->m_mailbox->m_sql);
@@ -976,7 +976,7 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 			mrsqlite3_lock(ths->m_mailbox->m_sql);
 
 				cnt = mrmailbox_get_chat_contact_count__(ths->m_mailbox, ths->m_id);
-				ret = mrstock_str_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
+				ret = mrstock_str_repl_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
 			mrsqlite3_unlock(ths->m_mailbox->m_sql);
 		}

@@ -117,9 +117,43 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_FILE,         "File");
 		mrstock_add_str(MR_STR_STATUSLINE,   "Sent with my Delta Chat Messenger");
 		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"_\" for us.");
+		mrstock_add_str(MR_STR_MSGGRPNAME,   "Group name changed from \"_\" to \"_\".");
+		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member \"_\" added.");
+		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member \"_\" removed.");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");
+}
+
+
+static char* repl_string(char* p1 /*string will be modified!*/, const char* to_insert)
+{
+	/* replace `_` by string, the input string will be modified, the result must be free()'d */
+	char* p2 = strchr(p1, '_');
+	if( p2==NULL ) { return strdup(p1); }
+	*p2 = 0;
+	p2++;
+	return mr_mprintf("%s%s%s", p1, to_insert? to_insert : "", p2);
+}
+
+
+char* mrstock_str_repl_string(int id, const char* to_insert)
+{
+	char* p1 = mrstock_str(id);
+	char* p2 = repl_string(p1, to_insert);
+	free(p1);
+	return p2;
+}
+
+
+char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_insert2)
+{
+	char* p1 = mrstock_str(id);
+	char* p2 = repl_string(p1, to_insert);
+	free(p1);
+	p1 = repl_string(p2, to_insert2);
+	free(p2);
+	return p1;
 }
 
 
@@ -127,11 +161,7 @@ char* mrstock_str_repl_number(int id, int cnt)
 {
 	char* p1 = mrstock_str(id);
 	char* p2 = strchr(p1, '_'), *ret;
-	if( p2==NULL ) {
-		return p1; /* `_` not found */
-	}
-
-	/* replace `_` by number */
+	if( p2==NULL ) { return p1; }
 	*p2 = 0;
 	p2++;
 	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
@@ -140,24 +170,7 @@ char* mrstock_str_repl_number(int id, int cnt)
 }
 
 
-char* mrstock_str_repl_string(int id, const char* to_insert)
-{
-	char* p1 = mrstock_str(id);
-	char* p2 = strchr(p1, '_'), *ret;
-	if( p2==NULL ) {
-		return p1; /* `_` not found */
-	}
-
-	/* replace `_` by string */
-	*p2 = 0;
-	p2++;
-	ret = mr_mprintf("%s%s%s", p1, to_insert, p2);
-	free(p1);
-	return ret;
-}
-
-
-char* mrstock_str_pl(int id, int cnt)
+char* mrstock_str_repl_pl(int id, int cnt)
 {
 	if( cnt != 1 ) {
 		id++; /* the provided ID should be singular, plural is plus one. */
