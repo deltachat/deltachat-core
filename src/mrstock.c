@@ -106,21 +106,21 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
 		mrstock_add_str(MR_STR_SELF,         "Me");
 		mrstock_add_str(MR_STR_DRAFT,        "Draft");
-		mrstock_add_str(MR_STR_MEMBER,       "_ member");
-		mrstock_add_str(MR_STR_MEMBERS,      "_ members");
-		mrstock_add_str(MR_STR_CONTACT,      "_ contact");
-		mrstock_add_str(MR_STR_CONTACTS,     "_ contacts");
+		mrstock_add_str(MR_STR_MEMBER,       "## member");
+		mrstock_add_str(MR_STR_MEMBERS,      "## members");
+		mrstock_add_str(MR_STR_CONTACT,      "## contact");
+		mrstock_add_str(MR_STR_CONTACTS,     "## contacts");
 		mrstock_add_str(MR_STR_DEADDROP,     "Mailbox");
 		mrstock_add_str(MR_STR_IMAGE,        "Image");
 		mrstock_add_str(MR_STR_VIDEO,        "Video");
 		mrstock_add_str(MR_STR_AUDIO,        "Voice message");
 		mrstock_add_str(MR_STR_FILE,         "File");
 		mrstock_add_str(MR_STR_STATUSLINE,   "Sent with my Delta Chat Messenger");
-		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"_\" for us.");
-		mrstock_add_str(MR_STR_MSGGRPNAME,   "Group name changed from \"_\" to \"_\".");
+		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"##\" for us.");
+		mrstock_add_str(MR_STR_MSGGRPNAME,   "Group name changed from \"##\" to \"##\".");
 		mrstock_add_str(MR_STR_MSGGRPIMAGE,  "Group image changed.");
-		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member \"_\" added.");
-		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member \"_\" removed.");
+		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member ## added.");
+		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member ## removed.");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");
@@ -129,11 +129,11 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 
 static char* repl_string(char* p1 /*string will be modified!*/, const char* to_insert)
 {
-	/* replace `_` by string, the input string will be modified, the result must be free()'d */
-	char* p2 = strchr(p1, '_');
+	/* replace `##` by given string, the input string will be modified, the result must be free()'d */
+	char* p2 = strstr(p1, "##");
 	if( p2==NULL ) { return strdup(p1); }
 	*p2 = 0;
-	p2++;
+	p2 += 2;
 	return mr_mprintf("%s%s%s", p1, to_insert? to_insert : "", p2);
 }
 
@@ -161,10 +161,10 @@ char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_ins
 char* mrstock_str_repl_number(int id, int cnt)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = strchr(p1, '_'), *ret;
+	char* p2 = strstr(p1, "##"), *ret;
 	if( p2==NULL ) { return p1; }
 	*p2 = 0;
-	p2++;
+	p2 += 2;
 	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
 	free(p1);
 	return ret;
