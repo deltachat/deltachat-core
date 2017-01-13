@@ -41,6 +41,7 @@
  * 'U'npromoted group
  * 'S'ystem message, the value is the ID that will go to X-MrMsg
  * 'E'mail address that is just deleted from a group
+ * 'P'hysically delete group after message sending
  *
  ******************************************************************************/
 

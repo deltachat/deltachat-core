@@ -51,7 +51,8 @@ extern "C" {
 #define MR_STR_MSGGRPIMAGE      16
 #define MR_STR_MSGADDMEMBER     17
 #define MR_STR_MSGDELMEMBER     18
-#define MR_STR_COUNT_           19
+#define MR_STR_MSGGROUPLEFT     19
+#define MR_STR_COUNT_           20
 
 
 /* mrstock_set_str() adds a string to the repository. A copy of the given string

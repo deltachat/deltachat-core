@@ -121,6 +121,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_MSGGRPIMAGE,  "Group image changed.");
 		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member ## added.");
 		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member ## removed.");
+		mrstock_add_str(MR_STR_MSGGROUPLEFT, "Group left.");
 	}
 
 	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");

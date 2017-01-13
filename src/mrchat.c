@@ -43,6 +43,10 @@
  ******************************************************************************/
 
 
+#define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
+#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
+
+
 int mrmailbox_get_unseen_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
@@ -921,15 +925,24 @@ int mrchat_get_unseen_count(mrchat_t* ths)
  ******************************************************************************/
 
 
-int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+/* Deleting a group chat implies to leave the group which required to send a
+message before the chat is deleted physically.  To make things even more complicated,
+there may be other chat messages waiting to be send.
+
+We use the following approach:
+1. If we do not need to send a message, we delete the chat directly
+2. If we need to send a message, we set chats.blocked=1 and add the parameter
+   'P' with a random value to both, the last message to be send and to the
+   chat (we would use msg_id, however, we may not get this in time)
+3. When the messag with the 'P'-value of the chat was send to IMAP, we physically
+   delete the chat. */
+
+
+int mrmailbox_delete_chat_part2(mrmailbox_t* mailbox, uint32_t chat_id)
 {
-	int       success = 0, send_event = 0, locked = 0, pending_transaction = 0;
+	int       success = 0, locked = 0, pending_transaction = 0;
 	mrchat_t* obj = mrchat_new(mailbox);
 	char*     q3 = NULL;
-
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		goto cleanup;
-	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -998,27 +1011,68 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 			pending_transaction = 0;
         }
 
-        send_event = 1;
-
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	success = 1;
 
 cleanup:
-	if( pending_transaction ) {
-		mrsqlite3_rollback__(mailbox->m_sql);
-	}
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
-	}
+	if( pending_transaction ) { mrsqlite3_rollback__(mailbox->m_sql); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrchat_unref(obj);
-	if( q3 ) {
-		sqlite3_free(q3);
+	if( q3 ) { sqlite3_free(q3); }
+	return success;
+}
+
+
+int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	int          success = 0;
+	mrchat_t*    chat = mrmailbox_get_chat(mailbox, chat_id);
+	mrcontact_t* contact = NULL;
+	mrmsg_t*     msg = mrmsg_new();
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || chat == NULL ) {
+		goto cleanup;
 	}
+
+	if( chat->m_type == MR_CHAT_GROUP
+	 && mrmailbox_is_contact_in_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)
+	 && DO_SEND_STATUS_MAILS )
+	{
+		/* _first_ mark chat to being delete and _then_ send the message to inform others that we've quit the group
+		(the otder is important - otherwise the message may be send asynchronous before we update the group. */
+		int link_msg_to_chat_deletion = (int)time(NULL);
+
+		mrparam_set_int(chat->m_param, 'P', link_msg_to_chat_deletion);
+		mrsqlite3_lock(mailbox->m_sql);
+			sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET blocked=1, param=? WHERE id=?;");
+			sqlite3_bind_text (stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 2, chat_id);
+			sqlite3_step(stmt);
+		mrsqlite3_unlock(mailbox->m_sql);
+
+		contact = mrmailbox_get_contact(mailbox, MR_CONTACT_ID_SELF);
+		msg->m_type = MR_MSG_TEXT;
+		msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
+		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
+		mrparam_set    (msg->m_param, 'E', contact->m_addr);
+		mrparam_set_int(msg->m_param, 'P', link_msg_to_chat_deletion);
+		mrchat_send_msg(chat, msg);
+	}
+	else
+	{
+		/* directly delete the chat */
+		mrmailbox_delete_chat_part2(mailbox, chat_id);
+	}
+
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	success = 1;
+
+cleanup:
+	mrchat_unref(chat);
+	mrcontact_unref(contact);
+	mrmsg_unref(msg);
 	return success;
 }
 
@@ -1317,6 +1371,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
 
+	/* check, if the chat shall be deleted pysically */
+	if( mrparam_get_int(chat->m_param, 'P', 0)!=0
+	 && mrparam_get_int(chat->m_param, 'P', 0)==mrparam_get_int(msg->m_param, 'P', 0) ) {
+		mrmailbox_delete_chat_part2(mailbox, chat->m_id);
+	}
+
 cleanup:
 	clist_free_content(recipients_names);
 	clist_free(recipients_names);
@@ -1527,10 +1587,6 @@ cleanup:
 /*******************************************************************************
  * Handle Group Chats
  ******************************************************************************/
-
-
-#define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
-#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
 
 
 static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -1808,7 +1864,12 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 		if( DO_SEND_STATUS_MAILS )
 		{
 			msg->m_type = MR_MSG_TEXT;
-			msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, contact->m_name? contact->m_name : contact->m_addr);
+			if( contact->m_id == MR_CONTACT_ID_SELF ) {
+				msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
+			}
+			else {
+				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
+			}
 			mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 			mrparam_set    (msg->m_param, 'E', contact->m_addr);
 			msg->m_id = mrchat_send_msg(chat, msg);
