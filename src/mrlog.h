@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 
+/* prototype for a function to receive log events. */
 typedef void (*mrlogcb_t) (int type, const char* msg);
 
 

@@ -1421,6 +1421,11 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
 	transaction_pending = 1;
 
+		if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF)==1 ) {
+			ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			goto cleanup;
+		}
+
 		{
 			char* from = mrsqlite3_get_config__(ths->m_mailbox->m_sql, "configured_addr", NULL);
 			if( from == NULL ) { goto cleanup; }
@@ -1493,6 +1498,10 @@ cleanup:
 /*******************************************************************************
  * Handle Group Chats
  ******************************************************************************/
+
+
+#define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
+#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
 
 
 static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -1579,9 +1588,6 @@ cleanup:
 }
 
 
-#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
-
-
 int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_name)
 {
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
@@ -1600,6 +1606,11 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id)
 		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
+		}
+
+		if( !IS_SELF_IN_GROUP__ ) {
+			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
 		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", new_name, chat_id);
@@ -1688,6 +1699,11 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 			goto cleanup;
 		}
 
+		if( !IS_SELF_IN_GROUP__ ) {
+			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+		}
+
 		if( 1==mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) ) {
 			success = 1;
 			goto cleanup;
@@ -1740,6 +1756,11 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id)
 		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
+		}
+
+		if( !IS_SELF_IN_GROUP__ ) {
+			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
 		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);

@@ -169,6 +169,12 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		chat_id = sqlite3_column_int(stmt, 0);
 	}
 
+	/* check if the sender is a member of the group -
+	if not, the message does not go to the group chat but to the normal chat with the sender */
+	if( chat_id!=0 && !mrmailbox_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
+		goto cleanup;
+	}
+
 	if( chat_id == 0 && create_as_needed && grpname )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
@@ -188,6 +194,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		goto cleanup;
 	}
 
+	/* execute group commands */
 	if( mime_parser->m_system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP
 	 || mime_parser->m_system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP )
 	{
@@ -536,7 +543,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( carray_count(to_list) >= 1 ) {
 				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
 
-				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, 0, to_list);
+				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_list);
 				if( chat_id )
 				{
 					is_group = 1;
