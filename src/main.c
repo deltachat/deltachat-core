@@ -135,6 +135,7 @@ int main(int argc, char ** argv)
 			printf("createchat <id>     create chat by the given contact id\n");
 			printf("creategroup <name>  create group with name\n");
 			printf("addmember <id>      add contact to group\n");
+			printf("removemember <id>   remove contact from group\n");
 			printf("send <text>         send message to selected chat\n");
 			printf("sendimage <file>    send image to selected chat\n");
 			printf("search <query>      search messages in the selected chat or globally\n");
@@ -334,6 +335,27 @@ int main(int argc, char ** argv)
 					}
 					else {
 						printf("ERROR: Cannot add contact to chat.\n");
+					}
+				}
+				else {
+					printf("ERROR: Argument <contact-id> missing.\n");
+				}
+			}
+			else {
+				printf("No chat selected.\n");
+			}
+		}
+		else if( strncmp(cmd, "removemember ", 10)==0 )
+		{
+			if( sel_chat ) {
+				char* arg1 = (char*)strstr(cmd, " ");
+				if( arg1 ) {
+					int contact_id = atoi(arg1);
+					if( mrmailbox_remove_contact_from_chat(mailbox, sel_chat->m_id, contact_id) ) {
+						printf("Contact added to chat.\n");
+					}
+					else {
+						printf("ERROR: Cannot remove member from chat.\n");
 					}
 				}
 				else {

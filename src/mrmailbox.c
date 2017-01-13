@@ -172,6 +172,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	/* check if the sender is a member of the group -
 	if not, the message does not go to the group chat but to the normal chat with the sender */
 	if( chat_id!=0 && !mrmailbox_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
+		chat_id = 0;
 		goto cleanup;
 	}
 
@@ -191,6 +192,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	}
 
 	if( chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		chat_id = 0;
 		goto cleanup;
 	}
 
@@ -243,6 +245,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
 		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
 		if( is_contact_cnt > 2 ) {
+			chat_id = 0;
 			goto cleanup;
 		}
 	}
