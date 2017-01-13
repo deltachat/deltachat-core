@@ -459,108 +459,6 @@ cleanup:
 }
 
 
-int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
-{
-	int       success = 0, send_event = 0, locked = 0, pending_transaction = 0;
-	mrchat_t* obj = mrchat_new(mailbox);
-	char*     q3 = NULL;
-
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		goto cleanup;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-        if( !mrchat_load_from_db__(obj, chat_id) ) {
-			goto cleanup;
-        }
-
-        if( obj->m_type == MR_CHAT_NORMAL )
-        {
-			/* delete a single-user-chat; all messages go to the deaddrop chat */
-			mrsqlite3_begin_transaction__(mailbox->m_sql);
-			pending_transaction = 1;
-
-			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=1;", MR_CHAT_ID_TO_DEADDROP, chat_id);
-			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
-
-			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_DEADDROP, chat_id);
-			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
-        }
-        else if( obj->m_type == MR_CHAT_GROUP )
-        {
-			/* delete a group-chat; all messages are deleted from the device but stay on the server.
-			Currently, they cannot be restored - "to_id" as used to restore single-user-chats is not sufficient.
-			Maybe it is okay (and maybe even expected :-) that messages from deleted chats do not show up again if a chat is re-created. */
-			mrsqlite3_begin_transaction__(mailbox->m_sql);
-			pending_transaction = 1;
-
-			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
-			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
-        }
-        else
-        {
-			/* Bad type. */
-			goto cleanup;
-        }
-
-		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
-		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-			goto cleanup;
-		}
-		sqlite3_free(q3);
-		q3 = NULL;
-
-		q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
-		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-			goto cleanup;
-		}
-		sqlite3_free(q3);
-		q3 = NULL;
-
-        if( pending_transaction ) {
-			mrsqlite3_commit__(mailbox->m_sql);
-			pending_transaction = 0;
-        }
-
-        send_event = 1;
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
-	success = 1;
-
-cleanup:
-	if( pending_transaction ) {
-		mrsqlite3_rollback__(mailbox->m_sql);
-	}
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
-	}
-	mrchat_unref(obj);
-	if( q3 ) {
-		sqlite3_free(q3);
-	}
-	return success;
-}
-
-
 carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
 	carray*       ret = carray_new(100);
@@ -1015,6 +913,113 @@ int mrchat_get_unseen_count(mrchat_t* ths)
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 	return ret;
+}
+
+
+/*******************************************************************************
+ * Delete a chat
+ ******************************************************************************/
+
+
+int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	int       success = 0, send_event = 0, locked = 0, pending_transaction = 0;
+	mrchat_t* obj = mrchat_new(mailbox);
+	char*     q3 = NULL;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+        if( !mrchat_load_from_db__(obj, chat_id) ) {
+			goto cleanup;
+        }
+
+        if( obj->m_type == MR_CHAT_NORMAL )
+        {
+			/* delete a single-user-chat; all messages go to the deaddrop chat */
+			mrsqlite3_begin_transaction__(mailbox->m_sql);
+			pending_transaction = 1;
+
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id=1;", MR_CHAT_ID_TO_DEADDROP, chat_id);
+			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+				goto cleanup;
+			}
+			sqlite3_free(q3);
+			q3 = NULL;
+
+			q3 = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE chat_id=%i AND from_id!=1;", MR_CHAT_ID_DEADDROP, chat_id);
+			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+				goto cleanup;
+			}
+			sqlite3_free(q3);
+			q3 = NULL;
+        }
+        else if( obj->m_type == MR_CHAT_GROUP )
+        {
+			/* delete a group-chat; all messages are deleted from the device but stay on the server.
+			Currently, they cannot be restored - "to_id" as used to restore single-user-chats is not sufficient.
+			Maybe it is okay (and maybe even expected :-) that messages from deleted chats do not show up again if a chat is re-created. */
+			mrsqlite3_begin_transaction__(mailbox->m_sql);
+			pending_transaction = 1;
+
+			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
+			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+				goto cleanup;
+			}
+			sqlite3_free(q3);
+			q3 = NULL;
+        }
+        else
+        {
+			/* Bad type. */
+			goto cleanup;
+        }
+
+		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
+
+		q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
+
+        if( pending_transaction ) {
+			mrsqlite3_commit__(mailbox->m_sql);
+			pending_transaction = 0;
+        }
+
+        send_event = 1;
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	success = 1;
+
+cleanup:
+	if( pending_transaction ) {
+		mrsqlite3_rollback__(mailbox->m_sql);
+	}
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	if( send_event ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	}
+	mrchat_unref(obj);
+	if( q3 ) {
+		sqlite3_free(q3);
+	}
+	return success;
 }
 
 
