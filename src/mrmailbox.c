@@ -110,8 +110,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
-	int                   i, to_list_cnt = 0;
+	int                   i, to_list_cnt = carray_count(to_list);
 	char*                 self_addr = NULL;
+	int                   recreate_member_list = 0;
 
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
@@ -166,21 +167,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
 		chat_id = sqlite3_column_int(stmt, 0);
-		goto cleanup;
 	}
 
-	/* check the number of receivers -
-	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client  */
-	to_list_cnt = carray_count(to_list);
-	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
-		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
-		if( is_contact_cnt > 2 ) {
-			goto cleanup;
-		}
-	}
-
-	/* create a new chat, if wanted */
-	if( create_as_needed && grpname )
+	if( chat_id == 0 && create_as_needed && grpname )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 			"INSERT INTO chats (type, name, grpid) VALUES(?, ?, ?);");
@@ -191,11 +180,38 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 			goto cleanup;
 		}
 		sqlite3_finalize(stmt);
-		if( (chat_id=sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj)) == 0 ) {
-			goto cleanup;
-		}
+		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		recreate_member_list = 1;
+	}
 
-		/* add all contacts to group*/
+	if( chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	if( mime_parser->m_system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP
+	 || mime_parser->m_system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP )
+	{
+		recreate_member_list = 1;
+	}
+	else if( mime_parser->m_system_command == MR_SYSTEM_GROUPNAME_CHANGED && grpname && strlen(grpname) < 100 )
+	{
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET name=? WHERE id=?;");
+		sqlite3_bind_text(stmt, 1, grpname, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 2, chat_id);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	}
+
+	/* add members to group/check members
+	for recreation: we should add a timestamp */
+	if( recreate_member_list )
+	{
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
+		sqlite3_bind_int (stmt, 1, chat_id);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+
 		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 
 		mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
@@ -211,6 +227,16 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr) == 0 ) {
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
 			}
+		}
+		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	}
+
+	/* check the number of receivers -
+	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
+	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
+		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
+		if( is_contact_cnt > 2 ) {
+			goto cleanup;
 		}
 	}
 

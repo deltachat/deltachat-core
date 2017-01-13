@@ -118,6 +118,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 		mrstock_add_str(MR_STR_STATUSLINE,   "Sent with my Delta Chat Messenger");
 		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"_\" for us.");
 		mrstock_add_str(MR_STR_MSGGRPNAME,   "Group name changed from \"_\" to \"_\".");
+		mrstock_add_str(MR_STR_MSGGRPIMAGE,  "Group image changed.");
 		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member \"_\" added.");
 		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member \"_\" removed.");
 	}

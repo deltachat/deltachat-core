@@ -39,6 +39,7 @@
  * 't'imstamp to try a job again
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
+ * 'S'ystem message, the value is the ID that will go to X-MrMsg
  *
  ******************************************************************************/
 

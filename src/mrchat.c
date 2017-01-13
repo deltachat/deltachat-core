@@ -1148,7 +1148,8 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			mr_encode_header_string(subject));
 		free(subject);
 
-		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), safe_strdup("1"))); /* we do not use this as a single criterion for message handling; the main criterion is always if the sender is known */
+		int system_command = mrparam_get_int(msg->m_param, 'S', 1);
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), mr_mprintf("%i", system_command))); /* we do not use this as a single criterion for message handling; the main criterion is always if the sender is known */
 		if( chat->m_type==MR_CHAT_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
@@ -1465,10 +1466,6 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 
 		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
 
-		/* set up blobs etc. */
-
-		/* ... */
-
 		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 		mrmailbox_update_msg_chat_id__(ths->m_mailbox, msg_id, ths->m_id);
 		mrjob_add__(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
@@ -1582,24 +1579,30 @@ cleanup:
 }
 
 
-int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* name)
-{
-	/* the function only sets the names of group chats; normal chats get their names from the contects */
-	int   success = 0, locked = 0;
-	char* q3 = NULL;
+#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
 
-	if( mailbox==NULL || name==NULL || name[0]==0 ) {
-		return 0;
+
+int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_name)
+{
+	/* the function only sets the names of group chats; normal chats get their names from the contacts */
+	int       success = 0, locked = 0;
+	mrchat_t* chat = mrchat_new(mailbox);
+	mrmsg_t*  msg = mrmsg_new();
+	char*     q3 = NULL;
+
+	if( mailbox==NULL || new_name==NULL || new_name[0]==0 ) {
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) ) {
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id)
+		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
 		}
 
-		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", name, chat_id);
+		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", new_name, chat_id);
 		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 			goto cleanup;
 		}
@@ -1607,13 +1610,24 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	/* send a status mail to all group members */
+	if( DO_SEND_STATUS_MAILS )
+	{
+		msg->m_type = MR_MSG_TEXT;
+		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
+		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_GROUPNAME_CHANGED);
+		msg->m_id = mrchat_send_msg(chat, msg);
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+	}
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( q3 ) { sqlite3_free(q3); }
+	mrchat_unref(chat);
+	mrmsg_unref(msg);
 	return success;
 }
 
@@ -1656,9 +1670,12 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 
 int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
-	int success = 0, locked = 0;
+	int          success = 0, locked = 0;
+	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id); /* mrcontact_load_from_db__() does not load SELF fields */
+	mrchat_t*    chat = mrchat_new(mailbox);
+	mrmsg_t*     msg = mrmsg_new();
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || contact == NULL ) {
 		goto cleanup;
 	}
 
@@ -1666,7 +1683,8 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	locked = 1;
 
 		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
-		 || (0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF) ) {
+		 || (0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF)
+		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
 		}
 
@@ -1679,18 +1697,38 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 			goto cleanup;
 		}
 
-		success = 1;
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	/* send a status mail to all group members */
+	if( DO_SEND_STATUS_MAILS )
+	{
+		msg->m_type = MR_MSG_TEXT;
+		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, contact->m_name? contact->m_name : contact->m_addr);
+		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
+		msg->m_id = mrchat_send_msg(chat, msg);
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+	}
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+
+	success = 1;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrchat_unref(chat);
+	mrcontact_unref(contact);
+	mrmsg_unref(msg);
 	return success;
 }
 
 
 int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
-	int   success = 0, locked = 0;
-	char* q3 = NULL;
+	int          success = 0, locked = 0;
+	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id); /* mrcontact_load_from_db__() does not load SELF fields */
+	mrchat_t*    chat = mrchat_new(mailbox);
+	mrmsg_t*     msg = mrmsg_new();
+	char*        q3 = NULL;
 
 	if( mailbox == NULL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
@@ -1699,7 +1737,8 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id) ) {
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id)
+		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
 		}
 
@@ -1708,10 +1747,32 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			goto cleanup;
 		}
 
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	/* send a status mail to all group members - doing this before the DELETE command does not help to send the message to the deleted contact
+	as the message is send asynchronous.  If this is desired, we should create a special job for this.
+	As an alternative, one can just delete oneself, this should work in any case. */
+	if( contact )
+	{
+		if( DO_SEND_STATUS_MAILS )
+		{
+			msg->m_type = MR_MSG_TEXT;
+			msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, contact->m_name? contact->m_name : contact->m_addr);
+			mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
+			msg->m_id = mrchat_send_msg(chat, msg);
+			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+		}
+		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	}
+
+	success = 1;
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( q3 ) { sqlite3_free(q3); }
+	mrchat_unref(chat);
+	mrcontact_unref(contact);
+	mrmsg_unref(msg);
 	return success;
 }
-
-

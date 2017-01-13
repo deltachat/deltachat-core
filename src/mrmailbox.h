@@ -76,6 +76,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 #define MR_EVENT_MSG_DELIVERED            3000 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
 #define MR_EVENT_MSG_READ                 3010 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
 #define MR_EVENT_CONNECTION_STATE_CHANGED 3020 /* connection state changed, data1=connected/disconnected */
+#define MR_EVENT_CHAT_MODIFIED            3030 /* group name/image changed or members added/removed */
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 

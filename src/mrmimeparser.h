@@ -62,6 +62,7 @@ typedef struct mrmimeparser_t
 	struct mailimf_fields* m_header;
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
+	int                    m_system_command;
 	const char*            m_blobdir;
 } mrmimeparser_t;
 
