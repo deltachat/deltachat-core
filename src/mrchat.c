@@ -1116,7 +1116,8 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg)
 }
 
 
-static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname, const clist* recipients)
+static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
+                                   const clist* recipients_names, const clist* recipients_addr)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1131,12 +1132,13 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		mailimf_mailbox_list_add(from, mailimf_mailbox_new(from_displayname? mr_encode_header_string(from_displayname) : NULL, safe_strdup(from_addr)));
 
 		struct mailimf_address_list* to = NULL;
-		if( recipients && clist_count(recipients)>0 ) {
-			clistiter* iter;
+		if( recipients_names && recipients_addr && clist_count(recipients_addr)>0 ) {
+			clistiter *iter1, *iter2;
 			to = mailimf_address_list_new_empty();
-			for( iter=clist_begin(recipients); iter!=NULL; iter=clist_next(iter)) {
-				const char* rcpt = clist_content(iter);
-				mailimf_address_list_add(to, mailimf_address_new(MAILIMF_ADDRESS_MAILBOX, mailimf_mailbox_new(NULL, strdup(rcpt)), NULL));
+			for( iter1=clist_begin(recipients_names),iter2=clist_begin(recipients_addr);  iter1!=NULL&&iter2!=NULL;  iter1=clist_next(iter1),iter2=clist_next(iter2)) {
+				const char* name = clist_content(iter1);
+				const char* addr = clist_content(iter2);
+				mailimf_address_list_add(to, mailimf_address_new(MAILIMF_ADDRESS_MAILBOX, mailimf_mailbox_new(name? mr_encode_header_string(name) : NULL, safe_strdup(addr)), NULL));
 			}
 		}
 
@@ -1153,6 +1155,13 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		if( chat->m_type==MR_CHAT_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
+
+			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
+				char* email_to_remove = mrparam_get(msg->m_param, 'E', NULL);
+				if( email_to_remove ) {
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrRmFrmGrp"), email_to_remove));
+				}
+			}
 		}
 	}
 
@@ -1226,20 +1235,29 @@ cleanup:
 
 
 static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
-                             mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname, clist* ret_recipients)
+                             mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname,
+                             clist* ret_recipients_names, clist* ret_recipients_addr)
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
 		if( mrmsg_load_from_db__(ret_msg, mailbox->m_sql, msg_id)
 		 && mrchat_load_from_db__(ret_chat, ret_msg->m_chat_id) )
 		{
-			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_addr_FROM_contacts_WHERE_chat_id,
-				"SELECT c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
+				"SELECT c.name, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
 			sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
 			while( sqlite3_step(stmt) == SQLITE_ROW ) {
-				const char* rcpt = (const char*)sqlite3_column_text(stmt, 0);
-				clist_append(ret_recipients, (void*)safe_strdup(rcpt));
+				const char* name = (const char*)sqlite3_column_text(stmt, 0);
+				const char* addr = (const char*)sqlite3_column_text(stmt, 1);
+				clist_append(ret_recipients_names, (void*)((name&&name[0])? safe_strdup(name) : NULL));
+				clist_append(ret_recipients_addr,  (void*)safe_strdup(addr));
+			}
+
+			char* email_to_remove = mrparam_get(ret_msg->m_param, 'E', NULL);
+			if( email_to_remove ) {
+				clist_append(ret_recipients_names, NULL);
+				clist_append(ret_recipients_addr,  (void*)email_to_remove);
 			}
 
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
@@ -1256,7 +1274,8 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	mrchat_t*     chat = mrchat_new(mailbox);
 	mrmsg_t*      msg = mrmsg_new();
-	clist*	      recipients = clist_new();
+	clist*	      recipients_names = clist_new();
+	clist*	      recipients_addr = clist_new();
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
@@ -1273,12 +1292,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr)==0
 	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1294,8 +1313,10 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 cleanup:
-	clist_free_content(recipients);
-	clist_free(recipients);
+	clist_free_content(recipients_names);
+	clist_free(recipients_names);
+	clist_free_content(recipients_addr);
+	clist_free(recipients_addr);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
 	mmap_string_free(data);
@@ -1309,7 +1330,8 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	mrchat_t*     chat = mrchat_new(mailbox);
 	mrmsg_t*      msg = mrmsg_new();
-	clist*	      recipients = clist_new();
+	clist*	      recipients_names = clist_new();
+	clist*	      recipients_addr = clist_new();
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
@@ -1329,21 +1351,21 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr)==0
 	 || from_addr == NULL ) {
 		mrlog_error("Cannot load data to send.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 	}
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
-	if( clist_count(recipients) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients);
+	if( clist_count(recipients_addr) > 0 ) {
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr);
 		if( data == NULL ) {
 			mrlog_error("Empty message.");
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
-		if( !mrsmtp_send_msg(mailbox->m_smtp, recipients, data->str, data->len) ) {
+		if( !mrsmtp_send_msg(mailbox->m_smtp, recipients_addr, data->str, data->len) ) {
 			mrsmtp_disconnect(mailbox->m_smtp);
 			mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 			goto cleanup;
@@ -1363,8 +1385,10 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	mailbox->m_cb(mailbox, MR_EVENT_MSG_DELIVERED, msg->m_chat_id, msg->m_id);
 
 cleanup:
-	clist_free_content(recipients);
-	clist_free(recipients);
+	clist_free_content(recipients_names);
+	clist_free(recipients_names);
+	clist_free_content(recipients_addr);
+	clist_free(recipients_addr);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
 	mmap_string_free(data);
@@ -1781,6 +1805,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			msg->m_type = MR_MSG_TEXT;
 			msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, contact->m_name? contact->m_name : contact->m_addr);
 			mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
+			mrparam_set    (msg->m_param, 'E', contact->m_addr);
 			msg->m_id = mrchat_send_msg(chat, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}

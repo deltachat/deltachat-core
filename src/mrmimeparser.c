@@ -466,6 +466,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
 	ths->m_is_send_by_messenger  = 0;
 	ths->m_system_command = 0;
+	ths->m_system_MrRmFrmGrp = NULL; /* a pointer somewhere to the MIME data, must not be freed */
 
 	free(ths->m_subject);
 	ths->m_subject = NULL;
@@ -842,6 +843,11 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 								ths->m_is_send_by_messenger = 1;
 								if( optional_field->fld_value ) {
 									ths->m_system_command = atoi(optional_field->fld_value);
+								}
+							}
+							else if( strcasecmp(optional_field->fld_name, "X-MrRmFrmGrp")==0 ) {
+								if( optional_field->fld_value ) {
+									ths->m_system_MrRmFrmGrp = optional_field->fld_value;
 								}
 							}
 						}

@@ -40,6 +40,7 @@
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
  * 'S'ystem message, the value is the ID that will go to X-MrMsg
+ * 'E'mail address that is just deleted from a group
  *
  ******************************************************************************/
 

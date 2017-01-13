@@ -216,16 +216,21 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	for recreation: we should add a timestamp */
 	if( recreate_member_list )
 	{
+		const char* skip = mime_parser->m_system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP? mime_parser->m_system_MrRmFrmGrp : NULL;
+
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int (stmt, 1, chat_id);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
 		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
+			mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
+		}
 
-		mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
 		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
-			if( mrmailbox_contact_addr_equals__(mailbox, from_id, self_addr) == 0 ) {
+			if( mrmailbox_contact_addr_equals__(mailbox, from_id, self_addr)==0
+			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, from_id, skip)==0) ) {
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
 			}
 		}
@@ -233,7 +238,8 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		for( i = 0; i < to_list_cnt; i++ )
 		{
 			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i); /* to_id is only once in to_list and is non-special */
-			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr) == 0 ) {
+			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
+			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
 			}
 		}
