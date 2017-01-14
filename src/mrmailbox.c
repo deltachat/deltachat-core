@@ -53,6 +53,15 @@
  ******************************************************************************/
 
 
+/*static int group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+{
+	char* key = mr_
+		ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, 0);
+	free(key);
+	return ret;
+}*/
+
+
 static char* extract_grpid_from_messageid(const char* mid)
 {
 	/* extract our group ID from Message-IDs as `Gr.12345678.morerandom.user@domain.de`; "12345678" is the wanted ID in this example. */
@@ -178,7 +187,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 	if( chat_id == 0
 	 && create_as_needed && grpname
-	 && mime_parser->m_system_command != MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /*otherwise, a pending "quit" message may pop up*/ )
+	 && mime_parser->m_system_command != MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /*otherwise, a pending "quit" message may pop up*/
+	 /*&& (mime_parser->m_system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP || !group_explicitly_left__(mailbox, grpid))*/ /*re-create groups only on create commands*/
+	 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 			"INSERT INTO chats (type, name, grpid) VALUES(?, ?, ?);");
