@@ -176,7 +176,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		goto cleanup;
 	}
 
-	if( chat_id == 0 && create_as_needed && grpname )
+	if( chat_id == 0
+	 && create_as_needed && grpname
+	 && mime_parser->m_system_command != MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /*otherwise, a pending "quit" message may pop up*/ )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 			"INSERT INTO chats (type, name, grpid) VALUES(?, ?, ?);");

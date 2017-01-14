@@ -1848,17 +1848,11 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
-		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
-		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
-			goto cleanup;
-		}
-
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* send a status mail to all group members - doing this before the DELETE command does not help to send the message to the deleted contact
-	as the message is send asynchronous.  If this is desired, we should create a special job for this.
-	As an alternative, one can just delete oneself, this should work in any case. */
+	/* send a status mail to all group members - we need to do this before we update the database -
+	otherwise the !IS_SELF_IN_GROUP__-check in mrchat_send_msg() will fail. */
 	if( contact )
 	{
 		if( DO_SEND_STATUS_MAILS )
@@ -1875,8 +1869,20 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			msg->m_id = mrchat_send_msg(chat, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
-		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
+		if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
