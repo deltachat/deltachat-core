@@ -47,6 +47,12 @@
 #define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
 
 
+#define MR_SYSTEM_GROUPNAME_CHANGED           2
+#define MR_SYSTEM_GROUPIMAGE_CHANGED          3
+#define MR_SYSTEM_MEMBER_ADDED_TO_GROUP       4
+#define MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP   5
+
+
 int mrmailbox_get_unseen_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
@@ -1050,6 +1056,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 			sqlite3_bind_text (stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt, 2, chat_id);
 			sqlite3_step(stmt);
+			mrmailbox_set_group_explicitly_left__(mailbox, chat->m_grpid);
 		mrsqlite3_unlock(mailbox->m_sql);
 
 		contact = mrmailbox_get_contact(mailbox, MR_CONTACT_ID_SELF);
@@ -1209,17 +1216,26 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			mr_encode_header_string(subject));
 		free(subject);
 
-		int system_command = mrparam_get_int(msg->m_param, 'S', 1);
-		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), mr_mprintf("%i", system_command))); /* we do not use this as a single criterion for message handling; the main criterion is always if the sender is known */
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( chat->m_type==MR_CHAT_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
 
+			int system_command = mrparam_get_int(msg->m_param, 'S', 0);
 			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
 				char* email_to_remove = mrparam_get(msg->m_param, 'E', NULL);
 				if( email_to_remove ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrRmFrmGrp"), email_to_remove));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrRemoveFromGrp"), email_to_remove));
 				}
+			}
+			else if( system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP ) {
+				char* email_to_add = mrparam_get(msg->m_param, 'E', NULL);
+				if( email_to_add ) {
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrAddToGrp"), email_to_add));
+				}
+			}
+			else if( system_command == MR_SYSTEM_GROUPNAME_CHANGED ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
 			}
 		}
 	}
@@ -1313,10 +1329,13 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 				clist_append(ret_recipients_addr,  (void*)safe_strdup(addr));
 			}
 
-			char* email_to_remove = mrparam_get(ret_msg->m_param, 'E', NULL);
-			if( email_to_remove ) {
-				clist_append(ret_recipients_names, NULL);
-				clist_append(ret_recipients_addr,  (void*)email_to_remove);
+			int system_command = mrparam_get_int(ret_msg->m_param, 'S', 0);
+			if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
+				char* email_to_remove = mrparam_get(ret_msg->m_param, 'E', NULL);
+				if( email_to_remove ) {
+					clist_append(ret_recipients_names, NULL);
+					clist_append(ret_recipients_addr,  (void*)email_to_remove);
+				}
 			}
 
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
@@ -1589,6 +1608,23 @@ cleanup:
  ******************************************************************************/
 
 
+int mrmailbox_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+{
+	char* key = mr_mprintf("grpleft.%s", grpid);
+		int ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, 0);
+	free(key);
+	return ret;
+}
+
+
+void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+{
+	char* key = mr_mprintf("grpleft.%s", grpid);
+		mrsqlite3_set_config_int__(mailbox->m_sql, key, 1);
+	free(key);
+}
+
+
 static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt;
@@ -1807,6 +1843,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, contact->m_name? contact->m_name : contact->m_addr);
 		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
+		mrparam_set    (msg->m_param, 'E', contact->m_addr);
 		msg->m_id = mrchat_send_msg(chat, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -1859,6 +1896,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 		{
 			msg->m_type = MR_MSG_TEXT;
 			if( contact->m_id == MR_CONTACT_ID_SELF ) {
+				mrmailbox_set_group_explicitly_left__(mailbox, chat->m_grpid);
 				msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
 			}
 			else {

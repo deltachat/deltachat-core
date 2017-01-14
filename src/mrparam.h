@@ -36,11 +36,12 @@
  * 'h'eight
  * 'd'uration in milliseconds
  * 'm'ime
- * 't'imstamp to try a job again
+ * 't'imes a job was tried
+ *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
- * 'S'ystem message, the value is the ID that will go to X-MrMsg
- * 'E'mail address that is just deleted from a group
+ * 'S'ystem command
+ * 'E'xtra parameter for system command
  * 'P'hysically delete group after message sending
  *
  ******************************************************************************/

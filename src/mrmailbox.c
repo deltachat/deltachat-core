@@ -53,15 +53,6 @@
  ******************************************************************************/
 
 
-/*static int group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
-{
-	char* key = mr_
-		ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, 0);
-	free(key);
-	return ret;
-}*/
-
-
 static char* extract_grpid_from_messageid(const char* mid)
 {
 	/* extract our group ID from Message-IDs as `Gr.12345678.morerandom.user@domain.de`; "12345678" is the wanted ID in this example. */
@@ -123,6 +114,11 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
 
+	/* special commands */
+	char*                 X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
+	char*                 X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
+	int                   X_MrGrpNameChanged = 0;
+
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
 		field = (struct mailimf_field*)clist_content(cur);
@@ -137,6 +133,15 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 ) {
 						grpname = mr_decode_header_string(optional_field->fld_value);
+					}
+					else if( strcasecmp(optional_field->fld_name, "X-MrRemoveFromGrp")==0 ) {
+						X_MrRemoveFromGrp = optional_field->fld_value;
+					}
+					else if( strcasecmp(optional_field->fld_name, "X-MrAddToGrp")==0 ) {
+						X_MrAddToGrp = optional_field->fld_value;
+					}
+					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 ) {
+						X_MrGrpNameChanged = 1;
 					}
 				}
 			}
@@ -178,17 +183,20 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		chat_id = sqlite3_column_int(stmt, 0);
 	}
 
-	/* check if the sender is a member of the group -
+	/* check if the sender is a member of the existing group -
 	if not, the message does not go to the group chat but to the normal chat with the sender */
 	if( chat_id!=0 && !mrmailbox_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
 		chat_id = 0;
 		goto cleanup;
 	}
 
+	/* check if the group does not exist but should be created */
+	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
-	 && create_as_needed && grpname
-	 && mime_parser->m_system_command != MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /*otherwise, a pending "quit" message may pop up*/
-	 /*&& (mime_parser->m_system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP || !group_explicitly_left__(mailbox, grpid))*/ /*re-create groups only on create commands*/
+	 && create_as_needed
+	 && grpname
+	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
+	 && (!mrmailbox_group_explicitly_left__(mailbox, grpid) || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
 	 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
@@ -204,18 +212,18 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		recreate_member_list = 1;
 	}
 
+	/* again, check chat_id */
 	if( chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		chat_id = 0;
 		goto cleanup;
 	}
 
 	/* execute group commands */
-	if( mime_parser->m_system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP
-	 || mime_parser->m_system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP )
+	if( X_MrAddToGrp || X_MrRemoveFromGrp )
 	{
 		recreate_member_list = 1;
 	}
-	else if( mime_parser->m_system_command == MR_SYSTEM_GROUPNAME_CHANGED && grpname && strlen(grpname) < 100 )
+	else if( X_MrGrpNameChanged && grpname && strlen(grpname) < 100 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET name=? WHERE id=?;");
 		sqlite3_bind_text(stmt, 1, grpname, -1, SQLITE_STATIC);
@@ -229,14 +237,13 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	for recreation: we should add a timestamp */
 	if( recreate_member_list )
 	{
-		const char* skip = mime_parser->m_system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP? mime_parser->m_system_MrRmFrmGrp : NULL;
+		const char* skip = X_MrRemoveFromGrp? X_MrRemoveFromGrp : NULL;
 
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int (stmt, 1, chat_id);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
-		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
 			mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
 		}

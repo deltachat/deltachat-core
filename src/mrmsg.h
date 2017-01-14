@@ -112,14 +112,6 @@ void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* jo
 #define      MR_GHOST_ID_FORMAT               "G@%lu"
 
 
-/* system message flags ('S' in param) */
-#define MR_SYSTEM_NORMAL                      1
-#define MR_SYSTEM_GROUPNAME_CHANGED           2
-#define MR_SYSTEM_GROUPIMAGE_CHANGED          3
-#define MR_SYSTEM_MEMBER_ADDED_TO_GROUP       4
-#define MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP   5
-
-
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
