@@ -183,8 +183,9 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" addr TEXT DEFAULT '' COLLATE NOCASE,"
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
-					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
-					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
+					" status TEXT DEFAULT '', "       /* reserved */
+					" last_seen INTEGER DEFAULT 0,"   /* reserved */
+					" param TEXT DEFAULT '');");      /* reserved */
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
 		mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
@@ -193,12 +194,14 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		#endif
 
 		mrsqlite3_execute__(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
-					" type INTEGER,"
+					" type INTEGER DEFAULT 0,"
 					" name TEXT,"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
 					" blocked INTEGER DEFAULT 0,"
 					" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
+					" enc INTEGER DEFAULT 0,"          /* reserved */
+					" descr TEXT DEFAULT '', "         /* reserved */
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
 		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
@@ -228,6 +231,12 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 		mrsqlite3_execute__(ths, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
+
+		mrsqlite3_execute__(ths, "CREATE TABLE msgs_seen (msg_id INTEGER, contact_id INTEGER);"); /* reserved, for collecting 'seen' notification in groups (a message is seen if it is seen by all (most?) members) */
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_seen_index1 ON msgs_seen (msg_id);");         /* reserved */
+
+		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps (id INTEGER PRIMARY KEY, grpid INTEGER);"); /* reserved, maybe deleted groups should go here (table added 0.1.13, if we switch to non-beta, this is free to use, however, maybe configgrpleft ist just fine) */
+		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");              /* reserved */
 
 		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"

@@ -39,8 +39,8 @@ typedef struct mrjob_t mrjob_t;
 
 /* chat type */
 #define MR_CHAT_UNDEFINED    0
-#define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact - the constants must NOT change as they're used in the database, the frontends etc.*/
-#define MR_CHAT_GROUP      120
+#define MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF is not added. */
+#define MR_CHAT_GROUP      120 /* a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF */
 
 
 /* specical chat IDs */
