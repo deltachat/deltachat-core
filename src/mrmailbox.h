@@ -108,6 +108,8 @@ typedef struct mrmailbox_t
 
 	mrmailboxcb_t   m_cb;
 	void*           m_userData;
+
+	uint32_t        m_cmdline_sel_chat_id;
 } mrmailbox_t;
 
 

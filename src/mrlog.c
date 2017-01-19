@@ -80,13 +80,13 @@ static void mrlog_default_handler_(int type, const char* msg)
 	const char* type_str;
 
 	switch( type ) {
-		case 'd': type_str = "[Debug]";   break;
-		case 'i': type_str = "";          break;
-		case 'w': type_str = "[Warning]"; break;
-		default:  type_str = "[ERROR]";   break;
+		case 'd': type_str = "[Debug] ";   break;
+		case 'i': type_str = "";           break;
+		case 'w': type_str = "[Warning] "; break;
+		default:  type_str = "[ERROR] ";   break;
 	}
 
-	printf("%s[%s]\n", type_str, msg);
+	printf("%s%s\n", type_str, msg);
 }
 
 
@@ -116,6 +116,7 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	#define BUFSIZE 1024
 	char buf1[BUFSIZE];
 	char buf2[BUFSIZE];
+	int  thread_index = mrlog_get_thread_index();
 
 	if( type != 'e' && type != 'w' && type != 'i' ) {
 		mrlog_cb_('e', "Bad log type.");
@@ -128,29 +129,13 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	}
 
 	vsnprintf(buf1, BUFSIZE, msg_format, va);
-	snprintf(buf2, BUFSIZE, "T%i: %s", mrlog_get_thread_index(), buf1);
+	if( thread_index==1 ) {
+		snprintf(buf2, BUFSIZE, "%s", buf1);
+	}
+	else {
+		snprintf(buf2, BUFSIZE, "T%i: %s", mrlog_get_thread_index(), buf1);
+	}
 	mrlog_cb_(type, buf2);
-
-	#if 0 /* old implementation based upon sqlite3 */
-	char* msg;
-	char* msg2;
-
-	if( type != 'e' && type != 'w' && type != 'i' ) {
-		mrlog_cb_('e', "Bad log type.");
-		return;
-	}
-
-	if( msg_format == NULL ) {
-		mrlog_cb_('e', "Log format string missing.");
-		return;
-	}
-
-	msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_cb_('e', "Bad log format string."); }
-		msg2 = sqlite3_mprintf("T%i: %s", mrlog_get_thread_index(), msg);
-			mrlog_cb_(type, msg2);
-		sqlite3_free(msg2);
-	sqlite3_free(msg);
-	#endif /* /old implementation based upon sqlite3 */
 }
 
 
