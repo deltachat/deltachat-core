@@ -102,10 +102,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 		ret = safe_strdup(
 			"Database commands:\n"
 			"info\n"
-			"open <file> -- open/create database\n"
+			"open <file to open or create>\n"
 			"close\n"
 			"empty -- empty database but server config\n"
-			"import [<eml-file/folder>]\n"
+			"import [<eml-file>|<folder>]\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"
@@ -115,28 +115,28 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			"restore <days>\n"
 
 			"\nChat commands:\n"
-			"chats [<query>] -- list chats\n"
-			"chat [<chat-id>] -- list/select/deselect with id 0\n"
+			"listchats [<query>]\n"
+			"chat [<chat-id>|0]\n"
 			"createchat <contact-id>\n"
 			"creategroup <name>\n"
 			"addmember <contact-id>\n"
 			"removemember <contact-id>\n"
-			"showmembers\n"
+			"listmembers\n"
 			"send <text>\n"
 			"sendimage <file>\n"
 			"draft [<text>]\n"
-			"showmedia\n"
-			"delchat <id>\n"
+			"listmedia\n"
+			"delchat <chat-id>\n"
 
 			"\nMessage commands\n"
-			"search <query> -- search in the selected chat or globally\n"
+			"listmsgs <query>\n"
 			"msginfo <msg-id>\n"
-			"showunseen\n"
+			"listunseen\n"
 			"markseen <msg-id>\n"
 			"delmsg <msg-id>\n"
 
 			"\nContact commands:\n"
-			"contacts [<query>] -- list known contacts\n"
+			"listcontacts [<query>]\n"
 			"addcontact <name> <addr>\n"
 
 			"\nMisc.:\n"
@@ -252,7 +252,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Chat commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "chats", 5)==0 )
+	else if( strncmp(cmd, "listchats", 9)==0 )
 	{
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) { arg1++; }
@@ -304,7 +304,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = COMMAND_FAILED;
 		}
 	}
-	else if( strncmp(cmd, "chat", 4)==0 )
+	else if( strcmp(cmd, "chat")==0 || strncmp(cmd, "chat ", 5)==0 )
 	{
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 && arg1[0] ) {
@@ -405,7 +405,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strcmp(cmd, "showmembers")==0 )
+	else if( strcmp(cmd, "listmembers")==0 )
 	{
 		if( sel_chat ) {
 			carray* contacts = mrmailbox_get_chat_contacts(mailbox, sel_chat->m_id);
@@ -471,7 +471,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "search ", 7)==0 )
+	else if( strncmp(cmd, "listmsgs ", 9)==0 )
 	{
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
@@ -505,7 +505,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "showmedia", 9)==0 )
+	else if( strncmp(cmd, "listmedia", 9)==0 )
 	{
 		if( sel_chat ) {
 			carray* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
@@ -550,7 +550,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");
 		}
 	}
-	else if( strcmp(cmd, "showunseen")==0 )
+	else if( strcmp(cmd, "listunseen")==0 )
 	{
 		carray* msglist = mrmailbox_get_unseen_msgs(mailbox);
 		if( msglist ) {
@@ -587,7 +587,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Contact commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "contacts", 8)==0 )
+	else if( strncmp(cmd, "listcontacts", 12)==0 )
 	{
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {

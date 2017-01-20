@@ -1309,6 +1309,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
 
 	mrsqlite3_unlock(ths->m_sql);
 
