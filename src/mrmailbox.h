@@ -60,7 +60,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 13
+#define MR_VERSION_REVISION 14
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MREVENT_* codes

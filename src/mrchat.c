@@ -1047,7 +1047,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	 && DO_SEND_STATUS_MAILS )
 	{
 		/* _first_ mark chat to being delete and _then_ send the message to inform others that we've quit the group
-		(the otder is important - otherwise the message may be send asynchronous before we update the group. */
+		(the order is important - otherwise the message may be send asynchronous before we update the group. */
 		int link_msg_to_chat_deletion = (int)time(NULL);
 
 		mrparam_set_int(chat->m_param, 'P', link_msg_to_chat_deletion);

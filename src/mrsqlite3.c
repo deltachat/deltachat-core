@@ -185,7 +185,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" blocked INTEGER DEFAULT 0,"
 					" status TEXT DEFAULT '', "       /* reserved */
 					" last_seen INTEGER DEFAULT 0,"   /* reserved */
-					" param TEXT DEFAULT '');");      /* reserved */
+					" param TEXT DEFAULT '');");
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
 		mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
@@ -200,7 +200,6 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" draft_txt TEXT DEFAULT '',"
 					" blocked INTEGER DEFAULT 0,"
 					" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
-					" enc INTEGER DEFAULT 0,"          /* reserved */
 					" descr TEXT DEFAULT '', "         /* reserved */
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
@@ -211,7 +210,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 			#error
 		#endif
 
-		mrsqlite3_execute__(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute__(ths, "CREATE TABLE msgs ("
+					" id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
