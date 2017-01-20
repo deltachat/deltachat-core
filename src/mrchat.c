@@ -1332,10 +1332,12 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 			int system_command = mrparam_get_int(ret_msg->m_param, 'S', 0);
 			if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 				char* email_to_remove = mrparam_get(ret_msg->m_param, 'E', NULL);
-				if( email_to_remove ) {
+				char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+				if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 ) {
 					clist_append(ret_recipients_names, NULL);
 					clist_append(ret_recipients_addr,  (void*)email_to_remove);
 				}
+				free(self_addr);
 			}
 
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
