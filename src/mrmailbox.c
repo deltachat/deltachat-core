@@ -191,12 +191,14 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	}
 
 	/* check if the group does not exist but should be created */
+	int group_explicitly_left = mrmailbox_group_explicitly_left__(mailbox, grpid);
+
 	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
 	 && create_as_needed
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
-	 && (!mrmailbox_group_explicitly_left__(mailbox, grpid) || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
+	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
 	 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
@@ -215,6 +217,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	/* again, check chat_id */
 	if( chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		chat_id = 0;
+		if( group_explicitly_left ) {
+			chat_id = MR_CHAT_ID_TRASH; /* we got a message for a chat we've deleted - do not show this even as a normal chat */
+		}
 		goto cleanup;
 	}
 
