@@ -125,6 +125,8 @@ enum
 	,DELETE_FROM_jobs_WHERE_id
 	,UPDATE_jobs_SET_dp_WHERE_id
 
+	,SELECT_FROM_leftgrps_WHERE_grpid
+
 	,PREDEFINED_CNT /* must be last */
 };
 

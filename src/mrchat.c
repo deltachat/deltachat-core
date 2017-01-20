@@ -1612,18 +1612,21 @@ cleanup:
 
 int mrmailbox_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
 {
-	char* key = mr_mprintf("grpleft.%s", grpid);
-		int ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, 0);
-	free(key);
-	return ret;
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_FROM_leftgrps_WHERE_grpid, "SELECT id FROM leftgrps WHERE grpid=?;");
+	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
+	return (sqlite3_step(stmt)==SQLITE_ROW);
 }
 
 
 void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
 {
-	char* key = mr_mprintf("grpleft.%s", grpid);
-		mrsqlite3_set_config_int__(mailbox->m_sql, key, 1);
-	free(key);
+	if( !mrmailbox_group_explicitly_left__(mailbox, grpid) )
+	{
+		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "INSERT INTO leftgrps (grpid) VALUES(?);");
+		sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	}
 }
 
 

@@ -235,8 +235,10 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute__(ths, "CREATE TABLE msgs_seen (msg_id INTEGER, contact_id INTEGER);"); /* reserved, for collecting 'seen' notification in groups (a message is seen if it is seen by all (most?) members) */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_seen_index1 ON msgs_seen (msg_id);");         /* reserved */
 
-		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps (id INTEGER PRIMARY KEY, grpid INTEGER);"); /* reserved, maybe deleted groups should go here (table added 0.1.13, if we switch to non-beta, this is free to use, however, maybe configgrpleft ist just fine) */
-		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");              /* reserved */
+		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
+					" id INTEGER PRIMARY KEY,"
+					" grpid TEXT DEFAULT '');");
+		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
 		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"
