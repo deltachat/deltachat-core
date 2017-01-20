@@ -183,6 +183,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" addr TEXT DEFAULT '' COLLATE NOCASE,"
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
+					" public_key TEXT DEFAULT '',"
+					" pk_timestamp INTEGER DEFAULT 0,"
 					" status TEXT DEFAULT '', "       /* reserved */
 					" last_seen INTEGER DEFAULT 0,"   /* reserved */
 					" param TEXT DEFAULT '');");

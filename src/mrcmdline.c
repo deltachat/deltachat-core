@@ -335,7 +335,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 					mrlog_info("Draft: %s [%s]", sel_chat->m_draft_text, timestr);
 				free(timestr);
 			}
-			ret = mr_mprintf("%i messages.", msgcnt);
+			ret = mr_mprintf("%i messages.", mrchat_get_total_msg_count(sel_chat));
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
@@ -479,7 +479,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			carray* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
-				ret = mr_mprintf("%i messages found.", (int)carray_count(msglist));
+				ret = mr_mprintf("%i messages.", (int)carray_count(msglist));
 				carray_free(msglist);
 			}
 		}
