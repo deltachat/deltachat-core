@@ -80,7 +80,7 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 }
 
 
-char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline__)
+char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 {
 	#define      COMMAND_FAILED    ((char*)1)
 	#define      COMMAND_SUCCEEDED ((char*)2)
@@ -88,7 +88,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline__)
 	char*        cmd = NULL, *arg1 = NULL, *ret = COMMAND_FAILED;
 	mrchat_t*    sel_chat = NULL;
 
-	if( mailbox == NULL || cmdline__ == NULL || cmdline__[0]==0 ) {
+	if( mailbox == NULL || cmdline == NULL || cmdline[0]==0 ) {
 		goto cleanup;
 	}
 
@@ -98,7 +98,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline__)
 
 	/* split commandline into command and first argument
 	(the first argument may contain spaces, if this is undesired we split further arguments form if below. */
-	cmd = safe_strdup(cmdline__);
+	cmd = safe_strdup(cmdline);
 	arg1 = strchr(cmd, ' ');
 	if( arg1 ) { *arg1 = 0; arg1++; }
 
