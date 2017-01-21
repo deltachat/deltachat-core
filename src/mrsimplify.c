@@ -281,7 +281,7 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
  ******************************************************************************/
 
 
-char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/)
+char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in_bytes, int is_html)
 {
 	/* create a copy of the given buffer */
 	char* out = NULL;
@@ -296,7 +296,7 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 	}
 
 	/* simplify the text in the buffer (characters to removed may be marked by `\r`) */
-	if( mimetype == MR_MIMETYPE_TEXT_HTML ) {
+	if( is_html ) {
 		char* temp = mrsimplify_simplify_html(ths, out);
 		if( temp ) {
 			free(out);

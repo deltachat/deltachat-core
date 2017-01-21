@@ -479,6 +479,17 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 
 static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type)
 {
+	#define MR_MIMETYPE_MP              0x100 /* eg. mixed */
+	#define MR_MIMETYPE_MP_ALTERNATIVE  (MR_MIMETYPE_MP+1)
+	#define MR_MIMETYPE_MP_RELATED      (MR_MIMETYPE_MP+2)
+	#define MR_MIMETYPE_TEXT            0x200 /* eg. plain */
+	#define MR_MIMETYPE_TEXT_PLAIN      (MR_MIMETYPE_TEXT+1)
+	#define MR_MIMETYPE_TEXT_HTML       (MR_MIMETYPE_TEXT+2)
+	#define MR_MIMETYPE_IMAGE           0x300
+	#define MR_MIMETYPE_AUDIO           0x400
+	#define MR_MIMETYPE_VIDEO           0x500
+	#define MR_MIMETYPE_FILE            0x600
+
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
 	*msg_type = MR_MSG_UNDEFINED;
 
@@ -649,7 +660,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 
 				part->m_type = MR_MSG_TEXT;
 				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
-				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type);
+				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
 				if( part->m_msg && part->m_msg[0] ) {
 					do_add_part = 1;
 				}

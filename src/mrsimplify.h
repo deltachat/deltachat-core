@@ -45,7 +45,7 @@ mrsimplify_t* mrsimplify_new           ();
 void          mrsimplify_unref         (mrsimplify_t*);
 
 /* The data returned from Simplify() must be free()'d when no longer used, private */
-char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int mimetype /*eg. MR_MIMETYPE_TEXT_HTML*/);
+char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int is_html);
 
 
 #ifdef __cplusplus

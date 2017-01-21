@@ -80,16 +80,15 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 }
 
 
-char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
+char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline__)
 {
 	#define      COMMAND_FAILED    ((char*)1)
 	#define      COMMAND_SUCCEEDED ((char*)2)
 	#define      COMMAND_UNKNOWN   ((char*)3)
-	char*        cmd = safe_strdup(cmd__);
-	char*        ret = COMMAND_FAILED;
+	char*        cmd = NULL, *arg1 = NULL, *ret = COMMAND_FAILED;
 	mrchat_t*    sel_chat = NULL;
 
-	if( mailbox == NULL || cmd__ == NULL || cmd__[0]==0 ) {
+	if( mailbox == NULL || cmdline__ == NULL || cmdline__[0]==0 ) {
 		goto cleanup;
 	}
 
@@ -97,7 +96,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 		sel_chat = mrmailbox_get_chat(mailbox, mailbox->m_cmdline_sel_chat_id);
 	}
 
-	if( strcmp(cmd, "help")==0 || cmd[0] == '?' )
+	/* split commandline into command and first argument
+	(the first argument may contain spaces, if this is undesired we split further arguments form if below. */
+	cmd = safe_strdup(cmdline__);
+	arg1 = strchr(cmd, ' ');
+	if( arg1 ) { *arg1 = 0; arg1++; }
+
+	/* execute command */
+	if( strcmp(cmd, "help")==0 || strcmp(cmd, "?")==0 )
 	{
 		ret = safe_strdup(
 			"Database commands:\n"
@@ -128,7 +134,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			"listmedia\n"
 			"delchat <chat-id>\n"
 
-			"\nMessage commands\n"
+			"\nMessage commands:\n"
 			"listmsgs <query>\n"
 			"msginfo <msg-id>\n"
 			"listunseen\n"
@@ -152,11 +158,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Database commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "open", 4)==0 )
+	else if( strcmp(cmd, "open")==0 )
 	{
-		const char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;
 			mrmailbox_close(mailbox);
 			ret = mrmailbox_open(mailbox, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
@@ -173,16 +177,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	{
 		ret = mrmailbox_empty_tables(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
-	else if( strncmp(cmd, "import", 6)==0 )
+	else if( strcmp(cmd, "import")==0 )
 	{
-		const char* arg1 = strchr(cmd, ' ');
-		ret = mrmailbox_import_spec(mailbox, arg1? ++arg1 : NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
-	else if( strncmp(cmd, "set", 3)==0 )
+	else if( strcmp(cmd, "set")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;
 			char* arg2 = strchr(arg1, ' ');
 			if( arg2 ) {
 				*arg2 = 0;
@@ -194,11 +195,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <key> missing.");
 		}
 	}
-	else if( strncmp(cmd, "get", 3)==0 )
+	else if( strcmp(cmd, "get")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;
 			char* val = mrmailbox_get_config(mailbox, arg1, "<unset>");
 			if( val ) {
 				ret = mr_mprintf("%s=%s", arg1, val);
@@ -229,9 +228,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	{
 		ret = mrmailbox_fetch(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
-	else if( strncmp(cmd, "restore", 7)==0 )
+	else if( strcmp(cmd, "restore")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int days = atoi(arg1);
 			ret = mrmailbox_restore(mailbox, days*24*60*60)? COMMAND_SUCCEEDED : COMMAND_FAILED;
@@ -252,10 +250,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Chat commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "listchats", 9)==0 )
+	else if( strcmp(cmd, "listchats")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
-		if( arg1 ) { arg1++; }
 		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, arg1);
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
@@ -304,12 +300,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = COMMAND_FAILED;
 		}
 	}
-	else if( strcmp(cmd, "chat")==0 || strncmp(cmd, "chat ", 5)==0 )
+	else if( strcmp(cmd, "chat")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 && arg1[0] ) {
 			/* select a chat (argument 1 = ID of chat to select) */
-			arg1++;
 			if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
 			mailbox->m_cmdline_sel_chat_id = atoi(arg1);
 			sel_chat = mrmailbox_get_chat(mailbox, mailbox->m_cmdline_sel_chat_id); /* may be NULL */
@@ -324,9 +318,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			char* temp2 = mrchat_get_subtitle(sel_chat);
 				mrlog_info("Chat #%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
 			free(temp2);
-			int msgcnt = 0;
 			if( msglist ) {
-				msgcnt = carray_count(msglist);
 				log_msglist(mailbox, msglist);
 				carray_free(msglist);
 			}
@@ -341,9 +333,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "createchat ", 11)==0 )
+	else if( strcmp(cmd, "createchat")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
 			ret = mrmailbox_create_chat_by_contact_id(mailbox, contact_id)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
@@ -352,21 +343,18 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
-	else if( strncmp(cmd, "creategroup ", 12)==0 )
+	else if( strcmp(cmd, "creategroup")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;;
 			ret = mrmailbox_create_group_chat(mailbox, arg1)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <name> missing.");
 		}
 	}
-	else if( strncmp(cmd, "addmember ", 10)==0 )
+	else if( strcmp(cmd, "addmember")==0 )
 	{
 		if( sel_chat ) {
-			char* arg1 = strchr(cmd, ' ');
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
 				if( mrmailbox_add_contact_to_chat(mailbox, sel_chat->m_id, contact_id) ) {
@@ -384,10 +372,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "removemember ", 10)==0 )
+	else if( strcmp(cmd, "removemember")==0 )
 	{
 		if( sel_chat ) {
-			char* arg1 = strchr(cmd, ' ');
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
 				if( mrmailbox_remove_contact_from_chat(mailbox, sel_chat->m_id, contact_id) ) {
@@ -421,13 +408,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "send ", 5)==0 )
+	else if( strcmp(cmd, "send")==0 )
 	{
 		if( sel_chat ) {
-			char* arg1 = strchr(cmd, ' ');
 			if( arg1 && arg1[0] ) {
 				mrmsg_t* msg = mrmsg_new();
-					arg1++;
 					msg->m_type = MR_MSG_TEXT;
 					msg->m_text = strdup(arg1);
 					if( mrchat_send_msg(sel_chat, msg) ) {
@@ -446,13 +431,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "sendimage", 8)==0 )
+	else if( strcmp(cmd, "sendimage")==0 )
 	{
 		if( sel_chat ) {
-			char* arg1 = strchr(cmd, ' ');
 			if( arg1 && arg1[0] ) {
 				mrmsg_t* msg = mrmsg_new();
-					arg1++;
 					msg->m_type = MR_MSG_IMAGE;
 					mrparam_set(msg->m_param, 'f', arg1);
 					if( mrchat_send_msg(sel_chat, msg) ) {
@@ -471,11 +454,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "listmsgs ", 9)==0 )
+	else if( strcmp(cmd, "listmsgs")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;
 			carray* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
@@ -487,12 +468,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <query> missing.");
 		}
 	}
-	else if( strncmp(cmd, "draft", 5)==0 )
+	else if( strcmp(cmd, "draft")==0 )
 	{
 		if( sel_chat ) {
-			char* arg1 = strchr(cmd, ' ');
 			if( arg1 && arg1[0] ) {
-				arg1++;
 				mrchat_set_draft(sel_chat, arg1);
 				ret = safe_strdup("Draft saved.");
 			}
@@ -505,7 +484,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "listmedia", 9)==0 )
+	else if( strcmp(cmd, "listmedia")==0 )
 	{
 		if( sel_chat ) {
 			carray* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
@@ -522,9 +501,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strncmp(cmd, "delchat ", 8)==0 )
+	else if( strcmp(cmd, "delchat")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int chat_id = atoi(arg1);
 			ret = mrmailbox_delete_chat(mailbox, chat_id)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
@@ -539,9 +517,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Message commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "msginfo ", 8)==0 )
+	else if( strcmp(cmd, "msginfo")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int id = atoi(arg1);
 			ret = mrmailbox_get_msg_info(mailbox, id);
@@ -559,9 +536,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			carray_free(msglist);
 		}
 	}
-	else if( strncmp(cmd, "markseen ", 9)==0 )
+	else if( strcmp(cmd, "markseen")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int id = atoi(arg1);
 			ret = mrmailbox_markseen_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
@@ -570,9 +546,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <message-id> missing.");
 		}
 	}
-	else if( strncmp(cmd, "delmsg ", 7)==0 )
+	else if( strcmp(cmd, "delmsg")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int id = atoi(arg1);
 			ret = mrmailbox_delete_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
@@ -587,12 +562,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Contact commands
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "listcontacts", 12)==0 )
+	else if( strcmp(cmd, "listcontacts")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
-		if( arg1 ) {
-			arg1++;
-		}
 		carray* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
 		if( contacts ) {
 			log_contactlist(mailbox, contacts);
@@ -603,10 +574,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = COMMAND_FAILED;
 		}
 	}
-	else if( strncmp(cmd, "addcontact ", 11)==0 )
+	else if( strcmp(cmd, "addcontact")==0 )
 	{
-		char *arg1 = strchr(cmd, ' '), *arg2 = NULL;
-		if( arg1 ) { arg1++; arg2 = strrchr(arg1, ' '); }
+		char* arg2 = NULL;
+		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
 		if( arg1 && arg2 ) {
 			*arg2 = 0; arg2++;
 			char* book = mr_mprintf("%s\n%s", arg1, arg2);
@@ -624,9 +595,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 	 * Misc.
 	 ******************************************************************************/
 
-	else if( strncmp(cmd, "event", 5)==0 )
+	else if( strcmp(cmd, "event")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
 			int event = atoi(arg1);
 			uintptr_t r = mailbox->m_cb(mailbox, event, 0, 0);
@@ -636,11 +606,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmd__)
 			ret = safe_strdup("ERROR: Argument <id> missing.");
 		}
 	}
-	else if( strncmp(cmd, "fileinfo", 8)==0 )
+	else if( strcmp(cmd, "fileinfo")==0 )
 	{
-		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) {
-			arg1++;
 			unsigned char* buf; size_t buf_bytes; uint32_t w, h;
 			if( mr_read_file(arg1, (void**)&buf, &buf_bytes) ) {
 				mr_get_filemeta(buf, buf_bytes, &w, &h);

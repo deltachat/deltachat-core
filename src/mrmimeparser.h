@@ -80,19 +80,6 @@ void                  mrmimeparser_parse          (mrmimeparser_t*, const char* 
 /* work on the parse result */
 struct mailimf_field* mrmimeparser_find_field     (mrmimeparser_t*, int wanted_fld_type);
 
-/* find out the mimetype - one of the MR_MIMETYPE_* constants */
-#define               MR_MIMETYPE_MP              0x100 /* eg. mixed */
-#define               MR_MIMETYPE_MP_ALTERNATIVE  (MR_MIMETYPE_MP+1)
-#define               MR_MIMETYPE_MP_RELATED      (MR_MIMETYPE_MP+2)
-#define               MR_MIMETYPE_TEXT            0x200 /* eg. plain */
-#define               MR_MIMETYPE_TEXT_PLAIN      (MR_MIMETYPE_TEXT+1)
-#define               MR_MIMETYPE_TEXT_HTML       (MR_MIMETYPE_TEXT+2)
-#define               MR_MIMETYPE_IMAGE           0x300
-#define               MR_MIMETYPE_AUDIO           0x400
-#define               MR_MIMETYPE_VIDEO           0x500
-#define               MR_MIMETYPE_FILE            0x600
-int                   mrmimeparser_get_mime_type  (struct mailmime_content*);
-
 
 #ifdef __cplusplus
 } /* /extern "C" */
