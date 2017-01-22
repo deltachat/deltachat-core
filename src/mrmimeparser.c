@@ -474,21 +474,23 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		mailmime_free(ths->m_mimeroot);
 		ths->m_mimeroot = NULL;
 	}
+
+	free(ths->m_gnupg_block);
+	ths->m_gnupg_block = NULL;
 }
 
 
 static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type)
 {
-	#define MR_MIMETYPE_MP              0x100 /* eg. mixed */
-	#define MR_MIMETYPE_MP_ALTERNATIVE  (MR_MIMETYPE_MP+1)
-	#define MR_MIMETYPE_MP_RELATED      (MR_MIMETYPE_MP+2)
-	#define MR_MIMETYPE_TEXT            0x200 /* eg. plain */
-	#define MR_MIMETYPE_TEXT_PLAIN      (MR_MIMETYPE_TEXT+1)
-	#define MR_MIMETYPE_TEXT_HTML       (MR_MIMETYPE_TEXT+2)
-	#define MR_MIMETYPE_IMAGE           0x300
-	#define MR_MIMETYPE_AUDIO           0x400
-	#define MR_MIMETYPE_VIDEO           0x500
-	#define MR_MIMETYPE_FILE            0x600
+	#define MR_MIMETYPE_MP_ALTERNATIVE  1
+	#define MR_MIMETYPE_MP_RELATED      2
+	#define MR_MIMETYPE_MP_OTHER        3
+	#define MR_MIMETYPE_TEXT_PLAIN      4
+	#define MR_MIMETYPE_TEXT_HTML       5
+	#define MR_MIMETYPE_IMAGE           6
+	#define MR_MIMETYPE_AUDIO           7
+	#define MR_MIMETYPE_VIDEO           8
+	#define MR_MIMETYPE_FILE            9
 
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
 	*msg_type = MR_MSG_UNDEFINED;
@@ -503,15 +505,17 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 			switch( c->ct_type->tp_data.tp_discrete_type->dt_type )
 			{
 				case MAILMIME_DISCRETE_TYPE_TEXT:
-					*msg_type = MR_MSG_TEXT;
 					if( strcmp(c->ct_subtype, "plain")==0 ) {
+						*msg_type = MR_MSG_TEXT;
 						return MR_MIMETYPE_TEXT_PLAIN;
                     }
 					else if( strcmp(c->ct_subtype, "html")==0 ) {
+						*msg_type = MR_MSG_TEXT;
 						return MR_MIMETYPE_TEXT_HTML;
                     }
                     else {
-						return MR_MIMETYPE_TEXT;
+						*msg_type = MR_MSG_FILE;
+						return MR_MIMETYPE_FILE;
                     }
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
@@ -542,7 +546,7 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 					return MR_MIMETYPE_MP_RELATED;
 				}
 				else { /* eg. "mixed" */
-					return MR_MIMETYPE_MP;
+					return MR_MIMETYPE_MP_OTHER;
 				}
 			}
 			break;
@@ -552,6 +556,23 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 	}
 
 	return 0; /* unknown */
+}
+
+
+static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disposition)
+{
+	if( file_disposition ) {
+		clistiter* cur;
+		for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
+			if( dsp_param ) {
+				if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
+					return mr_get_filesuffix(dsp_param->pa_data.pa_filename);
+				}
+			}
+		}
+	}
+	return NULL;
 }
 
 
@@ -658,11 +679,24 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					}
 				}
 
-				part->m_type = MR_MSG_TEXT;
-				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
-				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
-				if( part->m_msg && part->m_msg[0] ) {
-					do_add_part = 1;
+				if( mime_type == MR_MIMETYPE_TEXT_PLAIN
+				 && file_disposition
+				 && (file_suffix=get_file_disposition_suffix_(file_disposition))!=NULL
+				 && strcmp(file_suffix, "asc")==0
+				 && decoded_data_bytes > 36
+				 && strncmp(decoded_data, "-----BEGIN PGP PUBLIC KEY BLOCK-----", 36)==0 )
+				{
+					/* a public key or a revocation certificate found in the mail */
+					ths->m_gnupg_block = safe_strdup(decoded_data);
+				}
+				else
+				{
+					part->m_type = MR_MSG_TEXT;
+					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+					part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+					if( part->m_msg && part->m_msg[0] ) {
+						do_add_part = 1;
+					}
 				}
 			}
 			break;

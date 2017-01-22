@@ -44,6 +44,7 @@
 #include "mrlog.h"
 #include "mrjob.h"
 #include "mrloginparam.h"
+#include "mre2ee.h"
 
 #define CLASS_MAGIC 1479776513
 
@@ -622,6 +623,12 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				free(old_server_folder);
 				goto cleanup;
 			}
+		}
+
+		/* execute any GnuPG block commands */
+		if( mime_parser->m_gnupg_block )
+		{
+			mre2ee_execute_gnupg_block_command(ths, from_id, message_timestamp, mime_parser->m_gnupg_block);
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"
