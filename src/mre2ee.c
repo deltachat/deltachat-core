@@ -25,11 +25,39 @@
  ******************************************************************************/
 
 
+#include <string.h>
 #include "mrmailbox.h"
 #include "mre2ee.h"
 
 
 void mre2ee_execute_gnupg_block_command__(mrmailbox_t* mailbox, uint32_t contact_id, time_t timestamp, const char* gnupg_block)
 {
+	mrcontact_t*  contact = mrcontact_new();
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || contact_id<=MR_CONTACT_ID_LAST_SPECIAL || gnupg_block == NULL ) {
+		goto cleanup;
+	}
+
+	if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) == 0 ) {
+		goto cleanup;
+	}
+
+	if( timestamp < contact->m_pubkey_timestamp
+	 || strcmp(contact->m_pubkey,  gnupg_block)==0 ) {
+		goto cleanup;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_SET_pubkey,
+		"UPDATE contacts SET pubkey=?, pubkey_timestamp=? WHERE id=?;");
+	sqlite3_bind_text (stmt, 1, gnupg_block, -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, timestamp);
+	sqlite3_bind_int  (stmt, 3, contact_id);
+	if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+		goto cleanup;
+	}
+
+cleanup:
+	mrcontact_unref(contact);
 }
 

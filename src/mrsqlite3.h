@@ -73,6 +73,7 @@ enum
 	,UPDATE_contacts_nao_WHERE_i
 	,UPDATE_contacts_SET_origin_WHERE_id
 	,UPDATE_contacts_SET_b_WHERE_i
+	,UPDATE_contacts_SET_pubkey
 	,DELETE_FROM_contacts_WHERE_id
 
 	,SELECT_COUNT_FROM_chats
