@@ -34,7 +34,7 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-void mre2ee_execute_gnupg_block_command(mrmailbox_t*, uint32_t contact_id, time_t timestamp, const char* gnupg_block);
+void mre2ee_execute_gnupg_block_command__(mrmailbox_t*, uint32_t contact_id, time_t timestamp, const char* gnupg_block);
 
 
 #ifdef __cplusplus
