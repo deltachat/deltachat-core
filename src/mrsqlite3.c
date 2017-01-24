@@ -22,6 +22,23 @@
  * File:    mrsqlite3.c
  * Purpose: MrSqlite3 wraps around SQLite
  *
+ *******************************************************************************
+ *
+ * Some hints to the underlying database:
+ *
+ * - `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
+ *   files, caching is not that important; we rely on the system defaults here
+ *   (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
+ *   versions)
+ *
+ * - We use `sqlite3_last_insert_rowid()` to find out created records - for this
+ *   purpose, the primary ID has to be marked using `INTEGER PRIMARY KEY`, see
+ *   https://www.sqlite.org/c3ref/last_insert_rowid.html
+ *
+ * - Some words to the "param" fields:  These fields contains a string with
+ *   additonal, named parameters which must not be accessed by a search and/or
+ *   are very seldomly used. Moreover, this allows smart minor database updates.
+ *
  ******************************************************************************/
 
 
@@ -161,17 +178,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		goto cleanup;
 	}
 
-	/* `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external files, caching is not that important;
-	we rely on the system defaults here (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer versions) */
-
-	/* Init the tables, if not yet done.
-	NB: We only define default values for columns not present in all INSERT statements.
-	NB: We use `sqlite3_last_insert_rowid()` to find out created records - for this purpose, the primary ID has to be marked using
-	`INTEGER PRIMARY KEY`, see https://www.sqlite.org/c3ref/last_insert_rowid.html
-
-	Some words to the "param" fields:  These fields contains a string with additonal, named parameters which must
-	not be accessed by a search and/or are very seldomly used. Moreover, this allows smart minor database updates. */
-	if( !mrsqlite3_table_exists__(ths, "contacts") )
+	/* Init tables to dbversion=0 */
+	if( !mrsqlite3_table_exists__(ths, "config") )
 	{
 		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
 
@@ -183,11 +191,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" addr TEXT DEFAULT '' COLLATE NOCASE,"
 					" origin INTEGER DEFAULT 0,"
 					" blocked INTEGER DEFAULT 0,"
-					" pubkey TEXT DEFAULT '',"
-					" pubkey_timestamp INTEGER DEFAULT 0,"
-					" status TEXT DEFAULT '', "       /* reserved */
-					" last_seen INTEGER DEFAULT 0,"   /* reserved */
-					" param TEXT DEFAULT '');");
+					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
+					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
 		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
 		mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
@@ -197,12 +202,11 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 
 		mrsqlite3_execute__(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 					" type INTEGER DEFAULT 0,"
-					" name TEXT,"
+					" name TEXT DEFAULT '',"
 					" draft_timestamp INTEGER DEFAULT 0,"
 					" draft_txt TEXT DEFAULT '',"
 					" blocked INTEGER DEFAULT 0,"
 					" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
-					" descr TEXT DEFAULT '', "         /* reserved */
 					" param TEXT DEFAULT '');");
 		mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
 		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
@@ -212,8 +216,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 			#error
 		#endif
 
-		mrsqlite3_execute__(ths, "CREATE TABLE msgs ("
-					" id INTEGER PRIMARY KEY,"
+		mrsqlite3_execute__(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
@@ -234,14 +237,6 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
 		mrsqlite3_execute__(ths, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
 
-		mrsqlite3_execute__(ths, "CREATE TABLE msgs_seen (msg_id INTEGER, contact_id INTEGER);"); /* reserved, for collecting 'seen' notification in groups (a message is seen if it is seen by all (most?) members) */
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_seen_index1 ON msgs_seen (msg_id);");         /* reserved */
-
-		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
-					" id INTEGER PRIMARY KEY,"
-					" grpid TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
-
 		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 					" added_timestamp INTEGER,"
 					" desired_timestamp INTEGER DEFAULT 0,"
@@ -257,15 +252,24 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
 			goto cleanup; /* cannot create the tables - maybe we cannot write? */
 		}
+
+		mrsqlite3_set_config_int__(ths, "dbversion", 0);
 	}
 
-	/* prepare statements that are used at different source code positions and/or are always needed.
-	other statements are prepared just-in-time as needed.
-	(we do it when the tables really exists, however, I do not know if sqlite relies on this) */
-	if( !mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, "SELECT value FROM config WHERE keyname=?;") )
+	/* Update to dbversion=1 */
+	int dbversion = mrsqlite3_get_config_int__(ths, "dbversion", 0);
+	if( dbversion < 1 )
 	{
-		mrsqlite3_log_error(ths, "Cannot open, cannot prepare SQL statements for database \"%s\".", dbfile);
-		goto cleanup;
+		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
+					" id INTEGER PRIMARY KEY,"
+					" grpid TEXT DEFAULT '');");
+		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
+
+		mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey TEXT DEFAULT '';");
+		mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey_timestamp INTEGER DEFAULT 0;");
+
+		dbversion = 1;
+		mrsqlite3_set_config_int__(ths, "dbversion", dbversion);
 	}
 
 	mrlog_info("Opened \"%s\" successfully.", dbfile);
@@ -328,7 +332,8 @@ sqlite3_stmt* mrsqlite3_predefine__(mrsqlite3_t* ths, size_t idx, const char* qu
 
 	/*prepare for the first time - this requires the querystring*/
 	if( querystr == NULL ) {
-		return NULL;	}
+		return NULL;
+	}
 
 	if( sqlite3_prepare_v2(ths->m_cobj,
 	         querystr, -1 /*read `sql` up to the first null-byte*/,
@@ -404,7 +409,8 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 	if( value )
 	{
 		/* insert/update key=value */
-		stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+		#define SELECT_v_FROM_config_k_STATEMENT "SELECT value FROM config WHERE keyname=?;"
+		stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
 		sqlite3_bind_text (stmt, 1, key, -1, SQLITE_STATIC);
 		state=sqlite3_step(stmt);
 		if( state == SQLITE_DONE ) {
@@ -450,7 +456,7 @@ char* mrsqlite3_get_config__(mrsqlite3_t* ths, const char* key, const char* def)
 		return safe_strdup(def);
 	}
 
-	stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, NULL /*predefined on construction*/);
+	stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
