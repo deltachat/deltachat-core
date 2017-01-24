@@ -1216,6 +1216,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			mr_encode_header_string(subject));
 		free(subject);
 
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("MrMsg %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( chat->m_type==MR_CHAT_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));

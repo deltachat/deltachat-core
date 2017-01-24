@@ -1215,7 +1215,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char  set[] = "<set>";
 	char *displayname = NULL, *info = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion;
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -1239,6 +1239,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		is_configured   = mrsqlite3_get_config_int__(ths->m_sql, "configured", 0);
 
+		dbversion       = mrsqlite3_get_config_int__(ths->m_sql, "dbversion", 0);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	/* create info
@@ -1250,7 +1252,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Messenger Backend %i.%i.%i - (C) Björn Petersen and contributors\n"
 		"\n"
 		"%i chats with %i messages, %i messages in mailbox, %i contacts\n"
-		"Database file: %s, blob directory: %s\n"
+		"Database=%s, dbversion=%i, Blobdir=%s\n"
 		"\n"
 		"displayname=%s\n"
 		"configured=%i\n"
@@ -1271,7 +1273,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 
 		, chats, real_msgs, deaddrop_msgs, contacts
-		, ths->m_dbfile? ths->m_dbfile : unset   ,  ths->m_blobdir? ths->m_blobdir : unset
+		, ths->m_dbfile? ths->m_dbfile : unset,   dbversion,   ths->m_blobdir? ths->m_blobdir : unset
 
         , displayname? displayname : unset
 		, is_configured
