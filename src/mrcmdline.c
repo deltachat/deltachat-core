@@ -250,14 +250,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Chat commands
 	 ******************************************************************************/
 
-	else if( strcmp(cmd, "listchats")==0 )
+	else if( strcmp(cmd, "listchats")==0 || strcmp(cmd, "chats")==0 )
 	{
 		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, arg1);
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
 				mrlog_info("================================================================================");
-				for( i = 0; i < cnt; i++ )
+				for( i = cnt-1; i >= 0; i-- )
 				{
 					mrchat_t* chat = mrchatlist_get_chat_by_index(chatlist, i);
 					char *temp;
@@ -278,8 +278,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
 							mrlog_info("%s%s%s %s [%s]",
-								poortext->m_title? poortext->m_title : NULL,
-								poortext->m_title? ": " : NULL,
+								poortext->m_title? poortext->m_title : "",
+								poortext->m_title? ": " : "",
 								poortext->m_text? poortext->m_text : NULL,
 								statestr, timestr
 								);
