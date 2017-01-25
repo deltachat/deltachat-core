@@ -54,6 +54,7 @@ char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 /* carray/clist tools */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
 void    clist_free_content         (const clist*); /* calls free() for each item content */
+int     clist_search_string_nocase (const clist*, const char* str);
 
 /* date/time tools */
 #define                    MR_INVALID_TIMESTAMP               (-1)

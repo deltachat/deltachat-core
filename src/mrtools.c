@@ -863,6 +863,18 @@ void clist_free_content(const clist* haystack)
 }
 
 
+int clist_search_string_nocase(const clist* haystack, const char* needle)
+{
+	clistiter* iter;
+	for( iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter) ) {
+		if( strcasecmp((const char*)iter->data, needle)==0 ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
 /*******************************************************************************
  * date/time tools
  ******************************************************************************/

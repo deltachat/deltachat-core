@@ -1323,20 +1323,28 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 				"SELECT c.name, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
 			sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
-			while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			while( sqlite3_step(stmt) == SQLITE_ROW )
+			{
 				const char* name = (const char*)sqlite3_column_text(stmt, 0);
 				const char* addr = (const char*)sqlite3_column_text(stmt, 1);
-				clist_append(ret_recipients_names, (void*)((name&&name[0])? safe_strdup(name) : NULL));
-				clist_append(ret_recipients_addr,  (void*)safe_strdup(addr));
+				if( clist_search_string_nocase(ret_recipients_addr, addr)==0 )
+				{
+					clist_append(ret_recipients_names, (void*)((name&&name[0])? safe_strdup(name) : NULL));
+					clist_append(ret_recipients_addr,  (void*)safe_strdup(addr));
+				}
 			}
 
 			int system_command = mrparam_get_int(ret_msg->m_param, 'S', 0);
 			if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 				char* email_to_remove = mrparam_get(ret_msg->m_param, 'E', NULL);
 				char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
-				if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 ) {
-					clist_append(ret_recipients_names, NULL);
-					clist_append(ret_recipients_addr,  (void*)email_to_remove);
+				if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
+				{
+					if( clist_search_string_nocase(ret_recipients_addr, email_to_remove)==0 )
+					{
+						clist_append(ret_recipients_names, NULL);
+						clist_append(ret_recipients_addr,  (void*)email_to_remove);
+					}
 				}
 				free(self_addr);
 			}
@@ -1812,6 +1820,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id); /* mrcontact_load_from_db__() does not load SELF fields */
 	mrchat_t*    chat = mrchat_new(mailbox);
 	mrmsg_t*     msg = mrmsg_new();
+	char*        self_addr = NULL;
 
 	if( mailbox == NULL || contact == NULL ) {
 		goto cleanup;
@@ -1829,6 +1838,11 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		if( !IS_SELF_IN_GROUP__ ) {
 			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+		}
+
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+		if( strcasecmp(contact->m_addr, self_addr)==0 ) {
+			goto cleanup; /* ourself is added using MR_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
 		}
 
 		if( 1==mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) ) {
@@ -1862,6 +1876,7 @@ cleanup:
 	mrchat_unref(chat);
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
+	free(self_addr);
 	return success;
 }
 
