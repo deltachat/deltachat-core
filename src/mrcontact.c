@@ -175,7 +175,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			}
 		}
 
-		if( origin>=row_origin && strcmp(addr, row_addr)!=0 ) {
+		if( origin>=row_origin && strcmp(addr, row_addr)!=0 /*really compare case-sensitive here*/ ) {
 			update_addr = 1;
 		}
 
@@ -490,7 +490,7 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 		{
 			ret->m_id   = contact_id;
 			ret->m_name = mrstock_str(MR_STR_SELF);
-			ret->m_addr = mrsqlite3_get_config__(ths->m_sql, "addr", NULL);
+			ret->m_addr = mrsqlite3_get_config__(ths->m_sql, "configured_addr", NULL);
 		}
 		else
 		{
@@ -633,7 +633,7 @@ int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, c
 		mrcontact_t* contact = mrcontact_new();
 		if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 			if( contact->m_addr ) {
-				if( strcmp(contact->m_addr, other_addr)==0 ) {
+				if( strcasecmp(contact->m_addr, other_addr)==0 ) {
 					addr_are_equal = 1;
 				}
 			}

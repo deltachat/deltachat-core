@@ -300,21 +300,23 @@ cleanup:
 
 static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
 {
-	if( check_self )
-	{
-		*check_self = 0;
+	/* is addr_spec equal to SELF? */
+	int dummy;
+	if( check_self == NULL ) { check_self = &dummy; }
 
-		char* self_addr = mrsqlite3_get_config__(ths->m_sql, "configured_addr", "");
-			if( strcmp(self_addr, addr_spec)==0 ) {
-				*check_self = 1;
-			}
-		free(self_addr);
+	*check_self = 0;
 
-		if( *check_self ) {
-			return;
+	char* self_addr = mrsqlite3_get_config__(ths->m_sql, "configured_addr", "");
+		if( strcasecmp(self_addr, addr_spec)==0 ) {
+			*check_self = 1;
 		}
+	free(self_addr);
+
+	if( *check_self ) {
+		return;
 	}
 
+	/* add addr_spec if missing, update otherwise */
 	char* display_name_dec = NULL;
 	if( display_name_enc ) {
 		display_name_dec = mr_decode_header_string(display_name_enc);
