@@ -159,8 +159,8 @@ void mrloginparam_complete(mrloginparam_t* ths)
 	https://wiki.mozilla.org/Thunderbird:Autoconfiguration ).
 	At a glance, this would result in HTTP-download as `https://autoconfig.thunderbird.net/v1.1/posteo.de`
 	or even `http://autoconfig.posteo.de` */
-	if( strcmp(adr_server, "gmail.com")==0
-	 || strcmp(adr_server, "googlemail.com")==0 )
+	if( strcasecmp(adr_server, "gmail.com")==0
+	 || strcasecmp(adr_server, "googlemail.com")==0 )
 	{
 		/* Google
 		Checking GMail too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
