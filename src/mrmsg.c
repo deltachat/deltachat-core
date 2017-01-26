@@ -509,6 +509,16 @@ int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
 }
 
 
+int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, const uint32_t* contact_ids, int contact_cnt)
+{
+	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || contact_ids==NULL || contact_cnt <= 0 ) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
 /*******************************************************************************
  * mark message as seen
  ******************************************************************************/
