@@ -467,8 +467,18 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 		char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 		if( pathNfilename ) {
-			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 ) {
-				mr_delete_file(pathNfilename);
+			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
+			{
+				char* strLikeFilename = mr_mprintf("%%f=%s%%", pathNfilename);
+				sqlite3_stmt* stmt2 = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE param LIKE ?;");
+				sqlite3_bind_text (stmt2, 1, strLikeFilename, -1, SQLITE_STATIC);
+				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
+				free(strLikeFilename);
+				sqlite3_finalize(stmt2);
+
+				if( !file_used_by_other_msgs ) {
+					mr_delete_file(pathNfilename);
+				}
 			}
 			free(pathNfilename);
 		}
@@ -511,11 +521,57 @@ int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
 
 int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {
+	mrmsg_t*     msg = mrmsg_new();
+	mrchat_t*    chat = mrchat_new(mailbox);
+	mrcontact_t* contact = mrcontact_new();
+	int          success = 0, locked = 0, i;
+
 	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return 1;
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( !mrchat_load_from_db__(chat, chat_id) ) {
+			goto cleanup;
+		}
+
+		for( i = 0; i < msg_cnt; i++ )
+		{
+			if( locked == 0 ) {
+			 mrsqlite3_lock(mailbox->m_sql);
+			 locked = 1;
+			}
+
+				if( !mrmsg_load_from_db__(msg, mailbox->m_sql, msg_ids[i]) ) {
+					goto cleanup;
+				}
+
+				if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
+					if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
+						goto cleanup;
+					}
+					mrparam_set(msg->m_param, 'a', contact->m_addr);
+					if( contact->m_name ) {
+						mrparam_set(msg->m_param, 'A', contact->m_name);
+					}
+				}
+
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
+
+			mrchat_send_msg(chat, msg);
+		}
+
+	success  = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrcontact_unref(contact);
+	mrmsg_unref(msg);
+	mrchat_unref(chat);
+	return success;
 }
 
 

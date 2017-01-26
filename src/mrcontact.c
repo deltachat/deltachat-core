@@ -305,6 +305,18 @@ cleanup:
 }
 
 
+char* mr_get_headerlike_name(const char* addr, const char* name)
+{
+	if( name ) {
+		return mr_mprintf("%s <%s>", name, addr);
+	}
+	else {
+		return safe_strdup(addr);
+	}
+}
+
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/

@@ -1164,17 +1164,18 @@ cleanup:
 }
 
 
-static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg)
+static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* afwd_email)
 {
 	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
+	const char* fwd = afwd_email? "Fwd: " : "";
 
 	if( chat->m_type==MR_CHAT_GROUP )
 	{
-		ret = mr_mprintf(MR_CHAT_PREFIX " %s: %s", chat->m_name, raw_subject);
+		ret = mr_mprintf(MR_CHAT_PREFIX " %s: %s%s", chat->m_name, fwd, raw_subject);
 	}
 	else
 	{
-		ret = mr_mprintf(MR_CHAT_PREFIX " %s", raw_subject);
+		ret = mr_mprintf(MR_CHAT_PREFIX " %s%s", fwd, raw_subject);
 	}
 
 	free(raw_subject);
@@ -1188,6 +1189,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
 	char*                        message_text = NULL;
+	char*                        afwd_email = mrparam_get(msg->m_param, 'a', NULL);
 	int                          col = 0;
 	MMAPString*                  ret = NULL;
 	int                          parts = 0;
@@ -1208,7 +1210,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			}
 		}
 
-		char* subject = get_subject(chat, msg);
+		char* subject = get_subject(chat, msg, afwd_email);
 		imf_fields = mailimf_fields_new_with_data(from,
 			NULL /* sender */, NULL /* reply-to */,
 			to, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
@@ -1248,8 +1250,18 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
 	- it looks better */
 	{
+		char* fwdhint = NULL;
+		if( afwd_email ) {
+			char* afwd_name = mrparam_get(msg->m_param, 'A', NULL);
+				char* nameNAddr = mr_get_headerlike_name(afwd_email, afwd_name);
+					fwdhint = mr_mprintf("---------- Forwarded message ----------\nFrom: %s\n\n", nameNAddr);
+				free(nameNAddr);
+			free(afwd_name);
+		}
+
 		char* footer = mrstock_str(MR_STR_STATUSLINE);
-		message_text = mr_mprintf("%s%s%s%s",
+		message_text = mr_mprintf("%s%s%s%s%s",
+			fwdhint? fwdhint : "",
 			msg->m_text? msg->m_text : "",
 			(msg->m_text&&msg->m_text[0]&&footer&&footer[0])? "\n\n" : "",
 			(footer&&footer[0])? "-- \n"  : "",
@@ -1258,6 +1270,8 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		struct mailmime* text_part = build_body_text(message_text);
 		mailmime_smart_add_part(message, text_part);
 		parts++;
+
+		free(fwdhint);
 	}
 
 	/* add attachment part */
@@ -1301,6 +1315,7 @@ cleanup:
 		mailmime_free(message);
 	}
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
+	free(afwd_email);
 	return ret;
 }
 

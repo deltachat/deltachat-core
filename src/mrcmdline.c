@@ -138,6 +138,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"listmsgs <query>\n"
 			"msginfo <msg-id>\n"
 			"listunseen\n"
+			"forward <msg-id> <chat-id>\n"
 			"markseen <msg-id>\n"
 			"delmsg <msg-id>\n"
 
@@ -269,15 +270,16 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
 
-						const char* statestr = " ERR";
+						const char* statestr = "";
 						switch( poortext->m_state ) {
 							case MR_OUT_PENDING:   statestr = " o";   break;
 							case MR_OUT_DELIVERED: statestr = " √";   break;
 							case MR_OUT_READ:      statestr = " √√";  break;
+							case MR_OUT_ERROR:     statestr = " ERR"; break;
 						}
 
 						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
-							mrlog_info("%s%s%s %s [%s]",
+							mrlog_info("%s%s%s%s [%s]",
 								poortext->m_title? poortext->m_title : "",
 								poortext->m_title? ": " : "",
 								poortext->m_text? poortext->m_text : NULL,
@@ -524,7 +526,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_get_msg_info(mailbox, id);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "listunseen")==0 )
@@ -536,6 +538,20 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			carray_free(msglist);
 		}
 	}
+	else if( strcmp(cmd, "forward")==0 )
+	{
+		char* arg2 = NULL;
+		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
+		if( arg1 && arg2 ) {
+			*arg2 = 0; arg2++;
+			uint32_t msg_ids[1], chat_id = atoi(arg2);
+			msg_ids[0] = atoi(arg1);
+			ret = mrmailbox_forward_msgs(mailbox, msg_ids, 1, chat_id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Arguments <msg-id> <chat-id> expected.");
+		}
+	}
 	else if( strcmp(cmd, "markseen")==0 )
 	{
 		if( arg1 ) {
@@ -543,7 +559,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_markseen_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "delmsg")==0 )
@@ -553,7 +569,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_delete_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <message-id> missing.");
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 

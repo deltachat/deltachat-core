@@ -30,7 +30,8 @@
  *******************************************************************************
  *
  * Known keys:
- * 'a' forwarded mail, value is "e@ma.il prename name"
+ * 'a' forwarded from this e-mail-address
+ * 'A' forwarded from this name
  * 'f'ile
  * 'o'riginal filename
  * 'w'idth

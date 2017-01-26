@@ -256,21 +256,23 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		mrsqlite3_set_config_int__(ths, "dbversion", 0);
 	}
 
-	/* Update to dbversion=1 */
+	/* Update database */
 	int dbversion = mrsqlite3_get_config_int__(ths, "dbversion", 0);
-	if( dbversion < 1 )
-	{
-		mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
-					" id INTEGER PRIMARY KEY,"
-					" grpid TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
+	#define NEW_DB_VERSION 1
+		if( dbversion < NEW_DB_VERSION )
+		{
+			mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
+						" id INTEGER PRIMARY KEY,"
+						" grpid TEXT DEFAULT '');");
+			mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
-		mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey TEXT DEFAULT '';");
-		mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey_timestamp INTEGER DEFAULT 0;");
+			mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey TEXT DEFAULT '';");
+			mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey_timestamp INTEGER DEFAULT 0;");
 
-		dbversion = 1;
-		mrsqlite3_set_config_int__(ths, "dbversion", dbversion);
-	}
+			dbversion = NEW_DB_VERSION;
+			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+		}
+	#undef NEW_DB_VERSION
 
 	mrlog_info("Opened \"%s\" successfully.", dbfile);
 	return 1;
