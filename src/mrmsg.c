@@ -509,9 +509,9 @@ int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
 }
 
 
-int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, const uint32_t* contact_ids, int contact_cnt)
+int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {
-	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || contact_ids==NULL || contact_cnt <= 0 ) {
+	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
 
