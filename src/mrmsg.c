@@ -527,6 +527,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 	mrcontact_t* contact = mrcontact_new();
 	int          success = 0, locked = 0, i;
 	carray*      created_db_entries = carray_new(16);
+	char*        already_forwarded = NULL;
 
 	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -550,7 +551,13 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 					goto cleanup;
 				}
 
-				if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
+				already_forwarded = mrparam_get(msg->m_param, 'a', NULL);
+				if( already_forwarded )
+				{
+					free(already_forwarded); /* forwarding already forwarded mails; keep the original name and mail */
+					already_forwarded = NULL;
+				}
+				else if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
 					if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
 						goto cleanup;
 					}
@@ -582,6 +589,7 @@ cleanup:
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
+	free(already_forwarded);
 	return success;
 }
 
