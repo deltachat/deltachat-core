@@ -470,8 +470,9 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
 			{
 				char* strLikeFilename = mr_mprintf("%%f=%s%%", pathNfilename);
-				sqlite3_stmt* stmt2 = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE param LIKE ?;");
-				sqlite3_bind_text (stmt2, 1, strLikeFilename, -1, SQLITE_STATIC);
+				sqlite3_stmt* stmt2 = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
+				sqlite3_bind_int (stmt2, 1, MR_MSG_TEXT);
+				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
 				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
 				free(strLikeFilename);
 				sqlite3_finalize(stmt2);
