@@ -61,6 +61,8 @@ void mr_normalize_name(char* full_name)
 		strcpy(full_name, first_name);
 		strcat(full_name, " ");
 		strcat(full_name, last_name);
+		free(last_name);
+		free(first_name);
 	}
 	else {
 		mr_trim(full_name);
@@ -307,11 +309,16 @@ cleanup:
 
 char* mr_get_headerlike_name(const char* addr, const char* name)
 {
-	if( name ) {
-		return mr_mprintf("%s <%s>", name, addr);
+	if( addr && addr[0] ) {
+		if( name && name[0] ) {
+			return mr_mprintf("%s <%s>", name, addr);
+		}
+		else {
+			return safe_strdup(addr);
+		}
 	}
 	else {
-		return safe_strdup(addr);
+		return safe_strdup("ErrName");
 	}
 }
 

@@ -293,7 +293,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					mrlog_info("================================================================================");
 				}
-				ret = mr_mprintf("%i chats.", (int)cnt);
 			}
 			ret = mr_mprintf("%i chats.", (int)cnt);
 			mrchatlist_unref(chatlist);
@@ -578,7 +577,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Contact commands
 	 ******************************************************************************/
 
-	else if( strcmp(cmd, "listcontacts")==0 )
+	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 )
 	{
 		carray* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
 		if( contacts ) {
@@ -654,6 +653,7 @@ cleanup:
 		ret = mr_mprintf("ERROR: Unknown command \"%s\", type ? for help.", cmd);
 	}
 	if( sel_chat ) { mrchat_unref(sel_chat); sel_chat = NULL; }
+	free(cmd);
 	return ret;
 }
 
