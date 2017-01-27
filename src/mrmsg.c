@@ -525,6 +525,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 	mrchat_t*    chat = mrchat_new(mailbox);
 	mrcontact_t* contact = mrcontact_new();
 	int          success = 0, locked = 0, i;
+	carray*      created_db_entries = carray_new(16);
 
 	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -561,13 +562,22 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 			mrsqlite3_unlock(mailbox->m_sql);
 			locked = 0;
 
-			mrchat_send_msg(chat, msg);
+			uint32_t new_msg_id = mrchat_send_msg(chat, msg);
+			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
+			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
 
-	success  = 1;
+	success = 1;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( created_db_entries ) {
+		size_t i, icnt = carray_count(created_db_entries);
+		for( i = 0; i < icnt; i += 2 ) {
+			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+		}
+		carray_free(created_db_entries);
+	}
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
