@@ -501,17 +501,22 @@ cleanup:
 }
 
 
-int mrmailbox_delete_msg(mrmailbox_t* ths, uint32_t msg_id)
+int mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt)
 {
-	if( ths == NULL ) {
+	int i;
+
+	if( ths == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
 		return 0;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_sql);
 
-		mrmailbox_update_msg_chat_id__(ths, msg_id, MR_CHAT_ID_TRASH);
-		mrjob_add__(ths, MRJ_DELETE_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
+		for( i = 0; i < msg_cnt; i++ )
+		{
+			mrmailbox_update_msg_chat_id__(ths, msg_ids[i], MR_CHAT_ID_TRASH);
+			mrjob_add__(ths, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
+		}
 
 	mrsqlite3_commit__(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);

@@ -60,7 +60,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 14
+#define MR_VERSION_REVISION 15
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MREVENT_* codes
@@ -194,7 +194,7 @@ carray*  mrmailbox_search_msgs (mrmailbox_t*, uint32_t chat_id, const char* quer
 /* Get messages - for a list, see mrchat_get_msglist() */
 mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
 char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
-int                  mrmailbox_delete_msg           (mrmailbox_t*, uint32_t msg_id);
+int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 int                  mrmailbox_forward_msgs         (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
 int                  mrmailbox_markseen_msg         (mrmailbox_t*, uint32_t msg_id);
 int                  mrmailbox_markseen_chat        (mrmailbox_t*, uint32_t chat_id);

@@ -564,8 +564,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "delmsg")==0 )
 	{
 		if( arg1 ) {
-			int id = atoi(arg1);
-			ret = mrmailbox_delete_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			uint32_t ids[1];
+			ids[0] = atoi(arg1);
+			ret = mrmailbox_delete_msgs(mailbox, ids, 1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
