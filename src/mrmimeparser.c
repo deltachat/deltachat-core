@@ -477,6 +477,12 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 
 	free(ths->m_gnupg_block);
 	ths->m_gnupg_block = NULL;
+
+	free(ths->m_fwd_email);
+	ths->m_fwd_email = NULL;
+
+	free(ths->m_fwd_name);
+	ths->m_fwd_name = NULL;
 }
 
 
@@ -694,8 +700,14 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					part->m_type = MR_MSG_TEXT;
 					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
 					part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+
 					if( part->m_msg && part->m_msg[0] ) {
 						do_add_part = 1;
+					}
+
+					if( simplifier->m_fwdemail && ths->m_fwd_email == NULL ) {
+						ths->m_fwd_email = simplifier->m_fwdemail; simplifier->m_fwdemail = NULL; /* save this even for empty text (shown eg. above pictures then) */
+						ths->m_fwd_name  = simplifier->m_fwdname;  simplifier->m_fwdname  = NULL;
 					}
 				}
 			}
@@ -977,7 +989,15 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 	}
 
-
+	/* add forward information to every part */
+	if( ths->m_fwd_email ) {
+		int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
+		for( i = 0; i < icnt; i++ ) {
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			mrparam_set(part->m_param, 'a', ths->m_fwd_email);
+			mrparam_set(part->m_param, 'A', ths->m_fwd_name);
+		}
+	}
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:

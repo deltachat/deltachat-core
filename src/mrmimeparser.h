@@ -66,6 +66,9 @@ typedef struct mrmimeparser_t
 
 	char*                  m_gnupg_block;
 
+	char*                  m_fwd_name;
+	char*                  m_fwd_email;
+
 } mrmimeparser_t;
 
 

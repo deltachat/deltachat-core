@@ -87,6 +87,7 @@ int          mrmailbox_contact_addr_equals__  (mrmailbox_t*, uint32_t contact_id
 void         mr_normalize_name                (char* full_name);
 char*        mr_get_first_name                (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
 char*        mr_get_headerlike_name           (const char* addr, const char* name);
+void         mr_parse_headerlike_name         (const char* in, char** addr, char** name);
 
 #ifdef __cplusplus
 } /* /extern "C" */

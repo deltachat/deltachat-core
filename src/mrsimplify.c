@@ -106,6 +106,8 @@ void mrsimplify_unref(mrsimplify_t* ths)
 		return;
 	}
 
+	free(ths->m_fwdemail);
+	free(ths->m_fwdname);
 	free(ths);
 }
 
@@ -159,6 +161,20 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 		{
 			l_last = l - 1; /* if l_last is -1, there are no lines */
 			break; /* done */
+		}
+	}
+
+	/* check for "forwarding header" */
+	if( (l_last-l_first+1) >= 3 ) {
+		char* line0 = (char*)carray_get(lines, l_first);
+		char* line1 = (char*)carray_get(lines, l_first+1);
+		char* line2 = (char*)carray_get(lines, l_first+2);
+		if( strcmp(line0, "---------- Forwarded message ----------")==0
+		 && strncmp(line1, "From: ", 6)==0
+		 && line2[0] == 0 )
+		{
+            mr_parse_headerlike_name(&line1[6], &ths->m_fwdemail, &ths->m_fwdname);
+            l_first += 3;
 		}
 	}
 

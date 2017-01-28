@@ -1254,7 +1254,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		if( afwd_email ) {
 			char* afwd_name = mrparam_get(msg->m_param, 'A', NULL);
 				char* nameNAddr = mr_get_headerlike_name(afwd_email, afwd_name);
-					fwdhint = mr_mprintf("---------- Forwarded message ----------\nFrom: %s\n\n", nameNAddr);
+					fwdhint = mr_mprintf("---------- Forwarded message ----------\nFrom: %s\n\n", nameNAddr); /* no not chage this! expected this way in the simplifier to detect forwarding! */
 				free(nameNAddr);
 			free(afwd_name);
 		}
