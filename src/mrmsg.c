@@ -530,7 +530,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 	mrmsg_t*     msg = mrmsg_new();
 	mrchat_t*    chat = mrchat_new(mailbox);
 	mrcontact_t* contact = mrcontact_new();
-	int          success = 0, locked = 0, i;
+	int          success = 0, locked = 0, transaction_pending = 0, i;
 	carray*      created_db_entries = carray_new(16);
 
 	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
@@ -539,6 +539,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
+	mrsqlite3_begin_transaction__(mailbox->m_sql);
+	transaction_pending = 1;
 
 		if( !mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
@@ -546,54 +548,50 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			if( locked == 0 ) {
-			 mrsqlite3_lock(mailbox->m_sql);
-			 locked = 1;
+			if( !mrmsg_load_from_db__(msg, mailbox->m_sql, msg_ids[i]) ) {
+				goto cleanup;
 			}
 
-				if( !mrmsg_load_from_db__(msg, mailbox->m_sql, msg_ids[i]) ) {
+			if( mrparam_exists(msg->m_param, 'a') ) {
+				/* forwarding already forwarded mails: keep the original name and mail */
+				;
+			}
+			else if( msg->m_from_id == MR_CONTACT_ID_SELF ) {
+				/* forwarding our own mails: also show the forward state in this case - the mail may be address to another person and
+				without the forwarding hint it may look strange.  Moreover, when forwarding a list of mails, it may feel like an
+				error if the forwarding-headline is missing for some mails.  KISS. */
+				char* addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+				char* name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
+					mrparam_set(msg->m_param, 'a', addr);
+					if( name ) {
+						mrparam_set(msg->m_param, 'A', name);
+					}
+				free(name);
+				free(addr);
+			}
+			else {
+				/* forward mails received from other persons: add the original author */
+				if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
 					goto cleanup;
 				}
-
-				if( mrparam_exists(msg->m_param, 'a') ) {
-					/* forwarding already forwarded mails: keep the original name and mail */
-					;
+				mrparam_set(msg->m_param, 'a', contact->m_addr);
+				if( contact->m_name ) {
+					mrparam_set(msg->m_param, 'A', contact->m_name);
 				}
-				else if( msg->m_from_id == MR_CONTACT_ID_SELF ) {
-					/* forwarding our own mails: also show the forward state in this case - the mail may be address to another person and
-					without the forwarding hint it may look strange.  Moreover, when forwarding a list of mails, it may feel like an
-					error if the forwarding-headline is missing for some mails.  KISS. */
-					char* addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-					char* name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
-						mrparam_set(msg->m_param, 'a', addr);
-						if( name ) {
-							mrparam_set(msg->m_param, 'A', name);
-						}
-					free(name);
-					free(addr);
-				}
-				else {
-					/* forward mails received from other persons: add the original author */
-					if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
-						goto cleanup;
-					}
-					mrparam_set(msg->m_param, 'a', contact->m_addr);
-					if( contact->m_name ) {
-						mrparam_set(msg->m_param, 'A', contact->m_name);
-					}
-				}
+			}
 
-			mrsqlite3_unlock(mailbox->m_sql);
-			locked = 0;
-
-			uint32_t new_msg_id = mrchat_send_msg(chat, msg);
+			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, msg->m_bytes);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
 
+	mrsqlite3_commit__(mailbox->m_sql);
+	transaction_pending = 0;
+
 	success = 1;
 
 cleanup:
+	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( created_db_entries ) {
 		size_t i, icnt = carray_count(created_db_entries);

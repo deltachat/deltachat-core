@@ -1507,25 +1507,84 @@ cleanup:
 }
 
 
-uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
+uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, size_t bytes)
 {
 	time_t        timestamp = time(NULL);
-	char*         text = NULL;
-	mrparam_t*    param = mrparam_new();
-	size_t        bytes = 0;
-	uint32_t      msg_id = 0, to_id = 0;
 	char*         rfc724_mid = NULL;
-	int           locked = 0, transaction_pending = 0;
 	sqlite3_stmt* stmt;
+	uint32_t      msg_id = 0, to_id = 0;
+
+	if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF)==1 ) {
+		ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+		goto cleanup;
+	}
+
+	{
+		char* from = mrsqlite3_get_config__(ths->m_mailbox->m_sql, "configured_addr", NULL);
+		if( from == NULL ) { goto cleanup; }
+			rfc724_mid = mr_create_outgoing_rfc724_mid(ths->m_type==MR_CHAT_GROUP? ths->m_grpid : NULL, from);
+		free(from);
+	}
+
+	if( ths->m_type == MR_CHAT_NORMAL )
+	{
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
+		sqlite3_bind_int(stmt, 1, ths->m_id);
+		if( sqlite3_step(stmt) != SQLITE_ROW ) {
+			goto cleanup;
+		}
+		to_id = sqlite3_column_int(stmt, 0);
+	}
+	else if( ths->m_type == MR_CHAT_GROUP )
+	{
+		if( mrparam_get_int(ths->m_param, 'U', 0)==1 ) {
+			/* mark group as being no longer 'U'npromoted */
+			mrparam_set(ths->m_param, 'U', NULL);
+			mrchat_update_param__(ths);
+		}
+	}
+
+	/* add message to the database */
+	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,
+		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
+	sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt,  2, MR_CHAT_ID_MSGS_IN_CREATION);
+	sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SELF);
+	sqlite3_bind_int  (stmt,  4, to_id);
+	sqlite3_bind_int64(stmt,  5, timestamp);
+	sqlite3_bind_int  (stmt,  6, msg->m_type);
+	sqlite3_bind_int  (stmt,  7, MR_OUT_PENDING);
+	sqlite3_bind_text (stmt,  8, (msg->m_type==MR_MSG_TEXT&&msg->m_text)? msg->m_text : "",  -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 10, bytes);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto cleanup;
+	}
+
+	msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
+
+	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
+	mrmailbox_update_msg_chat_id__(ths->m_mailbox, msg_id, ths->m_id);
+	mrjob_add__(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
+
+cleanup:
+	free(rfc724_mid);
+	return msg_id;
+}
+
+
+uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
+{
+	size_t        bytes = 0;
+	uint32_t      msg_id = 0;
 
 	if( ths == NULL || msg == NULL || ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	mrparam_set_packed(param, msg->m_param->m_packed);
-
 	if( msg->m_type == MR_MSG_TEXT ) {
-		text = safe_strdup(msg->m_text); /* the caller should check if the message text is empty */
+		; /* the caller should check if the message text is empty */
 	}
 	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
@@ -1551,80 +1610,14 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
-	locked = 1;
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
-	transaction_pending = 1;
 
-		if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF)==1 ) {
-			ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
-			goto cleanup;
-		}
-
-		{
-			char* from = mrsqlite3_get_config__(ths->m_mailbox->m_sql, "configured_addr", NULL);
-			if( from == NULL ) { goto cleanup; }
-				rfc724_mid = mr_create_outgoing_rfc724_mid(ths->m_type==MR_CHAT_GROUP? ths->m_grpid : NULL, from);
-			free(from);
-		}
-
-		if( ths->m_type == MR_CHAT_NORMAL )
-		{
-			stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
-				"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
-			sqlite3_bind_int(stmt, 1, ths->m_id);
-			if( sqlite3_step(stmt) != SQLITE_ROW ) {
-				goto cleanup;
-			}
-			to_id = sqlite3_column_int(stmt, 0);
-		}
-		else if( ths->m_type == MR_CHAT_GROUP )
-		{
-			if( mrparam_get_int(ths->m_param, 'U', 0)==1 ) {
-				/* mark group as being no longer 'U'npromoted */
-				mrparam_set(ths->m_param, 'U', NULL);
-				mrchat_update_param__(ths);
-			}
-		}
-
-		/* add message to the database */
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,
-			"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
-		sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (stmt,  2, MR_CHAT_ID_MSGS_IN_CREATION);
-		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SELF);
-		sqlite3_bind_int  (stmt,  4, to_id);
-		sqlite3_bind_int64(stmt,  5, timestamp);
-		sqlite3_bind_int  (stmt,  6, msg->m_type);
-		sqlite3_bind_int  (stmt,  7, MR_OUT_PENDING);
-		sqlite3_bind_text (stmt,  8, text? text : "",  -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt,  9, param->m_packed, -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 10, bytes);
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			goto cleanup;
-		}
-
-		msg_id = sqlite3_last_insert_rowid(ths->m_mailbox->m_sql->m_cobj);
-
-		/* finalize message object on database, we set the chat ID late as we don't know it sooner */
-		mrmailbox_update_msg_chat_id__(ths->m_mailbox, msg_id, ths->m_id);
-		mrjob_add__(ths->m_mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
+		msg_id = mrchat_send_msg__(ths, msg, bytes);
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
-	transaction_pending = 0;
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
-	locked = 0;
 
-	/* done */
 cleanup:
-	if( transaction_pending ) {
-		mrsqlite3_rollback__(ths->m_mailbox->m_sql);
-	}
-	if( locked ) {
-		mrsqlite3_unlock(ths->m_mailbox->m_sql);
-	}
-	free(text);
-	free(rfc724_mid);
-	mrparam_unref(param);
 	return msg_id;
 }
 
