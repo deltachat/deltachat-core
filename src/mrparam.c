@@ -129,6 +129,17 @@ void mrparam_set_packed(mrparam_t* ths, const char* packed)
 }
 
 
+int mrparam_exists(mrparam_t* ths, int key)
+{
+	char *p2;
+
+	if( ths == NULL || key == 0 ) {
+		return 0;
+	}
+
+	return find_param(ths->m_packed, key, &p2)? 1 : 0;
+}
+
 char* mrparam_get(mrparam_t* ths, int key, const char* def)
 {
 	char *p1, *p2, bak, *ret;
