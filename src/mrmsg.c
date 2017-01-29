@@ -299,7 +299,7 @@ cleanup:
 
 char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
-	char*         ret = NULL;
+	char*         ret = NULL, *rawtxt = NULL, *timestr = NULL, *file = NULL, *metadata = NULL;
 	int           locked = 0;
 	sqlite3_stmt* stmt;
 	mrmsg_t*      msg = mrmsg_new();
@@ -318,39 +318,36 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			"SELECT txt_raw FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
+			ret = mr_mprintf("Cannot load message #%i.", (int)msg_id);
 			goto cleanup;
 		}
 
-		{
-			char* txt = (char*)sqlite3_column_text(stmt, 0);
-			if( txt && txt[0] ) {
-				ret = safe_strdup(txt);
-			}
-			else {
-				ret = safe_strdup("No text.");
-			}
-		}
+		rawtxt = safe_strdup((char*)sqlite3_column_text(stmt, 0));
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	{
-		char* file = mrparam_get(msg->m_param, 'f', NULL);
-		if( file || msg->m_bytes ) {
-			char* txt = ret;
-				ret = mr_mprintf("%s\n\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms", txt, file? file : "",
-					(int)msg->m_bytes,
-					mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0));
-			free(txt);
-		}
-		free(file);
+	timestr = mr_timestamp_to_str(msg->m_timestamp);
+
+	file = mrparam_get(msg->m_param, 'f', NULL);
+	if( file || msg->m_bytes ) {
+		metadata = mr_mprintf("\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms", file? file : "",
+			(int)msg->m_bytes,
+			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0));
 	}
 
+	ret = mr_mprintf("Date: %s%s\n\n%s",
+		timestr,
+		metadata? metadata : "",
+		rawtxt);
+
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
+	free(timestr);
+	free(rawtxt);
+	free(file);
+	free(metadata);
 	return ret? ret : safe_strdup(NULL);
 }
 
@@ -539,7 +536,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 		goto cleanup;
 	}
 
-	//mr_set_timestretching_hint(msg_cnt);
+	//mr_set_timesmearing_hint(msg_cnt);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
