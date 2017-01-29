@@ -525,15 +525,17 @@ int mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt
 }
 
 
-int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
+int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorted, int msg_cnt, uint32_t chat_id)
 {
-	mrmsg_t*     msg = mrmsg_new();
-	mrchat_t*    chat = mrchat_new(mailbox);
-	mrcontact_t* contact = mrcontact_new();
-	int          success = 0, locked = 0, transaction_pending = 0, i;
-	carray*      created_db_entries = carray_new(16);
+	mrmsg_t*      msg = mrmsg_new();
+	mrchat_t*     chat = mrchat_new(mailbox);
+	mrcontact_t*  contact = mrcontact_new();
+	int           success = 0, locked = 0, transaction_pending = 0;
+	carray*       created_db_entries = carray_new(16);
+	char*         idsstr = NULL, *q3 = NULL;
+	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || msg_ids_unsorted==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -546,9 +548,13 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 			goto cleanup;
 		}
 
-		for( i = 0; i < msg_cnt; i++ )
+		idsstr = mr_arr_to_string(msg_ids_unsorted, msg_cnt);
+		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
-			if( !mrmsg_load_from_db__(msg, mailbox->m_sql, msg_ids[i]) ) {
+			int src_msg_id = sqlite3_column_int(stmt, 0);
+			if( !mrmsg_load_from_db__(msg, mailbox->m_sql, src_msg_id) ) {
 				goto cleanup;
 			}
 
@@ -603,6 +609,9 @@ cleanup:
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(idsstr);
+	if( q3 ) { sqlite3_free(q3); }
 	return success;
 }
 
