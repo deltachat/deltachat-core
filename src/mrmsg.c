@@ -539,6 +539,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 		goto cleanup;
 	}
 
+	//mr_set_timestretching_hint(msg_cnt);
+
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
