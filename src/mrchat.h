@@ -77,7 +77,7 @@ uint32_t      mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save 
 
 /*** library-private **********************************************************/
 
-uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, size_t bytes);
+uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, time_t, size_t bytes);
 int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);
 size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
 uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);

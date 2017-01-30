@@ -585,7 +585,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				}
 			}
 
-			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, msg->m_bytes);
+			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, time(NULL), msg->m_bytes);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}

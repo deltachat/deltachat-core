@@ -1489,9 +1489,8 @@ cleanup:
 }
 
 
-uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, size_t bytes)
+uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp, size_t bytes)
 {
-	time_t        timestamp = time(NULL);
 	char*         rfc724_mid = NULL;
 	sqlite3_stmt* stmt;
 	uint32_t      msg_id = 0, to_id = 0;
@@ -1594,7 +1593,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
 
-		msg_id = mrchat_send_msg__(ths, msg, bytes);
+		msg_id = mrchat_send_msg__(ths, msg, time(NULL), bytes);
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
