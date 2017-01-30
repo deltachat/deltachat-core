@@ -531,12 +531,11 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 	carray*       created_db_entries = carray_new(16);
 	char*         idsstr = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt = NULL;
+	time_t        curr_timestamp;
 
 	if( mailbox == NULL || msg_ids_unsorted==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
-
-	//mr_set_timesmearing_hint(msg_cnt);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -546,6 +545,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 		if( !mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;
 		}
+
+		curr_timestamp = mr_get_smeared_timestamps__(msg_cnt);
 
 		idsstr = mr_arr_to_string(msg_ids_unsorted, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);
@@ -585,7 +586,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				}
 			}
 
-			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, time(NULL), msg->m_bytes);
+			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, curr_timestamp++, msg->m_bytes);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}

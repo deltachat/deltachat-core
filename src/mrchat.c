@@ -1593,7 +1593,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
 
-		msg_id = mrchat_send_msg__(ths, msg, time(NULL), bytes);
+		msg_id = mrchat_send_msg__(ths, msg, mr_get_smeared_timestamp__(), bytes);
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);

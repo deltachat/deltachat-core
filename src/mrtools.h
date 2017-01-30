@@ -65,8 +65,9 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time (time_t);
 long                       mr_gm2local_offset                 ();
 
 /* timesmearing */
-void   mr_set_timesmearing_hint (int number_of_messages_to_send);
-time_t mr_get_smeared_timestamp ();
+#define MR_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
+time_t mr_get_smeared_timestamp__ ();
+time_t mr_get_smeared_timestamps__(int count);
 
 /* generate Message-IDs */
 #define MR_VALID_ID_LEN 11

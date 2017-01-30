@@ -1061,6 +1061,34 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
 }
 
 
+static time_t s_last_smeared_timestamp = 0;
+time_t mr_get_smeared_timestamp__()
+{
+	time_t now = time(NULL);
+	time_t ret = now;
+	if( ret <= s_last_smeared_timestamp ) {
+		ret = s_last_smeared_timestamp+1;
+		if( (ret-now) > MR_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
+			ret = now + MR_MAX_SECONDS_TO_LEND_FROM_FUTURE;
+		}
+	}
+	s_last_smeared_timestamp = ret;
+	return ret;
+}
+
+
+time_t mr_get_smeared_timestamps__(int count)
+{
+	/* get a range to timestamps that can be used uniquely */
+	time_t now = time(NULL);
+	time_t start = now + MR_MIN(count, MR_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
+	start = MR_MAX(s_last_smeared_timestamp+1, start);
+
+	s_last_smeared_timestamp = start+(count-1);
+	return start;
+}
+
+
 /*******************************************************************************
  * generate Message-IDs
  ******************************************************************************/
