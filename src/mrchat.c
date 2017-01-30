@@ -1211,9 +1211,9 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		}
 
 		char* subject = get_subject(chat, msg, afwd_email);
-		imf_fields = mailimf_fields_new_with_data(from,
+		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(msg->m_timestamp), from,
 			NULL /* sender */, NULL /* reply-to */,
-			to, NULL /* cc */, NULL /* bcc */, NULL /* in-reply-to */,
+			to, NULL /* cc */, NULL /* bcc */, safe_strdup(msg->m_rfc724_mid), NULL /* in-reply-to */,
 			NULL /* references */,
 			mr_encode_header_string(subject));
 		free(subject);
@@ -1285,24 +1285,6 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 
 	if( parts == 0 ) {
 		goto cleanup;
-	}
-
-	/* correct the Message-ID (libEtPan creates one himself, however, we cannot use this as smtp and imap are independent from each other and we may want to add an group identifier to the Message-ID) */
-	{
-		int found_and_set = 0;
-		clistiter* cur1;
-		for( cur1 = clist_begin(imf_fields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) ) {
-			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-			if( field && field->fld_type == MAILIMF_FIELD_MESSAGE_ID ) {
-				free(field->fld_data.fld_message_id->mid_value);
-				field->fld_data.fld_message_id->mid_value = safe_strdup(msg->m_rfc724_mid);
-				found_and_set = 1;
-				break;
-			}
-		}
-		if( !found_and_set ) {
-			mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_MESSAGE_ID, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, mailimf_message_id_new(strdup("my@foobar-1")), NULL, NULL, NULL, NULL, NULL, NULL));
-		}
 	}
 
 	/* create the full mail and return */
