@@ -1253,7 +1253,10 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	info = mr_mprintf(
 		"Messenger Backend %i.%i.%i - (C) Björn Petersen and contributors\n"
 		"\n"
-		"%i chats with %i messages, %i messages in mailbox, %i contacts\n"
+		"Chats: %i\n"
+		"Chat messages: %i\n"
+		"Messages in mailbox: %i\n"
+		"Contacts: %i\n"
 		"Database=%s, dbversion=%i, Blobdir=%s\n"
 		"\n"
 		"displayname=%s\n"
