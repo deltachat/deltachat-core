@@ -1495,7 +1495,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp, 
 	sqlite3_stmt* stmt;
 	uint32_t      msg_id = 0, to_id = 0;
 
-	if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF)==1 ) {
+	if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF) ) {
 		ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
 		goto cleanup;
 	}
