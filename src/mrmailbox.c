@@ -849,6 +849,10 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 	mrjob_init_thread(ths);
 
+	if( s_localize_mb_obj==NULL ) {
+		s_localize_mb_obj = ths;
+	}
+
 	return ths;
 }
 
@@ -867,6 +871,10 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	mrsmtp_unref(ths->m_smtp);
 	mrsqlite3_unref(ths->m_sql);
 	free(ths);
+
+	if( s_localize_mb_obj==ths ) {
+		s_localize_mb_obj = NULL;
+	}
 }
 
 

@@ -83,6 +83,10 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONNECTION_STATE_CHANGED 2040 /* connection state changed, data1=connected/disconnected */
 #define MR_EVENT_REPORT                   2050 /* report an issue, data1=MR_REPORT_* */
 
+/* Functions that should be provided by the frontends */
+#define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
+#define MR_EVENT_GET_QUANTITY_STRING      2092 /* get a string from the frontend, data1=MR_STR_*, data2=quantity, ret=string which will free()'d by the backend */
+
 
 /* Reports */
 #define MR_REPORT_ERR_SELF_NOT_IN_GROUP  1

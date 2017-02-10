@@ -56,7 +56,15 @@ static char* read_cmd(void)
 
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
-	printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+	switch( event ) {
+		case MR_EVENT_GET_STRING:
+		case MR_EVENT_GET_QUANTITY_STRING:
+			break; /* do not show the event as this would fill the screen */
+
+		default:
+			printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+			break;
+	}
 	return 0;
 }
 
@@ -109,7 +117,6 @@ int main(int argc, char ** argv)
 	mrmailbox_close(mailbox);
 	mrmailbox_unref(mailbox);
 	mailbox = NULL;
-	mrstock_exit();
 	return 0;
 }
 

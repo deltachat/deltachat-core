@@ -31,100 +31,50 @@
 #include "mrtools.h"
 
 
-/*******************************************************************************
- * Tools
- ******************************************************************************/
-
-
-static char** s_obj = NULL;
-static int    s_def_strings_added = 0;
-
-
-static void mrstock_init_array()
-{
-	if( s_obj ) {
-		return; /* already initialized*/
-	}
-
-	size_t bytes_needed = sizeof(char*) * MR_STR_COUNT_;
-	if( (s_obj=calloc(1, bytes_needed)) == NULL ) {
-		exit(13); /* cannot allocate little memory, unrecoverable error */
-	}
-    s_def_strings_added = 0;
-}
-
 
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
 
 
-void mrstock_exit(void)
+mrmailbox_t* s_localize_mb_obj = NULL;
+
+
+static char* default_string(int id, int qty)
 {
-	if( s_obj ) {
-		size_t i;
-		for( i = 0; i < MR_STR_COUNT_; i++ ) {
-			if( s_obj[i] ) {
-				free(s_obj[i]);
-			}
-		}
-		free(s_obj);
-		s_obj = NULL;
+	switch( id ) {
+		case MR_STR_NO_MESSAGES:   return safe_strdup("No messages.");
+		case MR_STR_SELF:          return safe_strdup("Me");
+		case MR_STR_DRAFT:         return safe_strdup("Draft");
+		case MR_STR_MEMBER:        return mr_mprintf("%i member(s)", qty);
+		case MR_STR_CONTACT:       return mr_mprintf("%i contact(s)", qty);
+		case MR_STR_DEADDROP:      return safe_strdup("Mailbox");
+		case MR_STR_IMAGE:         return safe_strdup("Image");
+		case MR_STR_VIDEO:         return safe_strdup("Video");
+		case MR_STR_AUDIO:         return safe_strdup("Voice message");
+		case MR_STR_FILE:          return safe_strdup("File");
+		case MR_STR_STATUSLINE:    return safe_strdup("Sent with my Delta Chat Messenger");
+		case MR_STR_NEWGROUPDRAFT: return safe_strdup("Hello, I've just created the group \"##\" for us.");
+		case MR_STR_MSGGRPNAME:    return safe_strdup("Group name changed from \"##\" to \"##\".");
+		case MR_STR_MSGGRPIMAGE:   return safe_strdup("Group image changed.");
+		case MR_STR_MSGADDMEMBER:  return safe_strdup("Member ## added.");
+		case MR_STR_MSGDELMEMBER:  return safe_strdup("Member ## removed.");
+		case MR_STR_MSGGROUPLEFT:  return safe_strdup("Group left.");
 	}
-	s_def_strings_added = 0;
-}
-
-
-void mrstock_add_str(int id, const char* str)
-{
-	if( id < 0 || id >= MR_STR_COUNT_ || str == NULL ) {
-		return;
-	}
-
-	mrstock_init_array();
-
-	if( s_obj[id] ) {
-		free(s_obj[id]);
-	}
-
-	s_obj[id] = strdup(str);
+	return safe_strdup("ErrStr");
 }
 
 
 char* mrstock_str(int id) /* get the string with the given ID, the result must be free()'d! */
 {
-	/* init array */
-	mrstock_init_array();
-
-	if( id < 0 || id >= MR_STR_COUNT_ ) {
-		return safe_strdup("StockRangeErr");
+	char* ret = NULL;
+	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
+		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, MR_EVENT_GET_STRING, id, 0);
 	}
-
-	if( s_obj[id] == NULL && !s_def_strings_added ) {
-		/* init strings */
-		s_def_strings_added = 1;
-		mrstock_add_str(MR_STR_NO_MESSAGES,  "No messages.");
-		mrstock_add_str(MR_STR_SELF,         "Me");
-		mrstock_add_str(MR_STR_DRAFT,        "Draft");
-		mrstock_add_str(MR_STR_MEMBER,       "## member");
-		mrstock_add_str(MR_STR_MEMBERS,      "## members");
-		mrstock_add_str(MR_STR_CONTACT,      "## contact");
-		mrstock_add_str(MR_STR_CONTACTS,     "## contacts");
-		mrstock_add_str(MR_STR_DEADDROP,     "Mailbox");
-		mrstock_add_str(MR_STR_IMAGE,        "Image");
-		mrstock_add_str(MR_STR_VIDEO,        "Video");
-		mrstock_add_str(MR_STR_AUDIO,        "Voice message");
-		mrstock_add_str(MR_STR_FILE,         "File");
-		mrstock_add_str(MR_STR_STATUSLINE,   "Sent with my Delta Chat Messenger");
-		mrstock_add_str(MR_STR_NEWGROUPDRAFT,"Hello, I've just created the group \"##\" for us.");
-		mrstock_add_str(MR_STR_MSGGRPNAME,   "Group name changed from \"##\" to \"##\".");
-		mrstock_add_str(MR_STR_MSGGRPIMAGE,  "Group image changed.");
-		mrstock_add_str(MR_STR_MSGADDMEMBER, "Member ## added.");
-		mrstock_add_str(MR_STR_MSGDELMEMBER, "Member ## removed.");
-		mrstock_add_str(MR_STR_MSGGROUPLEFT, "Group left.");
+	if( ret == NULL ) {
+		ret = default_string(id, 0);
 	}
-
-	return safe_strdup(s_obj[id]? s_obj[id] : "StockMissing");
+	return ret;
 }
 
 
@@ -159,24 +109,14 @@ char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_ins
 }
 
 
-char* mrstock_str_repl_number(int id, int cnt)
-{
-	char* p1 = mrstock_str(id);
-	char* p2 = strstr(p1, "##"), *ret;
-	if( p2==NULL ) { return p1; }
-	*p2 = 0;
-	p2 += 2;
-	ret = mr_mprintf("%s%i%s", p1, cnt, p2);
-	free(p1);
-	return ret;
-}
-
-
 char* mrstock_str_repl_pl(int id, int cnt)
 {
-	if( cnt != 1 ) {
-		id++; /* the provided ID should be singular, plural is plus one. */
+	char* ret = NULL;
+	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
+		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, MR_EVENT_GET_QUANTITY_STRING, id, cnt);
 	}
-
-	return mrstock_str_repl_number(id, cnt);
+	if( ret == NULL ) {
+		ret = default_string(id, cnt);
+	}
+	return ret;
 }

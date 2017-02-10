@@ -37,9 +37,7 @@ extern "C" {
 #define MR_STR_SELF             2
 #define MR_STR_DRAFT            3
 #define MR_STR_MEMBER           4
-#define MR_STR_MEMBERS          5 /* must be MR_STR_MEMBERS+1 */
 #define MR_STR_CONTACT          6
-#define MR_STR_CONTACTS         7 /* must be MR_STR_CONTACT+1 */
 #define MR_STR_DEADDROP         8
 #define MR_STR_IMAGE            9
 #define MR_STR_VIDEO            10
@@ -52,47 +50,32 @@ extern "C" {
 #define MR_STR_MSGADDMEMBER     17
 #define MR_STR_MSGDELMEMBER     18
 #define MR_STR_MSGGROUPLEFT     19
-#define MR_STR_COUNT_           20
-
-
-/* mrstock_set_str() adds a string to the repository. A copy of the given string
-is made. Usually, this is used to pass translated strings to the backend. */
-void         mrstock_add_str (int id, const char*);
-
-
-/* frees all strings allocated by mrstock_set_str().  Usually, there is no need
-to call this function - when the program terminates, usually all strings are
-free automatically.  However, this function may be handy if you watch the memory
-for leaks using some special tools. */
-void         mrstock_exit    (void);
 
 
 /*** library-private **********************************************************/
 
-/* Teturn the string with the given ID.
+
+/* should be set up by mrmailbox_new() */
+extern mrmailbox_t* s_localize_mb_obj;
+
+
+/* Return the string with the given ID by calling MR_EVENT_GET_STRING.
 The result must be free()'d! */
 char* mrstock_str (int id);
 
 
-/* Replaces the first `_` in the given String-ID by the given string.
+/* Replaces the first `##` in the given String-ID by the given string.
 The result must be free()'d! */
 char* mrstock_str_repl_string (int id, const char*);
 
 
-/* Replaces the first two `_` in the given String-ID by the given strings.
+/* Replaces the first two `##` in the given String-ID by the given strings.
 The result must be free()'d! */
 char* mrstock_str_repl_string2 (int id, const char*, const char*);
 
 
-/* Replaces the first `_` in the given String-ID by the given number.
+/* Return a string with a correct plural form by callint MR_EVENT_GET_QUANTITY_STRING.
 The result must be free()'d! */
-char* mrstock_str_repl_number (int id, int number);
-
-
-/* Replaces the first `_` in the given String-ID by the given number.
-The result must be free()'d!
-For cnt==1, the function uses the given ID (singular string), for all other
-values of cnt, the function uses id+1 (should be a plural string, then) */
 char* mrstock_str_repl_pl (int id, int cnt);
 
 
