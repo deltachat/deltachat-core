@@ -78,21 +78,21 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 }
 
 
-static char* repl_string(char* p1 /*string will be modified!*/, const char* to_insert)
+static char* repl_string(char* haystack /*string will be modified!*/, const char* needle, const char* replacement)
 {
 	/* replace `##` by given string, the input string will be modified, the result must be free()'d */
-	char* p2 = strstr(p1, "##");
-	if( p2==NULL ) { return strdup(p1); }
+	char* p2 = strstr(haystack, needle);
+	if( p2==NULL ) { return strdup(haystack); }
 	*p2 = 0;
-	p2 += 2;
-	return mr_mprintf("%s%s%s", p1, to_insert? to_insert : "", p2);
+	p2 += strlen(needle);
+	return mr_mprintf("%s%s%s", haystack, replacement? replacement : "", p2);
 }
 
 
 char* mrstock_str_repl_string(int id, const char* to_insert)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = repl_string(p1, to_insert);
+	char* p2 = repl_string(p1, "%1$s", to_insert);
 	free(p1);
 	return p2;
 }
@@ -101,9 +101,9 @@ char* mrstock_str_repl_string(int id, const char* to_insert)
 char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_insert2)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = repl_string(p1, to_insert);
+	char* p2 = repl_string(p1, "%1$s", to_insert);
 	free(p1);
-	p1 = repl_string(p2, to_insert2);
+	p1 = repl_string(p2, "%2$s", to_insert2);
 	free(p2);
 	return p1;
 }
