@@ -27,9 +27,8 @@ Some features at a glance
 Download
 --------------------------------------------------------------------------------
 
-Currently, the project is in alpha state under heavy development.  If you are 
-interesing in a working **Android version**, please contact me at 
-_r10s at b44t dotcom_. 
+Currently, the project is in alpha state under heavy development.  A working
+**Android version** is available eg. on F-Droid or at https://getdelta.org .
 
 The source code for the Android version is available at
 https://github.com/r10s/messenger-android .
