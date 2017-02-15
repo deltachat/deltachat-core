@@ -196,7 +196,8 @@ static clist* list_folders__(mrimap_t* ths)
 	else {
 		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_list);
 	}
-	if( is_error(ths, r) ) {
+	if( is_error(ths, r) || imap_list==NULL ) {
+		imap_list = NULL;
 		mrlog_error("Cannot get folder list.");
 		goto cleanup;
 	}
@@ -295,6 +296,13 @@ static int init_chat_folders__(mrimap_t* ths)
 			chats_folder = safe_strdup(MR_CHATS_FOLDER);
 			mrlog_info("IMAP-folder created.");
 		}
+	}
+
+	/* Subscribe to the created folder.  Otherwise, although a top-level folder, if clients use LSUB for listing, the created folder may be hidden.
+	(we could also do this directly after creation, however, we forgot this in versions <v0.1.19 */
+	if( chats_folder && ths->m_get_config_int(ths, "imap.subscribedToChats", 0)==0 ) {
+		mailimap_subscribe(ths->m_hEtpan, chats_folder);
+		ths->m_set_config_int(ths, "imap.subscribedToChats", 1);
 	}
 
 	if( chats_folder ) {
