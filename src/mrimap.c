@@ -464,7 +464,8 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 
 	UNLOCK_HANDLE
 
-	if( is_error(ths, r) ) {
+	if( is_error(ths, r) || fetch_result == NULL ) {
+		fetch_result = NULL;
 		mrlog_error("Error #%i on fetching message #%i from folder \"%s\"; retry=%i.", (int)r, (int)server_uid, folder, (int)ths->m_should_reconnect);
 		if( ths->m_should_reconnect ) {
 			retry_later = 1; /* maybe we should also retry on other errors, however, we should check this carefully, as this may result in a dead lock! */
@@ -592,6 +593,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 
 	if( is_error(ths, r) || fetch_result == NULL )
 	{
+		fetch_result = NULL;
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
@@ -1158,20 +1160,17 @@ static void* restore_thread_entry_point(void* entry_arg)
 		UNBLOCK_IDLE
 		UNLOCK_HANDLE
 
-		if( fetch_result != NULL )
+		if( !is_error(ths, r) && fetch_result != NULL )
 		{
-			if( !is_error(ths, r) )
+			for( fetch_iter = clist_begin(fetch_result); fetch_iter != NULL ; fetch_iter = clist_next(fetch_iter) )
 			{
-				for( fetch_iter = clist_begin(fetch_result); fetch_iter != NULL ; fetch_iter = clist_next(fetch_iter) )
-				{
-					CHECK_EXIT
+				CHECK_EXIT
 
-					struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(fetch_iter); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
-					uint32_t cur_uid = peek_uid(msg_att);
-					if( cur_uid )
-					{
-						fetch_single_msg(ths, folder->m_name_to_select, cur_uid, 1);
-					}
+				struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(fetch_iter); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
+				uint32_t cur_uid = peek_uid(msg_att);
+				if( cur_uid )
+				{
+					fetch_single_msg(ths, folder->m_name_to_select, cur_uid, 1);
 				}
 			}
 
