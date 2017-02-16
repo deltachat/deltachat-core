@@ -153,7 +153,7 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 		{
 			ret_meaning = MEANING_IGNORE;
 		}
-		else if( strcmp(lower, "inbox") == 0 ) /* the "INBOX" foldername is IMAP-standard, AFAIK */
+		else if( strcmp(lower, "inbox") == 0 ) /* the "INBOX" foldername is IMAP-standard */
 		{
 			ret_meaning = MEANING_INBOX;
 		}
@@ -206,12 +206,23 @@ static clist* list_folders__(mrimap_t* ths)
 	{
 		struct mailimap_mailbox_list* imap_folder = (struct mailimap_mailbox_list*)clist_content(iter1);
 		mrimapfolder_t* ret_folder = calloc(1, sizeof(mrimapfolder_t));
-		ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
+
+		if( strcasecmp(imap_folder->mb_name, "INBOX")==0 ) {
+			/* Force upper case INBOX as we also use it directly this way; a unified name is needed as we use the folder name to remember the last uid.
+			Servers may return any case, however, all variants MUST lead to the same INBOX, see RFC 3501 5.1 */
+			ret_folder->m_name_to_select = safe_strdup("INBOX");
+		}
+		else {
+			ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
+		}
+
 		ret_folder->m_name_utf8      = imap_modified_utf7_to_utf8(imap_folder->mb_name, 0);
 		ret_folder->m_meaning        = get_folder_meaning(ths, imap_folder->mb_flag, ret_folder->m_name_utf8, false);
+
 		if( ret_folder->m_meaning != MEANING_NORMAL ) {
 			xlist_works = 1;
 		}
+
 		clist_append(ret_list, (void*)ret_folder);
 	}
 
