@@ -721,7 +721,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 		 **********************************************************************/
 
 		int      r, r2;
-		uint32_t uidvaliditiy;
+		uint32_t uidvalidity;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
 		last_fullread_time = time(NULL);
@@ -737,7 +737,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 				do_fetch = 0;
 				force_sleep = SLEEP_ON_ERROR_SECONDS;
-				uidvaliditiy = 0;
+				uidvalidity = 0;
 
 				setup_handle_if_needed__(ths);
 				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
@@ -747,7 +747,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 				if( select_folder__(ths, "INBOX") )
 				{
-					uidvaliditiy = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
+					uidvalidity = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
 					r = mailimap_idle(ths->m_hEtpan);
 					if( !is_error(ths, r) )
 					{
@@ -804,7 +804,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 			}
 
 			if( do_fetch == 1 ) {
-				fetch_from_single_folder(ths, "INBOX", uidvaliditiy);
+				fetch_from_single_folder(ths, "INBOX", uidvalidity);
 			}
 			else if( do_fetch == 2 ) {
 				fetch_from_all_folders(ths);
