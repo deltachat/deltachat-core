@@ -546,11 +546,20 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 				(unsigned long)uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
 			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
 
-			struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
-				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
-			mailimap_set_free(set);
+			if( lastuid > 0 ) {
+				struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
+					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
+				mailimap_set_free(set);
+			}
+			else {
+				/* fall back to init behaviour below */
+				free(lastuid_config_key);
+				lastuid_config_key = NULL;
+				lastuid = 0;
+			}
 		}
-		else
+
+		if( lastuid == 0 )
 		{
 			if( select_folder__(ths, folder)==0 ) {
 				mrlog_error("Cannot select folder \"%s\".", folder);
