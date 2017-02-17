@@ -143,13 +143,14 @@ size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
 
 uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
                                            const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
-                                           const char*  addr,
+                                           const char*  addr__,
                                            int          origin,
                                            int*         sth_modified )
 {
 	sqlite3_stmt* stmt;
 	uint32_t      row_id = 0;
 	int           dummy;
+	char*         addr = NULL;
 
 	if( sth_modified == NULL ) {
 		sth_modified = &dummy;
@@ -157,15 +158,29 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	*sth_modified = 0;
 
-	if( mailbox == NULL || addr == NULL || origin <= 0 ) {
+	if( mailbox == NULL || addr__ == NULL || origin <= 0 ) {
 		return 0;
 	}
 
+	/* normalize the email-address:
+	- remove leading `mailto:` */
+	addr = safe_strdup(addr__);
+	mr_trim(addr);
+	if( strncmp(addr, "mailto:", 7)==0 ) {
+		char* old = addr;
+		addr = safe_strdup(&old[7]);
+		free(old);
+		mr_trim(addr);
+	}
+
+	/* rough check if email-address is valid */
 	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
 		mrlog_warning("Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
-		return 0;
+		goto cleanup;
 	}
 
+	/* insert email-address to database or modify the record with the given email-address.
+	we treat all email-addresses case-insensitive. */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
 		"SELECT id, name, addr, origin FROM contacts WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
@@ -237,7 +252,9 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 		}
 	}
 
-	return row_id; /*success*/
+cleanup:
+	free(addr);
+	return row_id;
 }
 
 
@@ -405,7 +422,6 @@ int mrmailbox_add_address_book(mrmailbox_t* ths, const char* adr_book) /* format
 			char* name = (char*)carray_get(lines, i);
 			char* addr = (char*)carray_get(lines, i+1);
 			mr_normalize_name(name);
-			mr_trim(addr);
 			mrmailbox_add_or_lookup_contact__(ths, name, addr, MR_ORIGIN_ADRESS_BOOK, &sth_modified);
 			if( sth_modified ) {
 				modify_cnt++;
