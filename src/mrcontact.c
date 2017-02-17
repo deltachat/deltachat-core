@@ -43,12 +43,25 @@
 void mr_normalize_name(char* full_name)
 {
 	/* function ...
+	- removes quotes (come from some bad MUA implementations)
 	- converts names as "Petersen, Björn" to "Björn Petersen"
 	- trims the resulting string
 	- modifies the given buffer; so the resulting string must not be longer than the original string. */
 
 	if( full_name == NULL ) {
 		return; /* error, however, this can be treated as documented behaviour */
+	}
+
+	mr_trim(full_name); /* remove spaces around possible quotes */
+	int len = strlen(full_name);
+	if( len > 0 ) {
+		char firstchar = full_name[0], lastchar = full_name[len-1];
+		if( (firstchar=='\'' && lastchar=='\'')
+		 || (firstchar=='"'  && lastchar=='"' )
+		 || (firstchar=='<'  && lastchar=='>' ) ) {
+			full_name[0]     = ' ';
+			full_name[len-1] = ' '; /* the string is trimmed later again */
+		}
 	}
 
 	char* p1 = strchr(full_name, ',');
