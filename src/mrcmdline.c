@@ -149,6 +149,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"\nMisc.:\n"
 			"event <event-id to text>\n"
 			"fileinfo <file>\n"
+			"killalljobs\n"
 			"clear -- clear screen\n" /* must be implemented by  the caller */
 			"exit" /* must be implemented by  the caller */
 		);
@@ -637,6 +638,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		else {
 			ret = safe_strdup("ERROR: Argument <file> missing.");
 		}
+	}
+	else if( strcmp(cmd, "killalljobs")==0 )
+	{
+		mrmailbox_kill_all_jobs(mailbox);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else
 	{

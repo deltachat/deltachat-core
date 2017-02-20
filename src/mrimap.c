@@ -1364,7 +1364,7 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 
 		INTERRUPT_IDLE
 
-		mrlog_info("Appending message IMAP-server...");
+		mrlog_info("Appending message to IMAP-server...");
 
 		if( !init_chat_folders__(ths) ) {
 			mrlog_error("Cannot find out IMAP-sent-folder.");

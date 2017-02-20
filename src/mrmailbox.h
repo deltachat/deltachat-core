@@ -238,6 +238,7 @@ int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all
 char*                mrmailbox_execute              (mrmailbox_t*, const char* cmd); /* execute a simple command; the returned result must be free()'d */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
+void                 mrmailbox_kill_all_jobs        (mrmailbox_t*); /* kill all pending jobs, pending messages are cancelled. */
 
 
 /*** library-private **********************************************************/
