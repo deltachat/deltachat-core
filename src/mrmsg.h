@@ -92,7 +92,7 @@ void          mrmsg_unref                  (mrmsg_t*); /* this also free()s all 
 void          mrmsg_empty                  (mrmsg_t*);
 mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
 char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
-char*         mrmsg_get_summarytext_by_raw (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
+char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
 
 
 /*** library-private **********************************************************/
@@ -109,6 +109,7 @@ void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, ui
 void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
+char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 
 #define      MR_GHOST_ID_FORMAT               "G@%lu"
 

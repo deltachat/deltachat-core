@@ -428,6 +428,27 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 }
 
 
+char* mrmsg_get_filename(mrmsg_t* msg)
+{
+	char* ret = NULL, *pathNfilename = NULL;
+
+	if( msg == NULL ) {
+		goto cleanup;
+	}
+
+	pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+	if( pathNfilename == NULL ) {
+		goto cleanup;
+	}
+
+	ret = mr_get_filename(pathNfilename);
+
+cleanup:
+	free(pathNfilename);
+	return ret? ret : safe_strdup(NULL);
+}
+
+
 /*******************************************************************************
  * Delete messages
  ******************************************************************************/
