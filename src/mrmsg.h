@@ -44,6 +44,7 @@ typedef struct mrchat_t mrchat_t;
 #define MR_MSG_TEXT        10
 #define MR_MSG_IMAGE       20 /* param: 'f'ile, 'w', 'h' */
 #define MR_MSG_AUDIO       40 /* param: 'f'ile, 'd'uration */
+#define MR_MSG_VOICE       41 /* param: 'f'ile, 'd'uration */
 #define MR_MSG_VIDEO       50 /* param: 'f'ile, 'w', 'h', 'd'uration */
 #define MR_MSG_FILE        60 /* param: 'f'ile */
 
@@ -91,7 +92,7 @@ void          mrmsg_unref                  (mrmsg_t*); /* this also free()s all 
 void          mrmsg_empty                  (mrmsg_t*);
 mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
 char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
-char*         mrmsg_get_summarytext_by_raw (int type, const char* text, int approx_bytes); /* the returned value must be free()'d */
+char*         mrmsg_get_summarytext_by_raw (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 
 
 /*** library-private **********************************************************/

@@ -84,7 +84,7 @@ int     mr_write_file              (const char* pathNfilename, const void* buf, 
 int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes);
 char*   mr_get_filesuffix          (const char* pathNfilename);
 int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
-char*   mr_get_random_filename     (const char* folder, const char* suffix);
+char*   mr_get_fine_filename       (const char* folder, const char* desired_name);
 
 /* macros */
 #define MR_INIT_REFERENCE \

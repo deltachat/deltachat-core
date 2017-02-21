@@ -48,10 +48,11 @@ static char* default_string(int id, int qty)
 		case MR_STR_DRAFT:         return safe_strdup("Draft");
 		case MR_STR_MEMBER:        return mr_mprintf("%i member(s)", qty);
 		case MR_STR_CONTACT:       return mr_mprintf("%i contact(s)", qty);
+		case MR_STR_VOICEMESSAGE:  return safe_strdup("Voice message");
 		case MR_STR_DEADDROP:      return safe_strdup("Mailbox");
 		case MR_STR_IMAGE:         return safe_strdup("Image");
 		case MR_STR_VIDEO:         return safe_strdup("Video");
-		case MR_STR_AUDIO:         return safe_strdup("Voice message");
+		case MR_STR_AUDIO:         return safe_strdup("Audio");
 		case MR_STR_FILE:          return safe_strdup("File");
 		case MR_STR_STATUSLINE:    return safe_strdup("Sent with my Delta Chat Messenger");
 		case MR_STR_NEWGROUPDRAFT: return safe_strdup("Hello, I've just created the group \"##\" for us.");

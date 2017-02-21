@@ -1249,7 +1249,7 @@ int mr_create_folder(const char* pathNfilename)
 char* mr_get_filesuffix(const char* pathNfilename)
 {
 	if( pathNfilename ) {
-		const char* p = strrchr(pathNfilename, '.');
+		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
 		if( p ) {
 			p++;
 			return safe_strdup(p);
@@ -1259,19 +1259,52 @@ char* mr_get_filesuffix(const char* pathNfilename)
 }
 
 
-char* mr_get_random_filename(const char* folder, const char* suffix)
+char* mr_get_fine_filename(const char* folder, const char* desired_filenameNsuffix)
 {
+	char*       ret = NULL, *basename = NULL, *dotNSuffix = NULL, *p1;
 	time_t      now = time(NULL);
 	struct stat st;
 	int         i;
-	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
-		char* test = mr_mprintf("%s/b-%lu-%i.%s", folder, (unsigned long)now, i, suffix);
-		if (stat(test, &st) == -1) {
-			return test; /* fine filename found */
+
+	/* remove some characters typically used in paths, not in filenames */
+	basename = safe_strdup(desired_filenameNsuffix);
+	p1 = basename;
+	while( *p1 ) {
+		if( *p1=='/' || *p1=='\\' || *p1==':' ) {
+			*p1 = '-';
 		}
-		free(test); /* try over with the nex index */
+		p1++;
 	}
-	return NULL;
+
+	/* split filename into basename and suffix */
+	p1 = strchr(basename, '.'); /* use the first point, `file.tar.gz` may become `file-1.tar.gz` then (may look ugly if there is a point in the filename, however, this is the smaller problem as a file named `file.tar-1` after unpacking) */
+	if( p1 ) {
+		dotNSuffix = safe_strdup(p1);
+		*p1 = 0;
+	}
+	else {
+		dotNSuffix = safe_strdup("");
+	}
+
+	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
+		if( i ) {
+			time_t idx = i<10? i : now+i;
+			ret = mr_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
+		}
+		else {
+			ret = mr_mprintf("%s/%s%s", folder, basename, dotNSuffix);
+		}
+		if (stat(ret, &st) == -1) {
+			goto cleanup; /* fine filename found */
+		}
+		free(ret); /* try over with the next index */
+		ret = NULL;
+	}
+
+cleanup:
+	free(basename);
+	free(dotNSuffix);
+	return ret;
 }
 
 

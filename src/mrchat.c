@@ -1113,33 +1113,39 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 	struct mailmime*         mime_sub = NULL;
 	struct mailmime_content* content;
 
-	char* filename = mrparam_get(msg->m_param, 'f', NULL);
+	char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
-	char* original_filename = NULL; /* do not send the original path together with the attachment; this is a potential security/privacy risk */
+	char* suffix = mr_get_filesuffix(pathNfilename);
+	char* filename_to_send = NULL;
 
-	if( filename == NULL ) {
+	if( pathNfilename == NULL ) {
 		goto cleanup;
 	}
 
-	{
-		const char* p = strrchr(filename, '.');
-		if( p ) {
-			p++;
-			original_filename = mr_mprintf("file.%s", p);
-			if( mimetype == NULL ) {
-				if( strcasecmp(p, "png")==0 ) {
-					mimetype = safe_strdup("image/png");
-				}
-				else if( strcasecmp(p, "jpg")==0 || strcasecmp(p, "jpeg")==0 || strcasecmp(p, "jpe")==0 ) {
-					mimetype = safe_strdup("image/jpeg");
-				}
-				else if( strcasecmp(p, "gif")==0 ) {
-					mimetype = safe_strdup("image/gif");
-				}
-			}
+	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
+	if( msg->m_type == MR_MSG_VOICE ) {
+		filename_to_send = mr_mprintf("voice-message.%s", suffix? suffix : "dat"); /* do NOT change or translate the name `voice-messages`, this is our indicator for voice messages */
+	}
+	else if( msg->m_type == MR_MSG_IMAGE ) {
+		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
+	}
+	else if( msg->m_type == MR_MSG_VIDEO ) {
+		filename_to_send = mr_mprintf("video.%s", suffix? suffix : "dat");
+	}
+	else {
+		filename_to_send = mr_get_filename(pathNfilename);
+	}
+
+	/* check mimetype */
+	if( mimetype == NULL && suffix != NULL ) {
+		if( strcasecmp(suffix, "png")==0 ) {
+			mimetype = safe_strdup("image/png");
 		}
-		else {
-			original_filename = safe_strdup("file.dat");
+		else if( strcasecmp(suffix, "jpg")==0 || strcasecmp(suffix, "jpeg")==0 || strcasecmp(suffix, "jpe")==0 ) {
+			mimetype = safe_strdup("image/jpeg");
+		}
+		else if( strcasecmp(suffix, "gif")==0 ) {
+			mimetype = safe_strdup("image/gif");
 		}
 	}
 
@@ -1147,26 +1153,28 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		goto cleanup;
 	}
 
+	/* create mime part */
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
-		safe_strdup(original_filename), MAILMIME_MECHANISM_BASE64);
+		safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
 
 	content = mailmime_content_new_with_str(mimetype);
 
 	mime_sub = mailmime_new_empty(content, mime_fields);
 
-	mailmime_set_body_file(mime_sub, safe_strdup(filename));
+	mailmime_set_body_file(mime_sub, safe_strdup(pathNfilename));
 
 cleanup:
-	free(filename);
+	free(pathNfilename);
 	free(mimetype);
-	free(original_filename);
+	free(filename_to_send);
+	free(suffix);
 	return mime_sub;
 }
 
 
 static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* afwd_email)
 {
-	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, APPROX_SUBJECT_CHARS);
+	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
 	if( chat->m_type==MR_CHAT_GROUP )
@@ -1275,7 +1283,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	}
 
 	/* add attachment part */
-	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
+	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
 		struct mailmime* file_part = build_body_file(msg);
 		if( file_part ) {
 			mailmime_smart_add_part(message, file_part);
@@ -1567,7 +1575,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	if( msg->m_type == MR_MSG_TEXT ) {
 		; /* the caller should check if the message text is empty */
 	}
-	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
+	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
 		if( file ) {
 			bytes = mr_get_filebytes(file);

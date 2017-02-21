@@ -38,6 +38,7 @@ extern "C" {
 #define MR_STR_DRAFT            3
 #define MR_STR_MEMBER           4
 #define MR_STR_CONTACT          6
+#define MR_STR_VOICEMESSAGE     7
 #define MR_STR_DEADDROP         8
 #define MR_STR_IMAGE            9
 #define MR_STR_VIDEO            10

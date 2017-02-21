@@ -379,19 +379,36 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 		return safe_strdup(NULL);
 	}
 
-	return mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, approx_characters);
+	return mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
 }
 
 
-char* mrmsg_get_summarytext_by_raw(int type, const char* text, int approx_characters)
+char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
 {
 	char* ret = NULL;
+	char* pathNfilename = NULL, *filename = NULL, *label = NULL;
 
 	switch( type ) {
-		case MR_MSG_IMAGE: ret = mrstock_str(MR_STR_IMAGE); break;
-		case MR_MSG_VIDEO: ret = mrstock_str(MR_STR_VIDEO); break;
-		case MR_MSG_AUDIO: ret = mrstock_str(MR_STR_AUDIO); break;
-		case MR_MSG_FILE:  ret = mrstock_str(MR_STR_FILE);  break;
+		case MR_MSG_IMAGE:
+			ret = mrstock_str(MR_STR_IMAGE);
+			break;
+
+		case MR_MSG_VIDEO:
+			ret = mrstock_str(MR_STR_VIDEO);
+			break;
+
+		case MR_MSG_VOICE:
+			ret = mrstock_str(MR_STR_VOICEMESSAGE);
+			break;
+
+		case MR_MSG_AUDIO:
+		case MR_MSG_FILE:
+			pathNfilename = mrparam_get(param, 'f', "ErrFilename");
+			filename = mr_get_filename(pathNfilename);
+			label = mrstock_str(type==MR_MSG_AUDIO? MR_STR_AUDIO : MR_STR_FILE);
+			ret = mr_mprintf("%s: %s", label, filename);
+			break;
+
 		default:
 			if( text ) {
 				ret = safe_strdup(text);
@@ -400,10 +417,13 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, int approx_charac
 			break;
 	}
 
+	/* cleanup */
+	free(pathNfilename);
+	free(filename);
+	free(label);
 	if( ret == NULL ) {
 		ret = safe_strdup(NULL);
 	}
-
 	return ret;
 }
 

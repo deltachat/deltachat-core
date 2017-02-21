@@ -592,7 +592,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
 	struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
 	char*                        file_name = NULL;
-	char*                        file_suffix = NULL;
+	char*                        file_suffix = NULL, *desired_filename = NULL;
 	int                          msg_type;
 
 	char*                        transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
@@ -718,30 +718,30 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 		case MR_MIMETYPE_VIDEO:
 		case MR_MIMETYPE_FILE:
 			{
-				// get the extension of the file to create
+				// get desired file name
 				if( file_disposition ) {
 					clistiter* cur;
 					for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
 						struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
 						if( dsp_param ) {
 							if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-								file_suffix = mr_get_filesuffix(dsp_param->pa_data.pa_filename);
+								desired_filename = safe_strdup(dsp_param->pa_data.pa_filename);
 							}
 						}
 					}
 				}
 
-                if( file_suffix==NULL ) {
+				if( desired_filename==NULL ) {
 					if( mime->mm_content_type && mime->mm_content_type->ct_subtype ) {
-						file_suffix = safe_strdup(mime->mm_content_type->ct_subtype);
+						desired_filename = mr_mprintf("file.%s", mime->mm_content_type->ct_subtype);
 					}
 					else {
 						goto cleanup;
 					}
-                }
+				}
 
 				// create a free file name to use
-				if( (file_name=mr_get_random_filename(ths->m_blobdir, file_suffix)) == NULL ) {
+				if( (file_name=mr_get_fine_filename(ths->m_blobdir, desired_filename)) == NULL ) {
 					goto cleanup;
 				}
 
@@ -786,6 +786,7 @@ cleanup:
 
 	free(file_name);
 	free(file_suffix);
+	free(desired_filename);
 
 	if( do_add_part ) {
 		carray_add(ths->m_parts, (void*)part, NULL);

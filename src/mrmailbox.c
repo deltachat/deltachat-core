@@ -685,7 +685,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			char* ghost_txt = NULL;
 			{
 				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
-				ghost_txt = mrmsg_get_summarytext_by_raw(part->m_type, part->m_msg, APPROX_SUBJECT_CHARS);
+				ghost_txt = mrmsg_get_summarytext_by_raw(part->m_type, part->m_msg, part->m_param, APPROX_SUBJECT_CHARS);
 			}
 
 			icnt = carray_count(to_list);
