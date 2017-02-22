@@ -1147,6 +1147,9 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		else if( strcasecmp(suffix, "gif")==0 ) {
 			mimetype = safe_strdup("image/gif");
 		}
+		else {
+			mimetype = safe_strdup("application/octet-stream");
+		}
 	}
 
 	if( mimetype == NULL ) {
@@ -1256,6 +1259,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 
 	/* add text part - we even add empty text and force a MIME-message as:
 	- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
+	- we can add "forward hints" this way
 	- it looks better */
 	{
 		char* fwdhint = NULL;
@@ -1267,11 +1271,16 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			free(afwd_name);
 		}
 
+		int write_m_text = 0;
+		if( msg->m_type==MR_MSG_TEXT && msg->m_text && msg->m_text[0] ) { /* m_text may also contain data otherwise, eg. the filename of attachments */
+			write_m_text = 1;
+		}
+
 		char* footer = mrstock_str(MR_STR_STATUSLINE);
 		message_text = mr_mprintf("%s%s%s%s%s",
 			fwdhint? fwdhint : "",
-			msg->m_text? msg->m_text : "",
-			(msg->m_text&&msg->m_text[0]&&footer&&footer[0])? "\n\n" : "",
+			write_m_text? msg->m_text : "",
+			(write_m_text&&footer&&footer[0])? "\n\n" : "",
 			(footer&&footer[0])? "-- \n"  : "",
 			(footer&&footer[0])? footer       : "");
 		free(footer);
@@ -1283,7 +1292,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	}
 
 	/* add attachment part */
-	if( msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_FILE ) {
+	if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
 		struct mailmime* file_part = build_body_file(msg);
 		if( file_part ) {
 			mailmime_smart_add_part(message, file_part);
@@ -1497,7 +1506,7 @@ cleanup:
 }
 
 
-uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp, size_t bytes)
+uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
 	sqlite3_stmt* stmt;
@@ -1544,9 +1553,9 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp, 
 	sqlite3_bind_int64(stmt,  5, timestamp);
 	sqlite3_bind_int  (stmt,  6, msg->m_type);
 	sqlite3_bind_int  (stmt,  7, MR_OUT_PENDING);
-	sqlite3_bind_text (stmt,  8, (msg->m_type==MR_MSG_TEXT&&msg->m_text)? msg->m_text : "",  -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt,  8, msg->m_text? msg->m_text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 10, bytes);
+	sqlite3_bind_int64(stmt, 10, msg->m_bytes);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
 	}
@@ -1563,24 +1572,32 @@ cleanup:
 }
 
 
-uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
+uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 {
-	size_t        bytes = 0;
-	uint32_t      msg_id = 0;
-
 	if( ths == NULL || msg == NULL || ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		goto cleanup;
+		return 0;
 	}
 
-	if( msg->m_type == MR_MSG_TEXT ) {
+	msg->m_id    = 0;
+	msg->m_bytes = 0;
+
+	if( msg->m_type == MR_MSG_TEXT )
+	{
 		; /* the caller should check if the message text is empty */
 	}
-	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_VIDEO || msg->m_type == MR_MSG_FILE ) {
+	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
+	{
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
 		if( file ) {
-			bytes = mr_get_filebytes(file);
-			if( bytes > 0 ) {
-				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)bytes, (int)msg->m_type);
+			msg->m_bytes = mr_get_filebytes(file);
+			if( msg->m_bytes > 0 ) {
+				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)msg->m_bytes, (int)msg->m_type);
+
+				if( msg->m_text ) { free(msg->m_text); }
+				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
+					mr_split_filename(file, &msg->m_text, NULL); /* set m_text to the attached file basename to make it searchable. */
+				}
+
 				free(file);
 			}
 			else {
@@ -1591,6 +1608,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 		}
 		else {
 			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);
+			goto cleanup;
 		}
 	}
 	else {
@@ -1601,13 +1619,13 @@ uint32_t mrchat_send_msg(mrchat_t* ths, const mrmsg_t* msg)
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
 
-		msg_id = mrchat_send_msg__(ths, msg, mr_get_smeared_timestamp__(), bytes);
+		msg->m_id = mrchat_send_msg__(ths, msg, mr_get_smeared_timestamp__());
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 cleanup:
-	return msg_id;
+	return msg->m_id;
 }
 
 

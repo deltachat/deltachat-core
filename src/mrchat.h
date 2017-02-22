@@ -72,12 +72,12 @@ char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-add
 int           mrchat_get_total_msg_count   (mrchat_t*);
 int           mrchat_get_unseen_count      (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_UPDATED".  Returns true/false. */
-uint32_t      mrchat_send_msg              (mrchat_t*, const mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function! */
+uint32_t      mrchat_send_msg              (mrchat_t*, mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function but some fields are set up! */
 
 
 /*** library-private **********************************************************/
 
-uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, time_t, size_t bytes);
+uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, time_t);
 int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);
 size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
 uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);

@@ -645,9 +645,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 			}
 
-			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttp,
-				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param)"
-				" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?);");
+			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
+				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param,bytes)"
+				" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?,?);");
 			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt,  3, server_uid);
@@ -661,6 +661,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 14, part->m_bytes);
 			if( sqlite3_step(stmt) != SQLITE_DONE ) {
 				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 			}
@@ -698,7 +699,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
 				}
 
-				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttp, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
 				sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, 0);
@@ -712,6 +713,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				sqlite3_bind_text (stmt, 11, ghost_txt, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt, 14, 0);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}

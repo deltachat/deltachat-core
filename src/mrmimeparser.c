@@ -753,6 +753,9 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				part->m_type  = msg_type;
 				part->m_bytes = decoded_data_bytes;
 				mrparam_set(part->m_param, 'f', file_name);
+				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
+					mr_split_filename(file_name, &part->m_msg, NULL);
+				}
 
 				if( mime_type == MR_MIMETYPE_IMAGE ) {
 					uint32_t w = 0, h = 0;

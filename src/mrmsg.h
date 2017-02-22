@@ -48,6 +48,9 @@ typedef struct mrchat_t mrchat_t;
 #define MR_MSG_VIDEO       50 /* param: 'f'ile, 'w', 'h', 'd'uration */
 #define MR_MSG_FILE        60 /* param: 'f'ile */
 
+#define MR_MSG_NEEDS_ATTACHMENT(a)         ((a)==MR_MSG_IMAGE || (a)==MR_MSG_AUDIO || (a)==MR_MSG_VOICE || (a)==MR_MSG_VIDEO || (a)==MR_MSG_FILE)
+#define MR_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==MR_MSG_FILE || (a)==MR_MSG_AUDIO) /* add filename without suffix to m_text? this is needed for the fulltext search. */
+
 
 /* message states */
 #define MR_STATE_UNDEFINED  0
