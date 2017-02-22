@@ -1259,36 +1259,56 @@ char* mr_get_filesuffix(const char* pathNfilename)
 }
 
 
-char* mr_get_fine_filename(const char* folder, const char* desired_filenameNsuffix)
+void mr_split_filename(const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot)
 {
-	char*       ret = NULL, *basename = NULL, *dotNSuffix = NULL, *p1;
-	time_t      now = time(NULL);
-	struct stat st;
-	int         i;
+	/* splits a filename into basename and all suffixes, eg. "/path/foo.tar.gz" is splitted into "foo.tar" and ".gz",
+	(we use the _last_ dot which allows the usage inside the filename which are very usual;
+	maybe the detection could be more intelligent, however, for the moment, it is just file)
+	If there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is splitted into "foobar" and "" */
+	char* basename = mr_get_filename(pathNfilename), *suffix;
+	char* p1 = strrchr(basename, '.');
+	if( p1 ) {
+		suffix = safe_strdup(p1);
+		*p1 = 0;
+	}
+	else {
+		suffix = safe_strdup(NULL);
+	}
 
-	/* remove some characters typically used in paths, not in filenames */
-	basename = safe_strdup(desired_filenameNsuffix);
-	p1 = basename;
+	/* return the given values */
+	if( ret_basename              ) { *ret_basename              = basename; } else { free(basename); }
+	if( ret_all_suffixes_incl_dot ) { *ret_all_suffixes_incl_dot = suffix;   } else { free(suffix);   }
+}
+
+
+
+void mr_validate_filename(char* filename)
+{
+	/* function modifies the given buffer and replaces all characters not valid in filenames by a "-" */
+	char* p1 = filename;
 	while( *p1 ) {
 		if( *p1=='/' || *p1=='\\' || *p1==':' ) {
 			*p1 = '-';
 		}
 		p1++;
 	}
+}
 
-	/* split filename into basename and suffix */
-	p1 = strchr(basename, '.'); /* use the first point, `file.tar.gz` may become `file-1.tar.gz` then (may look ugly if there is a point in the filename, however, this is the smaller problem as a file named `file.tar-1` after unpacking) */
-	if( p1 ) {
-		dotNSuffix = safe_strdup(p1);
-		*p1 = 0;
-	}
-	else {
-		dotNSuffix = safe_strdup("");
-	}
+
+char* mr_get_fine_filename(const char* folder, const char* desired_filenameNsuffix__)
+{
+	char*       ret = NULL, *filenameNsuffix, *basename = NULL, *dotNSuffix = NULL;
+	time_t      now = time(NULL);
+	struct stat st;
+	int         i;
+
+	filenameNsuffix = safe_strdup(desired_filenameNsuffix__);
+	mr_validate_filename(filenameNsuffix);
+	mr_split_filename(filenameNsuffix, &basename, &dotNSuffix);
 
 	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
 		if( i ) {
-			time_t idx = i<10? i : now+i;
+			time_t idx = i<100? i : now+i;
 			ret = mr_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
 		}
 		else {
@@ -1302,6 +1322,7 @@ char* mr_get_fine_filename(const char* folder, const char* desired_filenameNsuff
 	}
 
 cleanup:
+	free(filenameNsuffix);
 	free(basename);
 	free(dotNSuffix);
 	return ret;
