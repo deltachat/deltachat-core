@@ -130,6 +130,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"listmembers\n"
 			"send <text>\n"
 			"sendimage <file>\n"
+			"sendfile <file>\n"
 			"draft [<text>]\n"
 			"listmedia\n"
 			"delchat <chat-id>\n"
@@ -433,15 +434,15 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strcmp(cmd, "sendimage")==0 )
+	else if( strcmp(cmd, "sendimage")==0 || strcmp(cmd, "sendfile")==0 )
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
 				mrmsg_t* msg = mrmsg_new();
-					msg->m_type = MR_MSG_IMAGE;
+					msg->m_type = strcmp(cmd, "sendimage")==0? MR_MSG_IMAGE : MR_MSG_FILE;
 					mrparam_set(msg->m_param, 'f', arg1);
 					if( mrchat_send_msg(sel_chat, msg) ) {
-						ret = safe_strdup("Image sent.");
+						ret = safe_strdup("File sent.");
 					}
 					else {
 						ret = safe_strdup("ERROR: Sending failed.");
