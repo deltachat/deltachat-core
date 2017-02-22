@@ -147,7 +147,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"addcontact <name> <addr>\n"
 
 			"\nMisc.:\n"
-			"event <event-id to text>\n"
+			"event <event-id to test>\n"
 			"fileinfo <file>\n"
 			"killalljobs\n"
 			"clear -- clear screen\n" /* must be implemented by  the caller */
