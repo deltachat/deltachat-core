@@ -486,7 +486,26 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 }
 
 
-static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type)
+static int is_attachment_disposition(struct mailmime* mime)
+{
+	if( mime->mm_mime_fields != NULL ) {
+		clistiter* cur;
+		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
+			if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition ) {
+				if( field->fld_data.fld_disposition->dsp_type
+				 && field->fld_data.fld_disposition->dsp_type->dsp_type==MAILMIME_DISPOSITION_TYPE_ATTACHMENT )
+				{
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
+static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
 {
 	#define MR_MIMETYPE_MP_ALTERNATIVE  1
 	#define MR_MIMETYPE_MP_RELATED      2
@@ -498,6 +517,7 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 	#define MR_MIMETYPE_VIDEO           8
 	#define MR_MIMETYPE_FILE            9
 
+	struct mailmime_content* c = mime->mm_content_type;
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
 	*msg_type = MR_MSG_UNDEFINED;
 
@@ -511,7 +531,10 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 			switch( c->ct_type->tp_data.tp_discrete_type->dt_type )
 			{
 				case MAILMIME_DISCRETE_TYPE_TEXT:
-					if( strcmp(c->ct_subtype, "plain")==0 ) {
+					if( is_attachment_disposition(mime) ) {
+						; /* MR_MIMETYPE_FILE is returned below - we leave text attachments as attachments as they may be too large to display as a normal message, eg. complete books. */
+					}
+					else if( strcmp(c->ct_subtype, "plain")==0 ) {
 						*msg_type = MR_MSG_TEXT;
 						return MR_MIMETYPE_TEXT_PLAIN;
                     }
@@ -519,10 +542,8 @@ static int mrmimeparser_get_mime_type_(struct mailmime_content* c, int* msg_type
 						*msg_type = MR_MSG_TEXT;
 						return MR_MIMETYPE_TEXT_HTML;
                     }
-                    else {
-						*msg_type = MR_MSG_FILE;
-						return MR_MIMETYPE_FILE;
-                    }
+					*msg_type = MR_MSG_FILE;
+					return MR_MIMETYPE_FILE;
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
 					*msg_type = MR_MSG_IMAGE;
@@ -606,7 +627,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	}
 
 	/* get mime type from `mime` */
-	mime_type = mrmimeparser_get_mime_type_(mime->mm_content_type, &msg_type);
+	mime_type = mrmimeparser_get_mime_type_(mime, &msg_type);
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -814,13 +835,13 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch( mrmimeparser_get_mime_type_(mime->mm_content_type, NULL) )
+			switch( mrmimeparser_get_mime_type_(mime, NULL) )
 			{
 				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
 					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+							if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
 								sth_added = mrmimeparser_parse_mime_recursive__(ths, childmime);
 								break;
 							}
@@ -856,10 +877,10 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 							int plain_cnt = 0, html_cnt = 0;
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-								if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+								if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
 									plain_cnt++;
 								}
-								else if( mrmimeparser_get_mime_type_(childmime->mm_content_type, NULL) == MR_MIMETYPE_TEXT_HTML ) {
+								else if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_HTML ) {
 									html_part = childmime;
 									html_cnt++;
 								}
