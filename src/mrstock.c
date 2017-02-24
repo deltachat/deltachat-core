@@ -55,11 +55,11 @@ static char* default_string(int id, int qty)
 		case MR_STR_AUDIO:         return safe_strdup("Audio");
 		case MR_STR_FILE:          return safe_strdup("File");
 		case MR_STR_STATUSLINE:    return safe_strdup("Sent with my Delta Chat Messenger");
-		case MR_STR_NEWGROUPDRAFT: return safe_strdup("Hello, I've just created the group \"##\" for us.");
-		case MR_STR_MSGGRPNAME:    return safe_strdup("Group name changed from \"##\" to \"##\".");
+		case MR_STR_NEWGROUPDRAFT: return safe_strdup("Hello, I've just created the group \"%1$s\" for us.");
+		case MR_STR_MSGGRPNAME:    return safe_strdup("Group name changed from \"%1$s\" to \"%2$s\".");
 		case MR_STR_MSGGRPIMAGE:   return safe_strdup("Group image changed.");
-		case MR_STR_MSGADDMEMBER:  return safe_strdup("Member ## added.");
-		case MR_STR_MSGDELMEMBER:  return safe_strdup("Member ## removed.");
+		case MR_STR_MSGADDMEMBER:  return safe_strdup("Member %1$s added.");
+		case MR_STR_MSGDELMEMBER:  return safe_strdup("Member %1$s removed.");
 		case MR_STR_MSGGROUPLEFT:  return safe_strdup("Group left.");
 	}
 	return safe_strdup("ErrStr");
@@ -81,7 +81,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 
 static char* repl_string(char* haystack /*string will be modified!*/, const char* needle, const char* replacement)
 {
-	/* replace `##` by given string, the input string will be modified, the result must be free()'d */
+	/* replace needle by the given replacement, the input string will be modified, the result must be free()'d */
 	char* p2 = strstr(haystack, needle);
 	if( p2==NULL ) { return strdup(haystack); }
 	*p2 = 0;

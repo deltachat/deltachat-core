@@ -65,12 +65,12 @@ The result must be free()'d! */
 char* mrstock_str (int id);
 
 
-/* Replaces the first `##` in the given String-ID by the given string.
+/* Replaces the first `%1$s` in the given String-ID by the given string.
 The result must be free()'d! */
 char* mrstock_str_repl_string (int id, const char*);
 
 
-/* Replaces the first two `##` in the given String-ID by the given strings.
+/* Replaces the first `%1$s` and `%2$s` in the given String-ID by the two given strings.
 The result must be free()'d! */
 char* mrstock_str_repl_string2 (int id, const char*, const char*);
 
