@@ -1588,7 +1588,19 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
 		char* file = mrparam_get(msg->m_param, 'f', NULL);
-		if( file ) {
+		if( file )
+		{
+			if( msg->m_type == MR_MSG_FILE )
+			{
+				/* correct the type from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector)
+				(we do not correct to the type "IMAGE" as we may want to send explicitly uncompressed files) */
+				int better_type = mr_guess_msgtype_from_suffix(file);
+				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO ) {
+					mrlog_info("Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
+					msg->m_type = better_type;
+				}
+			}
+
 			msg->m_bytes = mr_get_filebytes(file);
 			if( msg->m_bytes > 0 ) {
 				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)msg->m_bytes, (int)msg->m_type);

@@ -215,6 +215,27 @@ void mrmailbox_update_server_uid__(mrmailbox_t* mailbox, const char* rfc724_mid,
 }
 
 
+int mr_guess_msgtype_from_suffix(const char* pathNfilename)
+{
+	int type = MR_MSG_UNDEFINED;
+	char* s = mr_get_filesuffix_lc(pathNfilename);
+	if( s == NULL ) {
+		goto cleanup;
+	}
+
+	if( strcmp(s, "mp3")==0 || strcmp(s, "ogg")==0 ) {
+		type = MR_MSG_AUDIO;
+	}
+	else if( strcmp(s, "avi")==0 || strcmp(s, "mp4")==0 ) {
+		type == MR_MSG_VIDEO;
+	}
+
+cleanup:
+	free(s);
+	return type;
+}
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/

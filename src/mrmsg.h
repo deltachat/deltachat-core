@@ -103,6 +103,7 @@ char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name
 #define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.bytes "
 int          mrmsg_set_from_stmt__            (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int          mrmsg_load_from_db__             (mrmsg_t*, mrsqlite3_t*, uint32_t id);
+int          mr_guess_msgtype_from_suffix     (const char* pathNfilename);
 size_t       mrmailbox_get_real_msg_cnt__     (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t       mrmailbox_get_deaddrop_msg_cnt__ (mrmailbox_t*);
 int          mrmailbox_rfc724_mid_cnt__       (mrmailbox_t*, const char* rfc724_mid);
