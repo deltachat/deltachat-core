@@ -82,8 +82,8 @@ int     mr_delete_file             (const char* pathNFilename);
 int     mr_create_folder           (const char* pathNfilename);
 int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes);
 int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes);
-char*   mr_get_filesuffix          (const char* pathNfilename);
-void    mr_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot);
+char*   mr_get_filesuffix_lc       (const char* pathNfilename); /* the returned suffix is lower-case */
+void    mr_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); /* the case of the suffix is preserved! */
 int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
 char*   mr_get_fine_filename       (const char* folder, const char* desired_name);
 

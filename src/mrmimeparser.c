@@ -594,7 +594,7 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 			struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
 			if( dsp_param ) {
 				if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-					return mr_get_filesuffix(dsp_param->pa_data.pa_filename);
+					return mr_get_filesuffix_lc(dsp_param->pa_data.pa_filename);
 				}
 			}
 		}

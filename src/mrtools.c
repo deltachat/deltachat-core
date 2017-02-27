@@ -1246,13 +1246,13 @@ int mr_create_folder(const char* pathNfilename)
 }
 
 
-char* mr_get_filesuffix(const char* pathNfilename)
+char* mr_get_filesuffix_lc(const char* pathNfilename)
 {
 	if( pathNfilename ) {
 		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
 		if( p ) {
 			p++;
-			return safe_strdup(p);
+			return mr_strlower(p); /* in contrast to mr_split_filename() we return the lowercase suffix */
 		}
 	}
 	return NULL;
@@ -1264,7 +1264,8 @@ void mr_split_filename(const char* pathNfilename, char** ret_basename, char** re
 	/* splits a filename into basename and all suffixes, eg. "/path/foo.tar.gz" is splitted into "foo.tar" and ".gz",
 	(we use the _last_ dot which allows the usage inside the filename which are very usual;
 	maybe the detection could be more intelligent, however, for the moment, it is just file)
-	If there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is splitted into "foobar" and "" */
+	- if there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is splitted into "foobar" and ""
+	- the case of the returned suffix is preserved; this is to allow reconstruction of (similar) names */
 	char* basename = mr_get_filename(pathNfilename), *suffix;
 	char* p1 = strrchr(basename, '.');
 	if( p1 ) {

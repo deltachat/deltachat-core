@@ -1115,7 +1115,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 	char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
-	char* suffix = mr_get_filesuffix(pathNfilename);
+	char* suffix = mr_get_filesuffix_lc(pathNfilename);
 	char* filename_to_send = NULL;
 
 	if( pathNfilename == NULL ) {
@@ -1138,13 +1138,13 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 	/* check mimetype */
 	if( mimetype == NULL && suffix != NULL ) {
-		if( strcasecmp(suffix, "png")==0 ) {
+		if( strcmp(suffix, "png")==0 ) {
 			mimetype = safe_strdup("image/png");
 		}
-		else if( strcasecmp(suffix, "jpg")==0 || strcasecmp(suffix, "jpeg")==0 || strcasecmp(suffix, "jpe")==0 ) {
+		else if( strcmp(suffix, "jpg")==0 || strcmp(suffix, "jpeg")==0 || strcmp(suffix, "jpe")==0 ) {
 			mimetype = safe_strdup("image/jpeg");
 		}
-		else if( strcasecmp(suffix, "gif")==0 ) {
+		else if( strcmp(suffix, "gif")==0 ) {
 			mimetype = safe_strdup("image/gif");
 		}
 		else {
