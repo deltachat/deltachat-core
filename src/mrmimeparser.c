@@ -612,7 +612,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	struct mailmime_data*        mime_data;
 	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
 	struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
-	char*                        file_name = NULL;
+	char*                        pathNfilename = NULL;
 	char*                        file_suffix = NULL, *desired_filename = NULL;
 	int                          msg_type;
 
@@ -762,20 +762,20 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				}
 
 				// create a free file name to use
-				if( (file_name=mr_get_fine_filename(ths->m_blobdir, desired_filename)) == NULL ) {
+				if( (pathNfilename=mr_get_fine_pathNfilename(ths->m_blobdir, desired_filename)) == NULL ) {
 					goto cleanup;
 				}
 
 				// copy data to file
-                if( mr_write_file(file_name, decoded_data, decoded_data_bytes)==0 ) {
+                if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes)==0 ) {
 					goto cleanup;
                 }
 
 				part->m_type  = msg_type;
 				part->m_bytes = decoded_data_bytes;
-				mrparam_set(part->m_param, 'f', file_name);
+				mrparam_set(part->m_param, 'f', pathNfilename);
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
-					mr_split_filename(file_name, &part->m_msg, NULL);
+					part->m_msg = mr_get_filename(pathNfilename);
 				}
 
 				if( mime_type == MR_MIMETYPE_IMAGE ) {
@@ -808,7 +808,7 @@ cleanup:
 		mmap_string_unref(transfer_decoding_buffer);
 	}
 
-	free(file_name);
+	free(pathNfilename);
 	free(file_suffix);
 	free(desired_filename);
 

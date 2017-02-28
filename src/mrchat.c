@@ -1574,6 +1574,8 @@ cleanup:
 
 uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 {
+	char* pathNfilename = NULL;
+
 	if( ths == NULL || msg == NULL || ths->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
@@ -1587,44 +1589,45 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 	}
 	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		char* file = mrparam_get(msg->m_param, 'f', NULL);
-		if( file )
+		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		if( pathNfilename )
 		{
 			if( msg->m_type == MR_MSG_FILE )
 			{
 				/* correct the type from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector)
 				(we do not correct to the type "IMAGE" as we may want to send explicitly uncompressed files) */
-				int better_type = mr_guess_msgtype_from_suffix(file);
+				int better_type = mr_guess_msgtype_from_suffix(pathNfilename);
 				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO ) {
 					mrlog_info("Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
 					msg->m_type = better_type;
 				}
 			}
 
-			msg->m_bytes = mr_get_filebytes(file);
-			if( msg->m_bytes > 0 ) {
-				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", file, (int)msg->m_bytes, (int)msg->m_type);
+			msg->m_bytes = mr_get_filebytes(pathNfilename);
+			if( msg->m_bytes > 0 )
+			{
+				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", pathNfilename, (int)msg->m_bytes, (int)msg->m_type);
 
 				if( msg->m_text ) { free(msg->m_text); }
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
-					mr_split_filename(file, &msg->m_text, NULL); /* set m_text to the attached file basename to make it searchable. */
+					msg->m_text = mr_get_filename(pathNfilename);
 				}
-
-				free(file);
 			}
-			else {
-				mrlog_error("File \"%s\" not found or has zero bytes.", file);
-				free(file);
+			else
+			{
+				mrlog_error("File \"%s\" not found or has zero bytes.", pathNfilename);
 				goto cleanup;
 			}
 		}
-		else {
-			mrlog_warning("Attachment missing for message of type #%i.", (int)msg->m_type);
+		else
+		{
+			mrlog_error("Attachment missing for message of type #%i.", (int)msg->m_type);
 			goto cleanup;
 		}
 	}
-	else {
-		mrlog_warning("Cannot send messages of type #%i.", (int)msg->m_type);
+	else
+	{
+		mrlog_error("Cannot send messages of type #%i.", (int)msg->m_type);
 		goto cleanup;
 	}
 
@@ -1637,6 +1640,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 cleanup:
+	free(pathNfilename);
 	return msg->m_id;
 }
 

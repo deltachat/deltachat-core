@@ -1296,7 +1296,7 @@ void mr_validate_filename(char* filename)
 }
 
 
-char* mr_get_fine_filename(const char* folder, const char* desired_filenameNsuffix__)
+char* mr_get_fine_pathNfilename(const char* folder, const char* desired_filenameNsuffix__)
 {
 	char*       ret = NULL, *filenameNsuffix, *basename = NULL, *dotNSuffix = NULL;
 	time_t      now = time(NULL);

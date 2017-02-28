@@ -227,7 +227,7 @@ int mr_guess_msgtype_from_suffix(const char* pathNfilename)
 		type = MR_MSG_AUDIO;
 	}
 	else if( strcmp(s, "avi")==0 || strcmp(s, "mp4")==0 ) {
-		type == MR_MSG_VIDEO;
+		type = MR_MSG_VIDEO;
 	}
 
 cleanup:
