@@ -128,7 +128,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
 			{
 				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-				if( optional_field ) {
+				if( optional_field && optional_field->fld_name ) {
 					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 ) {
 						grpid1 = safe_strdup(optional_field->fld_value);
 					}

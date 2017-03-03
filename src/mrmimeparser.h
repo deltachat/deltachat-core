@@ -57,9 +57,9 @@ void          mrmimepart_unref  (mrmimepart_t*);
 typedef struct mrmimeparser_t
 {
 	/* data, read-only, must not be free()'d (it is free()'d when the MrMimeParser object gets destructed) */
-	carray*                m_parts; /*array of mrmimepart_t objects*/
+	carray*                m_parts;    /*array of mrmimepart_t objects*/
 	struct mailmime*       m_mimeroot;
-	struct mailimf_fields* m_header;
+	struct mailimf_fields* m_header;   /* a pointer somewhere to the MIME data, must not be freed */
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
 	const char*            m_blobdir;

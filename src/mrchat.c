@@ -1124,7 +1124,12 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
 	if( msg->m_type == MR_MSG_VOICE ) {
-		filename_to_send = mr_mprintf("voice-message.%s", suffix? suffix : "dat");
+		struct tm wanted_struct;
+		memcpy(&wanted_struct, localtime(&msg->m_timestamp), sizeof(struct tm));
+		filename_to_send = mr_mprintf("voice-message_%04i-%02i-%02i_%02i-%02i-%02i.%s",
+			(int)wanted_struct.tm_year+1900, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_mday,
+			(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec,
+			suffix? suffix : "dat");
 	}
 	else if( msg->m_type == MR_MSG_IMAGE ) {
 		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
@@ -1628,7 +1633,12 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 
 				if( msg->m_text ) { free(msg->m_text); }
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
-					msg->m_text = mr_get_filename(pathNfilename);
+					if( msg->m_type == MR_MSG_VOICE ) {
+						msg->m_text = strdup("ogg");
+					}
+					else {
+						msg->m_text = mr_get_filename(pathNfilename);
+					}
 				}
 			}
 			else

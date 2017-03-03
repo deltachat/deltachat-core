@@ -550,7 +550,7 @@ static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
 					return MR_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
-					*msg_type = MR_MSG_AUDIO;
+					*msg_type = MR_MSG_AUDIO; /* we correct this later to MR_MSG_VOICE, currently, this is not possible as we do not know the main header */
 					return MR_MIMETYPE_AUDIO;
 
 				case MAILMIME_DISCRETE_TYPE_VIDEO:
@@ -739,7 +739,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 		case MR_MIMETYPE_VIDEO:
 		case MR_MIMETYPE_FILE:
 			{
-				// get desired file name
+				/* get desired file name */
 				if( file_disposition ) {
 					clistiter* cur;
 					for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
@@ -761,12 +761,12 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					}
 				}
 
-				// create a free file name to use
+				/* create a free file name to use */
 				if( (pathNfilename=mr_get_fine_pathNfilename(ths->m_blobdir, desired_filename)) == NULL ) {
 					goto cleanup;
 				}
 
-				// copy data to file
+				/* copy data to file */
                 if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes)==0 ) {
 					goto cleanup;
                 }
@@ -956,6 +956,25 @@ struct mailimf_field* mrmimeparser_find_field(mrmimeparser_t* ths, int wanted_fl
 }
 
 
+static struct mailimf_optional_field* mrmimeparser_find_xtra_field(mrmimeparser_t* ths, const char* wanted_fld_name)
+{
+	clistiter* cur1;
+	for( cur1 = clist_begin(ths->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		{
+			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+			if( optional_field && optional_field->fld_name && optional_field->fld_value && strcasecmp(optional_field->fld_name, wanted_fld_name)==0 ) {
+				return optional_field;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
 void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
@@ -1022,6 +1041,30 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 			mrparam_set(part->m_param, 'a', ths->m_fwd_email);
 			mrparam_set(part->m_param, 'A', ths->m_fwd_name);
 		}
+	}
+
+	/* mark audio as voice message, if appropriate (we have to do this on global level as we do not know the global header in the recursice parse).
+	and read some additional parameters */
+	if( carray_count(ths->m_parts)==1 ) {
+		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
+		if( part->m_type == MR_MSG_AUDIO ) {
+			if( mrmimeparser_find_xtra_field(ths, "X-MrVoiceMessage") ) {
+				free(part->m_msg);
+				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
+				part->m_type = MR_MSG_VOICE;
+			}
+		}
+
+		if( part->m_type == MR_MSG_AUDIO || part->m_type == MR_MSG_VOICE || part->m_type == MR_MSG_VIDEO ) {
+			const struct mailimf_optional_field* field = mrmimeparser_find_xtra_field(ths, "X-MrDurationMs");
+			if( field ) {
+				int duration_ms = atoi(field->fld_value);
+				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
+					mrparam_set_int(part->m_param, 'd', duration_ms);
+				}
+			}
+		}
+
 	}
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
