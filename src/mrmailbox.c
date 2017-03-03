@@ -1261,7 +1261,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	- use neutral speach; the messenger backend is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
 	info = mr_mprintf(
-		"Messenger Backend %i.%i.%i - (C) Björn Petersen and contributors\n"
+		"Messenger Backend v%i.%i.%i - (C) Björn Petersen and contributors\n"
 		"\n"
 		"Chats: %i\n"
 		"Chat messages: %i\n"
