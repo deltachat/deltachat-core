@@ -1124,7 +1124,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 
 	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
 	if( msg->m_type == MR_MSG_VOICE ) {
-		filename_to_send = mr_mprintf("voice-message.%s", suffix? suffix : "dat"); /* do NOT change or translate the name `voice-messages`, this is our indicator for voice messages */
+		filename_to_send = mr_mprintf("voice-message.%s", suffix? suffix : "dat");
 	}
 	else if( msg->m_type == MR_MSG_IMAGE ) {
 		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
@@ -1229,9 +1229,13 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			mr_encode_header_string(subject));
 		free(subject);
 
+		/* add additional basic parameters */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("MrMsg %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
-		if( chat->m_type==MR_CHAT_GROUP ) {
+
+		/* add additional group paramters */
+		if( chat->m_type==MR_CHAT_GROUP )
+		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
 
@@ -1252,6 +1256,20 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
 			}
 		}
+
+		/* add additional media paramters */
+		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO )
+		{
+			if( msg->m_type == MR_MSG_VOICE ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrVoiceMessage"), strdup("1")));
+			}
+
+			int duration_ms = mrparam_get_int(msg->m_param, 'd', 0);
+			if( duration_ms > 0 ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrDurationMs"), mr_mprintf("%i", (int)duration_ms)));
+			}
+		}
+
 	}
 
 	message = mailmime_new_message_data(NULL);
