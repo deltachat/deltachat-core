@@ -35,18 +35,18 @@ extern "C" {
 
 
 /* additional, emphasized text */
-#define MR_TITLE_NORMAL    0 /* the values must not be changes as used directly in the frontend */
-#define MR_TITLE_DRAFT     1
-#define MR_TITLE_USERNAME  2
-#define MR_TITLE_SELF      3
+#define MR_TEXT1_NORMAL    0
+#define MR_TEXT1_DRAFT     1 /* the values must not be changes as used directly in the frontend */
+#define MR_TEXT1_USERNAME  2
+#define MR_TEXT1_SELF      3
 
 
 typedef struct mrpoortext_t
 {
 	uint32_t m_magic;
-	char*    m_title;         /* may be NULL */
-	int      m_title_meaning; /* one of MR_TITLE_* */
-	char*    m_text;          /* may be NULL */
+	char*    m_text1;         /* may be NULL */
+	int      m_text1_meaning; /* one of MR_TEXT1_* */
+	char*    m_text2;         /* may be NULL */
 	time_t   m_timestamp;     /* may be 0 */
 	int      m_state;         /* may be 0 */
 } mrpoortext_t;

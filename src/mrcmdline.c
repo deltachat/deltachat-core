@@ -282,9 +282,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
 							mrlog_info("%s%s%s%s [%s]",
-								poortext->m_title? poortext->m_title : "",
-								poortext->m_title? ": " : "",
-								poortext->m_text? poortext->m_text : NULL,
+								poortext->m_text1? poortext->m_text1 : "",
+								poortext->m_text1? ": " : "",
+								poortext->m_text2? poortext->m_text2 : NULL,
 								statestr, timestr
 								);
 						free(timestr);

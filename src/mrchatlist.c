@@ -177,7 +177,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	mrcontact_t*  lastcontact = NULL;
 
 	if( chatlist == NULL || index >= chatlist->m_cnt || chat == NULL ) {
-		ret->m_text = safe_strdup("ErrNoChat");
+		ret->m_text2 = safe_strdup("ErrNoChat");
 		goto cleanup;
 	}
 
@@ -205,18 +205,18 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	 && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
 	{
 		/* show the draft as the last message */
-		ret->m_title = mrstock_str(MR_STR_DRAFT);
-		ret->m_title_meaning = MR_TITLE_DRAFT;
+		ret->m_text1 = mrstock_str(MR_STR_DRAFT);
+		ret->m_text1_meaning = MR_TEXT1_DRAFT;
 
-		ret->m_text = safe_strdup(chat->m_draft_text);
-		mr_truncate_n_unwrap_str(ret->m_text, MR_SUMMARY_CHARACTERS, 1);
+		ret->m_text2 = safe_strdup(chat->m_draft_text);
+		mr_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1);
 
 		ret->m_timestamp = chat->m_draft_timestamp;
 	}
 	else if( lastmsg == NULL || lastmsg->m_from_id == 0 )
 	{
 		/* no messages */
-		ret->m_text = mrstock_str(MR_STR_NO_MESSAGES);
+		ret->m_text2 = mrstock_str(MR_STR_NO_MESSAGES);
 	}
 	else
 	{
