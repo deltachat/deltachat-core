@@ -96,6 +96,7 @@ void          mrmsg_empty                  (mrmsg_t*);
 mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
 char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
 char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
+mrpoortext_t* mrmsg_get_mediainfo          (mrmsg_t*, mrmailbox_t*);
 
 
 /*** library-private **********************************************************/

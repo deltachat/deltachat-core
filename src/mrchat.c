@@ -1131,6 +1131,18 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 			(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec,
 			suffix? suffix : "dat");
 	}
+	else if( msg->m_type == MR_MSG_AUDIO ) {
+		char* artist = mrparam_get(msg->m_param, 'N', NULL);
+		char* title = mrparam_get(msg->m_param, 'n', NULL);
+		if( artist && title && suffix ) {
+			filename_to_send = mr_mprintf("%s - %s.%s",  artist, title, suffix); /* the separator ` - ` is used on the receiver's side to construct the information; we avoid using ID3-scanners for security purposes */
+		}
+		else {
+			filename_to_send = mr_get_filename(pathNfilename);
+		}
+		free(artist);
+		free(title);
+	}
 	else if( msg->m_type == MR_MSG_IMAGE ) {
 		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
 	}

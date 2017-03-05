@@ -470,6 +470,60 @@ cleanup:
 }
 
 
+mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
+{
+	/* Get artistname and trackname of a message.
+	- for voice messages, the artist the sender and the trackname is the sending time
+	- for music messages,
+	  - read the information from the filename
+	  - for security reasons, we DO NOT read ID3 and such at this stage, the needed libraries may be buggy
+		and the whole stuff is way to complicated.
+		However, this is not a great disadvantage, as the sender usually sets the filename in a way we expect it -
+		if not, we simply print the whole filename as we do it for documents.  All fine in any case :-) */
+	mrpoortext_t* ret = mrpoortext_new();
+	char *pathNfilename = NULL, *p;
+	mrcontact_t* contact = NULL;
+
+	if( msg == NULL ) {
+		goto cleanup;
+	}
+
+	if( msg->m_type == MR_MSG_VOICE )
+	{
+		if( mailbox_helper ) {
+			if( (contact = mrmailbox_get_contact(mailbox_helper, msg->m_from_id))==NULL ) {
+				goto cleanup;
+			}
+			ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
+		}
+		ret->m_text2 = mrstock_str(MR_STR_VOICEMESSAGE);
+	}
+	else
+	{
+		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		if( pathNfilename == NULL ) {
+			goto cleanup;
+		}
+
+		mr_split_filename(pathNfilename, &ret->m_text2, NULL);
+		p = strstr(ret->m_text2, " - ");
+		if( p ) {
+			*p = 0;
+			ret->m_text1 = ret->m_text2;
+			ret->m_text2 = safe_strdup(&p[3]);
+		}
+	}
+
+cleanup:
+	free(pathNfilename);
+	mrcontact_unref(contact);
+	if( ret->m_text1==NULL ) { ret->m_text1 = mrstock_str(MR_STR_AUDIO); }
+	if( ret->m_text2==NULL ) { ret->m_text2 = mrstock_str(MR_STR_AUDIO); }
+	return ret;
+}
+
+
+
 /*******************************************************************************
  * Delete messages
  ******************************************************************************/
