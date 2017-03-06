@@ -36,8 +36,8 @@
  * 'w'idth
  * 'h'eight
  * 'd'uration in milliseconds
- * 'n'ame of track, only used for sending, not set for received messages
- * 'N'ame of artist, only used for sending, not set for received messages
+ * 'n'ame of track
+ * 'N'ame of author or artist
  * 'm'ime
  * 't'imes a job was tried
  *

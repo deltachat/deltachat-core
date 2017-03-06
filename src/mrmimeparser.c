@@ -786,6 +786,16 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					}
 				}
 
+				/* split author/title from the original filename (if we do it from the real filename, we'll also get nunmbers appended by mr_get_fine_pathNfilename()) */
+				if( msg_type == MR_MSG_AUDIO ) {
+					char* author = NULL, *title = NULL;
+					mr_get_authorNtitle_from_filename(desired_filename, &author, &title);
+					mrparam_set(part->m_param, 'N', author);
+					mrparam_set(part->m_param, 'n', title);
+					free(author);
+					free(title);
+				}
+
 				do_add_part   = 1;
 			}
 			break;
@@ -1052,6 +1062,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				free(part->m_msg);
 				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->m_type = MR_MSG_VOICE;
+				mrparam_set(part->m_param, 'N', NULL); /* remove unneeded information */
+				mrparam_set(part->m_param, 'n', NULL);
 			}
 		}
 

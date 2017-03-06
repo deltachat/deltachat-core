@@ -396,7 +396,7 @@ cleanup:
 }
 
 
-static void extract_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
+void mr_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
 {
 	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
 	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
@@ -443,8 +443,10 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_AUDIO:
-			pathNfilename = mrparam_get(param, 'f', "ErrFilename");
-			extract_authorNtitle_from_filename(pathNfilename, NULL, &value);
+			if( (value=mrparam_get(param, 'n', NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
+				pathNfilename = mrparam_get(param, 'f', "ErrFilename");
+				mr_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
+			}
 			label = mrstock_str(MR_STR_AUDIO);
 			ret = mr_mprintf("%s: %s", label, value);
 			break;
@@ -498,8 +500,8 @@ cleanup:
 
 mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 {
-	/* Get artistname and trackname of a message.
-	- for voice messages, the artist the sender and the trackname is the sending time
+	/* Get authorname and trackname of a message.
+	- for voice messages, the author the sender and the trackname is the sending time
 	- for music messages,
 	  - read the information from the filename
 	  - for security reasons, we DO NOT read ID3 and such at this stage, the needed libraries may be buggy
@@ -524,11 +526,19 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 	}
 	else
 	{
+		ret->m_text1 = mrparam_get(msg->m_param, 'N', NULL);
+		ret->m_text2 = mrparam_get(msg->m_param, 'n', NULL);
+		if( ret->m_text1 && ret->m_text1[0] && ret->m_text2 && ret->m_text2[0] ) {
+			goto cleanup;
+		}
+		free(ret->m_text1); ret->m_text1 = NULL;
+		free(ret->m_text2); ret->m_text2 = NULL;
+
 		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
-		extract_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
+		mr_get_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
 		if( ret->m_text1 == NULL && ret->m_text2 != NULL ) {
 			ret->m_text1 = mrstock_str(MR_STR_AUDIO);
 		}
