@@ -164,6 +164,11 @@ carray*              mrmailbox_get_unseen_msgs           (mrmailbox_t*); /* retu
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, no messages are deleted (we do not so as we cannot distinguish between chat messages and normal mails) */
 
 
+/* Get previous/next media of a given media message (imaging eg. a virtual playlist of all audio tracks in a chat).
+If there is no previous/next media, 0 is returned. */
+uint32_t             mrmailbox_get_next_media            (mrmailbox_t*, uint32_t curr_msg_id, int dir);
+
+
 /* mrmailbox_get_chat_contacts() returns contact IDs, the result must be carray_free()'d.
 - for normal chats, the function always returns exactly one contact MR_CONTACT_ID_SELF is _not_ returned.
 - for group chats all members are returned, MR_CONTACT_ID_SELF is returned explicitly as it may happen that oneself gets removed from a still existing group

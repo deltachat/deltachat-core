@@ -469,30 +469,89 @@ cleanup:
 }
 
 
+static carray* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+{
+	carray* ret = carray_new(100);
+
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
+		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, msg_type);
+	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+	}
+
+	return ret;
+}
+
+
 carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	carray*       ret = carray_new(100);
-	sqlite3_stmt* stmt;
+	carray* ret = NULL;
+
+	if( mailbox ) {
+		mrsqlite3_lock(mailbox->m_sql);
+			ret = mrmailbox_get_chat_media__(mailbox, chat_id, msg_type, or_msg_type);
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+
+	return ret;
+}
+
+
+uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, int dir)
+{
+	uint32_t ret_msg_id = 0;
+	mrmsg_t* msg = mrmsg_new();
+	int      locked = 0;
+	carray*  list = NULL;
+	int      i, cnt;
 
 	if( mailbox == NULL ) {
 		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
-			"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
-		sqlite3_bind_int(stmt, 1, chat_id);
-		sqlite3_bind_int(stmt, 2, msg_type);
-		sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		if( !mrmsg_load_from_db__(msg, mailbox, curr_msg_id) ) {
+			goto cleanup;
+		}
+
+		if( (list=mrmailbox_get_chat_media__(mailbox, msg->m_chat_id, msg->m_type, 0))==NULL ) {
+			goto cleanup;
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	cnt = carray_count(list);
+	for( i = 0; i < cnt; i++ ) {
+		if( curr_msg_id == (uint32_t)(uintptr_t)carray_get(list, i) )
+		{
+			if( dir > 0 ) {
+				/* get the next message from the current position */
+				if( i+1 < cnt ) {
+					ret_msg_id = (uint32_t)(uintptr_t)carray_get(list, i+1);
+				}
+			}
+			else if( dir < 0 ) {
+				/* get the previous message from the current position */
+				if( i-1 >= 0 ) {
+					ret_msg_id = (uint32_t)(uintptr_t)carray_get(list, i-1);
+				}
+			}
+			break;
+		}
+	}
+
 
 cleanup:
-	return ret;
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( list ) { carray_free(list); }
+	mrmsg_unref(msg);
+	return ret_msg_id;
 }
 
 
