@@ -1365,7 +1365,7 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
-		if( mrmsg_load_from_db__(ret_msg, mailbox->m_sql, msg_id)
+		if( mrmsg_load_from_db__(ret_msg, mailbox, msg_id)
 		 && mrchat_load_from_db__(ret_chat, ret_msg->m_chat_id) )
 		{
 			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
@@ -1615,8 +1615,9 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 		return 0;
 	}
 
-	msg->m_id    = 0;
-	msg->m_bytes = 0;
+	msg->m_id      = 0;
+	msg->m_bytes   = 0;
+	msg->m_mailbox = ths->m_mailbox;
 
 	if( msg->m_type == MR_MSG_TEXT )
 	{

@@ -189,7 +189,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 		mrsqlite3_lock(chatlist->m_mailbox->m_sql);
 
 			lastmsg = mrmsg_new();
-			mrmsg_load_from_db__(lastmsg, chatlist->m_mailbox->m_sql, lastmsg_id);
+			mrmsg_load_from_db__(lastmsg, chatlist->m_mailbox, lastmsg_id);
 
 			if( lastmsg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_GROUP )
 			{

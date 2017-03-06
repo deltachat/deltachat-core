@@ -72,17 +72,15 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 }
 
 
-int mrmsg_load_from_db__(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
+int mrmsg_load_from_db__(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || sql == NULL ) {
+	if( ths==NULL || mailbox==NULL || mailbox->m_sql==NULL ) {
 		return 0;
 	}
 
-	mrmsg_empty(ths);
-
-	stmt = mrsqlite3_predefine__(sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
@@ -90,9 +88,11 @@ int mrmsg_load_from_db__(mrmsg_t* ths, mrsqlite3_t* sql, uint32_t id)
 		return 0;
 	}
 
-	if( !mrmsg_set_from_stmt__(ths, stmt, 0) ) {
+	if( !mrmsg_set_from_stmt__(ths, stmt, 0) ) { /* also calls mrmsg_empty() */
 		return 0;
 	}
+
+	ths->m_mailbox = mailbox;
 
 	return 1;
 }
@@ -285,6 +285,8 @@ void mrmsg_empty(mrmsg_t* ths)
 	ths->m_server_folder = NULL;
 
 	mrparam_set_packed(ths->m_param, NULL);
+
+	ths->m_mailbox = NULL;
 }
 
 
@@ -297,7 +299,7 @@ mrmsg_t* mrmailbox_get_msg(mrmailbox_t* ths, uint32_t id)
 	mrsqlite3_lock(ths->m_sql);
 	db_locked = 1;
 
-		if( !mrmsg_load_from_db__(obj, ths->m_sql, id) ) {
+		if( !mrmsg_load_from_db__(obj, ths, id) ) {
 			goto cleanup;
 		}
 
@@ -332,7 +334,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		mrmsg_load_from_db__(msg, mailbox->m_sql, msg_id);
+		mrmsg_load_from_db__(msg, mailbox, msg_id);
 		msg_id = mrparam_get_int(msg->m_param, 'G', msg_id);
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
@@ -494,7 +496,7 @@ cleanup:
 }
 
 
-mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
+mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 {
 	/* Get artistname and trackname of a message.
 	- for voice messages, the artist the sender and the trackname is the sending time
@@ -508,18 +510,16 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
 	char *pathNfilename = NULL;
 	mrcontact_t* contact = NULL;
 
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_mailbox == NULL ) {
 		goto cleanup;
 	}
 
 	if( msg->m_type == MR_MSG_VOICE )
 	{
-		if( mailbox_helper ) {
-			if( (contact = mrmailbox_get_contact(mailbox_helper, msg->m_from_id))==NULL ) {
-				goto cleanup;
-			}
-			ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
+		if( (contact = mrmailbox_get_contact(msg->m_mailbox, msg->m_from_id))==NULL ) {
+			goto cleanup;
 		}
+		ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
 		ret->m_text2 = mrstock_str(MR_STR_VOICEMESSAGE);
 	}
 	else
@@ -528,15 +528,15 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
-
 		extract_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
+		if( ret->m_text1 == NULL && ret->m_text2 != NULL ) {
+			ret->m_text1 = mrstock_str(MR_STR_AUDIO);
+		}
 	}
 
 cleanup:
 	free(pathNfilename);
 	mrcontact_unref(contact);
-	if( ret->m_text1==NULL ) { ret->m_text1 = mrstock_str(MR_STR_AUDIO); }
-	if( ret->m_text2==NULL ) { ret->m_text2 = mrstock_str(MR_STR_AUDIO); }
 	return ret;
 }
 
@@ -555,7 +555,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db__(msg, mailbox->m_sql, job->m_foreign_id) ) {
+		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
 			goto cleanup;
 		}
 
@@ -688,7 +688,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
 			int src_msg_id = sqlite3_column_int(stmt, 0);
-			if( !mrmsg_load_from_db__(msg, mailbox->m_sql, src_msg_id) ) {
+			if( !mrmsg_load_from_db__(msg, mailbox, src_msg_id) ) {
 				goto cleanup;
 			}
 
@@ -773,7 +773,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db__(msg, mailbox->m_sql, job->m_foreign_id) ) {
+		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
 			goto cleanup;
 		}
 
