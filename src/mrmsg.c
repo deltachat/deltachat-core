@@ -394,6 +394,24 @@ cleanup:
 }
 
 
+static void extract_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
+{
+	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
+	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
+	char *author = NULL, *title = NULL, *p;
+	mr_split_filename(pathNfilename, &title, NULL);
+	p = strstr(title, " - ");
+	if( p ) {
+		*p = 0;
+		author = title;
+		title  = safe_strdup(&p[3]);
+	}
+
+	if( ret_author ) { *ret_author = author; } else { free(author); }
+	if( ret_title  ) { *ret_title  = title;  } else { free(title);  }
+}
+
+
 char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 {
 	if( msg==NULL ) {
@@ -407,7 +425,7 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
 {
 	char* ret = NULL;
-	char* pathNfilename = NULL, *filename = NULL, *label = NULL;
+	char* pathNfilename = NULL, *label = NULL, *value = NULL;
 
 	switch( type ) {
 		case MR_MSG_IMAGE:
@@ -423,11 +441,17 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_AUDIO:
+			pathNfilename = mrparam_get(param, 'f', "ErrFilename");
+			extract_authorNtitle_from_filename(pathNfilename, NULL, &value);
+			label = mrstock_str(MR_STR_AUDIO);
+			ret = mr_mprintf("%s: %s", label, value);
+			break;
+
 		case MR_MSG_FILE:
 			pathNfilename = mrparam_get(param, 'f', "ErrFilename");
-			filename = mr_get_filename(pathNfilename);
-			label = mrstock_str(type==MR_MSG_AUDIO? MR_STR_AUDIO : MR_STR_FILE);
-			ret = mr_mprintf("%s: %s", label, filename);
+			value = mr_get_filename(pathNfilename);
+			label = mrstock_str(MR_STR_FILE);
+			ret = mr_mprintf("%s: %s", label, value);
 			break;
 
 		default:
@@ -440,8 +464,8 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 
 	/* cleanup */
 	free(pathNfilename);
-	free(filename);
 	free(label);
+	free(value);
 	if( ret == NULL ) {
 		ret = safe_strdup(NULL);
 	}
@@ -481,7 +505,7 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
 		However, this is not a great disadvantage, as the sender usually sets the filename in a way we expect it -
 		if not, we simply print the whole filename as we do it for documents.  All fine in any case :-) */
 	mrpoortext_t* ret = mrpoortext_new();
-	char *pathNfilename = NULL, *p;
+	char *pathNfilename = NULL;
 	mrcontact_t* contact = NULL;
 
 	if( msg == NULL ) {
@@ -505,13 +529,7 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg, mrmailbox_t* mailbox_helper)
 			goto cleanup;
 		}
 
-		mr_split_filename(pathNfilename, &ret->m_text2, NULL);
-		p = strstr(ret->m_text2, " - ");
-		if( p ) {
-			*p = 0;
-			ret->m_text1 = ret->m_text2;
-			ret->m_text2 = safe_strdup(&p[3]);
-		}
+		extract_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
 	}
 
 cleanup:
