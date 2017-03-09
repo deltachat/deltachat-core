@@ -227,7 +227,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" type INTEGER DEFAULT 0,"
 					" state INTEGER DEFAULT 0,"
 					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? */
-					" bytes INTEGER DEFAULT 0,"
+					" bytes INTEGER DEFAULT 0,"        /* not used, added in ~ v0.1.12 */
 					" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");

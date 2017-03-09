@@ -1639,7 +1639,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 
 	/* add message to the database */
 	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,
-		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,bytes) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
+		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param) VALUES (?,?,?,?, ?,?,?, ?,?);");
 	sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt,  2, MR_CHAT_ID_MSGS_IN_CREATION);
 	sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SELF);
@@ -1649,7 +1649,6 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 	sqlite3_bind_int  (stmt,  7, MR_OUT_PENDING);
 	sqlite3_bind_text (stmt,  8, msg->m_text? msg->m_text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 10, msg->m_bytes);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
 	}
@@ -1675,7 +1674,6 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 	}
 
 	msg->m_id      = 0;
-	msg->m_bytes   = 0;
 	msg->m_mailbox = ths->m_mailbox;
 
 	if( msg->m_type == MR_MSG_TEXT )
@@ -1698,10 +1696,10 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 				}
 			}
 
-			msg->m_bytes = mr_get_filebytes(pathNfilename);
-			if( msg->m_bytes > 0 )
+			int bytes = mr_get_filebytes(pathNfilename);
+			if( bytes > 0 )
 			{
-				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", pathNfilename, (int)msg->m_bytes, (int)msg->m_type);
+				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", pathNfilename, (int)bytes, (int)msg->m_type);
 
 				if( msg->m_text ) { free(msg->m_text); }
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {

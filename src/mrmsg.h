@@ -86,7 +86,6 @@ typedef struct mrmsg_t
 	int           m_is_msgrmsg;
 	char*         m_text;      /* message text or NULL if unset */
 	mrparam_t*    m_param;     /* 'f'ile, 'm'ime, 'w', 'h', 'd'uration/ms etc. depends on the type, != NULL */
-	int           m_bytes;     /* used for external BLOBs, BLOB data itself is stored in plain files with <8-chars-hex-id>.ext, 0 for plain text */
 
 	mrmailbox_t*  m_mailbox;   /* may be NULL, set on loading from database and on sending */
 
@@ -104,7 +103,7 @@ mrpoortext_t* mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (a
 
 /*** library-private **********************************************************/
 
-#define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.bytes "
+#define      MR_MSG_FIELDS                    " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param "
 int          mrmsg_set_from_stmt__            (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int          mrmsg_load_from_db__             (mrmsg_t*, mrmailbox_t*, uint32_t id);
 int          mr_guess_msgtype_from_suffix     (const char* pathNfilename);

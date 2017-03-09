@@ -62,7 +62,6 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 	ths->m_text         =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
-	ths->m_bytes        =                     sqlite3_column_int  (row, row_offset++);
 
 	if( ths->m_chat_id == MR_CHAT_ID_DEADDROP ) {
 		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
@@ -353,9 +352,10 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	timestr = mr_timestamp_to_str(msg->m_timestamp);
 
 	file = mrparam_get(msg->m_param, 'f', NULL);
-	if( file || msg->m_bytes ) {
+	if( file ) {
+		int bytes = mr_get_filebytes(file);
 		metadata = mr_mprintf("\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms", file? file : "",
-			(int)msg->m_bytes,
+			(int)bytes,
 			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0));
 	}
 
