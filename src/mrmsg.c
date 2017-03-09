@@ -590,6 +590,24 @@ int mrmsg_is_increation(mrmsg_t* msg) /* surrounds mrmsg_is_increation__() with 
 }
 
 
+void mrmsg_save_param_to_disk(mrmsg_t* msg)
+{
+	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
+		return;
+	}
+
+	mrsqlite3_lock(msg->m_mailbox->m_sql);
+
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
+			"UPDATE msgs SET param=? WHERE id=?;");
+		sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 2, msg->m_id);
+		sqlite3_step(stmt);
+
+	mrsqlite3_unlock(msg->m_mailbox->m_sql);
+}
+
+
 /*******************************************************************************
  * Delete messages
  ******************************************************************************/

@@ -101,6 +101,7 @@ char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /*
 char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
 mrpoortext_t* mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (as text1, this is not always the sender, NULL if unknown) and title (text2, NULL if unknown) */
 int           mrmsg_is_increation          (mrmsg_t*);
+void          mrmsg_save_param_to_disk     (mrmsg_t*); /* can be used to add some additional, persistent information to a messages record */
 
 
 /*** library-private **********************************************************/
