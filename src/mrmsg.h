@@ -49,7 +49,8 @@ typedef struct mrchat_t mrchat_t;
 #define MR_MSG_FILE        60 /* param: 'f'ile */
 
 #define MR_MSG_NEEDS_ATTACHMENT(a)         ((a)==MR_MSG_IMAGE || (a)==MR_MSG_AUDIO || (a)==MR_MSG_VOICE || (a)==MR_MSG_VIDEO || (a)==MR_MSG_FILE)
-#define MR_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==MR_MSG_FILE || (a)==MR_MSG_AUDIO || (a)==MR_MSG_VOICE) /* add filename.ext (without path) to m_text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
+#define MR_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==MR_MSG_AUDIO || (a)==MR_MSG_FILE || (a)==MR_MSG_VIDEO ) /* add filename.ext (without path) to m_text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
+#define MR_MSG_MAKE_SUFFIX_SEARCHABLE(a)   ((a)==MR_MSG_IMAGE || (a)==MR_MSG_VOICE )
 
 
 /* message states */

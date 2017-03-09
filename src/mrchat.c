@@ -1719,22 +1719,20 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 			mrlog_info("Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
 
 			if( msg->m_text ) { free(msg->m_text); }
-			if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
-				if( msg->m_type == MR_MSG_VOICE ) {
-					msg->m_text = strdup("ogg");
-				}
-				else if( msg->m_type == MR_MSG_AUDIO ) {
-					char* filename = mr_get_filename(pathNfilename);
-					char* author = mrparam_get(msg->m_param, 'N', "");
-					char* title = mrparam_get(msg->m_param, 'n', "");
-					msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
-					free(filename);
-					free(author);
-					free(title);
-				}
-				else {
-					msg->m_text = mr_get_filename(pathNfilename);
-				}
+			if( msg->m_type == MR_MSG_AUDIO ) {
+				char* filename = mr_get_filename(pathNfilename);
+				char* author = mrparam_get(msg->m_param, 'N', "");
+				char* title = mrparam_get(msg->m_param, 'n', "");
+				msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
+				free(filename);
+				free(author);
+				free(title);
+			}
+			else if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
+				msg->m_text = mr_get_filename(pathNfilename);
+			}
+			else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg->m_type) ) {
+				msg->m_text = mr_get_filesuffix_lc(pathNfilename);
 			}
 		}
 		else

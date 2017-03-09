@@ -777,6 +777,9 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
 					part->m_msg = mr_get_filename(pathNfilename);
 				}
+				else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
+					part->m_msg = mr_get_filesuffix_lc(pathNfilename);
+				}
 
 				if( mime_type == MR_MIMETYPE_IMAGE ) {
 					uint32_t w = 0, h = 0;
