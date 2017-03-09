@@ -1709,11 +1709,15 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 			{
 				/* correct the type from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector)
 				(we do not correct to the type "IMAGE" as we may want to send explicitly uncompressed files) */
-				int better_type = mr_guess_msgtype_from_suffix(pathNfilename);
+				int   better_type = 0;
+				char* better_mime = NULL;
+				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
 				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO ) {
 					mrlog_info("Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
 					msg->m_type = better_type;
+					mrparam_set(msg->m_param, 'm', better_mime);
 				}
+				free(better_mime);
 			}
 
 			mrlog_info("Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
