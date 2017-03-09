@@ -40,6 +40,7 @@
  * 'N'ame of author or artist
  * 'm'ime
  * 't'imes a job was tried
+ * 'T'imes a job was tried, used for increation
  *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group

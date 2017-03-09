@@ -1189,6 +1189,18 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
  ******************************************************************************/
 
 
+int mr_file_exist(const char* pathNfilename)
+{
+	struct stat st;
+	if( stat(pathNfilename, &st) == 0 ) {
+		return 1; /* the size, however, may be 0 */
+	}
+	else {
+		return 0;
+	}
+}
+
+
 size_t mr_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;

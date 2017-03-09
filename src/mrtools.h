@@ -76,6 +76,7 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* addr);
 
 /* file tools */
+int     mr_file_exist              (const char* pathNfilename);
 size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
 int     mr_delete_file             (const char* pathNFilename);

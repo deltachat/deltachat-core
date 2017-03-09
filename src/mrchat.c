@@ -1420,7 +1420,8 @@ cleanup:
 
 static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
                              mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname,
-                             clist* ret_recipients_names, clist* ret_recipients_addr)
+                             clist* ret_recipients_names, clist* ret_recipients_addr,
+                             int* ret_increation)
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1462,6 +1463,11 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 
 			success = 1;
 		}
+
+		*ret_increation = 0;
+		if( success ) {
+			*ret_increation = mrmsg_is_increation__(ret_msg);
+		}
 	mrsqlite3_unlock(mailbox->m_sql);
 	return success;
 }
@@ -1478,6 +1484,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         from_displayname = NULL;
 	char*         server_folder = NULL;
 	uint32_t      server_uid = 0;
+	int           increation; /* we can ignore this state here as it already checked when sending to SMTP */
 
 	/* connect to IMAP-server */
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
@@ -1489,7 +1496,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation)==0
 	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1538,6 +1545,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
+	int           increation;
 
 	/* connect to SMTP server, if not yet done */
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
@@ -1554,10 +1562,17 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation)==0
 	 || from_addr == NULL ) {
 		mrlog_error("Cannot load data to send.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+	}
+
+	/* check if the message is ready (normally, only video files may be delayed this way) */
+	if( increation ) {
+		mrlog_info("File is in creation, retrying later.");
+		mrjob_try_again_later(job, MR_INCREATION_POLL);
+		goto cleanup;
 	}
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
@@ -1685,6 +1700,11 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
 		if( pathNfilename )
 		{
+			/* Got an attachment. Take care, the file may not be ready in this moment!
+			This is useful eg. if a video should be sended and already shown as "being processed" in the chat.
+			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sended.
+			(we do not use a state in the database as this would make eg. forwarding such messages much more complicated) */
+
 			if( msg->m_type == MR_MSG_FILE )
 			{
 				/* correct the type from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector)
@@ -1696,34 +1716,25 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 				}
 			}
 
-			int bytes = mr_get_filebytes(pathNfilename);
-			if( bytes > 0 )
-			{
-				mrlog_info("Attaching \"%s\" with %i bytes for message type #%i.", pathNfilename, (int)bytes, (int)msg->m_type);
+			mrlog_info("Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
 
-				if( msg->m_text ) { free(msg->m_text); }
-				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
-					if( msg->m_type == MR_MSG_VOICE ) {
-						msg->m_text = strdup("ogg");
-					}
-					else if( msg->m_type == MR_MSG_AUDIO ) {
-						char* filename = mr_get_filename(pathNfilename);
-						char* author = mrparam_get(msg->m_param, 'N', "");
-						char* title = mrparam_get(msg->m_param, 'n', "");
-						msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
-						free(filename);
-						free(author);
-						free(title);
-					}
-					else {
-						msg->m_text = mr_get_filename(pathNfilename);
-					}
+			if( msg->m_text ) { free(msg->m_text); }
+			if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
+				if( msg->m_type == MR_MSG_VOICE ) {
+					msg->m_text = strdup("ogg");
 				}
-			}
-			else
-			{
-				mrlog_error("File \"%s\" not found or has zero bytes.", pathNfilename);
-				goto cleanup;
+				else if( msg->m_type == MR_MSG_AUDIO ) {
+					char* filename = mr_get_filename(pathNfilename);
+					char* author = mrparam_get(msg->m_param, 'N', "");
+					char* title = mrparam_get(msg->m_param, 'n', "");
+					msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
+					free(filename);
+					free(author);
+					free(title);
+				}
+				else {
+					msg->m_text = mr_get_filename(pathNfilename);
+				}
 			}
 		}
 		else

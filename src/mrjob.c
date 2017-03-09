@@ -237,17 +237,32 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 {
-	int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;
-	mrparam_set_int(ths->m_param, 't', tries);
+	if( initial_delay_seconds == MR_INCREATION_POLL )
+	{
+		int tries = mrparam_get_int(ths->m_param, 'T', 0) + 1;
+		mrparam_set_int(ths->m_param, 'T', tries);
 
-	if( tries == 1 ) {
-		ths->m_start_again_at = time(NULL)+initial_delay_seconds;
+		if( tries < 120/MR_INCREATION_POLL ) {
+			ths->m_start_again_at = time(NULL)+MR_INCREATION_POLL;
+		}
+		else {
+			ths->m_start_again_at = time(NULL)+10; /* after two minutes of waiting, try less often */
+		}
 	}
-	else if( tries < 5 ) {
-		ths->m_start_again_at = time(NULL)+60;
-	}
-	else {
-		ths->m_start_again_at = time(NULL)+600;
+	else
+	{
+		int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;
+		mrparam_set_int(ths->m_param, 't', tries);
+
+		if( tries == 1 ) {
+			ths->m_start_again_at = time(NULL)+initial_delay_seconds;
+		}
+		else if( tries < 5 ) {
+			ths->m_start_again_at = time(NULL)+60;
+		}
+		else {
+			ths->m_start_again_at = time(NULL)+600;
+		}
 	}
 }
 

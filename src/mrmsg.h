@@ -99,6 +99,7 @@ mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
 char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
 char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
 mrpoortext_t* mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (as text1, this is not always the sender, NULL if unknown) and title (text2, NULL if unknown) */
+int           mrmsg_is_increation          (mrmsg_t*);
 
 
 /*** library-private **********************************************************/
@@ -117,6 +118,7 @@ void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, in
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
+int          mrmsg_is_increation__            (const mrmsg_t*);
 void         mr_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title);
 #define      MR_GHOST_ID_FORMAT               "G@%lu"
 
