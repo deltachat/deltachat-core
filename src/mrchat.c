@@ -1334,7 +1334,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		}
 
 		/* add additional media paramters */
-		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO )
+		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
 		{
 			if( msg->m_type == MR_MSG_VOICE ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrVoiceMessage"), strdup("1")));
