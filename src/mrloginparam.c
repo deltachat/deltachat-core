@@ -176,6 +176,13 @@ void mrloginparam_complete(mrloginparam_t* ths)
 		if( ths->m_server_flags == 0 )                 { ths->m_server_flags= MR_AUTH_XOAUTH2 | MR_SMTP_SSL_TLS | MR_NO_EXTRA_IMAP_UPLOAD | MR_NO_MOVE_TO_CHATS; }
 		return;
 	}
+	else if( strcasecmp(adr_server, "web.de")==0 )
+	{
+		if( ths->m_send_server == NULL && ths->m_send_port == 0 && ths->m_server_flags == 0 ) {
+			ths->m_send_port = 587;
+			ths->m_server_flags = MR_SMTP_STARTTLS;
+		}
+	}
 
 	/* generic approach, just duplicate the servers and use the standard ports.
 	works fine eg. for all-inkl */
