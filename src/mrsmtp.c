@@ -118,7 +118,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( lp->m_addr == NULL || lp->m_send_server == NULL || lp->m_send_port == 0 ) {
-			mrlog_error("Cannot connect to SMTP; bad parameters.");
+			mrlog_popup_error("Cannot connect to SMTP; bad parameters.");
 			goto cleanup;
 		}
 
@@ -141,14 +141,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if( lp->m_server_flags&MR_SMTP_SSL_TLS ) {
 			/* use SMTP over SSL */
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrlog_error("SSL-connect failed: %s\n", mailsmtp_strerror(r));
+				mrlog_popup_error("SSL-connect failed: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
 		else {
 			/* use STARTTLS */
 			if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrlog_error("Socket-connect failed: %s\n", mailsmtp_strerror(r));
+				mrlog_popup_error("Socket-connect failed: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -164,14 +164,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( r != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+			mrlog_popup_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
 		if( ths->m_esmtp
 		 && (lp->m_server_flags&MR_SMTP_STARTTLS)
 		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
+			mrlog_popup_error("mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -185,7 +185,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			}
 
 			if (r != MAILSMTP_NO_ERROR) {
-				mrlog_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+				mrlog_popup_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -193,7 +193,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if (ths->m_esmtp
 		 && lp->m_send_user!=NULL
 		 && (r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_auth: %s: %s\n", lp->m_send_user, mailsmtp_strerror(r));
+			mrlog_popup_error("mailsmtp_auth: %s: %s\n", lp->m_send_user, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -262,7 +262,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
 				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR ) {
-			mrlog_error("mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+			mrlog_popup_error("mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
 			goto cleanup;
 		}
 
@@ -272,7 +272,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 			if( (r = (ths->m_esmtp?
 					 mailesmtp_rcpt(ths->m_hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 					  mailsmtp_rcpt(ths->m_hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
-				mrlog_error("mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
+				mrlog_popup_error("mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}

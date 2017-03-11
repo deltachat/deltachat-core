@@ -79,7 +79,6 @@ int mrmailbox_get_total_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 	sqlite3_bind_int(stmt, 1, chat_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql, "mr_get_total_msg_count_() failed.");
 		return 0;
 	}
 
@@ -99,7 +98,6 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		mrsqlite3_log_error(mailbox->m_sql, "mr_get_chat_cnt() failed.");
 		return 0;
 	}
 

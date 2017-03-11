@@ -937,7 +937,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		if( is_error(ths, r) ) {
 			free(ths->m_error_descr);
 			ths->m_error_descr = mr_mprintf("Could not connect to IMAP-server \"%s:%i\" (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
-			mrlog_error(ths->m_error_descr);
+			mrlog_popup_error(ths->m_error_descr);
 			goto cleanup;
 		}
 	mrlog_info("Connection to IMAP-server ok.");
@@ -968,7 +968,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		if( is_error(ths, r) ) {
 			free(ths->m_error_descr);
 			ths->m_error_descr = mr_mprintf("Could not login: %s (Error #%i)", ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
-			mrlog_error(ths->m_error_descr);
+			mrlog_popup_error(ths->m_error_descr);
 			goto cleanup;
 		}
 

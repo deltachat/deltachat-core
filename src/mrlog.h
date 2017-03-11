@@ -45,6 +45,7 @@ void mrlog_set_handler (mrlogcb_t);
 /*** library-private **********************************************************/
 
 void mrlog_error            (const char* msg, ...);
+void mrlog_popup_error      (const char* msg, ...);
 void mrlog_warning          (const char* msg, ...);
 void mrlog_info             (const char* msg, ...);
 int  mrlog_get_thread_index (void);

@@ -83,7 +83,7 @@ static void mrlog_default_handler_(int type, const char* msg)
 		case 'd': type_str = "[Debug] ";   break;
 		case 'i': type_str = "";           break;
 		case 'w': type_str = "[Warning] "; break;
-		default:  type_str = "[ERROR] ";   break;
+		default:  type_str = "[ERROR] ";   break; /* 'e'rror or 'p'opup error */
 	}
 
 	printf("%s%s\n", type_str, msg);
@@ -118,7 +118,7 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	char buf2[BUFSIZE];
 	int  thread_index = mrlog_get_thread_index();
 
-	if( type != 'e' && type != 'w' && type != 'i' ) {
+	if( type != 'e' && type != 'p' && type != 'w' && type != 'i' ) {
 		mrlog_cb_('e', "Bad log type.");
 		return;
 	}
@@ -129,7 +129,7 @@ static void mrlog_vprintf(int type, const char* msg_format, va_list va)
 	}
 
 	vsnprintf(buf1, BUFSIZE, msg_format, va);
-	if( thread_index==1 ) {
+	if( thread_index==1 || type=='p' ) {
 		snprintf(buf2, BUFSIZE, "%s", buf1);
 	}
 	else {
@@ -166,3 +166,12 @@ void mrlog_error(const char* msg, ...)
 	va_end(va);
 }
 
+
+
+void mrlog_popup_error(const char* msg, ...)
+{
+	va_list va;
+	va_start(va, msg);
+		mrlog_vprintf('p', msg, va);
+	va_end(va);
+}

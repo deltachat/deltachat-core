@@ -90,6 +90,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 /* Reports */
 #define MR_REPORT_ERR_SELF_NOT_IN_GROUP  1
+#define MR_REPORT_POPUP_ERR              2
 
 
 typedef struct mrmailbox_t
