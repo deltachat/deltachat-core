@@ -63,7 +63,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 #define MR_VERSION_REVISION 21
 
 
-/* Callback function that is called on updates, state changes etc. with one of the MREVENT_* codes
+/* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes
 - The callback MAY be called from _any_ thread, not only the main/GUI thread!
 - The callback MUST NOT call any mrmailbox_* and related functions unless stated otherwise!
 - The callback SHOULD return _fast_, for GUI updates etc. you should
@@ -71,26 +71,29 @@ typedef struct mrsmtp_t mrsmtp_t;
 - If not mentioned otherweise, the callback should return 0. */
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
-/* Message Events */
+#define MR_EVENT_INFO                     100  /* Information, should not be reported, can be logged */
+#define MR_EVENT_WARNING                  300  /* Warning, should not be reported, should be logged */
+#define MR_EVENT_ERROR                    400  /* Error, must be reported to the user by a non-disturbing bubble or so. */
+
 #define MR_EVENT_MSGS_CHANGED             2000 /* one or more messages changed for some reasons in the database - added or removed.  For added messages: data1=chat_id, data2=msg_id */
 #define MR_EVENT_INCOMING_MSG             2005 /* For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send; data1=chat_id, data2=msg_id */
 #define MR_EVENT_MSG_DELIVERED            2010 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
 #define MR_EVENT_MSG_READ                 2015 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
 
-/* Other Events */
 #define MR_EVENT_CHAT_MODIFIED            2020 /* group name/image changed or members added/removed */
+
 #define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
+
 #define MR_EVENT_CONNECTION_STATE_CHANGED 2040 /* connection state changed, data1=connected/disconnected */
-#define MR_EVENT_REPORT                   2050 /* report an issue, data1=MR_REPORT_* */
 
 /* Functions that should be provided by the frontends */
+#define MR_EVENT_IS_ONLINE                2080
 #define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
 #define MR_EVENT_GET_QUANTITY_STRING      2092 /* get a string from the frontend, data1=MR_STR_*, data2=quantity, ret=string which will free()'d by the backend */
 
-
-/* Reports */
-#define MR_REPORT_ERR_SELF_NOT_IN_GROUP  1
-#define MR_REPORT_POPUP_ERR              2
+/* Error codes */
+#define MR_ERR_SELF_NOT_IN_GROUP  1
+#define MR_ERR_NOTCONNECTED       2
 
 
 typedef struct mrmailbox_t
@@ -152,7 +155,6 @@ int                  mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
-char*                mrmailbox_get_error_descr      (mrmailbox_t*);
 
 
 /* Handle chats. */
@@ -250,6 +252,15 @@ void                 mrmailbox_kill_all_jobs        (mrmailbox_t*); /* kill all 
 /*** library-private **********************************************************/
 
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
+
+
+/* logging */
+void mrmailbox_log_error           (mrmailbox_t*, int code, const char* msg, ...);
+void mrmailbox_log_error_if        (int* condition, mrmailbox_t*, int code, const char* msg, ...);
+void mrmailbox_log_warning         (mrmailbox_t*, int code, const char* msg, ...);
+void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...);
+
+int  mrmailbox_get_thread_index    (void);
 
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */

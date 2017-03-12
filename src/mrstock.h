@@ -33,7 +33,7 @@ extern "C" {
 
 
 #define MR_STR_FREE_            0 /* the IDs must not change! No gaps, please. */
-#define MR_STR_NO_MESSAGES      1
+#define MR_STR_NOMESSAGES       1
 #define MR_STR_SELF             2
 #define MR_STR_DRAFT            3
 #define MR_STR_MEMBER           4
@@ -51,6 +51,9 @@ extern "C" {
 #define MR_STR_MSGADDMEMBER     17
 #define MR_STR_MSGDELMEMBER     18
 #define MR_STR_MSGGROUPLEFT     19
+#define MR_STR_ERROR            20
+#define MR_STR_SELFNOTINGRP     21
+#define MR_STR_NOTCONNECTED     22
 
 
 /*** library-private **********************************************************/
@@ -65,9 +68,10 @@ The result must be free()'d! */
 char* mrstock_str (int id);
 
 
-/* Replaces the first `%1$s` in the given String-ID by the given string.
+/* Replaces the first `%1$s` in the given String-ID by the given value.
 The result must be free()'d! */
-char* mrstock_str_repl_string (int id, const char*);
+char* mrstock_str_repl_string (int id, const char* value);
+char* mrstock_str_repl_int    (int id, int value);
 
 
 /* Replaces the first `%1$s` and `%2$s` in the given String-ID by the two given strings.

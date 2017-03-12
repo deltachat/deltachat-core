@@ -20,7 +20,9 @@
  *******************************************************************************
  *
  * File:    mrstock.h
- * Purpose: Add translated strings that are used by the messager backend
+ * Purpose: Add translated strings that are used by the messager backend.
+ *          As the logging functions may use these strings, do not log any
+ *          errors from here.
  *
  ******************************************************************************/
 
@@ -43,7 +45,7 @@ mrmailbox_t* s_localize_mb_obj = NULL;
 static char* default_string(int id, int qty)
 {
 	switch( id ) {
-		case MR_STR_NO_MESSAGES:   return safe_strdup("No messages.");
+		case MR_STR_NOMESSAGES:    return safe_strdup("No messages.");
 		case MR_STR_SELF:          return safe_strdup("Me");
 		case MR_STR_DRAFT:         return safe_strdup("Draft");
 		case MR_STR_MEMBER:        return mr_mprintf("%i member(s)", qty);
@@ -61,6 +63,9 @@ static char* default_string(int id, int qty)
 		case MR_STR_MSGADDMEMBER:  return safe_strdup("Member %1$s added.");
 		case MR_STR_MSGDELMEMBER:  return safe_strdup("Member %1$s removed.");
 		case MR_STR_MSGGROUPLEFT:  return safe_strdup("Group left.");
+		case MR_STR_ERROR:         return safe_strdup("Error: %1$s");
+		case MR_STR_SELFNOTINGRP:  return safe_strdup("You must be a member of the group to perform this action.");
+		case MR_STR_NOTCONNECTED:  return safe_strdup("Not connected.");
 	}
 	return safe_strdup("ErrStr");
 }
@@ -96,6 +101,15 @@ char* mrstock_str_repl_string(int id, const char* to_insert)
 	char* p2 = repl_string(p1, "%1$s", to_insert);
 	free(p1);
 	return p2;
+}
+
+
+char* mrstock_str_repl_int(int id, int to_insert_int)
+{
+	char* ret, *to_insert_str = mr_mprintf("%i", (int)to_insert_int);
+	ret = mrstock_str_repl_string(id, to_insert_str);
+	free(to_insert_str);
+	return ret;
 }
 
 

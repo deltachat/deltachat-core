@@ -29,7 +29,6 @@
 #include <memory.h>
 #include "mrmailbox.h"
 #include "mrjob.h"
-#include "mrlog.h"
 #include "mrchat.h"
 #include "mrmsg.h"
 #include "mrosnative.h"
@@ -78,8 +77,8 @@ static void* job_thread_entry_point(void* entry_arg)
 	job.m_param = mrparam_new();
 
 	/* init thread */
-	mrlog_info("Job thread entered.");
-	mrosnative_setup_thread();
+	mrmailbox_log_info(mailbox, 0, "Job thread entered.");
+	mrosnative_setup_thread(mailbox);
 
 	while( 1 )
 	{
@@ -87,7 +86,7 @@ static void* job_thread_entry_point(void* entry_arg)
 		pthread_mutex_lock(&mailbox->m_job_condmutex);
 			seconds_to_wait = get_wait_seconds(mailbox);
 			if( seconds_to_wait > 0 ) {
-				mrlog_info("Job thread waiting for %i seconds or signal...", seconds_to_wait);
+				mrmailbox_log_info(mailbox, 0, "Job thread waiting for %i seconds or signal...", seconds_to_wait);
 				if( mailbox->m_job_condflag == 0 ) {
 					struct timespec timeToWait;
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
@@ -96,7 +95,7 @@ static void* job_thread_entry_point(void* entry_arg)
 				}
 			}
 			else if( seconds_to_wait < 0 ) {
-				mrlog_info("Job thread waiting for signal...");
+				mrmailbox_log_info(mailbox, 0, "Job thread waiting for signal...");
 				while( mailbox->m_job_condflag == 0 ) {
 					pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
 				}
@@ -105,7 +104,7 @@ static void* job_thread_entry_point(void* entry_arg)
 		pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
 		/* do all waiting jobs */
-		mrlog_info("Job thread checks for pending jobs...");
+		mrmailbox_log_info(mailbox, 0, "Job thread checks for pending jobs...");
 		while( 1 )
 		{
 			pthread_mutex_lock(&mailbox->m_job_condmutex);
@@ -134,7 +133,7 @@ static void* job_thread_entry_point(void* entry_arg)
 			}
 
 			/* execute job */
-			mrlog_info("Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
+			mrmailbox_log_info(mailbox, 0, "Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
 			job.m_start_again_at = 0;
 			switch( job.m_action ) {
 				case MRJ_CONNECT_TO_IMAP:      mrmailbox_connect_to_imap      (mailbox, &job); break;
@@ -154,7 +153,7 @@ static void* job_thread_entry_point(void* entry_arg)
 					sqlite3_bind_int  (stmt, 3, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
-				mrlog_info("Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
+				mrmailbox_log_info(mailbox, 0, "Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
 			}
 			else {
 				mrsqlite3_lock(mailbox->m_sql);
@@ -163,7 +162,7 @@ static void* job_thread_entry_point(void* entry_arg)
 					sqlite3_bind_int(stmt, 1, job.m_job_id);
 					sqlite3_step(stmt);
 				mrsqlite3_unlock(mailbox->m_sql);
-				mrlog_info("Job #%i done and deleted from database", (int)job.m_job_id);
+				mrmailbox_log_info(mailbox, 0, "Job #%i done and deleted from database", (int)job.m_job_id);
 			}
 		}
 
@@ -172,8 +171,8 @@ static void* job_thread_entry_point(void* entry_arg)
 	/* exit thread */
 exit_:
 	mrparam_unref(job.m_param);
-	mrlog_info("Exit job thread.");
-	mrosnative_unsetup_thread();
+	mrmailbox_log_info(mailbox, 0, "Exit job thread.");
+	mrosnative_unsetup_thread(mailbox);
 	return NULL;
 }
 
@@ -225,7 +224,7 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 	pthread_mutex_lock(&mailbox->m_job_condmutex);
 		if( !mailbox->m_job_do_exit ) {
-			mrlog_info("Signal job thread to wake up...");
+			mrmailbox_log_info(mailbox, 0, "Signal job thread to wake up...");
 			mailbox->m_job_condflag = 1;
 			pthread_cond_signal(&mailbox->m_job_cond);
 		}
@@ -279,5 +278,5 @@ void mrmailbox_kill_all_jobs(mrmailbox_t* mailbox)
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mrlog_info("All jobs killed.");
+	mrmailbox_log_info(mailbox, 0, "All jobs killed.");
 }

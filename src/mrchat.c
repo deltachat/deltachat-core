@@ -30,7 +30,6 @@
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrcontact.h"
-#include "mrlog.h"
 #include "mrjob.h"
 #include "mrsmtp.h"
 #include "mrimap.h"
@@ -432,12 +431,12 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 
 		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, contact_id);
 		if( chat_id ) {
-			mrlog_warning("Chat with contact %i already exists.", (int)contact_id);
+			mrmailbox_log_warning(ths, 0, "Chat with contact %i already exists.", (int)contact_id);
 			goto cleanup;
 		}
 
         if( 0==mrmailbox_real_contact_exists__(ths, contact_id) ) {
-			mrlog_error("Cannot create chat, contact %i does not exist.", (int)contact_id);
+			mrmailbox_log_warning(ths, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
 			goto cleanup;
         }
 
@@ -1562,13 +1561,13 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	/* load message data */
 	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation)==0
 	 || from_addr == NULL ) {
-		mrlog_error("Cannot load data to send.");
+		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 	}
 
 	/* check if the message is ready (normally, only video files may be delayed this way) */
 	if( increation ) {
-		mrlog_info("File is in creation, retrying later.");
+		mrmailbox_log_info(mailbox, 0, "File is in creation, retrying later.");
 		mrjob_try_again_later(job, MR_INCREATION_POLL);
 		goto cleanup;
 	}
@@ -1577,7 +1576,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	if( clist_count(recipients_addr) > 0 ) {
 		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr);
 		if( data == NULL ) {
-			mrlog_error("Empty message.");
+			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
@@ -1620,7 +1619,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 	uint32_t      msg_id = 0, to_id = 0;
 
 	if( ths->m_type==MR_CHAT_GROUP && !mrmailbox_is_contact_in_chat__(ths->m_mailbox, ths->m_id, MR_CONTACT_ID_SELF) ) {
-		ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+		mrmailbox_log_error(ths->m_mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 		goto cleanup;
 	}
 
@@ -1711,14 +1710,14 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 				char* better_mime = NULL;
 				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
 				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO ) {
-					mrlog_info("Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
+					mrmailbox_log_info(ths->m_mailbox, 0, "Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
 					msg->m_type = better_type;
 					mrparam_set(msg->m_param, 'm', better_mime);
 				}
 				free(better_mime);
 			}
 
-			mrlog_info("Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
+			mrmailbox_log_info(ths->m_mailbox, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
 
 			if( msg->m_text ) { free(msg->m_text); }
 			if( msg->m_type == MR_MSG_AUDIO ) {
@@ -1739,18 +1738,20 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 		}
 		else
 		{
-			mrlog_error("Attachment missing for message of type #%i.", (int)msg->m_type);
+			mrmailbox_log_error(ths->m_mailbox, 0, "Attachment missing for message of type #%i.", (int)msg->m_type); /* should not happen */
 			goto cleanup;
 		}
 	}
 	else
 	{
-		mrlog_error("Cannot send messages of type #%i.", (int)msg->m_type);
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot send messages of type #%i.", (int)msg->m_type); /* should not happen */
 		goto cleanup;
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
+
+		ths->m_mailbox->m_smtp->m_log_connect_errors = 1;
 
 		msg->m_id = mrchat_send_msg__(ths, msg, mr_get_smeared_timestamp__());
 
@@ -1893,7 +1894,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -1985,7 +1986,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -2051,7 +2052,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mailbox->m_cb(mailbox, MR_EVENT_REPORT, MR_REPORT_ERR_SELF_NOT_IN_GROUP, 0);
+			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 

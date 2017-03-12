@@ -79,10 +79,10 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* addr);
 int     mr_file_exist              (const char* pathNfilename);
 size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
-int     mr_delete_file             (const char* pathNFilename);
-int     mr_create_folder           (const char* pathNfilename);
-int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes);
-int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes);
+int     mr_delete_file             (const char* pathNFilename, mrmailbox_t* log);
+int     mr_create_folder           (const char* pathNfilename, mrmailbox_t* log);
+int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log);
+int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log);
 char*   mr_get_filesuffix_lc       (const char* pathNfilename); /* the returned suffix is lower-case */
 void    mr_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); /* the case of the suffix is preserved! */
 int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
@@ -95,7 +95,7 @@ char*   mr_get_fine_pathNfilename  (const char* folder, const char* desired_name
 
 #define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
 	if( ths == NULL ) { return; } \
-	if( ths->m_magic!=CLASS_MAGIC ) { mrlog_error("!!!%lu", CLASS_MAGIC); return; } \
+	if( ths->m_magic!=CLASS_MAGIC ) { exit(36); return; } \
 
 #define MR_QUOTEHELPER(name) #name
 #define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)

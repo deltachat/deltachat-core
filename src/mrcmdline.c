@@ -29,7 +29,6 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrcmdline.h"
-#include "mrlog.h"
 #include "mrtools.h"
 
 
@@ -40,10 +39,10 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 	{
 		uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
 		if( msg_id == MR_MSG_ID_DAYMARKER ) {
-			mrlog_info("--------------------------------------------------------------------------------"); lines_out++;
+			mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
 		}
 		else if( msg_id > 0 ) {
-			if( lines_out==0 ) { mrlog_info("--------------------------------------------------------------------------------"); lines_out++; }
+			if( lines_out==0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
 			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
 			mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
@@ -51,7 +50,7 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			int contact_id = contact? contact->m_id : 0;
 
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
-				mrlog_info("Msg #%i: %s (Contact #%i): %s %s[%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+				mrmailbox_log_info(mailbox, 0, "Msg #%i: %s (Contact #%i): %s %s[%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
 					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
 					temp2);
 			free(temp2);
@@ -61,7 +60,7 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 		}
 	}
 
-	if( lines_out > 0 ) { mrlog_info("--------------------------------------------------------------------------------"); }
+	if( lines_out > 0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); }
 }
 
 
@@ -71,7 +70,7 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 	for( i = 0; i < cnt; i++ ) {
 		mrcontact_t* contact = mrmailbox_get_contact(mailbox, (uint32_t)(uintptr_t)carray_get(contacts, i));
 		if( contact ) {
-			mrlog_info("Contact #%i: %s, %s", (int)contact->m_id,
+			mrmailbox_log_info(mailbox, 0, "Contact #%i: %s, %s", (int)contact->m_id,
 				(contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>",
 				(contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
 			mrcontact_unref(contact);
@@ -259,14 +258,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
-				mrlog_info("================================================================================");
+				mrmailbox_log_info(mailbox, 0, "================================================================================");
 				for( i = cnt-1; i >= 0; i-- )
 				{
 					mrchat_t* chat = mrchatlist_get_chat_by_index(chatlist, i);
 					char *temp;
 
 					temp = mrchat_get_subtitle(chat);
-						mrlog_info("%s #%i: %s [%s] [%i unseen]", chat->m_type==MR_CHAT_GROUP? "Group" : "Chat",
+						mrmailbox_log_info(mailbox, 0, "%s #%i: %s [%s] [%i unseen]", chat->m_type==MR_CHAT_GROUP? "Group" : "Chat",
 							(int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unseen_count(chat));
 					free(temp);
 
@@ -281,7 +280,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 						}
 
 						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
-							mrlog_info("%s%s%s%s [%s]",
+							mrmailbox_log_info(mailbox, 0, "%s%s%s%s [%s]",
 								poortext->m_text1? poortext->m_text1 : "",
 								poortext->m_text1? ": " : "",
 								poortext->m_text2? poortext->m_text2 : NULL,
@@ -293,7 +292,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					mrchat_unref(chat);
 
-					mrlog_info("================================================================================");
+					mrmailbox_log_info(mailbox, 0, "================================================================================");
 				}
 			}
 			ret = mr_mprintf("%i chats.", (int)cnt);
@@ -319,7 +318,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
-				mrlog_info("Chat #%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
+				mrmailbox_log_info(mailbox, 0, "Chat #%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
 			free(temp2);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
@@ -327,7 +326,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			}
 			if( sel_chat->m_draft_timestamp ) {
 				char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
-					mrlog_info("Draft: %s [%s]", sel_chat->m_draft_text, timestr);
+					mrmailbox_log_info(mailbox, 0, "Draft: %s [%s]", sel_chat->m_draft_text, timestr);
 				free(timestr);
 			}
 			ret = mr_mprintf("%i messages.", mrchat_get_total_msg_count(sel_chat));
@@ -628,7 +627,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			unsigned char* buf; size_t buf_bytes; uint32_t w, h;
-			if( mr_read_file(arg1, (void**)&buf, &buf_bytes) ) {
+			if( mr_read_file(arg1, (void**)&buf, &buf_bytes, mailbox) ) {
 				mr_get_filemeta(buf, buf_bytes, &w, &h);
 				ret = mr_mprintf("width=%i, height=%i", (int)w, (int)h);
 			}

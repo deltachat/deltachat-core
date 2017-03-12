@@ -44,8 +44,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "mrmailbox.h"
 #include "mrsqlite3.h"
-#include "mrlog.h"
 #include "mrtools.h"
 #include "mrchat.h"
 #include "mrcontact.h"
@@ -63,8 +63,8 @@ void mrsqlite3_log_error(mrsqlite3_t* ths, const char* msg_format, ...)
 	va_list     va;
 
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrlog_error("Bad log format string \"%s\".", msg_format); }
-			mrlog_error("%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrmailbox_log_error(ths->m_mailbox, 0, "Bad log format string \"%s\".", msg_format); }
+			mrmailbox_log_error(ths->m_mailbox, 0, "%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
 }
@@ -169,7 +169,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 	}
 
 	if( ths->m_cobj ) {
-		mrlog_error("Cannot open, database \"%s\" already opend.", dbfile);
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opend.", dbfile);
 		goto cleanup;
 	}
 
@@ -181,7 +181,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 	/* Init tables to dbversion=0 */
 	if( !mrsqlite3_table_exists__(ths, "config") )
 	{
-		mrlog_info("First time init: creating tables in \"%s\".", dbfile);
+		mrmailbox_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
 
 		mrsqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 		mrsqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
@@ -274,7 +274,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
-	mrlog_info("Opened \"%s\" successfully.", dbfile);
+	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
 cleanup:
@@ -304,7 +304,7 @@ void mrsqlite3_close__(mrsqlite3_t* ths)
 		ths->m_cobj = NULL;
 	}
 
-	mrlog_info("Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
+	mrmailbox_log_info(ths->m_mailbox, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
 }
 
 
@@ -358,7 +358,7 @@ int mrsqlite3_table_exists__(mrsqlite3_t* ths, const char* name)
 	int           sqlState;
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
-		mrlog_error("mrsqlite3_table_exists_(): Out of memory.");
+		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
@@ -399,12 +399,12 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 	sqlite3_stmt* stmt;
 
 	if( key == NULL ) {
-		mrlog_error("mrsqlite3_set_config(): Bad parameter.");
+		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
 	if( !mrsqlite3_is_open(ths) ) {
-		mrlog_error("mrsqlite3_set_config(): Database not ready.");
+		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
@@ -429,7 +429,7 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 			state=sqlite3_step(stmt);
 		}
 		else {
-			mrlog_error("mrsqlite3_set_config(): Cannot read value.");
+			mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot read value.");
 			return 0;
 		}
 	}
@@ -442,7 +442,7 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 	}
 
 	if( state != SQLITE_DONE )  {
-		mrlog_error("mrsqlite3_set_config(): Cannot change value.");
+		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot change value.");
 		return 0;
 	}
 

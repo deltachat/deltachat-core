@@ -61,6 +61,21 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 		case MR_EVENT_GET_QUANTITY_STRING:
 			break; /* do not show the event as this would fill the screen */
 
+		case MR_EVENT_IS_ONLINE:
+			return 1;
+
+		case MR_EVENT_INFO:
+			printf("%s\n", (char*)data2);
+			break;
+
+		case MR_EVENT_WARNING:
+			printf("[Warning] %s\n", (char*)data2);
+			break;
+
+		case MR_EVENT_ERROR:
+			printf("[ERROR #%i] %s\n", (int)data1, (char*)data2);
+			break;
+
 		default:
 			printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
 			break;

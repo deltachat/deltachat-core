@@ -20,7 +20,8 @@
  *******************************************************************************
  *
  * File:    mrsmtp.h
- * Purpose: Use SMTP servers with no dependencies to mrmailbox_t.
+ * Purpose: Use SMTP servers with no dependencies to mrmailbox_t only for
+ *          logging.
  *
  ******************************************************************************/
 
@@ -43,9 +44,13 @@ typedef struct mrsmtp_t
 	char*           m_from;
 	int             m_esmtp;
 	pthread_mutex_t m_mutex;
+
+	int             m_log_connect_errors;
+
+	mrmailbox_t*    m_mailbox;
 } mrsmtp_t;
 
-mrsmtp_t*    mrsmtp_new          (void);
+mrsmtp_t*    mrsmtp_new          (mrmailbox_t*);
 void         mrsmtp_unref        (mrsmtp_t*);
 int          mrsmtp_is_connected (const mrsmtp_t*);
 int          mrsmtp_connect      (mrsmtp_t*, const mrloginparam_t*);

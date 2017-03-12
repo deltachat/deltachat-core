@@ -41,7 +41,6 @@
 #include "mrmimeparser.h"
 #include "mrcontact.h"
 #include "mrtools.h"
-#include "mrlog.h"
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
@@ -393,7 +392,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
 	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
-	mrmimeparser_t*  mime_parser = mrmimeparser_new(ths->m_blobdir);
+	mrmimeparser_t*  mime_parser = mrmimeparser_new(ths->m_blobdir, ths);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
@@ -833,7 +832,7 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
 
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 {
-	mrlog_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
+	mrmailbox_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
 
 	mrmailbox_t* ths = NULL;
 
@@ -846,8 +845,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userData = userData;
-	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths);
-	ths->m_smtp     = mrsmtp_new();
+	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths, ths);
+	ths->m_smtp     = mrsmtp_new(ths);
 
 	mrjob_init_thread(ths);
 
@@ -910,7 +909,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	}
 	else {
 		ths->m_blobdir = mr_mprintf("%s-blobs", dbfile);
-		mr_create_folder(ths->m_blobdir);
+		mr_create_folder(ths->m_blobdir, ths);
 	}
 
 	/* success */
@@ -982,7 +981,7 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 		return 0;
 	}
 
-	if( mr_read_file(filename, (void**)&data, &data_bytes) == 0 ) {
+	if( mr_read_file(filename, (void**)&data, &data_bytes, ths) == 0 ) {
 		goto cleanup;
 	}
 
@@ -1010,7 +1009,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	}
 
 	if( !mrsqlite3_is_open(ths->m_sql) ) {
-        mrlog_error("Import: Database not opened.");
+        mrmailbox_log_error(ths, 0, "Import: Database not opened.");
 		goto cleanup;
 	}
 
@@ -1028,7 +1027,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 
 		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
-			mrlog_error("Import: No file or folder given.");
+			mrmailbox_log_error(ths, 0, "Import: No file or folder given.");
 			goto cleanup;
 		}
 	}
@@ -1042,7 +1041,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	else {
 		/* import a directory */
 		if( (dir=opendir(spec))==NULL ) {
-			mrlog_error("Import: Cannot open directory \"%s\".", spec);
+			mrmailbox_log_error(ths, 0, "Import: Cannot open directory \"%s\".", spec);
 			goto cleanup;
 		}
 
@@ -1050,7 +1049,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
             if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
-				mrlog_info("Import: %s", path_plus_name);
+				mrmailbox_log_info(ths, 0, "Import: %s", path_plus_name);
 				if( path_plus_name ) {
 					if( mrmailbox_import_file(ths, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 						read_cnt++;
@@ -1061,7 +1060,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		}
 	}
 
-	mrlog_info("Import: %i mails read from \"%s\".", read_cnt, spec);
+	mrmailbox_log_info(ths, 0, "Import: %i mails read from \"%s\".", read_cnt, spec);
 	if( read_cnt > 0 ) {
 		ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
@@ -1152,10 +1151,10 @@ int mrmailbox_configure(mrmailbox_t* ths)
 {
 	mrloginparam_t* param;
 
-	mrlog_info("Configuring...");
+	mrmailbox_log_info(ths, 0, "Configuring...");
 
 	if( ths == NULL || !mrsqlite3_is_open(ths->m_sql) ) {
-		mrlog_error("Database not opened.");
+		mrmailbox_log_error(ths, 0, "Database not opened.");
 		return 0;
 	}
 
@@ -1167,7 +1166,7 @@ int mrmailbox_configure(mrmailbox_t* ths)
 	mrsqlite3_unlock(ths->m_sql);
 
 	/* complete the parameters; in the future we may also try some server connections here */
-	mrloginparam_complete(param);
+	mrloginparam_complete(param, ths);
 
 	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
 	mrsqlite3_lock(ths->m_sql);
@@ -1193,7 +1192,7 @@ int mrmailbox_configure(mrmailbox_t* ths)
 	mrloginparam_unref(param);
 	param = NULL;
 
-	mrlog_info("Configure ok.");
+	mrmailbox_log_info(ths, 0, "Configure ok.");
 
 	return 1;
 }
@@ -1323,7 +1322,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 int mrmailbox_empty_tables(mrmailbox_t* ths)
 {
-	mrlog_info("Emptying all tables...");
+	mrmailbox_log_info(ths, 0, "Emptying all tables...");
 
 	mrsqlite3_lock(ths->m_sql);
 
@@ -1337,7 +1336,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 
 	mrsqlite3_unlock(ths->m_sql);
 
-	mrlog_info("Tables emptied.");
+	mrmailbox_log_info(ths, 0, "Tables emptied.");
 
 	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 
@@ -1362,7 +1361,7 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mrimap_is_connected(ths->m_imap) ) {
-		mrlog_error("Already connected or trying to connect.");
+		mrmailbox_log_error(ths, 0, "Already connected or trying to connect.");
 		goto cleanup; /* this is no success */
 	}
 
@@ -1370,7 +1369,7 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	is_locked = 1;
 
 		if( mrsqlite3_get_config_int__(ths->m_sql, "configured", 0) == 0 ) {
-			mrlog_error("Not configured.");
+			mrmailbox_log_error(ths, 0, "Not configured.");
 			goto cleanup;
 		}
 
@@ -1405,7 +1404,12 @@ int mrmailbox_connect(mrmailbox_t* ths)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+
+		ths->m_smtp->m_log_connect_errors = 1;
+		ths->m_imap->m_log_connect_errors = 1;
+
 		mrjob_add__(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
+
 	mrsqlite3_unlock(ths->m_sql);
 	return 1;
 }
@@ -1439,13 +1443,4 @@ int mrmailbox_restore(mrmailbox_t* ths, time_t seconds_to_restore)
 	}
 
 	return mrimap_restore(ths->m_imap, seconds_to_restore);
-}
-
-
-char* mrmailbox_get_error_descr(mrmailbox_t* ths)
-{
-	if( ths == NULL || ths->m_imap == NULL || ths->m_imap->m_error_descr == NULL ) {
-		return safe_strdup("");
-	}
-	return safe_strdup(ths->m_imap->m_error_descr);
 }

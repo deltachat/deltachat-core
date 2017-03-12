@@ -30,7 +30,6 @@
 #include "mrmailbox.h"
 #include "mrcontact.h"
 #include "mrtools.h"
-#include "mrlog.h"
 
 #define CLASS_MAGIC 1170070140
 
@@ -175,7 +174,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	/* rough check if email-address is valid */
 	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
-		mrlog_warning("Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
+		mrmailbox_log_warning(mailbox, 0, "Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
 		goto cleanup;
 	}
 
@@ -248,7 +247,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 		}
 		else
 		{
-			mrlog_error("Cannot add contact.");
+			mrmailbox_log_error(mailbox, 0, "Cannot add contact."); /* should not happen */
 		}
 	}
 

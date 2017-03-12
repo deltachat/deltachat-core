@@ -29,9 +29,9 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrimap.h"
+#include "mrsmtp.h"
 #include "mrcontact.h"
 #include "mrtools.h"
-#include "mrlog.h"
 #include "mrjob.h"
 
 #define CLASS_MAGIC 1333334140
@@ -626,7 +626,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 
 		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
-			mrlog_info("The message is deleted from the server when all message are deleted.");
+			mrmailbox_log_info(mailbox, 0, "The message is deleted from the server when all message are deleted.");
 			delete_from_server = 0;
 		}
 
@@ -676,21 +676,21 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 				if( !file_used_by_other_msgs )
 				{
-					mr_delete_file(pathNfilename);
+					mr_delete_file(pathNfilename, mailbox);
 
 					char* increation_file = mr_mprintf("%s.increation", pathNfilename);
-					mr_delete_file(increation_file);
+					mr_delete_file(increation_file, mailbox);
 					free(increation_file);
 
 					char* filenameOnly = mr_get_filename(pathNfilename);
 					if( msg->m_type==MR_MSG_VOICE ) {
 						char* waveform_file = mr_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(waveform_file);
+						mr_delete_file(waveform_file, mailbox);
 						free(waveform_file);
 					}
 					else if( msg->m_type==MR_MSG_VIDEO ) {
 						char* preview_file = mr_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(preview_file);
+						mr_delete_file(preview_file, mailbox);
 						free(preview_file);
 					}
 					free(filenameOnly);
@@ -759,6 +759,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 	locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
+
+		mailbox->m_smtp->m_log_connect_errors = 1;
 
 		if( !mrchat_load_from_db__(chat, chat_id) ) {
 			goto cleanup;

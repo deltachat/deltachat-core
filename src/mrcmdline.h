@@ -38,7 +38,7 @@ extern "C" {
 /* Execute a simple command.
 - The returned result may contain multiple lines  separated by `\n` and must be
   free()'d if no longer needed.
-- some commands may use mrlog_info() for additional output.
+- some commands may use mrmailbox_log_info() for additional output.
 - The command `help` gives an overview */
 char* mrmailbox_cmdline (mrmailbox_t*, const char* cmd);
 

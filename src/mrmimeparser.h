@@ -69,10 +69,12 @@ typedef struct mrmimeparser_t
 	char*                  m_fwd_name;
 	char*                  m_fwd_email;
 
+	mrmailbox_t*           m_mailbox;
+
 } mrmimeparser_t;
 
 
-mrmimeparser_t*       mrmimeparser_new            (const char* blobdir);
+mrmimeparser_t*       mrmimeparser_new            (const char* blobdir, mrmailbox_t*);
 void                  mrmimeparser_unref          (mrmimeparser_t*);
 void                  mrmimeparser_empty          (mrmimeparser_t*);
 

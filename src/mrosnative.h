@@ -34,13 +34,11 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-#if defined(ANDROID) || defined(__ANDROID__)
-#include <jni.h>
-void mrosnative_init_android  (JNIEnv* env);
-#endif
 
-int  mrosnative_setup_thread   (void); /*returns true/false*/
-void mrosnative_unsetup_thread (void);
+typedef struct mrmailbox_t mrmailbox_t;
+
+int  mrosnative_setup_thread   (mrmailbox_t*); /*returns true/false*/
+void mrosnative_unsetup_thread (mrmailbox_t*);
 
 
 #ifdef __cplusplus

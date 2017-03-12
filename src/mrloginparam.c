@@ -30,7 +30,6 @@
 #include "mrmailbox.h"
 #include "mrloginparam.h"
 #include "mrtools.h"
-#include "mrlog.h"
 
 #define CLASS_MAGIC 1479776404
 
@@ -129,12 +128,12 @@ void mrloginparam_write__(const mrloginparam_t* ths, mrsqlite3_t* sql, const cha
 }
 
 
-void mrloginparam_complete(mrloginparam_t* ths)
+void mrloginparam_complete(mrloginparam_t* ths, mrmailbox_t* mailbox)
 {
 	char* adr_server;
 
 	if( ths == NULL || ths->m_addr == NULL ) {
-		mrlog_error("Configuration failed, we need at least the email-address.");
+		mrmailbox_log_warning(mailbox, 0, "Configuration failed, we need at least the email-address.");
 		return; /* nothing we can do */
 	}
 
@@ -146,7 +145,7 @@ void mrloginparam_complete(mrloginparam_t* ths)
 
 	adr_server = strstr(ths->m_addr, "@");
 	if( adr_server == NULL ) {
-		mrlog_error("Configuration failed, bad email-address.");
+		mrmailbox_log_warning(mailbox, 0, "Configuration failed, bad email-address.");
 		return; /* no "@" found in address, normally, this should not happen */
 	}
 	adr_server++;

@@ -31,7 +31,6 @@
 #include "mrmimeparser.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
-#include "mrlog.h"
 
 
 /*******************************************************************************
@@ -416,7 +415,7 @@ void mrmimepart_unref(mrmimepart_t* ths)
  ******************************************************************************/
 
 
-mrmimeparser_t* mrmimeparser_new(const char* blobdir)
+mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 {
 	mrmimeparser_t* ths = NULL;
 
@@ -424,6 +423,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir)
 		exit(30);
 	}
 
+	ths->m_mailbox = mailbox;
 	ths->m_parts   = carray_new(16);
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 
@@ -694,7 +694,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						mrlog_warning("Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
+						mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
@@ -767,7 +767,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 				}
 
 				/* copy data to file */
-                if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes)==0 ) {
+                if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, ths->m_mailbox)==0 ) {
 					goto cleanup;
                 }
 
@@ -899,7 +899,7 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 								}
 							}
 							if( plain_cnt==1 && html_cnt==1 )  {
-								mrlog_warning("HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
+								mrmailbox_log_warning(ths->m_mailbox, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
 								skip_part = html_part;
 							}
 						}

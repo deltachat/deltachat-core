@@ -30,7 +30,6 @@
 #include <libetpan/libetpan.h>
 #include "mrmailbox.h"
 #include "mrsmtp.h"
-#include "mrlog.h"
 #include "mrtools.h"
 
 #ifndef DEBUG_SMTP
@@ -47,12 +46,16 @@
  ******************************************************************************/
 
 
-mrsmtp_t* mrsmtp_new(void)
+mrsmtp_t* mrsmtp_new(mrmailbox_t* mailbox)
 {
 	mrsmtp_t* ths;
 	if( (ths=calloc(1, sizeof(mrsmtp_t)))==NULL ) {
 		exit(29);
 	}
+
+	ths->m_log_connect_errors = 1;
+
+	ths->m_mailbox = mailbox; /* should be used for logging only */
 	pthread_mutex_init(&ths->m_mutex, NULL);
 	return ths;
 }
@@ -84,7 +87,7 @@ int mrsmtp_is_connected(const mrsmtp_t* ths)
 static void body_progress(size_t current, size_t maximum, void* user_data)
 {
 	#ifndef DEBUG_SMTP
-	mrlog_info("body_progress called with current=%i, maximum=%i.", (int)current, (int)maximum);
+	mrmailbox_log_info("body_progress called with current=%i, maximum=%i.", (int)current, (int)maximum);
 	#endif
 }
 
@@ -95,7 +98,7 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 	char* buffer = malloc(size+1);
 	memcpy(buffer, buffer__, size);
 	buffer[size] = 0;
-	mrlog_info("SMPT: %i: %s", log_type, buffer__);
+	mrmailbox_log_info("SMPT: %i: %s", log_type, buffer__);
 }
 #endif
 
@@ -111,25 +114,30 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 	LOCK_SMTP
 
+		if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, MR_ERR_NOTCONNECTED, NULL);
+			goto cleanup;
+		}
+
 		if( ths->m_hEtpan ) {
-			mrlog_warning("Already connected to SMTP server.");
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Already connected to SMTP server.");
 			success = 1; /* otherwise, the handle would get deleted */
 			goto cleanup;
 		}
 
 		if( lp->m_addr == NULL || lp->m_send_server == NULL || lp->m_send_port == 0 ) {
-			mrlog_popup_error("Cannot connect to SMTP; bad parameters.");
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot connect to SMTP; bad parameters.");
 			goto cleanup;
 		}
 
-		mrlog_info("Connecting to SMTP-server \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
+		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
 
 		free(ths->m_from);
 		ths->m_from = safe_strdup(lp->m_addr);
 
 		ths->m_hEtpan = mailsmtp_new(0, NULL);
 		if( ths->m_hEtpan == NULL ) {
-			mrlog_error("Object creationed failed.");
+			mrmailbox_log_error(ths->m_mailbox, 0, "Object creationed failed.");
 			goto cleanup;
 		}
 		mailsmtp_set_progress_callback(ths->m_hEtpan, body_progress, ths);
@@ -141,14 +149,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if( lp->m_server_flags&MR_SMTP_SSL_TLS ) {
 			/* use SMTP over SSL */
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrlog_popup_error("SSL-connect failed: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SSL-connect failed: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
 		else {
 			/* use STARTTLS */
 			if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrlog_popup_error("Socket-connect failed: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Socket-connect failed: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -164,14 +172,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( r != MAILSMTP_NO_ERROR ) {
-			mrlog_popup_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_helo: %s\n", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
 		if( ths->m_esmtp
 		 && (lp->m_server_flags&MR_SMTP_STARTTLS)
 		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
-			mrlog_popup_error("mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -185,7 +193,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			}
 
 			if (r != MAILSMTP_NO_ERROR) {
-				mrlog_popup_error("mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_helo: %s\n", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -193,11 +201,11 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if (ths->m_esmtp
 		 && lp->m_send_user!=NULL
 		 && (r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-			mrlog_popup_error("mailsmtp_auth: %s: %s\n", lp->m_send_user, mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_auth: %s: %s\n", lp->m_send_user, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
-		mrlog_info("Connection to SMTP server ok.");
+		mrmailbox_log_info(ths->m_mailbox, 0, "Connection to SMTP server ok.");
 		success = 1;
 
 cleanup:
@@ -262,7 +270,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
 				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR ) {
-			mrlog_popup_error("mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+			mrmailbox_log_error_if(ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
 			goto cleanup;
 		}
 
@@ -272,7 +280,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 			if( (r = (ths->m_esmtp?
 					 mailesmtp_rcpt(ths->m_hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 					  mailsmtp_rcpt(ths->m_hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
-				mrlog_popup_error("mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
+				mrmailbox_log_error_if(ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}

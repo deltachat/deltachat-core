@@ -35,8 +35,8 @@
 #include <unistd.h>    /* for getpid() */
 #include <libetpan/libetpan.h>
 #include <libetpan/mailimap_types.h>
+#include "mrmailbox.h"
 #include "mrtools.h"
-#include "mrlog.h"
 
 
 /*******************************************************************************
@@ -1230,14 +1230,14 @@ char* mr_get_filename(const char* pathNfilename)
 }
 
 
-int mr_delete_file(const char* pathNfilename)
+int mr_delete_file(const char* pathNfilename, mrmailbox_t* log)
 {
 	if( pathNfilename==NULL ) {
 		return 0;
 	}
 
 	if( remove(pathNfilename)!=0 ) {
-		mrlog_error("Cannot delete \"%s\".", pathNfilename);
+		mrmailbox_log_warning(log, 0, "Cannot delete \"%s\".", pathNfilename);
 		return 0;
 	}
 
@@ -1245,12 +1245,12 @@ int mr_delete_file(const char* pathNfilename)
 }
 
 
-int mr_create_folder(const char* pathNfilename)
+int mr_create_folder(const char* pathNfilename, mrmailbox_t* log)
 {
 	struct stat st;
 	if (stat(pathNfilename, &st) == -1) {
 		if( mkdir(pathNfilename, 0755) != 0 ) {
-			mrlog_error("Cannot create directory \"%s\".", pathNfilename);
+			mrmailbox_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
 			return 0;
 		}
 	}
@@ -1342,7 +1342,7 @@ cleanup:
 }
 
 
-int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes)
+int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log)
 {
 	int success = 0;
 
@@ -1352,19 +1352,19 @@ int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes)
 			success = 1;
 		}
 		else {
-			mrlog_error("Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
+			mrmailbox_log_warning(log, 0, "Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
 		}
 		fclose(f);
 	}
 	else {
-		mrlog_error("Cannot open \"%s\" for writing.", pathNfilename);
+		mrmailbox_log_warning(log, 0, "Cannot open \"%s\" for writing.", pathNfilename);
 	}
 
 	return success;
 }
 
 
-int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes)
+int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log)
 {
 	int success = 0;
 
@@ -1397,7 +1397,7 @@ cleanup:
 		free(*buf);
 		*buf = NULL;
 		*buf_bytes = 0;
-		mrlog_error("Cannot read \"%s\" or file is empty.", pathNfilename);
+		mrmailbox_log_warning(log, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
 	}
 	return success; /* buf must be free()'d by the caller */
 }

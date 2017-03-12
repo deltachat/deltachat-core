@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
-#include "mrlog.h"
 
 #define CLASS_MAGIC 1279576749
 
@@ -216,7 +215,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	else if( lastmsg == NULL || lastmsg->m_from_id == 0 )
 	{
 		/* no messages */
-		ret->m_text2 = mrstock_str(MR_STR_NO_MESSAGES);
+		ret->m_text2 = mrstock_str(MR_STR_NOMESSAGES);
 	}
 	else
 	{

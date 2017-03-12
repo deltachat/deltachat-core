@@ -20,8 +20,9 @@
  *******************************************************************************
  *
  * File:    mrimap.h
- * Purpose: Reading from IMAP servers with no dependencies to mrmailbox_t or to
- *          the database.
+ * Purpose: Reading from IMAP servers with no dependencies to the database.
+ *          mrmailbox_t is only used for logging and to get information about
+ *          the online state.
  *
  ******************************************************************************/
 
@@ -60,8 +61,6 @@ typedef struct mrimap_t
 	char*                 m_selected_folder;
 	int                   m_should_reconnect;
 
-	char*                 m_error_descr; /* != NULL, non-empty eg. on connection errors */
-
 	int                   m_can_idle;
 	int                   m_has_xlist;
 	char*                 m_moveto_folder;/* Folder, where reveived chat messages should go to.  Normally "Chats" but may be NULL to leave them in the INBOX */
@@ -86,10 +85,13 @@ typedef struct mrimap_t
 	mr_set_config_int_t   m_set_config_int;
 	mr_receive_imf_t      m_receive_imf;
 	void*                 m_userData;
+	mrmailbox_t*          m_mailbox;
+
+	int                   m_log_connect_errors;
 } mrimap_t;
 
 
-mrimap_t* mrimap_new               (mr_get_config_int_t, mr_set_config_int_t, mr_receive_imf_t, void* userData);
+mrimap_t* mrimap_new               (mr_get_config_int_t, mr_set_config_int_t, mr_receive_imf_t, void* userData, mrmailbox_t*);
 void      mrimap_unref             (mrimap_t*);
 
 int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
