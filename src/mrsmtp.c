@@ -115,7 +115,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	LOCK_SMTP
 
 		if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, MR_ERR_NOTCONNECTED, NULL);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, MR_ERR_NONETWORK, NULL);
 			goto cleanup;
 		}
 
@@ -269,10 +269,16 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		/* set source */
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
-				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR )
+		{
+			// this error is very usual - we've simply lost the server connection and reconnect as soon as possible.
+			// so, we do not log the first time this happens
+			mrmailbox_log_error_if(&ths->m_log_usual_error, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+			ths->m_log_usual_error = 1;
 			goto cleanup;
 		}
+
+		ths->m_log_usual_error = 0;
 
 		/* set recipients */
 		for( iter=clist_begin(recipients); iter!=NULL; iter=clist_next(iter)) {

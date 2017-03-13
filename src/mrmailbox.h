@@ -93,7 +93,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 /* Error codes */
 #define MR_ERR_SELF_NOT_IN_GROUP  1
-#define MR_ERR_NOTCONNECTED       2
+#define MR_ERR_NONETWORK          2
 
 
 typedef struct mrmailbox_t

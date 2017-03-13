@@ -46,6 +46,7 @@ typedef struct mrsmtp_t
 	pthread_mutex_t m_mutex;
 
 	int             m_log_connect_errors;
+	int             m_log_usual_error;
 
 	mrmailbox_t*    m_mailbox;
 } mrsmtp_t;

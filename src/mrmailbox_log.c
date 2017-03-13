@@ -93,9 +93,9 @@ static void log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* m
 	{
 		msg = mrstock_str(MR_STR_SELFNOTINGRP);
 	}
-	else if( code == MR_ERR_NOTCONNECTED )
+	else if( code == MR_ERR_NONETWORK )
 	{
-		msg = mrstock_str(MR_STR_NOTCONNECTED);
+		msg = mrstock_str(MR_STR_NONETWORK);
 	}
 	else if( msg_format )
 	{
@@ -167,7 +167,7 @@ void mrmailbox_log_error_if(int* condition, mrmailbox_t* mailbox, int code, cons
 		if( *condition ) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
 			if( mailbox->m_cb(mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
-				log_vprintf(mailbox, MR_EVENT_ERROR, MR_ERR_NOTCONNECTED, NULL, va);
+				log_vprintf(mailbox, MR_EVENT_ERROR, MR_ERR_NONETWORK, NULL, va);
 			}
 			else {
 				log_vprintf(mailbox, MR_EVENT_ERROR, code, msg, va);

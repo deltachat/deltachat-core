@@ -53,7 +53,7 @@ extern "C" {
 #define MR_STR_MSGGROUPLEFT     19
 #define MR_STR_ERROR            20
 #define MR_STR_SELFNOTINGRP     21
-#define MR_STR_NOTCONNECTED     22
+#define MR_STR_NONETWORK        22
 
 
 /*** library-private **********************************************************/
