@@ -86,8 +86,8 @@ int mrsmtp_is_connected(const mrsmtp_t* ths)
 
 static void body_progress(size_t current, size_t maximum, void* user_data)
 {
-	#ifndef DEBUG_SMTP
-	mrmailbox_log_info("body_progress called with current=%i, maximum=%i.", (int)current, (int)maximum);
+	#if DEBUG_SMTP
+	printf("body_progress called with current=%i, maximum=%i.", (int)current, (int)maximum);
 	#endif
 }
 
@@ -98,7 +98,7 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 	char* buffer = malloc(size+1);
 	memcpy(buffer, buffer__, size);
 	buffer[size] = 0;
-	mrmailbox_log_info("SMPT: %i: %s", log_type, buffer__);
+	printf("SMPT: %i: %s", log_type, buffer__);
 }
 #endif
 
@@ -270,7 +270,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		if( (r=(ths->m_esmtp?
 				mailesmtp_mail(ths->m_hEtpan, ths->m_from, 1, "etPanSMTPTest") :
 				 mailsmtp_mail(ths->m_hEtpan, ths->m_from))) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
 			goto cleanup;
 		}
 
@@ -280,7 +280,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 			if( (r = (ths->m_esmtp?
 					 mailesmtp_rcpt(ths->m_hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 					  mailsmtp_rcpt(ths->m_hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
-				mrmailbox_log_error_if(ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}

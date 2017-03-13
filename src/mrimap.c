@@ -499,7 +499,7 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
 	peek_body(msg_att, &msg_content, &msg_bytes, &flags, &deleted);
 	if( msg_content == NULL  || msg_bytes <= 0 || deleted ) {
-		/* mrmailbox_log_warning("Message #%i in folder \"%s\" is empty or deleted.", (int)server_uid, folder); -- this is a quite usual situation, do not print a warning */
+		/* mrmailbox_log_warning(ths->m_mailbox, 0, "Message #%i in folder \"%s\" is empty or deleted.", (int)server_uid, folder); -- this is a quite usual situation, do not print a warning */
 		goto cleanup;
 	}
 
