@@ -76,10 +76,14 @@ static void* configure_thread_entry_point(void* entry_arg)
 		goto exit_;
 	}
 
+	CHECK_EXIT
+
 	/* try to connect */
 	if( !mrimap_connect(mailbox->m_imap, param) ) {
 		goto exit_;
 	}
+
+	CHECK_EXIT
 
 	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
 		goto exit_;
