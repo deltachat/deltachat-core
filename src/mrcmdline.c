@@ -114,6 +114,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"
+			"configurecancel\n"
 			"connect\n"
 			"disconnect\n"
 			"fetch\n"
@@ -215,11 +216,18 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "configure")==0 )
 	{
-		ret = mrmailbox_configure(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		mrmailbox_configure_and_connect(mailbox);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if( strcmp(cmd, "configurecancel")==0 )
+	{
+		mrmailbox_configure_cancel(mailbox);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "connect")==0 )
 	{
-		ret = mrmailbox_connect(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		mrmailbox_connect(mailbox);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "disconnect")==0 )
 	{

@@ -1079,7 +1079,7 @@ cleanup:
 
 
 /*******************************************************************************
- * Configuration
+ * INI-handling, Information
  ******************************************************************************/
 
 
@@ -1144,79 +1144,6 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
-}
-
-
-int mrmailbox_configure(mrmailbox_t* ths)
-{
-	mrloginparam_t* param;
-
-	mrmailbox_log_info(ths, 0, "Configuring...");
-
-	if( ths == NULL || !mrsqlite3_is_open(ths->m_sql) ) {
-		mrmailbox_log_error(ths, 0, "Database not opened.");
-		return 0;
-	}
-
-	/* read the original parameters */
-	param = mrloginparam_new();
-
-	mrsqlite3_lock(ths->m_sql);
-		mrloginparam_read__(param, ths->m_sql, "");
-	mrsqlite3_unlock(ths->m_sql);
-
-	/* complete the parameters; in the future we may also try some server connections here */
-	mrloginparam_complete(param, ths);
-
-	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
-	mrsqlite3_lock(ths->m_sql);
-		if( param->m_addr
-		 && param->m_mail_server
-		 && param->m_mail_port
-		 && param->m_mail_user
-		 && param->m_mail_pw
-		 && param->m_send_server
-		 && param->m_send_port
-		 && param->m_send_user
-		 && param->m_send_pw )
-		{
-			mrloginparam_write__(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
-			mrsqlite3_set_config_int__(ths->m_sql, "configured", 1);
-		}
-		else
-		{
-			mrsqlite3_set_config_int__(ths->m_sql, "configured", 0);
-		}
-	mrsqlite3_unlock(ths->m_sql);
-
-	mrloginparam_unref(param);
-	param = NULL;
-
-	mrmailbox_log_info(ths, 0, "Configure ok.");
-
-	return 1;
-}
-
-
-int mrmailbox_is_configured(mrmailbox_t* ths)
-{
-	int is_configured;
-
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	if( mrimap_is_connected(ths->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
-		return 1;
-	}
-
-	mrsqlite3_lock(ths->m_sql);
-
-		is_configured = mrsqlite3_get_config_int__(ths->m_sql, "configured", 0);
-
-	mrsqlite3_unlock(ths->m_sql);
-
-	return is_configured? 1 : 0;
 }
 
 
@@ -1357,7 +1284,7 @@ char* mrmailbox_get_version_str(void)
 
 void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
-	int             is_locked = 0, success = 0;
+	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mrimap_is_connected(ths->m_imap) ) {
@@ -1382,8 +1309,6 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 		goto cleanup;
 	}
 
-	success = 1;
-
 cleanup:
 	if( param ) {
 		mrloginparam_unref(param);
@@ -1392,15 +1317,13 @@ cleanup:
 	if( is_locked ) {
 		mrsqlite3_unlock(ths->m_sql);
 	}
-
-	ths->m_cb(ths, MR_EVENT_CONNECTION_STATE_CHANGED, success, 0);
 }
 
 
-int mrmailbox_connect(mrmailbox_t* ths)
+void mrmailbox_connect(mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
-		return 0;
+		return;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
@@ -1411,7 +1334,6 @@ int mrmailbox_connect(mrmailbox_t* ths)
 		mrjob_add__(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
 
 	mrsqlite3_unlock(ths->m_sql);
-	return 1;
 }
 
 

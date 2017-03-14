@@ -137,7 +137,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 		ths->m_hEtpan = mailsmtp_new(0, NULL);
 		if( ths->m_hEtpan == NULL ) {
-			mrmailbox_log_error(ths->m_mailbox, 0, "Object creationed failed.");
+			mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-object creationed failed.");
 			goto cleanup;
 		}
 		mailsmtp_set_progress_callback(ths->m_hEtpan, body_progress, ths);
@@ -149,14 +149,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if( lp->m_server_flags&MR_SMTP_SSL_TLS ) {
 			/* use SMTP over SSL */
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SSL-connect failed: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL conntection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
 		else {
 			/* use STARTTLS */
 			if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Socket-connect failed: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -172,14 +172,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( r != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo1 failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
 		if( ths->m_esmtp
 		 && (lp->m_server_flags&MR_SMTP_STARTTLS)
 		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_starttls: %s\n", mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -193,7 +193,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			}
 
 			if (r != MAILSMTP_NO_ERROR) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_helo: %s\n", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo2 failed (%s)", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
@@ -201,7 +201,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if (ths->m_esmtp
 		 && lp->m_send_user!=NULL
 		 && (r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_auth: %s: %s\n", lp->m_send_user, mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -273,7 +273,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		{
 			// this error is very usual - we've simply lost the server connection and reconnect as soon as possible.
 			// so, we do not log the first time this happens
-			mrmailbox_log_error_if(&ths->m_log_usual_error, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)\n", ths->m_from, mailsmtp_strerror(r), (int)r);
+			mrmailbox_log_error_if(&ths->m_log_usual_error, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)", ths->m_from, mailsmtp_strerror(r), (int)r);
 			ths->m_log_usual_error = 1;
 			goto cleanup;
 		}
@@ -286,7 +286,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 			if( (r = (ths->m_esmtp?
 					 mailesmtp_rcpt(ths->m_hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 					  mailsmtp_rcpt(ths->m_hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s\n", rcpt, mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s", rcpt, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}

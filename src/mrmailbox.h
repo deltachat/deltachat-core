@@ -84,7 +84,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 #define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
 
-#define MR_EVENT_CONNECTION_STATE_CHANGED 2040 /* connection state changed, data1=connected/disconnected */
+#define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
 
 /* Functions that should be provided by the frontends */
 #define MR_EVENT_IS_ONLINE                2080
@@ -118,6 +118,7 @@ typedef struct mrmailbox_t
 	void*           m_userData;
 
 	uint32_t        m_cmdline_sel_chat_id;
+
 } mrmailbox_t;
 
 
@@ -138,20 +139,23 @@ void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (const mrmailbox_t*);
 
 
-/* mrmailbox_configure() configures (prepares to connect) a mailbox.
-Before your call this function, you should set at least `addr` and `mail_pw`
-using mrmailbox_set_config().
-There is no need to call this every program start, the result is saved in the
-database.   However, mrmailbox_configure() should be called after any settings
-change. */
-int                  mrmailbox_configure            (mrmailbox_t*);
+/* mrmailbox_configure_and_connect() configures and connects a mailbox.
+- Before your call this function, you should set at least `addr` and `mail_pw`
+  using mrmailbox_set_config().
+- mrmailbox_configure_and_connect() returns immediately, configuration is done
+  in another thread; when done, the event MR_EVENT_CONFIGURE_ENDED ist posted
+- There is no need to call this every program start, the result is saved in the
+  database.
+- mrmailbox_configure_and_connect() should be called after any settings change. */
+void                 mrmailbox_configure_and_connect(mrmailbox_t*);
+void                 mrmailbox_configure_cancel     (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*);
 
 
 /* Connect to the mailbox using the configured settings. normally, there is no
 need to call mrmailbox_fetch() manually as we get push events from the IMAP server;
 if this fails, we fallback to a smart pull-mode. */
-int                  mrmailbox_connect              (mrmailbox_t*);
+void                 mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
