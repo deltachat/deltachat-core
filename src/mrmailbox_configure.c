@@ -25,21 +25,123 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "mrmailbox.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
 #include "mrosnative.h"
+#include "mrtools.h"
 
 
-static pthread_t s_configure_thread;
-static int       s_configure_thread_created = 0;
-static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_configure_cancel() from stopping already stopped threads */
+/*******************************************************************************
+ * Configuration guessing
+ ******************************************************************************/
+
+
+static void loginparam_guess(mrloginparam_t* ths, mrmailbox_t* mailbox)
+{
+	/* tries to set missing parameters from at least m_addr and m_mail_pw */
+	char* adr_server;
+
+	if( ths == NULL || ths->m_addr == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Configuration failed, we need at least the email-address.");
+		return; /* nothing we can do */
+	}
+
+	/* if no password is given, assume an empty password.
+	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */
+	if( ths->m_mail_pw == NULL ) {
+		ths->m_mail_pw = safe_strdup("");
+	}
+
+	adr_server = strstr(ths->m_addr, "@");
+	if( adr_server == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Configuration failed, bad email-address.");
+		return; /* no "@" found in address, normally, this should not happen */
+	}
+	adr_server++;
+
+	/* set servers, ports etc. for well-known and frequently used and/or privacy-aware services.
+	Examples: gmail.com, gmx.net, web.de, yahoo.com, posteo.de, mailbox.org
+
+	TODO: maybe we should support Thunderbird's Autoconfiguration
+	( https://developer.mozilla.org/en-US/docs/Mozilla/Thunderbird/Autoconfiguration ,
+	https://wiki.mozilla.org/Thunderbird:Autoconfiguration ).
+	At a glance, this would result in HTTP-download as `https://autoconfig.thunderbird.net/v1.1/posteo.de`
+	or even `http://autoconfig.posteo.de` */
+	if( strcasecmp(adr_server, "gmail.com")==0
+	 || strcasecmp(adr_server, "googlemail.com")==0 )
+	{
+		/* Google
+		Checking GMail too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
+		also not https://www.google.com/settings/security/lesssecureapps - is this needed? */
+		if( ths->m_mail_server == NULL )               { ths->m_mail_server = safe_strdup("imap.gmail.com"); }
+		if( ths->m_mail_port == 0 )                    { ths->m_mail_port   = 993; } /* IMAPS */
+		if( ths->m_mail_user == NULL )                 { ths->m_mail_user   = safe_strdup(ths->m_addr); }
+
+		if( ths->m_send_server == NULL )               { ths->m_send_server = safe_strdup("smtp.gmail.com"); }
+		if( ths->m_send_port == 0 )                    { ths->m_send_port   = 465; } /* SSMTP - difference between 465 and 587: http://stackoverflow.com/questions/15796530/what-is-the-difference-between-ports-465-and-587 */
+		if( ths->m_send_user == NULL )                 { ths->m_send_user   = safe_strdup(ths->m_addr); }
+		if( ths->m_send_pw == NULL && ths->m_mail_pw ) { ths->m_send_pw     = safe_strdup(ths->m_mail_pw); }
+		if( ths->m_server_flags == 0 )                 { ths->m_server_flags= MR_AUTH_XOAUTH2 | MR_SMTP_SSL_TLS | MR_NO_EXTRA_IMAP_UPLOAD | MR_NO_MOVE_TO_CHATS; }
+		return;
+	}
+	else if( strcasecmp(adr_server, "web.de")==0 )
+	{
+		if( ths->m_send_server == NULL && ths->m_send_port == 0 && ths->m_server_flags == 0 ) {
+			ths->m_send_port = 587;
+			ths->m_server_flags = MR_SMTP_STARTTLS;
+		}
+	}
+
+	/* generic approach, just duplicate the servers and use the standard ports.
+	works fine eg. for all-inkl */
+	if( ths->m_mail_server == NULL ) {
+		ths->m_mail_server = mr_mprintf("imap.%s", adr_server);
+	}
+
+	if( ths->m_mail_port == 0 ) {
+		ths->m_mail_port = 993;
+	}
+
+	if( ths->m_mail_user == NULL ) {
+		ths->m_mail_user = safe_strdup(ths->m_addr);
+	}
+
+	if( ths->m_send_server == NULL && ths->m_mail_server ) {
+		ths->m_send_server = safe_strdup(ths->m_mail_server);
+		if( strncmp(ths->m_send_server, "imap.", 5)==0 ) {
+			memcpy(ths->m_send_server, "smtp", 4);
+		}
+	}
+
+	if( ths->m_send_port == 0 ) {
+		ths->m_send_port = 465;
+	}
+
+	if( ths->m_send_user == NULL && ths->m_mail_user ) {
+		ths->m_send_user = safe_strdup(ths->m_mail_user);
+	}
+
+	if( ths->m_send_pw == NULL && ths->m_mail_pw ) {
+		ths->m_send_pw = safe_strdup(ths->m_mail_pw);
+	}
+
+	if( ths->m_server_flags == 0 ) {
+		ths->m_server_flags = MR_SMTP_SSL_TLS;
+	}
+}
 
 
 /*******************************************************************************
  * The configuration thread
  ******************************************************************************/
+
+
+static pthread_t s_configure_thread;
+static int       s_configure_thread_created = 0;
+static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_configure_cancel() from stopping already stopped threads */
 
 
 static void* configure_thread_entry_point(void* entry_arg)
@@ -59,7 +161,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	/* complete the parameters; in the future we may also try some server connections here */
-	mrloginparam_complete(param, mailbox);
+	loginparam_guess(param, mailbox);
 
 	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
 	if( !param->m_addr
