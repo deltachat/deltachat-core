@@ -946,25 +946,22 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Login to IMAP-server as \"%s\"...", ths->m_imap_user);
 
-		switch( ths->m_server_flags&MR_AUTH_TYPE )
+		/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
+		/*if( ths->m_server_flags&MR_AUTH_XOAUTH2 )
 		{
-			/* TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
-			https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
-			case MR_AUTH_XOAUTH2:
-				if (mOAuth2Token == NULL) {
-					r = MAILIMAP_ERROR_STREAM;
-				}
-				else {
-					r = mailimap_oauth2_authenticate(ths->m_hEtpan, ths->m_imap_use, mOAuth2Token);
-				}
-				break;
-			*/
-
-			/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
-
-			default:
-				r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
-				break;
+			//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
+			//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
+			if (mOAuth2Token == NULL) {
+				r = MAILIMAP_ERROR_STREAM;
+			}
+			else {
+				r = mailimap_oauth2_authenticate(ths->m_hEtpan, ths->m_imap_use, mOAuth2Token);
+			}
+		}
+		else*/
+		{
+			/* MR_AUTH_NORMAL or no auth flag set */
+			r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
 		}
 
 		if( is_error(ths, r) ) {

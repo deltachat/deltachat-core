@@ -162,7 +162,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		/* then introduce ourselves */
-		try_esmtp = (lp->m_server_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
+		try_esmtp = 1;//(lp->m_server_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
 		ths->m_esmtp = 0;
 		if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 			ths->m_esmtp = 1;

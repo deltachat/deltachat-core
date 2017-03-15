@@ -52,14 +52,23 @@ typedef struct mrloginparam_t
 	int           m_send_port;
 
 	/* Server options*/
-	#define       MR_AUTH_TYPE             0x000000FF
-	#define       MR_AUTH_NORMAL                    1
-	#define       MR_AUTH_XOAUTH2                   2
-	#define       MR_SMTP_STARTTLS         0x00010000
-	#define       MR_SMTP_SSL_TLS          0x00020000
-	#define       MR_SMTP_NO_ESMPT         0x01000000
-	#define       MR_NO_EXTRA_IMAP_UPLOAD  0x02000000
-	#define       MR_NO_MOVE_TO_CHATS      0x04000000
+	#define       MR_NO_AUTOCONFIG                0x1
+
+	#define       MR_AUTH_XOAUTH2                 0x2
+	#define       MR_AUTH_NORMAL                  0x4
+	#define       MR_AUTH_FLAGS                  (MR_AUTH_XOAUTH2|MR_AUTH_NORMAL) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+
+	#define       MR_IMAP_STARTTLS              0x100
+	#define       MR_IMAP_SSL_TLS               0x200
+	#define       MR_IMAP_FLAGS                  (MR_IMAP_STARTTLS|MR_SMTP_SSL_TLS) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+
+	#define       MR_SMTP_STARTTLS            0x10000
+	#define       MR_SMTP_SSL_TLS             0x20000
+	#define       MR_SMTP_FLAGS                  (MR_SMTP_STARTTLS|MR_SMTP_SSL_TLS) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+
+	#define       MR_NO_EXTRA_IMAP_UPLOAD   0x2000000
+	#define       MR_NO_MOVE_TO_CHATS       0x4000000
+
 	int           m_server_flags;
 } mrloginparam_t;
 

@@ -39,6 +39,12 @@
  ******************************************************************************/
 
 
+static int exactly_one_bit_set(int v)
+{
+	return (v && !(v & (v - 1))); /* via http://www.graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2 */
+}
+
+
 static void loginparam_guess(mrloginparam_t* ths, mrmailbox_t* mailbox)
 {
 	/* tries to set missing parameters from at least m_addr and m_mail_pw */
@@ -161,7 +167,24 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	/* complete the parameters; in the future we may also try some server connections here */
-	loginparam_guess(param, mailbox);
+	if( (param->m_server_flags&MR_NO_AUTOCONFIG)==0 )
+	{
+		loginparam_guess(param, mailbox);
+	}
+
+	/* set some default flags (one is always needed) */
+	if( !exactly_one_bit_set(param->m_server_flags&MR_AUTH_FLAGS) )
+	{
+		param->m_server_flags &= ~MR_AUTH_FLAGS;
+		param->m_server_flags |= MR_AUTH_NORMAL;
+	}
+
+	if( !exactly_one_bit_set(param->m_server_flags&MR_SMTP_FLAGS) )
+	{
+		param->m_server_flags &= ~MR_SMTP_FLAGS;
+		param->m_server_flags |= MR_SMTP_SSL_TLS;
+	}
+
 
 	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
 	if( !param->m_addr
@@ -174,7 +197,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	 || !param->m_send_user
 	 || !param->m_send_pw )
 	{
-		mrmailbox_log_error(mailbox, 0, "Cannot get configuration.");
+		mrmailbox_log_error(mailbox, 0, "Configuration parameters incomplete.");
 		goto exit_;
 	}
 
