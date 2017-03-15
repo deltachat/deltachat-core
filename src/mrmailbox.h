@@ -90,6 +90,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_IS_ONLINE                2080
 #define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
 #define MR_EVENT_GET_QUANTITY_STRING      2092 /* get a string from the frontend, data1=MR_STR_*, data2=quantity, ret=string which will free()'d by the backend */
+#define MR_EVENT_HTTP_GET                 2100 /* synchronous http/https(!) call, data1=url, ret=content which will be free()'d by the backend, 0 on errors */
 
 /* Error codes */
 #define MR_ERR_SELF_NOT_IN_GROUP  1

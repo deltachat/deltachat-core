@@ -36,6 +36,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrcmdline.h"
+#include "mrtools.h"
 
 
 static char* read_cmd(void)
@@ -75,6 +76,21 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 		case MR_EVENT_ERROR:
 			printf("[ERROR #%i] %s\n", (int)data1, (char*)data2);
 			break;
+
+		case MR_EVENT_HTTP_GET:
+			{
+				char* ret = NULL;
+				char* tempFile = mr_get_fine_pathNfilename(mailbox->m_blobdir, "curl.result");
+				char* cmd = mr_mprintf("curl -f %s > %s", (char*)data1, tempFile);
+				int error = system(cmd);
+				if( error == 0 ) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
+					size_t bytes = 0;
+					mr_read_file(tempFile, (void**)&ret, &bytes, mailbox);
+				}
+				free(cmd);
+				free(tempFile);
+				return (uintptr_t)ret;
+			}
 
 		default:
 			printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);

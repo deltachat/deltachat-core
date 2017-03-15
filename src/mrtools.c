@@ -1450,8 +1450,10 @@ int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, mrmai
 	fseek(f, 0, SEEK_SET);
 	if( *buf_bytes <= 0 ) { goto cleanup; }
 
-	*buf = malloc(*buf_bytes);
+	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */ );
 	if( *buf==NULL ) { goto cleanup; }
+
+	((char*)*buf)[*buf_bytes /*we allocated one extra byte above*/] = 0;
 
 	if( fread(*buf, 1, *buf_bytes, f)!=*buf_bytes ) { goto cleanup; }
 

@@ -41,7 +41,28 @@
 
 static int autoconfig(mrmailbox_t* mailbox, const char* url, mrloginparam_t* param)
 {
-	return 0; /* TODO */
+	int   ret = 0;
+	char* xml_raw = NULL;
+
+	mrmailbox_log_info(mailbox, 0, "Trying autoconfig from %s ...", url);
+	xml_raw = (char*)mailbox->m_cb(mailbox, MR_EVENT_HTTP_GET, (uintptr_t)url, 0);
+	if( xml_raw == NULL ) {
+		mrmailbox_log_info(mailbox, 0, "Can't get autoconfig file.");
+		goto cleanup;
+	}
+
+	/* dump file for debugging purposes */
+	carray* lines = mr_split_into_lines(xml_raw);
+	for( int l = 0; l < carray_count(lines); l++ )
+	{
+		char* line = (char*)carray_get(lines, l);
+		mrmailbox_log_info(mailbox, 0, "%s", line);
+	}
+	mr_free_splitted_lines(lines);
+
+cleanup:
+	free(xml_raw);
+	return ret;
 }
 
 
@@ -62,7 +83,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	mrloginparam_t* param = mrloginparam_new();
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
-	char*           param_addr_urlencoded;
+	char*           param_addr_urlencoded = NULL;
 
 	int             autoconfigured = 0;
 	#define         CHECK_EXIT if( s_configure_do_exit ) { goto exit_; }
@@ -72,6 +93,12 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	CHECK_EXIT
 
+	if( mailbox->m_cb(mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
+		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
+		goto exit_;
+	}
+
+	CHECK_EXIT
 
 	/* 1.  Load the parameters and check e-mail-address and password
 	 **************************************************************************/
@@ -114,14 +141,21 @@ static void* configure_thread_entry_point(void* entry_arg)
 	 && param->m_send_pw      == NULL
 	 && param->m_server_flags == 0 )
 	{
+		CHECK_EXIT
+
 		char* url = mr_mprintf("http://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
 		autoconfigured = autoconfig(mailbox, url, param);
 		free(url);
+
+		CHECK_EXIT
+
 		if( !autoconfigured ) {
 			url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain);
 			autoconfigured = autoconfig(mailbox, url, param);
 			free(url);
 		}
+
+		CHECK_EXIT
 	}
 
 
@@ -221,6 +255,8 @@ static void* configure_thread_entry_point(void* entry_arg)
 	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
 		goto exit_;
 	}
+
+	CHECK_EXIT
 
 	/* configuration success */
 	mrloginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
