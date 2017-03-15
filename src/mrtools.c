@@ -40,6 +40,17 @@
 
 
 /*******************************************************************************
+ * Math tools
+ ******************************************************************************/
+
+
+int mr_exactly_one_bit_set(int v)
+{
+	return (v && !(v & (v - 1))); /* via http://www.graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2 */
+}
+
+
+/*******************************************************************************
  * String tools
  ******************************************************************************/
 
@@ -850,6 +861,63 @@ char* imap_utf8_to_modified_utf7(const char *src, int change_spaces)
   *dst = '\0';
   return res;
 }
+
+
+/*******************************************************************************
+ * URL encoding and decoding
+ ******************************************************************************/
+
+
+/* Converts an integer value to its hex character*/
+char to_hex(char code) {
+	static char hex[] = "0123456789abcdef";
+	return hex[code & 15];
+}
+
+/* Returns a url-encoded version of str, be sure to free() the result.  Inspired by http://www.geekhideout.com/urlcode.shtml */
+char* mr_url_encode(const char *str) {
+	const char *pstr = str;
+	char *buf = malloc(strlen(str) * 3 + 1), *pbuf = buf;
+	while (*pstr) {
+		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~')
+			*pbuf++ = *pstr;
+		else if (*pstr == ' ')
+			*pbuf++ = '+';
+		else
+			*pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), *pbuf++ = to_hex(*pstr & 15);
+		pstr++;
+	}
+	*pbuf = '\0';
+	return buf;
+}
+
+
+/* Converts a hex character to its integer value */
+/*static char from_hex(char ch) {
+	return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
+}*/
+
+
+/* Returns a url-decoded version of str, be sure to free() the returned string after use */
+/*char* mr_url_decode(const char *str) {
+	const char *pstr = str;
+	char *buf = malloc(strlen(str) + 1), *pbuf = buf;
+	while (*pstr) {
+		if (*pstr == '%') {
+			if (pstr[1] && pstr[2]) {
+				*pbuf++ = from_hex(pstr[1]) << 4 | from_hex(pstr[2]);
+				pstr += 2;
+			}
+		} else if (*pstr == '+') {
+			*pbuf++ = ' ';
+		} else {
+			*pbuf++ = *pstr;
+		}
+		pstr++;
+	}
+	*pbuf = '\0';
+	return buf;
+}*/
 
 
 /*******************************************************************************

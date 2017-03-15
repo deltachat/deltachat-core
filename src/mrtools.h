@@ -35,6 +35,9 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
+/* match tools */
+int     mr_exactly_one_bit_set     (int v);
+
 /* string tools */
 char*   safe_strdup                (const char*); /* safe_strdup() returns empty string if NULL is given, never returns NULL (exists on errors) */
 void    mr_ltrim                   (char*);
@@ -51,6 +54,7 @@ char*   mr_decode_header_string    (const char*); /* the result must be free()'d
 char*   mr_encode_header_string    (const char*); /* the result must be free()'d */
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
+char*   mr_url_encode              (const char*); /* the result must be free()'d */
 
 /* carray/clist tools */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */

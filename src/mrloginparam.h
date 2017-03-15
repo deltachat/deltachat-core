@@ -52,8 +52,6 @@ typedef struct mrloginparam_t
 	int           m_send_port;
 
 	/* Server options*/
-	#define       MR_NO_AUTOCONFIG                0x1
-
 	#define       MR_AUTH_XOAUTH2                 0x2
 	#define       MR_AUTH_NORMAL                  0x4
 	#define       MR_AUTH_FLAGS                  (MR_AUTH_XOAUTH2|MR_AUTH_NORMAL) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
