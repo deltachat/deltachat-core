@@ -72,6 +72,12 @@ char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL)
 }
 
 
+char* strdup_keep_null(const char* s) /* strdup(NULL) is undefined, safe_strdup_keep_null(NULL) returns NULL in this case */
+{
+	return s? safe_strdup(s) : NULL;
+}
+
+
 void mr_ltrim(char* buf)
 {
 	size_t len;

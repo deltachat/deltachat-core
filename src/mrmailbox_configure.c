@@ -39,9 +39,8 @@
  ******************************************************************************/
 
 
-static int autoconfig(mrmailbox_t* mailbox, const char* url, mrloginparam_t* param)
+static mrloginparam_t* autoconfig(mrmailbox_t* mailbox, const char* url, const mrloginparam_t* param_in)
 {
-	int   ret = 0;
 	char* xml_raw = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Trying autoconfig from %s ...", url);
@@ -62,7 +61,7 @@ static int autoconfig(mrmailbox_t* mailbox, const char* url, mrloginparam_t* par
 
 cleanup:
 	free(xml_raw);
-	return ret;
+	return NULL;
 }
 
 
@@ -84,8 +83,8 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrloginparam_t* param = mrloginparam_new();
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
 	char*           param_addr_urlencoded = NULL;
+	mrloginparam_t* param_autoconfig = NULL;
 
-	int             autoconfigured = 0;
 	#define         CHECK_EXIT if( s_configure_do_exit ) { goto exit_; }
 
 	mrmailbox_log_info(mailbox, 0, "Configure-thread started.");
@@ -134,7 +133,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	if( param->m_mail_server  == NULL
 	 && param->m_mail_port    == 0
-	 && param->m_mail_user    == NULL
+	/*&&param->m_mail_user    == NULL -- the user can enter a loginname which is used by autoconfig then */
 	 && param->m_send_server  == NULL
 	 && param->m_send_port    == 0
 	 && param->m_send_user    == NULL
@@ -144,18 +143,32 @@ static void* configure_thread_entry_point(void* entry_arg)
 		CHECK_EXIT
 
 		char* url = mr_mprintf("http://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
-		autoconfigured = autoconfig(mailbox, url, param);
+		param_autoconfig = autoconfig(mailbox, url, param);
 		free(url);
 
 		CHECK_EXIT
 
-		if( !autoconfigured ) {
+		if( param_autoconfig==NULL ) {
 			url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain);
-			autoconfigured = autoconfig(mailbox, url, param);
+			param_autoconfig = autoconfig(mailbox, url, param);
 			free(url);
 		}
 
 		CHECK_EXIT
+
+		if( param_autoconfig )
+		{
+			free(param->m_mail_user); param->m_mail_user = NULL; /* all other pointers are already NULL, see initial condition */
+
+			param->m_mail_server  = strdup_keep_null(param_autoconfig->m_mail_server);
+			param->m_mail_port    =                  param_autoconfig->m_mail_port;
+			param->m_mail_user    = strdup_keep_null(param_autoconfig->m_mail_user);
+			param->m_send_server  = strdup_keep_null(param_autoconfig->m_send_server);
+			param->m_send_port    =                  param_autoconfig->m_send_port;
+			param->m_send_user    = strdup_keep_null(param_autoconfig->m_send_user);
+			param->m_send_pw      = strdup_keep_null(param_autoconfig->m_send_pw);
+			param->m_server_flags =                  param_autoconfig->m_server_flags;
+		}
 	}
 
 
@@ -173,16 +186,18 @@ static void* configure_thread_entry_point(void* entry_arg)
 	/* 2.  Fill missing fields with defaults
 	 **************************************************************************/
 
-	#define TYPICAL_IMAP_SSL       993
-	#define TYPICAL_SMTP_SSL       465 /* this is the absulute default */
-	#define TYPICAL_SMTP_STARTTLS  587
+	#define TYPICAL_IMAP_SSL_PORT       993 /* our default */
+	#define TYPICAL_IMAP_STARTTLS_PORT  143 /* not used very often */
+
+	#define TYPICAL_SMTP_SSL_PORT       465 /* our default */
+	#define TYPICAL_SMTP_STARTTLS_PORT  587 /* also used very often, SSL:STARTTLS is maybe 50:50 */
 
 	if( param->m_mail_server == NULL ) {
 		param->m_mail_server = mr_mprintf("imap.%s", param_domain);
 	}
 
 	if( param->m_mail_port == 0 ) {
-		param->m_mail_port = TYPICAL_IMAP_SSL;
+		param->m_mail_port = (param->m_server_flags&MR_IMAP_STARTTLS)?  TYPICAL_IMAP_STARTTLS_PORT : TYPICAL_IMAP_SSL_PORT;
 	}
 
 	if( param->m_mail_user == NULL ) {
@@ -197,7 +212,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	}
 
 	if( param->m_send_port == 0 ) {
-		param->m_send_port = (param->m_server_flags&MR_SMTP_STARTTLS)?  TYPICAL_SMTP_STARTTLS : TYPICAL_SMTP_SSL;
+		param->m_send_port = (param->m_server_flags&MR_SMTP_STARTTLS)?  TYPICAL_SMTP_STARTTLS_PORT : TYPICAL_SMTP_SSL_PORT;
 	}
 
 	if( param->m_send_user == NULL && param->m_mail_user ) {
@@ -217,13 +232,13 @@ static void* configure_thread_entry_point(void* entry_arg)
 	if( !mr_exactly_one_bit_set(param->m_server_flags&MR_IMAP_FLAGS) )
 	{
 		param->m_server_flags &= ~MR_IMAP_FLAGS;
-		param->m_server_flags |= MR_IMAP_SSL_TLS;
+		param->m_server_flags |= (param->m_send_port==TYPICAL_IMAP_STARTTLS_PORT?  MR_IMAP_STARTTLS : MR_IMAP_SSL_TLS);
 	}
 
 	if( !mr_exactly_one_bit_set(param->m_server_flags&MR_SMTP_FLAGS) )
 	{
 		param->m_server_flags &= ~MR_SMTP_FLAGS;
-		param->m_server_flags |= (param->m_send_port==TYPICAL_SMTP_STARTTLS?  MR_SMTP_STARTTLS : MR_SMTP_SSL_TLS);
+		param->m_server_flags |= (param->m_send_port==TYPICAL_SMTP_STARTTLS_PORT?  MR_SMTP_STARTTLS : MR_SMTP_SSL_TLS);
 	}
 
 
@@ -266,6 +281,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 exit_:
 	mrloginparam_unref(param);
+	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 
 	s_configure_do_exit = 1; /* set this before sending MR_EVENT_CONFIGURE_ENDED, avoids mrmailbox_configure_cancel() to stop the thread */
