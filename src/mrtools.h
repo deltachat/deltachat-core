@@ -45,6 +45,7 @@ void    mr_ltrim                   (char*);
 void    mr_rtrim                   (char*);
 void    mr_trim                    (char*);
 char*   mr_strlower                (const char*); /* the result must be free()'d */
+void    mr_strlower_in_place       (char*);
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);
@@ -56,6 +57,18 @@ char*   mr_encode_header_string    (const char*); /* the result must be free()'d
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
 char*   mr_url_encode              (const char*); /* the result must be free()'d */
+
+/* string builder */
+typedef struct mrstrbuilder_t
+{
+	char* m_buf;
+	int   m_allocated;
+	int   m_free;
+	char* m_eos;
+} mrstrbuilder_t;
+void mrstrbuilder_init(mrstrbuilder_t* ths);
+char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text);
+
 
 /* carray/clist tools */
 int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */

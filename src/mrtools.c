@@ -123,6 +123,15 @@ void mr_trim(char* buf)
 }
 
 
+void mr_strlower_in_place(char* in)
+{
+	char* p = in;
+	for ( ; *p; p++) {
+		*p = tolower(*p);
+	}
+}
+
+
 char* mr_strlower(const char* in) /* the result must be free()'d */
 {
 	char* out = safe_strdup(in);
@@ -339,6 +348,41 @@ char* mr_arr_to_string(const uint32_t* arr, int cnt)
 
 	return ret;
 }
+
+
+void mrstrbuilder_init(mrstrbuilder_t* ths)
+{
+	ths->m_allocated    = 8;
+    ths->m_buf          = malloc(ths->m_allocated); if( ths->m_buf==NULL ) { exit(38); }
+    ths->m_buf[0]       = 0;
+	ths->m_free         = ths->m_allocated - 1 /*the nullbyte! */;
+	ths->m_eos          = ths->m_buf;
+}
+
+
+char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
+{
+	int len = strlen(text);
+
+	if( len > ths->m_free ) {
+		int add_bytes  = MR_MAX(len, ths->m_allocated);
+		int old_offset = (int)(ths->m_eos - ths->m_buf);
+
+        ths->m_allocated = ths->m_allocated + add_bytes;
+        ths->m_buf       = realloc(ths->m_buf, ths->m_allocated+add_bytes); if( ths->m_buf==NULL ) { exit(39); }
+        ths->m_free      = ths->m_free + add_bytes;
+		ths->m_eos       = ths->m_buf + old_offset;
+	}
+
+	char* ret = ths->m_eos;
+
+	strcpy(ths->m_eos, text);
+	ths->m_eos += len;
+	ths->m_free -= len;
+
+	return ret;
+}
+
 
 /*******************************************************************************
  * Decode header strings
