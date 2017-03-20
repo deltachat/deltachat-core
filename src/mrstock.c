@@ -84,23 +84,11 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 }
 
 
-static char* repl_string(char* haystack /*string will be modified!*/, const char* needle, const char* replacement)
-{
-	/* replace needle by the given replacement, the input string will be modified, the result must be free()'d */
-	char* p2 = strstr(haystack, needle);
-	if( p2==NULL ) { return strdup(haystack); }
-	*p2 = 0;
-	p2 += strlen(needle);
-	return mr_mprintf("%s%s%s", haystack, replacement? replacement : "", p2);
-}
-
-
 char* mrstock_str_repl_string(int id, const char* to_insert)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = repl_string(p1, "%1$s", to_insert);
-	free(p1);
-	return p2;
+	mr_str_replace(&p1, "%1$s", to_insert);
+	return p1;
 }
 
 
@@ -116,10 +104,8 @@ char* mrstock_str_repl_int(int id, int to_insert_int)
 char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_insert2)
 {
 	char* p1 = mrstock_str(id);
-	char* p2 = repl_string(p1, "%1$s", to_insert);
-	free(p1);
-	p1 = repl_string(p2, "%2$s", to_insert2);
-	free(p2);
+	mr_str_replace(&p1, "%1$s", to_insert);
+	mr_str_replace(&p1, "%2$s", to_insert2);
 	return p1;
 }
 

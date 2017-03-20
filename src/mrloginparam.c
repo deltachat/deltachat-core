@@ -126,3 +126,72 @@ void mrloginparam_write__(const mrloginparam_t* ths, mrsqlite3_t* sql, const cha
 	sqlite3_free(key);
 }
 
+
+static char* get_readable_flags(int flags)
+{
+	mrstrbuilder_t strbuilder;
+	mrstrbuilder_init(&strbuilder);
+	#define CAT_FLAG(f, s) if( (1<<bit)==(f) ) { mrstrbuilder_cat(&strbuilder, (s)); flag_added = 1; }
+
+	for( int bit = 0; bit <= 30; bit++ )
+	{
+		if( flags&(1<<bit) )
+		{
+			int flag_added = 0;
+
+			CAT_FLAG(MR_AUTH_XOAUTH2,         "XOAUTH2 ");
+			CAT_FLAG(MR_AUTH_NORMAL,          "AUTH_NORMAL ");
+
+			CAT_FLAG(MR_IMAP_SOCKET_STARTTLS, "IMAP_STARTTLS ");
+			CAT_FLAG(MR_IMAP_SOCKET_SSL,      "IMAP_SSL ");
+			CAT_FLAG(MR_IMAP_SOCKET_PLAIN,    "IMAP_PLAIN ");
+
+			CAT_FLAG(MR_SMTP_SOCKET_STARTTLS, "SMTP_STARTTLS ");
+			CAT_FLAG(MR_SMTP_SOCKET_SSL,      "SMTP_SSL ");
+			CAT_FLAG(MR_SMTP_SOCKET_PLAIN,    "SMTP_PLAIN ");
+
+			CAT_FLAG(MR_NO_EXTRA_IMAP_UPLOAD, "NO_EXTRA_IMAP_UPLOAD ");
+			CAT_FLAG(MR_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
+
+			if( !flag_added ) {
+				char* temp = mr_mprintf("0x%x ", 1<<bit); mrstrbuilder_cat(&strbuilder, temp); free(temp);
+			}
+		}
+	}
+
+	if( strbuilder.m_buf[0]==0 ) { mrstrbuilder_cat(&strbuilder, "0"); }
+	mr_trim(strbuilder.m_buf);
+	return strbuilder.m_buf;
+}
+
+
+char* mrloginparam_get_readable(const mrloginparam_t* ths)
+{
+	const char* unset = "0";
+	const char* pw = "***";
+
+	if( ths==NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	char* flags_readable = get_readable_flags(ths->m_server_flags);
+
+	char* ret = mr_mprintf("%s %s:%s:%s:%i %s:%s:%s:%i %s",
+		ths->m_addr? ths->m_addr : unset,
+
+		ths->m_mail_user? ths->m_mail_user : unset,
+		ths->m_mail_pw? pw : unset,
+		ths->m_mail_server? ths->m_mail_server : unset,
+		ths->m_mail_port,
+
+		ths->m_send_user? ths->m_send_user : unset,
+		ths->m_send_pw? pw : unset,
+		ths->m_send_server? ths->m_send_server : unset,
+		ths->m_send_port,
+
+		flags_readable);
+
+	free(flags_readable);
+	return ret;
+}
+

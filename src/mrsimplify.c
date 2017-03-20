@@ -188,7 +188,7 @@ static void dehtml_text_cb(void* userdata, const char* text, int len)
 				if( *p=='\n' ) {
 					int last_is_lineend = 1; /* avoid converting `text1<br>\ntext2` to `text1\n text2` (`\r` is removed later) */
 					const unsigned char* p2 = p-1;
-					while( p2>=dehtml->m_strbuilder.m_buf ) {
+					while( p2>=(const unsigned char*)dehtml->m_strbuilder.m_buf ) {
 						if( *p2 == '\r' ) {
 						}
 						else if( *p2 == '\n' ) {

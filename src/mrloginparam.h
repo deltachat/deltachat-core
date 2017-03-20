@@ -56,13 +56,15 @@ typedef struct mrloginparam_t
 	#define       MR_AUTH_NORMAL                  0x4
 	#define       MR_AUTH_FLAGS                  (MR_AUTH_XOAUTH2|MR_AUTH_NORMAL) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
 
-	#define       MR_IMAP_STARTTLS              0x100
-	#define       MR_IMAP_SSL_TLS               0x200
-	#define       MR_IMAP_FLAGS                  (MR_IMAP_STARTTLS|MR_SMTP_SSL_TLS) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+	#define       MR_IMAP_SOCKET_STARTTLS       0x100
+	#define       MR_IMAP_SOCKET_SSL            0x200
+	#define       MR_IMAP_SOCKET_PLAIN          0x400
+	#define       MR_IMAP_SOCKET_FLAGS           (MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_SSL|MR_IMAP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
 
-	#define       MR_SMTP_STARTTLS            0x10000
-	#define       MR_SMTP_SSL_TLS             0x20000
-	#define       MR_SMTP_FLAGS                  (MR_SMTP_STARTTLS|MR_SMTP_SSL_TLS) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+	#define       MR_SMTP_SOCKET_STARTTLS     0x10000
+	#define       MR_SMTP_SOCKET_SSL          0x20000
+	#define       MR_SMTP_SOCKET_PLAIN        0x40000
+	#define       MR_SMTP_SOCKET_FLAGS           (MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_SSL|MR_SMTP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
 
 	#define       MR_NO_EXTRA_IMAP_UPLOAD   0x2000000
 	#define       MR_NO_MOVE_TO_CHATS       0x4000000
@@ -71,11 +73,12 @@ typedef struct mrloginparam_t
 } mrloginparam_t;
 
 
-mrloginparam_t* mrloginparam_new      ();
-void            mrloginparam_unref    (mrloginparam_t*);
-void            mrloginparam_empty    (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
-void            mrloginparam_read__   (mrloginparam_t*, mrsqlite3_t*, const char* prefix);
-void            mrloginparam_write__  (const mrloginparam_t*, mrsqlite3_t*, const char* prefix);
+mrloginparam_t* mrloginparam_new          ();
+void            mrloginparam_unref        (mrloginparam_t*);
+void            mrloginparam_empty        (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
+void            mrloginparam_read__       (mrloginparam_t*, mrsqlite3_t*, const char* prefix);
+void            mrloginparam_write__      (const mrloginparam_t*, mrsqlite3_t*, const char* prefix);
+char*           mrloginparam_get_readable (const mrloginparam_t*);
 
 
 #ifdef __cplusplus

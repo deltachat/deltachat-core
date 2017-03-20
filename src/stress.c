@@ -36,6 +36,7 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
+#include "mrtools.h"
 
 
 void stress_functions(void)
@@ -59,4 +60,14 @@ void stress_functions(void)
 		mrsimplify_unref(simplify);
 	}
 
+	/* test some string functions
+	 **************************************************************************/
+
+	{
+		char* str = strdup("aaa");
+		int replacements = mr_str_replace(&str, "a", "ab"); /* no endless recursion here! */
+		assert( strcmp(str, "ababab")==0 );
+		assert( replacements == 3 );
+		free(str);
+	}
 }

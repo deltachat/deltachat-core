@@ -145,6 +145,34 @@ char* mr_strlower(const char* in) /* the result must be free()'d */
 }
 
 
+int mr_str_replace(char** haystack, const char* needle, const char* replacement)
+{
+	int replacements = 0, start_search_pos = 0, needle_len, replacement_len;
+
+	if( haystack==NULL || *haystack==NULL || needle == NULL || needle[0]==0 ) {
+		return 0;
+	}
+
+	needle_len = strlen(needle);
+	replacement_len = replacement? strlen(replacement) : 0;
+	while( 1 )
+	{
+		char* p2 = strstr((*haystack)+start_search_pos, needle);
+		if( p2==NULL ) { break; }
+		start_search_pos = (p2-(*haystack))+replacement_len; /* avoid recursion and skip the replaced part */
+
+		*p2 = 0;
+		p2 += needle_len;
+		char* new_string = mr_mprintf("%s%s%s", *haystack, replacement? replacement : "", p2);
+		free(*haystack);
+		*haystack = new_string;
+		replacements++;
+	}
+
+	return replacements;
+}
+
+
 char* mr_mprintf(const char* format, ...)
 {
 	char  testbuf[1];

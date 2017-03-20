@@ -1144,9 +1144,8 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
-	const char  unset[] = "<unset>";
-	const char  set[] = "<set>";
-	char *displayname = NULL, *info = NULL;
+	const char* unset = "0";
+	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion;
 
@@ -1176,6 +1175,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 	mrsqlite3_unlock(ths->m_sql);
 
+	l_readable_str = mrloginparam_get_readable(l);
+	l2_readable_str = mrloginparam_get_readable(l2);
+
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
@@ -1190,18 +1192,10 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Contacts: %i\n"
 		"Database=%s, dbversion=%i, Blobdir=%s\n"
 		"\n"
-		"displayname=%s\n"
-		"configured=%i\n"
-		"addr=%s (%s)\n"
-		"mail_server=%s (%s)\n"
-		"mail_port=%i (%i)\n"
-		"mail_user=%s (%s)\n"
-		"mail_pw=%s (%s)\n"
-		"send_server=%s (%s)\n"
-		"send_port=%i (%i)\n"
-		"send_user=%s (%s)\n"
-		"send_pw=%s (%s)\n"
-		"server_flags=%i (%i)\n"
+		"Displayname=%s\n"
+		"Configured=%i\n"
+		"Config0=%s\n"
+		"Config1=%s\n"
 		"\n"
 		"Using SQLite %s-ts%i and libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
@@ -1213,16 +1207,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
         , displayname? displayname : unset
 		, is_configured
-		, l->m_addr? l->m_addr : unset                 , l2->m_addr? l2->m_addr : unset
-		, l->m_mail_server? l->m_mail_server : unset   , l2->m_mail_server? l2->m_mail_server : unset
-		, l->m_mail_port? l->m_mail_port : 0           , l2->m_mail_port? l2->m_mail_port : 0
-		, l->m_mail_user? l->m_mail_user : unset       , l2->m_mail_user? l2->m_mail_user : unset
-		, l->m_mail_pw? set : unset,                     l2->m_mail_pw? set : unset
-		, l->m_send_server? l->m_send_server : unset   , l2->m_send_server? l2->m_send_server : unset
-		, l->m_send_port? l->m_send_port : 0           , l2->m_send_port? l2->m_send_port : 0
-		, l->m_send_user? l->m_send_user : unset       , l2->m_send_user? l2->m_send_user : unset
-		, l->m_send_pw? set : unset                    , l2->m_send_pw? set : unset
-		, l->m_server_flags? l->m_server_flags : 0     , l2->m_server_flags? l2->m_server_flags : 0
+		, l_readable_str, l2_readable_str
 
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(), sizeof(void*)*8
 
@@ -1232,6 +1217,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	mrloginparam_unref(l);
 	mrloginparam_unref(l2);
 	free(displayname);
+	free(l_readable_str);
+	free(l2_readable_str);
 
 	return info; /* must be freed by the caller */
 }

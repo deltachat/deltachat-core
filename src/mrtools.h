@@ -46,6 +46,7 @@ void    mr_rtrim                   (char*);
 void    mr_trim                    (char*);
 char*   mr_strlower                (const char*); /* the result must be free()'d */
 void    mr_strlower_in_place       (char*);
+int     mr_str_replace             (char** haystack, const char* needle, const char* replacement); /* haystack may be realloc()'d, returns the number of replacements */
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);

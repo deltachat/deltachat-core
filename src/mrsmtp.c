@@ -146,7 +146,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		#endif
 
 		/* first open the stream */
-		if( lp->m_server_flags&MR_SMTP_SSL_TLS ) {
+		if( lp->m_server_flags&MR_SMTP_SOCKET_SSL ) {
 			/* use SMTP over SSL */
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
@@ -177,13 +177,13 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( ths->m_esmtp
-		 && (lp->m_server_flags&MR_SMTP_STARTTLS)
+		 && (lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS)
 		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
 			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
-		if( ths->m_esmtp && (lp->m_server_flags&MR_SMTP_STARTTLS) ) {
+		if( ths->m_esmtp && (lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS) ) {
 			/* introduce ourselves again */
 			if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 				ths->m_esmtp = 1;
