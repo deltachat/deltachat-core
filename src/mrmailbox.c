@@ -22,11 +22,6 @@
  * File:    mrmailbox.c
  * Purpose: mrmailbox_t represents a single mailbox, see header for details.
  *
- *******************************************************************************
- *
- * For memory checking, use eg.
- * $ valgrind --leak-check=full --tool=memcheck ./messenger-backend <db>
- *
  ******************************************************************************/
 
 

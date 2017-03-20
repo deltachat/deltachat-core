@@ -185,8 +185,22 @@ static void dehtml_text_cb(void* userdata, const char* text, int len)
 		{
 			unsigned char* p = (unsigned char*)last_added;
 			while( *p ) {
-				if( *p=='\n' || *p=='\r' ) {
-					*p = ' ';
+				if( *p=='\n' ) {
+					int last_is_lineend = 1; /* avoid converting `text1<br>\ntext2` to `text1\n text2` (`\r` is removed later) */
+					const unsigned char* p2 = p-1;
+					while( p2>=dehtml->m_strbuilder.m_buf ) {
+						if( *p2 == '\r' ) {
+						}
+						else if( *p2 == '\n' ) {
+							break;
+						}
+						else {
+							last_is_lineend = 0;
+							break;
+						}
+						p2--;
+					}
+					*p = last_is_lineend? '\r' : ' ';
 				}
 				p++;
 			}
@@ -245,7 +259,6 @@ static char* dehtml(char* buf_terminated)
 		mrsaxparser_set_tag_handler(&saxparser, dehtml_starttag_cb, dehtml_endtag_cb);
 		mrsaxparser_set_text_handler(&saxparser, dehtml_text_cb);
 		mrsaxparser_parse(&saxparser, buf_terminated);
-		mrstrbuilder_cat(&dehtml.m_strbuilder, "[debug:wasHtml]"); /* we'll remove the debug hint soon */
 
 		free(dehtml.m_last_href);
 		return dehtml.m_strbuilder.m_buf;
