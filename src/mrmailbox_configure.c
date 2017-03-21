@@ -366,19 +366,21 @@ static void* configure_thread_entry_point(void* entry_arg)
 	char*           param_addr_urlencoded = NULL;
 	mrloginparam_t* param_autoconfig = NULL;
 
-	#define         CHECK_EXIT if( s_configure_do_exit ) { goto exit_; }
+	#define         PROGRESS(p) \
+						if( s_configure_do_exit ) { goto exit_; } \
+						mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, (p), 0);
 
 	mrmailbox_log_info(mailbox, 0, "Configure ...");
 	mrosnative_setup_thread(mailbox);
 
-	CHECK_EXIT
+	PROGRESS(0)
 
 	if( mailbox->m_cb(mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
 		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
 		goto exit_;
 	}
 
-	CHECK_EXIT
+	PROGRESS(10)
 
 	/* 1.  Load the parameters and check email-address and password
 	 **************************************************************************/
@@ -408,7 +410,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 		param->m_mail_pw = safe_strdup(NULL);
 	}
 
-	CHECK_EXIT
+	PROGRESS(20)
 
 
 	/* 2.  Autoconfig
@@ -429,7 +431,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"http":"https", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
 				param_autoconfig = moz_autoconfigure(mailbox, url, param);
 				free(url);
-				CHECK_EXIT
+				PROGRESS(30+i*5)
 			}
 		}
 
@@ -438,7 +440,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 				char* url = mr_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
 				param_autoconfig = outlk_autodiscover(mailbox, url, param);
 				free(url);
-				CHECK_EXIT
+				PROGRESS(40+i*5)
 			}
 		}
 
@@ -448,7 +450,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 			char* url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
 			param_autoconfig = moz_autoconfigure(mailbox, url, param);
 			free(url);
-			CHECK_EXIT
+			PROGRESS(50)
 		}
 
 		/* C.  Do we have any result? */
@@ -559,7 +561,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 		goto exit_;
 	}
 
-	CHECK_EXIT
+	PROGRESS(60)
 
 	{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Configure result: %s", r); free(r); }
 
@@ -568,13 +570,13 @@ static void* configure_thread_entry_point(void* entry_arg)
 		goto exit_;
 	}
 
-	CHECK_EXIT
+	PROGRESS(80)
 
 	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
 		goto exit_;
 	}
 
-	CHECK_EXIT
+	PROGRESS(90)
 
 	/* configuration success */
 	mrloginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);

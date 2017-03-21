@@ -85,6 +85,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
 
 #define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
+#define MR_EVENT_CONFIGURE_PROGRESS       2041
 
 /* Functions that should be provided by the frontends */
 #define MR_EVENT_IS_ONLINE                2080
