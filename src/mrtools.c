@@ -78,6 +78,12 @@ char* strdup_keep_null(const char* s) /* strdup(NULL) is undefined, safe_strdup_
 }
 
 
+int atoi_null_is_0(const char* s)
+{
+	return s? atoi(s) : 0;
+}
+
+
 void mr_ltrim(char* buf)
 {
 	size_t len;

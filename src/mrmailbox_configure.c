@@ -36,11 +36,29 @@
 
 
 /*******************************************************************************
- * AutoConfigure
+ * Tools
  ******************************************************************************/
 
 
-typedef struct autoconfig_t
+static char* read_autoconf_file(mrmailbox_t* mailbox, const char* url)
+{
+	char* filecontent = NULL;
+	mrmailbox_log_info(mailbox, 0, "Testing %s ...", url);
+	filecontent = (char*)mailbox->m_cb(mailbox, MR_EVENT_HTTP_GET, (uintptr_t)url, 0);
+	if( filecontent == NULL ) {
+		mrmailbox_log_info(mailbox, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
+		return NULL;
+	}
+	return filecontent;
+}
+
+
+/*******************************************************************************
+ * Thunderbird's Autoconfigure
+ ******************************************************************************/
+
+
+typedef struct moz_autoconfigure_t
 {
 	const mrloginparam_t* m_in;
 	char*                 m_in_emaildomain;
@@ -53,78 +71,70 @@ typedef struct autoconfig_t
 	However, _if_ the assumpltions are wrong, we can add a first saxparser-pass that searches for the correct domain
 	and the second pass will look for the index found. */
 
-	#define AC_SERVER_IMAP 1
-	#define AC_SERVER_SMTP 2
+	#define MOZ_SERVER_IMAP 1
+	#define MOZ_SERVER_SMTP 2
 	int m_tag_server;
 
-	#define AC_HOSTNAME   10
-	#define AC_PORT       11
-	#define AC_USERNAME   12
-	#define AC_SOCKETTYPE 13
+	#define MOZ_HOSTNAME   10
+	#define MOZ_PORT       11
+	#define MOZ_USERNAME   12
+	#define MOZ_SOCKETTYPE 13
 	int m_tag_config;
 
-} autoconfig_t;
+} moz_autoconfigure_t;
 
 
-static void autoconfig_starttag_cb(void* userdata, const char* tag, char** attr)
+static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char** attr)
 {
-	autoconfig_t* autoconfig = (autoconfig_t*)userdata;
-	const char*   p1;
+	moz_autoconfigure_t* moz_ac = (moz_autoconfigure_t*)userdata;
+	const char*          p1;
 
 	if( strcmp(tag, "incomingserver")==0 ) {
-		autoconfig->m_tag_server = ((p1=mrattr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? AC_SERVER_IMAP : 0;
-		autoconfig->m_tag_config = 0;
+		moz_ac->m_tag_server = ((p1=mrattr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
+		moz_ac->m_tag_config = 0;
 	}
 	else if( strcmp(tag, "outgoingserver") == 0 ) {
-		autoconfig->m_tag_server = AC_SERVER_SMTP;
-		autoconfig->m_tag_config = 0;
+		moz_ac->m_tag_server = MOZ_SERVER_SMTP;
+		moz_ac->m_tag_config = 0;
 	}
-	else if( strcmp(tag, "hostname") == 0 ) {
-		autoconfig->m_tag_config = AC_HOSTNAME;
-	}
-	else if( strcmp(tag, "port") == 0 ) {
-		autoconfig->m_tag_config = AC_PORT;
-	}
-	else if( strcmp(tag, "sockettype") == 0 ) {
-		autoconfig->m_tag_config = AC_SOCKETTYPE;
-	}
-	else if( strcmp(tag, "username") == 0 ) {
-		autoconfig->m_tag_config = AC_USERNAME;
-	}
+	else if( strcmp(tag, "hostname") == 0   ) { moz_ac->m_tag_config = MOZ_HOSTNAME; }
+	else if( strcmp(tag, "port") == 0       ) { moz_ac->m_tag_config = MOZ_PORT; }
+	else if( strcmp(tag, "sockettype") == 0 ) { moz_ac->m_tag_config = MOZ_SOCKETTYPE; }
+	else if( strcmp(tag, "username") == 0   ) { moz_ac->m_tag_config = MOZ_USERNAME; }
 }
 
 
-static void autoconfig_text_cb(void* userdata, const char* text, int len)
+static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 {
-	autoconfig_t*   ac = (autoconfig_t*)userdata;
+	moz_autoconfigure_t*   moz_ac = (moz_autoconfigure_t*)userdata;
 
 	char* val = safe_strdup(text);
 	mr_trim(val);
-	mr_str_replace(&val, "%EMAILADDRESS%",   ac->m_in->m_addr);
-	mr_str_replace(&val, "%EMAILLOCALPART%", ac->m_in_emaillocalpart);
-	mr_str_replace(&val, "%EMAILDOMAIN%",    ac->m_in_emaildomain);
+	mr_str_replace(&val, "%EMAILADDRESS%",   moz_ac->m_in->m_addr);
+	mr_str_replace(&val, "%EMAILLOCALPART%", moz_ac->m_in_emaillocalpart);
+	mr_str_replace(&val, "%EMAILDOMAIN%",    moz_ac->m_in_emaildomain);
 
-	if( ac->m_tag_server == AC_SERVER_IMAP ) {
-		switch( ac->m_tag_config ) {
-			case AC_HOSTNAME: free(ac->m_out->m_mail_server); ac->m_out->m_mail_server = val; val = NULL; break;
-			case AC_PORT:                                     ac->m_out->m_mail_port   = atoi(val);       break;
-			case AC_USERNAME: free(ac->m_out->m_mail_user);   ac->m_out->m_mail_user   = val; val = NULL; break;
-			case AC_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { ac->m_out->m_server_flags |=MR_IMAP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { ac->m_out->m_server_flags |=MR_IMAP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { ac->m_out->m_server_flags |=MR_IMAP_SOCKET_PLAIN; }
+	if( moz_ac->m_tag_server == MOZ_SERVER_IMAP ) {
+		switch( moz_ac->m_tag_config ) {
+			case MOZ_HOSTNAME: free(moz_ac->m_out->m_mail_server); moz_ac->m_out->m_mail_server = val; val = NULL; break;
+			case MOZ_PORT:                                         moz_ac->m_out->m_mail_port   = atoi(val);       break;
+			case MOZ_USERNAME: free(moz_ac->m_out->m_mail_user);   moz_ac->m_out->m_mail_user   = val; val = NULL; break;
+			case MOZ_SOCKETTYPE:
+				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_SSL; }
+				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_STARTTLS; }
+				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_PLAIN; }
 				break;
 		}
 	}
-	else if( ac->m_tag_server == AC_SERVER_SMTP ) {
-		switch( ac->m_tag_config ) {
-			case AC_HOSTNAME: free(ac->m_out->m_send_server); ac->m_out->m_send_server = val; val = NULL; break;
-			case AC_PORT:                                     ac->m_out->m_send_port   = atoi(val);       break;
-			case AC_USERNAME: free(ac->m_out->m_send_user);   ac->m_out->m_send_user   = val; val = NULL; break;
-			case AC_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { ac->m_out->m_server_flags |=MR_SMTP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { ac->m_out->m_server_flags |=MR_SMTP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { ac->m_out->m_server_flags |=MR_SMTP_SOCKET_PLAIN; }
+	else if( moz_ac->m_tag_server == MOZ_SERVER_SMTP ) {
+		switch( moz_ac->m_tag_config ) {
+			case MOZ_HOSTNAME: free(moz_ac->m_out->m_send_server); moz_ac->m_out->m_send_server = val; val = NULL; break;
+			case MOZ_PORT:                                         moz_ac->m_out->m_send_port   = atoi(val);       break;
+			case MOZ_USERNAME: free(moz_ac->m_out->m_send_user);   moz_ac->m_out->m_send_user   = val; val = NULL; break;
+			case MOZ_SOCKETTYPE:
+				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_SSL; }
+				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_STARTTLS; }
+				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_PLAIN; }
 				break;
 		}
 	}
@@ -133,69 +143,206 @@ static void autoconfig_text_cb(void* userdata, const char* text, int len)
 }
 
 
-static void autoconfig_endtag_cb(void* userdata, const char* tag)
+static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 {
-	autoconfig_t* autoconfig = (autoconfig_t*)userdata;
+	moz_autoconfigure_t* moz_ac = (moz_autoconfigure_t*)userdata;
 
 	if( strcmp(tag, "incomingserver")==0 || strcmp(tag, "outgoingserver")==0 ) {
-		autoconfig->m_tag_server = 0;
-		autoconfig->m_tag_config = 0;
+		moz_ac->m_tag_server = 0;
+		moz_ac->m_tag_config = 0;
 	}
 	else {
-		autoconfig->m_tag_config = 0;
+		moz_ac->m_tag_config = 0;
 	}
 }
 
 
-static mrloginparam_t* autoconfig_do(mrmailbox_t* mailbox, const char* url, const mrloginparam_t* param_in)
+static mrloginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, const mrloginparam_t* param_in)
 {
-	char* xml_raw = NULL;
-	autoconfig_t autoconfig;
-	memset(&autoconfig, 0, sizeof(autoconfig_t));
+	char*               xml_raw = NULL;
+	moz_autoconfigure_t moz_ac;
 
-	mrmailbox_log_info(mailbox, 0, "Trying autoconfig from %s ...", url);
-	xml_raw = (char*)mailbox->m_cb(mailbox, MR_EVENT_HTTP_GET, (uintptr_t)url, 0);
-	if( xml_raw == NULL ) {
-		mrmailbox_log_info(mailbox, 0, "Can't get autoconfig file.");
+	memset(&moz_ac, 0, sizeof(moz_autoconfigure_t));
+
+	if( (xml_raw=read_autoconf_file(mailbox, url))==NULL ) {
 		goto cleanup;
 	}
 
-	/* parse the file ... */
-	autoconfig.m_in                = param_in;
-	autoconfig.m_in_emaillocalpart = safe_strdup(param_in->m_addr); char* p = strchr(autoconfig.m_in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
-	autoconfig.m_in_emaildomain    = safe_strdup(p+1);
-	autoconfig.m_out               = mrloginparam_new();
-	autoconfig.m_out->m_mail_user  = strdup_keep_null(param_in->m_mail_user);
+	moz_ac.m_in                = param_in;
+	moz_ac.m_in_emaillocalpart = safe_strdup(param_in->m_addr); char* p = strchr(moz_ac.m_in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
+	moz_ac.m_in_emaildomain    = safe_strdup(p+1);
+	moz_ac.m_out               = mrloginparam_new();
 
 	mrsaxparser_t                 saxparser;
-	mrsaxparser_init            (&saxparser, &autoconfig);
-	mrsaxparser_set_tag_handler (&saxparser, autoconfig_starttag_cb, autoconfig_endtag_cb);
-	mrsaxparser_set_text_handler(&saxparser, autoconfig_text_cb);
+	mrsaxparser_init            (&saxparser, &moz_ac);
+	mrsaxparser_set_tag_handler (&saxparser, moz_autoconfigure_starttag_cb, moz_autoconfigure_endtag_cb);
+	mrsaxparser_set_text_handler(&saxparser, moz_autoconfigure_text_cb);
 	mrsaxparser_parse           (&saxparser, xml_raw);
 
-	if( autoconfig.m_out->m_mail_server == NULL
-	 || autoconfig.m_out->m_mail_port == 0
-	 || autoconfig.m_out->m_send_server == NULL
-	 || autoconfig.m_out->m_send_port == 0 )
+	if( moz_ac.m_out->m_mail_server == NULL
+	 || moz_ac.m_out->m_mail_port   == 0
+	 || moz_ac.m_out->m_send_server == NULL
+	 || moz_ac.m_out->m_send_port   == 0 )
 	{
-		{ char* r = mrloginparam_get_readable(autoconfig.m_out); mrmailbox_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = mrloginparam_get_readable(moz_ac.m_out); mrmailbox_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 
-		mrloginparam_unref(autoconfig.m_out); /* autoconfig failed for the given URL */
-		autoconfig.m_out = NULL;
+		mrloginparam_unref(moz_ac.m_out); /* autoconfig failed for the given URL */
+		moz_ac.m_out = NULL;
 		goto cleanup;
 	}
-
-	/* success */
-	if( autoconfig.m_out->m_addr == NULL )    { autoconfig.m_out->m_addr      = strdup_keep_null(autoconfig.m_in->m_addr);    }
-	if( autoconfig.m_out->m_mail_pw == NULL ) { autoconfig.m_out->m_mail_pw   = strdup_keep_null(autoconfig.m_in->m_mail_pw); }
-
-	{ char* r = mrloginparam_get_readable(autoconfig.m_out); mrmailbox_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
 
 cleanup:
 	free(xml_raw);
-	free(autoconfig.m_in_emaildomain);
-	free(autoconfig.m_in_emaillocalpart);
-	return autoconfig.m_out; /* may be NULL */
+	free(moz_ac.m_in_emaildomain);
+	free(moz_ac.m_in_emaillocalpart);
+	return moz_ac.m_out; /* may be NULL */
+}
+
+
+/*******************************************************************************
+ * Outlook's Autodiscover
+ ******************************************************************************/
+
+
+typedef struct outlk_autodiscover_t
+{
+	const mrloginparam_t* m_in;
+	mrloginparam_t*       m_out;
+
+	/* file format: https://msdn.microsoft.com/en-us/library/bb204278(v=exchg.80).aspx */
+	#define  OUTLK_TYPE         1
+	#define  OUTLK_SERVER       2
+	#define  OUTLK_PORT         3
+	#define  OUTLK_SSL          4
+	#define  OUTLK_REDIRECTURL  5
+	#define _OUTLK_COUNT_       6
+	int      m_tag_config;
+
+	char*    m_config[_OUTLK_COUNT_];
+	char*    m_redirect;
+
+} outlk_autodiscover_t;
+
+
+static void outlk_clean_config(outlk_autodiscover_t* outlk_ad)
+{
+	int i;
+	for( i = 0; i < _OUTLK_COUNT_; i++ ) {
+		free(outlk_ad->m_config[i]);
+		outlk_ad->m_config[i] = NULL;
+	}
+}
+
+
+static void outlk_autodiscover_starttag_cb(void* userdata, const char* tag, char** attr)
+{
+	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
+
+	     if( strcmp(tag, "protocol") == 0    ) { outlk_clean_config(outlk_ad); } /* this also cleans "redirecturl", however, this is not problem as the protocol block is only valid for action "settings". */
+	else if( strcmp(tag, "type") == 0        ) { outlk_ad->m_tag_config = OUTLK_TYPE; }
+	else if( strcmp(tag, "server") == 0      ) { outlk_ad->m_tag_config = OUTLK_SERVER; }
+	else if( strcmp(tag, "port") == 0        ) { outlk_ad->m_tag_config = OUTLK_PORT; }
+	else if( strcmp(tag, "ssl") == 0         ) { outlk_ad->m_tag_config = OUTLK_SSL; }
+	else if( strcmp(tag, "redirecturl") == 0 ) { outlk_ad->m_tag_config = OUTLK_REDIRECTURL; }
+}
+
+
+static void outlk_autodiscover_text_cb(void* userdata, const char* text, int len)
+{
+	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
+
+	char* val = safe_strdup(text);
+	mr_trim(val);
+
+	free(outlk_ad->m_config[outlk_ad->m_tag_config]);
+	outlk_ad->m_config[outlk_ad->m_tag_config] = val;
+}
+
+
+static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
+{
+	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
+
+	if( strcmp(tag, "protocol")==0 )
+	{
+		/* copy collected confituration to m_out (we have to delay this as we do not know when the <type> tag appears in the sax-stream) */
+		if( outlk_ad->m_config[OUTLK_TYPE] )
+		{
+			int port    = atoi_null_is_0(outlk_ad->m_config[OUTLK_PORT]),
+			    ssl_on  = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "on" )==0),
+			    ssl_off = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "off")==0);
+
+			if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "imap")==0 ) {
+                outlk_ad->m_out->m_mail_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
+                outlk_ad->m_out->m_mail_port   = port;
+                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_SSL;   }
+                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_PLAIN; }
+			}
+			else if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "smtp")==0 ) {
+                outlk_ad->m_out->m_send_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
+                outlk_ad->m_out->m_send_port   = port;
+                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_SSL;   }
+                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_PLAIN; }
+			}
+		}
+
+		outlk_clean_config(outlk_ad);
+	}
+	outlk_ad->m_tag_config = 0;
+}
+
+
+static mrloginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url__, const mrloginparam_t* param_in)
+{
+	char*                 xml_raw = NULL, *url = safe_strdup(url__);
+	outlk_autodiscover_t  outlk_ad;
+	int                   i;
+
+	for( i = 0; i < 10 /* follow up to 10 xml-redirects (http-redirects are followed in read_autoconf_file() */; i++ )
+	{
+		memset(&outlk_ad, 0, sizeof(outlk_autodiscover_t));
+
+		if( (xml_raw=read_autoconf_file(mailbox, url))==NULL ) {
+			goto cleanup;
+		}
+
+		outlk_ad.m_in                = param_in;
+		outlk_ad.m_out               = mrloginparam_new();
+
+		mrsaxparser_t                 saxparser;
+		mrsaxparser_init            (&saxparser, &outlk_ad);
+		mrsaxparser_set_tag_handler (&saxparser, outlk_autodiscover_starttag_cb, outlk_autodiscover_endtag_cb);
+		mrsaxparser_set_text_handler(&saxparser, outlk_autodiscover_text_cb);
+		mrsaxparser_parse           (&saxparser, xml_raw);
+
+		if( outlk_ad.m_config[OUTLK_REDIRECTURL] && outlk_ad.m_config[OUTLK_REDIRECTURL][0] ) {
+			free(url);
+			url = safe_strdup(outlk_ad.m_config[OUTLK_REDIRECTURL]);
+			mrloginparam_unref(outlk_ad.m_out);
+			outlk_clean_config(&outlk_ad);
+			free(xml_raw); xml_raw = NULL;
+		}
+		else {
+			break;
+		}
+	}
+
+	if( outlk_ad.m_out->m_mail_server == NULL
+	 || outlk_ad.m_out->m_mail_port   == 0
+	 || outlk_ad.m_out->m_send_server == NULL
+	 || outlk_ad.m_out->m_send_port   == 0 )
+	{
+		{ char* r = mrloginparam_get_readable(outlk_ad.m_out); mrmailbox_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		mrloginparam_unref(outlk_ad.m_out); /* autoconfig failed for the given URL */
+		outlk_ad.m_out = NULL;
+		goto cleanup;
+	}
+
+cleanup:
+	free(url);
+	free(xml_raw);
+	outlk_clean_config(&outlk_ad);
+	return outlk_ad.m_out; /* may be NULL */
 }
 
 
@@ -212,7 +359,7 @@ static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_config
 static void* configure_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t*    mailbox = (mrmailbox_t*)entry_arg;
-	int             success = 0;
+	int             success = 0, i;
 
 	mrloginparam_t* param = mrloginparam_new();
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -221,7 +368,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	#define         CHECK_EXIT if( s_configure_do_exit ) { goto exit_; }
 
-	mrmailbox_log_info(mailbox, 0, "Configure-thread started.");
+	mrmailbox_log_info(mailbox, 0, "Configure ...");
 	mrosnative_setup_thread(mailbox);
 
 	CHECK_EXIT
@@ -261,6 +408,8 @@ static void* configure_thread_entry_point(void* entry_arg)
 		param->m_mail_pw = safe_strdup(NULL);
 	}
 
+	CHECK_EXIT
+
 
 	/* 2.  Autoconfig
 	 **************************************************************************/
@@ -274,41 +423,48 @@ static void* configure_thread_entry_point(void* entry_arg)
 	/*&&param->m_send_pw      == NULL -- the password cannot be auto-configured and is no criterion for autoconfig or not */
 	 && param->m_server_flags == 0 )
 	{
-		CHECK_EXIT
-
-		char* url = mr_mprintf("http://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
-		param_autoconfig = autoconfig_do(mailbox, url, param);
-		free(url);
-
-		CHECK_EXIT
-
-		if( param_autoconfig==NULL )
-		{
-			char* url = mr_mprintf("https://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", param_domain, param_addr_urlencoded);
-			param_autoconfig = autoconfig_do(mailbox, url, param);
-			free(url);
-
-			if( param_autoconfig==NULL )
-			{
-				url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain);
-				param_autoconfig = autoconfig_do(mailbox, url, param);
+		/* A.  Search configurations from the domain used in the email-address */
+		for( i = 0; i <= 1; i++ ) {
+			if( param_autoconfig==NULL ) {
+				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"http":"https", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
+				param_autoconfig = moz_autoconfigure(mailbox, url, param);
 				free(url);
+				CHECK_EXIT
 			}
 		}
 
-		CHECK_EXIT
+		for( i = 0; i <= 1; i++ ) {
+			if( param_autoconfig==NULL ) {
+				char* url = mr_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
+				param_autoconfig = outlk_autodiscover(mailbox, url, param);
+				free(url);
+				CHECK_EXIT
+			}
+		}
 
+		/* B.  If we have no configuration yet, search configuration in Thunderbird's centeral database */
+		if( param_autoconfig==NULL )
+		{
+			char* url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
+			param_autoconfig = moz_autoconfigure(mailbox, url, param);
+			free(url);
+			CHECK_EXIT
+		}
+
+		/* C.  Do we have any result? */
 		if( param_autoconfig )
 		{
-			free(param->m_mail_user); param->m_mail_user = NULL; /* all other pointers are already NULL, see initial condition */
+			{ char* r = mrloginparam_get_readable(param_autoconfig); mrmailbox_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
 
-			param->m_mail_server  = strdup_keep_null(param_autoconfig->m_mail_server);
+			if( param_autoconfig->m_mail_user ) {
+				free(param->m_mail_user);
+				param->m_mail_user= strdup_keep_null(param_autoconfig->m_mail_user);
+			}
+			param->m_mail_server  = strdup_keep_null(param_autoconfig->m_mail_server); /* all other values are always NULL when entering autoconfig */
 			param->m_mail_port    =                  param_autoconfig->m_mail_port;
-			param->m_mail_user    = strdup_keep_null(param_autoconfig->m_mail_user);
 			param->m_send_server  = strdup_keep_null(param_autoconfig->m_send_server);
 			param->m_send_port    =                  param_autoconfig->m_send_port;
 			param->m_send_user    = strdup_keep_null(param_autoconfig->m_send_user);
-			param->m_send_pw      = strdup_keep_null(param_autoconfig->m_send_pw);
 			param->m_server_flags =                  param_autoconfig->m_server_flags;
 		}
 	}
@@ -424,7 +580,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrloginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 	mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
 	success = 1;
-	mrmailbox_log_info(mailbox, 0, "Configure-thread finished.");
+	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
 exit_:
 	mrloginparam_unref(param);
@@ -450,10 +606,8 @@ void mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Configuring...");
-
 	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-		mrmailbox_log_error(mailbox, 0, "Database not opened.");
+		mrmailbox_log_error(mailbox, 0, "Cannot configure, database not opened.");
 		s_configure_do_exit = 1;
 		mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_ENDED, 0, 0);
 		return;
