@@ -45,7 +45,7 @@ typedef struct mrjob_t mrjob_t;
 
 /* specical chat IDs */
 #define MR_CHAT_ID_DEADDROP           1 /* messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally. */
-#define MR_CHAT_ID_TO_DEADDROP        2 /* messages send from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the e-mail-program) */
+#define MR_CHAT_ID_TO_DEADDROP        2 /* messages send from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the email-program) */
 #define MR_CHAT_ID_TRASH              3 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again) */
 #define MR_CHAT_ID_MSGS_IN_CREATION   4 /* a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be send and shown) */
 #define MR_CHAT_ID_LAST_SPECIAL       9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
@@ -68,7 +68,7 @@ typedef struct mrchat_t
 mrchat_t*     mrchat_new                   (mrmailbox_t*); /* result must be unref'd */
 void          mrchat_empty                 (mrchat_t*);
 void          mrchat_unref                 (mrchat_t*);
-char*         mrchat_get_subtitle          (mrchat_t*); /* either the e-mail-address or the number of group members, the result must be free()'d! */
+char*         mrchat_get_subtitle          (mrchat_t*); /* either the email-address or the number of group members, the result must be free()'d! */
 int           mrchat_get_total_msg_count   (mrchat_t*);
 int           mrchat_get_unseen_count      (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_UPDATED".  Returns true/false. */

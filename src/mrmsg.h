@@ -20,7 +20,7 @@
  *******************************************************************************
  *
  * File:    mrmsg.h
- * Purpose: mrmsg_t represents a single message in a chat.  One E-Mail can
+ * Purpose: mrmsg_t represents a single message in a chat.  One email can
  *          result in different messages!
  *
  ******************************************************************************/

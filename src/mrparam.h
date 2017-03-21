@@ -30,7 +30,7 @@
  *******************************************************************************
  *
  * Known keys:
- * 'a' forwarded from this e-mail-address
+ * 'a' forwarded from this email-address
  * 'A' forwarded from this name
  * 'f'ile
  * 'w'idth

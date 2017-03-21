@@ -231,7 +231,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"
 					" param TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one E-Mail may be split up to several messages (eg. one per image), so the E-Mail-Message-ID may be used for several records; id is always unique */
+		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
 		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of unseen messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */

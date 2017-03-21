@@ -353,9 +353,9 @@ static void display_mime(struct mailmime * mime)
 		case MAILMIME_MESSAGE:
 			if (mime->mm_data.mm_message.mm_fields) {
 				if (clist_begin(mime->mm_data.mm_message.mm_fields->fld_list) != NULL) {
-					printf("E-Mail headers begin\n");
+					printf("Email headers begin\n");
 					display_fields(mime->mm_data.mm_message.mm_fields);
-					printf("E-Mail headers end\n");
+					printf("Email headers end\n");
 				}
 
 				if (mime->mm_data.mm_message.mm_msg_mime != NULL) {

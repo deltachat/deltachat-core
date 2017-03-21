@@ -233,7 +233,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	CHECK_EXIT
 
-	/* 1.  Load the parameters and check e-mail-address and password
+	/* 1.  Load the parameters and check email-address and password
 	 **************************************************************************/
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -241,7 +241,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	if( param->m_addr == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Please enter the e-mail address.");
+		mrmailbox_log_error(mailbox, 0, "Please enter the email address.");
 		goto exit_;
 	}
 	mr_trim(param->m_addr);
