@@ -724,6 +724,8 @@ static int fetch_from_all_folders(mrimap_t* ths)
 static void* watch_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
+	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
+
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	time_t          last_fullread_time = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
@@ -732,7 +734,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minute (typically together the IDLE delay break) */
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
-	mrosnative_setup_thread(ths->m_mailbox);
 
 	if( ths->m_can_idle )
 	{
@@ -903,7 +904,7 @@ exit_:
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
-	mrosnative_unsetup_thread(ths->m_mailbox);
+	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
 	return NULL;
 }
 
@@ -1163,13 +1164,14 @@ int mrimap_is_connected(mrimap_t* ths)
 static void* restore_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*  ths = (mrimap_t*)entry_arg;
+	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
+
 	int        r, handle_locked = 0, idle_blocked = 0;
 	clist      *folder_list = NULL, *fetch_result = NULL;
 	clistiter  *folder_iter, *fetch_iter;
 	#define    CHECK_EXIT if( ths->m_restore_do_exit ) { goto exit_; }
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-restore-thread started.");
-	mrosnative_setup_thread(ths->m_mailbox);
 
 	LOCK_HANDLE
 	BLOCK_IDLE
@@ -1243,7 +1245,7 @@ exit_:
 	LOCK_HANDLE
 		ths->m_restore_thread_created = 0;
 	UNLOCK_HANDLE
-	mrosnative_unsetup_thread(ths->m_mailbox);
+	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
 	return NULL;
 }
 

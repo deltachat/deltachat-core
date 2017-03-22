@@ -371,6 +371,8 @@ static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_config
 static void* configure_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t*    mailbox = (mrmailbox_t*)entry_arg;
+	mrosnative_setup_thread(mailbox); /* must be very first */
+
 	int             success = 0, i;
 
 	mrloginparam_t* param = mrloginparam_new();
@@ -383,7 +385,6 @@ static void* configure_thread_entry_point(void* entry_arg)
 						mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, (p), 0);
 
 	mrmailbox_log_info(mailbox, 0, "Configure ...");
-	mrosnative_setup_thread(mailbox);
 
 	PROGRESS(0)
 
@@ -603,8 +604,8 @@ exit_:
 
 	s_configure_do_exit = 1; /* set this before sending MR_EVENT_CONFIGURE_ENDED, avoids mrmailbox_configure_cancel() to stop the thread */
 	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_ENDED, success, 0);
-	mrosnative_unsetup_thread(mailbox);
 	s_configure_thread_created = 0;
+	mrosnative_unsetup_thread(mailbox); /* must be very last */
 	return NULL;
 }
 

@@ -69,6 +69,8 @@ static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do no
 static void* job_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg;
+	mrosnative_setup_thread(mailbox); /* must be very first */
+
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
 	int           seconds_to_wait;
@@ -78,7 +80,6 @@ static void* job_thread_entry_point(void* entry_arg)
 
 	/* init thread */
 	mrmailbox_log_info(mailbox, 0, "Job thread entered.");
-	mrosnative_setup_thread(mailbox);
 
 	while( 1 )
 	{
@@ -172,7 +173,7 @@ static void* job_thread_entry_point(void* entry_arg)
 exit_:
 	mrparam_unref(job.m_param);
 	mrmailbox_log_info(mailbox, 0, "Exit job thread.");
-	mrosnative_unsetup_thread(mailbox);
+	mrosnative_unsetup_thread(mailbox); /* must be very last */
 	return NULL;
 }
 
