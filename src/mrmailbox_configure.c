@@ -63,7 +63,9 @@ typedef struct moz_autoconfigure_t
 	const mrloginparam_t* m_in;
 	char*                 m_in_emaildomain;
 	char*                 m_in_emaillocalpart;
+
 	mrloginparam_t*       m_out;
+	int                   m_out_imap_set, m_out_smtp_set;
 
 	/* currently, we assume there is only one emailProvider tag in the
 	file, see example at https://wiki.mozilla.org/Thunderbird:Autoconfiguration:ConfigFileFormat
@@ -90,11 +92,11 @@ static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char*
 	const char*          p1;
 
 	if( strcmp(tag, "incomingserver")==0 ) {
-		moz_ac->m_tag_server = ((p1=mrattr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
+		moz_ac->m_tag_server = (moz_ac->m_out_imap_set==0 && (p1=mrattr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
 		moz_ac->m_tag_config = 0;
 	}
 	else if( strcmp(tag, "outgoingserver") == 0 ) {
-		moz_ac->m_tag_server = MOZ_SERVER_SMTP;
+		moz_ac->m_tag_server = moz_ac->m_out_smtp_set==0? MOZ_SERVER_SMTP : 0;
 		moz_ac->m_tag_config = 0;
 	}
 	else if( strcmp(tag, "hostname") == 0   ) { moz_ac->m_tag_config = MOZ_HOSTNAME; }
@@ -147,9 +149,15 @@ static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 {
 	moz_autoconfigure_t* moz_ac = (moz_autoconfigure_t*)userdata;
 
-	if( strcmp(tag, "incomingserver")==0 || strcmp(tag, "outgoingserver")==0 ) {
+	if( strcmp(tag, "incomingserver")==0 ) {
 		moz_ac->m_tag_server = 0;
 		moz_ac->m_tag_config = 0;
+		moz_ac->m_out_imap_set = 1;
+	}
+	else if( strcmp(tag, "outgoingserver")==0 ) {
+		moz_ac->m_tag_server = 0;
+		moz_ac->m_tag_config = 0;
+		moz_ac->m_out_smtp_set = 1;
 	}
 	else {
 		moz_ac->m_tag_config = 0;
@@ -207,7 +215,9 @@ cleanup:
 typedef struct outlk_autodiscover_t
 {
 	const mrloginparam_t* m_in;
+
 	mrloginparam_t*       m_out;
+	int                   m_out_imap_set, m_out_smtp_set;
 
 	/* file format: https://msdn.microsoft.com/en-us/library/bb204278(v=exchg.80).aspx */
 	#define  OUTLK_TYPE         1
@@ -272,17 +282,19 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 			    ssl_on  = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "on" )==0),
 			    ssl_off = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "off")==0);
 
-			if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "imap")==0 ) {
+			if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "imap")==0 && outlk_ad->m_out_imap_set==0 ) {
                 outlk_ad->m_out->m_mail_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_mail_port   = port;
                      if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_SSL;   }
                 else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_PLAIN; }
+                outlk_ad->m_out_imap_set = 1;
 			}
-			else if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "smtp")==0 ) {
+			else if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "smtp")==0 && outlk_ad->m_out_smtp_set==0 ) {
                 outlk_ad->m_out->m_send_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_send_port   = port;
                      if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_SSL;   }
                 else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_PLAIN; }
+                outlk_ad->m_out_smtp_set = 1;
 			}
 		}
 

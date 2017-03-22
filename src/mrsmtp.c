@@ -130,8 +130,6 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
-
 		free(ths->m_from);
 		ths->m_from = safe_strdup(lp->m_addr);
 
@@ -145,24 +143,25 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			mailsmtp_set_logger(ths->m_hEtpan, logger, ths);
 		#endif
 
-		/* first open the stream */
-		if( lp->m_server_flags&MR_SMTP_SOCKET_SSL ) {
-			/* use SMTP over SSL */
-			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
-				goto cleanup;
-			}
-		}
-		else {
-			/* use STARTTLS */
+		/* connect to SMTP server */
+		if( lp->m_server_flags&(MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_PLAIN) )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\"...", lp->m_send_server, (int)lp->m_send_port);
 			if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
+		else
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\" via SSL...", lp->m_send_server, (int)lp->m_send_port);
+			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
+				goto cleanup;
+			}
+		}
 
-		/* then introduce ourselves */
-		try_esmtp = 1;//(lp->m_server_flags&MR_SMTP_NO_ESMPT)? 0 : 1;
+		try_esmtp = 1;
 		ths->m_esmtp = 0;
 		if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 			ths->m_esmtp = 1;
@@ -172,19 +171,19 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( r != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo1 failed (%s)", mailsmtp_strerror(r));
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
-		if( ths->m_esmtp
-		 && (lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS)
-		 && (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
-			goto cleanup;
-		}
+		if( lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to SMTP-STARTTLS.");
+			if( (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
+				goto cleanup;
+			}
 
-		if( ths->m_esmtp && (lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS) ) {
-			/* introduce ourselves again */
+			ths->m_esmtp = 0;
 			if( try_esmtp && (r=mailesmtp_ehlo(ths->m_hEtpan))==MAILSMTP_NO_ERROR ) {
 				ths->m_esmtp = 1;
 			}
@@ -193,19 +192,24 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			}
 
 			if (r != MAILSMTP_NO_ERROR) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo2 failed (%s)", mailsmtp_strerror(r));
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "Connection to SMTP-server ok.");
 
-		if (ths->m_esmtp
-		 && lp->m_send_user!=NULL
-		 && (r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
-			goto cleanup;
+		if( lp->m_send_user )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Login to SMTP-server as \"%s\"...", lp->m_send_user);
+
+				if((r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
+					mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
+					goto cleanup;
+				}
+
+			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-Login ok.");
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connection to SMTP server ok.");
 		success = 1;
 
 cleanup:

@@ -935,33 +935,35 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		goto cleanup;
 	}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
-		ths->m_hEtpan = mailimap_new(0, NULL);
-		if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
-		{
-			r = mailimap_socket_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
-			if( is_error(ths, r) ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\". (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
-				goto cleanup;
-			}
+	ths->m_hEtpan = mailimap_new(0, NULL);
+	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
+	{
+		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
+		r = mailimap_socket_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+		if( is_error(ths, r) ) {
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\". (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			goto cleanup;
+		}
 
-			if( ths->m_server_flags&MR_IMAP_SOCKET_STARTTLS )
-			{
-				r = mailimap_socket_starttls(ths->m_hEtpan);
-				if( is_error(ths, r) ) {
-					mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
-					goto cleanup;
-				}
-			}
-		}
-		else
+		if( ths->m_server_flags&MR_IMAP_SOCKET_STARTTLS )
 		{
-			r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to IMAP-STARTTLS.", ths->m_imap_server, (int)ths->m_imap_port);
+			r = mailimap_socket_starttls(ths->m_hEtpan);
 			if( is_error(ths, r) ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 				goto cleanup;
 			}
 		}
+	}
+	else
+	{
+		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\" via SSL...", ths->m_imap_server, (int)ths->m_imap_port);
+		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
+		if( is_error(ths, r) ) {
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			goto cleanup;
+		}
+	}
 	mrmailbox_log_info(ths->m_mailbox, 0, "Connection to IMAP-server ok.");
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Login to IMAP-server as \"%s\"...", ths->m_imap_user);
@@ -989,7 +991,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 			goto cleanup;
 		}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "Login ok.");
+	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-Login ok.");
 
 	success = 1;
 
