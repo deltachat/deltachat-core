@@ -1072,10 +1072,26 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 
 		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
 		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
-		mrmailbox_log_info(ths->m_mailbox, 0, "Can Idle? %s", ths->m_can_idle? "Yes" : "No");
-
 		ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
-		mrmailbox_log_info(ths->m_mailbox, 0, "Has Xlist? %s", ths->m_has_xlist? "Yes" : "No");
+
+		if( ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability ) {
+			/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
+			mrstrbuilder_t capinfostr;
+			mrstrbuilder_init(&capinfostr);
+			clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
+			if( list ) {
+				clistiter* cur;
+				for(cur = clist_begin(list) ; cur != NULL ; cur = clist_next(cur)) {
+					struct mailimap_capability * cap = clist_content(cur);
+					if( cap && cap->cap_type == MAILIMAP_CAPABILITY_NAME ) {
+						mrstrbuilder_cat(&capinfostr, " ");
+						mrstrbuilder_cat(&capinfostr, cap->cap_data.cap_name);
+					}
+				}
+			}
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-Capabilities:%s", capinfostr.m_buf);
+			free(capinfostr.m_buf);
+		}
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "Starting IMAP-watch-thread...");
 		ths->m_watch_do_exit = 0;

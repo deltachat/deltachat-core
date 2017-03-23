@@ -386,7 +386,11 @@ char* mr_arr_to_string(const uint32_t* arr, int cnt)
 
 void mrstrbuilder_init(mrstrbuilder_t* ths)
 {
-	ths->m_allocated    = 8;
+	if( ths==NULL ) {
+		return;
+	}
+
+	ths->m_allocated    = 128; /* do not get too large here, esp. if use _many_ of these objects at the same time (currently, this is not the case) */
     ths->m_buf          = malloc(ths->m_allocated); if( ths->m_buf==NULL ) { exit(38); }
     ths->m_buf[0]       = 0;
 	ths->m_free         = ths->m_allocated - 1 /*the nullbyte! */;
@@ -396,6 +400,10 @@ void mrstrbuilder_init(mrstrbuilder_t* ths)
 
 char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
 {
+	if( ths==NULL || text==NULL ) {
+		return NULL;
+	}
+
 	int len = strlen(text);
 
 	if( len > ths->m_free ) {
