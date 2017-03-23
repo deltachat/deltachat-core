@@ -57,6 +57,11 @@ void stress_functions(void)
 		assert( strcmp(plain, "[text](url)")==0 );
 		free(plain);
 
+		html = "<!DOCTYPE name [<!DOCTYPE ...>]><!-- comment -->text <b><?php echo ... ?>bold</b><![CDATA[<>]]>";
+		plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		assert( strcmp(plain, "text *bold*<>")==0 );
+		free(plain);
+
 		mrsimplify_unref(simplify);
 	}
 
