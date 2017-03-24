@@ -46,7 +46,7 @@ static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do no
 
 	mrsqlite3_lock(mailbox->m_sql);
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MIN_d_FROM_jobs, "SELECT MIN(desired_timestamp) FROM jobs;");
-		if( sqlite3_step(stmt) == SQLITE_ROW )
+		if( stmt && sqlite3_step(stmt) == SQLITE_ROW )
 		{
 			if( sqlite3_column_type(stmt, 0)!=SQLITE_NULL )
 			{
@@ -267,6 +267,19 @@ void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 }
 
 
+void mrjob_kill_action__(mrmailbox_t* mailbox, int action)
+{
+	if( mailbox == NULL ) {
+		return;
+	}
+
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_jobs_WHERE_action,
+		"DELETE FROM jobs WHERE action=?;");
+	sqlite3_bind_int(stmt, 1, action);
+	sqlite3_step(stmt);
+}
+
+
 void mrmailbox_kill_all_jobs(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL ) {
@@ -281,3 +294,4 @@ void mrmailbox_kill_all_jobs(mrmailbox_t* mailbox)
 
 	mrmailbox_log_info(mailbox, 0, "All jobs killed.");
 }
+

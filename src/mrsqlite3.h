@@ -125,6 +125,7 @@ enum
 	,SELECT_MIN_d_FROM_jobs
 	,SELECT_iafp_FROM_jobs
 	,DELETE_FROM_jobs_WHERE_id
+	,DELETE_FROM_jobs_WHERE_action
 	,UPDATE_jobs_SET_dp_WHERE_id
 
 	,SELECT_FROM_leftgrps_WHERE_grpid

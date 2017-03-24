@@ -893,6 +893,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	if( !mrsqlite3_open__(ths->m_sql, dbfile) ) {
 		goto cleanup;
 	}
+	mrjob_kill_action__(ths, MRJ_CONNECT_TO_IMAP);
 
 	/* backup dbfile name */
 	ths->m_dbfile = safe_strdup(dbfile);
@@ -1288,6 +1289,7 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	is_locked = 0;
 
 	if( !mrimap_connect(ths->m_imap, param) ) {
+		mrjob_try_again_later(job, MR_STANDARD_DELAY);
 		goto cleanup;
 	}
 
@@ -1313,6 +1315,7 @@ void mrmailbox_connect(mrmailbox_t* ths)
 		ths->m_smtp->m_log_connect_errors = 1;
 		ths->m_imap->m_log_connect_errors = 1;
 
+		mrjob_kill_action__(ths, MRJ_CONNECT_TO_IMAP);
 		mrjob_add__(ths, MRJ_CONNECT_TO_IMAP, 0, NULL);
 
 	mrsqlite3_unlock(ths->m_sql);
@@ -1324,6 +1327,10 @@ void mrmailbox_disconnect(mrmailbox_t* ths)
 	if( ths == NULL ) {
 		return;
 	}
+
+	mrsqlite3_lock(ths->m_sql);
+		mrjob_kill_action__(ths, MRJ_CONNECT_TO_IMAP);
+	mrsqlite3_unlock(ths->m_sql);
 
 	mrimap_disconnect(ths->m_imap);
 	mrsmtp_disconnect(ths->m_smtp);

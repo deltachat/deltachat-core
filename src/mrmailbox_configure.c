@@ -33,6 +33,7 @@
 #include "mrosnative.h"
 #include "mrsaxparser.h"
 #include "mrtools.h"
+#include "mrjob.h"
 
 
 /*******************************************************************************
@@ -558,7 +559,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	}
 
 
-	/* write back the configured parameters with the "configured_" prefix. Also write the "configured"-flag */
+	/* do we have a complete configuration? */
 	if( param->m_addr         == NULL
 	 || param->m_mail_server  == NULL
 	 || param->m_mail_port    == 0
@@ -591,7 +592,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	PROGRESS(90)
 
-	/* configuration success */
+	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
 	mrloginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 	mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
 	success = 1;
@@ -642,6 +643,7 @@ void mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the frontends)
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
+		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	/* start a thread for the configuration it self, when done, we'll post a MR_EVENT_CONFIGURE_ENDED event */
