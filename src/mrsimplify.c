@@ -306,7 +306,7 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 		char* line0 = (char*)carray_get(lines, l_first);
 		char* line1 = (char*)carray_get(lines, l_first+1);
 		char* line2 = (char*)carray_get(lines, l_first+2);
-		if( strcmp(line0, "---------- Forwarded message ----------")==0
+		if( strcmp(line0, "---------- Forwarded message ----------")==0 /* no not chage this! sent exactly in this form in mrchat.c! */
 		 && strncmp(line1, "From: ", 6)==0
 		 && line2[0] == 0 )
 		{

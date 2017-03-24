@@ -315,7 +315,7 @@ void mrsaxparser_parse(mrsaxparser_t* ths, const char* buf_start__)
 				p += strspn(p, XML_WS); /* skip whitespace between `<` and tagname */
 				if( *p == '/' )
 				{
-					/* process closing tag
+					/* process </tag> end tag
 					 **************************************************************/
 
 					p++;
@@ -333,7 +333,7 @@ void mrsaxparser_parse(mrsaxparser_t* ths, const char* buf_start__)
 				}
 				else
 				{
-					/* process opening tag
+					/* process <tag attr1="val" attr2='val' attr3=val ..>
 					 **************************************************************/
 
 					do_free_attr(attr, free_attr);
@@ -436,12 +436,14 @@ void mrsaxparser_parse(mrsaxparser_t* ths, const char* buf_start__)
 							ths->m_endtag_cb(ths->m_userdata, beg_tag_name); /* already lowercase from starttag_cb()-call */
 						}
 					}
-				}
+
+				} /* end of processing start-tag */
 
 				p = strchr(p, '>');
-				if( p == NULL ) { goto cleanup; } /* unclosed tag */
+				if( p == NULL ) { goto cleanup; } /* unclosed start-tag or end-tag */
 				p++;
-			}
+
+			} /* end of processing start-tag or end-tag */
 
 			last_text_start = p;
 		}
