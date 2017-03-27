@@ -510,11 +510,15 @@ int mrsqlite3_set_config_int__(mrsqlite3_t* ths, const char* key, int32_t value)
 void mrsqlite3_lock(mrsqlite3_t* ths) /* wait and lock */
 {
 	pthread_mutex_lock(&ths->m_critical_);
+
+	mrmailbox_wake_lock(ths->m_mailbox);
 }
 
 
 void mrsqlite3_unlock(mrsqlite3_t* ths)
 {
+	mrmailbox_wake_unlock(ths->m_mailbox);
+
 	pthread_mutex_unlock(&ths->m_critical_);
 }
 

@@ -92,6 +92,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
 #define MR_EVENT_GET_QUANTITY_STRING      2092 /* get a string from the frontend, data1=MR_STR_*, data2=quantity, ret=string which will free()'d by the backend */
 #define MR_EVENT_HTTP_GET                 2100 /* synchronous http/https(!) call, data1=url, ret=content which will be free()'d by the backend, 0 on errors */
+#define MR_EVENT_WAKE_LOCK                2110 /* acquire wakeLock (data1=1) or release it (data1=0), the backend does not make nested or unsynchronized calls */
 
 /* Error codes */
 #define MR_ERR_SELF_NOT_IN_GROUP  1
@@ -120,6 +121,9 @@ typedef struct mrmailbox_t
 	void*           m_userData;
 
 	uint32_t        m_cmdline_sel_chat_id;
+
+	int             m_wake_lock;
+	pthread_mutex_t m_wake_lock_critical;
 
 } mrmailbox_t;
 
@@ -258,7 +262,8 @@ void                 mrmailbox_kill_all_jobs        (mrmailbox_t*); /* kill all 
 /*** library-private **********************************************************/
 
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
-
+void                 mrmailbox_wake_lock            (mrmailbox_t*);
+void                 mrmailbox_wake_unlock          (mrmailbox_t*);
 
 /* logging */
 void mrmailbox_log_error           (mrmailbox_t*, int code, const char* msg, ...);

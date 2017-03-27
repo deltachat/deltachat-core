@@ -36,8 +36,8 @@
 #include "mrtools.h"
 #include "mrloginparam.h"
 
-#define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); handle_locked = 1;
-#define UNLOCK_HANDLE if( handle_locked ) { pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
+#define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); mrmailbox_wake_lock(ths->m_mailbox); handle_locked = 1;
+#define UNLOCK_HANDLE if( handle_locked ) { mrmailbox_wake_unlock(ths->m_mailbox); pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
 
 #define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
 #define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }

@@ -837,6 +837,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 	MR_INIT_REFERENCE
 
+	pthread_mutex_init(&ths->m_wake_lock_critical, NULL);
+
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userData = userData;
@@ -866,6 +868,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	mrimap_unref(ths->m_imap);
 	mrsmtp_unref(ths->m_smtp);
 	mrsqlite3_unref(ths->m_sql);
+	pthread_mutex_destroy(&ths->m_wake_lock_critical);
 	free(ths);
 
 	if( s_localize_mb_obj==ths ) {
@@ -1257,6 +1260,34 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 char* mrmailbox_get_version_str(void)
 {
 	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+}
+
+
+void mrmailbox_wake_lock(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL ) {
+		return;
+	}
+	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
+		mailbox->m_wake_lock++;
+		if( mailbox->m_wake_lock == 1 ) {
+			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 1, 0);
+		}
+	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
+}
+
+
+void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL ) {
+		return;
+	}
+	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
+		if( mailbox->m_wake_lock == 1 ) {
+			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 0, 0);
+		}
+		mailbox->m_wake_lock--;
+	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
 }
 
 
