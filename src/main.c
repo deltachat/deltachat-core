@@ -61,6 +61,7 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 	switch( event ) {
 		case MR_EVENT_GET_STRING:
 		case MR_EVENT_GET_QUANTITY_STRING:
+		case MR_EVENT_WAKE_LOCK:
 			break; /* do not show the event as this would fill the screen */
 
 		case MR_EVENT_IS_ONLINE:
