@@ -1157,7 +1157,7 @@ time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
 }
 
 
-long mr_gm2local_offset()
+long mr_gm2local_offset(void)
 {
 	/* returns the offset that must be _added_ to an UTC/GMT-time to create the localtime.
 	the function may return nagative values. */
@@ -1221,8 +1221,16 @@ struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
 }
 
 
+/*******************************************************************************
+ * Time smearing
+ ******************************************************************************/
+
+
 static time_t s_last_smeared_timestamp = 0;
-time_t mr_get_smeared_timestamp__()
+#define MR_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
+
+
+time_t mr_create_smeared_timestamp__(void)
 {
 	time_t now = time(NULL);
 	time_t ret = now;
@@ -1237,7 +1245,7 @@ time_t mr_get_smeared_timestamp__()
 }
 
 
-time_t mr_get_smeared_timestamps__(int count)
+time_t mr_create_smeared_timestamps__(int count)
 {
 	/* get a range to timestamps that can be used uniquely */
 	time_t now = time(NULL);
@@ -1246,6 +1254,17 @@ time_t mr_get_smeared_timestamps__(int count)
 
 	s_last_smeared_timestamp = start+(count-1);
 	return start;
+}
+
+
+time_t mr_smeared_time__(void)
+{
+	/* function returns a corrected time(NULL) */
+	time_t now = time(NULL);
+	if( s_last_smeared_timestamp >= now ) {
+		now = s_last_smeared_timestamp+1;
+	}
+	return now;
 }
 
 

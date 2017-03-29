@@ -82,12 +82,12 @@ int     clist_search_string_nocase (const clist*, const char* str);
 time_t                     mr_timestamp_from_date             (struct mailimf_date_time * date_time); /* the result is UTC or MR_INVALID_TIMESTAMP */
 char*                      mr_timestamp_to_str                (time_t); /* the return value must be free()'d */
 struct mailimap_date_time* mr_timestamp_to_mailimap_date_time (time_t);
-long                       mr_gm2local_offset                 ();
+long                       mr_gm2local_offset                 (void);
 
 /* timesmearing */
-#define MR_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
-time_t mr_get_smeared_timestamp__ ();
-time_t mr_get_smeared_timestamps__(int count);
+time_t mr_smeared_time__             (void);
+time_t mr_create_smeared_timestamp__ (void);
+time_t mr_create_smeared_timestamps__(int count);
 
 /* generate Message-IDs */
 #define MR_VALID_ID_LEN 11

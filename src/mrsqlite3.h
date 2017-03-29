@@ -83,6 +83,7 @@ enum
 	,SELECT_id_FROM_chats_WHERE_id
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,SELECT_id_FROM_CHATS_WHERE_grpid
+	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
 	,UPDATE_chats_SET_draft_WHERE_id
 	,UPDATE_chats_SET_n_WHERE_c
 	,UPDATE_chats_SET_blocked

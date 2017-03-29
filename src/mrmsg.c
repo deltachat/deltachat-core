@@ -766,7 +766,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 			goto cleanup;
 		}
 
-		curr_timestamp = mr_get_smeared_timestamps__(msg_cnt);
+		curr_timestamp = mr_create_smeared_timestamps__(msg_cnt);
 
 		idsstr = mr_arr_to_string(msg_ids_unsorted, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);

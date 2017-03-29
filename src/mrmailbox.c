@@ -292,6 +292,38 @@ cleanup:
  ******************************************************************************/
 
 
+static time_t correct_bad_timestamp__(mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg)
+{
+	/* use the last message from another user (including SELF) as the MINIMUM
+	(we do this check only for UNSEEN messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
+	if( is_fresh_msg )
+	{
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(ths->m_sql, SELECT_timestamp_FROM_msgs_WHERE_timestamp,
+			"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
+		sqlite3_bind_int  (stmt,  1, chat_id);
+		sqlite3_bind_int  (stmt,  2, from_id);
+		sqlite3_bind_int64(stmt,  3, desired_timestamp);
+		if( sqlite3_step(stmt)==SQLITE_ROW )
+		{
+			time_t last_msg_time = sqlite3_column_int64(stmt, 0);
+			if( last_msg_time > 0 /* may happen sa we do not check against sqlite3_column_type()!=SQLITE_NULL */ ) {
+				if( desired_timestamp <= last_msg_time ) {
+					desired_timestamp = last_msg_time+1;
+				}
+			}
+		}
+	}
+
+	/* use the (smeared) current time as the MAXIMUM */
+	if( desired_timestamp >= mr_smeared_time__() )
+	{
+		desired_timestamp = mr_create_smeared_timestamp__();
+	}
+
+	return desired_timestamp;
+}
+
+
 static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
@@ -532,7 +564,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				{
 					struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 					if( orig_date ) {
-						message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time);
+						message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
 					}
 				}
 			}
@@ -592,6 +624,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				chat_id = MR_CHAT_ID_TO_DEADDROP;
 			}
 		}
+
+		/* correct message_timestamp, it should not be used before,
+		however, we cannot do this earlier as we need from_id to be set */
+		message_timestamp = correct_bad_timestamp__(ths, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
 
 		/* check, if the mail is already in our database - if so, there's nothing more to do
 		(we may get a mail twice eg. it it is moved between folders) */

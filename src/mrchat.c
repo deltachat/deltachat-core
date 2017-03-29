@@ -1753,7 +1753,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 
 		ths->m_mailbox->m_smtp->m_log_connect_errors = 1;
 
-		msg->m_id = mrchat_send_msg__(ths, msg, mr_get_smeared_timestamp__());
+		msg->m_id = mrchat_send_msg__(ths, msg, mr_create_smeared_timestamp__());
 
 	mrsqlite3_commit__(ths->m_mailbox->m_sql);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
