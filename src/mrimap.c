@@ -1477,8 +1477,12 @@ static int add_flag__(mrimap_t* ths, const char* folder, uint32_t server_uid, st
 	}
 
 cleanup:
-	mailimap_store_att_flags_free(store_att_flags);
-	mailimap_set_free(set);
+	if( store_att_flags ) {
+		mailimap_store_att_flags_free(store_att_flags);
+	}
+	if( set ) {
+		mailimap_set_free(set);
+	}
 	return ths->m_should_reconnect? 0 : 1; /* all non-connection states are treated as success - the mail may already be deleted or moved away on the server */
 }
 
