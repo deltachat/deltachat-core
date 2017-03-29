@@ -306,9 +306,11 @@ static time_t correct_bad_timestamp__(mrmailbox_t* ths, uint32_t chat_id, uint32
 		if( sqlite3_step(stmt)==SQLITE_ROW )
 		{
 			time_t last_msg_time = sqlite3_column_int64(stmt, 0);
-			if( last_msg_time > 0 /* may happen sa we do not check against sqlite3_column_type()!=SQLITE_NULL */ ) {
+			if( last_msg_time > 0 /* may happen as we do not check against sqlite3_column_type()!=SQLITE_NULL */ ) {
 				if( desired_timestamp <= last_msg_time ) {
-					desired_timestamp = last_msg_time+1;
+					desired_timestamp = last_msg_time+1; /* this may result in several incoming messages having the same
+					                                     one-second-after-the-last-other-message-timestamp.  however, this is no big deal
+					                                     as we do not try to recrete the order of bad-date-messages and as we always order by ID as second criterion */
 				}
 			}
 		}
