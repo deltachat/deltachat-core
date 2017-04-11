@@ -41,6 +41,7 @@
 #include "mrtools.h"
 
 
+#ifdef USE_E2EE
 static void generate_key(mrmailbox_t* mailbox)
 {
 	gcry_error_t err      = GPG_ERR_NO_ERROR;
@@ -82,6 +83,7 @@ static void generate_key(mrmailbox_t* mailbox)
 	gcry_sexp_release(key_pair);
 	gcry_sexp_release(key_spec);
 }
+#endif // USE_E2EE
 
 
 void stress_functions(mrmailbox_t* mailbox)
@@ -90,7 +92,9 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
+	#ifdef USE_E2EE
 		generate_key(mailbox);
+	#endif // USE_E2EE
 	}
 
 
