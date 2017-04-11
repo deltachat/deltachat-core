@@ -727,7 +727,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
 
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
-	time_t          last_fullread_time = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* let the job thread a little bit time before we IDLE again, otherweise there will be many idle-interrupt sequences */
 	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
@@ -744,7 +743,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 		uint32_t uidvalidity;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
-		last_fullread_time = time(NULL);
+		LOCK_HANDLE
+			ths->m_last_fullread_time = time(NULL);
+		UNLOCK_HANDLE
 
 		while( 1 )
 		{
@@ -816,19 +817,22 @@ static void* watch_thread_entry_point(void* entry_arg)
 					}
 				}
 
+				if( do_fetch == 1 && time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+					do_fetch = 2;
+				}
+
 			UNLOCK_HANDLE
 			UNBLOCK_IDLE
 
-			if( do_fetch == 1 && time(NULL)-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				do_fetch = 2;
-			}
 
 			if( do_fetch == 1 ) {
 				fetch_from_single_folder(ths, "INBOX", uidvalidity);
 			}
 			else if( do_fetch == 2 ) {
 				fetch_from_all_folders(ths);
-				last_fullread_time = time(NULL);
+				LOCK_HANDLE
+					ths->m_last_fullread_time = time(NULL);
+				UNLOCK_HANDLE
 			}
 			else if( force_sleep ) {
 				sleep(force_sleep);
@@ -840,18 +844,23 @@ static void* watch_thread_entry_point(void* entry_arg)
 		/* watch using POLL
 		 **********************************************************************/
 
+		LOCK_HANDLE
+			ths->m_last_fullread_time = 0;
+		UNLOCK_HANDLE
+
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), now, seconds_to_wait;
 		while( 1 )
 		{
 			/* get the latest messages */
 			now = time(NULL);
-			do_fetch = 1;
-			if( now-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				do_fetch = 2;
-			}
 
 			LOCK_HANDLE
+				do_fetch = 1;
+				if( now-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+					do_fetch = 2;
+				}
+
 				setup_handle_if_needed__(ths);
 				forget_folder_selection__(ths); /* seems to be needed - otherwise, we'll get a new message only every _twice_ polls. WTF? */
 			UNLOCK_HANDLE
@@ -865,7 +874,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 				if( fetch_from_all_folders(ths) > 0 ) {
 					last_message_time = now;
 				}
-				last_fullread_time = now;
+				LOCK_HANDLE
+					ths->m_last_fullread_time = now;
+				UNLOCK_HANDLE
 			}
 
 			/* calculate the wait time: every 10 seconds in the first 2 minutes after a new message, after that growing up to 5 minutes */
@@ -903,6 +914,54 @@ static void* watch_thread_entry_point(void* entry_arg)
 exit_:
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
+
+	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
+	return NULL;
+}
+
+
+static void* heartbeat_thread_entry_point(void* entry_arg)
+{
+	mrimap_t*       ths = (mrimap_t*)entry_arg;
+	int             handle_locked = 0, idle_blocked = 0;
+	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
+
+	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread started.");
+
+	while( 1 )
+	{
+		/* wait 50 seconds */
+		pthread_mutex_lock(&ths->m_heartbeat_condmutex);
+			struct timespec timeToWait;
+			timeToWait.tv_sec  = time(NULL) + 50;
+			timeToWait.tv_nsec = 0;
+			pthread_cond_timedwait(&ths->m_heartbeat_cond, &ths->m_heartbeat_condmutex, &timeToWait);
+		pthread_mutex_unlock(&ths->m_heartbeat_condmutex);
+		if( ths->m_watch_do_exit ) {
+			break;
+		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP heartbeat <3");
+
+		/* force reconnect if the IDLE timeout does not arrive */
+		LOCK_HANDLE
+			time_t last_fullread_time = ths->m_last_fullread_time;
+		UNLOCK_HANDLE
+		if( time(NULL)-last_fullread_time > (FULL_FETCH_EVERY_SECONDS+10) )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP <3 <3 <3 forces a reconnect <3 <3 <3");
+			ths->m_should_reconnect = 1;
+			if( ths->m_can_idle )
+			{
+				LOCK_HANDLE
+				BLOCK_IDLE
+					INTERRUPT_IDLE
+				UNBLOCK_IDLE
+				UNLOCK_HANDLE
+			}
+		}
+	}
+
+	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread ended.");
 
 	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
 	return NULL;
@@ -1102,6 +1161,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 	UNLOCK_HANDLE
 
 	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
+	pthread_create(&ths->m_heartbeat_thread, NULL, heartbeat_thread_entry_point, ths);
 
 	success = 1;
 
@@ -1130,6 +1190,7 @@ void mrimap_disconnect(mrimap_t* ths)
 	{
 		mrmailbox_log_info(ths->m_mailbox, 0, "Stopping IMAP-watch-thread...");
 
+			/* prepare for exit */
 			if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
 			{
 				ths->m_watch_do_exit = 1;
@@ -1147,7 +1208,13 @@ void mrimap_disconnect(mrimap_t* ths)
 				pthread_mutex_unlock(&ths->m_watch_condmutex);
 			}
 
+			pthread_mutex_lock(&ths->m_heartbeat_condmutex);
+				pthread_cond_signal(&ths->m_heartbeat_cond);
+			pthread_mutex_unlock(&ths->m_heartbeat_condmutex);
+
+			/* wait for the threads to terminate */
 			pthread_join(ths->m_watch_thread, NULL);
+			pthread_join(ths->m_heartbeat_thread, NULL);
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread stopped.");
 
@@ -1322,6 +1389,11 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
+	ths->m_last_fullread_time = 0;
+
+	pthread_mutex_init(&ths->m_heartbeat_condmutex, NULL);
+	pthread_cond_init (&ths->m_heartbeat_cond, NULL);
+
 	ths->m_selected_folder = calloc(1, 1);
 	ths->m_moveto_folder   = NULL;
 	ths->m_sent_folder     = NULL;
@@ -1345,6 +1417,9 @@ void mrimap_unref(mrimap_t* ths)
 	}
 
 	mrimap_disconnect(ths);
+
+	pthread_cond_destroy(&ths->m_heartbeat_cond);
+	pthread_mutex_destroy(&ths->m_heartbeat_condmutex);
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);

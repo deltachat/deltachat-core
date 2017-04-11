@@ -74,6 +74,12 @@ typedef struct mrimap_t
 	int                   m_watch_condflag;
 	int                   m_watch_do_exit;
 
+	time_t                m_last_fullread_time;
+
+	pthread_t             m_heartbeat_thread;
+	pthread_cond_t        m_heartbeat_cond;
+	pthread_mutex_t       m_heartbeat_condmutex;
+
 	pthread_t             m_restore_thread;
 	int                   m_restore_thread_created;
 	int                   m_restore_do_exit;
