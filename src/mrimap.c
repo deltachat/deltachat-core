@@ -937,6 +937,9 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 	}
 
 	ths->m_hEtpan = mailimap_new(0, NULL);
+
+	mailimap_set_timeout(ths->m_hEtpan, 30); /* 30 second until actions are aborted, this is also used in mailcore2 */
+
 	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
 	{
 		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
