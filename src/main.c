@@ -104,9 +104,9 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 
 int main(int argc, char ** argv)
 {
-	stress_functions();
-
 	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
+
+	stress_functions(mailbox);
 
 	printf("Messenger Backend is awaiting your commands.\n"); /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
 

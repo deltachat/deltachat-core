@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 
-void stress_functions(void);
+void stress_functions(mrmailbox_t*);
 
 
 #ifdef __cplusplus

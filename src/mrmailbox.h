@@ -60,7 +60,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 24
+#define MR_VERSION_REVISION 26
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes
@@ -164,6 +164,9 @@ if this fails, we fallback to a smart pull-mode. */
 void                 mrmailbox_connect              (mrmailbox_t*);
 void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
+
+
+/* restore old data from the IMAP server, not realy implemented. */
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
 
 
@@ -235,8 +238,7 @@ int                  mrmailbox_delete_contact       (mrmailbox_t*, uint32_t cont
 /* Handle configurations as:
 - addr
 - mail_server, mail_user, mail_pw, mail_port,
-- send_server, send_user, send_pw, send_port
-show_unknown_senders */
+- send_server, send_user, send_pw, send_port, server_flags */
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);
@@ -270,6 +272,7 @@ void mrmailbox_log_error           (mrmailbox_t*, int code, const char* msg, ...
 void mrmailbox_log_error_if        (int* condition, mrmailbox_t*, int code, const char* msg, ...);
 void mrmailbox_log_warning         (mrmailbox_t*, int code, const char* msg, ...);
 void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...);
+void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
 
 int  mrmailbox_get_thread_index    (void);
 

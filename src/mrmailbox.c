@@ -662,7 +662,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		/* execute any GnuPG block commands */
 		if( mime_parser->m_gnupg_block )
 		{
+			#ifdef USE_E2EE
 			mre2ee_execute_gnupg_block_command__(ths, from_id, message_timestamp, mime_parser->m_gnupg_block);
+			#endif
 		}
 
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"
@@ -884,6 +886,10 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	ths->m_smtp     = mrsmtp_new(ths);
 
 	mrjob_init_thread(ths);
+
+	#ifdef USE_E2EE
+	mre2ee_init(ths);
+	#endif
 
 	if( s_localize_mb_obj==NULL ) {
 		s_localize_mb_obj = ths;
@@ -1239,7 +1245,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Config0=%s\n"
 		"Config1=%s\n"
 		"\n"
-		"Using SQLite %s-ts%i and libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
@@ -1251,7 +1257,13 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, is_configured
 		, l_readable_str, l2_readable_str
 
-		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(), sizeof(void*)*8
+		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(),
+		#ifdef USE_E2EE
+		mre2ee_get_version(ths),
+		#else
+		"0.0.0",
+		#endif
+		sizeof(void*)*8
 
 		);
 
@@ -1340,8 +1352,8 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mrimap_is_connected(ths->m_imap) ) {
-		mrmailbox_log_error(ths, 0, "Already connected or trying to connect.");
-		goto cleanup; /* this is no success */
+		mrmailbox_log_info(ths, 0, "Already connected or trying to connect.");
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
