@@ -587,6 +587,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	PROGRESS(80)
 
 	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
+		mrimap_disconnect(mailbox->m_imap); /* do not leave IMAP connected if SMTP fails */
 		goto exit_;
 	}
 
