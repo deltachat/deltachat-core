@@ -732,6 +732,8 @@ static void* watch_thread_entry_point(void* entry_arg)
 	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
 	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minute (typically together the IDLE delay break) */
 
+	time_t          last_fullread_time = 0;
+
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
 
 	if( ths->m_can_idle )
@@ -743,9 +745,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 		uint32_t uidvalidity;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
-		LOCK_HANDLE
-			ths->m_last_fullread_time = time(NULL);
-		UNLOCK_HANDLE
+		last_fullread_time = time(NULL);
 
 		while( 1 )
 		{
@@ -773,6 +773,8 @@ static void* watch_thread_entry_point(void* entry_arg)
 					if( !is_error(ths, r) )
 					{
 						mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
+
+						ths->m_enter_watch_wait_time = time(NULL);
 
 						UNLOCK_HANDLE
 						UNBLOCK_IDLE
@@ -814,25 +816,24 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 						BLOCK_IDLE
 						LOCK_HANDLE
-					}
-				}
 
-				if( do_fetch == 1 && time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-					do_fetch = 2;
+						ths->m_enter_watch_wait_time = 0;
+					}
 				}
 
 			UNLOCK_HANDLE
 			UNBLOCK_IDLE
 
+			if( do_fetch == 1 && time(NULL)-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+				do_fetch = 2;
+			}
 
 			if( do_fetch == 1 ) {
 				fetch_from_single_folder(ths, "INBOX", uidvalidity);
 			}
 			else if( do_fetch == 2 ) {
 				fetch_from_all_folders(ths);
-				LOCK_HANDLE
-					ths->m_last_fullread_time = time(NULL);
-				UNLOCK_HANDLE
+				last_fullread_time = time(NULL);
 			}
 			else if( force_sleep ) {
 				sleep(force_sleep);
@@ -844,10 +845,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 		/* watch using POLL
 		 **********************************************************************/
 
-		LOCK_HANDLE
-			ths->m_last_fullread_time = 0;
-		UNLOCK_HANDLE
-
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), now, seconds_to_wait;
 		while( 1 )
@@ -855,12 +852,12 @@ static void* watch_thread_entry_point(void* entry_arg)
 			/* get the latest messages */
 			now = time(NULL);
 
-			LOCK_HANDLE
-				do_fetch = 1;
-				if( now-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-					do_fetch = 2;
-				}
+			do_fetch = 1;
+			if( now-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+				do_fetch = 2;
+			}
 
+			LOCK_HANDLE
 				setup_handle_if_needed__(ths);
 				forget_folder_selection__(ths); /* seems to be needed - otherwise, we'll get a new message only every _twice_ polls. WTF? */
 			UNLOCK_HANDLE
@@ -874,9 +871,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 				if( fetch_from_all_folders(ths) > 0 ) {
 					last_message_time = now;
 				}
-				LOCK_HANDLE
-					ths->m_last_fullread_time = now;
-				UNLOCK_HANDLE
+				last_fullread_time = now;
 			}
 
 			/* calculate the wait time: every 10 seconds in the first 2 minutes after a new message, after that growing up to 5 minutes */
@@ -898,7 +893,16 @@ static void* watch_thread_entry_point(void* entry_arg)
 					struct timespec timeToWait;
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
+
+					LOCK_HANDLE
+						ths->m_enter_watch_wait_time = time(NULL);
+					UNLOCK_HANDLE
+
 					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+
+					LOCK_HANDLE
+						ths->m_enter_watch_wait_time = 0;
+					UNLOCK_HANDLE
 				}
 				ths->m_watch_condflag = 0;
 
@@ -912,6 +916,8 @@ static void* watch_thread_entry_point(void* entry_arg)
 	}
 
 exit_:
+	ths->m_enter_watch_wait_time = 0;
+
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
@@ -923,14 +929,13 @@ exit_:
 static void* heartbeat_thread_entry_point(void* entry_arg)
 {
 	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	int             handle_locked = 0, idle_blocked = 0;
+
 	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread started.");
 
 	while( 1 )
 	{
-		/* wait 50 seconds */
 		pthread_mutex_lock(&ths->m_heartbeat_condmutex);
 			struct timespec timeToWait;
 			timeToWait.tv_sec  = time(NULL) + 50;
@@ -940,31 +945,63 @@ static void* heartbeat_thread_entry_point(void* entry_arg)
 		if( ths->m_watch_do_exit ) {
 			break;
 		}
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP heartbeat <3");
 
-		/* force reconnect if the IDLE timeout does not arrive */
-		LOCK_HANDLE
-			time_t last_fullread_time = ths->m_last_fullread_time;
-		UNLOCK_HANDLE
-		if( time(NULL)-last_fullread_time > (FULL_FETCH_EVERY_SECONDS+10) )
-		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP <3 <3 <3 forces a reconnect <3 <3 <3");
-			ths->m_should_reconnect = 1;
-			if( ths->m_can_idle )
-			{
-				LOCK_HANDLE
-				BLOCK_IDLE
-					INTERRUPT_IDLE
-				UNBLOCK_IDLE
-				UNLOCK_HANDLE
-			}
-		}
+		/* After waiting 50 seconds, call mrimap_heartbeat().
+		As pthread_cond_timedwait() eg. on Android does not always wake up in time when the device sleeps,
+		you may want to call mrimap_heartbeat() (resp. mrmailbox_heartbeat()) from an additional, IDLE-safe, timer. */
+		mrmailbox_log_info(ths->m_mailbox, 0, "<3 IMAP");
+		mrimap_heartbeat(ths);
 	}
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread ended.");
 
 	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
 	return NULL;
+}
+
+
+void mrimap_heartbeat(mrimap_t* ths)
+{
+	/* the function */
+	int handle_locked = 0, idle_blocked = 0;
+
+	if( ths == NULL ) {
+		return;
+	}
+
+	LOCK_HANDLE
+
+		if( ths->m_hEtpan == NULL || ths->m_should_reconnect == 1 ) {
+			goto cleanup;
+		}
+
+		if( ths->m_enter_watch_wait_time != 0
+		 && time(NULL)-ths->m_enter_watch_wait_time > (FULL_FETCH_EVERY_SECONDS+10) )
+		{
+			/* force reconnect if the IDLE timeout does not arrive */
+			mrmailbox_log_info(ths->m_mailbox, 0, "<3 <3 <3 <3 <3 <3 Forcing reconnect <3 <3 <3 <3 <3 <3");
+			ths->m_should_reconnect = 1;
+			ths->m_enter_watch_wait_time = 0;
+			if( ths->m_can_idle )
+			{
+				/* the handle must be LOCKED when calling BLOCK_IDLE */
+				BLOCK_IDLE
+					INTERRUPT_IDLE
+				UNBLOCK_IDLE
+			}
+			else
+			{
+				UNLOCK_HANDLE
+
+				pthread_mutex_lock(&ths->m_watch_condmutex);
+					ths->m_watch_condflag = 1;
+					pthread_cond_signal(&ths->m_watch_cond);
+				pthread_mutex_unlock(&ths->m_watch_condmutex);
+			}
+		}
+
+cleanup:
+	UNLOCK_HANDLE
 }
 
 
@@ -1389,7 +1426,7 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
-	ths->m_last_fullread_time = 0;
+	ths->m_enter_watch_wait_time = 0;
 
 	pthread_mutex_init(&ths->m_heartbeat_condmutex, NULL);
 	pthread_cond_init (&ths->m_heartbeat_cond, NULL);

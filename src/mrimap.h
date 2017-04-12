@@ -74,7 +74,7 @@ typedef struct mrimap_t
 	int                   m_watch_condflag;
 	int                   m_watch_do_exit;
 
-	time_t                m_last_fullread_time;
+	time_t                m_enter_watch_wait_time;
 
 	pthread_t             m_heartbeat_thread;
 	pthread_cond_t        m_heartbeat_cond;
@@ -110,6 +110,7 @@ int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* dat
 int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int also_move, char** ret_server_folder, uint32_t* ret_server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
+void      mrimap_heartbeat         (mrimap_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

@@ -151,6 +151,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"event <event-id to test>\n"
 			"fileinfo <file>\n"
 			"killalljobs\n"
+			"heartbeat\n"
 			"clear -- clear screen\n" /* must be implemented by  the caller */
 			"exit" /* must be implemented by  the caller */
 		);
@@ -650,6 +651,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "killalljobs")==0 )
 	{
 		mrmailbox_kill_all_jobs(mailbox);
+		ret = COMMAND_SUCCEEDED;
+	}
+	else if( strcmp(cmd, "heartbeat")==0 )
+	{
+		mrmailbox_heartbeat(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else

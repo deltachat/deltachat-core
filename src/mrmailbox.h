@@ -60,7 +60,7 @@ typedef struct mrsmtp_t mrsmtp_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 26
+#define MR_VERSION_REVISION 27
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes
@@ -255,11 +255,17 @@ int                  mrmailbox_import_file          (mrmailbox_t*, const char* f
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all tables but leaves server configuration. */
-char*                mrmailbox_execute              (mrmailbox_t*, const char* cmd); /* execute a simple command; the returned result must be free()'d */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
 void                 mrmailbox_kill_all_jobs        (mrmailbox_t*); /* kill all pending jobs, pending messages are cancelled. */
 
+
+/* The library tries itself to stay alive. For this purpose there is an additional
+"heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
+However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can
+force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
+If in doubt, call this function too often, not too less :-) */
+void                 mrmailbox_heartbeat            (mrmailbox_t*);
 
 /*** library-private **********************************************************/
 

@@ -1436,3 +1436,15 @@ int mrmailbox_restore(mrmailbox_t* ths, time_t seconds_to_restore)
 
 	return mrimap_restore(ths->m_imap, seconds_to_restore);
 }
+
+
+void mrmailbox_heartbeat(mrmailbox_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	mrmailbox_log_info(ths, 0, "<3 Mailbox");
+	mrimap_heartbeat(ths->m_imap);
+}
+
