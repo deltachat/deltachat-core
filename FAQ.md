@@ -49,5 +49,4 @@ Frequently Asked Questions
 
 ---
 
-Copyright (c) Bjoern Petersen Software Design and Development,
-http://b44t.com and contributors.
+Copyright (C) 2017 Delta Chat contributors

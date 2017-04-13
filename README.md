@@ -103,5 +103,4 @@ that comes together with the source code.
 
 ---
 
-Copyright (c) Bjoern Petersen Software Design and Development,
-http://b44t.com and contributors.
+Copyright (C) 2017 Delta Chat contributors
