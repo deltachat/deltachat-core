@@ -186,7 +186,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		const char  *row_name, *row_addr, *row_authname;
-		int         row_origin, update_addr = 0, update_name = 0, update_authname;
+		int         row_origin, update_addr = 0, update_name = 0, update_authname = 0;
 
 		row_id       = sqlite3_column_int(stmt, 0);
 		row_name     = (const char*)sqlite3_column_text(stmt, 1); if( row_name == NULL ) { row_name = ""; }
