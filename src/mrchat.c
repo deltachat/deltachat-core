@@ -1426,16 +1426,16 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 		 && mrchat_load_from_db__(ret_chat, ret_msg->m_chat_id) )
 		{
 			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
-				"SELECT c.name, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
+				"SELECT c.authname, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 			sqlite3_bind_int(stmt, 1, ret_msg->m_chat_id);
 			sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
 			while( sqlite3_step(stmt) == SQLITE_ROW )
 			{
-				const char* name = (const char*)sqlite3_column_text(stmt, 0);
+				const char* authname = (const char*)sqlite3_column_text(stmt, 0);
 				const char* addr = (const char*)sqlite3_column_text(stmt, 1);
 				if( clist_search_string_nocase(ret_recipients_addr, addr)==0 )
 				{
-					clist_append(ret_recipients_names, (void*)((name&&name[0])? safe_strdup(name) : NULL));
+					clist_append(ret_recipients_names, (void*)((authname&&authname[0])? safe_strdup(authname) : NULL));
 					clist_append(ret_recipients_addr,  (void*)safe_strdup(addr));
 				}
 			}
@@ -2011,7 +2011,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	if( DO_SEND_STATUS_MAILS )
 	{
 		msg->m_type = MR_MSG_TEXT;
-		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, contact->m_name? contact->m_name : contact->m_addr);
+		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, 'E', contact->m_addr);
 		msg->m_id = mrchat_send_msg(chat, msg);
@@ -2071,7 +2071,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 				msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
 			}
 			else {
-				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
+				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
 			mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 			mrparam_set    (msg->m_param, 'E', contact->m_addr);

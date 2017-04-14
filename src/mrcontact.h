@@ -61,8 +61,9 @@ typedef struct mrcontact_t
 {
 	uint32_t            m_magic;
 	uint32_t            m_id;
-	char*               m_name;  /* may be NULL or empty */
-	char*               m_addr;  /* may be NULL or empty */
+	char*               m_name;    /* may be NULL or empty, this name should not be spreaded as it may be "Daddy" and so on; initially set to m_authname */
+	char*               m_authname;/* may be NULL or empty, this is the name authorized by the sender, only this name may be speaded to others, eg. in To:-lists; for displaying in the app, use m_name */
+	char*               m_addr;    /* may be NULL or empty */
 	int                 m_origin;
 	int                 m_blocked;
 	char*               m_pubkey;

@@ -181,17 +181,18 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 	/* insert email-address to database or modify the record with the given email-address.
 	we treat all email-addresses case-insensitive. */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_inao_FROM_contacts_a,
-		"SELECT id, name, addr, origin FROM contacts WHERE addr=? COLLATE NOCASE;");
+		"SELECT id, name, addr, origin, authname FROM contacts WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		const char  *row_name, *row_addr;
-		int         row_origin, update_addr = 0, update_name = 0;
+		const char  *row_name, *row_addr, *row_authname;
+		int         row_origin, update_addr = 0, update_name = 0, update_authname;
 
 		row_id       = sqlite3_column_int(stmt, 0);
 		row_name     = (const char*)sqlite3_column_text(stmt, 1); if( row_name == NULL ) { row_name = ""; }
 		row_addr     = (const char*)sqlite3_column_text(stmt, 2); if( row_addr == NULL ) { row_addr = addr; }
 		row_origin   = sqlite3_column_int(stmt, 3);
+		row_authname = (const char*)sqlite3_column_text(stmt, 4); if( row_authname == NULL ) { row_authname = ""; }
 
 		if( name && name[0] ) {
 			if( row_name && row_name[0] ) {
@@ -202,20 +203,25 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			else {
 				update_name = 1;
 			}
+
+			if( origin == MR_ORIGIN_INCOMING_UNKNOWN_FROM && strcmp(name, row_authname)!=0 ) {
+				update_authname = 1;
+			}
 		}
 
 		if( origin>=row_origin && strcmp(addr, row_addr)!=0 /*really compare case-sensitive here*/ ) {
 			update_addr = 1;
 		}
 
-		if( update_name || update_addr || origin>row_origin )
+		if( update_name || update_authname || update_addr || origin>row_origin )
 		{
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
-				"UPDATE contacts SET name=?, addr=?, origin=? WHERE id=?;");
+				"UPDATE contacts SET name=?, addr=?, origin=?, authname=? WHERE id=?;");
 			sqlite3_bind_text(stmt, 1, update_name?       name   : row_name, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, update_addr?       addr   : row_addr, -1, SQLITE_STATIC);
 			sqlite3_bind_int (stmt, 3, origin>row_origin? origin : row_origin);
-			sqlite3_bind_int (stmt, 4, row_id);
+			sqlite3_bind_text(stmt, 4, update_authname?   name   : row_authname, -1, SQLITE_STATIC);
+			sqlite3_bind_int (stmt, 5, row_id);
 			sqlite3_step     (stmt);
 
 			if( update_name )
@@ -313,7 +319,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	mrcontact_empty(ths);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
-		"SELECT name, addr, origin, blocked, pubkey, pubkey_timestamp FROM contacts WHERE id=?;");
+		"SELECT name, addr, origin, blocked, pubkey, pubkey_timestamp, authname FROM contacts WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
@@ -326,6 +332,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	ths->m_blocked          =                    sqlite3_column_int  (stmt, 3);
 	ths->m_pubkey           = safe_strdup((char*)sqlite3_column_text (stmt, 4));
 	ths->m_pubkey_timestamp =                    sqlite3_column_int64(stmt, 5);
+	ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 6));
 
 	/* success */
 	success = 1;
@@ -743,6 +750,9 @@ void mrcontact_empty(mrcontact_t* ths)
 
 	free(ths->m_name); /* it is safe to call free(NULL) */
 	ths->m_name = NULL;
+
+	free(ths->m_authname);
+	ths->m_authname = NULL;
 
 	free(ths->m_addr);
 	ths->m_addr = NULL;

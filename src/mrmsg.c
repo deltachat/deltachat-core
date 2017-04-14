@@ -801,8 +801,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 					goto cleanup;
 				}
 				mrparam_set(msg->m_param, 'a', contact->m_addr);
-				if( contact->m_name ) {
-					mrparam_set(msg->m_param, 'A', contact->m_name);
+				if( contact->m_authname&&contact->m_authname[0] ) {
+					mrparam_set(msg->m_param, 'A', contact->m_authname);
 				}
 			}
 
