@@ -66,10 +66,10 @@ void mre2ee_init(mrmailbox_t* mailbox)
 	}
 
 	/* configuration to be done after gcry_check_version() is called */
+	//gcry_control(GCRYCTL_SET_DEBUG_FLAGS, 1/*debug cipher functions*/ | 2/*debug multi-precision-integers*/, 0); -- currently not needed
 	gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
-	//gcry_control(GCRYCTL_SET_DEBUG_FLAGS, 1/*debug cipher functions*/ | 2/*debug multi-precision-integers*/, 0);
 	gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0); /* must be last */
 }
 
 

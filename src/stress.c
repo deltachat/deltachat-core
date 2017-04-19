@@ -42,46 +42,50 @@
 
 
 #ifdef USE_E2EE
+void sexp_print(mrmailbox_t* mailbox, gcry_sexp_t sexp)
+{
+	size_t buffer_size = gcry_sexp_sprint(sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+	char* buffer = gcry_xmalloc (buffer_size);
+	gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buffer, buffer_size);
+
+		mrmailbox_log_info(mailbox, 0, "%s", buffer);
+
+	gcry_free(buffer);
+}
+
+
 static void generate_key(mrmailbox_t* mailbox)
 {
-	gcry_error_t err      = GPG_ERR_NO_ERROR;
-	gcry_sexp_t  key_spec = NULL;
-	gcry_sexp_t  key_pair = NULL;
+	gcry_error_t err;
 
-	err = gcry_sexp_build(&key_spec, NULL, "(genkey (rsa (nbits 4:2048)))");
-	if( err ) {
-		return;
+	// generate a public and a private key
+	gcry_sexp_t pub_key = NULL;
+	gcry_sexp_t prv_key = NULL;
+	{
+		gcry_sexp_t  key_spec = NULL;
+		gcry_sexp_t  key_pair = NULL;
+		err = gcry_sexp_build(&key_spec, NULL, "(genkey (rsa (nbits 4:2048)))"); if( err ) { return; }
+		err = gcry_pk_genkey(&key_pair, key_spec);                               if( err ) { return; }
+
+		pub_key = gcry_sexp_find_token(key_pair, "public-key", 0);               if( err ) { return; }
+		prv_key = gcry_sexp_find_token(key_pair, "private-key", 0);              if( err ) { return; }
+
+		gcry_sexp_release(key_pair);
+		gcry_sexp_release(key_spec);
 	}
 
-	err = gcry_pk_genkey(&key_pair, key_spec);
-	if( err ) {
-		return;
-    }
+	//sexp_print(mailbox, pub_key);
+	//sexp_print(mailbox, prv_key);
 
-	gcry_sexp_t pub_key = gcry_sexp_find_token(key_pair, "public-key", 0);
-	if( !pub_key ) {
-		return;
-	}
+	// encrypt a message
+	gcry_sexp_t data_plain = NULL;
 
-	gcry_sexp_t prv_key = gcry_sexp_find_token (key_pair, "private-key", 0);
-	if( !prv_key ) {
-		return;
-	}
+	gcry_sexp_t data_encrypted = NULL;
+	err = gcry_pk_encrypt(&data_encrypted, data_plain, pub_key);                 if( err ) { return; }
 
-    {
-		size_t key_pair_buffer_size = gcry_sexp_sprint(key_pair, GCRYSEXP_FMT_ADVANCED, NULL, 0);
-		char* key_pair_buffer = gcry_xmalloc (key_pair_buffer_size);
-
-		gcry_sexp_sprint (key_pair, GCRYSEXP_FMT_ADVANCED, key_pair_buffer, key_pair_buffer_size);
-
-		printf ("%.*s", (int)key_pair_buffer_size, key_pair_buffer);
-		gcry_free (key_pair_buffer);
-	}
 
 	gcry_sexp_release(pub_key);
 	gcry_sexp_release(prv_key);
-	gcry_sexp_release(key_pair);
-	gcry_sexp_release(key_spec);
 }
 #endif // USE_E2EE
 
