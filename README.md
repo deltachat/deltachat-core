@@ -1,4 +1,4 @@
-Delta Chat Backend
+Delta Chat Core
 ================================================================================
 
 **Delta Chat** is a project that aims to create a messaging app that is
@@ -31,16 +31,15 @@ Currently, the project is in alpha state under heavy development.  A working
 **Android version** is available eg. on F-Droid or at https://getdelta.org .
 
 The source code for the Android version is available at
-https://github.com/r10s/messenger-android .
+https://github.com/r10s/deltachat-android .
 
 
 Build
 --------------------------------------------------------------------------------
 
-This repository contains only the messenger backend that is used by all
-frontends.
+This repository contains only the core library that is used by all frontends.
 
-The backend relies on the following external libs:
+The core relies on the following external libs:
 
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); for
   compilation, use eg. the following commands: `./autogen.sh; make;
@@ -57,7 +56,7 @@ The backend relies on the following external libs:
   To link against libgcrypt, add `-lgcrypt -lgpg-error` to your project.
 
 Information about how to build the frontends can be found in the corresponding
-repositories as https://github.com/r10s/messenger-android .
+repositories as https://github.com/r10s/deltachat-android .
 
 
 Coding
