@@ -54,6 +54,7 @@ extern "C" {
 #define MR_STR_ERROR            20
 #define MR_STR_SELFNOTINGRP     21
 #define MR_STR_NONETWORK        22
+#define MR_STR_GIF              23
 
 
 /*** library-private **********************************************************/

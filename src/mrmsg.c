@@ -236,6 +236,10 @@ void mr_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtype, c
 		*ret_msgtype = MR_MSG_VIDEO;
 		*ret_mime = safe_strdup("video/mp4");
 	}
+	else if( strcmp(s, "gif")==0 ) {
+		*ret_msgtype = MR_MSG_GIF;
+		*ret_mime = safe_strdup("image/gif");
+	}
 
 cleanup:
 	free(s);
@@ -361,9 +365,9 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	file = mrparam_get(msg->m_param, 'f', NULL);
 	if( file ) {
 		int bytes = mr_get_filebytes(file);
-		metadata = mr_mprintf("\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms", file? file : "",
+		metadata = mr_mprintf("\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms\nType: %i", file? file : "",
 			(int)bytes,
-			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0));
+			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0), (int)msg->m_type);
 	}
 
 	ret = mr_mprintf("Date: %s%s\n\n%s",
@@ -439,6 +443,10 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 	switch( type ) {
 		case MR_MSG_IMAGE:
 			ret = mrstock_str(MR_STR_IMAGE);
+			break;
+
+		case MR_MSG_GIF:
+			ret = mrstock_str(MR_STR_GIF);
 			break;
 
 		case MR_MSG_VIDEO:

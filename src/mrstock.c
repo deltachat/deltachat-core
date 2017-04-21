@@ -53,6 +53,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_VOICEMESSAGE:  return safe_strdup("Voice message");
 		case MR_STR_DEADDROP:      return safe_strdup("Mailbox");
 		case MR_STR_IMAGE:         return safe_strdup("Image");
+		case MR_STR_GIF:           return safe_strdup("GIF");
 		case MR_STR_VIDEO:         return safe_strdup("Video");
 		case MR_STR_AUDIO:         return safe_strdup("Audio");
 		case MR_STR_FILE:          return safe_strdup("File");

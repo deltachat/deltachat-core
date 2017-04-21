@@ -1199,7 +1199,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		free(author);
 		free(title);
 	}
-	else if( msg->m_type == MR_MSG_IMAGE ) {
+	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF ) {
 		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
 	}
 	else if( msg->m_type == MR_MSG_VIDEO ) {
@@ -1702,14 +1702,16 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sended.
 			(we do not use a state in the database as this would make eg. forwarding such messages much more complicated) */
 
-			if( msg->m_type == MR_MSG_FILE )
+			if( msg->m_type == MR_MSG_FILE || msg->m_type == MR_MSG_IMAGE )
 			{
-				/* correct the type from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector)
-				(we do not correct to the type "IMAGE" as we may want to send explicitly uncompressed files) */
+				/* correct the type; typical conversions are:
+				- from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector,
+				  we do not correct from FILE to IMAGE as we may want to send explicitly uncompressed files)
+				- from IMAGE to GIF */
 				int   better_type = 0;
 				char* better_mime = NULL;
 				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
-				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO ) {
+				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO || better_type == MR_MSG_GIF ) {
 					mrmailbox_log_info(ths->m_mailbox, 0, "Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
 					msg->m_type = better_type;
 					mrparam_set(msg->m_param, 'm', better_mime);

@@ -546,7 +546,12 @@ static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
 					return MR_MIMETYPE_FILE;
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
-					*msg_type = MR_MSG_IMAGE;
+					if( strcmp(c->ct_subtype, "gif")==0 ) {
+						*msg_type = MR_MSG_GIF;
+					}
+					else {
+						*msg_type = MR_MSG_IMAGE;
+					}
 					return MR_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
