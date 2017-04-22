@@ -1707,7 +1707,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 				/* correct the type; typical conversions are:
 				- from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector,
 				  we do not correct from FILE to IMAGE as we may want to send explicitly uncompressed files)
-				- from IMAGE to GIF */
+				- from FILE/IMAGE to GIF */
 				int   better_type = 0;
 				char* better_mime = NULL;
 				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
@@ -1717,6 +1717,19 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 					mrparam_set(msg->m_param, 'm', better_mime);
 				}
 				free(better_mime);
+			}
+
+			if( (msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF)
+			 && (mrparam_get_int(msg->m_param, 'w', 0)<=0 || mrparam_get_int(msg->m_param, 'h', 0)<=0) ) {
+				/* set width/height of images, if not yet done */
+				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
+				if( mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_mailbox) ) {
+					if( mr_get_filemeta(buf, buf_bytes, &w, &h) ) {
+						mrparam_set_int(msg->m_param, 'w', w);
+						mrparam_set_int(msg->m_param, 'h', h);
+					}
+				}
+				free(buf);
 			}
 
 			mrmailbox_log_info(ths->m_mailbox, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);

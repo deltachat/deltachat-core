@@ -635,7 +635,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "fileinfo")==0 )
 	{
 		if( arg1 ) {
-			unsigned char* buf; size_t buf_bytes; uint32_t w, h;
+			unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
 			if( mr_read_file(arg1, (void**)&buf, &buf_bytes, mailbox) ) {
 				mr_get_filemeta(buf, buf_bytes, &w, &h);
 				ret = mr_mprintf("width=%i, height=%i", (int)w, (int)h);
@@ -643,6 +643,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			else {
 				ret = safe_strdup("ERROR: Command failed.");
 			}
+			free(buf);
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <file> missing.");
