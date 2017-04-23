@@ -1704,15 +1704,14 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 
 			if( msg->m_type == MR_MSG_FILE || msg->m_type == MR_MSG_IMAGE )
 			{
-				/* correct the type; typical conversions are:
-				- from FILE to AUDIO/VIDEO (to allow sending these types by a simple file selector,
-				  we do not correct from FILE to IMAGE as we may want to send explicitly uncompressed files)
+				/* Correct the type, take care not to correct already very special formats as GIF or VOICE.
+				Typical conversions:
+				- from FILE to AUDIO/VIDEO/IMAGE
 				- from FILE/IMAGE to GIF */
 				int   better_type = 0;
 				char* better_mime = NULL;
 				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
-				if( better_type == MR_MSG_AUDIO || better_type == MR_MSG_VIDEO || better_type == MR_MSG_GIF ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "Correcting message type from #%i to #%i.", (int)msg->m_type, better_type);
+				if( better_type ) {
 					msg->m_type = better_type;
 					mrparam_set(msg->m_param, 'm', better_mime);
 				}

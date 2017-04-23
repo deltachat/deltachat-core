@@ -236,6 +236,14 @@ void mr_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtype, c
 		*ret_msgtype = MR_MSG_VIDEO;
 		*ret_mime = safe_strdup("video/mp4");
 	}
+	else if( strcmp(s, "jpg")==0 || strcmp(s, "jpeg")==0 ) {
+		*ret_msgtype = MR_MSG_IMAGE;
+		*ret_mime = safe_strdup("image/jpeg");
+	}
+	else if( strcmp(s, "png")==0 ) {
+		*ret_msgtype = MR_MSG_IMAGE;
+		*ret_mime = safe_strdup("image/png");
+	}
 	else if( strcmp(s, "gif")==0 ) {
 		*ret_msgtype = MR_MSG_GIF;
 		*ret_mime = safe_strdup("image/gif");
