@@ -1232,8 +1232,6 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	- use neutral speach; the messenger backend is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
 	info = mr_mprintf(
-		"Messenger Backend v%i.%i.%i - (C) Björn Petersen and contributors\n"
-		"\n"
 		"Chats: %i\n"
 		"Chat messages: %i\n"
 		"Messages in mailbox: %i\n"
@@ -1245,10 +1243,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Config0=%s\n"
 		"Config1=%s\n"
 		"\n"
-		"Using SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
-
-		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 
 		, chats, real_msgs, deaddrop_msgs, contacts
 		, ths->m_dbfile? ths->m_dbfile : unset,   dbversion,   ths->m_blobdir? ths->m_blobdir : unset
@@ -1257,6 +1253,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, is_configured
 		, l_readable_str, l2_readable_str
 
+		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(),
 		#ifdef USE_E2EE
 		mre2ee_get_version(ths),
