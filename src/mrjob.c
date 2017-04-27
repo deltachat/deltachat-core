@@ -237,6 +237,10 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 {
+	if( ths == NULL ) { /* may be NULL if called eg. from mrmailbox_connect_to_imap() */
+		return;
+	}
+
 	if( initial_delay_seconds == MR_INCREATION_POLL )
 	{
 		int tries = mrparam_get_int(ths->m_param, 'T', 0) + 1;

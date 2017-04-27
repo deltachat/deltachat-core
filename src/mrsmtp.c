@@ -108,7 +108,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	int         success = 0, smtp_locked = 0;
 	int         r, try_esmtp;
 
-	if( ths == NULL ) {
+	if( ths == NULL || lp == NULL ) {
 		return 0;
 	}
 
