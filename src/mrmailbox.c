@@ -1243,7 +1243,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Config0=%s\n"
 		"Config1=%s\n"
 		"\n"
-		"Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
 
 		, chats, real_msgs, deaddrop_msgs, contacts
