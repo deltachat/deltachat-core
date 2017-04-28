@@ -420,7 +420,6 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 {
 	uint32_t      chat_id = 0;
 	int           send_event = 0, locked = 0;
-	sqlite3_stmt* stmt;
 
 	if( ths == NULL ) {
 		return 0;
@@ -445,10 +444,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* ths, uint32_t contact_
 			send_event = 1;
 		}
 
-		stmt = mrsqlite3_predefine__(ths->m_sql, UPDATE_contacts_SET_origin_WHERE_id, "UPDATE contacts SET origin=? WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, MR_ORIGIN_CREATE_CHAT);
-		sqlite3_bind_int(stmt, 2, contact_id);
-		sqlite3_step(stmt);
+		mrmailbox_scaleup_contact_origin__(ths, contact_id, MR_ORIGIN_CREATE_CHAT);
 
 	mrsqlite3_unlock(ths->m_sql);
 	locked = 0;

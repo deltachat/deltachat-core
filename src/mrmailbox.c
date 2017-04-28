@@ -670,9 +670,15 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			else
 			{
 				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
-				if( chat_id == 0
-				 && ( (incoming_from_known_sender && mime_parser->m_is_send_by_messenger) || is_reply_to_known_message__(ths, mime_parser) ) ) {
-					chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+				if( chat_id == 0 )
+				{
+					if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
+						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+					}
+					else if( is_reply_to_known_message__(ths, mime_parser) ) {
+						mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
+						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+					}
 				}
 
 				if( chat_id == 0 ) {

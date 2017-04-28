@@ -263,6 +263,21 @@ cleanup:
 }
 
 
+void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int origin)
+{
+	if( mailbox == NULL ) {
+		return;
+	}
+
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_SET_origin_WHERE_id,
+		"UPDATE contacts SET origin=? WHERE id=? AND origin<?;");
+	sqlite3_bind_int(stmt, 1, origin);
+	sqlite3_bind_int(stmt, 2, contact_id);
+	sqlite3_bind_int(stmt, 3, origin);
+	sqlite3_step(stmt);
+}
+
+
 int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_blocked = 0;

@@ -45,7 +45,7 @@ extern "C" {
 /* contact origins */
 #define MR_ORIGIN_UNSET                         0
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
-#define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) */
+#define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) or known Message-ID eg. in In-Reply-To */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
 #define MR_ORIGIN_CREATE_CHAT               0x800 /* a chat was manually created for this user, but no message yet sent */
@@ -85,6 +85,7 @@ int          mrmailbox_is_known_contact__     (mrmailbox_t*, uint32_t id, int* r
 int          mrmailbox_is_contact_blocked__   (mrmailbox_t*, uint32_t id);
 int          mrmailbox_real_contact_exists__  (mrmailbox_t*, uint32_t id);
 int          mrmailbox_contact_addr_equals__  (mrmailbox_t*, uint32_t contact_id, const char* other_addr);
+void         mrmailbox_scaleup_contact_origin__(mrmailbox_t*, uint32_t contact_id, int origin);
 void         mr_normalize_name                (char* full_name);
 char*        mr_get_first_name                (const char* full_name); /* returns part before the space or after a comma; the result must be free()'d */
 char*        mr_get_headerlike_name           (const char* addr, const char* name);
