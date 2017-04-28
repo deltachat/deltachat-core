@@ -270,7 +270,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
 	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
 		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
-		if( is_contact_cnt > 2 ) {
+		if( is_contact_cnt > 3 /* to_list_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_list_cnt. So everything up to 3 is no error. */ ) {
 			chat_id = 0;
 			goto cleanup;
 		}
