@@ -1268,7 +1268,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 
 
 static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
-                                   const clist* recipients_names, const clist* recipients_addr)
+                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1305,6 +1305,9 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		/* add additional basic parameters */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("MrMsg %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
+		if( predecessor ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrPredecessor"), strdup(predecessor)));
+		}
 
 		/* add additional group paramters */
 		if( chat->m_type==MR_CHAT_GROUP )
@@ -1418,7 +1421,8 @@ cleanup:
 static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
                              mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname,
                              clist* ret_recipients_names, clist* ret_recipients_addr,
-                             int* ret_increation)
+                             int* ret_increation,
+                             char** ret_predecessor)
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1458,6 +1462,26 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 			*ret_displayname = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
 
+			/* Get a predecessor of the mail to send.
+			For simplicity, we use the last message send not by us.
+			This is not 100% accurate and may even be a newer message if first sending fails and new messages arrive -
+			however, as we currently only use it to identifify answers from different email addresses, this is sufficient.
+
+			Our first idea was to write the predecessor to the `In-Reply-To:` header, however, this results
+			in infinite depth thread views eg. in thunderbird.  Maybe we can work around this issue by using only one
+			predecessor anchor a day, however, for the moment, we just use the `X-MrPredecessor` header that does not
+			disturb other mailers.
+
+			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
+			or after the sender has changes its email address. */
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
+				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
+			sqlite3_bind_int  (stmt, 1, ret_msg->m_chat_id);
+			sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
+			if( sqlite3_step(stmt) == SQLITE_ROW ) {
+				*ret_predecessor = strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
+			}
+
 			success = 1;
 		}
 
@@ -1479,6 +1503,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
+	char*         predecessor = NULL;
 	char*         server_folder = NULL;
 	uint32_t      server_uid = 0;
 	int           increation; /* we can ignore this state here as it already checked when sending to SMTP */
@@ -1493,12 +1518,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor)==0
 	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1529,6 +1554,7 @@ cleanup:
 	mmap_string_free(data);
 	free(from_addr);
 	free(from_displayname);
+	free(predecessor);
 	free(server_folder);
 }
 
@@ -1542,6 +1568,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	MMAPString*   data = NULL;
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
+	char*         predecessor = NULL;
 	int           increation;
 
 	/* connect to SMTP server, if not yet done */
@@ -1559,7 +1586,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor)==0
 	 || from_addr == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1574,7 +1601,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients_addr) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor);
 		if( data == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1609,6 +1636,7 @@ cleanup:
 	mmap_string_free(data);
 	free(from_addr);
 	free(from_displayname);
+	free(predecessor);
 }
 
 
