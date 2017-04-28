@@ -398,6 +398,47 @@ static void add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct ma
 }
 
 
+static int is_known_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_list)
+{
+	if( mid_list ) {
+		clistiter* cur;
+		for( cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur) ) {
+			const char* rfc724_mid = clist_content(cur);
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
+				"SELECT id FROM msgs WHERE rfc724_mid=? AND (chat_id>? OR from_id=?);");
+			sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+			sqlite3_bind_int (stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
+			sqlite3_bind_int (stmt, 3, MR_CONTACT_ID_SELF);
+			if( sqlite3_step(stmt) == SQLITE_ROW ) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
+static int is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser)
+{
+	struct mailimf_field* field = mrmimeparser_find_field(mime_parser, MAILIMF_FIELD_IN_REPLY_TO);
+	if( field && field->fld_data.fld_in_reply_to ) {
+		if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
+			return 1;
+		}
+	}
+
+	field = mrmimeparser_find_field(mime_parser, MAILIMF_FIELD_REFERENCES);
+	if( field && field->fld_data.fld_references ) {
+		if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
 static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
                           const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
@@ -592,7 +633,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			else
 			{
 				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
-				if( chat_id == 0 && incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
+				if( chat_id == 0
+				 && ( (incoming_from_known_sender && mime_parser->m_is_send_by_messenger) || is_reply_to_known_message__(ths, mime_parser) ) ) {
 					chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
 				}
 
