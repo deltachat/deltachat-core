@@ -139,7 +139,7 @@ void                 mrmailbox_unref                (mrmailbox_t*);
 and can be set up using mrmailbox_set_config() afterwards.
 sth. like "~/file" won't work on all systems, if in doubt, use absolute paths for dbfile.
 for blobdir: the trailing slash is added by us, so if you want to avoid double slashes, do not add one.
-If you give Use NULL as blobdir, "dbfile-blobs" is used. */
+If you give NULL as blobdir, "dbfile-blobs" is used. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (const mrmailbox_t*);
@@ -166,7 +166,7 @@ void                 mrmailbox_disconnect           (mrmailbox_t*);
 int                  mrmailbox_fetch                (mrmailbox_t*);
 
 
-/* restore old data from the IMAP server, not realy implemented. */
+/* restore old data from the IMAP server, not really implemented. */
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
 
 
@@ -284,7 +284,7 @@ int  mrmailbox_get_thread_index    (void);
 
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
-#define MR_CHATS_FOLDER     "Chats"
+#define MR_CHATS_FOLDER     "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */
 
 
 #ifdef __cplusplus
