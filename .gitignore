@@ -7,7 +7,6 @@
 .dirstamp
 
 # ignore codeblocks project files and build directories
-*.cbp
 *.depend
 *.layout
 /bin/
