@@ -4,7 +4,7 @@ Delta Chat Core
 **Delta Chat** is a project that aims to create a messaging app that is
 completely **compatible** to the existing e-mail infrastructure.
 
-![Logo](https://messenger.b44t.com/start-img4.png)
+![Logo](https://delta.chat/public/images/features/start-img4.png)
 
 So, with Delta Chat you get the **ease** of well-known messengers with the
 **reach** of e-mail. Moreover, you're **independent** from other companies or
@@ -28,7 +28,7 @@ Download
 --------------------------------------------------------------------------------
 
 Currently, the project is in alpha state under heavy development.  A working
-**Android version** is available eg. on F-Droid or at https://getdelta.org .
+**Android version** is available eg. on F-Droid or at https://delta.chat .
 
 The source code for the Android version is available at
 https://github.com/r10s/deltachat-android .
