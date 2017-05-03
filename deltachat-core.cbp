@@ -16,7 +16,6 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-lsqlite3" />
 					<Add option="-lgcrypt" />
 					<Add option="-lgpg-error" />
 					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
@@ -41,6 +40,7 @@
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-DUSE_E2EE" />
 			<Add option="-DHAVE_ICONV" />
+			<Add option="-DSQLITE_OMIT_LOAD_EXTENSION" />
 			<Add directory="libs/libetpan/src" />
 			<Add directory="libs/libetpan/src/data-types" />
 			<Add directory="libs/libetpan/src/low-level" />
@@ -48,13 +48,13 @@
 			<Add directory="libs/libetpan/src/low-level/imf" />
 			<Add directory="libs/libetpan/src/low-level/mime" />
 			<Add directory="libs/libetpan/src/low-level/nntp" />
-			<Add directory="libs/libetpan/src/low-level/pop3" />
 			<Add directory="libs/libetpan/src/low-level/smtp" />
 			<Add directory="libs/libetpan/src/main" />
 			<Add directory="libs/libetpan/src/driver/implementation/data-message" />
 			<Add directory="libs/libetpan/src/driver/interface" />
 			<Add directory="libs/libetpan/include" />
 			<Add directory="libs/libetpan/include/libetpan" />
+			<Add directory="libs/sqlite" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
@@ -370,6 +370,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/sqlite/sqlite3.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/main.c">
