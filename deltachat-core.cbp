@@ -14,7 +14,6 @@
 				<Option parameters="/home/bpetersen/messy/eml/messenger.db" />
 				<Compiler>
 					<Add option="-g" />
-					<Add option="-DUSE_E2EE" />
 				</Compiler>
 				<Linker>
 					<Add option="-lsqlite3" />
@@ -39,7 +38,23 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
-			<Add directory="libs/libetpan/include/" />
+			<Add option="-DHAVE_CONFIG_H" />
+			<Add option="-DUSE_E2EE" />
+			<Add option="-DHAVE_ICONV" />
+			<Add directory="libs/libetpan/src" />
+			<Add directory="libs/libetpan/src/data-types" />
+			<Add directory="libs/libetpan/src/low-level" />
+			<Add directory="libs/libetpan/src/low-level/imap" />
+			<Add directory="libs/libetpan/src/low-level/imf" />
+			<Add directory="libs/libetpan/src/low-level/mime" />
+			<Add directory="libs/libetpan/src/low-level/nntp" />
+			<Add directory="libs/libetpan/src/low-level/pop3" />
+			<Add directory="libs/libetpan/src/low-level/smtp" />
+			<Add directory="libs/libetpan/src/main" />
+			<Add directory="libs/libetpan/src/driver/implementation/data-message" />
+			<Add directory="libs/libetpan/src/driver/interface" />
+			<Add directory="libs/libetpan/include" />
+			<Add directory="libs/libetpan/include/libetpan" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
