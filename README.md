@@ -45,7 +45,9 @@ The core relies on the following external libs:
   compilation, use eg. the following commands: `./autogen.sh; make;
   sudo make install prefix=/usr`
   To link against LibEtPan, add `libetpan-config --libs` in backticks to your
-  project.
+  project.  
+  Alternatively, use the ready-to-use files from the libs-directory which are
+  suitable for common system.
 
 - [SQLite](http://sqlite.org/) is available on most systems, however, you
   will also need the headers, please look for packages as `libsqlite3-dev`.

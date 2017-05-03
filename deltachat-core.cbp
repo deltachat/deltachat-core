@@ -17,10 +17,10 @@
 					<Add option="-DUSE_E2EE" />
 				</Compiler>
 				<Linker>
-					<Add option="`libetpan-config --libs`" />
 					<Add option="-lsqlite3" />
 					<Add option="-lgcrypt" />
 					<Add option="-lgpg-error" />
+					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -39,8 +39,324 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add directory="libs/libetpan/include/" />
 		</Compiler>
 		<Unit filename="README.md" />
+		<Unit filename="libs/libetpan/src/data-types/base64.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/carray.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/charconv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/chash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/clist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/connect.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mail_cache_db.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/maillock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailsasl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailsem.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_cancel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_cfstream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_low.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_socket.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mailstream_ssl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/md5.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/mmapstring.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/data-types/timeutils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/implementation/data-message/data_message_driver.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/maildriver.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/maildriver_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/maildriver_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/maildriver_types_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailfolder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailmessage.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailmessage_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailmessage_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailstorage.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/driver/interface/mailstorage_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/acl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/acl_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/acl_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/acl_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/annotatemore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/annotatemore_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/annotatemore_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/annotatemore_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/condstore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/condstore_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/enable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/idle.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_extension.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_id.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_id_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_id_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_id_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_keywords.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_oauth2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_print.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_socket.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_sort.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_sort_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_ssl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/mailimap_types_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/namespace.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/namespace_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/namespace_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/namespace_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/qresync.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/qresync_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/quota.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/quota_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/quota_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/quota_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/uidplus.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/uidplus_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/uidplus_sender.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/uidplus_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/xgmlabels.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/xgmmsgid.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/xgmthrid.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imap/xlist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf_types_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf_write_file.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf_write_generic.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/imf/mailimf_write_mem.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_content.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_decode.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_disposition.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_types.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_types_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_write_file.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_write_generic.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_write_mem.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp_socket.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp_ssl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp_oauth2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp_socket.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp_ssl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
