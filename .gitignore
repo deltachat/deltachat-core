@@ -6,7 +6,8 @@
 .deps
 .dirstamp
 
-# ignore codeblocks project files and build directories
+# ignore Codeblocks temporary files and build directories.
+# Codeblocks project file (*.cbp) is added although it may contain some user preferences (eg. program's arguments), it may be useful for some people
 *.depend
 *.layout
 /bin/
