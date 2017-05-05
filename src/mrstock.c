@@ -66,7 +66,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_ERROR:            return safe_strdup("Error: %1$s");
 		case MR_STR_SELFNOTINGRP:     return safe_strdup("You must be a member of the group to perform this action.");
 		case MR_STR_NONETWORK:        return safe_strdup("No network available.");
-		case MR_STR_DEADDROPSUBTITLE: return safe_strdup("Messages not related to any chat");
+		case MR_STR_DEADDROPSUBTITLE: return safe_strdup("Messages not related to other chats");
 	}
 	return safe_strdup("ErrStr");
 }
