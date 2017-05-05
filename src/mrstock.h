@@ -37,7 +37,7 @@ extern "C" {
 #define MR_STR_SELF             2
 #define MR_STR_DRAFT            3
 #define MR_STR_MEMBER           4
-#define MR_STR_CONTACT          6
+#define MR_STR_UNUSED6          6
 #define MR_STR_VOICEMESSAGE     7
 #define MR_STR_DEADDROP         8
 #define MR_STR_IMAGE            9
@@ -55,6 +55,7 @@ extern "C" {
 #define MR_STR_SELFNOTINGRP     21
 #define MR_STR_NONETWORK        22
 #define MR_STR_GIF              23
+#define MR_STR_DEADDROPSUBTITLE 24
 
 
 /*** library-private **********************************************************/

@@ -103,7 +103,6 @@ enum
 	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
 	,SELECT_COUNT_FROM_msgs_WHERE_ft
-	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_cm
 	,SELECT_id_FROM_msgs_WHERE_chat_id_AND_state
