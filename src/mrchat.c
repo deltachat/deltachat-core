@@ -919,7 +919,17 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 		int cnt = 0;
 		if( ths->m_id == MR_CHAT_ID_DEADDROP )
 		{
-			ret = mrstock_str(MR_STR_DEADDROPSUBTITLE);
+			mrsqlite3_lock(ths->m_mailbox->m_sql);
+
+				stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c,
+					"SELECT COUNT(DISTINCT from_id) FROM msgs WHERE chat_id=?;");
+				sqlite3_bind_int(stmt, 1, ths->m_id);
+				if( sqlite3_step(stmt) == SQLITE_ROW ) {
+					cnt = sqlite3_column_int(stmt, 0);
+					ret = mrstock_str_repl_pl(MR_STR_CONTACT, cnt);
+				}
+
+			mrsqlite3_unlock(ths->m_mailbox->m_sql);
 		}
 		else
 		{
