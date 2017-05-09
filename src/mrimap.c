@@ -762,6 +762,15 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 				setup_handle_if_needed__(ths);
 				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
+					if( time(NULL)-last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+						/* we go here only if we get MAILSTREAM_IDLE_ERROR or MAILSTREAM_IDLE_CANCELLED instead or a proper timeout */
+						UNLOCK_HANDLE
+						UNBLOCK_IDLE
+							fetch_from_all_folders(ths);
+						BLOCK_IDLE
+						LOCK_HANDLE
+						last_fullread_time = time(NULL);
+					}
 					mailstream_setup_idle(ths->m_hEtpan->imap_stream);
 					ths->m_idle_set_up = 1;
 				}
