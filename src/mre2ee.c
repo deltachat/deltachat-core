@@ -70,12 +70,7 @@ void mre2ee_init(mrmailbox_t* mailbox)
 	gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
 	gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 	gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0); /* must be last */
-}
-
-
-const char* mre2ee_get_version(mrmailbox_t* mailbox)
-{
-	return s_version? s_version : "0.0.0";
+	#endif
 }
 
 

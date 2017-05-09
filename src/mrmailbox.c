@@ -1328,7 +1328,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Config0=%s\n"
 		"Config1=%s\n"
 		"\n"
-		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i and libgcrypt %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
 
 		, chats, real_msgs, deaddrop_msgs, contacts
@@ -1340,11 +1340,6 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(),
-		#ifdef USE_E2EE
-		mre2ee_get_version(ths),
-		#else
-		"0.0.0",
-		#endif
 		sizeof(void*)*8
 
 		);
