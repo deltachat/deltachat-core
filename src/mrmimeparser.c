@@ -313,12 +313,12 @@ static void display_mime_content(struct mailmime_content * content_type)
   printf("/%s\n", content_type->ct_subtype);
 }
 
-void mr_print_mime(struct mailmime * mime)
+static void print_mime(struct mailmime * mime)
 {
 	clistiter * cur;
 
 	if( mime == NULL ) {
-		printf("ERROR: NULL given to mr_print_mime()\n");
+		printf("ERROR: NULL given to print_mime()\n");
 		return;
 	}
 
@@ -336,9 +336,9 @@ void mr_print_mime(struct mailmime * mime)
 
 	if (mime->mm_mime_fields != NULL) {
 		if (clist_begin(mime->mm_mime_fields->fld_list) != NULL) {
-			printf("+++ MIME headers begin\n");
+			printf("--------------------------------<mime-headers>--------------------------------\n");
 			display_mime_fields(mime->mm_mime_fields);
-			printf("+++ MIME headers end\n");
+			printf("--------------------------------</mime-headers>-------------------------------\n");
 		}
 	}
 
@@ -351,25 +351,38 @@ void mr_print_mime(struct mailmime * mime)
 
 		case MAILMIME_MULTIPLE:
 			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
-				mr_print_mime((struct mailmime*)clist_content(cur));
+				printf("---------------------------<mime-part-of-multiple>----------------------------\n");
+				print_mime((struct mailmime*)clist_content(cur));
+				printf("---------------------------</mime-part-of-multiple>---------------------------\n");
 			}
 			break;
 
 		case MAILMIME_MESSAGE:
 			if (mime->mm_data.mm_message.mm_fields) {
 				if (clist_begin(mime->mm_data.mm_message.mm_fields->fld_list) != NULL) {
-					printf("Email headers begin\n");
+					printf("-------------------------------<email-headers>--------------------------------\n");
 					display_fields(mime->mm_data.mm_message.mm_fields);
-					printf("Email headers end\n");
+					printf("-------------------------------</email-headers>-------------------------------\n");
 				}
 
 				if (mime->mm_data.mm_message.mm_msg_mime != NULL) {
-					mr_print_mime(mime->mm_data.mm_message.mm_msg_mime);
+					printf("----------------------------<mime-part-of-message>----------------------------\n");
+					print_mime(mime->mm_data.mm_message.mm_msg_mime);
+					printf("----------------------------</mime-part-of-message>---------------------------\n");
 				}
 			}
 			break;
 	}
 }
+
+
+void mr_print_mime(struct mailmime* mime)
+{
+	printf("====================================<mime>====================================\n");
+	print_mime(mime);
+	printf("====================================</mime>===================================\n\n");
+}
+
 
 #endif /* DEBUG_MIME_OUTPUT */
 
