@@ -26,7 +26,7 @@
  *******************************************************************************
  *
  * For memory checking, use eg.
- * $ valgrind --leak-check=full --tool=memcheck ./messenger-backend <db>
+ * $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
  *
  ******************************************************************************/
 

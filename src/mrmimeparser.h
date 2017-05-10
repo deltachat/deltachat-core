@@ -88,6 +88,13 @@ void                  mrmimeparser_parse          (mrmimeparser_t*, const char* 
 struct mailimf_field* mrmimeparser_find_field     (mrmimeparser_t*, int wanted_fld_type);
 
 
+/*** library-private **********************************************************/
+
+#ifdef MR_USE_MIME_DEBUG
+void mr_print_mime(struct mailmime * mime);
+#endif
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

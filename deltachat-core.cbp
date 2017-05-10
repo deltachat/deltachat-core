@@ -39,6 +39,7 @@
 			<Add option="-fexceptions" />
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-DUSE_E2EE" />
+			<Add option="-DMR_USE_MIME_DEBUG" />
 			<Add option="-DHAVE_ICONV" />
 			<Add option="-DSQLITE_OMIT_LOAD_EXTENSION" />
 			<Add directory="libs/libetpan/src" />

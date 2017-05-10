@@ -38,10 +38,10 @@
  ******************************************************************************/
 
 
-#define DEBUG_MIME_OUTPUT 0
+#ifdef MR_USE_MIME_DEBUG
 
-
-#if DEBUG_MIME_OUTPUT
+/* if you need this functionality, define MR_USE_MIME_DEBUG in the project,
+eg. in Codeblocks at "Project / Build options / <project or target> / Compiler settings / #defines" */
 
 
 static void display_mime_content(struct mailmime_content * content_type);
@@ -75,7 +75,7 @@ static void display_mime_disposition(struct mailmime_disposition * disposition)
     cur != NULL ; cur = clist_next(cur)) {
     struct mailmime_disposition_parm * param;
 
-    param = (mailmime_disposition_parm*)clist_content(cur);
+    param = (struct mailmime_disposition_parm*)clist_content(cur);
     display_mime_dsp_parm(param);
   }
 }
@@ -101,7 +101,7 @@ static void display_mime_fields(struct mailmime_fields * fields)
 	for(cur = clist_begin(fields->fld_list) ; cur != NULL ; cur = clist_next(cur)) {
 		struct mailmime_field * field;
 
-		field = (mailmime_field*)clist_content(cur);
+		field = (struct mailmime_field*)clist_content(cur);
 		display_mime_field(field);
 	}
 }
@@ -133,7 +133,7 @@ static void display_mailbox_list(struct mailimf_mailbox_list * mb_list)
     cur = clist_next(cur)) {
     struct mailimf_mailbox * mb;
 
-    mb = (mailimf_mailbox*)clist_content(cur);
+    mb = (struct mailimf_mailbox*)clist_content(cur);
 
     display_mailbox(mb);
 		if (clist_next(cur) != NULL) {
@@ -150,7 +150,7 @@ static void display_group(struct mailimf_group * group)
   for(cur = clist_begin(group->grp_mb_list->mb_list) ; cur != NULL ; cur = clist_next(cur)) {
     struct mailimf_mailbox * mb;
 
-    mb = (mailimf_mailbox*)clist_content(cur);
+    mb = (struct mailimf_mailbox*)clist_content(cur);
     display_mailbox(mb);
   }
 	printf("; ");
@@ -177,7 +177,7 @@ static void display_address_list(struct mailimf_address_list * addr_list)
     cur = clist_next(cur)) {
     struct mailimf_address * addr;
 
-    addr = (mailimf_address*)clist_content(cur);
+    addr = (struct mailimf_address*)clist_content(cur);
 
     display_address(addr);
 
@@ -249,7 +249,7 @@ static void display_fields(struct mailimf_fields * fields)
     cur = clist_next(cur)) {
     struct mailimf_field * f;
 
-    f = (mailimf_field*)clist_content(cur);
+    f = (struct mailimf_field*)clist_content(cur);
 
     display_field(f);
   }
@@ -313,9 +313,14 @@ static void display_mime_content(struct mailmime_content * content_type)
   printf("/%s\n", content_type->ct_subtype);
 }
 
-static void display_mime(struct mailmime * mime)
+void mr_print_mime(struct mailmime * mime)
 {
 	clistiter * cur;
+
+	if( mime == NULL ) {
+		printf("ERROR: NULL given to mr_print_mime()\n");
+		return;
+	}
 
 	switch (mime->mm_type) {
 		case MAILMIME_SINGLE:
@@ -346,7 +351,7 @@ static void display_mime(struct mailmime * mime)
 
 		case MAILMIME_MULTIPLE:
 			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
-				display_mime((mailmime*)clist_content(cur));
+				mr_print_mime((struct mailmime*)clist_content(cur));
 			}
 			break;
 
@@ -359,7 +364,7 @@ static void display_mime(struct mailmime * mime)
 				}
 
 				if (mime->mm_data.mm_message.mm_msg_mime != NULL) {
-					display_mime(mime->mm_data.mm_message.mm_msg_mime);
+					mr_print_mime(mime->mm_data.mm_message.mm_msg_mime);
 				}
 			}
 			break;
@@ -1006,9 +1011,9 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		goto cleanup;
 	}
 
-	#if DEBUG_MIME_OUTPUT
+	#if 0
 		printf("-----------------------------------------------------------------------\n");
-		display_mime(m_mimeroot);
+		mr_print_mime(m_mimeroot);
 		printf("-----------------------------------------------------------------------\n");
 	#endif
 
