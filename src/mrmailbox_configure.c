@@ -375,6 +375,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrosnative_setup_thread(mailbox); /* must be very first */
 
 	int             success = 0, i;
+	int             imap_connected = 0;
 
 	mrloginparam_t* param = mrloginparam_new();
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -482,6 +483,9 @@ static void* configure_thread_entry_point(void* entry_arg)
 			param->m_send_port    =                  param_autoconfig->m_send_port;
 			param->m_send_user    = strdup_keep_null(param_autoconfig->m_send_user);
 			param->m_server_flags =                  param_autoconfig->m_server_flags;
+
+			/* althoug param_autoconfig's data are no longer needed from, it is important to keep the object as
+			we may enter "deep guessing" if we could not read a configuration */
 		}
 	}
 
@@ -577,18 +581,32 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	PROGRESS(60)
 
-	{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Configure result: %s", r); free(r); }
+	/* try to connect to IMAP */
+	{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Trying: %s", r); free(r); }
 
-	/* try to connect */
 	if( !mrimap_connect(mailbox->m_imap, param) ) {
 		goto exit_;
 	}
+	imap_connected = 1;
 
 	PROGRESS(80)
 
+	/* try to connect to SMTP - if we did not got an autoconfig, the first try was SSL-465 and we do a second try with STARTTLS-587 */
 	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
-		mrimap_disconnect(mailbox->m_imap); /* do not leave IMAP connected if SMTP fails */
-		goto exit_;
+		if( param_autoconfig ) {
+			goto exit_;
+		}
+
+		PROGRESS(85)
+
+		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
+		param->m_server_flags |=  MR_SMTP_SOCKET_STARTTLS;
+		param->m_send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
+		{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+
+		if( !mrsmtp_connect(mailbox->m_smtp, param) ) {
+			goto exit_;
+		}
 	}
 
 	PROGRESS(90)
@@ -600,6 +618,9 @@ static void* configure_thread_entry_point(void* entry_arg)
 	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
 exit_:
+	if( !success && imap_connected ) {
+		mrimap_disconnect(mailbox->m_imap);
+	}
 	mrloginparam_unref(param);
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
