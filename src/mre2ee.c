@@ -25,58 +25,13 @@
  ******************************************************************************/
 
 
+#include <stdlib.h>
 #include <string.h>
 #include "mrmailbox.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
-
-
-/*******************************************************************************
- * Tools
- ******************************************************************************/
-
-
-static struct mailimf_fields* find_imf_header(const struct mailmime* mime)
-{
-	clistiter* cur;
-	switch (mime->mm_type) {
-		case MAILMIME_MULTIPLE:
-			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
-				struct mailimf_fields* header = find_imf_header(clist_content(cur));
-				if( header ) {
-					return header;
-				}
-			}
-			break;
-
-		case MAILMIME_MESSAGE:
-			return mime->mm_data.mm_message.mm_fields;
-	}
-	return NULL;
-}
-
-
-static const char* find_autocrypt_header(const struct mailimf_fields* header)
-{
-	clistiter* cur;
-	for( cur = clist_begin(header->fld_list); cur!=NULL ; cur=clist_next(cur) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-		if( field )
-		{
-			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-			{
-				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "Autocrypt")==0 ) {
-						return optional_field->fld_value;
-					}
-				}
-			}
-		}
-	}
-	return NULL;
-}
+#include "mracpeerstate.h"
+#include "mracheader.h"
 
 
 /*******************************************************************************
@@ -138,7 +93,10 @@ cleanup:
 
 void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 {
-	struct mailmime* in_message = NULL;
+	struct mailmime*  in_message = NULL;
+	mracheader_t*     ach = mracheader_new();
+	mracpeerstate_t*  acps = NULL;
+	int               locked = 0;
 
 	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL ) {
 		return;
@@ -147,17 +105,27 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	in_message = *in_out_message;
 	//mr_print_mime(in_message);
 
-	struct mailimf_fields* header = find_imf_header(in_message);
-	if( header == NULL ) {
-		goto cleanup;
+	if( mracheader_set_from_message(ach, in_message) ) {
+		// TODO: check against To:-header
+		acps = mracpeerstate_new();
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+			if( mracpeerstate_load_from_db__(acps, mailbox->m_sql, ach->m_to) ) {
+				mracpeerstate_apply_header(acps, ach);
+				// TODO: save peer state back to db
+			}
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 0;
+
 	}
 
-	const char* autocrypt_header = find_autocrypt_header(header);
-	if( autocrypt_header == NULL ) {
-		goto cleanup;
-	}
 
 cleanup:
-	;
+	if( locked ) {
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+	}
+	mracheader_unref(ach);
+	mracpeerstate_unref(acps);
 }
 

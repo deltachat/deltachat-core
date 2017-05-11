@@ -281,6 +281,23 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
+	#define NEW_DB_VERSION 3
+		if( dbversion < NEW_DB_VERSION )
+		{
+			mrsqlite3_execute__(ths, "CREATE TABLE autocrypt_peer_state ("
+						" id INTEGER PRIMARY KEY,"
+						" addr TEXT DEFAULT '' COLLATE NOCASE,"
+						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
+						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
+						" pah_key,"
+						" pah_prefer_encrypted INTEGER DEFAULT 1);");
+			mrsqlite3_execute__(ths, "CREATE INDEX autocrypt_peer_state_index1 ON autocrypt_peer_state (addr);");
+
+			dbversion = NEW_DB_VERSION;
+			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+		}
+	#undef NEW_DB_VERSION
+
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
