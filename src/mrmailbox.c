@@ -744,14 +744,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 		}
 
-		/* execute any GnuPG block commands */
-		if( mime_parser->m_gnupg_block )
-		{
-			#ifdef USE_E2EE
-			mre2ee_execute_gnupg_block_command__(ths, from_id, message_timestamp, mime_parser->m_gnupg_block);
-			#endif
-		}
-
 		/* fine, so far.  now, split the message into simple parts usable as "short messages"
 		and add them to the database (mails send by other messenger clients should result
 		into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
@@ -972,9 +964,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 	mrjob_init_thread(ths);
 
-	#ifdef USE_E2EE
 	mre2ee_init(ths);
-	#endif
 
 	if( s_localize_mb_obj==NULL ) {
 		s_localize_mb_obj = ths;
@@ -987,6 +977,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 void mrmailbox_unref(mrmailbox_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+
+	mre2ee_exit(ths);
 
 	mrjob_exit_thread(ths);
 

@@ -334,7 +334,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	mrcontact_empty(ths);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
-		"SELECT name, addr, origin, blocked, pubkey, pubkey_timestamp, authname FROM contacts WHERE id=?;");
+		"SELECT name, addr, origin, blocked, authname FROM contacts WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
@@ -345,9 +345,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	ths->m_addr             = safe_strdup((char*)sqlite3_column_text (stmt, 1));
 	ths->m_origin           =                    sqlite3_column_int  (stmt, 2);
 	ths->m_blocked          =                    sqlite3_column_int  (stmt, 3);
-	ths->m_pubkey           = safe_strdup((char*)sqlite3_column_text (stmt, 4));
-	ths->m_pubkey_timestamp =                    sqlite3_column_int64(stmt, 5);
-	ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 6));
+	ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 4));
 
 	/* success */
 	success = 1;
@@ -774,10 +772,5 @@ void mrcontact_empty(mrcontact_t* ths)
 
 	ths->m_origin = 0;
 	ths->m_blocked = 0;
-
-	free(ths->m_pubkey);
-	ths->m_pubkey = NULL;
-
-	ths->m_pubkey_timestamp = 0;
 }
 

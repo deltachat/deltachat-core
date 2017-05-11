@@ -19,14 +19,16 @@
  *
  *******************************************************************************
  *
- * File:    mre2ee.h
- * Purpose: Handle End-To-End-Encryption
+ * File:    mre2ee_driver.h
+ * Purpose: Function that should be implemented for a specific
+ *          end-to-end-encryption-library
  *
  ******************************************************************************/
 
 
-#ifndef __MRE2EE_H__
-#define __MRE2EE_H__
+
+#ifndef __MRE2EE_DRIVER_H__
+#define __MRE2EE_DRIVER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,14 +36,13 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-void mre2ee_init    (mrmailbox_t*);
-void mre2ee_exit    (mrmailbox_t*);
-void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, struct mailmime** in_out_message);
-void mre2ee_decrypt (mrmailbox_t*, struct mailmime** in_out_message);
+void mre2ee_driver_init      (mrmailbox_t*);
+void mre2ee_driver_exit      (mrmailbox_t*);
+void mre2ee_driver_encrypt__ (mrmailbox_t*, const clist* recipients_addr, struct mailmime** in_out_message);
+void mre2ee_driver_decrypt__ (mrmailbox_t*, struct mailmime** in_out_message);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRE2EE_H__ */
-
+#endif /* __MRE2EE_DRIVER_H__ */

@@ -66,8 +66,6 @@ typedef struct mrcontact_t
 	char*               m_addr;    /* may be NULL or empty */
 	int                 m_origin;
 	int                 m_blocked;
-	char*               m_pubkey;
-	time_t              m_pubkey_timestamp;
 } mrcontact_t;
 
 

@@ -31,6 +31,7 @@
 #include "mrmimeparser.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
+#include "mre2ee.h"
 
 
 /*******************************************************************************
@@ -493,9 +494,6 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		ths->m_mimeroot = NULL;
 	}
 
-	free(ths->m_gnupg_block);
-	ths->m_gnupg_block = NULL;
-
 	free(ths->m_fwd_email);
 	ths->m_fwd_email = NULL;
 
@@ -609,6 +607,7 @@ static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
 }
 
 
+#if 0 /* currently no needed */
 static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disposition)
 {
 	if( file_disposition ) {
@@ -624,6 +623,7 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 	}
 	return NULL;
 }
+#endif
 
 
 static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct mailmime* mime)
@@ -729,30 +729,17 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 					}
 				}
 
-				if( mime_type == MR_MIMETYPE_TEXT_PLAIN
-				 && file_disposition
-				 && (file_suffix=get_file_disposition_suffix_(file_disposition))!=NULL
-				 && strcmp(file_suffix, "asc")==0
-				 && decoded_data_bytes > 36
-				 && strncmp(decoded_data, "-----BEGIN PGP PUBLIC KEY BLOCK-----", 36)==0 )
-				{
-					/* a public key or a revocation certificate found in the mail */
-					ths->m_gnupg_block = safe_strdup(decoded_data);
+				part->m_type = MR_MSG_TEXT;
+				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+
+				if( part->m_msg && part->m_msg[0] ) {
+					do_add_part = 1;
 				}
-				else
-				{
-					part->m_type = MR_MSG_TEXT;
-					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
-					part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
 
-					if( part->m_msg && part->m_msg[0] ) {
-						do_add_part = 1;
-					}
-
-					if( simplifier->m_fwdemail && ths->m_fwd_email == NULL ) {
-						ths->m_fwd_email = simplifier->m_fwdemail; simplifier->m_fwdemail = NULL; /* save this even for empty text (shown eg. above pictures then) */
-						ths->m_fwd_name  = simplifier->m_fwdname;  simplifier->m_fwdname  = NULL;
-					}
+				if( simplifier->m_fwdemail && ths->m_fwd_email == NULL ) {
+					ths->m_fwd_email = simplifier->m_fwdemail; simplifier->m_fwdemail = NULL; /* save this even for empty text (shown eg. above pictures then) */
+					ths->m_fwd_name  = simplifier->m_fwdname;  simplifier->m_fwdname  = NULL;
 				}
 			}
 			break;
@@ -1029,6 +1016,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		mr_print_mime(m_mimeroot);
 		printf("-----------------------------------------------------------------------\n");
 	#endif
+
+	/* decrypt, if possible; handle Autocrypt:-header
+	(decryption may modifiy or replace the given object) */
+	mre2ee_decrypt(ths->m_mailbox, &ths->m_mimeroot);
 
 	/* recursively check, whats parsed */
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);

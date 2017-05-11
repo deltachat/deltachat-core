@@ -56,6 +56,8 @@ extern "C" {
 typedef struct mrmailbox_t mrmailbox_t;
 typedef struct mrimap_t mrimap_t;
 typedef struct mrsmtp_t mrsmtp_t;
+typedef struct mre2ee_t mre2ee_t;
+typedef struct mre2ee_driver_t mre2ee_driver_t;
 
 
 #define MR_VERSION_MAJOR    0
@@ -101,29 +103,32 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 typedef struct mrmailbox_t
 {
-	uint32_t        m_magic; /* must be first*/
+	uint32_t         m_magic; /* must be first*/
 
 	/* the following members should be treated as library private */
-	mrsqlite3_t*    m_sql;      /* != NULL */
-	char*           m_dbfile;
-	char*           m_blobdir;
+	mrsqlite3_t*     m_sql;      /* != NULL */
+	char*            m_dbfile;
+	char*            m_blobdir;
 
-	mrimap_t*       m_imap;     /* != NULL */
-	mrsmtp_t*       m_smtp;     /* != NULL */
+	mrimap_t*        m_imap;     /* != NULL */
+	mrsmtp_t*        m_smtp;     /* != NULL */
 
-	pthread_t       m_job_thread;
-	pthread_cond_t  m_job_cond;
-	pthread_mutex_t m_job_condmutex;
-	int             m_job_condflag;
-	int             m_job_do_exit;
+	pthread_t        m_job_thread;
+	pthread_cond_t   m_job_cond;
+	pthread_mutex_t  m_job_condmutex;
+	int              m_job_condflag;
+	int              m_job_do_exit;
 
-	mrmailboxcb_t   m_cb;
-	void*           m_userData;
+	mre2ee_t*        m_e2ee;        /* may or may not be NULL, completely owned by mre2ee */
+	mre2ee_driver_t* m_e2ee_driver; /* may or may not be NULL, completely owned by mre2ee_driver */
 
-	uint32_t        m_cmdline_sel_chat_id;
+	mrmailboxcb_t    m_cb;
+	void*            m_userData;
 
-	int             m_wake_lock;
-	pthread_mutex_t m_wake_lock_critical;
+	uint32_t         m_cmdline_sel_chat_id;
+
+	int              m_wake_lock;
+	pthread_mutex_t  m_wake_lock_critical;
 
 } mrmailbox_t;
 

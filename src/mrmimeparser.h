@@ -64,8 +64,6 @@ typedef struct mrmimeparser_t
 	int                    m_is_send_by_messenger;
 	const char*            m_blobdir;
 
-	char*                  m_gnupg_block;
-
 	char*                  m_fwd_name;
 	char*                  m_fwd_email;
 

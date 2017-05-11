@@ -33,6 +33,8 @@
 #include "mrjob.h"
 #include "mrsmtp.h"
 #include "mrimap.h"
+#include "mre2ee.h"
+
 
 #define CLASS_MAGIC 1279756140
 
@@ -1394,10 +1396,13 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		goto cleanup;
 	}
 
+	/* encrypt the message, if possible; add Autocrypt:-header
+	(encryption may modifiy or replace the given object) */
+	mre2ee_encrypt(chat->m_mailbox, recipients_addr, &message);
+
 	/* create the full mail and return */
 	ret = mmap_string_new("");
-	mailmime_write_mem(ret, &col, message); /* implementation inspired by libetpan/tests/compose-msg.c */
-	//printf("%s\n", ret->str);
+	mailmime_write_mem(ret, &col, message);
 
 cleanup:
 	if( message ) {

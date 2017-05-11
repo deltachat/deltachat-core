@@ -16,8 +16,6 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-lgcrypt" />
-					<Add option="-lgpg-error" />
 					<Add option="-lz -lssl -lcrypto -pthread -lsasl2" />
 				</Linker>
 			</Target>
@@ -392,6 +390,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mre2ee.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/mre2ee_driver_bsd.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrimap.c">

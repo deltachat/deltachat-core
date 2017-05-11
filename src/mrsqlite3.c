@@ -266,9 +266,6 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 						" grpid TEXT DEFAULT '');");
 			mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
-			mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey TEXT DEFAULT '';");
-			mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN pubkey_timestamp INTEGER DEFAULT 0;");
-
 			dbversion = NEW_DB_VERSION;
 			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
 		}
