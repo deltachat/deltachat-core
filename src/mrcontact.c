@@ -163,14 +163,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	/* normalize the email-address:
 	- remove leading `mailto:` */
-	addr = safe_strdup(addr__);
-	mr_trim(addr);
-	if( strncmp(addr, "mailto:", 7)==0 ) {
-		char* old = addr;
-		addr = safe_strdup(&old[7]);
-		free(old);
-		mr_trim(addr);
-	}
+	addr = mr_normalize_addr(addr__);
 
 	/* rough check if email-address is valid */
 	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {

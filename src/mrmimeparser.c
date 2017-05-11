@@ -389,6 +389,86 @@ void mr_print_mime(struct mailmime* mime)
 
 
 /*******************************************************************************
+ * low-level-tools for working with mailmime structures directly
+ ******************************************************************************/
+
+
+const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime* mime)
+{
+	if( mime == NULL ) {
+		return NULL;
+	}
+
+	clistiter* cur;
+	switch (mime->mm_type) {
+		case MAILMIME_MULTIPLE:
+			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
+				const struct mailimf_fields* header = mr_find_mailimf_fields(clist_content(cur));
+				if( header ) {
+					return header;
+				}
+			}
+			break;
+
+		case MAILMIME_MESSAGE:
+			return mime->mm_data.mm_message.mm_fields;
+	}
+
+	return NULL;
+}
+
+
+const struct mailimf_field* mr_find_mailimf_field(const struct mailimf_fields* header, int wanted_fld_type)
+{
+	if( header == NULL || header->fld_list == NULL ) {
+		return NULL;
+	}
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		const struct mailimf_field* field = (const struct mailimf_field*)clist_content(cur1);
+		if( field )
+		{
+			if( field->fld_type == wanted_fld_type ) {
+				return field;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
+char* mr_normalize_addr(const char* addr__)
+{
+	/* Not sure if we should also unifiy international characters before the @ */
+	char* addr = safe_strdup(addr__);
+	mr_trim(addr);
+	if( strncmp(addr, "mailto:", 7)==0 ) {
+		char* old = addr;
+		addr = safe_strdup(&old[7]);
+		free(old);
+		mr_trim(addr);
+	}
+	return addr;
+}
+
+
+char* mr_find_first_addr(const struct mailimf_mailbox_list* mb_list)
+{
+	clistiter* cur;
+	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
+		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
+		if( mb && mb->mb_addr_spec ) {
+			return mr_normalize_addr(mb->mb_addr_spec);
+		}
+	}
+	return NULL;
+}
+
+
+/*******************************************************************************
  * a MIME part
  ******************************************************************************/
 
@@ -958,24 +1038,6 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 	}
 
 	return sth_added;
-}
-
-
-struct mailimf_field* mrmimeparser_find_field(mrmimeparser_t* ths, int wanted_fld_type)
-{
-	clistiter* cur1;
-	for( cur1 = clist_begin(ths->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if( field )
-		{
-			if( field->fld_type == wanted_fld_type ) {
-				return field;
-			}
-		}
-	}
-
-	return NULL;
 }
 
 

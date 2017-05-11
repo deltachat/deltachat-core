@@ -82,11 +82,11 @@ Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 of course, these empty messages are not added to any chat) */
 void                  mrmimeparser_parse          (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
 
-/* work on the parse result */
-struct mailimf_field* mrmimeparser_find_field     (mrmimeparser_t*, int wanted_fld_type);
-
-
-/*** library-private **********************************************************/
+/* low-level-tools for working with mailmime structures directly */
+char*                        mr_find_first_addr    (const struct mailimf_mailbox_list*); /*the result must be freed*/
+char*                        mr_normalize_addr     (const char*); /*the result must be freed*/
+const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime*); /*the result is a pointer to mime, must not be freed*/
+const struct mailimf_field*  mr_find_mailimf_field (const struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
 
 #ifdef MR_USE_MIME_DEBUG
 void mr_print_mime(struct mailmime * mime);

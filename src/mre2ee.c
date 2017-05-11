@@ -30,8 +30,9 @@
 #include "mrmailbox.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
-#include "mracpeerstate.h"
-#include "mracheader.h"
+#include "mrapeerstate.h"
+#include "mraheader.h"
+#include "mrmimeparser.h"
 
 
 /*******************************************************************************
@@ -62,13 +63,13 @@ void mre2ee_exit(mrmailbox_t* mailbox)
 void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime** in_out_message)
 {
 	int              locked = 0;
-	struct mailmime* in_message = NULL;
+	//struct mailmime* in_message = NULL;
 
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL ) {
 		return;
 	}
 
-	in_message = *in_out_message;
+	//in_message = *in_out_message;
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -93,30 +94,40 @@ cleanup:
 
 void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 {
-	struct mailmime*  in_message = NULL;
-	mracheader_t*     ach = mracheader_new();
-	mracpeerstate_t*  acps = NULL;
-	int               locked = 0;
+	struct mailmime*       in_message = NULL;
+	const struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
+	mraheader_t*           autocryptheader = mraheader_new();
+	mrapeerstate_t*        peerstate = NULL;
+	int                    locked = 0;
+	char*                  from = NULL;
 
 	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL ) {
 		return;
 	}
 
 	in_message = *in_out_message;
-	//mr_print_mime(in_message);
+	imffields = mr_find_mailimf_fields(in_message);
 
-	if( mracheader_set_from_message(ach, in_message) ) {
-		// TODO: check against To:-header
-		acps = mracpeerstate_new();
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
-			if( mracpeerstate_load_from_db__(acps, mailbox->m_sql, ach->m_to) ) {
-				mracpeerstate_apply_header(acps, ach);
-				// TODO: save peer state back to db
+	if( mraheader_set_from_imffields(autocryptheader, imffields) )
+	{
+		const struct mailimf_field* field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_FROM);
+		if( field && field->fld_data.fld_from )
+		{
+			from = mr_find_first_addr(field->fld_data.fld_from);
+			if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)==0 )
+			{
+				peerstate = mrapeerstate_new();
+				mrsqlite3_lock(mailbox->m_sql);
+				locked = 1;
+					if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, autocryptheader->m_to) ) {
+						if( mrapeerstate_apply_header(peerstate, autocryptheader) ) {
+							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql);
+						}
+					}
+				mrsqlite3_lock(mailbox->m_sql);
+				locked = 0;
 			}
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 0;
-
+		}
 	}
 
 
@@ -125,7 +136,8 @@ cleanup:
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 	}
-	mracheader_unref(ach);
-	mracpeerstate_unref(acps);
+	mraheader_unref(autocryptheader);
+	mrapeerstate_unref(peerstate);
+	free(from);
 }
 

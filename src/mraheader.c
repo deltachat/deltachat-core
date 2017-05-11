@@ -19,7 +19,7 @@
  *
  *******************************************************************************
  *
- * File:    mracheader.c
+ * File:    mraheader.c
  * Purpose: Handle Autocrypt:-headers
  *
  ******************************************************************************/
@@ -29,7 +29,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
-#include "mracheader.h"
+#include "mraheader.h"
 
 #define CLASS_MAGIC 1494527378
 
@@ -39,33 +39,13 @@
  ******************************************************************************/
 
 
-static int mracheader_set_from_string(mracheader_t* ths, const char* header_str)
+static int mraheader_set_from_string(mraheader_t* ths, const char* header_str)
 {
 	return 0;
 }
 
 
-static struct mailimf_fields* find_imf_header(const struct mailmime* mime)
-{
-	clistiter* cur;
-	switch (mime->mm_type) {
-		case MAILMIME_MULTIPLE:
-			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
-				struct mailimf_fields* header = find_imf_header(clist_content(cur));
-				if( header ) {
-					return header;
-				}
-			}
-			break;
-
-		case MAILMIME_MESSAGE:
-			return mime->mm_data.mm_message.mm_fields;
-	}
-	return NULL;
-}
-
-
-static const char* find_ac_header_string(const struct mailimf_fields* header)
+static const char* find_aheader_string(const struct mailimf_fields* header)
 {
 	clistiter*  cur;
 	const char* header_str = NULL;
@@ -99,11 +79,11 @@ static const char* find_ac_header_string(const struct mailimf_fields* header)
  ******************************************************************************/
 
 
-mracheader_t* mracheader_new()
+mraheader_t* mraheader_new()
 {
-	mracheader_t* ths = NULL;
+	mraheader_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mracheader_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(mraheader_t)))==NULL ) {
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -113,16 +93,16 @@ mracheader_t* mracheader_new()
 }
 
 
-void mracheader_unref(mracheader_t* ths)
+void mraheader_unref(mraheader_t* ths)
 {
 	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
 
-	mracheader_empty(ths);
+	mraheader_empty(ths);
 	free(ths);
 }
 
 
-void mracheader_empty(mracheader_t* ths)
+void mraheader_empty(mraheader_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -138,17 +118,12 @@ void mracheader_empty(mracheader_t* ths)
 }
 
 
-int mracheader_set_from_message(mracheader_t* ths, const struct mailmime* mime)
+int mraheader_set_from_imffields(mraheader_t* ths, const struct mailimf_fields* header)
 {
-	if( ths == NULL || mime == NULL ) {
+	if( ths == NULL || header == NULL ) {
 		return 0;
 	}
 
-	struct mailimf_fields* header = find_imf_header(mime);
-	if( header == NULL ) {
-		return 0;
-	}
-
-	return mracheader_set_from_string(ths, find_ac_header_string(header));
+	return mraheader_set_from_string(ths, find_aheader_string(header));
 }
 

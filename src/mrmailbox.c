@@ -503,7 +503,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	clistiter*       cur1;
-	struct mailimf_field* field;
+	const struct mailimf_field* field;
 	carray*          created_db_entries = carray_new(16);
 	int              has_return_path = 0;
 	char*            txt_raw = NULL;
@@ -570,7 +570,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
-		 && (field=mrmimeparser_find_field(mime_parser,  MAILIMF_FIELD_FROM  ))!=NULL )
+		 && (field=mr_find_mailimf_field(mime_parser->m_header,  MAILIMF_FIELD_FROM  ))!=NULL )
 		{
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
 			if( fld_from )
@@ -600,7 +600,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		/* Make sure, to_list starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
 		if( (outgoing || incoming_from_known_sender)
-		 && (field=mrmimeparser_find_field(mime_parser,  MAILIMF_FIELD_TO  ))!=NULL )
+		 && (field=mr_find_mailimf_field(mime_parser->m_header,  MAILIMF_FIELD_TO  ))!=NULL )
 		{
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )

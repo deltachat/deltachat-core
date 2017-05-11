@@ -281,17 +281,24 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 3
+	#define NEW_DB_VERSION 4
 		if( dbversion < NEW_DB_VERSION )
 		{
-			mrsqlite3_execute__(ths, "CREATE TABLE autocrypt_peer_state ("
+			mrsqlite3_execute__(ths, "CREATE TABLE apeerstates ("
 						" id INTEGER PRIMARY KEY,"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
 						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
 						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
-						" pah_key,"
-						" pah_prefer_encrypted INTEGER DEFAULT 1);");
-			mrsqlite3_execute__(ths, "CREATE INDEX autocrypt_peer_state_index1 ON autocrypt_peer_state (addr);");
+						" public_key,"
+						" prefer_encrypted INTEGER DEFAULT 1);");
+			mrsqlite3_execute__(ths, "CREATE INDEX apeerstates_index1 ON apeerstates (addr);");
+
+			mrsqlite3_execute__(ths, "CREATE TABLE aprivatekeys ("
+						" id INTEGER PRIMARY KEY,"
+						" addr,"
+						" private_key,"
+						" public_key,"
+						" created INTEGER DEFAULT 0);");
 
 			dbversion = NEW_DB_VERSION;
 			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);

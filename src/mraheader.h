@@ -19,14 +19,14 @@
  *
  *******************************************************************************
  *
- * File:    mracheader.h
+ * File:    mraheader.h
  * Purpose: Handle Autocrypt:-headers
  *
  ******************************************************************************/
 
 
-#ifndef __MRACHEADER_H__
-#define __MRACHEADER_H__
+#ifndef __MRAHEADER_H__
+#define __MRAHEADER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,23 +34,23 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct mracheader_t
+typedef struct mraheader_t
 {
 	uint32_t       m_magic;
 	char*          m_to;
 	unsigned char* m_pah_key;
 	int            m_pah_prefer_encrypted;
-} mracheader_t;
+} mraheader_t;
 
 
-mracheader_t* mracheader_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
-void          mracheader_unref           (mracheader_t*);
-void          mracheader_empty           (mracheader_t*);
+mraheader_t* mraheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
+void         mraheader_unref             (mraheader_t*);
+void         mraheader_empty             (mraheader_t*);
 
-int           mracheader_set_from_message(mracheader_t*, const struct mailmime* mime);
+int          mraheader_set_from_imffields(mraheader_t*, const struct mailimf_fields* mime);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRACHEADER_H__ */
+#endif /* __MRAHEADER_H__ */

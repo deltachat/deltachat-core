@@ -19,14 +19,14 @@
  *
  *******************************************************************************
  *
- * File:    mracpeerstate.h
- * Purpose: mracpeerstate_t represents the state of an Autocrypt peer
+ * File:    mrapeerstate.h
+ * Purpose: mrapeerstate_t represents the state of an Autocrypt peer
  *
  ******************************************************************************/
 
 
-#ifndef __MRACPEERSTATE_H__
-#define __MRACPEERSTATE_H__
+#ifndef __MRAPEERSTATE_H__
+#define __MRAPEERSTATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,7 +34,7 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct mracheader_t mracheader_t;
+typedef struct mraheader_t mraheader_t;
 
 
 #define MRAC_PE_NO           0 /* prefer-encrypted states */
@@ -43,7 +43,7 @@ typedef struct mracheader_t mracheader_t;
 #define MRAC_PE_RESET        3
 
 
-typedef struct mracpeerstate_t
+typedef struct mrapeerstate_t
 {
 	uint32_t       m_magic;
 	char*          m_addr;
@@ -51,21 +51,21 @@ typedef struct mracpeerstate_t
 	time_t         m_last_seen;
 	unsigned char* m_pah_key;
 	int            m_pah_prefer_encrypted;
-} mracpeerstate_t;
+} mrapeerstate_t;
 
 
-mracpeerstate_t* mracpeerstate_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
-void             mracpeerstate_unref           (mracpeerstate_t*);
-void             mracpeerstate_empty           (mracpeerstate_t*);
+mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
+void            mrapeerstate_unref           (mrapeerstate_t*);
+void            mrapeerstate_empty           (mrapeerstate_t*);
 
-void             mracpeerstate_apply_header    (mracpeerstate_t*, const mracheader_t*);
+int             mrapeerstate_apply_header    (mrapeerstate_t*, const mraheader_t*); /*returns 1 on changes*/
 
-int              mracpeerstate_load_from_db__  (mracpeerstate_t*, mrsqlite3_t*, const char* addr);
-int              mracpeerstate_save_to_db__    (const mracpeerstate_t*, mrsqlite3_t*);
+int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
+int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRACPEERSTATE_H__ */
+#endif /* __MRAPEERSTATE_H__ */
 
