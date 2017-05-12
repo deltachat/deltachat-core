@@ -688,16 +688,16 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	 && peerstate->m_public_key!=NULL )
 	{
 		/* end-to-end encryption, TODO: compare peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
-		mrstrbuilder_cat(&ret, "- End-to-end-encrypted.");
+		mrstrbuilder_cat(&ret, "• End-to-end-encrypted.");
 	}
 	else
 	{
-		mrstrbuilder_cat(&ret, "- No key available.\n");
+		mrstrbuilder_cat(&ret, "• No key available.\n\n");
 		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
 		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
 			/* transport encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "- Messages are encrypted at least up to my server.");
+			mrstrbuilder_cat(&ret, "• Messages are encrypted at least up to my server.");
 		}
 		else
 		{
