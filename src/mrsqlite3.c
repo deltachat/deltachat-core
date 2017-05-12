@@ -290,7 +290,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
 						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
 						" public_key,"
-						" prefer_encrypted INTEGER DEFAULT 1);");
+						" prefer_encrypted INTEGER DEFAULT 0);");
 			mrsqlite3_execute__(ths, "CREATE INDEX apeerstates_index1 ON apeerstates (addr);");
 
 			mrsqlite3_execute__(ths, "CREATE TABLE aprivatekeys ("

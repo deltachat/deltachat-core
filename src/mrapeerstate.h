@@ -37,10 +37,10 @@ extern "C" {
 typedef struct mraheader_t mraheader_t;
 
 
-#define MRAC_PE_NO           0 /* prefer-encrypted states */
-#define MRAC_PE_YES          1
-#define MRAC_PE_NOPREFERENCE 2
-#define MRAC_PE_RESET        3
+#define MRA_PE_NO           0 /* prefer-encrypted states */
+#define MRA_PE_YES          1
+#define MRA_PE_NOPREFERENCE 2
+#define MRA_PE_RESET        3
 
 
 typedef struct mrapeerstate_t
@@ -49,8 +49,8 @@ typedef struct mrapeerstate_t
 	char*          m_addr;
 	time_t         m_changed;
 	time_t         m_last_seen;
-	unsigned char* m_pah_key;
-	int            m_pah_prefer_encrypted;
+	unsigned char* m_public_key;
+	int            m_prefer_encrypted;
 } mrapeerstate_t;
 
 

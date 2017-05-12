@@ -146,6 +146,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"\nContact commands:\n"
 			"listcontacts [<query>]\n"
 			"addcontact <name> <addr>\n"
+			"encrinfo <contact-id>\n"
 
 			"\nMisc.:\n"
 			"event <event-id to test>\n"
@@ -615,7 +616,16 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("ERROR: Arguments <name> <addr> expected.");
 		}
 	}
-
+	else if( strcmp(cmd, "encrinfo")==0 )
+	{
+		if( arg1 ) {
+			int contact_id = atoi(arg1);
+			ret = mrmailbox_get_contact_encrinfo(mailbox, contact_id);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+		}
+	}
 
 	/*******************************************************************************
 	 * Misc.

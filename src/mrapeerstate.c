@@ -68,25 +68,27 @@ void mrapeerstate_empty(mrapeerstate_t* ths)
 		return;
 	}
 
-	ths->m_changed              = 0;
-	ths->m_last_seen            = 0;
-	ths->m_pah_prefer_encrypted = 0;
+	ths->m_changed          = 0;
+	ths->m_last_seen        = 0;
+	ths->m_prefer_encrypted = 0;
 
 	free(ths->m_addr);
 	ths->m_addr = NULL;
 
-	free(ths->m_pah_key);
-	ths->m_pah_key = NULL;
+	free(ths->m_public_key);
+	ths->m_public_key = NULL;
 }
 
 
 int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header)
 {
+	return 0;
 }
 
 
 int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const char* addr)
 {
+	mrapeerstate_empty(ths);
 	return 0;
 }
 
