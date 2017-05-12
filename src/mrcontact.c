@@ -679,32 +679,32 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
 		e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", 1 /*default is "on"*/);
 
-		if( e2ee_enabled
-		 && peerstate_ok
-		 && peerstate->m_prefer_encrypted!=MRA_PE_NO
-		 && peerstate->m_public_key!=NULL )
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	if( e2ee_enabled
+	 && peerstate_ok
+	 && peerstate->m_prefer_encrypted!=MRA_PE_NO
+	 && peerstate->m_public_key!=NULL )
+	{
+		/* end-to-end encryption, TODO: compare peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
+		mrstrbuilder_cat(&ret, "- End-to-end-encrypted.");
+	}
+	else
+	{
+		mrstrbuilder_cat(&ret, "- No key available.\n");
+		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
+		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
-			/* end-to-end encryption, TODO: peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
-			mrstrbuilder_cat(&ret, "- End-to-end-encrypted.");
+			/* transport encryption at least up to the user's server */
+			mrstrbuilder_cat(&ret, "- Messages are encrypted at least up to my server.");
 		}
 		else
 		{
-			mrstrbuilder_cat(&ret, "- No key available.\n");
-			if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
-			 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
-			{
-				/* transport encryption at least up to the user's server */
-				mrstrbuilder_cat(&ret, "- Messages are encrypted at least up to my server.");
-			}
-			else
-			{
-				/* no encryption at least up to the user's server */
-				mrstrbuilder_cat(&ret, "- No encryption to my server.");
-			}
+			/* no encryption at least up to the user's server */
+			mrstrbuilder_cat(&ret, "- No encryption to my server.");
 		}
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
+	}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
