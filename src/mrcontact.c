@@ -702,7 +702,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		else
 		{
 			/* no encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "- No encryption to my server.");
+			mrstrbuilder_cat(&ret, "• No encryption to my server.");
 		}
 	}
 
