@@ -62,7 +62,7 @@ typedef struct mre2ee_driver_t mre2ee_driver_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    1
-#define MR_VERSION_REVISION 37
+#define MR_VERSION_REVISION 38
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes

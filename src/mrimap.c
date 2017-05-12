@@ -685,6 +685,8 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	clistiter* cur;
 	int        total_cnt = 0;
 
+	mrmailbox_log_info(ths->m_mailbox, 0, "Fetching from all folders.");
+
 	LOCK_HANDLE
 		folder_list = list_folders__(ths);
 	UNLOCK_HANDLE
