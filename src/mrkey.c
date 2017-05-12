@@ -19,41 +19,37 @@
  *
  *******************************************************************************
  *
- * File:    mraheader.h
- * Purpose: Handle Autocrypt:-headers
+ * File:    mrkey.c
+ * Purpose: Handle keys
  *
  ******************************************************************************/
 
 
-#ifndef __MRAHEADER_H__
-#define __MRAHEADER_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-/*** library-private **********************************************************/
-
+#include <stdlib.h>
+#include <memory.h>
+#include "mrmailbox.h"
 #include "mrkey.h"
 
-typedef struct mraheader_t
+
+void mrkey_set(mrkey_t* ths, const unsigned char* data, int bytes)
 {
-	uint32_t       m_magic;
-	char*          m_to;
-	mrkey_t        m_public_key;
-	int            m_prefer_encrypted; /* yes|no */
-} mraheader_t;
+    mrkey_empty(ths);
+    if( data==NULL || bytes <= 0 ) {
+		return;
+    }
+    ths->m_binary = malloc(bytes);
+    if( ths->m_binary == NULL ) {
+		exit(40);
+    }
+    memcpy(ths->m_binary, data, bytes);
+    ths->m_bytes = bytes;
+}
 
 
-mraheader_t* mraheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
-void         mraheader_unref             (mraheader_t*);
-void         mraheader_empty             (mraheader_t*);
+void mrkey_empty(mrkey_t* ths)
+{
+	free(ths->m_binary);
+	ths->m_binary = NULL;
+	ths->m_bytes = 0;
+}
 
-int          mraheader_set_from_string   (mraheader_t*, const char* header_str);
-int          mraheader_set_from_imffields(mraheader_t*, const struct mailimf_fields* mime);
-
-
-#ifdef __cplusplus
-} /* /extern "C" */
-#endif
-#endif /* __MRAHEADER_H__ */

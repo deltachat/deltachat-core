@@ -27,9 +27,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mraheader.h"
+#include "mrapeerstate.h"
+#include "mrmimeparser.h"
 
 #define CLASS_MAGIC 1494527378
 
@@ -39,9 +42,121 @@
  ******************************************************************************/
 
 
-static int mraheader_set_from_string(mraheader_t* ths, const char* header_str)
+static int add_attribute(mraheader_t* ths, const char* name, const char* value /*may be NULL*/)
 {
+	/* returns 0 if the attribute will result in an invalid header, 1 if the attribute is okay */
+	if( strcasecmp(name, "to")==0 )
+	{
+		if( value == NULL
+		 || strlen(value) < 3 || strchr(value, '@')==NULL || strchr(value, '.')==NULL /* rough check if email-address is valid */
+		 || ths->m_to /* email already given */ ) {
+			return 0;
+		}
+		ths->m_to = mr_normalize_addr(value);
+		return 1;
+	}
+	else if( strcasecmp(name, "type")==0 )
+	{
+		if( value == NULL
+		 || strcasecmp(value, "p")!=0) {
+			return 0; /* we do not support any types but "p" (=PGP), if the type is ommited, this is okay and we assume "p" */
+		}
+		return 1;
+	}
+	else if( strcasecmp(name, "prefer-encrypted")==0 )
+	{
+		if( value == NULL ) { return 0; }
+        if( strcasecmp(value, "no")==0 ) { ths->m_prefer_encrypted = MRA_PE_NO; return 1; }
+        if( strcasecmp(value, "yes")==0 ) { ths->m_prefer_encrypted = MRA_PE_YES; return 1; }
+		return 0;
+	}
+	else if( strcasecmp(name, "key")==0 )
+	{
+		if( value == NULL
+		 || ths->m_public_key.m_binary || ths->m_public_key.m_bytes ) {
+			return 0; /* there is already a k*/
+		}
+		size_t indx = 0, result_len = 0;
+		char* result = NULL;
+		if( mailmime_base64_body_parse(value, strlen(value), &indx, &result/*must be freed using mmap_string_unref()*/, &result_len)!=MAILIMF_NO_ERROR
+		 || result == NULL || result_len == 0 ) {
+			return 0; /* bad key */
+		}
+		mrkey_set(&ths->m_public_key, (unsigned char*)result, result_len);
+		mmap_string_unref(result);
+		return 1;
+	}
+	else if( name[0]=='_' )
+	{
+		/* unknown attributes starting with an underscore can be safely ignored */
+		return 1;
+	}
+
+	/* unknown attribute, treat the header as invalid, see https://autocrypt.readthedocs.io/en/latest/level0.html#deriving-a-parsed-autocrypt-header-from-a-message */
 	return 0;
+}
+
+
+int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
+{
+	#define AHEADER_WS "\t\r\n "
+	char    *header_str = NULL;
+	char    *p, *beg_attr_name, *after_attr_name, *beg_attr_value;
+	int     success = 0;
+
+	mraheader_empty(ths);
+	ths->m_prefer_encrypted = MRA_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
+
+	if( ths == NULL || header_str__ == NULL ) {
+		goto cleanup;
+	}
+
+	header_str = safe_strdup(header_str__);
+	p = header_str;
+	while( *p )
+	{
+		p += strspn(p, AHEADER_WS "=;"); /* forward to first attribute name beginning */
+		beg_attr_name = p;
+		beg_attr_value = NULL;
+		p += strcspn(p, AHEADER_WS "=;"); /* get end of attribute name (an attribute may have no value) */
+		if( p != beg_attr_name )
+		{
+			/* attribute found */
+			after_attr_name = p;
+			p += strspn(p, AHEADER_WS); /* skip whitespace between attribute name and possible `=` */
+			if( *p == '=' )
+			{
+				p += strspn(p, AHEADER_WS "="); /* skip spaces and equal signs */
+
+				/* read unquoted attribute value until the first semicolon */
+				beg_attr_value = p;
+				p += strcspn(p, ";");
+				if( *p != '\0' ) {
+					*p = '\0';
+					p++;
+				}
+				mr_trim(beg_attr_value);
+			}
+			else
+			{
+				p += strspn(p, AHEADER_WS ";");
+			}
+			*after_attr_name = '\0';
+			if( !add_attribute(ths, beg_attr_name, beg_attr_value) ) {
+				goto cleanup; /* a bad attribute makes the whole header invalid */
+			}
+		}
+	}
+
+	/* all needed data found? */
+	if( ths->m_to && ths->m_public_key.m_binary ) {
+		success = 1;
+	}
+
+cleanup:
+	free(header_str);
+	if( !success ) { mraheader_empty(ths); }
+	return success;
 }
 
 
@@ -70,7 +185,7 @@ static const char* find_aheader_string(const struct mailimf_fields* header)
 		}
 	}
 
-	return header_str;
+	return header_str; /* may be NULL */
 }
 
 
@@ -108,13 +223,12 @@ void mraheader_empty(mraheader_t* ths)
 		return;
 	}
 
-	ths->m_pah_prefer_encrypted = 0;
+	ths->m_prefer_encrypted = 0;
 
 	free(ths->m_to);
 	ths->m_to = NULL;
 
-	free(ths->m_pah_key);
-	ths->m_pah_key = NULL;
+	mrkey_empty(&ths->m_public_key);
 }
 
 

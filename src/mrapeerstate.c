@@ -75,8 +75,7 @@ void mrapeerstate_empty(mrapeerstate_t* ths)
 	free(ths->m_addr);
 	ths->m_addr = NULL;
 
-	free(ths->m_public_key);
-	ths->m_public_key = NULL;
+	mrkey_empty(&ths->m_public_key);
 }
 
 

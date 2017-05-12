@@ -19,14 +19,14 @@
  *
  *******************************************************************************
  *
- * File:    mrapeerstate.h
- * Purpose: mrapeerstate_t represents the state of an Autocrypt peer
+ * File:    mrkey.h
+ * Purpose: Handle keys
  *
  ******************************************************************************/
 
 
-#ifndef __MRAPEERSTATE_H__
-#define __MRAPEERSTATE_H__
+#ifndef __MRKEY_H__
+#define __MRKEY_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,41 +35,19 @@ extern "C" {
 /*** library-private **********************************************************/
 
 
-#include "mrkey.h"
-
-
-typedef struct mraheader_t mraheader_t;
-
-
-#define MRA_PE_NO           0 /* prefer-encrypted states */
-#define MRA_PE_YES          1
-#define MRA_PE_NOPREFERENCE 2
-#define MRA_PE_RESET        3
-
-
-typedef struct mrapeerstate_t
+typedef struct mrkey_t
 {
-	uint32_t       m_magic;
-	char*          m_addr;
-	time_t         m_changed;
-	time_t         m_last_seen;
-	mrkey_t        m_public_key;
-	int            m_prefer_encrypted;
-} mrapeerstate_t;
+	unsigned char* m_binary;
+	int            m_bytes;
+} mrkey_t;
 
 
-mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
-void            mrapeerstate_unref           (mrapeerstate_t*);
-void            mrapeerstate_empty           (mrapeerstate_t*);
-
-int             mrapeerstate_apply_header    (mrapeerstate_t*, const mraheader_t*); /*returns 1 on changes*/
-
-int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
-int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*);
+void mrkey_set  (mrkey_t*, const unsigned char* data, int bytes);
+void mrkey_empty(mrkey_t*);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRAPEERSTATE_H__ */
+#endif /* __MRKEY_H__ */
 

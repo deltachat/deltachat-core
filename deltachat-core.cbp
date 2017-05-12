@@ -407,6 +407,9 @@
 		<Unit filename="src/mrjob.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrkey.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrloginparam.c">
 			<Option compilerVar="CC" />
 		</Unit>

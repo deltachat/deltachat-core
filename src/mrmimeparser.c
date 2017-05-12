@@ -442,7 +442,8 @@ const struct mailimf_field* mr_find_mailimf_field(const struct mailimf_fields* h
 
 char* mr_normalize_addr(const char* addr__)
 {
-	/* Not sure if we should also unifiy international characters before the @ */
+	/* Not sure if we should also unifiy international characters before the @,
+	see also https://autocrypt.readthedocs.io/en/latest/address-canonicalization.html  */
 	char* addr = safe_strdup(addr__);
 	mr_trim(addr);
 	if( strncmp(addr, "mailto:", 7)==0 ) {

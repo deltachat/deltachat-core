@@ -37,6 +37,8 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
+#include "mrapeerstate.h"
+#include "mraheader.h"
 #include "mrtools.h"
 
 
@@ -75,5 +77,45 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(str, "ababab")==0 );
 		assert( replacements == 3 );
 		free(str);
+	}
+
+	/* test Autocrypt header parsing functions
+	 **************************************************************************/
+
+	{
+		mraheader_t* ah = mraheader_new();
+		int          ah_ok;
+
+		ah_ok = mraheader_set_from_string(ah, "to=a@b.example.org; type=p; prefer-encrypted=yes; key=RGVsdGEgQ2hhdA==");
+		assert( ah_ok == 1 );
+		assert( ah->m_to && strcmp(ah->m_to, "a@b.example.org")==0 );
+		assert( ah->m_public_key.m_bytes==10 && strncmp((char*)ah->m_public_key.m_binary, "Delta Chat", 10)==0 );
+		assert( ah->m_prefer_encrypted==MRA_PE_YES );
+
+		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\n\r type = p ; prefer-encrypted = yes ; key = RG VsdGEgQ\n\r2hhdA==");
+		assert( ah_ok == 1 );
+		assert( ah->m_to && strcmp(ah->m_to, "a@b.example.org")==0 );
+		assert( ah->m_public_key.m_bytes==10 && strncmp((char*)ah->m_public_key.m_binary, "Delta Chat", 10)==0 );
+		assert( ah->m_prefer_encrypted==MRA_PE_YES );
+
+		ah_ok = mraheader_set_from_string(ah, "");
+		assert( ah_ok == 0 );
+
+		ah_ok = mraheader_set_from_string(ah, ";");
+		assert( ah_ok == 0 );
+
+		ah_ok = mraheader_set_from_string(ah, "foo");
+		assert( ah_ok == 0 );
+
+		ah_ok = mraheader_set_from_string(ah, "\n\n\n");
+		assert( ah_ok == 0 );
+
+		ah_ok = mraheader_set_from_string(ah, " ;;");
+		assert( ah_ok == 0 );
+
+		ah_ok = mraheader_set_from_string(ah, "to=a@t.de; unknwon=1; key=jau"); /* unknwon non-underscore attributes result in invalid headers */
+		assert( ah_ok == 0 );
+
+		mraheader_unref(ah);
 	}
 }
