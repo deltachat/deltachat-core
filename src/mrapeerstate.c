@@ -170,7 +170,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	if( create ) {
 		stmt = mrsqlite3_predefine__(sql, INSERT_INTO_apeerstates_a, "INSERT INTO apeerstates (addr) VALUES(?);");
 		sqlite3_bind_text(stmt, 1, ths->m_addr, -1, SQLITE_STATIC);
-		sqlite3_step(stmt); /* do not check the error, maybe inserting just do not work becase of UNIQUE */
+		sqlite3_step(stmt);
 	}
 
 	if( (ths->m_to_save&MRA_SAVE_ALL) || create )

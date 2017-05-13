@@ -286,7 +286,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		{
 			mrsqlite3_execute__(ths, "CREATE TABLE apeerstates ("
 						" id INTEGER PRIMARY KEY,"
-						" addr TEXT DEFAULT '' UNIQUE COLLATE NOCASE,"
+						" addr TEXT DEFAULT '' COLLATE NOCASE," /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
 						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
 						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
 						" public_key,"
