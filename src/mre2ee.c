@@ -94,17 +94,18 @@ cleanup:
 
 void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 {
-	struct mailmime*       in_message = NULL;
+	struct mailmime*             in_message = NULL;
 	const struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
-	mraheader_t*           autocryptheader = mraheader_new();
-	mrapeerstate_t*        peerstate = NULL;
-	int                    locked = 0;
-	char*                  from = NULL;
+	mraheader_t*                 autocryptheader = NULL;
+	mrapeerstate_t*              peerstate = NULL;
+	int                          locked = 0;
+	char*                        from = NULL;
 
 	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL ) {
 		return;
 	}
 
+	autocryptheader = mraheader_new();
 	in_message = *in_out_message;
 	imffields = mr_find_mailimf_fields(in_message);
 
@@ -113,7 +114,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 		const struct mailimf_field* field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_FROM);
 		if( field && field->fld_data.fld_from )
 		{
-			from = mr_find_first_addr(field->fld_data.fld_from);
+			from = mr_find_first_addr(field->fld_data.fld_from->frm_mb_list);
 			if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)==0 )
 			{
 				peerstate = mrapeerstate_new();
@@ -121,21 +122,21 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 				locked = 1;
 					if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, autocryptheader->m_to) ) {
 						if( mrapeerstate_apply_header(peerstate, autocryptheader) ) {
-							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql);
+							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 						}
 					}
-				mrsqlite3_lock(mailbox->m_sql);
+					else {
+						mrapeerstate_init_from_header(peerstate, autocryptheader);
+						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+					}
+				mrsqlite3_unlock(mailbox->m_sql);
 				locked = 0;
 			}
 		}
 	}
 
-
-cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
-	}
+/*cleanup:*/
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);
 	free(from);

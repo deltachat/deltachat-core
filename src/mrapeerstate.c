@@ -30,6 +30,7 @@
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrapeerstate.h"
+#include "mraheader.h"
 
 #define CLASS_MAGIC 1494527374
 
@@ -71,11 +72,24 @@ void mrapeerstate_empty(mrapeerstate_t* ths)
 	ths->m_changed          = 0;
 	ths->m_last_seen        = 0;
 	ths->m_prefer_encrypted = 0;
+	ths->m_to_save          = 0;
 
 	free(ths->m_addr);
 	ths->m_addr = NULL;
 
 	mrkey_empty(&ths->m_public_key);
+}
+
+
+int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header)
+{
+	ths->m_addr             = safe_strdup(header->m_to);
+	ths->m_changed          = time(NULL);
+	ths->m_last_seen        = time(NULL);
+	ths->m_to_save          = MRA_SAVE_ALL;
+	ths->m_prefer_encrypted = header->m_prefer_encrypted;
+	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+	return 0;
 }
 
 
@@ -87,12 +101,76 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header)
 
 int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const char* addr)
 {
+	int           success = 0;
+	sqlite3_stmt* stmt;
+
+	if( ths==NULL || sql == NULL || addr == NULL ) {
+		return 0;
+	}
+
 	mrapeerstate_empty(ths);
-	return 0;
+
+	stmt = mrsqlite3_predefine__(sql, SELECT_aclpp_FROM_apeerstates_WHERE_a,
+		"SELECT addr, changed, last_seen, prefer_encrypted, public_key FROM apeerstates WHERE addr=? COLLATE NOCASE;");
+	sqlite3_bind_text(stmt, 1, addr, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
+	ths->m_addr             = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
+	ths->m_changed          =                    sqlite3_column_int64 (stmt, 1);
+	ths->m_last_seen        =                    sqlite3_column_int64 (stmt, 2);
+	ths->m_prefer_encrypted =                    sqlite3_column_int   (stmt, 3);
+	mrkey_set_from_stmt     (&ths->m_public_key,                       stmt, 4);
+
+	success = 1;
+
+cleanup:
+	return success;
 }
 
 
-int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql)
+int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int create)
 {
-	return 0;
+	int           success = 0;
+	sqlite3_stmt* stmt;
+
+	if( ths==NULL || sql==NULL
+	 || ths->m_addr==NULL || ths->m_public_key.m_binary==NULL || ths->m_public_key.m_bytes<=0 ) {
+		return 0;
+	}
+
+	if( create ) {
+		stmt = mrsqlite3_predefine__(sql, INSERT_INTO_apeerstates_a, "INSERT INTO apeerstates (addr) VALUES(?);");
+		sqlite3_bind_text(stmt, 1, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_step(stmt); /* do not check the error, maybe inserting just do not work becase of UNIQUE */
+	}
+
+	if( (ths->m_to_save&MRA_SAVE_ALL) || create )
+	{
+		stmt = mrsqlite3_predefine__(sql, UPDATE_apeerstates_SET_lcpp_WHERE_a,
+			"UPDATE apeerstates SET last_seen=?, changed=?, prefer_encrypted=?, public_key=? WHERE addr=?;");
+		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
+		sqlite3_bind_int64(stmt, 2, ths->m_changed);
+		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypted);
+		sqlite3_bind_blob (stmt, 4, ths->m_public_key.m_binary, ths->m_public_key.m_bytes, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 5, ths->m_addr, -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+	}
+	else if( ths->m_to_save&MRA_SAVE_LAST_SEEN )
+	{
+		stmt = mrsqlite3_predefine__(sql, UPDATE_apeerstates_SET_l_WHERE_a,
+			"UPDATE apeerstates SET last_seen=? WHERE addr=?;");
+		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
+		sqlite3_bind_text (stmt, 2, ths->m_addr, -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			goto cleanup;
+		}
+	}
+
+	success = 1;
+
+cleanup:
+	return success;
 }

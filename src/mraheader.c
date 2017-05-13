@@ -82,7 +82,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		 || result == NULL || result_len == 0 ) {
 			return 0; /* bad key */
 		}
-		mrkey_set(&ths->m_public_key, (unsigned char*)result, result_len);
+		mrkey_set_from_raw(&ths->m_public_key, (unsigned char*)result, result_len);
 		mmap_string_unref(result);
 		return 1;
 	}

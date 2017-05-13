@@ -55,6 +55,10 @@ typedef struct mrapeerstate_t
 	time_t         m_last_seen;
 	mrkey_t        m_public_key;
 	int            m_prefer_encrypted;
+
+	#define        MRA_SAVE_LAST_SEEN 0x01
+	#define        MRA_SAVE_ALL       0x02
+	int            m_to_save;
 } mrapeerstate_t;
 
 
@@ -62,10 +66,11 @@ mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'
 void            mrapeerstate_unref           (mrapeerstate_t*);
 void            mrapeerstate_empty           (mrapeerstate_t*);
 
+int             mrapeerstate_init_from_header(mrapeerstate_t*, const mraheader_t*);
 int             mrapeerstate_apply_header    (mrapeerstate_t*, const mraheader_t*); /*returns 1 on changes*/
 
 int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
-int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*);
+int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*, int create);
 
 
 #ifdef __cplusplus

@@ -132,6 +132,11 @@ enum
 
 	,SELECT_FROM_leftgrps_WHERE_grpid
 
+	,INSERT_INTO_apeerstates_a
+	,SELECT_aclpp_FROM_apeerstates_WHERE_a
+	,UPDATE_apeerstates_SET_l_WHERE_a
+	,UPDATE_apeerstates_SET_lcpp_WHERE_a
+
 	,PREDEFINED_CNT /* must be last */
 };
 

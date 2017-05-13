@@ -27,11 +27,12 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
 
 
-void mrkey_set(mrkey_t* ths, const unsigned char* data, int bytes)
+void mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes)
 {
     mrkey_empty(ths);
     if( data==NULL || bytes <= 0 ) {
@@ -43,6 +44,18 @@ void mrkey_set(mrkey_t* ths, const unsigned char* data, int bytes)
     }
     memcpy(ths->m_binary, data, bytes);
     ths->m_bytes = bytes;
+}
+
+
+void mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o)
+{
+	mrkey_set_from_raw(ths, o->m_binary, o->m_bytes);
+}
+
+
+void mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index)
+{
+	mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index));
 }
 
 

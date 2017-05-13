@@ -34,7 +34,6 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-
 typedef struct mrkey_t
 {
 	unsigned char* m_binary;
@@ -42,8 +41,10 @@ typedef struct mrkey_t
 } mrkey_t;
 
 
-void mrkey_set  (mrkey_t*, const unsigned char* data, int bytes);
-void mrkey_empty(mrkey_t*);
+void mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes);
+void mrkey_set_from_key  (mrkey_t*, const mrkey_t*);
+void mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index);
+void mrkey_empty         (mrkey_t*);
 
 
 #ifdef __cplusplus

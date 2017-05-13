@@ -459,6 +459,11 @@ char* mr_normalize_addr(const char* addr__)
 char* mr_find_first_addr(const struct mailimf_mailbox_list* mb_list)
 {
 	clistiter* cur;
+
+	if( mb_list == NULL ) {
+		return NULL;
+	}
+
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb && mb->mb_addr_spec ) {

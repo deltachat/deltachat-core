@@ -286,7 +286,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		{
 			mrsqlite3_execute__(ths, "CREATE TABLE apeerstates ("
 						" id INTEGER PRIMARY KEY,"
-						" addr TEXT DEFAULT '' COLLATE NOCASE,"
+						" addr TEXT DEFAULT '' UNIQUE COLLATE NOCASE,"
 						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
 						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
 						" public_key,"
