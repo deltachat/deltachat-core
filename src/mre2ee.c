@@ -33,6 +33,7 @@
 #include "mrapeerstate.h"
 #include "mraheader.h"
 #include "mrmimeparser.h"
+#include "mrtools.h"
 
 
 /*******************************************************************************
@@ -97,6 +98,8 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	struct mailmime*             in_message = NULL;
 	const struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*                 autocryptheader = NULL;
+	int                          autocryptheader_fine = 0;
+	time_t                       headertime = 0;
 	mrapeerstate_t*              peerstate = NULL;
 	int                          locked = 0;
 	char*                        from = NULL;
@@ -105,37 +108,76 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 		return;
 	}
 
+	peerstate = mrapeerstate_new();
 	autocryptheader = mraheader_new();
 	in_message = *in_out_message;
 	imffields = mr_find_mailimf_fields(in_message);
 
-	if( mraheader_set_from_imffields(autocryptheader, imffields) )
+	/* get From: and Date: */
 	{
 		const struct mailimf_field* field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_FROM);
-		if( field && field->fld_data.fld_from )
-		{
+		if( field && field->fld_data.fld_from ) {
 			from = mr_find_first_addr(field->fld_data.fld_from->frm_mb_list);
-			if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)==0 )
-			{
-				peerstate = mrapeerstate_new();
-				mrsqlite3_lock(mailbox->m_sql);
-				locked = 1;
-					if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, autocryptheader->m_to) ) {
-						if( mrapeerstate_apply_header(peerstate, autocryptheader) ) {
-							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
-						}
-					}
-					else {
-						mrapeerstate_init_from_header(peerstate, autocryptheader);
-						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
-					}
-				mrsqlite3_unlock(mailbox->m_sql);
-				locked = 0;
+		}
+
+		field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_ORIG_DATE);
+		if( field && field->fld_data.fld_orig_date ) {
+			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+			if( orig_date ) {
+				headertime = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+				if( headertime != MR_INVALID_TIMESTAMP && headertime > time(NULL) ) {
+					headertime = time(NULL);
+				}
 			}
+		}
+
+		if( headertime <= 0 ) {
+			goto cleanup; /* from checked later, may be set by Autocrypt:-header */
 		}
 	}
 
-/*cleanup:*/
+	/* check the autocrypt header, if any */
+	autocryptheader_fine = mraheader_set_from_imffields(autocryptheader, imffields);
+	if( autocryptheader_fine ) {
+		if( from == NULL ) {
+			from = safe_strdup(autocryptheader->m_to);
+		}
+		else if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)!=0 ) {
+			autocryptheader_fine = 0;
+		}
+	}
+
+	if( from == NULL ) {
+		goto cleanup;
+	}
+
+	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
+			if( autocryptheader_fine ) {
+				mrapeerstate_apply_header(peerstate, autocryptheader, headertime);
+				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
+			}
+			else {
+				if( headertime > peerstate->m_changed ) {
+					peerstate->m_prefer_encrypted = MRA_PE_NO;
+					peerstate->m_changed = headertime;
+					peerstate->m_to_save = MRA_SAVE_ALL;
+					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
+				}
+			}
+		}
+		else if( autocryptheader_fine ) {
+			mrapeerstate_init_from_header(peerstate, autocryptheader, headertime);
+			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);

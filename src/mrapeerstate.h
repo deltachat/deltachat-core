@@ -66,8 +66,8 @@ mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'
 void            mrapeerstate_unref           (mrapeerstate_t*);
 void            mrapeerstate_empty           (mrapeerstate_t*);
 
-int             mrapeerstate_init_from_header(mrapeerstate_t*, const mraheader_t*);
-int             mrapeerstate_apply_header    (mrapeerstate_t*, const mraheader_t*); /*returns 1 on changes*/
+int             mrapeerstate_init_from_header(mrapeerstate_t*, const mraheader_t*, time_t headertime);
+int             mrapeerstate_apply_header    (mrapeerstate_t*, const mraheader_t*, time_t headertime); /*returns 1 on changes*/
 
 int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
 int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*, int create);

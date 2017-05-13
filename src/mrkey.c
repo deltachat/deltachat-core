@@ -66,3 +66,18 @@ void mrkey_empty(mrkey_t* ths)
 	ths->m_bytes = 0;
 }
 
+
+int mrkey_equals(const mrkey_t* ths, const mrkey_t* o)
+{
+	if( ths==NULL || o==NULL
+	 || ths->m_binary==NULL || ths->m_bytes<=0 || o->m_binary==NULL || o->m_bytes<=0 ) {
+		return 0; /*error*/
+	}
+
+	if( ths->m_bytes != o->m_bytes ) {
+		return 0; /*different size -> the keys cannot be equal*/
+	}
+
+	return memcmp(ths->m_binary, o->m_binary, o->m_bytes)==0? 1 : 0;
+}
+

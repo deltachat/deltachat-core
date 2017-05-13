@@ -81,11 +81,11 @@ void mrapeerstate_empty(mrapeerstate_t* ths)
 }
 
 
-int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header)
+int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header, time_t headertime)
 {
 	ths->m_addr             = safe_strdup(header->m_to);
-	ths->m_changed          = time(NULL);
-	ths->m_last_seen        = time(NULL);
+	ths->m_changed          = headertime;
+	ths->m_last_seen        = headertime;
 	ths->m_to_save          = MRA_SAVE_ALL;
 	ths->m_prefer_encrypted = header->m_prefer_encrypted;
 	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
@@ -93,9 +93,40 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 }
 
 
-int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header)
+int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t headertime)
 {
-	return 0;
+	if( ths==NULL || header==NULL
+	 || ths->m_addr==NULL || ths->m_public_key.m_binary==NULL
+	 || header->m_to==NULL || header->m_public_key.m_binary==NULL
+	 || strcasecmp(ths->m_addr, header->m_to)!=0 ) {
+		return 0;
+	}
+
+	if( headertime > ths->m_last_seen ) {
+		ths->m_last_seen = headertime;
+		ths->m_to_save |= MRA_SAVE_LAST_SEEN;
+	}
+
+	if( (header->m_prefer_encrypted == MRA_PE_NO || header->m_prefer_encrypted == MRA_PE_YES)
+	 &&  header->m_prefer_encrypted != ths->m_prefer_encrypted )
+	{
+		if( headertime > ths->m_changed ) {
+			ths->m_changed = headertime;
+			ths->m_prefer_encrypted = header->m_prefer_encrypted;
+			ths->m_to_save |= MRA_SAVE_ALL;
+		}
+	}
+
+	if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
+	{
+		if( headertime > ths->m_changed ) {
+			ths->m_changed = headertime;
+			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+			ths->m_to_save |= MRA_SAVE_ALL;
+		}
+	}
+
+	return ths->m_to_save? 1 : 0;
 }
 
 
