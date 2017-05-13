@@ -99,7 +99,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	const struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*                 autocryptheader = NULL;
 	int                          autocryptheader_fine = 0;
-	time_t                       headertime = 0;
+	time_t                       message_time = 0;
 	mrapeerstate_t*              peerstate = NULL;
 	int                          locked = 0;
 	char*                        from = NULL;
@@ -124,14 +124,14 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 		if( field && field->fld_data.fld_orig_date ) {
 			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 			if( orig_date ) {
-				headertime = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-				if( headertime != MR_INVALID_TIMESTAMP && headertime > time(NULL) ) {
-					headertime = time(NULL);
+				message_time = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+				if( message_time != MR_INVALID_TIMESTAMP && message_time > time(NULL) ) {
+					message_time = time(NULL);
 				}
 			}
 		}
 
-		if( headertime <= 0 ) {
+		if( message_time <= 0 ) {
 			goto cleanup; /* from checked later, may be set by Autocrypt:-header */
 		}
 	}
@@ -157,20 +157,20 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 
 		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
 			if( autocryptheader_fine ) {
-				mrapeerstate_apply_header(peerstate, autocryptheader, headertime);
+				mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
 				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 			}
 			else {
-				if( headertime > peerstate->m_changed ) {
+				if( message_time > peerstate->m_last_seen ) {
 					peerstate->m_prefer_encrypted = MRA_PE_NO;
-					peerstate->m_changed = headertime;
+					peerstate->m_changed = message_time; /*last_seen is not updated as there was not Autocrypt:-header seen*/
 					peerstate->m_to_save = MRA_SAVE_ALL;
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
 			}
 		}
 		else if( autocryptheader_fine ) {
-			mrapeerstate_init_from_header(peerstate, autocryptheader, headertime);
+			mrapeerstate_init_from_header(peerstate, autocryptheader, message_time);
 			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 		}
 
