@@ -68,7 +68,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		if( value == NULL ) { return 0; }
         if( strcasecmp(value, "no")==0 ) { ths->m_prefer_encrypted = MRA_PE_NO; return 1; }
         if( strcasecmp(value, "yes")==0 ) { ths->m_prefer_encrypted = MRA_PE_YES; return 1; }
-		return 0;
+		return 0; /* Autocrypt-Level0: If prefer-encrypted is set, but neither yes nor no, the MUA must skip the header as invalid. */
 	}
 	else if( strcasecmp(name, "key")==0 )
 	{

@@ -36,95 +36,8 @@
 
 
 /*******************************************************************************
- * Main interface
+ * Load/save
  ******************************************************************************/
-
-
-mrapeerstate_t* mrapeerstate_new()
-{
-	mrapeerstate_t* ths = NULL;
-
-	if( (ths=calloc(1, sizeof(mrapeerstate_t)))==NULL ) {
-		exit(15); /* cannot allocate little memory, unrecoverable error */
-	}
-
-	MR_INIT_REFERENCE
-
-	return ths;
-}
-
-
-void mrapeerstate_unref(mrapeerstate_t* ths)
-{
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
-
-	mrapeerstate_empty(ths);
-	free(ths);
-}
-
-
-void mrapeerstate_empty(mrapeerstate_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	ths->m_changed          = 0;
-	ths->m_last_seen        = 0;
-	ths->m_prefer_encrypted = 0;
-	ths->m_to_save          = 0;
-
-	free(ths->m_addr);
-	ths->m_addr = NULL;
-
-	mrkey_empty(&ths->m_public_key);
-}
-
-
-int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
-{
-	ths->m_addr             = safe_strdup(header->m_to);
-	ths->m_changed          = message_time;
-	ths->m_last_seen        = message_time;
-	ths->m_to_save          = MRA_SAVE_ALL;
-	ths->m_prefer_encrypted = header->m_prefer_encrypted;
-	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
-	return 0;
-}
-
-
-int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
-{
-	if( ths==NULL || header==NULL
-	 || ths->m_addr==NULL || ths->m_public_key.m_binary==NULL
-	 || header->m_to==NULL || header->m_public_key.m_binary==NULL
-	 || strcasecmp(ths->m_addr, header->m_to)!=0 ) {
-		return 0;
-	}
-
-	if( message_time > ths->m_last_seen )
-	{
-		ths->m_last_seen = message_time;
-		ths->m_to_save |= MRA_SAVE_LAST_SEEN;
-
-		if( (header->m_prefer_encrypted == MRA_PE_NO || header->m_prefer_encrypted == MRA_PE_YES)
-		 &&  header->m_prefer_encrypted != ths->m_prefer_encrypted )
-		{
-			ths->m_changed = message_time;
-			ths->m_prefer_encrypted = header->m_prefer_encrypted;
-			ths->m_to_save |= MRA_SAVE_ALL;
-		}
-
-		if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
-		{
-			ths->m_changed = message_time;
-			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
-			ths->m_to_save |= MRA_SAVE_ALL;
-		}
-	}
-
-	return ths->m_to_save? 1 : 0;
-}
 
 
 int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const char* addr)
@@ -202,3 +115,119 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 cleanup:
 	return success;
 }
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+mrapeerstate_t* mrapeerstate_new()
+{
+	mrapeerstate_t* ths = NULL;
+
+	if( (ths=calloc(1, sizeof(mrapeerstate_t)))==NULL ) {
+		exit(15); /* cannot allocate little memory, unrecoverable error */
+	}
+
+	MR_INIT_REFERENCE
+
+	return ths;
+}
+
+
+void mrapeerstate_unref(mrapeerstate_t* ths)
+{
+	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+
+	mrapeerstate_empty(ths);
+	free(ths);
+}
+
+
+void mrapeerstate_empty(mrapeerstate_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	ths->m_changed          = 0;
+	ths->m_last_seen        = 0;
+	ths->m_prefer_encrypted = 0;
+	ths->m_to_save          = 0;
+
+	free(ths->m_addr);
+	ths->m_addr = NULL;
+
+	mrkey_empty(&ths->m_public_key);
+}
+
+
+/*******************************************************************************
+ * Change state
+ ******************************************************************************/
+
+
+int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
+{
+	if( ths == NULL || header == NULL ) {
+		return 0;
+	}
+
+	mrapeerstate_empty(ths);
+	ths->m_addr             = safe_strdup(header->m_to);
+	ths->m_changed          = message_time;
+	ths->m_last_seen        = message_time;
+	ths->m_to_save          = MRA_SAVE_ALL;
+	ths->m_prefer_encrypted = header->m_prefer_encrypted;
+	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+	return 1;
+}
+
+
+int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
+{
+	if( ths==NULL ) {
+		return 0;
+	}
+
+	ths->m_prefer_encrypted = MRA_PE_NO;
+	ths->m_changed = message_time; /*last_seen is not updated as there was not Autocrypt:-header seen*/
+	ths->m_to_save = MRA_SAVE_ALL;
+	return 1;
+}
+
+
+int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
+{
+	if( ths==NULL || header==NULL
+	 || ths->m_addr==NULL
+	 || header->m_to==NULL || header->m_public_key.m_binary==NULL
+	 || strcasecmp(ths->m_addr, header->m_to)!=0 ) {
+		return 0;
+	}
+
+	if( message_time > ths->m_last_seen )
+	{
+		ths->m_last_seen = message_time;
+		ths->m_to_save |= MRA_SAVE_LAST_SEEN;
+
+		if( (header->m_prefer_encrypted==MRA_PE_NO || header->m_prefer_encrypted==MRA_PE_YES || header->m_prefer_encrypted==MRA_PE_NOPREFERENCE)
+		 &&  header->m_prefer_encrypted != ths->m_prefer_encrypted )
+		{
+			ths->m_changed = message_time;
+			ths->m_prefer_encrypted = header->m_prefer_encrypted;
+			ths->m_to_save |= MRA_SAVE_ALL;
+		}
+
+		if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
+		{
+			ths->m_changed = message_time;
+			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+			ths->m_to_save |= MRA_SAVE_ALL;
+		}
+	}
+
+	return ths->m_to_save? 1 : 0;
+}
+

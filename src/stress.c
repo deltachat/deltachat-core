@@ -98,6 +98,12 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah->m_public_key.m_bytes==10 && strncmp((char*)ah->m_public_key.m_binary, "Delta Chat", 10)==0 );
 		assert( ah->m_prefer_encrypted==MRA_PE_YES );
 
+		ah_ok = mraheader_set_from_string(ah, "to=a@b.example.org; type=p; prefer-encrypted=nopreference; key=RGVsdGEgQ2hhdA==");
+		assert( ah_ok == 0 ); /* only "yes" or "no" are valid for prefer-encrypted ... */
+
+		ah_ok = mraheader_set_from_string(ah, "to=a@b.example.org; key=RGVsdGEgQ2hhdA==");
+		assert( ah_ok == 1 && ah->m_prefer_encrypted==MRA_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
+
 		ah_ok = mraheader_set_from_string(ah, "");
 		assert( ah_ok == 0 );
 

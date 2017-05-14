@@ -49,18 +49,28 @@ void mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes)
 
 void mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o)
 {
-	mrkey_set_from_raw(ths, o->m_binary, o->m_bytes);
+	mrkey_empty(ths);
+	if( ths && o ) {
+		mrkey_set_from_raw(ths, o->m_binary, o->m_bytes);
+	}
 }
 
 
 void mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index)
 {
-	mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index));
+	mrkey_empty(ths);
+	if( ths && stmt ) {
+		mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index));
+	}
 }
 
 
 void mrkey_empty(mrkey_t* ths)
 {
+	if( ths == NULL ) {
+		return;
+	}
+
 	free(ths->m_binary);
 	ths->m_binary = NULL;
 	ths->m_bytes = 0;

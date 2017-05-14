@@ -41,7 +41,7 @@ typedef struct mraheader_t
 	uint32_t       m_magic;
 	char*          m_to;
 	mrkey_t        m_public_key;
-	int            m_prefer_encrypted; /* yes|no */
+	int            m_prefer_encrypted; /* YES, NO or NOPREFERENCE if attribute is missing */
 } mraheader_t;
 
 
