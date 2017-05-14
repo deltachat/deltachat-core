@@ -22,6 +22,11 @@
  * File:    mraheader.c
  * Purpose: Handle Autocrypt:-headers
  *
+ *******************************************************************************
+ *
+ * Delta Chat aims to implement Autocrypt-Level0, see
+ * https://autocrypt.readthedocs.io/en/latest/level0.html for details.
+ *
  ******************************************************************************/
 
 
@@ -88,11 +93,11 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 	}
 	else if( name[0]=='_' )
 	{
-		/* unknown attributes starting with an underscore can be safely ignored */
+		/* Autocrypt-Level0: unknown attributes starting with an underscore can be safely ignored */
 		return 1;
 	}
 
-	/* unknown attribute, treat the header as invalid, see https://autocrypt.readthedocs.io/en/latest/level0.html#deriving-a-parsed-autocrypt-header-from-a-message */
+	/* Autocrypt-Level0: unknown attribute, treat the header as invalid */
 	return 0;
 }
 
@@ -176,7 +181,7 @@ static const char* find_aheader_string(const struct mailimf_fields* header)
 				if( optional_field && optional_field->fld_name ) {
 					if( strcasecmp(optional_field->fld_name, "Autocrypt")==0 ) {
 						if( header_str ) {
-							return NULL; /* if there are multiple Autocrypt:-headers, skip all;  see https://autocrypt.readthedocs.io/en/latest/level0.html#deriving-a-parsed-autocrypt-header-from-a-message  */
+							return NULL; /* Autocrypt-Level0: if there are multiple Autocrypt:-headers  */
 						}
 						header_str = optional_field->fld_value;
 					}

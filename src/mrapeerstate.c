@@ -22,6 +22,11 @@
  * File:    mrapeerstate.c
  * Purpose: mrapeerstate_t represents the state of an Autocrypt peer
  *
+ *******************************************************************************
+ *
+ * Delta Chat aims to implement Autocrypt-Level0, see
+ * https://autocrypt.readthedocs.io/en/latest/level0.html for details.
+ *
  ******************************************************************************/
 
 
