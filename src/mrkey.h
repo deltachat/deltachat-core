@@ -34,18 +34,30 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
+#define MR_PUBLIC  0
+#define MR_PRIVATE 1
+
+
 typedef struct mrkey_t
 {
 	unsigned char* m_binary;
 	int            m_bytes;
+	int            m_type;
 } mrkey_t;
 
 
-void mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes);
-void mrkey_set_from_key  (mrkey_t*, const mrkey_t*);
-void mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index);
-void mrkey_empty         (mrkey_t*);
+void mrkey_init          (mrkey_t*); /* for initialing random memory that should be used as a key */
+void mrkey_empty         (mrkey_t*); /* free data needed; for private keys, this also wipes the memory */
+
+int  mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes, int type);
+int  mrkey_set_from_key  (mrkey_t*, const mrkey_t*, int type);
+int  mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index, int type);
+
 int  mrkey_equals        (const mrkey_t*, const mrkey_t*);
+
+int  mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql);
+int  mrkey_load_public__ (mrkey_t*, mrsqlite3_t* sql);
+int  mrkey_load_private__(mrkey_t*, mrsqlite3_t* sql);
 
 
 #ifdef __cplusplus

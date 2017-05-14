@@ -34,6 +34,8 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
+#define MR_E2EE_DEFAULT_ENABLED 1
+
 void mre2ee_init    (mrmailbox_t*);
 void mre2ee_exit    (mrmailbox_t*);
 void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, struct mailmime** in_out_message);

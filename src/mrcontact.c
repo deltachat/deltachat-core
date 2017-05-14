@@ -31,6 +31,7 @@
 #include "mrmimeparser.h"
 #include "mrcontact.h"
 #include "mrloginparam.h"
+#include "mre2ee.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
 
@@ -677,7 +678,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		}
 		peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
-		e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", 1 /*default is "on"*/);
+		e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;

@@ -32,11 +32,22 @@
 #include "mrkey.h"
 
 
-void mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes)
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+void mrkey_init(mrkey_t* ths)
+{
+	memset(ths, 0, sizeof(mrkey_t));
+}
+
+
+int mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes, int type)
 {
     mrkey_empty(ths);
     if( data==NULL || bytes <= 0 ) {
-		return;
+		return 0;
     }
     ths->m_binary = malloc(bytes);
     if( ths->m_binary == NULL ) {
@@ -44,24 +55,28 @@ void mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes)
     }
     memcpy(ths->m_binary, data, bytes);
     ths->m_bytes = bytes;
+    ths->m_type = type;
+    return 1;
 }
 
 
-void mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o)
+int mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o, int type)
 {
 	mrkey_empty(ths);
-	if( ths && o ) {
-		mrkey_set_from_raw(ths, o->m_binary, o->m_bytes);
+	if( ths==NULL || o==NULL ) {
+		return 0;
 	}
+	return mrkey_set_from_raw(ths, o->m_binary, o->m_bytes, type);
 }
 
 
-void mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index)
+int mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index, int type)
 {
 	mrkey_empty(ths);
-	if( ths && stmt ) {
-		mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index));
+	if( ths==NULL || stmt==NULL ) {
+		return 0;
 	}
+	return mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
 }
 
 
@@ -71,9 +86,22 @@ void mrkey_empty(mrkey_t* ths)
 		return;
 	}
 
+	if( ths->m_type==MR_PRIVATE ) {
+		if( ths->m_binary && ths->m_bytes>0 ) {
+			/* wipe private keys with different patterns. Don't know, if this helps, however, it should not hurt.
+			(in general, we keep the private keys in memory as short as possible and only if really needed.
+			on disk, eg. on Android, it is not accessible for other Apps - so all this should be quite safe) */
+			memset(ths->m_binary, 0xFF, ths->m_bytes); /* pattern 11111111 */
+			memset(ths->m_binary, 0xAA, ths->m_bytes); /* pattern 10101010 */
+			memset(ths->m_binary, 0x55, ths->m_bytes); /* pattern 01010101 */
+			memset(ths->m_binary, 0x00, ths->m_bytes); /* pattern 00000000 */
+		}
+	}
+
 	free(ths->m_binary);
 	ths->m_binary = NULL;
 	ths->m_bytes = 0;
+	ths->m_type = MR_PUBLIC;
 }
 
 
@@ -88,6 +116,63 @@ int mrkey_equals(const mrkey_t* ths, const mrkey_t* o)
 		return 0; /*different size -> the keys cannot be equal*/
 	}
 
+	if( ths->m_type != o->m_type ) {
+		return 0; /* cannot compare public with private keys */
+	}
+
 	return memcmp(ths->m_binary, o->m_binary, o->m_bytes)==0? 1 : 0;
 }
 
+
+/*******************************************************************************
+ * Save/Load keys
+ ******************************************************************************/
+
+
+int mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql)
+{
+	sqlite3_stmt* stmt;
+
+	stmt = mrsqlite3_predefine__(sql, INSERT_INTO_keypairs_aippc,
+		"INSERT INTO keypairs (addr, is_default, public_key, private_key, created) VALUES (?,?,?,?,?);");
+	sqlite3_bind_text (stmt, 1, addr, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 2, 1);
+	sqlite3_bind_blob (stmt, 3, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 4, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 5, time(NULL));
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+int mrkey_load_public__(mrkey_t* ths, mrsqlite3_t* sql)
+{
+	sqlite3_stmt* stmt;
+
+	mrkey_empty(ths);
+	stmt = mrsqlite3_predefine__(sql, SELECT_public_key_FROM_keypairs_WHERE_default,
+		"SELECT public_key FROM keypairs WHERE is_default=1;");
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+	mrkey_set_from_stmt(ths, stmt, 0, MR_PUBLIC);
+	return 1;
+}
+
+
+int mrkey_load_private__(mrkey_t* ths, mrsqlite3_t* sql)
+{
+	sqlite3_stmt* stmt;
+
+	mrkey_empty(ths);
+	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
+		"SELECT private_key FROM keypairs WHERE is_default=1;");
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+	mrkey_set_from_stmt(ths, stmt, 0, MR_PRIVATE);
+	return 1;
+}

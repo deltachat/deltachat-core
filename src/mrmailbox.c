@@ -1366,7 +1366,7 @@ int mrmailbox_empty_tables(mrmailbox_t* ths)
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
 		mrsqlite3_execute__(ths->m_sql, "DELETE FROM apeerstates;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM aprivatekeys;");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
 
 	mrsqlite3_unlock(ths->m_sql);
 

@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="/home/bpetersen/messy/eml/messenger-test.db" />
+				<Option parameters="/home/bpetersen/messy/eml/messenger.db" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>

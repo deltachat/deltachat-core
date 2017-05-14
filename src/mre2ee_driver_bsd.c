@@ -41,6 +41,7 @@
 
 #include <string.h>
 #include "mrmailbox.h"
+#include "mrkey.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
 
@@ -55,17 +56,34 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 }
 
 
-void mre2ee_driver_encrypt__(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime** in_out_message)
+int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* public_key, mrkey_t* private_key)
 {
-	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL ) {
+	if( mailbox==NULL || public_key==NULL || private_key==NULL ) {
+		return 0;
+	}
+	mrkey_empty(public_key);
+	mrkey_empty(private_key);
+
+	/* TODO: real implementation here! */
+	const char* dummy = "lkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjf";
+	mrkey_set_from_raw(public_key, (const unsigned char*)dummy, strlen(dummy), MR_PUBLIC);
+	mrkey_set_from_raw(private_key, (const unsigned char*)dummy, strlen(dummy), MR_PRIVATE);
+
+	return 1;
+}
+
+
+void mre2ee_driver_encrypt__(mrmailbox_t* mailbox, struct mailmime** in_out_message, const mrkey_t* public_key)
+{
+	if( mailbox==NULL || in_out_message==NULL || *in_out_message==NULL || public_key==NULL ) {
 		return;
 	}
 }
 
 
-void mre2ee_driver_decrypt__(mrmailbox_t* mailbox, struct mailmime** in_out_message)
+void mre2ee_driver_decrypt__(mrmailbox_t* mailbox, struct mailmime** in_out_message, const mrkey_t* private_key)
 {
-	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL ) {
+	if( mailbox==NULL || in_out_message==NULL || *in_out_message==NULL ) {
 		return;
 	}
 }

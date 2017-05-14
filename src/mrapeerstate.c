@@ -66,7 +66,7 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	ths->m_changed          =                    sqlite3_column_int64 (stmt, 1);
 	ths->m_last_seen        =                    sqlite3_column_int64 (stmt, 2);
 	ths->m_prefer_encrypted =                    sqlite3_column_int   (stmt, 3);
-	mrkey_set_from_stmt     (&ths->m_public_key,                       stmt, 4);
+	mrkey_set_from_stmt     (&ths->m_public_key,                       stmt, 4, MR_PUBLIC);
 
 	success = 1;
 
@@ -185,7 +185,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	ths->m_last_seen        = message_time;
 	ths->m_to_save          = MRA_SAVE_ALL;
 	ths->m_prefer_encrypted = header->m_prefer_encrypted;
-	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key, MR_PUBLIC);
 	return 1;
 }
 
@@ -228,7 +228,7 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 		if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
 		{
 			ths->m_changed = message_time;
-			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key, MR_PUBLIC);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}

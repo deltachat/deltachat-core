@@ -77,6 +77,22 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(str, "ababab")==0 );
 		assert( replacements == 3 );
 		free(str);
+
+		str = mr_insert_spaces("just1234test", 4);
+		assert( strcmp(str, "just 1234 test")==0 );
+		free(str);
+
+		str = mr_insert_spaces("just1234tes", 4);
+		assert( strcmp(str, "just 1234 tes")==0 );
+		free(str);
+
+		str = mr_insert_spaces("just1234t", 4);
+		assert( strcmp(str, "just 1234 t")==0 );
+		free(str);
+
+		str = mr_insert_spaces("", 4);
+		assert( strcmp(str, "")==0 );
+		free(str);
 	}
 
 	/* test Autocrypt header parsing functions
@@ -94,7 +110,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah->m_prefer_encrypted==MRA_PE_YES );
 
 		rendered = mraheader_render(ah);
-		assert( strcmp(rendered, "to=a@b.example.org; type=p; prefer-encrypted=yes; key=RGVsdGEgQ2hhdA==")==0 );
+		assert( strcmp(rendered, "to=a@b.example.org; prefer-encrypted=yes; key= RGVsdGEgQ2hhdA==")==0 );
 
 		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\n\r type = p ; prefer-encrypted = yes ; key = RG VsdGEgQ\n\r2hhdA==");
 		assert( ah_ok == 1 );

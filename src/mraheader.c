@@ -52,17 +52,17 @@ char* mraheader_render(const mraheader_t* ths)
 {
 	int            success = 0;
 	char*          keybase64 = NULL;
+	char*          keybase64_wrapped = NULL;
 	mrstrbuilder_t ret;
 	mrstrbuilder_init(&ret);
 
-	if( ths==NULL || ths->m_to==NULL || ths->m_public_key.m_binary==NULL ) {
+	if( ths==NULL || ths->m_to==NULL || ths->m_public_key.m_binary==NULL || ths->m_public_key.m_type!=MR_PUBLIC ) {
 		goto cleanup;
 	}
 
 	mrstrbuilder_cat(&ret, "to=");
 	mrstrbuilder_cat(&ret, ths->m_to);
-
-	mrstrbuilder_cat(&ret, "; type=p; ");
+	mrstrbuilder_cat(&ret, "; ");
 
 	if( ths->m_prefer_encrypted==MRA_PE_YES ) {
 		mrstrbuilder_cat(&ret, "prefer-encrypted=yes; ");
@@ -71,16 +71,26 @@ char* mraheader_render(const mraheader_t* ths)
 		mrstrbuilder_cat(&ret, "prefer-encrypted=no; ");
 	}
 
-	mrstrbuilder_cat(&ret, "key=");
+	mrstrbuilder_cat(&ret, "key= "); /* the trailing space together with mr_insert_spaces() allows a proper transport */
 
-	keybase64 = encode_base64((const char*)ths->m_public_key.m_binary, ths->m_public_key.m_bytes);
-	mrstrbuilder_cat(&ret, keybase64);
+	if( (keybase64 = encode_base64((const char*)ths->m_public_key.m_binary, ths->m_public_key.m_bytes))==NULL ) {
+		goto cleanup;
+	}
+
+	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
+	(which may insert a linebreak before every whitespace) */
+	if( (keybase64_wrapped = mr_insert_spaces(keybase64, 78)) == NULL ) {
+		goto cleanup;
+	}
+
+	mrstrbuilder_cat(&ret, keybase64_wrapped);
 
 	success = 1;
 
 cleanup:
 	if( !success ) { free(ret.m_buf); ret.m_buf = NULL; }
 	free(keybase64);
+	free(keybase64_wrapped);
 	return ret.m_buf;
 }
 
@@ -130,7 +140,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		 || result == NULL || result_len == 0 ) {
 			return 0; /* bad key */
 		}
-		mrkey_set_from_raw(&ths->m_public_key, (unsigned char*)result, result_len);
+		mrkey_set_from_raw(&ths->m_public_key, (unsigned char*)result, result_len, MR_PUBLIC);
 		mmap_string_unref(result);
 		return 1;
 	}
@@ -147,6 +157,11 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 
 int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 {
+	/* according to RFC 5322 (Internet Message Format), the given string may contain `\r\n` before any whitespace.
+	we can ignore this issue as
+	(a) no key or value is expected to contain spaces,
+	(b) for the key, non-base64-characters are ignored and
+	(c) for parsing, we ignore `\r\n` as well as tabs for spaces */
 	#define AHEADER_WS "\t\r\n "
 	char    *header_str = NULL;
 	char    *p, *beg_attr_name, *after_attr_name, *beg_attr_value;

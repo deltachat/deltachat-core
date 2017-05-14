@@ -281,7 +281,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 4
+	#define NEW_DB_VERSION 7
 		if( dbversion < NEW_DB_VERSION )
 		{
 			mrsqlite3_execute__(ths, "CREATE TABLE apeerstates ("
@@ -293,9 +293,10 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 						" prefer_encrypted INTEGER DEFAULT 0);");
 			mrsqlite3_execute__(ths, "CREATE INDEX apeerstates_index1 ON apeerstates (addr);");
 
-			mrsqlite3_execute__(ths, "CREATE TABLE aprivatekeys ("
+			mrsqlite3_execute__(ths, "CREATE TABLE keypairs ("
 						" id INTEGER PRIMARY KEY,"
-						" addr,"
+						" addr TEXT DEFAULT '' COLLATE NOCASE,"
+						" is_default INTEGER DEFAULT 0,"
 						" private_key,"
 						" public_key,"
 						" created INTEGER DEFAULT 0);");

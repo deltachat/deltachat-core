@@ -36,10 +36,13 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-void mre2ee_driver_init      (mrmailbox_t*);
-void mre2ee_driver_exit      (mrmailbox_t*);
-void mre2ee_driver_encrypt__ (mrmailbox_t*, const clist* recipients_addr, struct mailmime** in_out_message);
-void mre2ee_driver_decrypt__ (mrmailbox_t*, struct mailmime** in_out_message);
+typedef struct mrkey_t mrkey_t;
+
+void mre2ee_driver_init          (mrmailbox_t*);
+void mre2ee_driver_exit          (mrmailbox_t*);
+int  mre2ee_driver_create_keypair(mrmailbox_t*, mrkey_t* public_key, mrkey_t* private_key);
+void mre2ee_driver_encrypt__     (mrmailbox_t*, struct mailmime** in_out_message, const mrkey_t* public_key);
+void mre2ee_driver_decrypt__     (mrmailbox_t*, struct mailmime** in_out_message, const mrkey_t* private_key);
 
 
 #ifdef __cplusplus

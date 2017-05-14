@@ -393,7 +393,7 @@ void mr_print_mime(struct mailmime* mime)
  ******************************************************************************/
 
 
-const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime* mime)
+struct mailimf_fields* mr_find_mailimf_fields(struct mailmime* mime)
 {
 	if( mime == NULL ) {
 		return NULL;
@@ -403,7 +403,7 @@ const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime* mime)
 	switch (mime->mm_type) {
 		case MAILMIME_MULTIPLE:
 			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
-				const struct mailimf_fields* header = mr_find_mailimf_fields(clist_content(cur));
+				struct mailimf_fields* header = mr_find_mailimf_fields(clist_content(cur));
 				if( header ) {
 					return header;
 				}
@@ -418,7 +418,7 @@ const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime* mime)
 }
 
 
-const struct mailimf_field* mr_find_mailimf_field(const struct mailimf_fields* header, int wanted_fld_type)
+struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int wanted_fld_type)
 {
 	if( header == NULL || header->fld_list == NULL ) {
 		return NULL;
@@ -427,7 +427,7 @@ const struct mailimf_field* mr_find_mailimf_field(const struct mailimf_fields* h
 	clistiter* cur1;
 	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 	{
-		const struct mailimf_field* field = (const struct mailimf_field*)clist_content(cur1);
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
 		if( field )
 		{
 			if( field->fld_type == wanted_fld_type ) {

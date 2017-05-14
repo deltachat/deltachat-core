@@ -361,6 +361,32 @@ void mr_free_splitted_lines(carray* lines)
 }
 
 
+char* mr_insert_spaces(const char* in, int wrap_every)
+{
+	/* insert a space every n characters, the return must be free()'d.
+	this is useful for allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
+	int out_len = strlen(in), chars_added = 0;
+	out_len += out_len/wrap_every + 2;
+
+	char* out = malloc(out_len);
+	if( out == NULL ) { return NULL; }
+
+	const char* i = in;
+	char* o = out;
+	while( *i ) {
+		*o++ = *i++;
+		chars_added++;
+		if( chars_added==wrap_every && *i ) {
+			*o = ' ';
+			o++;
+			chars_added = 0;
+		}
+	}
+	*o = 0;
+	return out;
+}
+
+
 char* mr_arr_to_string(const uint32_t* arr, int cnt)
 {
 	/* return comma-separated value-string from integer array */

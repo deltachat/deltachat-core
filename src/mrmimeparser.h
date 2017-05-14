@@ -85,8 +85,8 @@ void                  mrmimeparser_parse          (mrmimeparser_t*, const char* 
 /* low-level-tools for working with mailmime structures directly */
 char*                        mr_find_first_addr    (const struct mailimf_mailbox_list*); /*the result must be freed*/
 char*                        mr_normalize_addr     (const char*); /*the result must be freed*/
-const struct mailimf_fields* mr_find_mailimf_fields(const struct mailmime*); /*the result is a pointer to mime, must not be freed*/
-const struct mailimf_field*  mr_find_mailimf_field (const struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
+struct mailimf_fields*       mr_find_mailimf_fields(struct mailmime*); /*the result is a pointer to mime, must not be freed*/
+struct mailimf_field*        mr_find_mailimf_field (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
 
 #ifdef MR_USE_MIME_DEBUG
 void mr_print_mime(struct mailmime * mime);
