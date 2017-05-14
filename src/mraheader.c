@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <base64.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mraheader.h"
@@ -40,6 +41,48 @@
 #include "mrmimeparser.h"
 
 #define CLASS_MAGIC 1494527378
+
+
+/*******************************************************************************
+ * Parse Header
+ ******************************************************************************/
+
+
+char* mraheader_render(const mraheader_t* ths)
+{
+	int            success = 0;
+	char*          keybase64 = NULL;
+	mrstrbuilder_t ret;
+	mrstrbuilder_init(&ret);
+
+	if( ths==NULL || ths->m_to==NULL || ths->m_public_key.m_binary==NULL ) {
+		goto cleanup;
+	}
+
+	mrstrbuilder_cat(&ret, "to=");
+	mrstrbuilder_cat(&ret, ths->m_to);
+
+	mrstrbuilder_cat(&ret, "; type=p; ");
+
+	if( ths->m_prefer_encrypted==MRA_PE_YES ) {
+		mrstrbuilder_cat(&ret, "prefer-encrypted=yes; ");
+	}
+	else if( ths->m_prefer_encrypted==MRA_PE_NO ) {
+		mrstrbuilder_cat(&ret, "prefer-encrypted=no; ");
+	}
+
+	mrstrbuilder_cat(&ret, "key=");
+
+	keybase64 = encode_base64((const char*)ths->m_public_key.m_binary, ths->m_public_key.m_bytes);
+	mrstrbuilder_cat(&ret, keybase64);
+
+	success = 1;
+
+cleanup:
+	if( !success ) { free(ret.m_buf); ret.m_buf = NULL; }
+	free(keybase64);
+	return ret.m_buf;
+}
 
 
 /*******************************************************************************

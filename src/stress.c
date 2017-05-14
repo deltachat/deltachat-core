@@ -84,6 +84,7 @@ void stress_functions(mrmailbox_t* mailbox)
 
 	{
 		mraheader_t* ah = mraheader_new();
+		char*        rendered = NULL;
 		int          ah_ok;
 
 		ah_ok = mraheader_set_from_string(ah, "to=a@b.example.org; type=p; prefer-encrypted=yes; key=RGVsdGEgQ2hhdA==");
@@ -91,6 +92,9 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah->m_to && strcmp(ah->m_to, "a@b.example.org")==0 );
 		assert( ah->m_public_key.m_bytes==10 && strncmp((char*)ah->m_public_key.m_binary, "Delta Chat", 10)==0 );
 		assert( ah->m_prefer_encrypted==MRA_PE_YES );
+
+		rendered = mraheader_render(ah);
+		assert( strcmp(rendered, "to=a@b.example.org; type=p; prefer-encrypted=yes; key=RGVsdGEgQ2hhdA==")==0 );
 
 		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\n\r type = p ; prefer-encrypted = yes ; key = RG VsdGEgQ\n\r2hhdA==");
 		assert( ah_ok == 1 );
@@ -123,5 +127,6 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah_ok == 0 );
 
 		mraheader_unref(ah);
+		free(rendered);
 	}
 }
