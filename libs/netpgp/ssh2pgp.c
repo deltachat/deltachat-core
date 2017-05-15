@@ -26,7 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>

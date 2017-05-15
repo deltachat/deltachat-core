@@ -28,7 +28,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -51,7 +51,7 @@
 #endif
 
 #include "bufgap.h"
-#include "defs.h"
+#include "defs-netpgp.h"
 
 /* macros to get subscripts in buffer */
 #define AFTSUB(bp, n)	((bp)->buf[(int)n])

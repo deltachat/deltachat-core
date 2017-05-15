@@ -33,7 +33,7 @@
 #include <unistd.h>
 
 #include "mj.h"
-#include "defs.h"
+#include "defs-netpgp.h"
 
 /* save 'n' chars of 's' in malloc'd memory */
 static char *

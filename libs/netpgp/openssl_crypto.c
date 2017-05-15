@@ -49,7 +49,7 @@
 
 /** \file
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -90,7 +90,7 @@ __RCSID("$NetBSD: openssl_crypto.c,v 1.33 2010/11/07 08:39:59 agc Exp $");
 #include "packet.h"
 
 
-static void 
+static void
 test_seckey(const pgp_seckey_t *seckey)
 {
 	RSA            *test = RSA_new();
@@ -109,7 +109,7 @@ test_seckey(const pgp_seckey_t *seckey)
 	RSA_free(test);
 }
 
-static int 
+static int
 md5_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -123,13 +123,13 @@ md5_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 md5_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	MD5_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 md5_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	MD5_Final(out, hash->data);
@@ -153,13 +153,13 @@ static const pgp_hash_t md5 = {
    \brief Initialise to MD5
    \param hash Hash to initialise
 */
-void 
+void
 pgp_hash_md5(pgp_hash_t *hash)
 {
 	*hash = md5;
 }
 
-static int 
+static int
 sha1_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -173,7 +173,7 @@ sha1_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 sha1_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	if (pgp_get_debug_level(__FILE__)) {
@@ -182,7 +182,7 @@ sha1_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 	SHA1_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 sha1_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	SHA1_Final(out, hash->data);
@@ -209,13 +209,13 @@ static const pgp_hash_t sha1 = {
    \brief Initialise to SHA1
    \param hash Hash to initialise
 */
-void 
+void
 pgp_hash_sha1(pgp_hash_t *hash)
 {
 	*hash = sha1;
 }
 
-static int 
+static int
 sha256_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -229,7 +229,7 @@ sha256_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 sha256_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	if (pgp_get_debug_level(__FILE__)) {
@@ -238,7 +238,7 @@ sha256_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 	SHA256_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 sha256_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	SHA256_Final(out, hash->data);
@@ -260,7 +260,7 @@ static const pgp_hash_t sha256 = {
 	NULL
 };
 
-void 
+void
 pgp_hash_sha256(pgp_hash_t *hash)
 {
 	*hash = sha256;
@@ -269,7 +269,7 @@ pgp_hash_sha256(pgp_hash_t *hash)
 /*
  * SHA384
  */
-static int 
+static int
 sha384_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -283,7 +283,7 @@ sha384_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 sha384_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	if (pgp_get_debug_level(__FILE__)) {
@@ -292,7 +292,7 @@ sha384_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 	SHA384_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 sha384_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	SHA384_Final(out, hash->data);
@@ -314,7 +314,7 @@ static const pgp_hash_t sha384 = {
 	NULL
 };
 
-void 
+void
 pgp_hash_sha384(pgp_hash_t *hash)
 {
 	*hash = sha384;
@@ -323,7 +323,7 @@ pgp_hash_sha384(pgp_hash_t *hash)
 /*
  * SHA512
  */
-static int 
+static int
 sha512_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -337,7 +337,7 @@ sha512_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 sha512_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	if (pgp_get_debug_level(__FILE__)) {
@@ -346,7 +346,7 @@ sha512_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 	SHA512_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 sha512_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	SHA512_Final(out, hash->data);
@@ -368,7 +368,7 @@ static const pgp_hash_t sha512 = {
 	NULL
 };
 
-void 
+void
 pgp_hash_sha512(pgp_hash_t *hash)
 {
 	*hash = sha512;
@@ -378,7 +378,7 @@ pgp_hash_sha512(pgp_hash_t *hash)
  * SHA224
  */
 
-static int 
+static int
 sha224_init(pgp_hash_t *hash)
 {
 	if (hash->data) {
@@ -392,7 +392,7 @@ sha224_init(pgp_hash_t *hash)
 	return 1;
 }
 
-static void 
+static void
 sha224_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 {
 	if (pgp_get_debug_level(__FILE__)) {
@@ -401,7 +401,7 @@ sha224_add(pgp_hash_t *hash, const uint8_t *data, unsigned length)
 	SHA224_Update(hash->data, data, length);
 }
 
-static unsigned 
+static unsigned
 sha224_finish(pgp_hash_t *hash, uint8_t *out)
 {
 	SHA224_Final(out, hash->data);
@@ -423,13 +423,13 @@ static const pgp_hash_t sha224 = {
 	NULL
 };
 
-void 
+void
 pgp_hash_sha224(pgp_hash_t *hash)
 {
 	*hash = sha224;
 }
 
-unsigned 
+unsigned
 pgp_dsa_verify(const uint8_t *hash, size_t hash_length,
 	       const pgp_dsa_sig_t *sig,
 	       const pgp_dsa_pubkey_t *dsa)
@@ -483,7 +483,7 @@ pgp_dsa_verify(const uint8_t *hash, size_t hash_length,
    \param pubkey RSA public key
    \return size of recovered message digest
 */
-int 
+int
 pgp_rsa_public_decrypt(uint8_t *out,
 			const uint8_t *in,
 			size_t length,
@@ -514,7 +514,7 @@ pgp_rsa_public_decrypt(uint8_t *out,
    \param pubkey RSA public key
    \return number of bytes decrypted
 */
-int 
+int
 pgp_rsa_private_encrypt(uint8_t *out,
 			const uint8_t *in,
 			size_t length,
@@ -563,7 +563,7 @@ pgp_rsa_private_encrypt(uint8_t *out,
 \param pubkey RSA public key
 \return size of recovered plaintext
 */
-int 
+int
 pgp_rsa_private_decrypt(uint8_t *out,
 			const uint8_t *in,
 			size_t length,
@@ -615,7 +615,7 @@ pgp_rsa_private_decrypt(uint8_t *out,
    \param length Size of plaintext
    \param pubkey RSA Public Key
 */
-int 
+int
 pgp_rsa_public_encrypt(uint8_t *out,
 			const uint8_t *in,
 			size_t length,
@@ -653,7 +653,7 @@ pgp_rsa_public_encrypt(uint8_t *out,
    \note Would usually call pgp_finish() instead
    \sa pgp_finish()
 */
-void 
+void
 pgp_crypto_finish(void)
 {
 	CRYPTO_cleanup_all_ex_data();
@@ -681,7 +681,7 @@ pgp_text_from_hash(pgp_hash_t *hash)
  \return 1 if key generated successfully; otherwise 0
  \note It is the caller's responsibility to call pgp_keydata_free(keydata)
 */
-static unsigned 
+unsigned
 rsa_generate_keypair(pgp_key_t *keydata,
 			const int numbits,
 			const unsigned long e,

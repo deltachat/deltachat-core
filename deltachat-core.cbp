@@ -54,8 +54,7 @@
 			<Add directory="libs/libetpan/include" />
 			<Add directory="libs/libetpan/include/libetpan" />
 			<Add directory="libs/sqlite" />
-			<Add directory="libs/netpgp/include" />
-			<Add directory="libs/netpgp/src/libmj" />
+			<Add directory="libs/netpgp" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
@@ -373,58 +372,58 @@
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/bufgap.c">
+		<Unit filename="libs/netpgp/bufgap.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/compress.c">
+		<Unit filename="libs/netpgp/compress.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/create.c">
+		<Unit filename="libs/netpgp/create.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/crypto.c">
+		<Unit filename="libs/netpgp/crypto.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/keyring.c">
+		<Unit filename="libs/netpgp/keyring.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/misc.c">
+		<Unit filename="libs/netpgp/misc.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/netpgp.c">
+		<Unit filename="libs/netpgp/mj.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/openssl_crypto.c">
+		<Unit filename="libs/netpgp/netpgp.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/packet-parse.c">
+		<Unit filename="libs/netpgp/openssl_crypto.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/packet-print.c">
+		<Unit filename="libs/netpgp/packet-parse.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/packet-show.c">
+		<Unit filename="libs/netpgp/packet-print.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/reader.c">
+		<Unit filename="libs/netpgp/packet-show.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/signature.c">
+		<Unit filename="libs/netpgp/reader.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/ssh2pgp.c">
+		<Unit filename="libs/netpgp/signature.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/symmetric.c">
+		<Unit filename="libs/netpgp/ssh2pgp.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/validate.c">
+		<Unit filename="libs/netpgp/symmetric.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/lib/writer.c">
+		<Unit filename="libs/netpgp/validate.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/libmj/mj.c">
+		<Unit filename="libs/netpgp/writer.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/sqlite/sqlite3.c">

@@ -54,6 +54,8 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
+#include "config-netpgp.h"
+
 #include <time.h>
 
 #ifdef HAVE_OPENSSL_BN_H

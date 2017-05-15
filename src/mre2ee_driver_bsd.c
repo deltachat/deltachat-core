@@ -40,11 +40,25 @@
 
 
 #include <string.h>
+
 #include <netpgp.h>
+/*from netpgp:*/
+#include "packet-parse.h"
+#include "errors.h"
+#include "netpgpdefs.h"
+#include "crypto.h"
+#include "create.h"
+
 #include "mrmailbox.h"
 #include "mrkey.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
+
+unsigned rsa_generate_keypair(pgp_key_t *keydata,
+			const int numbits,
+			const unsigned long e,
+			const char *hashalg,
+			const char *cipher);
 
 
 void mre2ee_driver_init(mrmailbox_t* mailbox)
@@ -57,33 +71,76 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 }
 
 
+/* original calls:
+memset(&netpgp, 0, sizeof(netpgp_t));
+netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
+netpgp_init(&netpgp);
+netpgp_generate_key(&netpgp, "foobar", 2048); <-- this calls rsa_generate_keypair()
+netpgp_end(&netpgp);
+*/
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* public_key, mrkey_t* private_key)
 {
-	netpgp_t netpgp;
+	int           success = 0;
+	pgp_key_t*    keydata = NULL;
+	pgp_memory_t* mem = NULL;
+	pgp_output_t* output = NULL;
 
 	mrkey_empty(public_key);
 	mrkey_empty(private_key);
 
+	#if 1
+	{
+		netpgp_t netpgp;
+		memset(&netpgp, 0, sizeof(netpgp_t));
+		netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
+		netpgp_init(&netpgp);
+		netpgp_generate_key(&netpgp, "foobar", 2048); // <-- this calls rsa_generate_keypair()
+		netpgp_end(&netpgp);
+	}
+	#endif
+
 	if( mailbox==NULL || public_key==NULL || private_key==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	memset(&netpgp, 0, sizeof(netpgp_t));
-	netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
-	netpgp_init(&netpgp);
+	if( (keydata=pgp_keydata_new())==NULL ) {
+		goto cleanup;
+	}
 
-	netpgp_end(&netpgp);
+	if (!rsa_generate_keypair(keydata, 2048/*bits*/, 65537UL/*e*/, NULL/*hash*/, NULL/*cipher*/) ) {
+		goto cleanup;
+	}
 
+	/* get public key */
+	if( (mem=pgp_memory_new())==NULL ) {
+		goto cleanup;
+	}
 
+	pgp_build_pubkey(mem, &keydata->key.seckey.pubkey, 0);
+	if( mem->buf == NULL || mem->length <= 0 ) {
+		goto cleanup;
+	}
 
+	mrkey_set_from_raw(public_key, (const unsigned char*)mem->buf, mem->length, MR_PUBLIC);
 
+	/* get private key */
+	pgp_memory_release(mem);
 
-	/* TODO: real implementation here! */
-	const char* dummy = "lkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjf";
-	mrkey_set_from_raw(public_key, (const unsigned char*)dummy, strlen(dummy), MR_PUBLIC);
-	mrkey_set_from_raw(private_key, (const unsigned char*)dummy, strlen(dummy), MR_PRIVATE);
+	const char* passphrase = "passphrase";
+	output = pgp_output_new();
+	pgp_write_xfer_seckey(output, keydata, (const uint8_t*)passphrase, strlen(passphrase), 0);
 
-	return 1;
+	if( mem->buf == NULL || mem->length <= 0 ) {
+		goto cleanup;
+	}
+
+	mrkey_set_from_raw(private_key, (const unsigned char*)mem->buf, mem->length, MR_PRIVATE);
+
+cleanup:
+	if( mem ) { pgp_memory_free(mem); }
+	if( keydata ) { pgp_keydata_free(keydata); }
+	if( output ) { pgp_output_delete(output); }
+	return success;
 }
 
 

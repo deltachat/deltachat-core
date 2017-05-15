@@ -49,6 +49,8 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+#include "config-netpgp.h"
+
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif

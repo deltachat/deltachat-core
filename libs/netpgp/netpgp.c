@@ -26,7 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -82,7 +82,7 @@ __RCSID("$NetBSD: netpgp.c,v 1.96 2012/02/22 06:58:54 agc Exp $");
 #include "netpgpdefs.h"
 #include "crypto.h"
 #include "ssh2pgp.h"
-#include "defs.h"
+#include "defs-netpgp.h"
 
 /* read any gpg config file */
 static int
@@ -545,21 +545,21 @@ pobj(FILE *fp, mj_t *obj, int depth)
 		for (i = 0 ; i < obj->c ; i++) {
 			pobj(fp, &obj->value.v[i], depth + 1);
 			if (i < obj->c - 1) {
-				(void) fprintf(fp, ", "); 
+				(void) fprintf(fp, ", ");
 			}
 		}
-		(void) fprintf(fp, "\n"); 
+		(void) fprintf(fp, "\n");
 		break;
 	case MJ_OBJECT:
 		for (i = 0 ; i < obj->c ; i += 2) {
 			pobj(fp, &obj->value.v[i], depth + 1);
-			p(fp, ": ", NULL); 
+			p(fp, ": ", NULL);
 			pobj(fp, &obj->value.v[i + 1], 0);
 			if (i < obj->c - 1) {
-				p(fp, ", ", NULL); 
+				p(fp, ", ", NULL);
 			}
 		}
-		p(fp, "\n", NULL); 
+		p(fp, "\n", NULL);
 		break;
 	default:
 		break;
@@ -567,7 +567,7 @@ pobj(FILE *fp, mj_t *obj, int depth)
 }
 
 /* return the time as a string */
-static char * 
+static char *
 ptimestr(char *dest, size_t size, time_t t)
 {
 	struct tm      *tm;

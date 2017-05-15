@@ -50,7 +50,7 @@
 /*
  * ! \file \brief Standard API print functions
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>

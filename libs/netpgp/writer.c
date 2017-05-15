@@ -50,7 +50,7 @@
 /** \file
  * This file contains the base functions used by the writers.
  */
-#include "config.h"
+#include "config-netpgp.h"
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
