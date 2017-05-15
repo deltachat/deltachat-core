@@ -39,14 +39,16 @@
 
 void mrkey_init(mrkey_t* ths)
 {
-	memset(ths, 0, sizeof(mrkey_t));
+	if( ths ) {
+		memset(ths, 0, sizeof(mrkey_t));
+	}
 }
 
 
 int mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes, int type)
 {
     mrkey_empty(ths);
-    if( data==NULL || bytes <= 0 ) {
+    if( ths==NULL || data==NULL || bytes <= 0 ) {
 		return 0;
     }
     ths->m_binary = malloc(bytes);
@@ -133,6 +135,11 @@ int mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, 
 {
 	sqlite3_stmt* stmt;
 
+	if( public_key==NULL || private_key==NULL || addr==NULL || sql==NULL
+	 || public_key->m_binary==NULL || private_key->m_binary==NULL ) {
+		return 0;
+	}
+
 	stmt = mrsqlite3_predefine__(sql, INSERT_INTO_keypairs_aippc,
 		"INSERT INTO keypairs (addr, is_default, public_key, private_key, created) VALUES (?,?,?,?,?);");
 	sqlite3_bind_text (stmt, 1, addr, -1, SQLITE_STATIC);
@@ -152,6 +159,10 @@ int mrkey_load_public__(mrkey_t* ths, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
+	if( ths==NULL || sql==NULL ) {
+		return 0;
+	}
+
 	mrkey_empty(ths);
 	stmt = mrsqlite3_predefine__(sql, SELECT_public_key_FROM_keypairs_WHERE_default,
 		"SELECT public_key FROM keypairs WHERE is_default=1;");
@@ -166,6 +177,10 @@ int mrkey_load_public__(mrkey_t* ths, mrsqlite3_t* sql)
 int mrkey_load_private__(mrkey_t* ths, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
+
+	if( ths==NULL || sql==NULL ) {
+		return 0;
+	}
 
 	mrkey_empty(ths);
 	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
