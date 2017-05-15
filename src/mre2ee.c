@@ -62,6 +62,8 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 			mrkey_t private_key;
 			mrkey_init(&private_key);
 
+			mrmailbox_log_info(mailbox, 0, "Generating keypair ...");
+
 			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
 				key_created = mre2ee_driver_create_keypair(mailbox, public_key, &private_key);
@@ -69,12 +71,16 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 			mrsqlite3_lock(mailbox->m_sql);
 
 			if( !key_created ) {
+				mrmailbox_log_warning(mailbox, 0, "Cannot create keypair.");
 				goto cleanup;
 			}
 
 			if( !mrkey_save_keypair__(public_key, &private_key, self_addr, mailbox->m_sql) ) {
+				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
+
+			mrmailbox_log_info(mailbox, 0, "Keypair generated.");
 
 			mrkey_empty(&private_key);
 		}
