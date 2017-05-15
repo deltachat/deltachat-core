@@ -112,7 +112,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		rendered = mraheader_render(ah);
 		assert( strcmp(rendered, "to=a@b.example.org; prefer-encrypted=yes; key= RGVsdGEgQ2hhdA==")==0 );
 
-		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\n\r type = p ; prefer-encrypted = yes ; key = RG VsdGEgQ\n\r2hhdA==");
+		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\r\n type\r\n =\r\n p ; prefer-encrypted = yes ; key = RG VsdGEgQ\r\n2hhdA==");
 		assert( ah_ok == 1 );
 		assert( ah->m_to && strcmp(ah->m_to, "a@b.example.org")==0 );
 		assert( ah->m_public_key.m_bytes==10 && strncmp((char*)ah->m_public_key.m_binary, "Delta Chat", 10)==0 );
