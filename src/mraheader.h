@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- *                             Messenger Backend
+ *                              Delta Chat Core
  *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *

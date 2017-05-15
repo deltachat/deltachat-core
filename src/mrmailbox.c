@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- *                             Messenger Backend
+ *                              Delta Chat Core
  *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
@@ -1306,7 +1306,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
-	- use neutral speach; the messenger backend is not directly related to any front end or end-product
+	- use neutral speach; the Delta Chat Core is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
 	info = mr_mprintf(
 		"Chats: %i\n"

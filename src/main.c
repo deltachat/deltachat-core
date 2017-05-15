@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- *                             Messenger Backend
+ *                              Delta Chat Core
  *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
  *
@@ -108,7 +108,7 @@ int main(int argc, char ** argv)
 
 	stress_functions(mailbox);
 
-	printf("Messenger Backend is awaiting your commands.\n"); /* use neutral speach here, the messenger backend is not directly related to any front end or end-product. */
+	printf("Delta Chat Core is awaiting your commands.\n"); /* use neutral speach here, the Delta Chat Core is not directly related to any front end or end-product. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
