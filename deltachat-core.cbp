@@ -54,6 +54,8 @@
 			<Add directory="libs/libetpan/include" />
 			<Add directory="libs/libetpan/include/libetpan" />
 			<Add directory="libs/sqlite" />
+			<Add directory="libs/netpgp/include" />
+			<Add directory="libs/netpgp/src/libmj" />
 		</Compiler>
 		<Unit filename="README.md" />
 		<Unit filename="libs/libetpan/src/data-types/base64.c">
@@ -369,6 +371,60 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/libetpan/src/main/libetpan_version.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/bufgap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/create.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/crypto.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/keyring.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/misc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/netpgp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/openssl_crypto.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/packet-parse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/packet-print.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/packet-show.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/reader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/signature.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/ssh2pgp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/symmetric.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/validate.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/lib/writer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/netpgp/src/libmj/mj.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/sqlite/sqlite3.c">

@@ -106,8 +106,6 @@ int main(int argc, char ** argv)
 {
 	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
 
-	stress_functions(mailbox);
-
 	printf("Delta Chat Core is awaiting your commands.\n"); /* use neutral speach here, the Delta Chat Core is not directly related to any front end or end-product. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
@@ -119,6 +117,8 @@ int main(int argc, char ** argv)
 	else if( argc != 1 ) {
 		printf("ERROR: Bad arguments\n");
 	}
+
+	stress_functions(mailbox);
 
 	/* wait for command */
 	while(1)

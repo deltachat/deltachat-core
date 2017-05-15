@@ -37,6 +37,8 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
+#include "mre2ee.h"
+#include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
 #include "mrtools.h"
@@ -144,5 +146,21 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		mraheader_unref(ah);
 		free(rendered);
+	}
+
+
+	/* test end-to-end-encryption
+	 **************************************************************************/
+
+	{
+		mrkey_t public_key, private_key;
+		mrkey_init(&public_key);
+		mrkey_init(&private_key);
+
+		mre2ee_driver_create_keypair(mailbox, &public_key, &private_key);
+
+		mrkey_empty(&public_key);
+		mrkey_empty(&private_key);
+
 	}
 }

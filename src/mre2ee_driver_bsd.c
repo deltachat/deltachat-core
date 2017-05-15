@@ -40,6 +40,7 @@
 
 
 #include <string.h>
+#include <netpgp.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
 #include "mre2ee.h"
@@ -58,11 +59,24 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* public_key, mrkey_t* private_key)
 {
+	netpgp_t netpgp;
+
+	mrkey_empty(public_key);
+	mrkey_empty(private_key);
+
 	if( mailbox==NULL || public_key==NULL || private_key==NULL ) {
 		return 0;
 	}
-	mrkey_empty(public_key);
-	mrkey_empty(private_key);
+
+	memset(&netpgp, 0, sizeof(netpgp_t));
+	netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
+	netpgp_init(&netpgp);
+
+	netpgp_end(&netpgp);
+
+
+
+
 
 	/* TODO: real implementation here! */
 	const char* dummy = "lkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjflkjslfjsdlfjsdlfjslkfjsflksjdflkjsdflksjdflksjflskjflsdjflsdjfsldkjfslkdjflskdjf";
