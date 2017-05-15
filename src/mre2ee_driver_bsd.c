@@ -42,7 +42,6 @@
 #include <string.h>
 
 #include <netpgp.h>
-/*from netpgp:*/
 #include "packet-parse.h"
 #include "errors.h"
 #include "netpgpdefs.h"
@@ -54,11 +53,8 @@
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
 
-unsigned rsa_generate_keypair(pgp_key_t *keydata,
-			const int numbits,
-			const unsigned long e,
-			const char *hashalg,
-			const char *cipher);
+unsigned rsa_generate_keypair(pgp_key_t *keydata, const int numbits, const unsigned long e, const char *hashalg, const char *cipher);
+unsigned write_seckey_body(const pgp_seckey_t *key, const uint8_t *passphrase, const size_t pplen, pgp_output_t *output);
 
 
 void mre2ee_driver_init(mrmailbox_t* mailbox)
@@ -71,24 +67,23 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 }
 
 
-/* original calls:
-memset(&netpgp, 0, sizeof(netpgp_t));
-netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
-netpgp_init(&netpgp);
-netpgp_generate_key(&netpgp, "foobar", 2048); <-- this calls rsa_generate_keypair()
-netpgp_end(&netpgp);
-*/
-int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* public_key, mrkey_t* private_key)
+int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
 	int           success = 0;
-	pgp_key_t*    keydata = NULL;
-	pgp_memory_t* mem = NULL;
+	pgp_key_t*    keypair = NULL;
+	pgp_memory_t* public_key_mem = NULL;
+	pgp_memory_t* private_key_mem = NULL;
 	pgp_output_t* output = NULL;
 
-	mrkey_empty(public_key);
-	mrkey_empty(private_key);
+	mrkey_empty(ret_public_key);
+	mrkey_empty(ret_private_key);
 
-	#if 1
+	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL ) {
+		goto cleanup;
+	}
+
+	/* original calls: */
+	#if 0
 	{
 		netpgp_t netpgp;
 		memset(&netpgp, 0, sizeof(netpgp_t));
@@ -99,46 +94,50 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* public_key, mrke
 	}
 	#endif
 
-	if( mailbox==NULL || public_key==NULL || private_key==NULL ) {
+	/* generate keypair */
+	if( (keypair=pgp_keydata_new())==NULL ) {
 		goto cleanup;
 	}
 
-	if( (keydata=pgp_keydata_new())==NULL ) {
-		goto cleanup;
-	}
-
-	if (!rsa_generate_keypair(keydata, 2048/*bits*/, 65537UL/*e*/, NULL/*hash*/, NULL/*cipher*/) ) {
+	if (!rsa_generate_keypair(keypair, 2048/*bits*/, 65537UL/*e*/, NULL/*hash*/, NULL/*cipher*/) ) {
 		goto cleanup;
 	}
 
 	/* get public key */
-	if( (mem=pgp_memory_new())==NULL ) {
+	if( (public_key_mem=pgp_memory_new())==NULL ) {
 		goto cleanup;
 	}
 
-	pgp_build_pubkey(mem, &keydata->key.seckey.pubkey, 0);
-	if( mem->buf == NULL || mem->length <= 0 ) {
+	pgp_build_pubkey(public_key_mem, &keypair->key.seckey.pubkey, 0);
+	if( public_key_mem->buf == NULL || public_key_mem->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(public_key, (const unsigned char*)mem->buf, mem->length, MR_PUBLIC);
+	mrkey_set_from_raw(ret_public_key, (const unsigned char*)public_key_mem->buf, public_key_mem->length, MR_PUBLIC);
 
-	/* get private key */
-	pgp_memory_release(mem);
+	/* write private key
+	(pgp_write_struct_seckey() would write public+private key according to RFC4880 Section 5.5.3, see also pgp_write_xfer_seckey()) */
+	if( (private_key_mem=pgp_memory_new())==NULL ) {
+		goto cleanup;
+	}
 
 	const char* passphrase = "passphrase";
 	output = pgp_output_new();
-	pgp_write_xfer_seckey(output, keydata, (const uint8_t*)passphrase, strlen(passphrase), 0);
+	pgp_writer_set_memory(output, private_key_mem);
+	write_seckey_body(&keypair->key.seckey, (const uint8_t*)passphrase, strlen(passphrase), output); // write only private key
 
-	if( mem->buf == NULL || mem->length <= 0 ) {
+	if( private_key_mem->buf == NULL || private_key_mem->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(private_key, (const unsigned char*)mem->buf, mem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_private_key, (const unsigned char*)private_key_mem->buf, private_key_mem->length, MR_PRIVATE);
+
+	success = 1;
 
 cleanup:
-	if( mem ) { pgp_memory_free(mem); }
-	if( keydata ) { pgp_keydata_free(keydata); }
+	if( public_key_mem ) { pgp_memory_free(public_key_mem); }
+	if( private_key_mem ) { pgp_memory_free(private_key_mem); }
+	if( keypair ) { pgp_keydata_free(keypair); }
 	if( output ) { pgp_output_delete(output); }
 	return success;
 }
