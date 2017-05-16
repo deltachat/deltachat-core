@@ -39,26 +39,48 @@
  ******************************************************************************/
 
 
-#include <string.h>
+#define KEYGEN_NETPGP
 
+#include <string.h>
+#include <sys/types.h> /* for getpid() */
+#include <unistd.h>    /* for getpid() */
+#include <openssl/ssl.h>
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include "mrmailbox.h"
+#include "mrkey.h"
+#include "mre2ee.h"
+#include "mre2ee_driver.h"
+
+#ifdef KEYGEN_NETPGP
 #include <netpgp.h>
 #include "packet-parse.h"
 #include "errors.h"
 #include "netpgpdefs.h"
 #include "crypto.h"
 #include "create.h"
-
-#include "mrmailbox.h"
-#include "mrkey.h"
-#include "mre2ee.h"
-#include "mre2ee_driver.h"
-
 unsigned rsa_generate_keypair(pgp_key_t *keydata, const int numbits, const unsigned long e, const char *hashalg, const char *cipher);
 unsigned write_seckey_body(const pgp_seckey_t *key, const uint8_t *passphrase, const size_t pplen, pgp_output_t *output);
-
+#endif
 
 void mre2ee_driver_init(mrmailbox_t* mailbox)
 {
+	SSL_library_init(); /* older, but more compatible function, simply defined as OPENSSL_init_ssl().
+						SSL_library_init() should be called from the main thread before OpenSSL is called from other threads.
+	                    libEtPan may call SSL_library_init() again later, however, this should be no problem.
+	                    SSL_library_init() always returns "1", so it is safe to discard the return value */
+
+	/* seed random generator a little bit */
+	{
+	uintptr_t seed[4];
+	seed[0] = (uintptr_t)time(NULL); /* time */
+	seed[1] = (uintptr_t)getpid();   /* process ID */
+	seed[2] = (uintptr_t)seed;       /* stack */
+	seed[3] = (uintptr_t)mailbox;    /* heap */
+	RAND_seed(seed, sizeof(seed));
+	}
+
 }
 
 
@@ -67,8 +89,84 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 }
 
 
-int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
+int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
+	/* seed random generator a little bit */
+	{
+	uintptr_t seed[4];
+	RAND_seed(addr, strlen(addr));   /* user's mail address */
+	seed[0] = (uintptr_t)time(NULL); /* time */
+	seed[1] = (uintptr_t)getpid();   /* process ID */
+	seed[2] = (uintptr_t)&addr;      /* stack */
+	seed[3] = (uintptr_t)addr;       /* heap */
+	RAND_seed(seed, sizeof(seed));
+	}
+
+#ifndef KEYGEN_NETPGP
+	#define       MR_BITS 2048
+	#define       MR_EXP  65537
+	int           success = 0;
+	BIGNUM*       e   = BN_new();
+	RSA*          rsa = RSA_new();
+
+	mrkey_empty(ret_public_key);
+	mrkey_empty(ret_private_key);
+
+	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL || e==NULL || rsa==NULL ) {
+		goto cleanup;
+	}
+
+	/* generate key */
+	BN_set_word(e, 65537);
+	if( RSA_generate_key_ex(rsa, MR_BITS, e, 0) != 1 ) {
+		goto cleanup;
+	}
+
+	//  convert RSA key to PUBLIC KEY
+	EVP_PKEY* pkey = EVP_PKEY_new();
+	EVP_PKEY_set1_RSA(pkey, rsa);
+
+	// write public key
+	{
+		BIO *bio1 = BIO_new(BIO_s_mem());
+
+		PEM_write_bio_PUBKEY(bio1, pkey); // results in `-----BEGIN PUBLIC KEY----- ...`
+		//EVP_PKEY_print_public(bio1, pkey, 0, NULL); // writes the key in a public-readable form
+
+		int keylen = BIO_pending(bio1);
+		char* pem_key = calloc(keylen+1, 1); /* Null-terminate */
+		BIO_read(bio1, pem_key, keylen);
+		printf("%s", pem_key);
+	}
+
+	// write private key
+	{
+		BIO *bio2 = BIO_new(BIO_s_mem());
+		//PEM_write_bio_RSAPrivateKey(bio2, rsa, NULL, NULL, 0, NULL, NULL); // results in `-----BEGIN RSA PRIVATE KEY----- ...`
+		PEM_write_bio_PKCS8PrivateKey(bio2, pkey, NULL, NULL, 0, NULL, NULL);
+
+
+		int keylen = BIO_pending(bio2);
+		char* pem_key = calloc(keylen+1, 1); /* Null-terminate */
+		BIO_read(bio2, pem_key, keylen);
+		printf("%s", pem_key);
+	}
+
+
+
+
+
+	success = 1;
+
+cleanup:
+	if( rsa ) { RSA_free(rsa); }
+	if( e )   { BN_free(e); }
+	return success;
+
+
+
+	////////////////////////////////////////////////////////////////////////////
+#else
 	int           success = 0;
 	pgp_key_t*    keypair = NULL;
 	pgp_memory_t* public_key_mem = NULL;
@@ -140,6 +238,7 @@ cleanup:
 	if( keypair ) { pgp_keydata_free(keypair); }
 	if( output ) { pgp_output_delete(output); }
 	return success;
+#endif
 }
 
 

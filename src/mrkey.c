@@ -26,6 +26,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include <memory.h>
 #include <sqlite3.h>
 #include "mrmailbox.h"

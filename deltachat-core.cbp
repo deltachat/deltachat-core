@@ -453,7 +453,7 @@
 		<Unit filename="src/mre2ee.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/mre2ee_driver_bsd.c">
+		<Unit filename="src/mre2ee_driver_openssl.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrimap.c">

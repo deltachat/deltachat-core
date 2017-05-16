@@ -157,7 +157,22 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrkey_init(&public_key);
 		mrkey_init(&private_key);
 
-		mre2ee_driver_create_keypair(mailbox, &public_key, &private_key);
+		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
+
+		mraheader_t* ah = mraheader_new();
+		ah->m_to = safe_strdup("f@f");
+		mrkey_set_from_key(&ah->m_public_key, &public_key, MR_PUBLIC);
+		printf("%s\n", mraheader_render(ah));
+		mraheader_unref(ah);
+
+
+		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
+
+		ah = mraheader_new();
+		ah->m_to = safe_strdup("f@f");
+		mrkey_set_from_key(&ah->m_public_key, &public_key, MR_PUBLIC);
+		printf("%s\n", mraheader_render(ah));
+		mraheader_unref(ah);
 
 		mrkey_empty(&public_key);
 		mrkey_empty(&private_key);

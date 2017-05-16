@@ -66,7 +66,7 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 
 			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
-				key_created = mre2ee_driver_create_keypair(mailbox, public_key, &private_key);
+				key_created = mre2ee_driver_create_keypair(mailbox, self_addr, public_key, &private_key);
 
 			mrsqlite3_lock(mailbox->m_sql);
 
