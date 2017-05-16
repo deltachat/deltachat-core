@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sqlite3.h>
+#include <openssl/opensslv.h>
 #include "mrmailbox.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
@@ -1320,7 +1321,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Config0=%s\n"
 		"Config1=%s\n"
 		"\n"
-		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, " OPENSSL_VERSION_TEXT ". Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
 
 		, chats, real_msgs, deaddrop_msgs, contacts
