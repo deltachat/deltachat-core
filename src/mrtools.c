@@ -410,6 +410,11 @@ char* mr_arr_to_string(const uint32_t* arr, int cnt)
 }
 
 
+/*******************************************************************************
+ * String tools - mrstrbuilder_t
+ ******************************************************************************/
+
+
 void mrstrbuilder_init(mrstrbuilder_t* ths)
 {
 	if( ths==NULL ) {
@@ -449,6 +454,15 @@ char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
 	ths->m_free -= len;
 
 	return ret;
+}
+
+
+void mrstrbuilder_empty(mrstrbuilder_t* ths)
+{
+	/*  set the string to a length of 0, does not free the buffer */
+	ths->m_buf[0] = 0;
+	ths->m_free   = ths->m_allocated - 1 /*the nullbyte! */;
+	ths->m_eos    = ths->m_buf;
 }
 
 

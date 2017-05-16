@@ -88,7 +88,7 @@ char* mraheader_render(const mraheader_t* ths)
 	success = 1;
 
 cleanup:
-	if( !success ) { free(ret.m_buf); ret.m_buf = NULL; }
+	if( !success ) { mrstrbuilder_empty(&ret); }
 	free(keybase64);
 	free(keybase64_wrapped);
 	return ret.m_buf;
