@@ -1273,7 +1273,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char* unset = "0";
 	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled;
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -1299,6 +1299,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		dbversion       = mrsqlite3_get_config_int__(ths->m_sql, "dbversion", 0);
 
+		e2ee_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	l_readable_str = mrloginparam_get_readable(l);
@@ -1316,10 +1318,12 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"Contacts: %i\n"
 		"Database=%s, dbversion=%i, Blobdir=%s\n"
 		"\n"
-		"Displayname=%s\n"
-		"Configured=%i\n"
-		"Config0=%s\n"
-		"Config1=%s\n"
+		"displayname=%s\n"
+		"configured=%i\n"
+		"config0=%s\n"
+		"config1=%s\n"
+		"e2ee_enabled=%i\n"
+		"E2EE_DEFAULT_ENABLED=%i\n"
 		"\n"
 		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, " OPENSSL_VERSION_TEXT ". Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
@@ -1330,6 +1334,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
         , displayname? displayname : unset
 		, is_configured
 		, l_readable_str, l2_readable_str
+
+		, e2ee_enabled
+		, MR_E2EE_DEFAULT_ENABLED
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(),

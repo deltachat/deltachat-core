@@ -34,7 +34,9 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-#define MR_E2EE_DEFAULT_ENABLED 1
+#ifndef MR_E2EE_DEFAULT_ENABLED
+#define MR_E2EE_DEFAULT_ENABLED 0
+#endif
 
 void mre2ee_init    (mrmailbox_t*);
 void mre2ee_exit    (mrmailbox_t*);
