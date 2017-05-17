@@ -249,24 +249,28 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
-			if( autocryptheader_fine ) {
-				mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
-				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
-			}
-			else {
-				if( message_time > peerstate->m_last_seen ) {
-					mrapeerstate_degrade_encryption(peerstate, message_time);
+		/* apply Autocrypt:-header only if encryption is enabled (if we're out of beta, we should do this always to track the correct state; now we want no bugs spread widely to the databases :-) */
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) != 0 )
+		{
+			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
+				if( autocryptheader_fine ) {
+					mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
+				else {
+					if( message_time > peerstate->m_last_seen ) {
+						mrapeerstate_degrade_encryption(peerstate, message_time);
+						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
+					}
+				}
+			}
+			else if( autocryptheader_fine ) {
+				mrapeerstate_init_from_header(peerstate, autocryptheader, message_time);
+				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 			}
 		}
-		else if( autocryptheader_fine ) {
-			mrapeerstate_init_from_header(peerstate, autocryptheader, message_time);
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
-		}
 
-		/* load private key for decryption, TODO: before loading the key, check if the message is really encrypted. */
+		/* load private key for decryption */
 		if( !mrkey_load_private__(&private_key, mailbox->m_sql) ) {
 			goto cleanup;
 		}
