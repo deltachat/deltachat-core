@@ -684,12 +684,12 @@ pgp_text_from_hash(pgp_hash_t *hash)
 unsigned
 rsa_generate_keypair(pgp_key_t *keydata,
 			const int numbits,
-			const unsigned long e,
+			const unsigned long e__,
 			const char *hashalg,
 			const char *cipher)
 {
 	pgp_seckey_t *seckey;
-	RSA            *rsa;
+	RSA            *rsa = RSA_new();
 	BN_CTX         *ctx;
 	pgp_output_t *output;
 	pgp_memory_t   *mem;
@@ -700,7 +700,14 @@ rsa_generate_keypair(pgp_key_t *keydata,
 
 	/* generate the key pair */
 
-	rsa = RSA_generate_key(numbits, e, NULL, NULL);
+	//rsa = RSA_generate_key(numbits, e, NULL, NULL);
+	/* generate key */
+	BIGNUM* e = BN_new();
+	BN_set_word(e, e__);
+	if( RSA_generate_key_ex(rsa, numbits, e, 0) != 1 ) {
+		return 0;
+	}
+	BN_free(e);
 
 	/* populate pgp key from ssl key */
 
@@ -727,7 +734,7 @@ rsa_generate_keypair(pgp_key_t *keydata,
 	seckey->key.rsa.q = BN_dup(rsa->q);
 	seckey->key.rsa.u = BN_mod_inverse(NULL, rsa->p, rsa->q, ctx);
 	if (seckey->key.rsa.u == NULL) {
-		(void) fprintf(stderr, "seckey->key.rsa.u is NULL\n");
+		//(void) fprintf(stderr, "seckey->key.rsa.u is NULL\n");
 		return 0;
 	}
 	BN_CTX_free(ctx);
