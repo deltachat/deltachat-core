@@ -39,8 +39,6 @@
  ******************************************************************************/
 
 
-#define KEYGEN_NETPGP
-
 #include <string.h>
 #include <sys/types.h> /* for getpid() */
 #include <unistd.h>    /* for getpid() */
@@ -82,6 +80,19 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
+	int           success = 0;
+	pgp_key_t*    keypair = NULL;
+	pgp_memory_t* public_key_mem = NULL;
+	pgp_memory_t* private_key_mem = NULL;
+	pgp_output_t  *output1 = NULL, *output2 = NULL;
+
+	mrkey_empty(ret_public_key);
+	mrkey_empty(ret_private_key);
+
+	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL ) {
+		goto cleanup;
+	}
+
 	/* seed random generator a little bit */
 	{
 	uintptr_t seed[4];
@@ -92,96 +103,6 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	seed[3] = (uintptr_t)addr;       /* heap */
 	RAND_seed(seed, sizeof(seed));
 	}
-
-#ifndef KEYGEN_NETPGP
-	#define       MR_BITS 2048
-	#define       MR_EXP  65537
-	int           success = 0;
-	BIGNUM*       e   = BN_new();
-	RSA*          rsa = RSA_new();
-
-	mrkey_empty(ret_public_key);
-	mrkey_empty(ret_private_key);
-
-	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL || e==NULL || rsa==NULL ) {
-		goto cleanup;
-	}
-
-	/* generate key */
-	BN_set_word(e, 65537);
-	if( RSA_generate_key_ex(rsa, MR_BITS, e, 0) != 1 ) {
-		goto cleanup;
-	}
-
-	//  convert RSA key to PUBLIC KEY
-	EVP_PKEY* pkey = EVP_PKEY_new();
-	EVP_PKEY_set1_RSA(pkey, rsa);
-
-	// write public key
-	{
-		BIO *bio1 = BIO_new(BIO_s_mem());
-
-		PEM_write_bio_PUBKEY(bio1, pkey); // results in `-----BEGIN PUBLIC KEY----- ...`
-		//EVP_PKEY_print_public(bio1, pkey, 0, NULL); // writes the key in a public-readable form
-
-		int keylen = BIO_pending(bio1);
-		char* pem_key = calloc(keylen+1, 1); /* Null-terminate */
-		BIO_read(bio1, pem_key, keylen);
-		printf("%s", pem_key);
-	}
-
-	// write private key
-	{
-		BIO *bio2 = BIO_new(BIO_s_mem());
-		//PEM_write_bio_RSAPrivateKey(bio2, rsa, NULL, NULL, 0, NULL, NULL); // results in `-----BEGIN RSA PRIVATE KEY----- ...`
-		PEM_write_bio_PKCS8PrivateKey(bio2, pkey, NULL, NULL, 0, NULL, NULL);
-
-
-		int keylen = BIO_pending(bio2);
-		char* pem_key = calloc(keylen+1, 1); /* Null-terminate */
-		BIO_read(bio2, pem_key, keylen);
-		printf("%s", pem_key);
-	}
-
-
-
-
-
-	success = 1;
-
-cleanup:
-	if( rsa ) { RSA_free(rsa); }
-	if( e )   { BN_free(e); }
-	return success;
-
-
-
-	////////////////////////////////////////////////////////////////////////////
-#else
-	int           success = 0;
-	pgp_key_t*    keypair = NULL;
-	pgp_memory_t* public_key_mem = NULL;
-	pgp_memory_t* private_key_mem = NULL;
-	pgp_output_t* output = NULL;
-
-	mrkey_empty(ret_public_key);
-	mrkey_empty(ret_private_key);
-
-	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL ) {
-		goto cleanup;
-	}
-
-	/* original calls: */
-	#if 0
-	{
-		netpgp_t netpgp;
-		memset(&netpgp, 0, sizeof(netpgp_t));
-		netpgp_set_homedir(&netpgp, mailbox->m_blobdir, NULL, 1);
-		netpgp_init(&netpgp);
-		netpgp_generate_key(&netpgp, "foobar", 2048); // <-- this calls rsa_generate_keypair()
-		netpgp_end(&netpgp);
-	}
-	#endif
 
 	/* generate keypair */
 	if( (keypair=pgp_keydata_new())==NULL ) {
@@ -197,23 +118,28 @@ cleanup:
 		goto cleanup;
 	}
 
-	pgp_build_pubkey(public_key_mem, &keypair->key.seckey.pubkey, 0);
+	output1 = pgp_output_new();
+	pgp_writer_set_memory(output1, public_key_mem);
+	if( !write_struct_pubkey(output1, &keypair->key.pubkey) ) {
+		goto cleanup;
+	}
+
 	if( public_key_mem->buf == NULL || public_key_mem->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, (const unsigned char*)public_key_mem->buf, public_key_mem->length, MR_PUBLIC);
+	mrkey_set_from_raw(ret_public_key, (const unsigned char*)public_key_mem->buf, public_key_mem->length, MR_PRIVATE);
 
 	/* write private key
-	(pgp_write_struct_seckey() would write public+private key according to RFC4880 Section 5.5.3, see also pgp_write_xfer_seckey()) */
+	(pgp_write_struct_seckey() would write public+private key according to RFC4880 Section 5.5.3, see also pgp_write_xfer_seckey())
+	TODO: is this true? ^^^ */
 	if( (private_key_mem=pgp_memory_new())==NULL ) {
 		goto cleanup;
 	}
 
-	const char* passphrase = "passphrase";
-	output = pgp_output_new();
-	pgp_writer_set_memory(output, private_key_mem);
-	write_seckey_body(&keypair->key.seckey, (const uint8_t*)passphrase, strlen(passphrase), output); // write only private key
+	output2 = pgp_output_new();
+	pgp_writer_set_memory(output2, private_key_mem);
+	write_seckey_body(&keypair->key.seckey, NULL, 0, output2); // write only private key
 
 	if( private_key_mem->buf == NULL || private_key_mem->length <= 0 ) {
 		goto cleanup;
@@ -227,9 +153,9 @@ cleanup:
 	if( public_key_mem ) { pgp_memory_free(public_key_mem); }
 	if( private_key_mem ) { pgp_memory_free(private_key_mem); }
 	if( keypair ) { pgp_keydata_free(keypair); }
-	if( output ) { pgp_output_delete(output); }
+	if( output1 ) { pgp_output_delete(output1); }
+	if( output2 ) { pgp_output_delete(output2); }
 	return success;
-#endif
 }
 
 

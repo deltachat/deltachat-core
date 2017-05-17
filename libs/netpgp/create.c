@@ -479,7 +479,7 @@ write_seckey_body(const pgp_seckey_t *key,
  * \param output
  * \return 1 if OK, otherwise 0
  */
-static unsigned
+unsigned
 write_struct_pubkey(pgp_output_t *output, const pgp_pubkey_t *key)
 {
 	return pgp_write_ptag(output, PGP_PTAG_CT_PUBLIC_KEY) &&
