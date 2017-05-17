@@ -48,21 +48,12 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
+#include <netpgp-extra.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
 
-#ifdef KEYGEN_NETPGP
-#include <netpgp.h>
-#include "packet-parse.h"
-#include "errors.h"
-#include "netpgpdefs.h"
-#include "crypto.h"
-#include "create.h"
-unsigned rsa_generate_keypair(pgp_key_t *keydata, const int numbits, const unsigned long e, const char *hashalg, const char *cipher);
-unsigned write_seckey_body(const pgp_seckey_t *key, const uint8_t *passphrase, const size_t pplen, pgp_output_t *output);
-#endif
 
 void mre2ee_driver_init(mrmailbox_t* mailbox)
 {
