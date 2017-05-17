@@ -82,14 +82,14 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 {
 	int           success = 0;
 	pgp_key_t*    keypair = NULL;
-	pgp_memory_t* public_key_mem = NULL;
-	pgp_memory_t* private_key_mem = NULL;
-	pgp_output_t  *output1 = NULL, *output2 = NULL;
+	pgp_memory_t  *mem1 = pgp_memory_new(), *mem2 = pgp_memory_new();
+	pgp_output_t  *output1 = pgp_output_new(), *output2 = pgp_output_new();
 
 	mrkey_empty(ret_public_key);
 	mrkey_empty(ret_private_key);
 
-	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL ) {
+	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL
+	 || mem1==NULL || mem2==NULL || output1==NULL || output2==NULL ) {
 		goto cleanup;
 	}
 
@@ -114,47 +114,37 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	}
 
 	/* get public key */
-	if( (public_key_mem=pgp_memory_new())==NULL ) {
-		goto cleanup;
-	}
-
-	output1 = pgp_output_new();
-	pgp_writer_set_memory(output1, public_key_mem);
+	pgp_writer_set_memory(output1, mem1);
 	if( !write_struct_pubkey(output1, &keypair->key.pubkey) ) {
 		goto cleanup;
 	}
 
-	if( public_key_mem->buf == NULL || public_key_mem->length <= 0 ) {
+	if( mem1->buf == NULL || mem1->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, (const unsigned char*)public_key_mem->buf, public_key_mem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_public_key, (const unsigned char*)mem1->buf, mem1->length, MR_PRIVATE);
 
 	/* write private key
 	(pgp_write_struct_seckey() would write public+private key according to RFC4880 Section 5.5.3, see also pgp_write_xfer_seckey())
 	TODO: is this true? ^^^ */
-	if( (private_key_mem=pgp_memory_new())==NULL ) {
-		goto cleanup;
-	}
-
-	output2 = pgp_output_new();
-	pgp_writer_set_memory(output2, private_key_mem);
+	pgp_writer_set_memory(output2, mem2);
 	write_seckey_body(&keypair->key.seckey, NULL, 0, output2); // write only private key
 
-	if( private_key_mem->buf == NULL || private_key_mem->length <= 0 ) {
+	if( mem2->buf == NULL || mem2->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_private_key, (const unsigned char*)private_key_mem->buf, private_key_mem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_private_key, (const unsigned char*)mem2->buf, mem2->length, MR_PRIVATE);
 
 	success = 1;
 
 cleanup:
-	if( public_key_mem ) { pgp_memory_free(public_key_mem); }
-	if( private_key_mem ) { pgp_memory_free(private_key_mem); }
-	if( keypair ) { pgp_keydata_free(keypair); }
 	if( output1 ) { pgp_output_delete(output1); }
 	if( output2 ) { pgp_output_delete(output2); }
+	if( mem1 )    { pgp_memory_free(mem1); }
+	if( mem2 )    { pgp_memory_free(mem2); }
+	if( keypair ) { pgp_keydata_free(keypair); }
 	return success;
 }
 
