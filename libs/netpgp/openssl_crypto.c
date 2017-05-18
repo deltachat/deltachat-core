@@ -800,11 +800,10 @@ rsa_generate_keypair(pgp_key_t *keydata,
  \sa rsa_generate_keypair()
  \sa pgp_keydata_free()
 */
-#if 0 //////
 pgp_key_t  *
 pgp_rsa_new_selfsign_key(const int numbits,
 				const unsigned long e,
-				uint8_t *userid,
+				const uint8_t *userid,
 				const char *hashalg,
 				const char *cipher)
 {
@@ -818,7 +817,6 @@ pgp_rsa_new_selfsign_key(const int numbits,
 	}
 	return keydata;
 }
-#endif //////
 
 DSA_SIG        *
 pgp_dsa_sign(uint8_t *hashbuf,

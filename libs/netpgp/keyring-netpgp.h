@@ -111,7 +111,7 @@ uint8_t *pgp_add_userid(pgp_key_t *, const uint8_t *);
 pgp_subpacket_t *pgp_add_subpacket(pgp_key_t *,
 						const pgp_subpacket_t *);
 
-unsigned pgp_add_selfsigned_userid(pgp_key_t *, uint8_t *);
+unsigned pgp_add_selfsigned_userid(pgp_key_t *, const uint8_t *);
 
 pgp_key_t  *pgp_keydata_new(void);
 void pgp_keydata_init(pgp_key_t *, const pgp_content_enum);

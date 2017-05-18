@@ -226,7 +226,7 @@ typedef struct {
 	pgp_seckey_t		*seckey;
 } decrypt_t;
 
-static pgp_cb_ret_t 
+static pgp_cb_ret_t
 decrypt_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 {
 	const pgp_contents_t	*content = &pkt->u;
@@ -488,7 +488,7 @@ pgp_add_subpacket(pgp_key_t *keydata, const pgp_subpacket_t *packet)
 \return 1 if OK; else 0
 */
 unsigned
-pgp_add_selfsigned_userid(pgp_key_t *key, uint8_t *userid)
+pgp_add_selfsigned_userid(pgp_key_t *key, const uint8_t *userid)
 {
 	pgp_create_sig_t	*sig;
 	pgp_subpacket_t	 sigpacket;

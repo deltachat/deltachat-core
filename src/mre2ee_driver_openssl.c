@@ -106,16 +106,7 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	RAND_seed(seed, sizeof(seed));
 	}
 
-	/* generate keypair */
-	if( (keypair=pgp_keydata_new())==NULL ) {
-		goto cleanup;
-	}
-
-	if (!rsa_generate_keypair(keypair, 2048/*bits*/, 65537UL/*e*/, NULL/*hash*/, NULL/*cipher*/) ) {
-		goto cleanup;
-	}
-
-	/* Add user ID to keypair.  For convetion, use the same address as given in `Autocrypt: to=...` in angle brackets
+	/* Generate User ID.  For convention, use the same address as given in `Autocrypt: to=...` in angle brackets
 	(RFC 2822 grammar angle-addr, see also https://autocrypt.org/en/latest/level0.html#type-p-openpgp-based-key-data )
 	We do not add the name to the ID for the following reasons:
 	- privacy
@@ -124,7 +115,9 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	- the name is already taken from From:
 	- not Autocrypt:-standard */
 	user_id = mr_mprintf("<%s>", addr);
-	pgp_add_userid(keypair, (const uint8_t*)user_id);
+
+	/* generate keypair */
+	keypair = pgp_rsa_new_selfsign_key(2048/*bits*/, 65537UL/*e*/, (const uint8_t*)user_id, NULL, NULL);
 
 	/* get public key */
 	pgp_writer_set_memory(output1, mem1);

@@ -206,7 +206,7 @@ pgp_decrypt_buf(pgp_io_t *,
 
 /* Keys */
 pgp_key_t  *pgp_rsa_new_selfsign_key(const int,
-			const unsigned long, uint8_t *, const char *,
+			const unsigned long, const uint8_t *, const char *,
 			const char *);
 
 int pgp_dsa_size(const pgp_dsa_pubkey_t *);
