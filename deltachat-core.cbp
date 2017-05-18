@@ -36,10 +36,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-DHAVE_CONFIG_H" />
-			<Add option="-DUSE_E2EE" />
 			<Add option="-DMR_USE_MIME_DEBUG" />
 			<Add option="-DHAVE_ICONV" />
 			<Add option="-DSQLITE_OMIT_LOAD_EXTENSION" />
+			<Add option="-DMR_E2EE_DEFAULT_ENABLED=1" />
 			<Add directory="libs/libetpan/src" />
 			<Add directory="libs/libetpan/src/data-types" />
 			<Add directory="libs/libetpan/src/low-level" />
