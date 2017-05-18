@@ -81,7 +81,7 @@ __RCSID("$NetBSD: netpgp.c,v 1.96 2012/02/22 06:58:54 agc Exp $");
 #include "readerwriter-netpgp.h"
 #include "netpgpdefs.h"
 #include "crypto-netpgp.h"
-#include "ssh2pgp.h"
+//#include "ssh2pgp.h"
 #include "defs-netpgp.h"
 
 #if defined(ANDROID) || defined(__ANDROID__)
@@ -92,6 +92,7 @@ char * getpass (const char *prompt)
 #endif
 
 /* read any gpg config file */
+#if 0 //////
 static int
 conffile(netpgp_t *netpgp, char *homedir, char *userid, size_t length)
 {
@@ -125,6 +126,7 @@ conffile(netpgp_t *netpgp, char *homedir, char *userid, size_t length)
 	regfree(&keyre);
 	return 1;
 }
+#endif //////
 
 /* small function to pretty print an 8-character raw userid */
 static char    *
@@ -230,6 +232,7 @@ findvar(netpgp_t *netpgp, const char *name)
 }
 
 /* read a keyring and return it */
+#if 0 //////
 static void *
 readkeyring(netpgp_t *netpgp, const char *name)
 {
@@ -256,8 +259,10 @@ readkeyring(netpgp_t *netpgp, const char *name)
 	netpgp_setvar(netpgp, name, filename);
 	return keyring;
 }
+#endif //////
 
 /* read keys from ssh key files */
+#if 0 //////
 static int
 readsshkeys(netpgp_t *netpgp, char *homedir, const char *needseckey)
 {
@@ -336,8 +341,10 @@ readsshkeys(netpgp_t *netpgp, char *homedir, const char *needseckey)
 	}
 	return 1;
 }
+#endif //////
 
 /* get the uid of the first key in the keyring */
+#if 0 //////
 static int
 get_first_ring(pgp_keyring_t *ring, char *id, size_t len, int last)
 {
@@ -356,6 +363,7 @@ get_first_ring(pgp_keyring_t *ring, char *id, size_t len, int last)
 	id[n] = 0x0;
 	return 1;
 }
+#endif //////
 
 /* find the time - in a specific %Y-%m-%d format - using a regexp */
 static int
@@ -775,6 +783,7 @@ find_passphrase(FILE *passfp, const char *id, char *passphrase, size_t size, int
 /***************************************************************************/
 
 /* initialise a netpgp_t structure */
+#if 0 //////
 int
 netpgp_init(netpgp_t *netpgp)
 {
@@ -918,6 +927,7 @@ netpgp_init(netpgp_t *netpgp)
 	netpgp_setvar(netpgp, "initialised", ctime(&t));
 	return 1;
 }
+#endif //////
 
 /* finish off with the netpgp_t struct */
 int
