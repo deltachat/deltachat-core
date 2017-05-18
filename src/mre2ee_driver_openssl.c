@@ -51,6 +51,7 @@
 #include "mrkey.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
+#include "mrtools.h"
 
 
 void mre2ee_driver_init(mrmailbox_t* mailbox)
@@ -82,13 +83,14 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 {
 	int           success = 0;
 	pgp_key_t*    keypair = NULL;
+	char*         user_id = NULL;
 	pgp_memory_t  *mem1 = pgp_memory_new(), *mem2 = pgp_memory_new();
 	pgp_output_t  *output1 = pgp_output_new(), *output2 = pgp_output_new();
 
 	mrkey_empty(ret_public_key);
 	mrkey_empty(ret_private_key);
 
-	if( mailbox==NULL || ret_public_key==NULL || ret_private_key==NULL
+	if( mailbox==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
 	 || mem1==NULL || mem2==NULL || output1==NULL || output2==NULL ) {
 		goto cleanup;
 	}
@@ -113,9 +115,20 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		goto cleanup;
 	}
 
+	/* Add user ID to keypair.  For convetion, use the same address as given in `Autocrypt: to=...` in angle brackets
+	(RFC 2822 grammar angle-addr, see also https://autocrypt.org/en/latest/level0.html#type-p-openpgp-based-key-data )
+	We do not add the name to the ID for the following reasons:
+	- privacy
+	- the name may be changed
+	- shorter keys
+	- the name is already taken from From:
+	- not Autocrypt:-standard */
+	user_id = mr_mprintf("<%s>", addr);
+	pgp_add_userid(keypair, (const uint8_t*)user_id);
+
 	/* get public key */
 	pgp_writer_set_memory(output1, mem1);
-	if( !write_struct_pubkey(output1, &keypair->key.pubkey) ) {
+	if( !pgp_write_xfer_pubkey(output1, keypair, 0/*armoured*/) ) {
 		goto cleanup;
 	}
 
@@ -125,11 +138,11 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 
 	mrkey_set_from_raw(ret_public_key, (const unsigned char*)mem1->buf, mem1->length, MR_PRIVATE);
 
-	/* write private key
-	(pgp_write_struct_seckey() would write public+private key according to RFC4880 Section 5.5.3, see also pgp_write_xfer_seckey())
-	TODO: is this true? ^^^ */
+	/* write private key */
 	pgp_writer_set_memory(output2, mem2);
-	write_seckey_body(&keypair->key.seckey, NULL, 0, output2); // write only private key
+	if( !pgp_write_xfer_seckey(output2, keypair, NULL, 0, 0/*armoured*/) ) {
+		goto cleanup;
+	}
 
 	if( mem2->buf == NULL || mem2->length <= 0 ) {
 		goto cleanup;
@@ -145,6 +158,7 @@ cleanup:
 	if( mem1 )    { pgp_memory_free(mem1); }
 	if( mem2 )    { pgp_memory_free(mem2); }
 	if( keypair ) { pgp_keydata_free(keypair); }
+	free(user_id);
 	return success;
 }
 

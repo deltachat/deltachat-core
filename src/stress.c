@@ -112,7 +112,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah->m_prefer_encrypted==MRA_PE_YES );
 
 		rendered = mraheader_render(ah);
-		assert( strcmp(rendered, "to=a@b.example.org; prefer-encrypted=yes; key= RGVsdGEgQ2hhdA==")==0 );
+		assert( rendered && strcmp(rendered, "to=a@b.example.org; prefer-encrypted=yes; key= RGVsdGEgQ2hhdA==")==0 );
 
 		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; to = a@b.example.org ;\r\n type\r\n =\r\n p ; prefer-encrypted = yes ; key = RG VsdGEgQ\r\n2hhdA==");
 		assert( ah_ok == 1 );
@@ -159,12 +159,9 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
 
-		mraheader_t* ah = mraheader_new();
-		ah->m_to = safe_strdup("f@f");
-		mrkey_set_from_key(&ah->m_public_key, &public_key, MR_PUBLIC);
-		printf("%s\n", mraheader_render(ah));
-		mraheader_unref(ah);
-
+		char* temp = mrkey_render_base64(&public_key, 78, " ");
+		printf("\n[%s]\n", temp);
+		free(temp);
 
 		mrkey_empty(&public_key);
 		mrkey_empty(&private_key);

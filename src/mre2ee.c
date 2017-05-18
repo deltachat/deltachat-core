@@ -51,7 +51,7 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 		goto cleanup;
 	}
 
-	if( !mrkey_load_public__(public_key, mailbox->m_sql) )
+	if( !mrkey_load_self_public__(public_key, self_addr, mailbox->m_sql) )
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
 		if( s_in_key_creation ) { goto cleanup; }
@@ -75,7 +75,7 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 				goto cleanup;
 			}
 
-			if( !mrkey_save_keypair__(public_key, &private_key, self_addr, mailbox->m_sql) ) {
+			if( !mrkey_save_self_keypair__(public_key, &private_key, self_addr, mailbox->m_sql) ) {
 				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
@@ -194,7 +194,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	time_t                 message_time = 0;
 	mrapeerstate_t*        peerstate = NULL;
 	int                    locked = 0;
-	char*                  from = NULL;
+	char*                  from = NULL, *self_addr = NULL;
 	mrkey_t                private_key;
 	mrkey_init(&private_key);
 
@@ -271,7 +271,11 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 		}
 
 		/* load private key for decryption */
-		if( !mrkey_load_private__(&private_key, mailbox->m_sql) ) {
+		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
+			goto cleanup;
+		}
+
+		if( !mrkey_load_self_private__(&private_key, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 
@@ -288,5 +292,6 @@ cleanup:
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);
 	free(from);
+	free(self_addr);
 }
 

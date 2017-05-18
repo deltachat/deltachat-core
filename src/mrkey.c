@@ -133,7 +133,7 @@ int mrkey_equals(const mrkey_t* ths, const mrkey_t* o)
  ******************************************************************************/
 
 
-int mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql)
+int mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
@@ -157,17 +157,18 @@ int mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, 
 }
 
 
-int mrkey_load_public__(mrkey_t* ths, mrsqlite3_t* sql)
+int mrkey_load_self_public__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || sql==NULL ) {
+	if( ths==NULL || self_addr==NULL || sql==NULL ) {
 		return 0;
 	}
 
 	mrkey_empty(ths);
 	stmt = mrsqlite3_predefine__(sql, SELECT_public_key_FROM_keypairs_WHERE_default,
-		"SELECT public_key FROM keypairs WHERE is_default=1;");
+		"SELECT public_key FROM keypairs WHERE addr=? AND is_default=1;");
+	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
@@ -176,7 +177,7 @@ int mrkey_load_public__(mrkey_t* ths, mrsqlite3_t* sql)
 }
 
 
-int mrkey_load_private__(mrkey_t* ths, mrsqlite3_t* sql)
+int mrkey_load_self_private__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
@@ -186,7 +187,8 @@ int mrkey_load_private__(mrkey_t* ths, mrsqlite3_t* sql)
 
 	mrkey_empty(ths);
 	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
-		"SELECT private_key FROM keypairs WHERE is_default=1;");
+		"SELECT private_key FROM keypairs WHERE addr=? AND is_default=1;");
+	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}

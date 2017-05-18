@@ -55,9 +55,9 @@ int   mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index, int type);
 
 int   mrkey_equals        (const mrkey_t*, const mrkey_t*);
 
-int   mrkey_save_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql);
-int   mrkey_load_public__ (mrkey_t*, mrsqlite3_t* sql);
-int   mrkey_load_private__(mrkey_t*, mrsqlite3_t* sql);
+int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql);
+int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
+int   mrkey_load_self_private__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 
 char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars); /* the result must be freed */
 

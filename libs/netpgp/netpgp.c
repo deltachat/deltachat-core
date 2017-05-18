@@ -450,6 +450,7 @@ resolve_userid(netpgp_t *netpgp, const pgp_keyring_t *keyring, const char *useri
 }
 
 /* append a key to a keyring */
+#if 0 //////
 static int
 appendkey(pgp_io_t *io, pgp_key_t *key, char *ringfile)
 {
@@ -471,6 +472,7 @@ appendkey(pgp_io_t *io, pgp_key_t *key, char *ringfile)
 	pgp_teardown_file_write(create, fd);
 	return 1;
 }
+#endif //////
 
 /* return 1 if the file contains ascii-armoured text */
 static unsigned
@@ -730,6 +732,7 @@ formatbignum(char *buffer, BIGNUM *bn)
 #define INFINITE_ATTEMPTS	-1
 
 /* get the passphrase from the user */
+#if 0 //////
 static int
 find_passphrase(FILE *passfp, const char *id, char *passphrase, size_t size, int attempts)
 {
@@ -765,6 +768,7 @@ find_passphrase(FILE *passfp, const char *id, char *passphrase, size_t size, int
 	(void) memset(passphrase, 0x0, size);
 	return 0;
 }
+#endif //////
 
 /***************************************************************************/
 /* exported functions start here */
@@ -1174,6 +1178,7 @@ netpgp_import_key(netpgp_t *netpgp, char *f)
 #define ID_OFFSET	38
 
 /* generate a new key */
+#if 0 //////
 int
 netpgp_generate_key(netpgp_t *netpgp, char *id, int numbits)
 {
@@ -1259,6 +1264,7 @@ netpgp_generate_key(netpgp_t *netpgp, char *id, int numbits)
 	free(cp);
 	return 1;
 }
+#endif //////
 
 /* encrypt a file */
 int
