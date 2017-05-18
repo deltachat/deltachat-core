@@ -74,22 +74,22 @@ __RCSID("$NetBSD: validate.c,v 1.44 2012/03/05 02:20:18 christos Exp $");
 
 #include "packet-parse.h"
 #include "packet-show.h"
-#include "keyring.h"
-#include "signature.h"
+#include "keyring-netpgp.h"
+#include "signature-netpgp.h"
 #include "netpgpsdk.h"
-#include "readerwriter.h"
+#include "readerwriter-netpgp.h"
 #include "netpgpdefs.h"
-#include "memory.h"
-#include "packet.h"
-#include "crypto.h"
-#include "validate.h"
+#include "memory-netpgp.h"
+#include "packet-netpgp.h"
+#include "crypto-netpgp.h"
+#include "validate-netpgp.h"
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 
 
-static int 
+static int
 keydata_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors,
 	       pgp_reader_t *readinfo,
 	       pgp_cbdata_t *cbinfo)
@@ -125,14 +125,14 @@ keydata_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **er
 	return (int)length;
 }
 
-static void 
+static void
 free_sig_info(pgp_sig_info_t *sig)
 {
 	free(sig->v4_hashed);
 	free(sig);
 }
 
-static void 
+static void
 copy_sig_info(pgp_sig_info_t *dst, const pgp_sig_info_t *src)
 {
 	(void) memcpy(dst, src, sizeof(*src));
@@ -143,7 +143,7 @@ copy_sig_info(pgp_sig_info_t *dst, const pgp_sig_info_t *src)
 	}
 }
 
-static int 
+static int
 add_sig_to_list(const pgp_sig_info_t *sig, pgp_sig_info_t **sigs,
 			unsigned *count)
 {
@@ -571,13 +571,13 @@ validate_data_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 	return PGP_RELEASE_MEMORY;
 }
 
-static void 
+static void
 keydata_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
 }
 
-void 
+void
 pgp_keydata_reader_set(pgp_stream_t *stream, const pgp_key_t *key)
 {
 	validate_reader_t *data;
@@ -631,7 +631,7 @@ fmtsecs(int64_t n, char *buf, size_t size)
  * \return 0 if any invalid signatures or unknown signers
  	or no valid signatures; else 1
  */
-static unsigned 
+static unsigned
 validate_result_status(FILE *errs, const char *f, pgp_validation_t *val)
 {
 	time_t	now;
@@ -680,7 +680,7 @@ validate_result_status(FILE *errs, const char *f, pgp_validation_t *val)
  * \note It is the caller's responsiblity to free result after use.
  * \sa pgp_validate_result_free()
  */
-unsigned 
+unsigned
 pgp_validate_key_sigs(pgp_validation_t *result,
 	const pgp_key_t *key,
 	const pgp_keyring_t *keyring,
@@ -730,7 +730,7 @@ pgp_validate_key_sigs(pgp_validation_t *result,
    \note It is the caller's responsibility to free result after use.
    \sa pgp_validate_result_free()
 */
-unsigned 
+unsigned
 pgp_validate_all_sigs(pgp_validation_t *result,
 	    const pgp_keyring_t *ring,
 	    pgp_cb_ret_t cb_get_passphrase(const pgp_packet_t *,
@@ -752,7 +752,7 @@ pgp_validate_all_sigs(pgp_validation_t *result,
    \param result Struct to be freed
    \note Must be called after validation functions
 */
-void 
+void
 pgp_validate_result_free(pgp_validation_t *result)
 {
 	if (result != NULL) {
@@ -784,7 +784,7 @@ pgp_validate_result_free(pgp_validation_t *result)
    \note It is the caller's responsiblity to call
    	pgp_validate_result_free(result) after use.
 */
-unsigned 
+unsigned
 pgp_validate_file(pgp_io_t *io,
 			pgp_validation_t *result,
 			const char *infile,
@@ -917,7 +917,7 @@ pgp_validate_file(pgp_io_t *io,
    	pgp_validate_result_free(result) after use.
 */
 
-unsigned 
+unsigned
 pgp_validate_mem(pgp_io_t *io,
 			pgp_validation_t *result,
 			pgp_memory_t *mem,

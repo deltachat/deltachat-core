@@ -69,20 +69,27 @@ __RCSID("$NetBSD: netpgp.c,v 1.96 2012/02/22 06:58:54 agc Exp $");
 
 #include <netpgp.h>
 
-#include "packet.h"
+#include "packet-netpgp.h"
 #include "packet-parse.h"
-#include "keyring.h"
-#include "errors.h"
+#include "keyring-netpgp.h"
+#include "errors-netpgp.h"
 #include "packet-show.h"
-#include "create.h"
+#include "create-netpgp.h"
 #include "netpgpsdk.h"
-#include "memory.h"
-#include "validate.h"
-#include "readerwriter.h"
+#include "memory-netpgp.h"
+#include "validate-netpgp.h"
+#include "readerwriter-netpgp.h"
 #include "netpgpdefs.h"
-#include "crypto.h"
+#include "crypto-netpgp.h"
 #include "ssh2pgp.h"
 #include "defs-netpgp.h"
+
+#if defined(ANDROID) || defined(__ANDROID__)
+char * getpass (const char *prompt)
+{
+	return strdup("foo");
+}
+#endif
 
 /* read any gpg config file */
 static int

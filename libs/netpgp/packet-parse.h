@@ -54,8 +54,8 @@
 #ifndef PACKET_PARSE_H_
 #define PACKET_PARSE_H_
 
-#include "types.h"
-#include "packet.h"
+#include "types-netpgp.h"
+#include "packet-netpgp.h"
 
 /** pgp_region_t */
 typedef struct pgp_region_t {

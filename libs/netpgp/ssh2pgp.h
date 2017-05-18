@@ -29,8 +29,8 @@
 #ifndef SSH2PGP_H_
 #define SSH2PGP_H_
 
-#include "keyring.h"
-#include "types.h"
+#include "keyring-netpgp.h"
+#include "types-netpgp.h"
 
 int pgp_ssh2pubkey(pgp_io_t *, const char *, pgp_key_t *, pgp_hash_alg_t);
 int pgp_ssh2seckey(pgp_io_t *, const char *, pgp_key_t *, pgp_pubkey_t *, pgp_hash_alg_t);

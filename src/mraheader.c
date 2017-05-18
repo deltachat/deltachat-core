@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <base64.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mraheader.h"

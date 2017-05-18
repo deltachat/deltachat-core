@@ -49,71 +49,39 @@
 
 /** \file
  */
+#ifndef MEMORY_H_
+#define MEMORY_H_
 
-#ifndef WRITER_H_
-#define WRITER_H_
+#include <sys/types.h>
 
-#include "types.h"
-#include "packet.h"
-#include "crypto.h"
-#include "errors.h"
-#include "keyring.h"
+#include "packet-netpgp.h"
 
-/**
- * \ingroup Writer
- * the writer function prototype
+/** pgp_memory_t
  */
-
-typedef struct pgp_writer_t	pgp_writer_t;
-typedef unsigned pgp_writer_func_t(const uint8_t *,
-	     unsigned,
-	     pgp_error_t **,
-	     pgp_writer_t *);
-typedef unsigned 
-pgp_writer_finaliser_t(pgp_error_t **, pgp_writer_t *);
-typedef void    pgp_writer_destroyer_t(pgp_writer_t *);
-
-/** Writer settings */
-struct pgp_writer_t {
-	pgp_writer_func_t	 *writer;	/* the writer itself */
-	pgp_writer_finaliser_t *finaliser;	/* the writer's finaliser */
-	pgp_writer_destroyer_t *destroyer;	/* the writer's destroyer */
-	void			 *arg;	/* writer-specific argument */
-	pgp_writer_t	 	 *next;	/* next writer in the stack */
-	pgp_io_t		 *io;	/* IO for errors and output */
-};
+typedef struct pgp_memory_t {
+	uint8_t		*buf;
+	size_t          length;
+	size_t          allocated;
+	unsigned	mmapped;
+} pgp_memory_t;
 
 
-void *pgp_writer_get_arg(pgp_writer_t *);
+pgp_memory_t   *pgp_memory_new(void);
+void pgp_memory_free(pgp_memory_t *);
+void pgp_memory_init(pgp_memory_t *, size_t);
+void pgp_memory_pad(pgp_memory_t *, size_t);
+void pgp_memory_add(pgp_memory_t *, const uint8_t *, size_t);
+void pgp_memory_place_int(pgp_memory_t *, unsigned, unsigned, size_t);
+void pgp_memory_make_packet(pgp_memory_t *, pgp_content_enum);
+void pgp_memory_clear(pgp_memory_t *);
+void pgp_memory_release(pgp_memory_t *);
 
-void pgp_writer_set(pgp_output_t *,
-	       pgp_writer_func_t *,
-	       pgp_writer_finaliser_t *,
-	       pgp_writer_destroyer_t *,
-	       void *);
-void pgp_writer_push(pgp_output_t *,
-		pgp_writer_func_t *,
-		pgp_writer_finaliser_t *,
-		pgp_writer_destroyer_t *,
-		void *);
-void pgp_writer_pop(pgp_output_t *);
-unsigned pgp_writer_passthrough(const uint8_t *,
-		       unsigned,
-		       pgp_error_t **,
-		       pgp_writer_t *);
+void pgp_writer_set_memory(pgp_output_t *, pgp_memory_t *);
 
-void pgp_writer_set_fd(pgp_output_t *, int);
-unsigned pgp_writer_close(pgp_output_t *);
+size_t pgp_mem_len(const pgp_memory_t *);
+void *pgp_mem_data(pgp_memory_t *);
+int pgp_mem_readfile(pgp_memory_t *, const char *);
 
-unsigned pgp_write(pgp_output_t *, const void *, unsigned);
-unsigned pgp_write_length(pgp_output_t *, unsigned);
-unsigned pgp_write_ptag(pgp_output_t *, pgp_content_enum);
-unsigned pgp_write_scalar(pgp_output_t *, unsigned, unsigned);
-unsigned pgp_write_mpi(pgp_output_t *, const BIGNUM *);
+void pgp_random(void *, size_t);
 
-void pgp_writer_info_delete(pgp_writer_t *);
-unsigned pgp_writer_info_finalise(pgp_error_t **, pgp_writer_t *);
-
-void pgp_push_stream_enc_se_ip(pgp_output_t *, const pgp_key_t *, const char *);
-
-#endif /* WRITER_H_ */
+#endif /* MEMORY_H_ */

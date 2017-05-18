@@ -78,18 +78,18 @@ __RCSID("$NetBSD: misc.c,v 1.41 2012/03/05 02:20:18 christos Exp $");
 #include <openssl/rand.h>
 #endif
 
-#include "errors.h"
-#include "packet.h"
-#include "crypto.h"
-#include "create.h"
+#include "errors-netpgp.h"
+#include "packet-netpgp.h"
+#include "crypto-netpgp.h"
+#include "create-netpgp.h"
 #include "packet-parse.h"
 #include "packet-show.h"
-#include "signature.h"
+#include "signature-netpgp.h"
 #include "netpgpsdk.h"
 #include "netpgpdefs.h"
-#include "memory.h"
-#include "readerwriter.h"
-#include "version.h"
+#include "memory-netpgp.h"
+#include "readerwriter-netpgp.h"
+#include "version-netpgp.h"
 #include "netpgpdigest.h"
 
 #ifdef WIN32
@@ -170,7 +170,7 @@ accumulate_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
  * \param keyring Pointer to an existing keyring
  * \param parse Options to use when parsing
 */
-int 
+int
 pgp_parse_and_accumulate(pgp_keyring_t *keyring, pgp_stream_t *parse)
 {
 	accumulate_t	accumulate;
@@ -287,7 +287,7 @@ pgp_new(size_t size)
  *
  */
 
-void 
+void
 pgp_push_error(pgp_error_t **errstack, pgp_errcode_t errcode,
 		int sys_errno, const char *file, int line, const char *fmt,...)
 {
@@ -330,7 +330,7 @@ pgp_push_error(pgp_error_t **errstack, pgp_errcode_t errcode,
 \brief print this error
 \param err Error to print
 */
-void 
+void
 pgp_print_error(pgp_error_t *err)
 {
 	printf("%s:%d: ", err->file, err->line);
@@ -347,7 +347,7 @@ pgp_print_error(pgp_error_t *err)
 \brief Print all errors on stack
 \param errstack Error stack to print
 */
-void 
+void
 pgp_print_errors(pgp_error_t *errstack)
 {
 	pgp_error_t    *err;
@@ -364,7 +364,7 @@ pgp_print_errors(pgp_error_t *errstack)
 \param errcode Error code to look for
 \return 1 if found; else 0
 */
-int 
+int
 pgp_has_error(pgp_error_t *errstack, pgp_errcode_t errcode)
 {
 	pgp_error_t    *err;
@@ -382,7 +382,7 @@ pgp_has_error(pgp_error_t *errstack, pgp_errcode_t errcode)
 \brief Frees all errors on stack
 \param errstack Error stack to free
 */
-void 
+void
 pgp_free_errors(pgp_error_t *errstack)
 {
 	pgp_error_t    *next;
@@ -458,7 +458,7 @@ hash_bignum(pgp_hash_t *hash, BIGNUM *bignum)
  * \param fp Where to put the calculated fingerprint
  * \param key The key for which the fingerprint is calculated
  */
-int 
+int
 pgp_fingerprint(pgp_fingerprint_t *fp, const pgp_pubkey_t *key, pgp_hash_alg_t hashtype)
 {
 	pgp_memory_t	*mem;
@@ -542,7 +542,7 @@ pgp_fingerprint(pgp_fingerprint_t *fp, const pgp_pubkey_t *key, pgp_hash_alg_t h
  * \param key The key for which the ID is calculated
  */
 
-int 
+int
 pgp_keyid(uint8_t *keyid, const size_t idlen, const pgp_pubkey_t *key, pgp_hash_alg_t hashtype)
 {
 	pgp_fingerprint_t finger;
@@ -580,7 +580,7 @@ pgp_keyid(uint8_t *keyid, const size_t idlen, const pgp_pubkey_t *key, pgp_hash_
 \param n Int to add
 \param length Length of int in bytes
 */
-void 
+void
 pgp_hash_add_int(pgp_hash_t *hash, unsigned n, unsigned length)
 {
 	uint8_t   c;
@@ -597,7 +597,7 @@ pgp_hash_add_int(pgp_hash_t *hash, unsigned n, unsigned length)
 \param hash Hash to set up
 \param alg Hash algorithm to use
 */
-void 
+void
 pgp_hash_any(pgp_hash_t *hash, pgp_hash_alg_t alg)
 {
 	switch (alg) {
@@ -636,7 +636,7 @@ pgp_hash_any(pgp_hash_t *hash, pgp_hash_alg_t alg)
 \param alg Hash algorithm to use
 \return Size of hash algorithm in bytes
 */
-unsigned 
+unsigned
 pgp_hash_size(pgp_hash_alg_t alg)
 {
 	switch (alg) {
@@ -671,7 +671,7 @@ pgp_hash_size(pgp_hash_alg_t alg)
 \param hash Text name of hash algorithm i.e. "SHA1"
 \returns Corresponding enum i.e. PGP_HASH_SHA1
 */
-pgp_hash_alg_t 
+pgp_hash_alg_t
 pgp_str_to_hash_alg(const char *hash)
 {
 	if (hash == NULL) {
@@ -709,7 +709,7 @@ pgp_str_to_hash_alg(const char *hash)
 \param length Length of data
 \return Size of hash created
 */
-unsigned 
+unsigned
 pgp_hash(uint8_t *out, pgp_hash_alg_t alg, const void *in, size_t length)
 {
 	pgp_hash_t      hash;
@@ -733,7 +733,7 @@ pgp_hash(uint8_t *out, pgp_hash_alg_t alg, const void *in, size_t length)
 \param sz_plaintext Size of plaintext
 \param hashed Resulting hash
 */
-void 
+void
 pgp_calc_mdc_hash(const uint8_t *preamble,
 			const size_t sz_preamble,
 			const uint8_t *plaintext,
@@ -780,7 +780,7 @@ pgp_calc_mdc_hash(const uint8_t *preamble,
 \param hash_alg Hash Algorithm to check
 \return 1 if supported; else 0
 */
-unsigned 
+unsigned
 pgp_is_hash_alg_supported(const pgp_hash_alg_t *hash_alg)
 {
 	switch (*hash_alg) {
@@ -812,7 +812,7 @@ static str2cipher_t	str2cipher[] = {
 };
 
 /* convert from a string to a cipher definition */
-pgp_symm_alg_t 
+pgp_symm_alg_t
 pgp_str_to_cipher(const char *cipher)
 {
 	str2cipher_t	*sp;
@@ -825,7 +825,7 @@ pgp_str_to_cipher(const char *cipher)
 	return PGP_SA_DEFAULT_CIPHER;
 }
 
-void 
+void
 pgp_random(void *dest, size_t length)
 {
 	RAND_bytes(dest, (int)length);
@@ -837,7 +837,7 @@ pgp_random(void *dest, size_t length)
 \param mem memory to initialise
 \param needed Size to initialise to
 */
-void 
+void
 pgp_memory_init(pgp_memory_t *mem, size_t needed)
 {
 	uint8_t	*temp;
@@ -867,7 +867,7 @@ pgp_memory_init(pgp_memory_t *mem, size_t needed)
 \param mem Memory to use
 \param length New size
 */
-void 
+void
 pgp_memory_pad(pgp_memory_t *mem, size_t length)
 {
 	uint8_t	*temp;
@@ -897,7 +897,7 @@ pgp_memory_pad(pgp_memory_t *mem, size_t length)
 \param src Data to add
 \param length Length of data to add
 */
-void 
+void
 pgp_memory_add(pgp_memory_t *mem, const uint8_t *src, size_t length)
 {
 	pgp_memory_pad(mem, length);
@@ -907,7 +907,7 @@ pgp_memory_add(pgp_memory_t *mem, const uint8_t *src, size_t length)
 
 /* XXX: this could be refactored via the writer, but an awful lot of */
 /* hoops to jump through for 2 lines of code! */
-void 
+void
 pgp_memory_place_int(pgp_memory_t *mem, unsigned offset, unsigned n,
 		     size_t length)
 {
@@ -928,7 +928,7 @@ pgp_memory_place_int(pgp_memory_t *mem, unsigned offset, unsigned n,
  * \sa pgp_memory_release()
  * \sa pgp_memory_free()
  */
-void 
+void
 pgp_memory_clear(pgp_memory_t *mem)
 {
 	mem->length = 0;
@@ -942,7 +942,7 @@ pgp_memory_clear(pgp_memory_t *mem)
 \sa pgp_memory_clear()
 \sa pgp_memory_free()
 */
-void 
+void
 pgp_memory_release(pgp_memory_t *mem)
 {
 	if (mem->mmapped) {
@@ -954,7 +954,7 @@ pgp_memory_release(pgp_memory_t *mem)
 	mem->length = 0;
 }
 
-void 
+void
 pgp_memory_make_packet(pgp_memory_t *out, pgp_content_enum tag)
 {
 	size_t          extra;
@@ -1003,7 +1003,7 @@ pgp_memory_new(void)
    \sa pgp_memory_clear()
 */
 
-void 
+void
 pgp_memory_free(pgp_memory_t *mem)
 {
 	pgp_memory_release(mem);
@@ -1015,7 +1015,7 @@ pgp_memory_free(pgp_memory_t *mem)
    \brief Get length of data stored in pgp_memory_t struct
    \return Number of bytes in data
 */
-size_t 
+size_t
 pgp_mem_len(const pgp_memory_t *mem)
 {
 	return mem->length;
@@ -1116,7 +1116,7 @@ pgp_str_from_map(int type, pgp_map_t *map)
 #define LINELEN	16
 
 /* show hexadecimal/ascii dump */
-void 
+void
 hexdump(FILE *fp, const char *header, const uint8_t *src, size_t length)
 {
 	size_t	i;
@@ -1150,16 +1150,16 @@ hexdump(FILE *fp, const char *header, const uint8_t *src, size_t length)
  * \brief Closes down OpenPGP::SDK.
  *
  * Close down OpenPGP:SDK, release any resources under the control of
- * the library. 
+ * the library.
  */
 
-void 
+void
 pgp_finish(void)
 {
 	pgp_crypto_finish();
 }
 
-static int 
+static int
 sum16_reader(pgp_stream_t *stream, void *dest_, size_t length, pgp_error_t **errors,
 	     pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo)
 {
@@ -1178,7 +1178,7 @@ sum16_reader(pgp_stream_t *stream, void *dest_, size_t length, pgp_error_t **err
 	return r;
 }
 
-static void 
+static void
 sum16_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
@@ -1189,7 +1189,7 @@ sum16_destroyer(pgp_reader_t *readinfo)
    \param stream Parse settings
 */
 
-void 
+void
 pgp_reader_push_sum16(pgp_stream_t *stream)
 {
 	sum16_t    *arg;
@@ -1206,7 +1206,7 @@ pgp_reader_push_sum16(pgp_stream_t *stream)
    \param stream Parse settings
    \return sum
 */
-uint16_t 
+uint16_t
 pgp_reader_pop_sum16(pgp_stream_t *stream)
 {
 	uint16_t	 sum;

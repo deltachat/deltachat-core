@@ -71,11 +71,11 @@ __RCSID("$NetBSD: compress.c,v 1.23 2012/03/05 02:20:18 christos Exp $");
 #include <string.h>
 
 #include "packet-parse.h"
-#include "errors.h"
+#include "errors-netpgp.h"
 #include "netpgpdefs.h"
-#include "crypto.h"
-#include "memory.h"
-#include "writer.h"
+#include "crypto-netpgp.h"
+#include "memory-netpgp.h"
+#include "writer-netpgp.h"
 
 #define DECOMPRESS_BUFFER	1024
 
@@ -111,7 +111,7 @@ typedef struct {
  * \todo remove code duplication between this and
  * bzip2_compressed_data_reader
  */
-static int 
+static int
 zlib_compressed_data_reader(pgp_stream_t *stream, void *dest, size_t length,
 			    pgp_error_t **errors,
 			    pgp_reader_t *readinfo,
@@ -200,7 +200,7 @@ zlib_compressed_data_reader(pgp_stream_t *stream, void *dest, size_t length,
 
 #ifdef HAVE_BZLIB_H
 /* \todo remove code duplication between this and zlib_compressed_data_reader */
-static int 
+static int
 bzip2_compressed_data_reader(pgp_stream_t *stream, void *dest, size_t length,
 			     pgp_error_t **errors,
 			     pgp_reader_t *readinfo,
@@ -286,7 +286,7 @@ bzip2_compressed_data_reader(pgp_stream_t *stream, void *dest, size_t length,
  * \param type Which compression type to expect
 */
 
-int 
+int
 pgp_decompress(pgp_region_t *region, pgp_stream_t *stream,
 	       pgp_compression_type_t type)
 {
@@ -413,7 +413,7 @@ pgp_decompress(pgp_region_t *region, pgp_stream_t *stream,
 \return 1 if OK; else 0
 */
 
-unsigned 
+unsigned
 pgp_writez(pgp_output_t *out, const uint8_t *data, const unsigned len)
 {
 	compress_t	*zip;

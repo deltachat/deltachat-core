@@ -64,7 +64,7 @@ __RCSID("$NetBSD: reader.c,v 1.49 2012/03/05 02:20:18 christos Exp $");
 #include <sys/mman.h>
 #endif
 
-#ifdef HAVE_SYS_PARAM_H 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
@@ -120,16 +120,15 @@ __RCSID("$NetBSD: reader.c,v 1.49 2012/03/05 02:20:18 christos Exp $");
 #include <limits.h>
 #endif
 
-#include "errors.h"
-#include "crypto.h"
-#include "create.h"
-#include "signature.h"
-#include "packet.h"
+#include "errors-netpgp.h"
+#include "crypto-netpgp.h"
+#include "create-netpgp.h"
+#include "signature-netpgp.h"
+#include "packet-netpgp.h"
 #include "packet-parse.h"
 #include "packet-show.h"
-#include "packet.h"
-#include "keyring.h"
-#include "readerwriter.h"
+#include "keyring-netpgp.h"
+#include "readerwriter-netpgp.h"
 #include "netpgpsdk.h"
 #include "netpgpdefs.h"
 #include "netpgpdigest.h"
@@ -182,7 +181,7 @@ pgp_getpassphrase(void *in, char *phrase, size_t size)
  * \param destroyer Destroyer to use
  * \param vp Reader-specific arg
  */
-void 
+void
 pgp_reader_set(pgp_stream_t *stream,
 		pgp_reader_func_t *reader,
 		pgp_reader_destroyer_t *destroyer,
@@ -201,7 +200,7 @@ pgp_reader_set(pgp_stream_t *stream,
  * \param destroyer Reader's destroyer
  * \param vp Reader-specific arg
  */
-void 
+void
 pgp_reader_push(pgp_stream_t *stream,
 		pgp_reader_func_t *reader,
 		pgp_reader_destroyer_t *destroyer,
@@ -229,7 +228,7 @@ pgp_reader_push(pgp_stream_t *stream,
  * \brief Removes from reader stack
  * \param stream Parse settings
  */
-void 
+void
 pgp_reader_pop(pgp_stream_t *stream)
 {
 	pgp_reader_t *next = stream->readinfo.next;
@@ -314,7 +313,7 @@ typedef struct {
 	pgp_headers_t	headers;
 } dearmour_t;
 
-static void 
+static void
 push_back(dearmour_t *dearmour, const uint8_t *buf,
 	  unsigned length)
 {
@@ -371,7 +370,7 @@ findheaderline(char *headerline)
 	return hp->type;
 }
 
-static int 
+static int
 set_lastseen_headerline(dearmour_t *dearmour, char *hdr, pgp_error_t **errors)
 {
 	int	lastseen;
@@ -438,7 +437,7 @@ set_lastseen_headerline(dearmour_t *dearmour, char *hdr, pgp_error_t **errors)
 	return 1;
 }
 
-static int 
+static int
 read_char(pgp_stream_t *stream, dearmour_t *dearmour,
 		pgp_error_t **errors,
 		pgp_reader_t *readinfo,
@@ -464,7 +463,7 @@ read_char(pgp_stream_t *stream, dearmour_t *dearmour,
 	return c;
 }
 
-static int 
+static int
 eat_whitespace(pgp_stream_t *stream, int first,
 	       dearmour_t *dearmour,
 	       pgp_error_t **errors,
@@ -480,7 +479,7 @@ eat_whitespace(pgp_stream_t *stream, int first,
 	return c;
 }
 
-static int 
+static int
 read_and_eat_whitespace(pgp_stream_t *stream, dearmour_t *dearmour,
 			pgp_error_t **errors,
 			pgp_reader_t *readinfo,
@@ -495,7 +494,7 @@ read_and_eat_whitespace(pgp_stream_t *stream, dearmour_t *dearmour,
 	return c;
 }
 
-static void 
+static void
 flush(dearmour_t *dearmour, pgp_cbdata_t *cbinfo)
 {
 	pgp_packet_t	content;
@@ -508,7 +507,7 @@ flush(dearmour_t *dearmour, pgp_cbdata_t *cbinfo)
 	}
 }
 
-static int 
+static int
 unarmoured_read_char(pgp_stream_t *stream, dearmour_t *dearmour,
 			pgp_error_t **errors,
 			pgp_reader_t *readinfo,
@@ -553,7 +552,7 @@ find_header(pgp_headers_t *headers, const char *key)
  * \param dest
  * \param src
  */
-static void 
+static void
 dup_headers(pgp_headers_t *dest, const pgp_headers_t *src)
 {
 	unsigned        n;
@@ -573,7 +572,7 @@ dup_headers(pgp_headers_t *dest, const pgp_headers_t *src)
  * Note that this skips CRs so implementations always see just straight LFs
  * as line terminators
  */
-static int 
+static int
 process_dash_escaped(pgp_stream_t *stream, dearmour_t *dearmour,
 			pgp_error_t **errors,
 			pgp_reader_t *readinfo,
@@ -707,7 +706,7 @@ process_dash_escaped(pgp_stream_t *stream, dearmour_t *dearmour,
 	return total;
 }
 
-static int 
+static int
 add_header(dearmour_t *dearmour, const char *key, const char *value)
 {
 	int	n;
@@ -736,7 +735,7 @@ add_header(dearmour_t *dearmour, const char *key, const char *value)
 }
 
 /* \todo what does a return value of 0 indicate? 1 is good, -1 is bad */
-static int 
+static int
 parse_headers(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
 	      pgp_reader_t * readinfo, pgp_cbdata_t * cbinfo)
 {
@@ -840,7 +839,7 @@ end:
 	return ret;
 }
 
-static int 
+static int
 read4(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
       pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo,
       int *pc, unsigned *pn, uint32_t *pl)
@@ -881,7 +880,7 @@ read4(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
 	return 4;
 }
 
-unsigned 
+unsigned
 pgp_crc24(unsigned checksum, uint8_t c)
 {
 	unsigned        i;
@@ -895,7 +894,7 @@ pgp_crc24(unsigned checksum, uint8_t c)
 	return (unsigned)(checksum & 0xffffffL);
 }
 
-static int 
+static int
 decode64(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
 	 pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo)
 {
@@ -1038,7 +1037,7 @@ decode64(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
 	return 1;
 }
 
-static void 
+static void
 base64(dearmour_t *dearmour)
 {
 	dearmour->state = BASE64;
@@ -1051,7 +1050,7 @@ base64(dearmour_t *dearmour)
 /* content - this is because plaintext is not encapsulated in PGP */
 /* packets... it also calls back for the text between the blocks. */
 
-static int 
+static int
 armoured_data_reader(pgp_stream_t *stream, void *dest_, size_t length, pgp_error_t **errors,
 		     pgp_reader_t *readinfo,
 		     pgp_cbdata_t *cbinfo)
@@ -1325,7 +1324,7 @@ reloop:
 	return saved;
 }
 
-static void 
+static void
 armoured_data_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
@@ -1337,7 +1336,7 @@ armoured_data_destroyer(pgp_reader_t *readinfo)
  * \param parse_info Usual structure containing information about to how to do the parse
  * \sa pgp_reader_pop_dearmour()
  */
-void 
+void
 pgp_reader_push_dearmour(pgp_stream_t *parse_info)
 /*
  * This function originally had these params to cater for packets which
@@ -1345,12 +1344,12 @@ pgp_reader_push_dearmour(pgp_stream_t *parse_info)
  * support strict checking. If it becomes desirable to support loose checking
  * of armoured packets and these params are reinstated, parse_headers() must
  * be fixed so that these flags work correctly.
- * 
+ *
  * // Allow headers in armoured data that are not separated from the data by a
  * blank line unsigned without_gap,
- * 
+ *
  * // Allow no blank line at the start of armoured data unsigned no_gap,
- * 
+ *
  * //Allow armoured data to have trailing whitespace where we strictly would not
  * expect it			      unsigned trailing_whitespace
  */
@@ -1380,7 +1379,7 @@ pgp_reader_push_dearmour(pgp_stream_t *parse_info)
  * \param stream
  * \sa pgp_reader_push_dearmour()
  */
-void 
+void
 pgp_reader_pop_dearmour(pgp_stream_t *stream)
 {
 	dearmour_t *dearmour;
@@ -1402,7 +1401,7 @@ typedef struct {
 	unsigned	 prevplain:1;
 } encrypted_t;
 
-static int 
+static int
 encrypted_data_reader(pgp_stream_t *stream, void *dest,
 			size_t length,
 			pgp_error_t **errors,
@@ -1515,7 +1514,7 @@ encrypted_data_reader(pgp_stream_t *stream, void *dest,
 	return saved;
 }
 
-static void 
+static void
 encrypted_data_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
@@ -1526,12 +1525,12 @@ encrypted_data_destroyer(pgp_reader_t *readinfo)
  * \brief Pushes decryption reader onto stack
  * \sa pgp_reader_pop_decrypt()
  */
-void 
+void
 pgp_reader_push_decrypt(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 			pgp_region_t *region)
 {
 	encrypted_t	*encrypted;
-	
+
 	if ((encrypted = calloc(1, sizeof(*encrypted))) == NULL) {
 		(void) fprintf(stderr, "pgp_reader_push_decrypted: bad alloc\n");
 	} else {
@@ -1548,7 +1547,7 @@ pgp_reader_push_decrypt(pgp_stream_t *stream, pgp_crypt_t *decrypt,
  * \brief Pops decryption reader from stack
  * \sa pgp_reader_push_decrypt()
  */
-void 
+void
 pgp_reader_pop_decrypt(pgp_stream_t *stream)
 {
 	encrypted_t	*encrypted;
@@ -1578,7 +1577,7 @@ typedef struct {
   Verifies trailing MDC packet
   Then passes up plaintext as requested
 */
-static int 
+static int
 se_ip_data_reader(pgp_stream_t *stream, void *dest_,
 			size_t len,
 			pgp_error_t **errors,
@@ -1626,7 +1625,7 @@ se_ip_data_reader(pgp_stream_t *stream, void *dest_,
 			return -1;
 		}
 		if (pgp_get_debug_level(__FILE__)) {
-			hexdump(stderr, "SE IP packet", buf, decrypted_region.length); 
+			hexdump(stderr, "SE IP packet", buf, decrypted_region.length);
 		}
 		/* verify leading preamble */
 		if (pgp_get_debug_level(__FILE__)) {
@@ -1700,7 +1699,7 @@ se_ip_data_reader(pgp_stream_t *stream, void *dest_,
 	return n;
 }
 
-static void 
+static void
 se_ip_data_destroyer(pgp_reader_t *readinfo)
 {
 	decrypt_se_ip_t	*se_ip;
@@ -1713,7 +1712,7 @@ se_ip_data_destroyer(pgp_reader_t *readinfo)
 /**
    \ingroup Internal_Readers_SEIP
 */
-void 
+void
 pgp_reader_push_se_ip_data(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 			   pgp_region_t * region)
 {
@@ -1732,7 +1731,7 @@ pgp_reader_push_se_ip_data(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 /**
    \ingroup Internal_Readers_SEIP
  */
-void 
+void
 pgp_reader_pop_se_ip_data(pgp_stream_t *stream)
 {
 	/*
@@ -1772,7 +1771,7 @@ typedef struct mmap_reader_t {
  *
  * PGP_R_EARLY_EOF and PGP_R_ERROR push errors on the stack
  */
-static int 
+static int
 fd_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors,
 	  pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo)
 {
@@ -1797,7 +1796,7 @@ fd_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors,
 	return n;
 }
 
-static void 
+static void
 reader_fd_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
@@ -1808,7 +1807,7 @@ reader_fd_destroyer(pgp_reader_t *readinfo)
    \brief Starts stack with file reader
 */
 
-void 
+void
 pgp_reader_set_fd(pgp_stream_t *stream, int fd)
 {
 	mmap_reader_t *reader;
@@ -1829,7 +1828,7 @@ typedef struct {
 	size_t          offset;
 } reader_mem_t;
 
-static int 
+static int
 mem_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors,
 	   pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo)
 {
@@ -1855,7 +1854,7 @@ mem_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors
 	return n;
 }
 
-static void 
+static void
 mem_destroyer(pgp_reader_t *readinfo)
 {
 	free(pgp_reader_get_arg(readinfo));
@@ -1866,7 +1865,7 @@ mem_destroyer(pgp_reader_t *readinfo)
    \brief Starts stack with memory reader
 */
 
-void 
+void
 pgp_reader_set_memory(pgp_stream_t *stream, const void *buffer,
 		      size_t length)
 {
@@ -1893,7 +1892,7 @@ pgp_reader_set_memory(pgp_stream_t *stream, const void *buffer,
  \note It is the caller's responsiblity to free output and mem.
  \sa pgp_teardown_memory_write()
 */
-void 
+void
 pgp_setup_memory_write(pgp_output_t **output, pgp_memory_t **mem, size_t bufsz)
 {
 	/*
@@ -1915,7 +1914,7 @@ pgp_setup_memory_write(pgp_output_t **output, pgp_memory_t **mem, size_t bufsz)
    \param mem
    \sa pgp_setup_memory_write()
 */
-void 
+void
 pgp_teardown_memory_write(pgp_output_t *output, pgp_memory_t *mem)
 {
 	pgp_writer_close(output);/* new */
@@ -1934,7 +1933,7 @@ pgp_teardown_memory_write(pgp_output_t *output, pgp_memory_t *mem)
    \note It is the caller's responsiblity to free parse_info
    \sa pgp_teardown_memory_read()
 */
-void 
+void
 pgp_setup_memory_read(pgp_io_t *io,
 			pgp_stream_t **stream,
 			pgp_memory_t *mem,
@@ -1961,7 +1960,7 @@ pgp_setup_memory_read(pgp_io_t *io,
    \param mem
    \sa pgp_setup_memory_read()
 */
-void 
+void
 pgp_teardown_memory_read(pgp_stream_t *stream, pgp_memory_t *mem)
 {
 	pgp_stream_delete(stream);
@@ -1978,7 +1977,7 @@ pgp_teardown_memory_read(pgp_stream_t *stream, pgp_memory_t *mem)
  \note It is the caller's responsiblity to free output and to close fd.
  \sa pgp_teardown_file_write()
 */
-int 
+int
 pgp_setup_file_write(pgp_output_t **output, const char *filename,
 			unsigned allow_overwrite)
 {
@@ -2017,7 +2016,7 @@ pgp_setup_file_write(pgp_output_t **output, const char *filename,
    \param output
    \param fd
 */
-void 
+void
 pgp_teardown_file_write(pgp_output_t *output, int fd)
 {
 	pgp_writer_close(output);
@@ -2029,7 +2028,7 @@ pgp_teardown_file_write(pgp_output_t *output, int fd)
    \ingroup Core_Writers
    \brief As pgp_setup_file_write, but appends to file
 */
-int 
+int
 pgp_setup_file_append(pgp_output_t **output, const char *filename)
 {
 	int	fd;
@@ -2053,7 +2052,7 @@ pgp_setup_file_append(pgp_output_t **output, const char *filename)
    \ingroup Core_Writers
    \brief As pgp_teardown_file_write()
 */
-void 
+void
 pgp_teardown_file_append(pgp_output_t *output, int fd)
 {
 	pgp_teardown_file_write(output, fd);
@@ -2070,7 +2069,7 @@ pgp_teardown_file_append(pgp_output_t *output, int fd)
    \note It is the caller's responsiblity to free parse_info and to close fd
    \sa pgp_teardown_file_read()
 */
-int 
+int
 pgp_setup_file_read(pgp_io_t *io,
 			pgp_stream_t **stream,
 			const char *filename,
@@ -2111,7 +2110,7 @@ pgp_setup_file_read(pgp_io_t *io,
    \param fd
    \sa pgp_setup_file_read()
 */
-void 
+void
 pgp_teardown_file_read(pgp_stream_t *stream, int fd)
 {
 	close(fd);
@@ -2302,7 +2301,7 @@ get_passphrase_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 	return PGP_RELEASE_MEMORY;
 }
 
-unsigned 
+unsigned
 pgp_reader_set_accumulate(pgp_stream_t *stream, unsigned state)
 {
 	return stream->readinfo.accumulate = state;
@@ -2310,7 +2309,7 @@ pgp_reader_set_accumulate(pgp_stream_t *stream, unsigned state)
 
 /**************************************************************************/
 
-static int 
+static int
 hash_reader(pgp_stream_t *stream, void *dest,
 		size_t length,
 		pgp_error_t **errors,
@@ -2319,7 +2318,7 @@ hash_reader(pgp_stream_t *stream, void *dest,
 {
 	pgp_hash_t	*hash = pgp_reader_get_arg(readinfo);
 	int		 r;
-	
+
 	r = pgp_stacked_read(stream, dest, length, errors, readinfo, cbinfo);
 	if (r <= 0) {
 		return r;
@@ -2332,7 +2331,7 @@ hash_reader(pgp_stream_t *stream, void *dest,
    \ingroup Internal_Readers_Hash
    \brief Push hashed data reader on stack
 */
-void 
+void
 pgp_reader_push_hash(pgp_stream_t *stream, pgp_hash_t *hash)
 {
 	if (!hash->init(hash)) {
@@ -2347,14 +2346,14 @@ pgp_reader_push_hash(pgp_stream_t *stream, pgp_hash_t *hash)
    \ingroup Internal_Readers_Hash
    \brief Pop hashed data reader from stack
 */
-void 
+void
 pgp_reader_pop_hash(pgp_stream_t *stream)
 {
 	pgp_reader_pop(stream);
 }
 
 /* read memory from the previously mmap-ed file */
-static int 
+static int
 mmap_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **errors,
 	  pgp_reader_t *readinfo, pgp_cbdata_t *cbinfo)
 {
@@ -2377,7 +2376,7 @@ mmap_reader(pgp_stream_t *stream, void *dest, size_t length, pgp_error_t **error
 }
 
 /* tear down the mmap, close the fd */
-static void 
+static void
 mmap_destroyer(pgp_reader_t *readinfo)
 {
 	mmap_reader_t *mem = pgp_reader_get_arg(readinfo);
@@ -2388,7 +2387,7 @@ mmap_destroyer(pgp_reader_t *readinfo)
 }
 
 /* set up the file to use mmap-ed memory if available, file IO otherwise */
-void 
+void
 pgp_reader_set_mmap(pgp_stream_t *stream, int fd)
 {
 	mmap_reader_t	*mem;

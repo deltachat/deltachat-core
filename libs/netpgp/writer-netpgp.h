@@ -49,71 +49,71 @@
 
 /** \file
  */
-#ifndef CREATE_H_
-#define CREATE_H_
 
-#include "types.h"
-#include "packet.h"
-#include "crypto.h"
-#include "errors.h"
-#include "keyring.h"
-#include "writer.h"
-#include "memory.h"
+#ifndef WRITER_H_
+#define WRITER_H_
+
+#include "types-netpgp.h"
+#include "packet-netpgp.h"
+#include "crypto-netpgp.h"
+#include "errors-netpgp.h"
+#include "keyring-netpgp.h"
 
 /**
- * \ingroup Create
- * This struct contains the required information about how to write this stream
+ * \ingroup Writer
+ * the writer function prototype
  */
-struct pgp_output_t {
-	pgp_writer_t	 writer;
-	pgp_error_t	*errors;	/* error stack */
+
+typedef struct pgp_writer_t	pgp_writer_t;
+typedef unsigned pgp_writer_func_t(const uint8_t *,
+	     unsigned,
+	     pgp_error_t **,
+	     pgp_writer_t *);
+typedef unsigned
+pgp_writer_finaliser_t(pgp_error_t **, pgp_writer_t *);
+typedef void    pgp_writer_destroyer_t(pgp_writer_t *);
+
+/** Writer settings */
+struct pgp_writer_t {
+	pgp_writer_func_t	 *writer;	/* the writer itself */
+	pgp_writer_finaliser_t *finaliser;	/* the writer's finaliser */
+	pgp_writer_destroyer_t *destroyer;	/* the writer's destroyer */
+	void			 *arg;	/* writer-specific argument */
+	pgp_writer_t	 	 *next;	/* next writer in the stack */
+	pgp_io_t		 *io;	/* IO for errors and output */
 };
 
-pgp_output_t *pgp_output_new(void);
-void pgp_output_delete(pgp_output_t *);
 
-int pgp_filewrite(const char *, const char *, const size_t, const unsigned);
+void *pgp_writer_get_arg(pgp_writer_t *);
 
-void pgp_build_pubkey(pgp_memory_t *, const pgp_pubkey_t *, unsigned);
+void pgp_writer_set(pgp_output_t *,
+	       pgp_writer_func_t *,
+	       pgp_writer_finaliser_t *,
+	       pgp_writer_destroyer_t *,
+	       void *);
+void pgp_writer_push(pgp_output_t *,
+		pgp_writer_func_t *,
+		pgp_writer_finaliser_t *,
+		pgp_writer_destroyer_t *,
+		void *);
+void pgp_writer_pop(pgp_output_t *);
+unsigned pgp_writer_passthrough(const uint8_t *,
+		       unsigned,
+		       pgp_error_t **,
+		       pgp_writer_t *);
 
-unsigned pgp_calc_sesskey_checksum(pgp_pk_sesskey_t *, uint8_t *);
-unsigned pgp_write_struct_userid(pgp_output_t *, const uint8_t *);
-unsigned pgp_write_ss_header(pgp_output_t *, unsigned, pgp_content_enum);
-unsigned pgp_write_struct_seckey(const pgp_seckey_t *,
-			    const uint8_t *,
-			    const size_t,
-			    pgp_output_t *);
-unsigned pgp_write_one_pass_sig(pgp_output_t *,
-				const pgp_seckey_t *,
-				const pgp_hash_alg_t,
-				const pgp_sig_type_t);
-unsigned pgp_write_litdata(pgp_output_t *, 
-				const uint8_t *,
-				const int,
-				const pgp_litdata_enum);
-pgp_pk_sesskey_t *pgp_create_pk_sesskey(const pgp_key_t *, const char *);
-unsigned pgp_write_pk_sesskey(pgp_output_t *, pgp_pk_sesskey_t *);
-unsigned pgp_write_xfer_pubkey(pgp_output_t *,
-				const pgp_key_t *, const unsigned);
-unsigned   pgp_write_xfer_seckey(pgp_output_t *,
-				const pgp_key_t *,
-				const uint8_t *,
-				const size_t,
-				const unsigned);
+void pgp_writer_set_fd(pgp_output_t *, int);
+unsigned pgp_writer_close(pgp_output_t *);
 
-void pgp_fast_create_userid(uint8_t **, uint8_t *);
-unsigned pgp_write_userid(const uint8_t *, pgp_output_t *);
-void pgp_fast_create_rsa_pubkey(pgp_pubkey_t *, time_t, BIGNUM *, BIGNUM *);
-unsigned pgp_write_rsa_pubkey(time_t, const BIGNUM *, const BIGNUM *,
-				pgp_output_t *);
-void pgp_fast_create_rsa_seckey(pgp_seckey_t *, time_t, BIGNUM *,
-				BIGNUM *, BIGNUM *, BIGNUM *,
-				BIGNUM *, BIGNUM *);
-unsigned encode_m_buf(const uint8_t *, size_t, const pgp_pubkey_t *,
-				uint8_t *);
-unsigned pgp_fileread_litdata(const char *, const pgp_litdata_enum,
-				pgp_output_t *);
-unsigned pgp_write_symm_enc_data(const uint8_t *, const int,
-				pgp_output_t *);
+unsigned pgp_write(pgp_output_t *, const void *, unsigned);
+unsigned pgp_write_length(pgp_output_t *, unsigned);
+unsigned pgp_write_ptag(pgp_output_t *, pgp_content_enum);
+unsigned pgp_write_scalar(pgp_output_t *, unsigned, unsigned);
+unsigned pgp_write_mpi(pgp_output_t *, const BIGNUM *);
 
-#endif /* CREATE_H_ */
+void pgp_writer_info_delete(pgp_writer_t *);
+unsigned pgp_writer_info_finalise(pgp_error_t **, pgp_writer_t *);
+
+void pgp_push_stream_enc_se_ip(pgp_output_t *, const pgp_key_t *, const char *);
+
+#endif /* WRITER_H_ */

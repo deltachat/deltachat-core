@@ -65,7 +65,7 @@
 #include "packet-parse.h"
 #include "netpgpdefs.h"
 #include "netpgpsdk.h"
-#include "crypto.h"
+#include "crypto-netpgp.h"
 #include "netpgpdigest.h"
 #include "ssh2pgp.h"
 

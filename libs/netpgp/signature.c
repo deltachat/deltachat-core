@@ -77,12 +77,12 @@ __RCSID("$NetBSD: signature.c,v 1.34 2012/03/05 02:20:18 christos Exp $");
 #include <openssl/dsa.h>
 #endif
 
-#include "signature.h"
-#include "crypto.h"
-#include "create.h"
+#include "signature-netpgp.h"
+#include "crypto-netpgp.h"
+#include "create-netpgp.h"
 #include "netpgpsdk.h"
-#include "readerwriter.h"
-#include "validate.h"
+#include "readerwriter-netpgp.h"
+#include "validate-netpgp.h"
 #include "netpgpdefs.h"
 #include "netpgpdigest.h"
 
@@ -119,7 +119,7 @@ pgp_create_sig_new(void)
    \param sig struct to free
    \sa pgp_create_sig_new()
 */
-void 
+void
 pgp_create_sig_delete(pgp_create_sig_t *sig)
 {
 	pgp_output_delete(sig->output);
@@ -152,7 +152,7 @@ static uint8_t prefix_sha256[] = {
 
 /* XXX: both this and verify would be clearer if the signature were */
 /* treated as an MPI. */
-static int 
+static int
 rsa_sign(pgp_hash_t *hash,
 	const pgp_rsa_pubkey_t *pubrsa,
 	const pgp_rsa_seckey_t *secrsa,
@@ -222,7 +222,7 @@ rsa_sign(pgp_hash_t *hash,
 	return 1;
 }
 
-static int 
+static int
 dsa_sign(pgp_hash_t *hash,
 	 const pgp_dsa_pubkey_t *dsa,
 	 const pgp_dsa_seckey_t *sdsa,
@@ -258,7 +258,7 @@ dsa_sign(pgp_hash_t *hash,
 	return 1;
 }
 
-static unsigned 
+static unsigned
 rsa_verify(pgp_hash_alg_t type,
 	   const uint8_t *hash,
 	   size_t hash_length,
@@ -344,7 +344,7 @@ rsa_verify(pgp_hash_alg_t type,
 	        memcmp(&hashbuf_from_sig[n + plen], hash, hash_length) == 0);
 }
 
-static void 
+static void
 hash_add_key(pgp_hash_t *hash, const pgp_pubkey_t *key)
 {
 	pgp_memory_t	*mem = pgp_memory_new();
@@ -359,7 +359,7 @@ hash_add_key(pgp_hash_t *hash, const pgp_pubkey_t *key)
 	pgp_memory_free(mem);
 }
 
-static void 
+static void
 initialise_hash(pgp_hash_t *hash, const pgp_sig_t *sig)
 {
 	pgp_hash_any(hash, sig->info.hash_alg);
@@ -371,7 +371,7 @@ initialise_hash(pgp_hash_t *hash, const pgp_sig_t *sig)
 	}
 }
 
-static void 
+static void
 init_key_sig(pgp_hash_t *hash, const pgp_sig_t *sig,
 		   const pgp_pubkey_t *key)
 {
@@ -379,7 +379,7 @@ init_key_sig(pgp_hash_t *hash, const pgp_sig_t *sig,
 	hash_add_key(hash, key);
 }
 
-static void 
+static void
 hash_add_trailer(pgp_hash_t *hash, const pgp_sig_t *sig,
 		 const uint8_t *raw_packet)
 {
@@ -406,7 +406,7 @@ hash_add_trailer(pgp_hash_t *hash, const pgp_sig_t *sig,
    \param signer The signer's public key
    \return 1 if good; else 0
 */
-unsigned 
+unsigned
 pgp_check_sig(const uint8_t *hash, unsigned length,
 		    const pgp_sig_t * sig,
 		    const pgp_pubkey_t * signer)
@@ -437,7 +437,7 @@ pgp_check_sig(const uint8_t *hash, unsigned length,
 	return ret;
 }
 
-static unsigned 
+static unsigned
 hash_and_check_sig(pgp_hash_t *hash,
 			 const pgp_sig_t *sig,
 			 const pgp_pubkey_t *signer)
@@ -449,7 +449,7 @@ hash_and_check_sig(pgp_hash_t *hash,
 	return pgp_check_sig(hashout, n, sig, signer);
 }
 
-static unsigned 
+static unsigned
 finalise_sig(pgp_hash_t *hash,
 		   const pgp_sig_t *sig,
 		   const pgp_pubkey_t *signer,
@@ -596,7 +596,7 @@ pgp_check_hash_sig(pgp_hash_t *hash,
 		0;
 }
 
-static void 
+static void
 start_sig_in_mem(pgp_create_sig_t *sig)
 {
 	/* since this has subpackets and stuff, we have to buffer the whole */
@@ -626,7 +626,7 @@ start_sig_in_mem(pgp_create_sig_t *sig)
  * \param id The user ID being bound to the key
  * \param type Signature type
  */
-void 
+void
 pgp_sig_start_key_sig(pgp_create_sig_t *sig,
 				  const pgp_pubkey_t *key,
 				  const uint8_t *id,
@@ -660,7 +660,7 @@ pgp_sig_start_key_sig(pgp_create_sig_t *sig,
  * \todo Expand description. Allow other hashes.
  */
 
-void 
+void
 pgp_start_sig(pgp_create_sig_t *sig,
 	      const pgp_seckey_t *key,
 	      const pgp_hash_alg_t hash,
@@ -694,7 +694,7 @@ pgp_start_sig(pgp_create_sig_t *sig,
  * \param buf The plaintext data.
  * \param length The amount of plaintext data.
  */
-void 
+void
 pgp_sig_add_data(pgp_create_sig_t *sig, const void *buf, size_t length)
 {
 	sig->hash.add(&sig->hash, buf, (unsigned)length);
@@ -708,7 +708,7 @@ pgp_sig_add_data(pgp_create_sig_t *sig, const void *buf, size_t length)
  * \param sig
  */
 
-unsigned 
+unsigned
 pgp_end_hashed_subpkts(pgp_create_sig_t *sig)
 {
 	sig->hashlen = (unsigned)(pgp_mem_len(sig->mem) - sig->hashoff - 2);
@@ -730,8 +730,8 @@ pgp_end_hashed_subpkts(pgp_create_sig_t *sig)
  *
  */
 
-unsigned 
-pgp_write_sig(pgp_output_t *output, 
+unsigned
+pgp_write_sig(pgp_output_t *output,
 			pgp_create_sig_t *sig,
 			const pgp_pubkey_t *key,
 			const pgp_seckey_t *seckey)
@@ -832,7 +832,7 @@ pgp_write_sig(pgp_output_t *output,
 }
 
 /* add a time stamp to the output */
-unsigned 
+unsigned
 pgp_add_time(pgp_create_sig_t *sig, int64_t when, const char *type)
 {
 	pgp_content_enum	tag;
@@ -853,7 +853,7 @@ pgp_add_time(pgp_create_sig_t *sig, int64_t when, const char *type)
  * \param keyid
  */
 
-unsigned 
+unsigned
 pgp_add_issuer_keyid(pgp_create_sig_t *sig,
 				const uint8_t keyid[PGP_KEY_ID_SIZE])
 {
@@ -870,7 +870,7 @@ pgp_add_issuer_keyid(pgp_create_sig_t *sig,
  * \param sig
  * \param primary
  */
-void 
+void
 pgp_add_primary_userid(pgp_create_sig_t *sig, unsigned primary)
 {
 	pgp_write_ss_header(sig->output, 2, PGP_PTAG_SS_PRIMARY_USER_ID);
@@ -892,7 +892,7 @@ pgp_sig_get_hash(pgp_create_sig_t *sig)
 }
 
 /* open up an output file */
-static int 
+static int
 open_output_file(pgp_output_t **output,
 			const char *inname,
 			const char *outname,
@@ -931,7 +931,7 @@ open_output_file(pgp_output_t **output,
 \return 1 if OK; else 0;
 
 */
-unsigned 
+unsigned
 pgp_sign_file(pgp_io_t *io,
 		const char *inname,
 		const char *outname,

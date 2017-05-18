@@ -53,7 +53,7 @@
 #ifndef PACKET_SHOW_H_
 #define PACKET_SHOW_H_
 
-#include "packet.h"
+#include "packet-netpgp.h"
 
 /** pgp_list_t
  */

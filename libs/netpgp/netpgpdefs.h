@@ -65,4 +65,8 @@ void		*pgp_new(size_t);
 	}								\
 } while(/* CONSTCOND */0)
 
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
 #endif /* !NETPGPDEFS_H_ */

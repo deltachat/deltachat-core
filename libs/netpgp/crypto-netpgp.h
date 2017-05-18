@@ -53,9 +53,9 @@
 #ifndef CRYPTO_H_
 #define CRYPTO_H_
 
-#include "keyring.h"
-#include "packet.h"
-#include "memory.h"
+#include "keyring-netpgp.h"
+#include "packet-netpgp.h"
+#include "memory-netpgp.h"
 #include "packet-parse.h"
 
 #include <openssl/dsa.h>

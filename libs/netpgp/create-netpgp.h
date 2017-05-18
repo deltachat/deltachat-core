@@ -49,39 +49,71 @@
 
 /** \file
  */
-#ifndef MEMORY_H_
-#define MEMORY_H_
+#ifndef CREATE_H_
+#define CREATE_H_
 
-#include <sys/types.h>
+#include "types-netpgp.h"
+#include "packet-netpgp.h"
+#include "crypto-netpgp.h"
+#include "errors-netpgp.h"
+#include "keyring-netpgp.h"
+#include "writer-netpgp.h"
+#include "memory-netpgp.h"
 
-#include "packet.h"
-
-/** pgp_memory_t
+/**
+ * \ingroup Create
+ * This struct contains the required information about how to write this stream
  */
-typedef struct pgp_memory_t {
-	uint8_t		*buf;
-	size_t          length;
-	size_t          allocated;
-	unsigned	mmapped;
-} pgp_memory_t;
+struct pgp_output_t {
+	pgp_writer_t	 writer;
+	pgp_error_t	*errors;	/* error stack */
+};
 
+pgp_output_t *pgp_output_new(void);
+void pgp_output_delete(pgp_output_t *);
 
-pgp_memory_t   *pgp_memory_new(void);
-void pgp_memory_free(pgp_memory_t *);
-void pgp_memory_init(pgp_memory_t *, size_t);
-void pgp_memory_pad(pgp_memory_t *, size_t);
-void pgp_memory_add(pgp_memory_t *, const uint8_t *, size_t);
-void pgp_memory_place_int(pgp_memory_t *, unsigned, unsigned, size_t);
-void pgp_memory_make_packet(pgp_memory_t *, pgp_content_enum);
-void pgp_memory_clear(pgp_memory_t *);
-void pgp_memory_release(pgp_memory_t *);
+int pgp_filewrite(const char *, const char *, const size_t, const unsigned);
 
-void pgp_writer_set_memory(pgp_output_t *, pgp_memory_t *);
+void pgp_build_pubkey(pgp_memory_t *, const pgp_pubkey_t *, unsigned);
 
-size_t pgp_mem_len(const pgp_memory_t *);
-void *pgp_mem_data(pgp_memory_t *);
-int pgp_mem_readfile(pgp_memory_t *, const char *);
+unsigned pgp_calc_sesskey_checksum(pgp_pk_sesskey_t *, uint8_t *);
+unsigned pgp_write_struct_userid(pgp_output_t *, const uint8_t *);
+unsigned pgp_write_ss_header(pgp_output_t *, unsigned, pgp_content_enum);
+unsigned pgp_write_struct_seckey(const pgp_seckey_t *,
+			    const uint8_t *,
+			    const size_t,
+			    pgp_output_t *);
+unsigned pgp_write_one_pass_sig(pgp_output_t *,
+				const pgp_seckey_t *,
+				const pgp_hash_alg_t,
+				const pgp_sig_type_t);
+unsigned pgp_write_litdata(pgp_output_t *,
+				const uint8_t *,
+				const int,
+				const pgp_litdata_enum);
+pgp_pk_sesskey_t *pgp_create_pk_sesskey(const pgp_key_t *, const char *);
+unsigned pgp_write_pk_sesskey(pgp_output_t *, pgp_pk_sesskey_t *);
+unsigned pgp_write_xfer_pubkey(pgp_output_t *,
+				const pgp_key_t *, const unsigned);
+unsigned   pgp_write_xfer_seckey(pgp_output_t *,
+				const pgp_key_t *,
+				const uint8_t *,
+				const size_t,
+				const unsigned);
 
-void pgp_random(void *, size_t);
+void pgp_fast_create_userid(uint8_t **, uint8_t *);
+unsigned pgp_write_userid(const uint8_t *, pgp_output_t *);
+void pgp_fast_create_rsa_pubkey(pgp_pubkey_t *, time_t, BIGNUM *, BIGNUM *);
+unsigned pgp_write_rsa_pubkey(time_t, const BIGNUM *, const BIGNUM *,
+				pgp_output_t *);
+void pgp_fast_create_rsa_seckey(pgp_seckey_t *, time_t, BIGNUM *,
+				BIGNUM *, BIGNUM *, BIGNUM *,
+				BIGNUM *, BIGNUM *);
+unsigned encode_m_buf(const uint8_t *, size_t, const pgp_pubkey_t *,
+				uint8_t *);
+unsigned pgp_fileread_litdata(const char *, const pgp_litdata_enum,
+				pgp_output_t *);
+unsigned pgp_write_symm_enc_data(const uint8_t *, const int,
+				pgp_output_t *);
 
-#endif /* MEMORY_H_ */
+#endif /* CREATE_H_ */

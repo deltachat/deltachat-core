@@ -29,9 +29,9 @@
 #ifndef NETPGPSDK_H_
 #define NETPGPSDK_H_
 
-#include "keyring.h"
-#include "crypto.h"
-#include "signature.h"
+#include "keyring-netpgp.h"
+#include "crypto-netpgp.h"
+#include "signature-netpgp.h"
 #include "packet-show.h"
 
 #ifndef __printflike
@@ -51,7 +51,7 @@ typedef struct pgp_validation_t {
 
 void            pgp_validate_result_free(pgp_validation_t *);
 
-unsigned 
+unsigned
 pgp_validate_key_sigs(pgp_validation_t *,
 		const pgp_key_t *,
 		const pgp_keyring_t *,

@@ -66,12 +66,12 @@ __RCSID("$NetBSD: crypto.c,v 1.36 2014/02/17 07:39:19 agc Exp $");
 
 #include <string.h>
 
-#include "types.h"
-#include "crypto.h"
-#include "readerwriter.h"
-#include "memory.h"
+#include "types-netpgp.h"
+#include "crypto-netpgp.h"
+#include "readerwriter-netpgp.h"
+#include "memory-netpgp.h"
 #include "netpgpdefs.h"
-#include "signature.h"
+#include "signature-netpgp.h"
 
 /**
 \ingroup Core_MPI
@@ -83,7 +83,7 @@ __RCSID("$NetBSD: crypto.c,v 1.36 2014/02/17 07:39:19 agc Exp $");
 \return length of MPI
 \note only RSA at present
 */
-int 
+int
 pgp_decrypt_decode_mpi(uint8_t *buf,
 				unsigned buflen,
 				const BIGNUM *g_to_k,
@@ -194,7 +194,7 @@ pgp_decrypt_decode_mpi(uint8_t *buf,
 \ingroup Core_MPI
 \brief RSA-encrypt an MPI
 */
-unsigned 
+unsigned
 pgp_rsa_encrypt_mpi(const uint8_t *encoded_m_buf,
 		    const size_t sz_encoded_m_buf,
 		    const pgp_pubkey_t * pubkey,
@@ -231,7 +231,7 @@ pgp_rsa_encrypt_mpi(const uint8_t *encoded_m_buf,
 \ingroup Core_MPI
 \brief Elgamal-encrypt an MPI
 */
-unsigned 
+unsigned
 pgp_elgamal_encrypt_mpi(const uint8_t *encoded_m_buf,
 		    const size_t sz_encoded_m_buf,
 		    const pgp_pubkey_t * pubkey,
@@ -345,7 +345,7 @@ Encrypt a file
 \param allow_overwrite Allow output file to be overwrwritten if it exists
 \return 1 if OK; else 0
 */
-unsigned 
+unsigned
 pgp_encrypt_file(pgp_io_t *io,
 			const char *infile,
 			const char *outfile,
@@ -440,7 +440,7 @@ pgp_encrypt_buf(pgp_io_t *io,
    \param getpassfunc Callback to use to get passphrase
 */
 
-unsigned 
+unsigned
 pgp_decrypt_file(pgp_io_t *io,
 			const char *infile,
 			const char *outfile,

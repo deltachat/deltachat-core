@@ -68,20 +68,20 @@ __RCSID("$NetBSD: packet-print.c,v 1.42 2012/02/22 06:29:40 agc Exp $");
 #include <unistd.h>
 #endif
 
-#include "crypto.h"
-#include "keyring.h"
+#include "crypto-netpgp.h"
+#include "keyring-netpgp.h"
 #include "packet-show.h"
-#include "signature.h"
-#include "readerwriter.h"
+#include "signature-netpgp.h"
+#include "readerwriter-netpgp.h"
 #include "netpgpdefs.h"
 #include "netpgpsdk.h"
-#include "packet.h"
+#include "packet-netpgp.h"
 #include "netpgpdigest.h"
 #include "mj.h"
 
 /* static functions */
 
-static void 
+static void
 print_indent(int indent)
 {
 	int             i;
@@ -91,7 +91,7 @@ print_indent(int indent)
 	}
 }
 
-static void 
+static void
 print_name(int indent, const char *name)
 {
 	print_indent(indent);
@@ -100,34 +100,34 @@ print_name(int indent, const char *name)
 	}
 }
 
-static void 
+static void
 print_hexdump(int indent, const char *name, const uint8_t *data, unsigned len)
 {
 	print_name(indent, name);
 	hexdump(stdout, NULL, data, len);
 }
 
-static void 
+static void
 hexdump_data(int indent, const char *name, const uint8_t *data, unsigned len)
 {
 	print_name(indent, name);
 	hexdump(stdout, NULL, data, len);
 }
 
-static void 
+static void
 print_uint(int indent, const char *name, unsigned val)
 {
 	print_name(indent, name);
 	printf("%u\n", val);
 }
 
-static void 
+static void
 showtime(const char *name, time_t t)
 {
 	printf("%s=%" PRItime "d (%.24s)", name, (long long) t, ctime(&t));
 }
 
-static void 
+static void
 print_time(int indent, const char *name, time_t t)
 {
 	print_indent(indent);
@@ -136,27 +136,27 @@ print_time(int indent, const char *name, time_t t)
 	printf("\n");
 }
 
-static void 
+static void
 print_string_and_value(int indent, const char *name, const char *str, uint8_t value)
 {
 	print_name(indent, name);
 	printf("%s (0x%x)\n", str, value);
 }
 
-static void 
+static void
 print_tagname(int indent, const char *str)
 {
 	print_indent(indent);
 	printf("%s packet\n", str);
 }
 
-static void 
+static void
 print_data(int indent, const char *name, const pgp_data_t *data)
 {
 	print_hexdump(indent, name, data->contents, (unsigned)data->len);
 }
 
-static void 
+static void
 print_bn(int indent, const char *name, const BIGNUM *bn)
 {
 	print_indent(indent);
@@ -169,13 +169,13 @@ print_bn(int indent, const char *name, const BIGNUM *bn)
 	}
 }
 
-static void 
+static void
 print_packet_hex(const pgp_subpacket_t *pkt)
 {
 	hexdump(stdout, "packet contents:", pkt->raw, pkt->length);
 }
 
-static void 
+static void
 print_escaped(const uint8_t *data, size_t length)
 {
 	while (length-- > 0) {
@@ -189,7 +189,7 @@ print_escaped(const uint8_t *data, size_t length)
 	}
 }
 
-static void 
+static void
 print_string(int indent, const char *name, const char *str)
 {
 	print_name(indent, name);
@@ -197,14 +197,14 @@ print_string(int indent, const char *name, const char *str)
 	putchar('\n');
 }
 
-static void 
+static void
 print_utf8_string(int indent, const char *name, const uint8_t *str)
 {
 	/* \todo Do this better for non-English character sets */
 	print_string(indent, name, (const char *) str);
 }
 
-static void 
+static void
 print_duration(int indent, const char *name, time_t t)
 {
 	int             mins, hours, days, years;
@@ -229,14 +229,14 @@ print_duration(int indent, const char *name, time_t t)
 	printf(")\n");
 }
 
-static void 
+static void
 print_boolean(int indent, const char *name, uint8_t boolval)
 {
 	print_name(indent, name);
 	printf("%s\n", (boolval) ? "Yes" : "No");
 }
 
-static void 
+static void
 print_text_breakdown(int indent, pgp_text_t *text)
 {
 	const char     *prefix = ".. ";
@@ -265,7 +265,7 @@ print_text_breakdown(int indent, pgp_text_t *text)
 	}
 }
 
-static void 
+static void
 print_headers(const pgp_headers_t *h)
 {
 	unsigned        i;
@@ -275,7 +275,7 @@ print_headers(const pgp_headers_t *h)
 	}
 }
 
-static void 
+static void
 print_block(int indent, const char *name, const uint8_t *str, size_t length)
 {
 	int             o = (int)length;
@@ -347,7 +347,7 @@ strhexdump(char *dest, const uint8_t *src, size_t length, const char *sep)
 }
 
 /* return the time as a string */
-static char * 
+static char *
 ptimestr(char *dest, size_t size, time_t t)
 {
 	struct tm      *tm;
@@ -792,7 +792,7 @@ print_seckey_verbose(const pgp_content_enum type,
 \param tag
 \param key
 */
-static void 
+static void
 print_pk_sesskey(pgp_content_enum tag,
 			 const pgp_pk_sesskey_t * key)
 {
@@ -825,7 +825,7 @@ print_pk_sesskey(pgp_content_enum tag,
 	}
 }
 
-static void 
+static void
 start_subpacket(int *indent, int type)
 {
 	*indent += 1;
@@ -835,7 +835,7 @@ start_subpacket(int *indent, int type)
 	       type - PGP_PTAG_SIG_SUBPKT_BASE);
 }
 
-static void 
+static void
 end_subpacket(int *indent)
 {
 	*indent -= 1;
@@ -845,7 +845,7 @@ end_subpacket(int *indent)
 \ingroup Core_Print
 \param contents
 */
-int 
+int
 pgp_print_packet(pgp_printstate_t *print, const pgp_packet_t *pkt)
 {
 	const pgp_contents_t	*content = &pkt->u;
@@ -898,13 +898,13 @@ pgp_print_packet(pgp_printstate_t *print, const pgp_packet_t *pkt)
 		break;
 
 	case PGP_PTAG_CT_SE_IP_DATA_HEADER:
-		print_tagname(print->indent, 
+		print_tagname(print->indent,
 			"SYMMETRIC ENCRYPTED INTEGRITY PROTECTED DATA HEADER");
 		printf("Version: %d\n", content->se_ip_data_header);
 		break;
 
 	case PGP_PTAG_CT_SE_IP_DATA_BODY:
-		print_tagname(print->indent, 
+		print_tagname(print->indent,
 			"SYMMETRIC ENCRYPTED INTEGRITY PROTECTED DATA BODY");
 		hexdump(stdout, "data", content->se_data_body.data,
 			content->se_data_body.length);
@@ -1412,7 +1412,7 @@ pgp_print_packet(pgp_printstate_t *print, const pgp_packet_t *pkt)
 	return 1;
 }
 
-static pgp_cb_ret_t 
+static pgp_cb_ret_t
 cb_list_packets(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 {
 	pgp_print_packet(&cbinfo->printstate, pkt);
@@ -1426,7 +1426,7 @@ cb_list_packets(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 \param keyring
 \param cb_get_passphrase
 */
-int 
+int
 pgp_list_packets(pgp_io_t *io,
 			char *filename,
 			unsigned armour,

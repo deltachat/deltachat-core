@@ -50,9 +50,9 @@
 #ifndef READERWRITER_H_
 #define READERWRITER_H_
 
-#include "create.h"
+#include "create-netpgp.h"
 
-#include "memory.h"
+#include "memory-netpgp.h"
 
 /* if this is defined, we'll use mmap in preference to file ops */
 #define USE_MMAP_FOR_FILES      1

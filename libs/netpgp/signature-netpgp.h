@@ -57,9 +57,9 @@
 
 #include <inttypes.h>
 
-#include "packet.h"
-#include "create.h"
-#include "memory.h"
+#include "packet-netpgp.h"
+#include "create-netpgp.h"
+#include "memory-netpgp.h"
 
 typedef struct pgp_create_sig_t	 pgp_create_sig_t;
 

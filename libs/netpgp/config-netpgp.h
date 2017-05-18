@@ -49,7 +49,10 @@
 #define HAVE_OPENSSL_BN_H 1
 
 /* Define to 1 if you have the <openssl/camellia.h> header file. */
-#define HAVE_OPENSSL_CAMELLIA_H 1
+/* #define HAVE_OPENSSL_CAMELLIA_H */
+#ifndef OPENSSL_NO_CAMELLIA
+#define OPENSSL_NO_CAMELLIA
+#endif
 
 /* Define to 1 if you have the <openssl/cast.h> header file. */
 #define HAVE_OPENSSL_CAST_H 1
@@ -65,6 +68,9 @@
 
 /* Define to 1 if you have the <openssl/idea.h> header file. */
 /* #undef HAVE_OPENSSL_IDEA_H */
+#ifndef OPENSSL_NO_IDEA
+#define OPENSSL_NO_IDEA /* we would have IDEA on android, but we don't need it for netpgp; moreover, we want the same code on different systems */
+#endif 
 
 /* Define to 1 if you have the <openssl/md5.h> header file. */
 #define HAVE_OPENSSL_MD5_H 1

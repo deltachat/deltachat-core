@@ -78,13 +78,13 @@ __RCSID("$NetBSD: create.c,v 1.38 2010/11/15 08:03:39 agc Exp $");
 #include <openssl/cast.h>
 #endif
 
-#include "create.h"
-#include "keyring.h"
-#include "packet.h"
-#include "signature.h"
-#include "writer.h"
-#include "readerwriter.h"
-#include "memory.h"
+#include "create-netpgp.h"
+#include "keyring-netpgp.h"
+#include "packet-netpgp.h"
+#include "signature-netpgp.h"
+#include "writer-netpgp.h"
+#include "readerwriter-netpgp.h"
+#include "memory-netpgp.h"
 #include "netpgpdefs.h"
 #include "netpgpdigest.h"
 

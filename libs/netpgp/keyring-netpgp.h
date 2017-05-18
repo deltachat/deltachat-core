@@ -53,7 +53,7 @@
 #ifndef KEYRING_H_
 #define KEYRING_H_
 
-#include "packet.h"
+#include "packet-netpgp.h"
 #include "packet-parse.h"
 #include "mj.h"
 

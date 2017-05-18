@@ -62,8 +62,8 @@
 #include <openssl/bn.h>
 #endif
 
-#include "types.h"
-#include "errors.h"
+#include "types-netpgp.h"
+#include "errors-netpgp.h"
 
 /* structure to keep track of printing state variables */
 typedef struct pgp_printstate_t {

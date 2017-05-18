@@ -57,7 +57,7 @@ __COPYRIGHT("@(#) Copyright (c) 2009 The NetBSD Foundation, Inc. All rights rese
 __RCSID("$NetBSD: symmetric.c,v 1.18 2010/11/07 08:39:59 agc Exp $");
 #endif
 
-#include "crypto.h"
+#include "crypto-netpgp.h"
 #include "packet-show.h"
 
 #include <string.h>
@@ -82,24 +82,24 @@ __RCSID("$NetBSD: symmetric.c,v 1.18 2010/11/07 08:39:59 agc Exp $");
 #include <openssl/camellia.h>
 #endif
 
-#include "crypto.h"
+#include "crypto-netpgp.h"
 #include "netpgpdefs.h"
 
 
-static void 
+static void
 std_set_iv(pgp_crypt_t *crypt, const uint8_t *iv)
 {
 	(void) memcpy(crypt->iv, iv, crypt->blocksize);
 	crypt->num = 0;
 }
 
-static void 
+static void
 std_set_key(pgp_crypt_t *crypt, const uint8_t *key)
 {
 	(void) memcpy(crypt->key, key, crypt->keysize);
 }
 
-static void 
+static void
 std_resync(pgp_crypt_t *decrypt)
 {
 	if ((size_t) decrypt->num == decrypt->blocksize) {
@@ -113,7 +113,7 @@ std_resync(pgp_crypt_t *decrypt)
 	decrypt->num = 0;
 }
 
-static void 
+static void
 std_finish(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -126,7 +126,7 @@ std_finish(pgp_crypt_t *crypt)
 	}
 }
 
-static int 
+static int
 cast5_init(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -145,19 +145,19 @@ cast5_init(pgp_crypt_t *crypt)
 	return 1;
 }
 
-static void 
+static void
 cast5_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	CAST_ecb_encrypt(in, out, crypt->encrypt_key, CAST_ENCRYPT);
 }
 
-static void 
+static void
 cast5_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	CAST_ecb_encrypt(in, out, crypt->encrypt_key, CAST_DECRYPT);
 }
 
-static void 
+static void
 cast5_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	CAST_cfb64_encrypt(in, out, (long)count,
@@ -165,7 +165,7 @@ cast5_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 			   CAST_ENCRYPT);
 }
 
-static void 
+static void
 cast5_cfb_decrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	CAST_cfb64_encrypt(in, out, (long)count,
@@ -193,7 +193,7 @@ static pgp_crypt_t cast5 =
 };
 
 #ifndef OPENSSL_NO_IDEA
-static int 
+static int
 idea_init(pgp_crypt_t *crypt)
 {
 	if (crypt->keysize != IDEA_KEY_LENGTH) {
@@ -224,19 +224,19 @@ idea_init(pgp_crypt_t *crypt)
 	return 1;
 }
 
-static void 
+static void
 idea_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	idea_ecb_encrypt(in, out, crypt->encrypt_key);
 }
 
-static void 
+static void
 idea_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	idea_ecb_encrypt(in, out, crypt->decrypt_key);
 }
 
-static void 
+static void
 idea_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	idea_cfb64_encrypt(in, out, (long)count,
@@ -244,7 +244,7 @@ idea_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 			   CAST_ENCRYPT);
 }
 
-static void 
+static void
 idea_cfb_decrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	idea_cfb64_encrypt(in, out, (long)count,
@@ -274,7 +274,7 @@ static const pgp_crypt_t idea =
 
 #define KEYBITS_AES128 128
 
-static int 
+static int
 aes128_init(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -303,19 +303,19 @@ aes128_init(pgp_crypt_t *crypt)
 	return 1;
 }
 
-static void 
+static void
 aes_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	AES_encrypt(in, out, crypt->encrypt_key);
 }
 
-static void 
+static void
 aes_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	AES_decrypt(in, out, crypt->decrypt_key);
 }
 
-static void 
+static void
 aes_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	AES_cfb128_encrypt(in, out, (unsigned)count,
@@ -323,7 +323,7 @@ aes_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 			   AES_ENCRYPT);
 }
 
-static void 
+static void
 aes_cfb_decrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	AES_cfb128_encrypt(in, out, (unsigned)count,
@@ -352,7 +352,7 @@ static const pgp_crypt_t aes128 =
 
 #define KEYBITS_AES256 256
 
-static int 
+static int
 aes256_init(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -409,7 +409,7 @@ static const pgp_crypt_t aes256 =
 
 /* Triple DES */
 
-static int 
+static int
 tripledes_init(pgp_crypt_t *crypt)
 {
 	DES_key_schedule *keys;
@@ -429,7 +429,7 @@ tripledes_init(pgp_crypt_t *crypt)
 	return 1;
 }
 
-static void 
+static void
 tripledes_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	DES_key_schedule *keys = crypt->encrypt_key;
@@ -438,7 +438,7 @@ tripledes_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 			DES_ENCRYPT);
 }
 
-static void 
+static void
 tripledes_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	DES_key_schedule *keys = crypt->encrypt_key;
@@ -447,7 +447,7 @@ tripledes_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 			DES_DECRYPT);
 }
 
-static void 
+static void
 tripledes_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in,
 			size_t count)
 {
@@ -458,7 +458,7 @@ tripledes_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in,
 		&crypt->num, DES_ENCRYPT);
 }
 
-static void 
+static void
 tripledes_cfb_decrypt(pgp_crypt_t *crypt, void *out, const void *in,
 			size_t count)
 {
@@ -491,7 +491,7 @@ static const pgp_crypt_t tripledes =
 
 #define KEYBITS_CAMELLIA128 128
 
-static int 
+static int
 camellia128_init(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -517,19 +517,19 @@ camellia128_init(pgp_crypt_t *crypt)
 	return 1;
 }
 
-static void 
+static void
 camellia_block_encrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	Camellia_encrypt(in, out, crypt->encrypt_key);
 }
 
-static void 
+static void
 camellia_block_decrypt(pgp_crypt_t *crypt, void *out, const void *in)
 {
 	Camellia_decrypt(in, out, crypt->decrypt_key);
 }
 
-static void 
+static void
 camellia_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	Camellia_cfb128_encrypt(in, out, (unsigned)count,
@@ -537,7 +537,7 @@ camellia_cfb_encrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count
 			   CAMELLIA_ENCRYPT);
 }
 
-static void 
+static void
 camellia_cfb_decrypt(pgp_crypt_t *crypt, void *out, const void *in, size_t count)
 {
 	Camellia_cfb128_encrypt(in, out, (unsigned)count,
@@ -566,7 +566,7 @@ static const pgp_crypt_t camellia128 =
 
 #define KEYBITS_CAMELLIA256 256
 
-static int 
+static int
 camellia256_init(pgp_crypt_t *crypt)
 {
 	if (crypt->encrypt_key) {
@@ -640,7 +640,7 @@ get_proto(pgp_symm_alg_t alg)
 	return NULL;
 }
 
-int 
+int
 pgp_crypt_any(pgp_crypt_t *crypt, pgp_symm_alg_t alg)
 {
 	const pgp_crypt_t *ptr = get_proto(alg);
@@ -654,7 +654,7 @@ pgp_crypt_any(pgp_crypt_t *crypt, pgp_symm_alg_t alg)
 	}
 }
 
-unsigned 
+unsigned
 pgp_block_size(pgp_symm_alg_t alg)
 {
 	const pgp_crypt_t *p = get_proto(alg);
@@ -662,7 +662,7 @@ pgp_block_size(pgp_symm_alg_t alg)
 	return (p == NULL) ? 0 : (unsigned)p->blocksize;
 }
 
-unsigned 
+unsigned
 pgp_key_size(pgp_symm_alg_t alg)
 {
 	const pgp_crypt_t *p = get_proto(alg);
@@ -670,14 +670,14 @@ pgp_key_size(pgp_symm_alg_t alg)
 	return (p == NULL) ? 0 : (unsigned)p->keysize;
 }
 
-void 
+void
 pgp_encrypt_init(pgp_crypt_t *encrypt)
 {
 	/* \todo should there be a separate pgp_encrypt_init? */
 	pgp_decrypt_init(encrypt);
 }
 
-void 
+void
 pgp_decrypt_init(pgp_crypt_t *decrypt)
 {
 	decrypt->base_init(decrypt);
@@ -715,7 +715,7 @@ pgp_decrypt_se(pgp_crypt_t *decrypt, void *outvoid, const void *invoid,
 	return (size_t)saved;
 }
 
-size_t 
+size_t
 pgp_encrypt_se(pgp_crypt_t *encrypt, void *outvoid, const void *invoid,
 	       size_t count)
 {
@@ -749,7 +749,7 @@ pgp_encrypt_se(pgp_crypt_t *encrypt, void *outvoid, const void *invoid,
 \param alg Symmetric Algorithm to check
 \return 1 if supported; else 0
 */
-unsigned 
+unsigned
 pgp_is_sa_supported(pgp_symm_alg_t alg)
 {
 	switch (alg) {
@@ -773,7 +773,7 @@ pgp_is_sa_supported(pgp_symm_alg_t alg)
 	}
 }
 
-size_t 
+size_t
 pgp_encrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,
 		  size_t count)
 {
@@ -787,7 +787,7 @@ pgp_encrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,
 	return count;
 }
 
-size_t 
+size_t
 pgp_decrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,
 		  size_t count)
 {
