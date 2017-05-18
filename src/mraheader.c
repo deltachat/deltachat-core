@@ -50,7 +50,6 @@
 char* mraheader_render(const mraheader_t* ths)
 {
 	int            success = 0;
-	char*          keybase64 = NULL;
 	char*          keybase64_wrapped = NULL;
 	mrstrbuilder_t ret;
 	mrstrbuilder_init(&ret);
@@ -70,15 +69,11 @@ char* mraheader_render(const mraheader_t* ths)
 		mrstrbuilder_cat(&ret, "prefer-encrypted=no; ");
 	}
 
-	mrstrbuilder_cat(&ret, "key= "); /* the trailing space together with mr_insert_spaces() allows a proper transport */
-
-	if( (keybase64 = encode_base64((const char*)ths->m_public_key.m_binary, ths->m_public_key.m_bytes))==NULL ) {
-		goto cleanup;
-	}
+	mrstrbuilder_cat(&ret, "key= "); /* the trailing space together with mr_insert_breaks() allows a proper transport */
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if( (keybase64_wrapped = mr_insert_spaces(keybase64, 78)) == NULL ) {
+	if( (keybase64_wrapped = mrkey_render_base64(&ths->m_public_key, 78, " ")) == NULL ) {
 		goto cleanup;
 	}
 
@@ -88,7 +83,6 @@ char* mraheader_render(const mraheader_t* ths)
 
 cleanup:
 	if( !success ) { mrstrbuilder_empty(&ret); }
-	free(keybase64);
 	free(keybase64_wrapped);
 	return ret.m_buf;
 }

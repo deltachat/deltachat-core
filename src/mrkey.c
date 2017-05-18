@@ -31,6 +31,7 @@
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
+#include "mrtools.h"
 
 
 /*******************************************************************************
@@ -192,3 +193,32 @@ int mrkey_load_private__(mrkey_t* ths, mrsqlite3_t* sql)
 	mrkey_set_from_stmt(ths, stmt, 0, MR_PRIVATE);
 	return 1;
 }
+
+
+
+/*******************************************************************************
+ * Render keys
+ ******************************************************************************/
+
+
+char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars)
+{
+	char* ret = NULL;
+	char* temp = NULL;
+
+	if( (ret = encode_base64((const char*)ths->m_binary, ths->m_bytes))==NULL ) {
+		goto cleanup;
+	}
+
+	if( break_every>0 ) {
+		temp = ret;
+		if( (ret=mr_insert_breaks(temp, break_every, break_chars)) == NULL ) {
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	free(temp);
+	return ret;
+}
+

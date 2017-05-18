@@ -361,12 +361,18 @@ void mr_free_splitted_lines(carray* lines)
 }
 
 
-char* mr_insert_spaces(const char* in, int wrap_every)
+char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
 {
 	/* insert a space every n characters, the return must be free()'d.
 	this is useful for allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
+
+	if( in == NULL || break_every <= 0 || break_chars == NULL ) {
+		return safe_strdup(in);
+	}
+
 	int out_len = strlen(in), chars_added = 0;
-	out_len += out_len/wrap_every + 2;
+	int break_chars_len = strlen(break_chars);
+	out_len += (out_len/break_every+1)*break_chars_len + 1/*nullbyte*/;
 
 	char* out = malloc(out_len);
 	if( out == NULL ) { return NULL; }
@@ -376,9 +382,9 @@ char* mr_insert_spaces(const char* in, int wrap_every)
 	while( *i ) {
 		*o++ = *i++;
 		chars_added++;
-		if( chars_added==wrap_every && *i ) {
-			*o = ' ';
-			o++;
+		if( chars_added==break_every && *i ) {
+			strcpy(o, break_chars);
+			o+=break_chars_len;
 			chars_added = 0;
 		}
 	}

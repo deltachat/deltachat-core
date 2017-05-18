@@ -80,19 +80,19 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( replacements == 3 );
 		free(str);
 
-		str = mr_insert_spaces("just1234test", 4);
+		str = mr_insert_breaks("just1234test", 4, " ");
 		assert( strcmp(str, "just 1234 test")==0 );
 		free(str);
 
-		str = mr_insert_spaces("just1234tes", 4);
-		assert( strcmp(str, "just 1234 tes")==0 );
+		str = mr_insert_breaks("just1234tes", 4, "--");
+		assert( strcmp(str, "just--1234--tes")==0 );
 		free(str);
 
-		str = mr_insert_spaces("just1234t", 4);
-		assert( strcmp(str, "just 1234 t")==0 );
+		str = mr_insert_breaks("just1234t", 4, "");
+		assert( strcmp(str, "just1234t")==0 );
 		free(str);
 
-		str = mr_insert_spaces("", 4);
+		str = mr_insert_breaks("", 4, "---");
 		assert( strcmp(str, "")==0 );
 		free(str);
 	}
@@ -165,14 +165,6 @@ void stress_functions(mrmailbox_t* mailbox)
 		printf("%s\n", mraheader_render(ah));
 		mraheader_unref(ah);
 
-
-		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
-
-		ah = mraheader_new();
-		ah->m_to = safe_strdup("f@f");
-		mrkey_set_from_key(&ah->m_public_key, &public_key, MR_PUBLIC);
-		printf("%s\n", mraheader_render(ah));
-		mraheader_unref(ah);
 
 		mrkey_empty(&public_key);
 		mrkey_empty(&private_key);
