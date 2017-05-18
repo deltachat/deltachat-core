@@ -49,10 +49,10 @@
 #define HAVE_OPENSSL_BN_H 1
 
 /* Define to 1 if you have the <openssl/camellia.h> header file. */
-/* #define HAVE_OPENSSL_CAMELLIA_H */
-#ifndef OPENSSL_NO_CAMELLIA
+#define HAVE_OPENSSL_CAMELLIA_H 1
+/*#ifndef OPENSSL_NO_CAMELLIA
 #define OPENSSL_NO_CAMELLIA
-#endif
+#endif*/
 
 /* Define to 1 if you have the <openssl/cast.h> header file. */
 #define HAVE_OPENSSL_CAST_H 1
