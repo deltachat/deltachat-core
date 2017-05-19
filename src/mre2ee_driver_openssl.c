@@ -119,9 +119,10 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	/* generate keypair */
 	keypair = pgp_rsa_new_selfsign_key(2048/*bits*/, 65537UL/*e*/, (const uint8_t*)user_id, NULL, NULL);
 
-	/* get public key */
+	/* write public key */
+	keypair->type = PGP_PTAG_CT_PUBLIC_KEY; // TODO: this seems to me like a hack, PLUS: add a subkey
 	pgp_writer_set_memory(output1, mem1);
-	if( !pgp_write_xfer_pubkey(output1, keypair, 0/*armoured*/) ) {
+	if( !pgp_write_xfer_key(output1, keypair, 0/*armoured*/) ) {
 		goto cleanup;
 	}
 
@@ -132,8 +133,9 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	mrkey_set_from_raw(ret_public_key, (const unsigned char*)mem1->buf, mem1->length, MR_PRIVATE);
 
 	/* write private key */
+	keypair->type = PGP_PTAG_CT_SECRET_KEY; // TODO: this seems to me like a hack
 	pgp_writer_set_memory(output2, mem2);
-	if( !pgp_write_xfer_seckey(output2, keypair, NULL, 0, 0/*armoured*/) ) {
+	if( !pgp_write_xfer_key(output2, keypair, 0/*armoured*/) ) {
 		goto cleanup;
 	}
 
