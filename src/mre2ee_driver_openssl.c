@@ -81,16 +81,20 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
-	int           success = 0;
-	pgp_key_t     newseckey, newpubkey;
-	char*         user_id = NULL;
-	pgp_memory_t  *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
-	pgp_output_t  *pubout = pgp_output_new(), *secout = pgp_output_new();
+	int              success = 0;
+	pgp_key_t        seckey, pubkey, subkey;
+	pgp_subkey_t*    subkeyp; /* just a pointer inside another key, must not be freed */
+	pgp_subkeysig_t* subkeysigp; /* just a pointer inside another key, must not be freed */
+	uint8_t          subkeyid[PGP_KEY_ID_SIZE];
+	char*            user_id = NULL;
+	pgp_memory_t     *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
+	pgp_output_t     *pubout = pgp_output_new(), *secout = pgp_output_new();
 
 	mrkey_empty(ret_public_key);
 	mrkey_empty(ret_private_key);
-	memset(&newseckey, 0, sizeof(newseckey));
-	memset(&newpubkey, 0, sizeof(newpubkey));
+	memset(&seckey, 0, sizeof(pgp_key_t));
+	memset(&pubkey, 0, sizeof(pgp_key_t));
+	memset(&subkey, 0, sizeof(pgp_key_t));
 
 	if( mailbox==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
 	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL ) {
@@ -118,33 +122,52 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	- not Autocrypt:-standard */
 	user_id = mr_mprintf("<%s>", addr);
 
-	/* generate keypair */
-	if (!pgp_rsa_generate_keypair(&newseckey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, (const uint8_t *) "", (const size_t) 0)) {
+	/* generate two keypairs */
+	if( !pgp_rsa_generate_keypair(&seckey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
+	 || !pgp_rsa_generate_keypair(&subkey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0) ) {
 		goto cleanup;
 	}
-
-	/* write private key */
-	pgp_writer_set_memory(secout, secmem);
-	if( !pgp_write_xfer_key(secout, &newseckey, 0/*armoured*/)
-	 || secmem->buf == NULL || secmem->length <= 0 ) {
-		goto cleanup;
-	}
-	mrkey_set_from_raw(ret_private_key, (const unsigned char*)secmem->buf, secmem->length, MR_PRIVATE);
 
     /* make a public key out of generated secret key */
-	newpubkey.type = PGP_PTAG_CT_PUBLIC_KEY;
-	pgp_pubkey_dup(&newpubkey.key.pubkey, &newseckey.key.pubkey);
-	memcpy(newpubkey.pubkeyid, newseckey.pubkeyid, PGP_KEY_ID_SIZE);
-	pgp_fingerprint(&newpubkey.pubkeyfpr, &newseckey.key.pubkey, 0);
-	pgp_add_selfsigned_userid(&newseckey, &newpubkey, (const uint8_t*)user_id, 0/*never expire*/);
+	pubkey.type = PGP_PTAG_CT_PUBLIC_KEY;
+	pgp_pubkey_dup(&pubkey.key.pubkey, &seckey.key.pubkey);
+	memcpy(pubkey.pubkeyid, seckey.pubkeyid, PGP_KEY_ID_SIZE);
+	pgp_fingerprint(&pubkey.pubkeyfpr, &seckey.key.pubkey, 0);
+	pgp_add_selfsigned_userid(&seckey, &pubkey, (const uint8_t*)user_id, 0/*never expire*/);
 
-	/* write public key */
+	/* add subkey to public key and sign it (cmp. pgp_update_subkey()) */
+	EXPAND_ARRAY((&pubkey), subkey);
+	subkeyp = &pubkey.subkeys[pubkey.subkeyc++];
+	pgp_pubkey_dup(&subkeyp->key.pubkey, &subkey.key.pubkey);
+	pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &pubkey.key.pubkey, PGP_HASH_SHA1);
+	memcpy(subkeyp->id, subkeyid, PGP_KEY_ID_SIZE);
+
+	// TODO: add "0x18: Subkey Binding Signature" packet
+	//EXPAND_ARRAY((&pubkey), subkeysig);
+	//subkeysigp = &pubkey.subkeysigs[pubkey.subkeysigc++];
+
+	/* add subkey to private key */
+	EXPAND_ARRAY((&seckey), subkey);
+	subkeyp = &seckey.subkeys[seckey.subkeyc++];
+	pgp_seckey_dup(&subkeyp->key.seckey, &subkey.key.seckey);
+	pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &seckey.key.pubkey, PGP_HASH_SHA1);
+	memcpy(subkeyp->id, subkeyid, PGP_KEY_ID_SIZE);
+
+	/* return keys */
 	pgp_writer_set_memory(pubout, pubmem);
-	if( !pgp_write_xfer_key(pubout, &newpubkey, 0/*armoured*/)
+	if( !pgp_write_xfer_key(pubout, &pubkey, 0/*armoured*/)
 	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
 		goto cleanup;
 	}
+
+	pgp_writer_set_memory(secout, secmem);
+	if( !pgp_write_xfer_key(secout, &seckey, 0/*armoured*/)
+	 || secmem->buf == NULL || secmem->length <= 0 ) {
+		goto cleanup;
+	}
+
 	mrkey_set_from_raw(ret_public_key, (const unsigned char*)pubmem->buf, pubmem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_private_key, (const unsigned char*)secmem->buf, secmem->length, MR_PRIVATE);
 
 	success = 1;
 
@@ -153,7 +176,7 @@ cleanup:
 	if( secout ) { pgp_output_delete(secout); }
 	if( pubmem ) { pgp_memory_free(pubmem); }
 	if( secmem ) { pgp_memory_free(secmem); }
-	pgp_key_free(&newseckey); pgp_key_free(&newpubkey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
+	pgp_key_free(&seckey); pgp_key_free(&pubkey); pgp_key_free(&subkey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
 	free(user_id);
 	return success;
 }

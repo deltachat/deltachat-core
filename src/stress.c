@@ -157,7 +157,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrkey_init(&public_key);
 		mrkey_init(&private_key);
 
-		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
+		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", &public_key, &private_key);
 
 		char* temp = mrkey_render_base64(&public_key, 78, " ");
 		char* tempsec = mrkey_render_base64(&private_key, 78, " ");
