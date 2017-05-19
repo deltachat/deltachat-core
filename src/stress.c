@@ -160,8 +160,9 @@ void stress_functions(mrmailbox_t* mailbox)
 		mre2ee_driver_create_keypair(mailbox, "f@f", &public_key, &private_key);
 
 		char* temp = mrkey_render_base64(&public_key, 78, " ");
-		printf("\n[%s]\n", temp);
-		free(temp);
+		char* tempsec = mrkey_render_base64(&private_key, 78, " ");
+		printf("\nPUBLIC: [%s]\nPRIVATE: [%s]\n", temp, tempsec);
+		free(temp); free(tempsec);
 
 		mrkey_empty(&public_key);
 		mrkey_empty(&private_key);

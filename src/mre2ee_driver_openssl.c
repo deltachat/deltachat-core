@@ -82,16 +82,18 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
 	int           success = 0;
-	pgp_key_t*    keypair = NULL;
+	pgp_key_t     newseckey, newpubkey;
 	char*         user_id = NULL;
-	pgp_memory_t  *mem1 = pgp_memory_new(), *mem2 = pgp_memory_new();
-	pgp_output_t  *output1 = pgp_output_new(), *output2 = pgp_output_new();
+	pgp_memory_t  *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
+	pgp_output_t  *pubout = pgp_output_new(), *secout = pgp_output_new();
 
 	mrkey_empty(ret_public_key);
 	mrkey_empty(ret_private_key);
+	memset(&newseckey, 0, sizeof(newseckey));
+	memset(&newpubkey, 0, sizeof(newpubkey));
 
 	if( mailbox==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
-	 || mem1==NULL || mem2==NULL || output1==NULL || output2==NULL ) {
+	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL ) {
 		goto cleanup;
 	}
 
@@ -117,42 +119,41 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	user_id = mr_mprintf("<%s>", addr);
 
 	/* generate keypair */
-	keypair = pgp_rsa_new_selfsign_key(2048/*bits*/, 65537UL/*e*/, (const uint8_t*)user_id, NULL, NULL);
-
-	/* write public key */
-	keypair->type = PGP_PTAG_CT_PUBLIC_KEY; // TODO: this seems to me like a hack, PLUS: add a subkey
-	pgp_writer_set_memory(output1, mem1);
-	if( !pgp_write_xfer_key(output1, keypair, 0/*armoured*/) ) {
+	if (!pgp_rsa_generate_keypair(&newseckey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, (const uint8_t *) "", (const size_t) 0)) {
 		goto cleanup;
 	}
-
-	if( mem1->buf == NULL || mem1->length <= 0 ) {
-		goto cleanup;
-	}
-
-	mrkey_set_from_raw(ret_public_key, (const unsigned char*)mem1->buf, mem1->length, MR_PRIVATE);
 
 	/* write private key */
-	keypair->type = PGP_PTAG_CT_SECRET_KEY; // TODO: this seems to me like a hack
-	pgp_writer_set_memory(output2, mem2);
-	if( !pgp_write_xfer_key(output2, keypair, 0/*armoured*/) ) {
+	pgp_writer_set_memory(secout, secmem);
+	if( !pgp_write_xfer_key(secout, &newseckey, 0/*armoured*/)
+	 || secmem->buf == NULL || secmem->length <= 0 ) {
 		goto cleanup;
 	}
+	mrkey_set_from_raw(ret_private_key, (const unsigned char*)secmem->buf, secmem->length, MR_PRIVATE);
 
-	if( mem2->buf == NULL || mem2->length <= 0 ) {
+    /* make a public key out of generated secret key */
+	newpubkey.type = PGP_PTAG_CT_PUBLIC_KEY;
+	pgp_pubkey_dup(&newpubkey.key.pubkey, &newseckey.key.pubkey);
+	memcpy(newpubkey.pubkeyid, newseckey.pubkeyid, PGP_KEY_ID_SIZE);
+	pgp_fingerprint(&newpubkey.pubkeyfpr, &newseckey.key.pubkey, 0);
+	pgp_add_selfsigned_userid(&newseckey, &newpubkey, (const uint8_t*)user_id, 0/*never expire*/);
+
+	/* write public key */
+	pgp_writer_set_memory(pubout, pubmem);
+	if( !pgp_write_xfer_key(pubout, &newpubkey, 0/*armoured*/)
+	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
 		goto cleanup;
 	}
-
-	mrkey_set_from_raw(ret_private_key, (const unsigned char*)mem2->buf, mem2->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_public_key, (const unsigned char*)pubmem->buf, pubmem->length, MR_PRIVATE);
 
 	success = 1;
 
 cleanup:
-	if( output1 ) { pgp_output_delete(output1); }
-	if( output2 ) { pgp_output_delete(output2); }
-	if( mem1 )    { pgp_memory_free(mem1); }
-	if( mem2 )    { pgp_memory_free(mem2); }
-	if( keypair ) { pgp_keydata_free(keypair); }
+	if( pubout ) { pgp_output_delete(pubout); }
+	if( secout ) { pgp_output_delete(secout); }
+	if( pubmem ) { pgp_memory_free(pubmem); }
+	if( secmem ) { pgp_memory_free(secmem); }
+	pgp_key_free(&newseckey); pgp_key_free(&newpubkey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
 	free(user_id);
 	return success;
 }

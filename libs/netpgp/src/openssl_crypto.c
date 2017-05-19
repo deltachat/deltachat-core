@@ -837,6 +837,7 @@ pgp_rsa_generate_keypair(pgp_key_t *keydata,
  \sa pgp_rsa_generate_keypair()
  \sa pgp_keydata_free()
 */
+#if 0 //////
 pgp_key_t  *
 pgp_rsa_new_selfsign_key(const int numbits,
 				const unsigned long e,
@@ -855,6 +856,7 @@ pgp_rsa_new_selfsign_key(const int numbits,
 	}
 	return keydata;
 }
+#endif //////
 
 pgp_dsa_sig_t        *
 pgp_dsa_sign(uint8_t *hashbuf,

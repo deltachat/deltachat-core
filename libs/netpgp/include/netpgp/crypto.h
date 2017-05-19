@@ -227,9 +227,11 @@ pgp_decrypt_and_validate_buf(pgp_io_t *io,
             unsigned *recipients_count);
 
 /* Keys */
+#if 0 //////
 pgp_key_t  *pgp_rsa_new_selfsign_key(const int,
 			const unsigned long, const uint8_t *, const char *,
 			const char *);
+#endif //////
 
 unsigned    pgp_rsa_generate_keypair(pgp_key_t *,
 			const int,
