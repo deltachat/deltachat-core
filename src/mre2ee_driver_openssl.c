@@ -83,10 +83,8 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 {
 	int              success = 0;
 	pgp_key_t        seckey, pubkey, subkey;
-	pgp_subkey_t*    subkeyp; /* just a pointer inside another key, must not be freed */
-	pgp_subkeysig_t* subkeysigp; /* just a pointer inside another key, must not be freed */
 	uint8_t          subkeyid[PGP_KEY_ID_SIZE];
-	char*            user_id = NULL;
+	uint8_t*         user_id = NULL;
 	pgp_memory_t     *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
 	pgp_output_t     *pubout = pgp_output_new(), *secout = pgp_output_new();
 
@@ -120,7 +118,7 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	- shorter keys
 	- the name is already taken from From:
 	- not Autocrypt:-standard */
-	user_id = mr_mprintf("<%s>", addr);
+	user_id = (uint8_t*)mr_mprintf("<%s>", addr);
 
 	/* generate two keypairs */
 	if( !pgp_rsa_generate_keypair(&seckey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
@@ -137,21 +135,54 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 
 	/* add subkey to public key and sign it (cmp. pgp_update_subkey()) */
 	EXPAND_ARRAY((&pubkey), subkey);
-	subkeyp = &pubkey.subkeys[pubkey.subkeyc++];
-	pgp_pubkey_dup(&subkeyp->key.pubkey, &subkey.key.pubkey);
-	pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &pubkey.key.pubkey, PGP_HASH_SHA1);
-	memcpy(subkeyp->id, subkeyid, PGP_KEY_ID_SIZE);
+	{
+		pgp_subkey_t* p = &pubkey.subkeys[pubkey.subkeyc++];
+		pgp_pubkey_dup(&p->key.pubkey, &subkey.key.pubkey);
+		pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &pubkey.key.pubkey, PGP_HASH_SHA1);
+		memcpy(p->id, subkeyid, PGP_KEY_ID_SIZE);
+	}
 
-	// TODO: add "0x18: Subkey Binding Signature" packet
-	//EXPAND_ARRAY((&pubkey), subkeysig);
-	//subkeysigp = &pubkey.subkeysigs[pubkey.subkeysigc++];
+	// add "0x18: Subkey Binding Signature" packet, PGP_SIG_SUBKEY
+	EXPAND_ARRAY((&pubkey), subkeysig);
+	{
+		pgp_subkeysig_t*  p = &pubkey.subkeysigs[pubkey.subkeysigc++];
+		pgp_create_sig_t* sig;
+		pgp_output_t*     sigoutput = NULL;
+		pgp_memory_t*     mem_sig = NULL;
+
+		sig = pgp_create_sig_new();
+		pgp_sig_start_key_sig(sig, &subkey.key.pubkey, user_id, PGP_SIG_SUBKEY);
+
+		pgp_add_creation_time(sig, time(NULL));
+		pgp_add_key_expiration_time(sig, 0);
+		pgp_add_issuer_keyid(sig, seckey.pubkeyid);
+		pgp_add_primary_userid(sig, 1);
+		pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_ENC_COMM);
+		pgp_add_key_prefs(sig);
+		pgp_add_key_features(sig);
+
+		pgp_end_hashed_subpkts(sig);
+
+		pgp_setup_memory_write(&sigoutput, &mem_sig, 128);
+		pgp_write_sig(sigoutput, sig, &seckey.key.seckey.pubkey, &seckey.key.seckey);
+
+		p->subkey         = pubkey.subkeyc-1; /* index of subkey in array */
+		p->packet.length  = mem_sig->length;
+		p->packet.raw     = mem_sig->buf; mem_sig->buf = NULL; /* move ownership to packet */
+
+		pgp_create_sig_delete(sig);
+		pgp_output_delete(sigoutput);
+		free(mem_sig); /* do not use pgp_memory_free() as this would also free mem_sig->buf which is owned by the packet */
+	}
 
 	/* add subkey to private key */
 	EXPAND_ARRAY((&seckey), subkey);
-	subkeyp = &seckey.subkeys[seckey.subkeyc++];
-	pgp_seckey_dup(&subkeyp->key.seckey, &subkey.key.seckey);
-	pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &seckey.key.pubkey, PGP_HASH_SHA1);
-	memcpy(subkeyp->id, subkeyid, PGP_KEY_ID_SIZE);
+	{
+		pgp_subkey_t* p = &seckey.subkeys[seckey.subkeyc++];
+		pgp_seckey_dup(&p->key.seckey, &subkey.key.seckey);
+		pgp_keyid(subkeyid, PGP_KEY_ID_SIZE, &seckey.key.pubkey, PGP_HASH_SHA1);
+		memcpy(p->id, subkeyid, PGP_KEY_ID_SIZE);
+	}
 
 	/* return keys */
 	pgp_writer_set_memory(pubout, pubmem);
