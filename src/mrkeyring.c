@@ -19,34 +19,68 @@
  *
  *******************************************************************************
  *
- * File:    mre2ee_driver.h
- * Purpose: Function that should be implemented for a specific
- *          end-to-end-encryption-library
+ * File:    mrkeyring.c
+ * Purpose: Handle keys
  *
  ******************************************************************************/
 
 
-
-#ifndef __MRE2EE_DRIVER_H__
-#define __MRE2EE_DRIVER_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-/*** library-private **********************************************************/
-
-typedef struct mrkey_t mrkey_t;
-typedef struct mrkeyring_t mrkeyring_t;
-
-void mre2ee_driver_init          (mrmailbox_t*);
-void mre2ee_driver_exit          (mrmailbox_t*);
-int  mre2ee_driver_create_keypair(mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);
-int  mre2ee_driver_encrypt__     (mrmailbox_t*, const char* plain, size_t plain_bytes, char** ctext, size_t* ctext_bytes, const mrkeyring_t* public_keys);
-int  mre2ee_driver_decrypt__     (mrmailbox_t*, const char* ctext, size_t ctext_bytes, char** plain, size_t* plain_bytes, const mrkeyring_t* private_keys);
+#include <stdlib.h>
+#include <string.h>
+#include <memory.h>
+#include <sqlite3.h>
+#include "mrmailbox.h"
+#include "mrkey.h"
+#include "mrkeyring.h"
+#include "mrtools.h"
 
 
-#ifdef __cplusplus
-} /* /extern "C" */
-#endif
-#endif /* __MRE2EE_DRIVER_H__ */
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+void mrkeyring_init(mrkeyring_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	memset(ths, 0, sizeof(mrkeyring_t));
+}
+
+
+void mrkeyring_empty(mrkeyring_t* ths)
+{
+	int i;
+	if( ths == NULL ) {
+		return;
+	}
+
+	free(ths->m_keys);
+	memset(ths, 0, sizeof(mrkeyring_t));
+}
+
+
+void mrkeyring_add(mrkeyring_t* ths, const mrkey_t* to_add)
+{
+	if( ths==NULL || to_add==NULL ) {
+		return;
+	}
+
+	/* expand array, if needed */
+	if( ths->m_count == ths->m_allocated ) {
+		int newsize = (ths->m_allocated * 2) + 10;
+		if( (ths->m_keys=realloc(ths->m_keys, newsize*sizeof(mrkey_t*)))==NULL ) {
+			exit(41);
+		}
+		ths->m_allocated = newsize;
+	}
+
+	ths->m_keys[ths->m_count] = to_add;
+	ths->m_count++;
+}
+
+
+
+

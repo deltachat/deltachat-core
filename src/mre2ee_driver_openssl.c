@@ -49,6 +49,7 @@
 #include <netpgp-extra.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
+#include "mrkeyring.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
 #include "mrtools.h"
@@ -213,24 +214,42 @@ cleanup:
 }
 
 
-int mre2ee_driver_encrypt__(mrmailbox_t* mailbox, const char* plain, size_t plain_bytes, char** ret_ctext, size_t* ret_ctext_bytes, const mrkey_t* public_key)
+int mre2ee_driver_encrypt__(mrmailbox_t* mailbox, const char* plain, size_t plain_bytes, char** ret_ctext, size_t* ret_ctext_bytes,
+                            const mrkeyring_t* public_keys)
 {
-	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL || public_key==NULL ) {
-		return 0;
-	}
+	pgp_io_t*       io = NULL;
+	pgp_keyring_t*  rcpts = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t*   outmem = NULL;
+	int             i;
 
 	*ret_ctext       = NULL;
 	*ret_ctext_bytes = 0;
 
-	// pgp_encrypt_buf() from crypto.c ...
+	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL || public_keys==NULL
+	 || rcpts==NULL ) {
+		goto cleanup;
+	}
 
+	/* setup keys (the keys may come from pgp_filter_keys_fileread()) */
+	for( i = 0; i < public_keys->m_count; i++ ) {
+		//const pgp_key_t *key = NULL;
+		//pgp_keyring_add(rcpts, key);
+	}
+
+
+	outmem = pgp_encrypt_buf(io, plain, plain_bytes, rcpts, 0/*use armour*/, NULL/*cipher*/, 0/*raw*/);
+
+cleanup:
+	if( outmem ) { pgp_memory_free(outmem); }
+	if( rcpts )  { pgp_keyring_free(rcpts); }
 	return 0;
 }
 
 
-int mre2ee_driver_decrypt__(mrmailbox_t* mailbox, const char* ctext, size_t ctext_bytes, char** ret_plain, size_t* ret_plain_bytes, const mrkey_t* private_key)
+int mre2ee_driver_decrypt__(mrmailbox_t* mailbox, const char* ctext, size_t ctext_bytes, char** ret_plain, size_t* ret_plain_bytes,
+                            const mrkeyring_t* private_keys)
 {
-	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || private_key==NULL ) {
+	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || private_keys==NULL ) {
 		return 0;
 	}
 

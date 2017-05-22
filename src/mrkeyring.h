@@ -19,14 +19,14 @@
  *
  *******************************************************************************
  *
- * File:    mrkey.h
+ * File:    mrkeyring.h
  * Purpose: Handle keys
  *
  ******************************************************************************/
 
 
-#ifndef __MRKEY_H__
-#define __MRKEY_H__
+#ifndef __MRKEYRING_H__
+#define __MRKEYRING_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,38 +34,21 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-#define MR_PUBLIC  0
-#define MR_PRIVATE 1
+typedef struct mrkey_t mrkey_t;
 
-
-typedef struct mrkey_t
+typedef struct mrkeyring_t
 {
-	unsigned char* m_binary;
-	int            m_bytes;
-	int            m_type;
-} mrkey_t;
+	mrkey_t** m_keys; /* only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid */
+	int       m_count;
+	int       m_allocated;
+} mrkeyring_t;
 
-
-mrkey_t* mrkey_new           ();
-void     mrkey_init          (mrkey_t*); /* for initialing random memory that should be used as a key */
-void     mrkey_empty         (mrkey_t*); /* free data needed; for private keys, this also wipes the memory */
-void     mrkey_unref         (mrkey_t*);
-
-int   mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes, int type);
-int   mrkey_set_from_key  (mrkey_t*, const mrkey_t*);
-int   mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index, int type);
-
-int   mrkey_equals        (const mrkey_t*, const mrkey_t*);
-
-int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql);
-int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
-int   mrkey_load_self_private__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
-
-char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars); /* the result must be freed */
-
+void  mrkeyring_init  (mrkeyring_t*);
+void  mrkeyring_empty (mrkeyring_t*); /* this does not free any key! */
+void  mrkeyring_add   (mrkeyring_t*, const mrkey_t*); /* only copies the pointer! */
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRKEY_H__ */
+#endif /* __MRKEYRING_H__ */
 

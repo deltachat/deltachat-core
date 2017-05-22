@@ -185,7 +185,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	ths->m_last_seen        = message_time;
 	ths->m_to_save          = MRA_SAVE_ALL;
 	ths->m_prefer_encrypted = header->m_prefer_encrypted;
-	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key, MR_PUBLIC);
+	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
 	return 1;
 }
 
@@ -228,7 +228,7 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 		if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
 		{
 			ths->m_changed = message_time;
-			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key, MR_PUBLIC);
+			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}

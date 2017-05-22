@@ -32,6 +32,7 @@
 #include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
+#include "mrkeyring.h"
 #include "mrmimeparser.h"
 #include "mrtools.h"
 
@@ -128,6 +129,9 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	clistiter*             iter1;
 	const char*            recipient_addr; /* just a pointer inside recipients_addr, must not be freed */
+	mrkeyring_t            keyring;
+
+	mrkeyring_init(&keyring);
 
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL ) {
 		return;
@@ -176,12 +180,15 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
+		mrkeyring_add(&keyring, &peerstate->m_public_key);
+
 		//mre2ee_driver_encrypt__(mailbox, in_out_message, &peerstate->m_public_key);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrapeerstate_unref(peerstate);
 	mraheader_unref(autocryptheader);
+	mrkeyring_empty(&keyring);
 }
 
 

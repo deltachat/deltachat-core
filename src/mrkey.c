@@ -39,6 +39,14 @@
  ******************************************************************************/
 
 
+mrkey_t* mrkey_new()
+{
+	mrkey_t* ths = malloc(sizeof(mrkey_t));
+	mrkey_init(ths);
+	return ths;
+}
+
+
 void mrkey_init(mrkey_t* ths)
 {
 	if( ths ) {
@@ -64,13 +72,13 @@ int mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes, int t
 }
 
 
-int mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o, int type)
+int mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o)
 {
 	mrkey_empty(ths);
 	if( ths==NULL || o==NULL ) {
 		return 0;
 	}
-	return mrkey_set_from_raw(ths, o->m_binary, o->m_bytes, type);
+	return mrkey_set_from_raw(ths, o->m_binary, o->m_bytes, o->m_type);
 }
 
 
@@ -106,6 +114,17 @@ void mrkey_empty(mrkey_t* ths)
 	ths->m_binary = NULL;
 	ths->m_bytes = 0;
 	ths->m_type = MR_PUBLIC;
+}
+
+
+void mrkey_unref(mrkey_t* ths)
+{
+	if( ths==NULL ) {
+		return;
+	}
+
+	mrkey_empty(ths);
+	free(ths);
 }
 
 

@@ -350,6 +350,7 @@ Encrypt a file
 \param allow_overwrite Allow output file to be overwrwritten if it exists
 \return 1 if OK; else 0
 */
+#if 0 //////
 unsigned
 pgp_encrypt_file(pgp_io_t *io,
 			const char *infile,
@@ -407,6 +408,7 @@ pgp_encrypt_file(pgp_io_t *io,
 
 	return 1;
 }
+#endif //////
 
 /* encrypt the contents of the input buffer, and return the mem structure */
 pgp_memory_t *
