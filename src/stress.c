@@ -164,6 +164,16 @@ void stress_functions(mrmailbox_t* mailbox)
 		printf("\nPUBLIC: [%s]\nPRIVATE: [%s]\n", temp, tempsec);
 		free(temp); free(tempsec);
 
+		const char* original_text = "This is a test";
+		char *ctext = NULL, *plain = NULL;
+		size_t ctext_bytes = 0, plain_bytes = 0;
+
+		int ok = mre2ee_driver_encrypt__(mailbox, original_text, strlen(original_text)+1, &ctext, &ctext_bytes, &public_key);
+		assert( ok && ctext && ctext_bytes>0 );
+
+		ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, &private_key);
+		assert( ok && plain && plain_bytes>0 );
+
 		mrkey_empty(&public_key);
 		mrkey_empty(&private_key);
 

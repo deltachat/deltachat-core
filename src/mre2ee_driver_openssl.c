@@ -213,17 +213,31 @@ cleanup:
 }
 
 
-void mre2ee_driver_encrypt__(mrmailbox_t* mailbox, struct mailmime** in_out_message, const mrkey_t* public_key)
+int mre2ee_driver_encrypt__(mrmailbox_t* mailbox, const char* plain, size_t plain_bytes, char** ret_ctext, size_t* ret_ctext_bytes, const mrkey_t* public_key)
 {
-	if( mailbox==NULL || in_out_message==NULL || *in_out_message==NULL || public_key==NULL ) {
-		return;
+	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL || public_key==NULL ) {
+		return 0;
 	}
+
+	*ret_ctext       = NULL;
+	*ret_ctext_bytes = 0;
+
+	// pgp_encrypt_buf() from crypto.c ...
+
+	return 0;
 }
 
 
-void mre2ee_driver_decrypt__(mrmailbox_t* mailbox, struct mailmime** in_out_message, const mrkey_t* private_key)
+int mre2ee_driver_decrypt__(mrmailbox_t* mailbox, const char* ctext, size_t ctext_bytes, char** ret_plain, size_t* ret_plain_bytes, const mrkey_t* private_key)
 {
-	if( mailbox==NULL || in_out_message==NULL || *in_out_message==NULL ) {
-		return;
+	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || private_key==NULL ) {
+		return 0;
 	}
+
+	*ret_plain       = NULL;
+	*ret_plain_bytes = 0;
+
+	// netpgp_decrypt_memory()
+
+	return 0;
 }

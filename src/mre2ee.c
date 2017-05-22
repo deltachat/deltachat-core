@@ -176,7 +176,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
-		mre2ee_driver_encrypt__(mailbox, in_out_message, &peerstate->m_public_key);
+		//mre2ee_driver_encrypt__(mailbox, in_out_message, &peerstate->m_public_key);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -283,7 +283,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	locked = 0;
 
 	/* finally, decrypt */
-	mre2ee_driver_decrypt__(mailbox, in_out_message, &private_key);
+	//mre2ee_driver_decrypt__(mailbox, in_out_message, &private_key);
 
 	mrkey_empty(&private_key); /* this also wipes the key */
 
