@@ -135,15 +135,15 @@ mrapeerstate_t* mrapeerstate_new()
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	return ths;
 }
 
 
 void mrapeerstate_unref(mrapeerstate_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrapeerstate_empty(ths);
 	free(ths);

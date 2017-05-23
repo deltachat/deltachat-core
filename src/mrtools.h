@@ -112,14 +112,6 @@ int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t*
 char*   mr_get_fine_pathNfilename  (const char* folder, const char* desired_name);
 
 /* macros */
-#define MR_INIT_REFERENCE \
-	if( ths == NULL ) { return NULL; } \
-	ths->m_magic  = CLASS_MAGIC;
-
-#define MR_DEC_REFERENCE_AND_CONTINUE_ON_0 \
-	if( ths == NULL ) { return; } \
-	if( ths->m_magic!=CLASS_MAGIC ) { exit(36); return; } \
-
 #define MR_QUOTEHELPER(name) #name
 #define MR_STRINGIFY(macro) MR_QUOTEHELPER(macro)
 #define MR_MIN(X, Y) (((X) < (Y))? (X) : (Y))

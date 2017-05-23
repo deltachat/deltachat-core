@@ -39,8 +39,6 @@
 #include "mrapeerstate.h"
 #include "mrmimeparser.h"
 
-#define CLASS_MAGIC 1494527378
-
 
 /*******************************************************************************
  * Parse Header
@@ -258,15 +256,15 @@ mraheader_t* mraheader_new()
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	return ths;
 }
 
 
 void mraheader_unref(mraheader_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mraheader_empty(ths);
 	free(ths);

@@ -267,8 +267,6 @@ mrmsg_t* mrmsg_new()
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
 	ths->m_param     = mrparam_new();
@@ -279,7 +277,9 @@ mrmsg_t* mrmsg_new()
 
 void mrmsg_unref(mrmsg_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrmsg_empty(ths);
 	mrparam_unref(ths->m_param);

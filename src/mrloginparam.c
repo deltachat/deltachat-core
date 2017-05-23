@@ -46,15 +46,15 @@ mrloginparam_t* mrloginparam_new()
 		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	return ths;
 }
 
 
 void mrloginparam_unref(mrloginparam_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrloginparam_empty(ths);
 	free(ths);

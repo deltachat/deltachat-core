@@ -793,15 +793,15 @@ mrcontact_t* mrcontact_new()
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	return ths;
 }
 
 
 void mrcontact_unref(mrcontact_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrcontact_empty(ths);
 	free(ths);

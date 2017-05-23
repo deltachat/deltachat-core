@@ -598,8 +598,6 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	ths->m_mailbox  = mailbox;
 	ths->m_type     = MR_CHAT_UNDEFINED;
 	ths->m_param    = mrparam_new();
@@ -610,7 +608,9 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 
 void mrchat_unref(mrchat_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrchat_empty(ths);
 	mrparam_unref(ths->m_param);

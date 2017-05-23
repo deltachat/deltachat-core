@@ -85,8 +85,6 @@ mrparam_t* mrparam_new()
 		exit(28); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	ths->m_packed = calloc(1, 1);
 
     return ths;
@@ -95,7 +93,9 @@ mrparam_t* mrparam_new()
 
 void mrparam_unref(mrparam_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrparam_empty(ths);
 	free(ths->m_packed);

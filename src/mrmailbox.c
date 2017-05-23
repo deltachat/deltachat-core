@@ -953,8 +953,6 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	pthread_mutex_init(&ths->m_wake_lock_critical, NULL);
 
 	ths->m_sql      = mrsqlite3_new(ths);
@@ -977,7 +975,9 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 void mrmailbox_unref(mrmailbox_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mre2ee_exit(ths);
 

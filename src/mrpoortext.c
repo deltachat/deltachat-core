@@ -45,8 +45,6 @@ mrpoortext_t* mrpoortext_new()
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	MR_INIT_REFERENCE
-
 	ths->m_text1_meaning  = MR_TEXT1_NORMAL;
 
     return ths;
@@ -55,7 +53,9 @@ mrpoortext_t* mrpoortext_new()
 
 void mrpoortext_unref(mrpoortext_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrpoortext_empty(ths);
 	free(ths);

@@ -112,8 +112,6 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 		exit(20);
 	}
 
-	MR_INIT_REFERENCE
-
 	ths->m_mailbox = mailbox;
 	if( (ths->m_chatNlastmsg_ids=carray_new(128))==NULL ) {
 		exit(32);
@@ -125,7 +123,9 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 
 void mrchatlist_unref(mrchatlist_t* ths)
 {
-	MR_DEC_REFERENCE_AND_CONTINUE_ON_0
+	if( ths==NULL ) {
+		return;
+	}
 
 	mrchatlist_empty(ths);
 	carray_free(ths->m_chatNlastmsg_ids);
