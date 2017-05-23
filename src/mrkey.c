@@ -39,19 +39,66 @@
  ******************************************************************************/
 
 
+static void mrkey_empty(mrkey_t* ths) /* only use before calling setters; take care when using this function together with reference counting, prefer new objects instead */
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	if( ths->m_type==MR_PRIVATE ) {
+		if( ths->m_binary && ths->m_bytes>0 ) {
+			/* wipe private keys with different patterns. Don't know, if this helps, however, it should not hurt.
+			(in general, we keep the private keys in memory as short as possible and only if really needed.
+			on disk, eg. on Android, it is not accessible for other Apps - so all this should be quite safe) */
+			memset(ths->m_binary, 0xFF, ths->m_bytes); /* pattern 11111111 */
+			memset(ths->m_binary, 0xAA, ths->m_bytes); /* pattern 10101010 */
+			memset(ths->m_binary, 0x55, ths->m_bytes); /* pattern 01010101 */
+			memset(ths->m_binary, 0x00, ths->m_bytes); /* pattern 00000000 */
+		}
+	}
+
+	free(ths->m_binary);
+	ths->m_binary = NULL;
+	ths->m_bytes = 0;
+	ths->m_type = MR_PUBLIC;
+}
+
+
 mrkey_t* mrkey_new()
 {
-	mrkey_t* ths = malloc(sizeof(mrkey_t));
-	mrkey_init(ths);
+	mrkey_t* ths;
+
+	if( (ths=calloc(1, sizeof(mrkey_t)))==NULL ) {
+		exit(44); /* cannot allocate little memory, unrecoverable error */
+	}
+	ths->_m_heap_refcnt = 1;
 	return ths;
 }
 
 
-void mrkey_init(mrkey_t* ths)
+mrkey_t* mrkey_ref(mrkey_t* ths)
 {
-	if( ths ) {
-		memset(ths, 0, sizeof(mrkey_t));
+	if( ths==NULL ) {
+		return NULL;
 	}
+	ths->_m_heap_refcnt++;
+	return ths;
+}
+
+
+void mrkey_unref(mrkey_t* ths)
+{
+	if( ths==NULL ) {
+		return;
+	}
+
+	ths->_m_heap_refcnt--;
+	if( ths->_m_heap_refcnt != 0 ) {
+		return;
+	}
+
+	mrkey_empty(ths);
+	free(ths);
 }
 
 
@@ -89,42 +136,6 @@ int mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index, int type)
 		return 0;
 	}
 	return mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
-}
-
-
-void mrkey_empty(mrkey_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	if( ths->m_type==MR_PRIVATE ) {
-		if( ths->m_binary && ths->m_bytes>0 ) {
-			/* wipe private keys with different patterns. Don't know, if this helps, however, it should not hurt.
-			(in general, we keep the private keys in memory as short as possible and only if really needed.
-			on disk, eg. on Android, it is not accessible for other Apps - so all this should be quite safe) */
-			memset(ths->m_binary, 0xFF, ths->m_bytes); /* pattern 11111111 */
-			memset(ths->m_binary, 0xAA, ths->m_bytes); /* pattern 10101010 */
-			memset(ths->m_binary, 0x55, ths->m_bytes); /* pattern 01010101 */
-			memset(ths->m_binary, 0x00, ths->m_bytes); /* pattern 00000000 */
-		}
-	}
-
-	free(ths->m_binary);
-	ths->m_binary = NULL;
-	ths->m_bytes = 0;
-	ths->m_type = MR_PUBLIC;
-}
-
-
-void mrkey_unref(mrkey_t* ths)
-{
-	if( ths==NULL ) {
-		return;
-	}
-
-	mrkey_empty(ths);
-	free(ths);
 }
 
 

@@ -89,8 +89,6 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	pgp_memory_t     *pubmem = pgp_memory_new(), *secmem = pgp_memory_new();
 	pgp_output_t     *pubout = pgp_output_new(), *secout = pgp_output_new();
 
-	mrkey_empty(ret_public_key);
-	mrkey_empty(ret_private_key);
 	memset(&seckey, 0, sizeof(pgp_key_t));
 	memset(&pubkey, 0, sizeof(pgp_key_t));
 	memset(&subkey, 0, sizeof(pgp_key_t));

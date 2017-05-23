@@ -40,14 +40,13 @@ typedef struct mraheader_t
 {
 	uint32_t       m_magic;
 	char*          m_to;
-	mrkey_t        m_public_key;
+	mrkey_t*       m_public_key; /* != NULL */
 	int            m_prefer_encrypted; /* YES, NO or NOPREFERENCE if attribute is missing */
 } mraheader_t;
 
 
 mraheader_t* mraheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
 void         mraheader_unref             (mraheader_t*);
-void         mraheader_empty             (mraheader_t*);
 
 int          mraheader_set_from_string   (mraheader_t*, const char* header_str);
 int          mraheader_set_from_imffields(mraheader_t*, const struct mailimf_fields* mime);

@@ -40,29 +40,33 @@
  ******************************************************************************/
 
 
-void mrkeyring_init(mrkeyring_t* ths)
+mrkeyring_t* mrkeyring_new()
 {
-	if( ths == NULL ) {
-		return;
-	}
+	mrkeyring_t* ths;
 
-	memset(ths, 0, sizeof(mrkeyring_t));
+	if( (ths=calloc(1, sizeof(mrkeyring_t)))==NULL ) {
+		exit(42); /* cannot allocate little memory, unrecoverable error */
+	}
+	return ths;
 }
 
 
-void mrkeyring_empty(mrkeyring_t* ths)
+void mrkeyring_unref(mrkeyring_t* ths)
 {
 	int i;
 	if( ths == NULL ) {
 		return;
 	}
 
+	for( i = 0; i < ths->m_count; i++ ) {
+		mrkey_unref(ths->m_keys[i]);
+	}
 	free(ths->m_keys);
-	memset(ths, 0, sizeof(mrkeyring_t));
+	free(ths);
 }
 
 
-void mrkeyring_add(mrkeyring_t* ths, const mrkey_t* to_add)
+void mrkeyring_add(mrkeyring_t* ths, mrkey_t* to_add)
 {
 	if( ths==NULL || to_add==NULL ) {
 		return;
@@ -77,7 +81,7 @@ void mrkeyring_add(mrkeyring_t* ths, const mrkey_t* to_add)
 		ths->m_allocated = newsize;
 	}
 
-	ths->m_keys[ths->m_count] = to_add;
+	ths->m_keys[ths->m_count] = mrkey_ref(to_add);
 	ths->m_count++;
 }
 

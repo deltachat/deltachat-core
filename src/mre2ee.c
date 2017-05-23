@@ -60,14 +60,13 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 		s_in_key_creation = 1;
 
 		{
-			mrkey_t private_key;
-			mrkey_init(&private_key);
+			mrkey_t* private_key = mrkey_new();
 
 			mrmailbox_log_info(mailbox, 0, "Generating keypair ...");
 
 			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
-				key_created = mre2ee_driver_create_keypair(mailbox, self_addr, public_key, &private_key);
+				key_created = mre2ee_driver_create_keypair(mailbox, self_addr, public_key, private_key);
 
 			mrsqlite3_lock(mailbox->m_sql);
 
@@ -76,14 +75,14 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 				goto cleanup;
 			}
 
-			if( !mrkey_save_self_keypair__(public_key, &private_key, self_addr, mailbox->m_sql) ) {
+			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
 				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
 
 			mrmailbox_log_info(mailbox, 0, "Keypair generated.");
 
-			mrkey_empty(&private_key);
+			mrkey_unref(private_key);
 		}
 	}
 
@@ -129,12 +128,11 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	clistiter*             iter1;
 	const char*            recipient_addr; /* just a pointer inside recipients_addr, must not be freed */
-	mrkeyring_t            keyring;
+	mrkeyring_t*           keyring = mrkeyring_new();
 
-	mrkeyring_init(&keyring);
-
-	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL ) {
-		return;
+	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL
+	 || keyring==NULL ) {
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -154,7 +152,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
-		if( !load_or_generate_public_key__(mailbox, &autocryptheader->m_public_key, autocryptheader->m_to) ) {
+		if( !load_or_generate_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to) ) {
 			goto cleanup;
 		}
 
@@ -180,7 +178,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
-		mrkeyring_add(&keyring, &peerstate->m_public_key);
+		mrkeyring_add(keyring, peerstate->m_public_key);
 
 		//mre2ee_driver_encrypt__(mailbox, in_out_message, &peerstate->m_public_key);
 
@@ -188,7 +186,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrapeerstate_unref(peerstate);
 	mraheader_unref(autocryptheader);
-	mrkeyring_empty(&keyring);
+	mrkeyring_unref(keyring);
 }
 
 
@@ -202,11 +200,11 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	mrapeerstate_t*        peerstate = NULL;
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
-	mrkey_t                private_key;
-	mrkey_init(&private_key);
+	mrkey_t*               private_key = mrkey_new();
 
-	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL ) {
-		return;
+	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL
+	 || private_key == NULL ) {
+		goto cleanup;
 	}
 
 	peerstate = mrapeerstate_new();
@@ -282,7 +280,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 			goto cleanup;
 		}
 
-		if( !mrkey_load_self_private__(&private_key, self_addr, mailbox->m_sql) ) {
+		if( !mrkey_load_self_private__(private_key, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 
@@ -292,12 +290,11 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	/* finally, decrypt */
 	//mre2ee_driver_decrypt__(mailbox, in_out_message, &private_key);
 
-	mrkey_empty(&private_key); /* this also wipes the key */
-
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);
+	mrkey_unref(private_key);
 	free(from);
 	free(self_addr);
 }

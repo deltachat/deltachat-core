@@ -43,9 +43,10 @@ typedef struct mrkeyring_t
 	int       m_allocated;
 } mrkeyring_t;
 
-void  mrkeyring_init  (mrkeyring_t*);
-void  mrkeyring_empty (mrkeyring_t*); /* this does not free any key! */
-void  mrkeyring_add   (mrkeyring_t*, const mrkey_t*); /* only copies the pointer! */
+mrkeyring_t* mrkeyring_new  ();
+void         mrkeyring_unref();
+
+void         mrkeyring_add  (mrkeyring_t*, mrkey_t*); /* the reference counter of the key is increased by one */
 
 #ifdef __cplusplus
 } /* /extern "C" */

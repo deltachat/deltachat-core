@@ -45,6 +45,24 @@
  ******************************************************************************/
 
 
+static void mraheader_empty(mraheader_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	ths->m_prefer_encrypted = 0;
+
+	free(ths->m_to);
+	ths->m_to = NULL;
+
+	if( ths->m_public_key->m_binary ) {
+		mrkey_unref(ths->m_public_key);
+		ths->m_public_key = mrkey_new();
+	}
+}
+
+
 char* mraheader_render(const mraheader_t* ths)
 {
 	int            success = 0;
@@ -52,7 +70,7 @@ char* mraheader_render(const mraheader_t* ths)
 	mrstrbuilder_t ret;
 	mrstrbuilder_init(&ret);
 
-	if( ths==NULL || ths->m_to==NULL || ths->m_public_key.m_binary==NULL || ths->m_public_key.m_type!=MR_PUBLIC ) {
+	if( ths==NULL || ths->m_to==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=MR_PUBLIC ) {
 		goto cleanup;
 	}
 
@@ -71,7 +89,7 @@ char* mraheader_render(const mraheader_t* ths)
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if( (keybase64_wrapped = mrkey_render_base64(&ths->m_public_key, 78, " ")) == NULL ) {
+	if( (keybase64_wrapped = mrkey_render_base64(ths->m_public_key, 78, " ")) == NULL ) {
 		goto cleanup;
 	}
 
@@ -122,7 +140,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 	else if( strcasecmp(name, "key")==0 )
 	{
 		if( value == NULL
-		 || ths->m_public_key.m_binary || ths->m_public_key.m_bytes ) {
+		 || ths->m_public_key->m_binary || ths->m_public_key->m_bytes ) {
 			return 0; /* there is already a k*/
 		}
 		size_t indx = 0, result_len = 0;
@@ -131,7 +149,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		 || result == NULL || result_len == 0 ) {
 			return 0; /* bad key */
 		}
-		mrkey_set_from_raw(&ths->m_public_key, (unsigned char*)result, result_len, MR_PUBLIC);
+		mrkey_set_from_raw(ths->m_public_key, (unsigned char*)result, result_len, MR_PUBLIC);
 		mmap_string_unref(result);
 		return 1;
 	}
@@ -203,7 +221,7 @@ int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 	}
 
 	/* all needed data found? */
-	if( ths->m_to && ths->m_public_key.m_binary ) {
+	if( ths->m_to && ths->m_public_key->m_binary ) {
 		success = 1;
 	}
 
@@ -256,6 +274,8 @@ mraheader_t* mraheader_new()
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	ths->m_public_key = mrkey_new();
+
 	return ths;
 }
 
@@ -266,23 +286,9 @@ void mraheader_unref(mraheader_t* ths)
 		return;
 	}
 
-	mraheader_empty(ths);
-	free(ths);
-}
-
-
-void mraheader_empty(mraheader_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	ths->m_prefer_encrypted = 0;
-
 	free(ths->m_to);
-	ths->m_to = NULL;
-
-	mrkey_empty(&ths->m_public_key);
+	mrkey_unref(ths->m_public_key);
+	free(ths);
 }
 
 

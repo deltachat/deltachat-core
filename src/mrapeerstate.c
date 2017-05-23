@@ -45,6 +45,27 @@
  ******************************************************************************/
 
 
+static void mrapeerstate_empty(mrapeerstate_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	ths->m_changed          = 0;
+	ths->m_last_seen        = 0;
+	ths->m_prefer_encrypted = 0;
+	ths->m_to_save          = 0;
+
+	free(ths->m_addr);
+	ths->m_addr = NULL;
+
+	if( ths->m_public_key->m_binary ) {
+		mrkey_unref(ths->m_public_key);
+		ths->m_public_key = mrkey_new();
+	}
+}
+
+
 int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
@@ -66,7 +87,7 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	ths->m_changed          =                    sqlite3_column_int64 (stmt, 1);
 	ths->m_last_seen        =                    sqlite3_column_int64 (stmt, 2);
 	ths->m_prefer_encrypted =                    sqlite3_column_int   (stmt, 3);
-	mrkey_set_from_stmt     (&ths->m_public_key,                       stmt, 4, MR_PUBLIC);
+	mrkey_set_from_stmt     (ths->m_public_key,                        stmt, 4, MR_PUBLIC);
 
 	success = 1;
 
@@ -81,7 +102,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	sqlite3_stmt* stmt;
 
 	if( ths==NULL || sql==NULL
-	 || ths->m_addr==NULL || ths->m_public_key.m_binary==NULL || ths->m_public_key.m_bytes<=0 ) {
+	 || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_bytes<=0 ) {
 		return 0;
 	}
 
@@ -98,7 +119,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_changed);
 		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypted);
-		sqlite3_bind_blob (stmt, 4, ths->m_public_key.m_binary, ths->m_public_key.m_bytes, SQLITE_STATIC);
+		sqlite3_bind_blob (stmt, 4, ths->m_public_key->m_binary, ths->m_public_key->m_bytes, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 5, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
@@ -132,8 +153,10 @@ mrapeerstate_t* mrapeerstate_new()
 	mrapeerstate_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrapeerstate_t)))==NULL ) {
-		exit(15); /* cannot allocate little memory, unrecoverable error */
+		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
+
+	ths->m_public_key = mrkey_new();
 
 	return ths;
 }
@@ -145,26 +168,9 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
 		return;
 	}
 
-	mrapeerstate_empty(ths);
-	free(ths);
-}
-
-
-void mrapeerstate_empty(mrapeerstate_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	ths->m_changed          = 0;
-	ths->m_last_seen        = 0;
-	ths->m_prefer_encrypted = 0;
-	ths->m_to_save          = 0;
-
 	free(ths->m_addr);
-	ths->m_addr = NULL;
-
-	mrkey_empty(&ths->m_public_key);
+	mrkey_unref(ths->m_public_key);
+	free(ths);
 }
 
 
@@ -185,7 +191,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	ths->m_last_seen        = message_time;
 	ths->m_to_save          = MRA_SAVE_ALL;
 	ths->m_prefer_encrypted = header->m_prefer_encrypted;
-	mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
 	return 1;
 }
 
@@ -207,7 +213,7 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 {
 	if( ths==NULL || header==NULL
 	 || ths->m_addr==NULL
-	 || header->m_to==NULL || header->m_public_key.m_binary==NULL
+	 || header->m_to==NULL || header->m_public_key->m_binary==NULL
 	 || strcasecmp(ths->m_addr, header->m_to)!=0 ) {
 		return 0;
 	}
@@ -225,10 +231,10 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 
-		if( !mrkey_equals(&ths->m_public_key, &header->m_public_key) )
+		if( !mrkey_equals(ths->m_public_key, header->m_public_key) )
 		{
 			ths->m_changed = message_time;
-			mrkey_set_from_key(&ths->m_public_key, &header->m_public_key);
+			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}

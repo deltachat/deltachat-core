@@ -686,7 +686,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	if( e2ee_enabled
 	 && peerstate_ok
 	 && peerstate->m_prefer_encrypted!=MRA_PE_NO
-	 && peerstate->m_public_key.m_binary!=NULL )
+	 && peerstate->m_public_key->m_binary!=NULL )
 	{
 		/* end-to-end encryption, TODO: compare peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
 		mrstrbuilder_cat(&ret, "• End-to-end-encrypted.");

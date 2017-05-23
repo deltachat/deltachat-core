@@ -53,7 +53,7 @@ typedef struct mrapeerstate_t
 	char*          m_addr;
 	time_t         m_changed;
 	time_t         m_last_seen;
-	mrkey_t        m_public_key;
+	mrkey_t*       m_public_key; /*!=NULL*/
 	int            m_prefer_encrypted;
 
 	#define        MRA_SAVE_LAST_SEEN 0x01
@@ -64,7 +64,6 @@ typedef struct mrapeerstate_t
 
 mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
 void            mrapeerstate_unref           (mrapeerstate_t*);
-void            mrapeerstate_empty           (mrapeerstate_t*);
 
 int             mrapeerstate_init_from_header  (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 int             mrapeerstate_degrade_encryption(mrapeerstate_t*, time_t message_time);

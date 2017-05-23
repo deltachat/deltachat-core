@@ -40,6 +40,8 @@ extern "C" {
 
 typedef struct mrkey_t
 {
+	int            _m_heap_refcnt; /* !=0 for objects created with mrkey_new(), 0 for stack objects  */
+
 	unsigned char* m_binary;
 	int            m_bytes;
 	int            m_type;
@@ -47,8 +49,7 @@ typedef struct mrkey_t
 
 
 mrkey_t* mrkey_new           ();
-void     mrkey_init          (mrkey_t*); /* for initialing random memory that should be used as a key */
-void     mrkey_empty         (mrkey_t*); /* free data needed; for private keys, this also wipes the memory */
+mrkey_t* mrkey_ref           (mrkey_t*);
 void     mrkey_unref         (mrkey_t*);
 
 int   mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes, int type);
