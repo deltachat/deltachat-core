@@ -42,8 +42,8 @@ typedef struct mrkeyring_t mrkeyring_t;
 void mre2ee_driver_init          (mrmailbox_t*);
 void mre2ee_driver_exit          (mrmailbox_t*);
 int  mre2ee_driver_create_keypair(mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);
-int  mre2ee_driver_encrypt__     (mrmailbox_t*, const char* plain, size_t plain_bytes, char** ctext, size_t* ctext_bytes, const mrkeyring_t* public_keys);
-int  mre2ee_driver_decrypt__     (mrmailbox_t*, const char* ctext, size_t ctext_bytes, char** plain, size_t* plain_bytes, const mrkeyring_t* private_keys);
+int  mre2ee_driver_encrypt__     (mrmailbox_t*, const unsigned char* plain, size_t plain_bytes, unsigned char** ctext, size_t* ctext_bytes, const mrkeyring_t* public_keys);
+int  mre2ee_driver_decrypt__     (mrmailbox_t*, const unsigned char* ctext, size_t ctext_bytes, unsigned char** plain, size_t* plain_bytes, const mrkeyring_t* private_keys);
 
 
 #ifdef __cplusplus

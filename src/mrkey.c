@@ -233,12 +233,12 @@ int mrkey_load_self_private__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* 
  ******************************************************************************/
 
 
-char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars)
+char* mr_render_base64(const unsigned char* buf, size_t buf_bytes, int break_every, const char* break_chars)
 {
 	char* ret = NULL;
 	char* temp = NULL;
 
-	if( (ret = encode_base64((const char*)ths->m_binary, ths->m_bytes))==NULL ) {
+	if( (ret = encode_base64((const char*)buf, buf_bytes))==NULL ) {
 		goto cleanup;
 	}
 
@@ -252,5 +252,14 @@ char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break
 cleanup:
 	free(temp);
 	return ret;
+}
+
+
+char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars)
+{
+	if( ths==NULL ) {
+		return NULL;
+	}
+	return mr_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars);
 }
 

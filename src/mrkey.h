@@ -62,6 +62,7 @@ int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* privat
 int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 int   mrkey_load_self_private__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 
+char* mr_render_base64   (const unsigned char* buf, size_t buf_bytes, int break_every, const char* break_chars); /* the result must be freed */
 char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars); /* the result must be freed */
 
 

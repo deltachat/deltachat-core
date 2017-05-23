@@ -155,36 +155,59 @@ void stress_functions(mrmailbox_t* mailbox)
 
 	{
 		mrkey_t *public_key = mrkey_new(), *private_key = mrkey_new();
-
 		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
-
-		char* temp = mrkey_render_base64(public_key, 78, " ");
+		/*char* temp = mrkey_render_base64(public_key, 78, " ");
 		char* tempsec = mrkey_render_base64(private_key, 78, " ");
 		printf("\nPUBLIC: [%s]\nPRIVATE: [%s]\n", temp, tempsec);
-		free(temp); free(tempsec);
+		free(temp); free(tempsec);*/
+
+		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
+		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
+
+		assert( !mrkey_equals(public_key, public_key2) );
 
 		const char* original_text = "This is a test";
-		char *ctext = NULL, *plain = NULL;
+		unsigned char *ctext = NULL, *plain = NULL;
 		size_t ctext_bytes = 0, plain_bytes = 0;
 
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
-			//int ok = mre2ee_driver_encrypt__(mailbox, original_text, strlen(original_text)+1, &ctext, &ctext_bytes, keyring);
-			//assert( ok && ctext && ctext_bytes>0 );
+			//mrkeyring_add(keyring, public_key2);
+				int ok = mre2ee_driver_encrypt__(mailbox, (const unsigned char*)original_text, strlen(original_text)+1, &ctext, &ctext_bytes, keyring);
+				assert( ok && ctext && ctext_bytes>0 );
+				/*char* temp = mr_render_base64(ctext, ctext_bytes, 78, "\n");
+				printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n", (int)ctext_bytes, temp);
+				free(temp);*/
 			mrkeyring_unref(keyring);
 		}
 
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
-			//int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, keyring);
-			//assert( ok && plain && plain_bytes>0 );
+			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, keyring);
+			assert( ok && plain && plain_bytes>0 );
+			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);
 		}
 
+		/*
+		{
+			mrkeyring_t* keyring = mrkeyring_new();
+			mrkeyring_add(keyring, private_key2);
+			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, keyring);
+			assert( ok && plain && plain_bytes>0 );
+			assert( strcmp(plain, original_text)==0 );
+			mrkeyring_unref(keyring);
+		}
+		*/
+
 		mrkey_unref(public_key);
 		mrkey_unref(private_key);
+		mrkey_unref(public_key2);
+		mrkey_unref(private_key2);
+		free(plain);
+		free(ctext);
 
 	}
 }

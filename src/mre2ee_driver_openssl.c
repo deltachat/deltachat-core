@@ -55,6 +55,9 @@
 #include "mrtools.h"
 
 
+static pgp_io_t s_io;
+
+
 void mre2ee_driver_init(mrmailbox_t* mailbox)
 {
 	SSL_library_init(); /* older, but more compatible function, simply defined as OPENSSL_init_ssl().
@@ -72,6 +75,11 @@ void mre2ee_driver_init(mrmailbox_t* mailbox)
 	RAND_seed(seed, sizeof(seed));
 	}
 
+	/* setup i/o structure */
+	memset(&s_io, 0, sizeof(pgp_io_t));
+	s_io.outs = stdout;
+	s_io.errs = stderr;
+	s_io.res  = stderr;
 }
 
 
@@ -206,55 +214,106 @@ cleanup:
 	if( secout ) { pgp_output_delete(secout); }
 	if( pubmem ) { pgp_memory_free(pubmem); }
 	if( secmem ) { pgp_memory_free(secmem); }
-	pgp_key_free(&seckey); pgp_key_free(&pubkey); pgp_key_free(&subkey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
+	pgp_key_free(&seckey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
+	pgp_key_free(&pubkey);
+	pgp_key_free(&subkey);
 	free(user_id);
 	return success;
 }
 
 
-int mre2ee_driver_encrypt__(mrmailbox_t* mailbox, const char* plain, size_t plain_bytes, char** ret_ctext, size_t* ret_ctext_bytes,
-                            const mrkeyring_t* public_keys)
+int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
+                            const unsigned char* plain, size_t plain_bytes,
+                            unsigned char** ret_ctext, size_t* ret_ctext_bytes,
+                            const mrkeyring_t* raw_public_keys)
 {
-	pgp_io_t*       io = NULL;
-	pgp_keyring_t*  rcpts = calloc(1, sizeof(pgp_keyring_t));
-	pgp_memory_t*   outmem = NULL;
-	int             i;
+	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
+	pgp_memory_t    *keysmem = pgp_memory_new();
+	int             i, success = 0;
+
+	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
+	 || raw_public_keys==NULL || raw_public_keys->m_count<=0
+	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
+		goto cleanup;
+	}
 
 	*ret_ctext       = NULL;
 	*ret_ctext_bytes = 0;
 
-	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL || public_keys==NULL
-	 || rcpts==NULL ) {
+	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
+	for( i = 0; i < raw_public_keys->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_public_keys->m_keys[i]->m_binary, raw_public_keys->m_keys[i]->m_bytes);
+	}
+
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
+	if( public_keys->keyc <=0 || private_keys->keyc!=0 ) {
+		mrmailbox_log_warning(mailbox, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
-	/* setup keys (the keys may come from pgp_filter_keys_fileread()) */
-	for( i = 0; i < public_keys->m_count; i++ ) {
-		//const pgp_key_t *key = NULL;
-		//pgp_keyring_add(rcpts, key);
+	/* encrypt */
+	{
+		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, plain, plain_bytes, public_keys, 0/*use armour*/, NULL/*cipher*/, 0/*raw*/);
+		*ret_ctext       = outmem->buf;
+		*ret_ctext_bytes = outmem->length;
+		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
 	}
 
-
-	outmem = pgp_encrypt_buf(io, plain, plain_bytes, rcpts, 0/*use armour*/, NULL/*cipher*/, 0/*raw*/);
+	success = 1;
 
 cleanup:
-	if( outmem ) { pgp_memory_free(outmem); }
-	if( rcpts )  { pgp_keyring_free(rcpts); }
-	return 0;
+	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( public_keys )  { pgp_keyring_free(public_keys);  }
+	if( private_keys ) { pgp_keyring_free(private_keys);  }
+	return success;
 }
 
 
-int mre2ee_driver_decrypt__(mrmailbox_t* mailbox, const char* ctext, size_t ctext_bytes, char** ret_plain, size_t* ret_plain_bytes,
-                            const mrkeyring_t* private_keys)
+int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
+                            const unsigned char* ctext, size_t ctext_bytes,
+                            unsigned char** ret_plain, size_t* ret_plain_bytes,
+                            const mrkeyring_t* raw_private_keys)
 {
-	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || private_keys==NULL ) {
-		return 0;
+	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t    *keysmem = pgp_memory_new();
+	int             i, success = 0;
+
+	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
+	 || raw_private_keys==NULL || raw_private_keys->m_count<=0
+	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
+		goto cleanup;
 	}
 
 	*ret_plain       = NULL;
 	*ret_plain_bytes = 0;
 
-	// netpgp_decrypt_memory()
+	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
+	for( i = 0; i < raw_private_keys->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_private_keys->m_keys[i]->m_binary, raw_private_keys->m_keys[i]->m_bytes);
+	}
 
-	return 0;
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
+	if( private_keys->keyc<=0 ) {
+		mrmailbox_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
+		goto cleanup;
+	}
+
+	/* decrypt */
+	{
+		pgp_memory_t* outmem = pgp_decrypt_buf(&s_io, ctext, ctext_bytes, private_keys, public_keys,
+			0/*use armour*/, 0/*sshkeys*/, NULL/*passfp*/, 0/*numtries*/, NULL/*getpassfunc*/);
+		*ret_plain       = outmem->buf;
+		*ret_plain_bytes = outmem->length;
+		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
+	}
+
+	success = 1;
+
+cleanup:
+	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( public_keys )  { pgp_keyring_free(public_keys);  }
+	if( private_keys ) { pgp_keyring_free(private_keys);  }
+	return success;
 }
