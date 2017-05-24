@@ -149,7 +149,7 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		memcpy(p->id, subkeyid, PGP_KEY_ID_SIZE);
 	}
 
-	// add "0x18: Subkey Binding Signature" packet, PGP_SIG_SUBKEY
+	// add "0x18: Subkey Binding Signature" packet, PGP_SIG_SUBKEY, see also pgp_update_subkey()
 	EXPAND_ARRAY((&pubkey), subkeysig);
 	{
 		pgp_subkeysig_t*  p = &pubkey.subkeysigs[pubkey.subkeysigc++];
@@ -176,6 +176,7 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		p->subkey         = pubkey.subkeyc-1; /* index of subkey in array */
 		p->packet.length  = mem_sig->length;
 		p->packet.raw     = mem_sig->buf; mem_sig->buf = NULL; /* move ownership to packet */
+		copy_sig_info(&p->siginfo, &sig->sig.info); /* not sure, if this is okay, however, siginfo should be set up, otherwise we get "bad info-type" errors */
 
 		pgp_create_sig_delete(sig);
 		pgp_output_delete(sigoutput);

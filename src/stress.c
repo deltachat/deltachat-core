@@ -173,6 +173,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		printf("\nPUBLIC: [%s]\nPRIVATE: [%s]\n", temp, tempsec);
 		free(temp); free(tempsec);*/
 
+		#if 0
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
 		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
 
@@ -218,11 +219,11 @@ void stress_functions(mrmailbox_t* mailbox)
 			free(plain);
 		}
 
-		mrkey_unref(public_key);
-		mrkey_unref(private_key);
+		free(ctext);
 		mrkey_unref(public_key2);
 		mrkey_unref(private_key2);
-		free(ctext);
-
+		#endif
+		mrkey_unref(public_key);
+		mrkey_unref(private_key);
 	}
 }
