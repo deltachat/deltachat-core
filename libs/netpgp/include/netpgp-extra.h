@@ -2,7 +2,6 @@
 #define __NETPGP_EXTRA_H__
 
 #include "netpgp/config-netpgp.h"
-#include <netpgp.h>
 #include "netpgp/packet-parse.h"
 #include "netpgp/errors.h"
 #include "netpgp/defs.h"
