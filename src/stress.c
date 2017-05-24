@@ -168,10 +168,10 @@ void stress_functions(mrmailbox_t* mailbox)
 	{
 		mrkey_t *public_key = mrkey_new(), *private_key = mrkey_new();
 		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
-		/*char* temp = mrkey_render_base64(public_key, 78, " ");
-		char* tempsec = mrkey_render_base64(private_key, 78, " ");
-		printf("\nPUBLIC: [%s]\nPRIVATE: [%s]\n", temp, tempsec);
-		free(temp); free(tempsec);*/
+		char* temp = mrkey_render_base64(public_key, 78, "\n");
+		char* tempsec = mrkey_render_base64(private_key, 78, "\n");
+		printf("\n-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n\n-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n", temp, tempsec);
+		free(temp); free(tempsec);
 
 		#if 0
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();

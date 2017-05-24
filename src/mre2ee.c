@@ -66,6 +66,13 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 
 			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
+				/* The public key must contain the following:
+				- a signing-capable primary key Kp
+				- a user id
+				- a self signature
+				- an encryption-capable subkey Ke
+				- a binding signature over Ke by Kp
+				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
 				key_created = mre2ee_driver_create_keypair(mailbox, self_addr, public_key, private_key);
 
 			mrsqlite3_lock(mailbox->m_sql);

@@ -545,9 +545,11 @@ pgp_write_xfer_key(pgp_output_t *output,
     unsigned          subkeysigidx = 0;
     pgp_subkeysig_t  *subkeysigp;
 
+    #if 0 ////// -- we don't need armored keys (only armored messages)
     if (armoured) {
         pgp_writer_push_armoured(output, PGP_PGP_PUBLIC_KEY_BLOCK);
     }
+    #endif //////
 
     /* primary key */
     if (key->type == PGP_PTAG_CT_PUBLIC_KEY) {

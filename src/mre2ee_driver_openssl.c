@@ -215,7 +215,7 @@ cleanup:
 	if( secout ) { pgp_output_delete(secout); }
 	if( pubmem ) { pgp_memory_free(pubmem); }
 	if( secmem ) { pgp_memory_free(secmem); }
-	pgp_key_free(&seckey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the statck) */
+	pgp_key_free(&seckey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the stack) */
 	pgp_key_free(&pubkey);
 	pgp_key_free(&subkey);
 	free(user_id);

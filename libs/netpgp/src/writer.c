@@ -847,23 +847,28 @@ armoured_finaliser(pgp_armor_type_t type,
 	return stacked_write(writer, tail, tailsize, errors);
 }
 
+#if 0 //////
 static unsigned
 armored_pubkey_fini(pgp_error_t **errors, pgp_writer_t *writer)
 {
 	return armoured_finaliser(PGP_PGP_PUBLIC_KEY_BLOCK, errors, writer);
 }
+#endif //////
 
+#if 0 //////
 static unsigned
 armored_privkey_fini(pgp_error_t **errors, pgp_writer_t *writer)
 {
 	return armoured_finaliser(PGP_PGP_PRIVATE_KEY_BLOCK, errors, writer);
 }
+#endif //////
 
 /* \todo use this for other armoured types */
 /**
  \ingroup Core_WritersNext
  \brief Push Armoured Writer on stack (generic)
 */
+#if 0 //////
 void
 pgp_writer_push_armoured(pgp_output_t *output, pgp_armor_type_t type)
 {
@@ -919,6 +924,7 @@ pgp_writer_push_armoured(pgp_output_t *output, pgp_armor_type_t type)
 	pgp_writer_push(output, base64_writer, finaliser,
 			generic_destroyer, base64);
 }
+#endif //////
 
 /**************************************************************************/
 
