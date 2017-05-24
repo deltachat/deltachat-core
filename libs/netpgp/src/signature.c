@@ -921,15 +921,15 @@ pgp_add_key_prefs(pgp_create_sig_t *sig)
         /* Hash algo prefs */
         pgp_write_ss_header(sig->output, 6, PGP_PTAG_SS_PREFERRED_HASH) &&
         pgp_write_scalar(sig->output, PGP_HASH_SHA256, 1) &&
-        pgp_write_scalar(sig->output, PGP_HASH_SHA1, 1) &&
         pgp_write_scalar(sig->output, PGP_HASH_SHA384, 1) &&
         pgp_write_scalar(sig->output, PGP_HASH_SHA512, 1) &&
         pgp_write_scalar(sig->output, PGP_HASH_SHA224, 1) &&
+        pgp_write_scalar(sig->output, PGP_HASH_SHA1, 1) && // Edit for Autocrypt/Delta Chat: due to the weak SHA1, it should not be preferred
 
         /* Compression algo prefs */
-        pgp_write_ss_header(sig->output, 3, PGP_PTAG_SS_PREF_COMPRESS) &&
-        pgp_write_scalar(sig->output, PGP_C_ZLIB, 1) &&
-        pgp_write_scalar(sig->output, PGP_C_BZIP2, 1);
+        pgp_write_ss_header(sig->output, 2/*1+number of following items*/, PGP_PTAG_SS_PREF_COMPRESS) &&
+        pgp_write_scalar(sig->output, PGP_C_ZLIB, 1) /*&& -- not sure if Delta Chat will support bzip2 on all platforms, however, this is not that important as typical files are compressed themselves and text is not that big
+        pgp_write_scalar(sig->output, PGP_C_BZIP2, 1) -- if you re-enable this, do not forget to modifiy the header count*/;
 }
 
 unsigned

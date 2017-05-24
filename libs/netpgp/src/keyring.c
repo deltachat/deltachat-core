@@ -862,7 +862,7 @@ pgp_add_selfsigned_userid(pgp_key_t *skey, pgp_key_t *pkey, const uint8_t *useri
 	pgp_add_key_expiration_time(sig, key_expiry);
 	pgp_add_issuer_keyid(sig, skey->pubkeyid);
 	pgp_add_primary_userid(sig, 1);
-    pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_ENC_COMM);
+    pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_CERT_KEYS); // Edit for Autocrypt/Delta Chat: our primary key should be able to SIGN+CERTIFY (original was SIGN+ENC_COMM) (maybe we should create a copy of this functions to be future-save on netpgp-updates)
     pgp_add_key_prefs(sig);
     pgp_add_key_features(sig);
 

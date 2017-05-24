@@ -163,9 +163,9 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		pgp_add_creation_time(sig, time(NULL));
 		pgp_add_key_expiration_time(sig, 0);
 		pgp_add_issuer_keyid(sig, seckey.pubkeyid);
-		pgp_add_primary_userid(sig, 1);
-		pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_ENC_COMM);
-		pgp_add_key_prefs(sig);
+		//pgp_add_primary_userid(sig, 1); -- seems not be needed for "ubkey Binding Signature"
+		pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM);
+		//pgp_add_key_prefs(sig); -- algo/hash/compression preferences seems not to be required for subkeys
 		pgp_add_key_features(sig);
 
 		pgp_end_hashed_subpkts(sig);
