@@ -967,7 +967,7 @@ pgp_keydata_init(pgp_key_t *keydata, const pgp_content_enum type)
    \sa pgp_keyring_free()
 
 */
-
+#if 0 //////
 unsigned
 pgp_keyring_fileread(pgp_io_t *io,
             pgp_keyring_t *pubring,
@@ -983,6 +983,7 @@ pgp_keyring_fileread(pgp_io_t *io,
                 armour,
                 filename);
 }
+#endif //////
 
 /**
    \ingroup HighLevel_KeyringRead

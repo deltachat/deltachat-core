@@ -1004,6 +1004,7 @@ pgp_sig_get_hash(pgp_create_sig_t *sig)
 }
 
 /* open up an output file */
+#if 0 //////
 static int
 open_output_file(pgp_output_t **output,
 			const char *inname,
@@ -1031,6 +1032,7 @@ open_output_file(pgp_output_t **output,
 	}
 	return fd;
 }
+#endif //////
 
 /**
 \ingroup HighLevel_Sign
@@ -1043,6 +1045,7 @@ open_output_file(pgp_output_t **output,
 \return 1 if OK; else 0;
 
 */
+#if 0 //////
 unsigned
 pgp_sign_file(pgp_io_t *io,
 		const char *inname,
@@ -1183,6 +1186,7 @@ pgp_sign_file(pgp_io_t *io,
 
 	return ret;
 }
+#endif ///////
 
 /**
 \ingroup HighLevel_Sign
@@ -1306,6 +1310,7 @@ pgp_sign_buf(pgp_io_t *io,
 }
 
 /* sign a file, and put the signature in a separate file */
+#if 0 //////
 int
 pgp_sign_detached(pgp_io_t *io,
 			const char *f,
@@ -1366,3 +1371,4 @@ pgp_sign_detached(pgp_io_t *io,
 
 	return 1;
 }
+#endif //////

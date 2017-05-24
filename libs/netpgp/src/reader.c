@@ -1967,6 +1967,7 @@ pgp_teardown_memory_read(pgp_stream_t *stream, pgp_memory_t *mem)
  \note It is the caller's responsiblity to free output and to close fd.
  \sa pgp_teardown_file_write()
 */
+#if 0 //////
 int
 pgp_setup_file_write(pgp_output_t **output, const char *filename,
 			unsigned allow_overwrite)
@@ -1999,6 +2000,7 @@ pgp_setup_file_write(pgp_output_t **output, const char *filename,
 	pgp_writer_set_fd(*output, fd);
 	return fd;
 }
+#endif //////
 
 /**
    \ingroup Core_Writers
@@ -2006,6 +2008,7 @@ pgp_setup_file_write(pgp_output_t **output, const char *filename,
    \param output
    \param fd
 */
+#if 0 //////
 void
 pgp_teardown_file_write(pgp_output_t *output, int fd)
 {
@@ -2013,11 +2016,13 @@ pgp_teardown_file_write(pgp_output_t *output, int fd)
 	close(fd);
 	pgp_output_delete(output);
 }
+#endif //////
 
 /**
    \ingroup Core_Writers
    \brief As pgp_setup_file_write, but appends to file
 */
+#if 0 //////
 int
 pgp_setup_file_append(pgp_output_t **output, const char *filename)
 {
@@ -2037,16 +2042,19 @@ pgp_setup_file_append(pgp_output_t **output, const char *filename)
 	}
 	return fd;
 }
+#endif //////
 
 /**
    \ingroup Core_Writers
    \brief As pgp_teardown_file_write()
 */
+#if 0 //////
 void
 pgp_teardown_file_append(pgp_output_t *output, int fd)
 {
 	pgp_teardown_file_write(output, fd);
 }
+#endif //////
 
 /**
    \ingroup Core_Readers
@@ -2059,6 +2067,7 @@ pgp_teardown_file_append(pgp_output_t *output, int fd)
    \note It is the caller's responsiblity to free parse_info and to close fd
    \sa pgp_teardown_file_read()
 */
+#if 0 //////
 int
 pgp_setup_file_read(pgp_io_t *io,
 			pgp_stream_t **stream,
@@ -2092,6 +2101,7 @@ pgp_setup_file_read(pgp_io_t *io,
 	}
 	return fd;
 }
+#endif //////
 
 /**
    \ingroup Core_Readers
@@ -2100,12 +2110,14 @@ pgp_setup_file_read(pgp_io_t *io,
    \param fd
    \sa pgp_setup_file_read()
 */
+#if 0 //////
 void
 pgp_teardown_file_read(pgp_stream_t *stream, int fd)
 {
 	close(fd);
 	pgp_stream_delete(stream);
 }
+#endif //////
 
 pgp_cb_ret_t
 pgp_litdata_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
@@ -2271,11 +2283,13 @@ pgp_get_seckey_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 	return PGP_RELEASE_MEMORY;
 }
 
+#if 0 //////
 unsigned
 pgp_reader_set_accumulate(pgp_stream_t *stream, unsigned state)
 {
 	return stream->readinfo.accumulate = state;
 }
+#endif //////
 
 /**************************************************************************/
 

@@ -460,7 +460,7 @@ pgp_encrypt_buf(pgp_io_t *io,
    \param allow_overwrite Allow output file to overwritten, if set.
    \param getpassfunc Callback to use to get passphrase
 */
-
+#if 0 //////
 unsigned
 pgp_decrypt_file(pgp_io_t *io,
 			const char *infile,
@@ -564,6 +564,7 @@ pgp_decrypt_file(pgp_io_t *io,
 
 	return 1;
 }
+#endif //////
 
 /* decrypt an area of memory */
 pgp_memory_t *

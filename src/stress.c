@@ -179,17 +179,17 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( !mrkey_equals(public_key, public_key2) );
 
 		const char* original_text = "This is a test";
-		unsigned char *ctext = NULL, *plain = NULL;
+		void* ctext = NULL;
 		size_t ctext_bytes = 0, plain_bytes = 0;
 
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
-			//mrkeyring_add(keyring, public_key2);
+			mrkeyring_add(keyring, public_key2);
 				int ok = mre2ee_driver_encrypt__(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
-				assert( ctext[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
+				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
 				char* nt = mr_null_terminate((char*)ctext, ctext_bytes);
 				printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n", (int)ctext_bytes, nt);
 				free(nt);
@@ -199,28 +199,29 @@ void stress_functions(mrmailbox_t* mailbox)
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
-			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, keyring, 1, (void**)&plain, &plain_bytes);
+			void* plain = NULL;
+			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			mrkeyring_unref(keyring);
+			free(plain);
 		}
 
-		/*
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key2);
-			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, keyring);
+			void* plain = NULL;
+			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);
+			free(plain);
 		}
-		*/
 
 		mrkey_unref(public_key);
 		mrkey_unref(private_key);
 		mrkey_unref(public_key2);
 		mrkey_unref(private_key2);
-		free(plain);
 		free(ctext);
 
 	}

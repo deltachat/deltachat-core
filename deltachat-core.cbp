@@ -387,9 +387,6 @@
 		<Unit filename="libs/netpgp/src/misc.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/netpgp/src/netpgp.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="libs/netpgp/src/openssl_crypto.c">
 			<Option compilerVar="CC" />
 		</Unit>

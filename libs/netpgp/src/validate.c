@@ -836,6 +836,7 @@ static pgp_cb_ret_t key_filter_cb (
 	return PGP_RELEASE_MEMORY;
 }
 
+#if 0 //////
 unsigned
 pgp_filter_keys_fileread(
             pgp_io_t *io,
@@ -895,6 +896,7 @@ pgp_filter_keys_fileread(
 
 	return res;
 }
+#endif
 
 unsigned
 pgp_filter_keys_from_mem(
@@ -982,6 +984,7 @@ pgp_validate_result_free(pgp_validation_t *result)
    \note It is the caller's responsiblity to call
    	pgp_validate_result_free(result) after use.
 */
+#if 0 ///////
 unsigned
 pgp_validate_file(pgp_io_t *io,
 			pgp_validation_t *result,
@@ -1097,6 +1100,7 @@ pgp_validate_file(pgp_io_t *io,
 	pgp_memory_free(validation.mem);
 	return ret;
 }
+#endif //////
 
 /**
    \ingroup HighLevel_Verify
