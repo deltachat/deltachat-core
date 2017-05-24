@@ -102,7 +102,7 @@ void mrkey_unref(mrkey_t* ths)
 }
 
 
-int mrkey_set_from_raw(mrkey_t* ths, const unsigned char* data, int bytes, int type)
+int mrkey_set_from_raw(mrkey_t* ths, const void* data, int bytes, int type)
 {
     mrkey_empty(ths);
     if( ths==NULL || data==NULL || bytes <= 0 ) {
@@ -233,7 +233,7 @@ int mrkey_load_self_private__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* 
  ******************************************************************************/
 
 
-char* mr_render_base64(const unsigned char* buf, size_t buf_bytes, int break_every, const char* break_chars)
+char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const char* break_chars)
 {
 	char* ret = NULL;
 	char* temp = NULL;

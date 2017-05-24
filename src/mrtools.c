@@ -179,6 +179,21 @@ int mr_str_replace(char** haystack, const char* needle, const char* replacement)
 }
 
 
+char* mr_null_terminate(const char* in, int bytes) /* the result must be free()'d */
+{
+	char* out = malloc(bytes+1);
+	if( out==NULL ) {
+		exit(45);
+	}
+
+	if( in && bytes > 0 ) {
+		strncpy(out, in, bytes);
+	}
+	out[bytes] = 0;
+	return out;
+}
+
+
 char* mr_mprintf(const char* format, ...)
 {
 	char  testbuf[1];

@@ -193,19 +193,19 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 
 	/* return keys */
 	pgp_writer_set_memory(pubout, pubmem);
-	if( !pgp_write_xfer_key(pubout, &pubkey, 0/*armoured*/)
+	if( !pgp_write_xfer_key(pubout, &pubkey, 0/*armored*/)
 	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
 		goto cleanup;
 	}
 
 	pgp_writer_set_memory(secout, secmem);
-	if( !pgp_write_xfer_key(secout, &seckey, 0/*armoured*/)
+	if( !pgp_write_xfer_key(secout, &seckey, 0/*armored*/)
 	 || secmem->buf == NULL || secmem->length <= 0 ) {
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, (const unsigned char*)pubmem->buf, pubmem->length, MR_PRIVATE);
-	mrkey_set_from_raw(ret_private_key, (const unsigned char*)secmem->buf, secmem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
 
 	success = 1;
 
@@ -223,9 +223,9 @@ cleanup:
 
 
 int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
-                            const unsigned char* plain, size_t plain_bytes,
-                            unsigned char** ret_ctext, size_t* ret_ctext_bytes,
-                            const mrkeyring_t* raw_public_keys)
+                            const void* plain, size_t plain_bytes,
+                            const mrkeyring_t* raw_keys, int use_armor,
+                            void** ret_ctext, size_t* ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
@@ -233,7 +233,7 @@ int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
 	int             i, success = 0;
 
 	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
-	 || raw_public_keys==NULL || raw_public_keys->m_count<=0
+	 || raw_keys==NULL || raw_keys->m_count<=0
 	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
 	}
@@ -242,8 +242,8 @@ int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
 	*ret_ctext_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_public_keys->m_count; i++ ) {
-		pgp_memory_add(keysmem, raw_public_keys->m_keys[i]->m_binary, raw_public_keys->m_keys[i]->m_bytes);
+	for( i = 0; i < raw_keys->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_keys->m_keys[i]->m_binary, raw_keys->m_keys[i]->m_bytes);
 	}
 
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
@@ -254,7 +254,11 @@ int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
 
 	/* encrypt */
 	{
-		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, plain, plain_bytes, public_keys, 0/*use armour*/, NULL/*cipher*/, 0/*raw*/);
+		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, plain, plain_bytes, public_keys, use_armor, NULL/*cipher*/, 0/*raw*/);
+		if( outmem == NULL ) {
+			mrmailbox_log_warning(mailbox, 0, "Encryption failed.");
+			goto cleanup;
+		}
 		*ret_ctext       = outmem->buf;
 		*ret_ctext_bytes = outmem->length;
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
@@ -271,9 +275,10 @@ cleanup:
 
 
 int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
-                            const unsigned char* ctext, size_t ctext_bytes,
-                            unsigned char** ret_plain, size_t* ret_plain_bytes,
-                            const mrkeyring_t* raw_private_keys)
+                            const void* ctext, size_t ctext_bytes,
+                            const mrkeyring_t* raw_keys,
+                            int use_armor,
+                            void** ret_plain, size_t* ret_plain_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -281,7 +286,7 @@ int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
 	int             i, success = 0;
 
 	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
-	 || raw_private_keys==NULL || raw_private_keys->m_count<=0
+	 || raw_keys==NULL || raw_keys->m_count<=0
 	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
 	}
@@ -290,8 +295,8 @@ int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
 	*ret_plain_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_private_keys->m_count; i++ ) {
-		pgp_memory_add(keysmem, raw_private_keys->m_keys[i]->m_binary, raw_private_keys->m_keys[i]->m_bytes);
+	for( i = 0; i < raw_keys->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_keys->m_keys[i]->m_binary, raw_keys->m_keys[i]->m_bytes);
 	}
 
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
@@ -303,7 +308,11 @@ int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
 	/* decrypt */
 	{
 		pgp_memory_t* outmem = pgp_decrypt_buf(&s_io, ctext, ctext_bytes, private_keys, public_keys,
-			0/*use armour*/, 0/*sshkeys*/, NULL/*passfp*/, 0/*numtries*/, NULL/*getpassfunc*/);
+			use_armor, 0/*sshkeys*/, NULL/*passfp*/, 0/*numtries*/, NULL/*getpassfunc*/);
+		if( outmem == NULL ) {
+			mrmailbox_log_warning(mailbox, 0, "Decryption failed.");
+			goto cleanup;
+		}
 		*ret_plain       = outmem->buf;
 		*ret_plain_bytes = outmem->length;
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */

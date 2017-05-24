@@ -42,7 +42,7 @@ typedef struct mrkey_t
 {
 	int            _m_heap_refcnt; /* !=0 for objects created with mrkey_new(), 0 for stack objects  */
 
-	unsigned char* m_binary;
+	void*          m_binary;
 	int            m_bytes;
 	int            m_type;
 } mrkey_t;
@@ -52,7 +52,7 @@ mrkey_t* mrkey_new           ();
 mrkey_t* mrkey_ref           (mrkey_t*);
 void     mrkey_unref         (mrkey_t*);
 
-int   mrkey_set_from_raw  (mrkey_t*, const unsigned char* data, int bytes, int type);
+int   mrkey_set_from_raw  (mrkey_t*, const void* data, int bytes, int type);
 int   mrkey_set_from_key  (mrkey_t*, const mrkey_t*);
 int   mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index, int type);
 
@@ -62,7 +62,7 @@ int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* privat
 int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 int   mrkey_load_self_private__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 
-char* mr_render_base64   (const unsigned char* buf, size_t buf_bytes, int break_every, const char* break_chars); /* the result must be freed */
+char* mr_render_base64   (const void* buf, size_t buf_bytes, int break_every, const char* break_chars); /* the result must be freed */
 char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars); /* the result must be freed */
 
 

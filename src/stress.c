@@ -96,6 +96,18 @@ void stress_functions(mrmailbox_t* mailbox)
 		str = mr_insert_breaks("", 4, "---");
 		assert( strcmp(str, "")==0 );
 		free(str);
+
+		str = mr_null_terminate("abcxyz", 3);
+		assert( strcmp(str, "abc")==0 );
+		free(str);
+
+		str = mr_null_terminate("abcxyz", 0);
+		assert( strcmp(str, "")==0 );
+		free(str);
+
+		str = mr_null_terminate(NULL, 0);
+		assert( strcmp(str, "")==0 );
+		free(str);
 	}
 
 	/* test Autocrypt header parsing functions
@@ -174,20 +186,22 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			//mrkeyring_add(keyring, public_key2);
-				int ok = mre2ee_driver_encrypt__(mailbox, (const unsigned char*)original_text, strlen(original_text)+1, &ctext, &ctext_bytes, keyring);
+				int ok = mre2ee_driver_encrypt__(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
-				/*char* temp = mr_render_base64(ctext, ctext_bytes, 78, "\n");
-				printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n", (int)ctext_bytes, temp);
-				free(temp);*/
+				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
+				assert( ctext[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
+				char* nt = mr_null_terminate((char*)ctext, ctext_bytes);
+				printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n", (int)ctext_bytes, nt);
+				free(nt);
 			mrkeyring_unref(keyring);
 		}
 
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
-			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, &plain, &plain_bytes, keyring);
+			int ok = mre2ee_driver_decrypt__(mailbox, ctext, ctext_bytes, keyring, 1, (void**)&plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
-			assert( strcmp(plain, original_text)==0 );
+			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			mrkeyring_unref(keyring);
 		}
 
