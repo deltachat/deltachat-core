@@ -1361,25 +1361,33 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
  ******************************************************************************/
 
 
-int mrmailbox_empty_tables(mrmailbox_t* ths)
+int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
-	mrmailbox_log_info(ths, 0, "Emptying all tables...");
+	mrmailbox_log_info(ths, 0, "Resetting tables (%i)...", bits);
 
 	mrsqlite3_lock(ths->m_sql);
 
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM apeerstates;");
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
+		if( bits & 1 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
+		}
+
+		if( bits & 2 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM apeerstates;");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
+		}
+
+		if( bits & 8 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
+		}
 
 	mrsqlite3_unlock(ths->m_sql);
 
-	mrmailbox_log_info(ths, 0, "Tables emptied.");
+	mrmailbox_log_info(ths, 0, "Tables resetted.");
 
 	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 

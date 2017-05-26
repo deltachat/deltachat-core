@@ -260,10 +260,9 @@ int                  mrmailbox_import_file          (mrmailbox_t*, const char* f
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
-int                  mrmailbox_empty_tables         (mrmailbox_t*); /* empty all tables but leaves server configuration. */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
-void                 mrmailbox_kill_all_jobs        (mrmailbox_t*); /* kill all pending jobs, pending messages are cancelled. */
+int                  mrmailbox_reset_tables         (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
 
 
 /* The library tries itself to stay alive. For this purpose there is an additional

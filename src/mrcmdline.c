@@ -109,7 +109,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"info\n"
 			"open <file to open or create>\n"
 			"close\n"
-			"empty -- empty database but server config\n"
+			"reset <flags>\n"
 			"import [<eml-file>|<folder>]\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
@@ -151,7 +151,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"\nMisc.:\n"
 			"event <event-id to test>\n"
 			"fileinfo <file>\n"
-			"killalljobs\n"
 			"heartbeat\n"
 			"clear -- clear screen\n" /* must be implemented by  the caller */
 			"exit" /* must be implemented by  the caller */
@@ -178,9 +177,15 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		mrmailbox_close(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
-	else if( strcmp(cmd, "empty")==0 )
+	else if( strcmp(cmd, "reset")==0 )
 	{
-		ret = mrmailbox_empty_tables(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		if( arg1 ) {
+			int bits = atoi(arg1);
+			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=e2ee, 8=rest but server config");
+		}
 	}
 	else if( strcmp(cmd, "import")==0 )
 	{
@@ -658,11 +663,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		else {
 			ret = safe_strdup("ERROR: Argument <file> missing.");
 		}
-	}
-	else if( strcmp(cmd, "killalljobs")==0 )
-	{
-		mrmailbox_kill_all_jobs(mailbox);
-		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "heartbeat")==0 )
 	{

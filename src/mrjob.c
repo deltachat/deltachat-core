@@ -283,19 +283,3 @@ void mrjob_kill_action__(mrmailbox_t* mailbox, int action)
 	sqlite3_step(stmt);
 }
 
-
-void mrmailbox_kill_all_jobs(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mrsqlite3_execute__(mailbox->m_sql, "DELETE FROM jobs;");
-
-	mrsqlite3_unlock(mailbox->m_sql);
-
-	mrmailbox_log_info(mailbox, 0, "All jobs killed.");
-}
-
