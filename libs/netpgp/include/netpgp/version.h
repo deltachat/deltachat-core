@@ -60,7 +60,7 @@
 /* development versions have .99 suffix */
 #define NETPGP_BASE_VERSION	"3.99.99"
 
-#define NETPGP_VERSION_CAT(a, b)	"NetPGP for pEp " a "/[" b "]"
+#define NETPGP_VERSION_CAT(a, b)	"NetPGP for Delta Chat " a "/[" b "]"
 #define NETPGP_VERSION_STRING \
 	NETPGP_VERSION_CAT(NETPGP_BASE_VERSION, NETPGP_AUTOCONF_VERSION)
 

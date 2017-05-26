@@ -88,6 +88,13 @@ __RCSID("$NetBSD$");
 #include <fcntl.h>
 #endif
 
+#if defined(ANDROID) || defined(__ANDROID__)
+char* getpass (const char *prompt)
+{
+	return strdup("");
+}
+#endif
+
 // FIXME to support seckey decryption again.
 //
 // static int

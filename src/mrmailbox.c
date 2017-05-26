@@ -1271,7 +1271,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char* unset = "0";
-	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL;
+	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *openssl_ver = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled;
 
@@ -1306,6 +1306,18 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	l_readable_str = mrloginparam_get_readable(l);
 	l2_readable_str = mrloginparam_get_readable(l2);
 
+	/* Get a plain OpenSSL version string (OPENSSL_VERSION_TEXT also contains the date as
+	"OpenSSL <version> <date>", which is unwanted in our quick overview) */
+	openssl_ver = safe_strdup(OPENSSL_VERSION_TEXT);
+	if( strncasecmp(openssl_ver, "OpenSSL ", 8)==0 ) {
+		mr_str_replace(&openssl_ver, "  ", " ");
+		char* p = strchr(openssl_ver, ' ');
+		if( p ) {
+			p = strchr(p+1, ' ');
+			if( p ) { *p = 0; } /* remove everything after the second space */
+		}
+	}
+
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
@@ -1325,7 +1337,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
 		"\n"
-		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, " OPENSSL_VERSION_TEXT ". Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, %s. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
 
 		, chats, real_msgs, deaddrop_msgs, contacts
@@ -1339,8 +1351,9 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, MR_E2EE_DEFAULT_ENABLED
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
-		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor(),
-		sizeof(void*)*8
+		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor()
+		, openssl_ver
+		, sizeof(void*)*8
 
 		);
 
@@ -1350,6 +1363,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
+	free(openssl_ver);
 
 	return info; /* must be freed by the caller */
 }

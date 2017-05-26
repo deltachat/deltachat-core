@@ -1124,15 +1124,17 @@ pgp_reader_pop_sum16(pgp_stream_t *stream)
 
 /* small useful functions for setting the file-level debugging levels */
 /* if the debugv list contains the filename in question, we're debugging it */
-
+#if 0 //////
 enum {
 	MAX_DEBUG_NAMES = 32
 };
 
 static int      debugc;
 static char    *debugv[MAX_DEBUG_NAMES];
+#endif //////
 
 /* set the debugging level per filename */
+#if 0 //////
 int
 pgp_set_debug_level(const char *f)
 {
@@ -1158,11 +1160,13 @@ pgp_set_debug_level(const char *f)
 	debugv[debugc++] = netpgp_strdup(name);
 	return 1;
 }
+#endif //////
 
 /* get the debugging level per filename */
 int
 pgp_get_debug_level(const char *f)
 {
+#if 0 //////
 	const char     *name;
 	int             i;
 
@@ -1177,10 +1181,12 @@ pgp_get_debug_level(const char *f)
 			return 1;
 		}
 	}
+#endif //////
 	return 0;
 }
 
 /* return the version for the library */
+#if 0 //////
 const char *
 pgp_get_info(const char *type)
 {
@@ -1192,6 +1198,7 @@ pgp_get_info(const char *type)
 	}
 	return "[unknown]";
 }
+#endif //////
 
 /* local version of asprintf so we don't have to play autoconf games */
 int
