@@ -152,7 +152,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 
 		/* add Autocrypt:-header to allow the recipient to send us encrypted messages back */
 		autocryptheader = mraheader_new();
-		autocryptheader->m_prefer_encrypted = MRA_PE_YES;
+		autocryptheader->m_prefer_encrypted = MRA_PE_NOPREFERENCE;
 
 		autocryptheader->m_to = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( autocryptheader->m_to == NULL ) {
