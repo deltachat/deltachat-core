@@ -205,7 +205,7 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PRIVATE);
+	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
 	mrkey_set_from_raw(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
 
 	success = 1;
