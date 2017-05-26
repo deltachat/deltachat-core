@@ -788,6 +788,7 @@ pgp_writer_push_armor_msg(pgp_output_t *output)
 		base64);
 }
 
+#if 0 //////
 static unsigned
 armoured_finaliser(pgp_armor_type_t type,
 			pgp_error_t **errors,
@@ -846,6 +847,7 @@ armoured_finaliser(pgp_armor_type_t type,
 	}
 	return stacked_write(writer, tail, tailsize, errors);
 }
+#endif //////
 
 #if 0 //////
 static unsigned

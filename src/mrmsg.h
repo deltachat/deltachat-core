@@ -73,7 +73,6 @@ typedef struct mrchat_t mrchat_t;
 
 typedef struct mrmsg_t
 {
-	uint32_t      m_magic;
 	uint32_t      m_id;
 	char*         m_rfc724_mid;
 	char*         m_server_folder;

@@ -49,7 +49,6 @@ typedef struct mraheader_t mraheader_t;
 
 typedef struct mrapeerstate_t
 {
-	uint32_t       m_magic;
 	char*          m_addr;
 	time_t         m_changed;
 	time_t         m_last_seen;

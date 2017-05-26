@@ -43,7 +43,6 @@ extern "C" {
 
 typedef struct mrpoortext_t
 {
-	uint32_t m_magic;
 	char*    m_text1;         /* may be NULL */
 	int      m_text1_meaning; /* one of MR_TEXT1_* */
 	char*    m_text2;         /* may be NULL */

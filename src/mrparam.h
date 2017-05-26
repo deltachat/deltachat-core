@@ -60,7 +60,6 @@ extern "C" {
 
 typedef struct mrparam_t
 {
-	uint32_t m_magic;
 	char*    m_packed;    /* != NULL */
 } mrparam_t;
 

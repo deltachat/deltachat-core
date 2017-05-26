@@ -30,8 +30,6 @@
 #include "mrloginparam.h"
 #include "mrtools.h"
 
-#define CLASS_MAGIC 1479776404
-
 
 /*******************************************************************************
  * Main interface

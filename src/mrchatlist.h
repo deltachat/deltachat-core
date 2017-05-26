@@ -37,7 +37,6 @@ typedef struct mrpoortext_t mrpoortext_t;
 
 typedef struct mrchatlist_t
 {
-	uint32_t     m_magic;
 	size_t       m_cnt;
 	carray*      m_chatNlastmsg_ids;
 	mrmailbox_t* m_mailbox;

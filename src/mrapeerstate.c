@@ -37,8 +37,6 @@
 #include "mrapeerstate.h"
 #include "mraheader.h"
 
-#define CLASS_MAGIC 1494527374
-
 
 /*******************************************************************************
  * Load/save

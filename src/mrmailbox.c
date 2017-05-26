@@ -40,8 +40,7 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
-
-#define CLASS_MAGIC 1479776513
+#include "mrapeerstate.h"
 
 
 /*******************************************************************************

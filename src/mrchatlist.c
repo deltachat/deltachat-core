@@ -29,8 +29,6 @@
 #include "mrmailbox.h"
 #include "mrtools.h"
 
-#define CLASS_MAGIC 1279576749
-
 
 /*******************************************************************************
  * Tools

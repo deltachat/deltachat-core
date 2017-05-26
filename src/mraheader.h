@@ -38,7 +38,6 @@ extern "C" {
 
 typedef struct mraheader_t
 {
-	uint32_t       m_magic;
 	char*          m_to;
 	mrkey_t*       m_public_key; /* != NULL */
 	int            m_prefer_encrypted; /* YES, NO or NOPREFERENCE if attribute is missing */

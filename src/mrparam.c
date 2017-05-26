@@ -32,8 +32,6 @@
 #include "mrtools.h"
 #include "mrparam.h"
 
-#define CLASS_MAGIC 1379776140
-
 
 /*******************************************************************************
  * Tools

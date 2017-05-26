@@ -35,8 +35,6 @@
 #include "mrapeerstate.h"
 #include "mrtools.h"
 
-#define CLASS_MAGIC 1170070140
-
 
 /*******************************************************************************
  * Tools
