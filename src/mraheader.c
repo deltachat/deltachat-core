@@ -143,15 +143,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		 || ths->m_public_key->m_binary || ths->m_public_key->m_bytes ) {
 			return 0; /* there is already a k*/
 		}
-		size_t indx = 0, result_len = 0;
-		char* result = NULL;
-		if( mailmime_base64_body_parse(value, strlen(value), &indx, &result/*must be freed using mmap_string_unref()*/, &result_len)!=MAILIMF_NO_ERROR
-		 || result == NULL || result_len == 0 ) {
-			return 0; /* bad key */
-		}
-		mrkey_set_from_raw(ths->m_public_key, result, result_len, MR_PUBLIC);
-		mmap_string_unref(result);
-		return 1;
+		return mrkey_set_from_base64(ths->m_public_key, value, MR_PUBLIC);
 	}
 	else if( name[0]=='_' )
 	{

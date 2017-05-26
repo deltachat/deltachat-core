@@ -111,6 +111,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"close\n"
 			"reset <flags>\n"
 			"import [<eml-file>|<folder>]\n"
+			"importkey <addr> <private-key-file>\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"
@@ -190,6 +191,19 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "import")==0 )
 	{
 		ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "importkey")==0 )
+	{
+		char* arg2 = NULL;
+		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
+		if( arg1 && arg2 ) {
+			*arg2 = 0;
+			arg2++;
+			ret = mrmailbox_import_public_key(mailbox, arg1, arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Arguments <addr> <public-key-file> expected.");
+		}
 	}
 	else if( strcmp(cmd, "set")==0 )
 	{

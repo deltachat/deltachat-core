@@ -40,6 +40,7 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
+#include "mraheader.h"
 #include "mrapeerstate.h"
 
 
@@ -1194,6 +1195,48 @@ cleanup:
 		closedir(dir);
 	}
 	free(spec_memory);
+	return success;
+}
+
+
+int mrmailbox_import_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
+{
+	/* mainly for testing: if the partner does not support Autocrypt,
+	encryption is disabled as soon as the first messages comes from the partner */
+	mraheader_t*    header = mraheader_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new();
+	int             locked = 0, success = 0;
+
+	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
+		goto cleanup;
+	}
+
+	/* create a fake autocrypt header */
+	header->m_to               = safe_strdup(addr);
+	header->m_prefer_encrypted = MRA_PE_YES;
+	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox) ) {
+		goto cleanup;
+	}
+
+	/* update/create peerstate */
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr) ) {
+			mrapeerstate_apply_header(peerstate, header, time(NULL));
+			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+		}
+		else {
+			mrapeerstate_init_from_header(peerstate, header, time(NULL));
+			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrapeerstate_unref(peerstate);
+	mraheader_unref(header);
 	return success;
 }
 

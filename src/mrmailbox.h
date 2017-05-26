@@ -254,6 +254,7 @@ a single EML-file is imported, if `spec` is NULL, the last import is done again 
 ImportFile() always imports a single file, publiuc */
 int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
 int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
+int                  mrmailbox_import_public_key    (mrmailbox_t*, const char* addr, const char* public_key_file); /* mainly for testing: if the partner does not support Autocrypt, encryption is disabled as soon as the first messages comes from the partner */
 
 
 /* Misc. */

@@ -34,6 +34,9 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
+typedef struct mrmailbox_t mrmailbox_t;
+
+
 #define MR_PUBLIC  0
 #define MR_PRIVATE 1
 
@@ -55,6 +58,8 @@ void     mrkey_unref         (mrkey_t*);
 int   mrkey_set_from_raw  (mrkey_t*, const void* data, int bytes, int type);
 int   mrkey_set_from_key  (mrkey_t*, const mrkey_t*);
 int   mrkey_set_from_stmt (mrkey_t*, sqlite3_stmt*, int index, int type);
+int   mrkey_set_from_base64(mrkey_t*,const char* base64, int type);
+int   mrkey_set_from_file (mrkey_t*, const char* file, mrmailbox_t* mailbox);
 
 int   mrkey_equals        (const mrkey_t*, const mrkey_t*);
 

@@ -139,6 +139,86 @@ int mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index, int type)
 }
 
 
+int mrkey_set_from_base64(mrkey_t* ths, const char* base64, int type)
+{
+	size_t indx = 0, result_len = 0;
+	char* result = NULL;
+
+	mrkey_empty(ths);
+
+	if( ths==NULL || base64==NULL ) {
+		return 0;
+	}
+
+	if( mailmime_base64_body_parse(base64, strlen(base64), &indx, &result/*must be freed using mmap_string_unref()*/, &result_len)!=MAILIMF_NO_ERROR
+	 || result == NULL || result_len == 0 ) {
+		return 0; /* bad key */
+	}
+
+	mrkey_set_from_raw(ths, result, result_len, type);
+	mmap_string_unref(result);
+
+	return 1;
+}
+
+
+int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* mailbox)
+{
+	char*   buf = NULL;
+	char    *p1, *p2; /* just pointers inside buf, must not be freed */
+	size_t  buf_bytes;
+	int     type = -1, success = 0;
+
+	mrkey_empty(ths);
+
+	if( ths==NULL || pathNfilename==NULL ) {
+		goto cleanup;
+	}
+
+	if( !mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, mailbox)
+	 || buf_bytes < 50 ) {
+		goto cleanup;
+	}
+
+	mr_remove_cr_chars(buf); /* make comparison easier */
+	mr_trim(buf);
+
+	if( strncmp(buf, "-----BEGIN PGP PUBLIC KEY BLOCK-----\n", 37)==0 ) {
+		p1 = buf + 37;
+		if( mr_str_replace(&buf, "-----END PGP PUBLIC KEY BLOCK-----", "")!=1 ) {
+			goto cleanup;
+		}
+		type = MR_PUBLIC;
+	}
+	else if( strncmp(buf, "-----BEGIN PGP PRIVATE KEY BLOCK-----\n", 38)==0 ) {
+		p1 = buf + 38;
+		if( mr_str_replace(&buf, "-----END PGP PRIVATE KEY BLOCK-----", "")!=1 ) {
+			goto cleanup;
+		}
+		type = MR_PRIVATE;
+	}
+	else {
+		goto cleanup;
+	}
+
+	/* base64 starts after first empty line, if any */
+	p2 = strstr(p1, "\n\n"); /* `\r*  is already removed above */
+	if( p2 ) {
+		p1 = p2;
+	}
+
+	if( !mrkey_set_from_base64(ths, p1, type) ) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	free(buf);
+	return success;
+}
+
+
 int mrkey_equals(const mrkey_t* ths, const mrkey_t* o)
 {
 	if( ths==NULL || o==NULL
