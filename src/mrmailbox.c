@@ -1116,10 +1116,11 @@ cleanup:
 }
 
 
-int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file, a directory or NULL for the last import */
+int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec__) /* spec is a file, a directory or NULL for the last import */
 {
 	int            success = 0;
-	char*          spec_memory = NULL;
+	char*          spec = NULL;
+	char*          suffix = NULL;
 	DIR*           dir = NULL;
 	struct dirent* dir_entry;
 	int            read_cnt = 0;
@@ -1135,29 +1136,42 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 	}
 
 	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
-	if( spec )
+	if( spec__ )
 	{
+		spec = safe_strdup(spec__);
 		mrsqlite3_lock(ths->m_sql);
 			mrsqlite3_set_config__(ths->m_sql, "import_spec", spec);
 		mrsqlite3_unlock(ths->m_sql);
 	}
 	else {
 		mrsqlite3_lock(ths->m_sql);
-			spec_memory = mrsqlite3_get_config__(ths->m_sql, "import_spec", NULL);
+			spec = mrsqlite3_get_config__(ths->m_sql, "import_spec", NULL); /* may still NULL */
 		mrsqlite3_unlock(ths->m_sql);
-
-		spec = spec_memory; /* may still  be NULL */
 		if( spec == NULL ) {
 			mrmailbox_log_error(ths, 0, "Import: No file or folder given.");
 			goto cleanup;
 		}
 	}
 
-	if( strlen(spec)>=4 && strcmp(&spec[strlen(spec)-4], ".eml")==0 ) {
+	suffix = mr_get_filesuffix_lc(spec);
+	if( suffix && strcmp(suffix, "eml")==0 ) {
 		/* import a single file */
 		if( mrmailbox_import_file(ths, spec) ) { /* errors are logged in any case */
 			read_cnt++;
 		}
+	}
+	else if( suffix && strcmp(suffix, "pem")==0 ) {
+		/* import a key */
+		char* separator = strchr(spec, ' ');
+		if( separator==NULL ) {
+			mrmailbox_log_error(ths, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
+			goto cleanup;
+		}
+		*separator = 0;
+		if( mrmailbox_import_public_key(ths, spec, separator+1) ) {
+			read_cnt++;
+		}
+		*separator = ' ';
 	}
 	else {
 		/* import a directory */
@@ -1181,7 +1195,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec) /* spec is a file,
 		}
 	}
 
-	mrmailbox_log_info(ths, 0, "Import: %i mails read from \"%s\".", read_cnt, spec);
+	mrmailbox_log_info(ths, 0, "Import: %i items read from \"%s\".", read_cnt, spec);
 	if( read_cnt > 0 ) {
 		ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
@@ -1194,7 +1208,8 @@ cleanup:
 	if( dir ) {
 		closedir(dir);
 	}
-	free(spec_memory);
+	free(spec);
+	free(suffix);
 	return success;
 }
 
