@@ -37,6 +37,135 @@
 #include "mrtools.h"
 
 
+static int mailmime_set_body_data(struct mailmime * build_info,
+			   const char * date_buf, size_t data_bytes)
+{
+  int encoding;
+  struct mailmime_data * data;
+
+  encoding = mailmime_transfer_encoding_get(build_info->mm_mime_fields);
+
+  data = mailmime_data_new(MAILMIME_DATA_TEXT, encoding,
+			   0, date_buf, data_bytes, NULL);
+  if (data == NULL)
+    return MAILIMF_ERROR_MEMORY;
+
+  build_info->mm_data.mm_single = data;
+
+  return MAILIMF_NO_ERROR;
+}
+
+
+static struct mailmime* new_data_part(const void* data, size_t data_bytes, char* default_content_type, int default_encoding)
+{
+  //char basename_buf[PATH_MAX];
+  struct mailmime_mechanism * encoding;
+  struct mailmime_content * content;
+  struct mailmime * mime;
+  //int r;
+  //char * dup_filename;
+  struct mailmime_fields * mime_fields;
+  int encoding_type;
+  char * content_type_str;
+  int do_encoding;
+
+  /*if (filename != NULL) {
+    strncpy(basename_buf, filename, PATH_MAX);
+    libetpan_basename(basename_buf);
+  }*/
+
+  encoding = NULL;
+
+  /* default content-type */
+  if (default_content_type == NULL)
+    content_type_str = "application/octet-stream";
+  else
+    content_type_str = default_content_type;
+
+  content = mailmime_content_new_with_str(content_type_str);
+  if (content == NULL) {
+    goto free_content;
+  }
+
+  do_encoding = 1;
+  if (content->ct_type->tp_type == MAILMIME_TYPE_COMPOSITE_TYPE) {
+    struct mailmime_composite_type * composite;
+
+    composite = content->ct_type->tp_data.tp_composite_type;
+
+    switch (composite->ct_type) {
+    case MAILMIME_COMPOSITE_TYPE_MESSAGE:
+      if (strcasecmp(content->ct_subtype, "rfc822") == 0)
+        do_encoding = 0;
+      break;
+
+    case MAILMIME_COMPOSITE_TYPE_MULTIPART:
+      do_encoding = 0;
+      break;
+    }
+  }
+
+  if (do_encoding) {
+    if (default_encoding == -1)
+      encoding_type = MAILMIME_MECHANISM_BASE64;
+    else
+      encoding_type = default_encoding;
+
+    /* default Content-Transfer-Encoding */
+    encoding = mailmime_mechanism_new(encoding_type, NULL);
+    if (encoding == NULL) {
+      goto free_content;
+    }
+  }
+
+  mime_fields = mailmime_fields_new_with_data(encoding,
+      NULL, NULL, NULL, NULL);
+  if (mime_fields == NULL) {
+    goto free_content;
+  }
+
+  mime = mailmime_new_empty(content, mime_fields);
+  if (mime == NULL) {
+    goto free_mime_fields;
+  }
+
+  /*if ((filename != NULL) && (mime->mm_type == MAILMIME_SINGLE)) {
+    // duplicates the file so that the file can be deleted when
+    // the MIME part is done
+    dup_filename = dup_file(privacy, filename);
+    if (dup_filename == NULL) {
+      goto free_mime;
+    }
+
+    r = mailmime_set_body_file(mime, dup_filename);
+    if (r != MAILIMF_NO_ERROR) {
+      free(dup_filename);
+      goto free_mime;
+    }
+  }*/
+  if( data!=NULL && data_bytes>0 && mime->mm_type == MAILMIME_SINGLE ) {
+	mailmime_set_body_data(mime, data, data_bytes);
+  }
+
+  return mime;
+
+// free_mime:
+  //mailmime_free(mime);
+  goto err;
+ free_mime_fields:
+  mailmime_fields_free(mime_fields);
+  mailmime_content_free(content);
+  goto err;
+ free_content:
+  if (encoding != NULL)
+    mailmime_mechanism_free(encoding);
+  if (content != NULL)
+    mailmime_content_free(content);
+ err:
+  return NULL;
+}
+
+
 #if 0
 static int pgp_encrypt_mime(struct mailprivacy * privacy,
     mailmessage * msg,
@@ -415,14 +544,28 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
-		// char* t1 = mr_null_terminate(plain->str, plain->len); printf("PLAIN:\n%s\n", t1); free(t1);
+		//char* t1 = mr_null_terminate(plain->str, plain->len); printf("PLAIN:\n%s\n", t1); free(t1);
 
 		mrkeyring_add(keyring, peerstate->m_public_key);
 		if( !mre2ee_driver_encrypt__(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 
-		// char* t2 = mr_null_terminate(ctext, ctext_bytes); printf("ENCRYPTED:\n%s\n", t2); free(t2);
+		//char* t2 = mr_null_terminate(ctext, ctext_bytes); printf("ENCRYPTED:\n%s\n", t2); free(t2);
+
+		struct mailmime* out_message = new_data_part(NULL, 0, "multipart/encrypted", -1);
+
+		struct mailmime_content* content = out_message->mm_content_type;
+		clist_append(content->ct_parameters, mailmime_param_new_with_data("protocol", "application/pgp-encrypted"));
+
+		#define PGP_VERSION "Version: 1\r\n"
+		struct mailmime* version_mime = new_data_part(PGP_VERSION, sizeof(PGP_VERSION), "application/pgp-encrypted", MAILMIME_MECHANISM_8BIT);
+		mailmime_smart_add_part(out_message, version_mime);
+
+		struct mailmime* encrypted_mime = new_data_part(ctext, ctext_bytes, "application/octet-stream", MAILMIME_MECHANISM_8BIT);
+		mailmime_smart_add_part(out_message, encrypted_mime);
+
+		//MMAPString* t3 = mmap_string_new(""); mailmime_write_mem(t3, &col, out_message); char* t4 = mr_null_terminate(t3->str, t3->len); printf("ENCRYPTED:\n%s\n", t4); free(t4); mmap_string_free(t3);
 	}
 
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
