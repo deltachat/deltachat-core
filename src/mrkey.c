@@ -184,20 +184,20 @@ int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* ma
 	mr_trim(buf);
 
 	if( strncmp(buf, "-----BEGIN PGP PUBLIC KEY BLOCK-----\n", 37)==0 ) {
-		p1 = buf + 37;
 		if( mr_str_replace(&buf, "-----END PGP PUBLIC KEY BLOCK-----", "")!=1 ) {
 			mrmailbox_log_warning(mailbox, 0, "Bad header for key \"%s\".", pathNfilename);
 			goto cleanup;
 		}
 		type = MR_PUBLIC;
+		p1 = buf + 37; /* must be done after buf-pointer modification in mr_str_replace() */
 	}
 	else if( strncmp(buf, "-----BEGIN PGP PRIVATE KEY BLOCK-----\n", 38)==0 ) {
-		p1 = buf + 38;
 		if( mr_str_replace(&buf, "-----END PGP PRIVATE KEY BLOCK-----", "")!=1 ) {
 			mrmailbox_log_warning(mailbox, 0, "Bad header for key \"%s\".", pathNfilename);
 			goto cleanup;
 		}
 		type = MR_PRIVATE;
+		p1 = buf + 38; /* must be done after buf-pointer modification in mr_str_replace() */
 	}
 	else {
 		mrmailbox_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);

@@ -123,6 +123,9 @@
 		<Unit filename="libs/libetpan/src/driver/implementation/data-message/data_message_driver.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="libs/libetpan/src/driver/implementation/mime-message/mime_message_driver.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="libs/libetpan/src/driver/interface/maildriver.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -151,6 +154,12 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/libetpan/src/driver/interface/mailstorage_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/engine/mailprivacy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libs/libetpan/src/engine/mailprivacy_tools.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="libs/libetpan/src/low-level/imap/acl.c">
