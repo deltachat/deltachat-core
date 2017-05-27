@@ -29,6 +29,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrcmdline.h"
+#include "mrapeerstate.h"
 #include "mrtools.h"
 
 
@@ -66,16 +67,38 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 
 static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 {
-	int i, cnt = carray_count(contacts);
-	for( i = 0; i < cnt; i++ ) {
-		mrcontact_t* contact = mrmailbox_get_contact(mailbox, (uint32_t)(uintptr_t)carray_get(contacts, i));
-		if( contact ) {
-			mrmailbox_log_info(mailbox, 0, "Contact #%i: %s, %s", (int)contact->m_id,
-				(contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>",
-				(contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
-			mrcontact_unref(contact);
+	int             i, cnt = carray_count(contacts);
+	mrcontact_t*    contact = mrcontact_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new();
+
+	mrsqlite3_lock(mailbox->m_sql);
+		for( i = 0; i < cnt; i++ ) {
+			uint32_t contact_id = (uint32_t)(uintptr_t)carray_get(contacts, i);
+			char* line = NULL;
+			char* line2 = NULL;
+			if( mrcontact_load_from_db__(contact, mailbox->m_sql, (uint32_t)(uintptr_t)carray_get(contacts, i)) ) {
+				line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+					char* pe = "unknown-value";
+					switch( peerstate->m_prefer_encrypted ) {
+						case MRA_PE_NO: pe = "no"; break;
+						case MRA_PE_YES: pe = "yes"; break;
+						case MRA_PE_NOPREFERENCE: pe = "no-preference"; break;
+					}
+					line2 = mr_mprintf(", prefer-encrypted=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
+				}
+			}
+			else {
+				line = safe_strdup("Read error.");
+			}
+			mrmailbox_log_info(mailbox, 0, "Contact #%i: %s%s", (int)contact_id, line, line2? line2:"");
+			free(line);
+			free(line2);
 		}
-	}
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	mrapeerstate_unref(peerstate);
+	mrcontact_unref(contact);
 }
 
 
