@@ -292,6 +292,7 @@ static void mrsimplify_simplify_plain_text(mrsimplify_t* ths, char* buf_terminat
 	{
 		line = (char*)carray_get(lines, l);
 		if( strcmp(line, "-- ")==0
+		 || strcmp(line, "--  ")==0 /* quoted-printable may encode `-- ` to `-- =20` which is converted back to `--  ` ... */
 		 || strcmp(line, "--")==0   /* this is not documented, but occurs frequently; however, if we get problems with this, skip this HACK */
 		 || strcmp(line, "---")==0  /*       - " -                                                                                          */
 		 || strcmp(line, "----")==0 /*       - " -                                                                                          */ )
