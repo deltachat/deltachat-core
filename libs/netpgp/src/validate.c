@@ -927,8 +927,8 @@ pgp_filter_keys_from_mem(
     filter.destpubring = destpubring;
     filter.destsecring = destsecring;
 
-	stream = pgp_new(sizeof(*stream));
-	pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED);
+	//stream = pgp_new(sizeof(*stream));                            -- Memory leak fixed by Delta Chat: not needed, stream is overwritten in
+	//pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED); -- pgp_setup_memory_read()
 	pgp_setup_memory_read(io, &stream, mem, &vdata, pgp_validate_key_cb, 1);
 
 	if (armour) {
