@@ -223,6 +223,38 @@ cleanup:
 }
 
 
+int mre2ee_driver_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
+{
+	int             key_is_valid = 0;
+	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t*   keysmem = pgp_memory_new();
+
+	if( mailbox==NULL || raw_key==NULL
+	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
+		goto cleanup;
+	}
+
+	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
+
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
+
+	if( raw_key->m_type == MR_PUBLIC && public_keys->keyc >= 1 ) {
+		key_is_valid = 1;
+	}
+	else if( raw_key->m_type == MR_PRIVATE && private_keys->keyc >= 1 ) {
+		key_is_valid = 1;
+	}
+
+cleanup:
+	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	return key_is_valid;
+}
+
+
 int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
                             const void* plain, size_t plain_bytes,
                             const mrkeyring_t* raw_keys, int use_armor,
@@ -269,8 +301,8 @@ int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
 
 cleanup:
 	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_free(public_keys);  }
-	if( private_keys ) { pgp_keyring_free(private_keys);  }
+	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
 }
 
@@ -323,7 +355,7 @@ int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
 
 cleanup:
 	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_free(public_keys);  }
-	if( private_keys ) { pgp_keyring_free(private_keys);  }
+	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
 }

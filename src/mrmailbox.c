@@ -40,6 +40,7 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
+#include "mre2ee_driver.h"
 #include "mraheader.h"
 #include "mrapeerstate.h"
 
@@ -1229,7 +1230,9 @@ int mrmailbox_import_public_key(mrmailbox_t* mailbox, const char* addr, const ch
 	/* create a fake autocrypt header */
 	header->m_to               = safe_strdup(addr);
 	header->m_prefer_encrypted = MRA_PE_YES;
-	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox) ) {
+	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
+	 || !mre2ee_driver_is_valid_key(mailbox, header->m_public_key) ) {
+		mrmailbox_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
 

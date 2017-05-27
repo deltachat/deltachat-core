@@ -82,6 +82,12 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 				goto cleanup;
 			}
 
+			if( !mre2ee_driver_is_valid_key(mailbox, public_key)
+			 || !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
+				mrmailbox_log_warning(mailbox, 0, "Generated keys are not valid.");
+				goto cleanup;
+			}
+
 			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
 				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
@@ -249,6 +255,10 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 			from = safe_strdup(autocryptheader->m_to);
 		}
 		else if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)!=0 ) {
+			autocryptheader_fine = 0;
+		}
+
+		if( !mre2ee_driver_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
 			autocryptheader_fine = 0;
 		}
 	}
