@@ -39,6 +39,7 @@ extern "C" {
 #endif
 
 typedef struct mre2ee_helper_t {
+	int   m_encryption_successfull;
 	void* m_cdata_to_free;
 } mre2ee_helper_t;
 

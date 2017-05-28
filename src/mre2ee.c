@@ -343,6 +343,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3);
 		#endif
 
+		helper->m_encryption_successfull = 1;
 		/* the subject in PGP-messages is not encrypted - replace it by a standard text à la "Chat: Encrypted message" */
 
 		// TODO: subject

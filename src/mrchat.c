@@ -1267,7 +1267,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
-	char*                        message_text = NULL;
+	char*                        message_text = NULL, *subject_str = NULL;
 	char*                        afwd_email = mrparam_get(msg->m_param, 'a', NULL);
 	int                          col = 0;
 	MMAPString*                  ret = NULL;
@@ -1290,13 +1290,11 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			}
 		}
 
-		char* subject = get_subject(chat, msg, afwd_email);
 		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(msg->m_timestamp), from,
 			NULL /* sender */, NULL /* reply-to */,
 			to, NULL /* cc */, NULL /* bcc */, safe_strdup(msg->m_rfc724_mid), NULL /* in-reply-to */,
 			NULL /* references */,
-			mr_encode_header_string(subject));
-		free(subject);
+			NULL /* subject set later */);
 
 		/* add additional basic parameters */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("MrMsg %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
@@ -1398,6 +1396,16 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	(encryption may modifiy or replace the given object) */
 	mre2ee_encrypt(chat->m_mailbox, recipients_addr, message, &e2ee_helper);
 
+	/* add a subject line */
+	if( e2ee_helper.m_encryption_successfull ) {
+		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+	}
+	else {
+		subject_str = get_subject(chat, msg, afwd_email);
+	}
+	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
+	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
+
 	/* create the full mail and return */
 	ret = mmap_string_new("");
 	mailmime_write_mem(ret, &col, message);
@@ -1408,6 +1416,7 @@ cleanup:
 	}
 	mre2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
+	free(subject_str);
 	free(afwd_email);
 	return ret;
 }
