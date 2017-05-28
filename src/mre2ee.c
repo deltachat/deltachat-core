@@ -37,26 +37,7 @@
 #include "mrtools.h"
 
 
-static int mailmime_set_body_data(struct mailmime * build_info,
-			   const char * date_buf, size_t data_bytes)
-{
-  int encoding;
-  struct mailmime_data * data;
-
-  encoding = mailmime_transfer_encoding_get(build_info->mm_mime_fields);
-
-  data = mailmime_data_new(MAILMIME_DATA_TEXT, encoding,
-			   0, date_buf, data_bytes, NULL);
-  if (data == NULL)
-    return MAILIMF_ERROR_MEMORY;
-
-  build_info->mm_data.mm_single = data;
-
-  return MAILIMF_NO_ERROR;
-}
-
-
-static struct mailmime* new_data_part(const void* data, size_t data_bytes, char* default_content_type, int default_encoding)
+static struct mailmime* new_data_part(void* data, size_t data_bytes, char* default_content_type, int default_encoding)
 {
   //char basename_buf[PATH_MAX];
   struct mailmime_mechanism * encoding;
@@ -144,7 +125,7 @@ static struct mailmime* new_data_part(const void* data, size_t data_bytes, char*
     }
   }*/
   if( data!=NULL && data_bytes>0 && mime->mm_type == MAILMIME_SINGLE ) {
-	mailmime_set_body_data(mime, data, data_bytes);
+	mailmime_set_body_text(mime, data, data_bytes);
   }
 
   return mime;
@@ -164,228 +145,6 @@ static struct mailmime* new_data_part(const void* data, size_t data_bytes, char*
  err:
   return NULL;
 }
-
-
-#if 0
-static int pgp_encrypt_mime(struct mailprivacy * privacy,
-    mailmessage * msg,
-    struct mailmime * mime, struct mailmime ** result)
-{
-  /*char original_filename[PATH_MAX];
-  FILE * original_f;
-  int res;
-  int r;
-  int col;
-  char description_filename[PATH_MAX];
-  char encrypted_filename[PATH_MAX];
-  char version_filename[PATH_MAX];
-  FILE * version_f;
-  char command[PATH_MAX];
-  char quoted_original_filename[PATH_MAX];
-  struct mailmime * version_mime;
-  struct mailmime * multipart;
-  struct mailmime_content * content;
-  struct mailmime_parameter * param;
-  struct mailmime * encrypted_mime;
-  char recipient[PATH_MAX];
-  struct mailimf_fields * fields;
-  struct mailmime * root;
-  size_t written;
-  int encrypt_ok;
-
-  root = mime;
-  while (root->mm_parent != NULL)
-    root = root->mm_parent;
-
-  fields = NULL;
-  if (root->mm_type == MAILMIME_MESSAGE)
-    fields = root->mm_data.mm_message.mm_fields;*/
-
-  /* recipient */
-
-  //collect_recipient(recipient, sizeof(recipient), fields);
-
-  /* part to encrypt */
-
-  /* encode quoted printable all text parts */
-
-  mailprivacy_prepare_mime(mime);
-
-  original_f = mailprivacy_get_tmp_file(privacy,
-      original_filename, sizeof(original_filename));
-  if (original_f == NULL) {
-    res = MAIL_ERROR_FILE;
-    goto err;
-  }
-
-  col = 0;
-  r = mailmime_write(original_f, &col, mime); // <---- write mail to file which is given to GnuPG then
-  if (r != MAILIMF_NO_ERROR) {				   // calls mailmime_write_file() -> mailmime_fields_write_driver
-    fclose(original_f);
-    res = MAIL_ERROR_FILE;
-    goto unlink_original;
-  }
-
-  fclose(original_f);
-
-  /* prepare destination file for encryption */
-
-  r = mailprivacy_get_tmp_filename(privacy, encrypted_filename,
-      sizeof(encrypted_filename));
-  if (r != MAIL_NO_ERROR) {
-    res = r;
-    goto unlink_original;
-  }
-
-  r = mail_quote_filename(quoted_original_filename,
-       sizeof(quoted_original_filename), original_filename);
-  if (r < 0) {
-    res = MAIL_ERROR_MEMORY;
-    goto unlink_encrypted;
-  }
-
-  r = mailprivacy_get_tmp_filename(privacy, description_filename,
-      sizeof(description_filename));
-  if (r != MAIL_NO_ERROR) {
-    res = r;
-    goto unlink_encrypted;
-  }
-
-  snprintf(command, sizeof(command), "gpg %s -a --batch --yes -e '%s'",
-      recipient, quoted_original_filename);
-
-  encrypt_ok = 0;
-  r = gpg_command_passphrase(privacy, msg, command, NULL,
-      encrypted_filename, description_filename);
-  switch (r) {
-  case NO_ERROR_PGP:
-    encrypt_ok = 1;
-    break;
-  case ERROR_PGP_NOPASSPHRASE:
-  case ERROR_PGP_CHECK:
-    encrypt_ok = 0;
-    break;
-  case ERROR_PGP_COMMAND:
-    res = MAIL_ERROR_COMMAND;
-    goto unlink_description;
-  case ERROR_PGP_FILE:
-    res = MAIL_ERROR_FILE;
-    goto unlink_description;
-  }
-
-  if (!encrypt_ok) {
-    res = MAIL_ERROR_COMMAND;
-    goto unlink_description;
-  }
-
-  /* multipart */
-
-  multipart = mailprivacy_new_file_part(privacy, NULL,
-      "multipart/encrypted", -1);
-
-  content = multipart->mm_content_type;
-
-  param = mailmime_param_new_with_data("protocol",
-      "application/pgp-encrypted");
-  if (param == NULL) {
-    mailmime_free(multipart);
-    res = MAIL_ERROR_MEMORY;
-    goto unlink_description;
-  }
-
-  r = clist_append(content->ct_parameters, param);
-  if (r < 0) {
-    mailmime_parameter_free(param);
-    mailmime_free(multipart);
-    res = MAIL_ERROR_MEMORY;
-    goto unlink_description;
-  }
-
-  /* version part */
-
-  version_f = mailprivacy_get_tmp_file(privacy,
-      version_filename, sizeof(version_filename));
-  if (version_f == NULL) {
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = MAIL_ERROR_FILE;
-    goto unlink_description;
-  }
-  written = fwrite(PGP_VERSION, 1, sizeof(PGP_VERSION) - 1, version_f);
-  if (written != sizeof(PGP_VERSION) - 1) {
-    fclose(version_f);
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = MAIL_ERROR_FILE;
-    goto unlink_description;
-  }
-  fclose(version_f);
-
-  version_mime = mailprivacy_new_file_part(privacy,
-      version_filename,
-      "application/pgp-encrypted",
-      MAILMIME_MECHANISM_8BIT);
-  if (r != MAIL_NO_ERROR) {
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = r;
-    goto unlink_version;
-  }
-
-  r = mailmime_smart_add_part(multipart, version_mime);
-  if (r != MAIL_NO_ERROR) {
-    mailprivacy_mime_clear(version_mime);
-    mailmime_free(version_mime);
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = MAIL_ERROR_MEMORY;
-    goto unlink_version;
-  }
-
-  /* encrypted part */
-
-  encrypted_mime = mailprivacy_new_file_part(privacy,
-      encrypted_filename,
-      "application/octet-stream",
-      MAILMIME_MECHANISM_8BIT);
-  if (r != MAIL_NO_ERROR) {
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = r;
-    goto unlink_version;
-  }
-
-  r = mailmime_smart_add_part(multipart, encrypted_mime);
-  if (r != MAIL_NO_ERROR) {
-    mailprivacy_mime_clear(encrypted_mime);
-    mailmime_free(encrypted_mime);
-    mailprivacy_mime_clear(multipart);
-    mailmime_free(multipart);
-    res = MAIL_ERROR_MEMORY;
-    goto unlink_version;
-  }
-
-  unlink(version_filename);
-  unlink(description_filename);
-  unlink(encrypted_filename);
-  unlink(original_filename);
-
-  * result = multipart;
-
-  return MAIL_NO_ERROR;
-
- unlink_version:
-  unlink(version_filename);
- unlink_description:
-  unlink(description_filename);
- unlink_encrypted:
-  unlink(encrypted_filename);
- unlink_original:
-  unlink(original_filename);
- err:
-  return res;
-}
-#endif
 
 
 /*******************************************************************************
@@ -483,7 +242,7 @@ void mre2ee_exit(mrmailbox_t* mailbox)
 }
 
 
-void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime** in_out_message)
+void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime* in_out_message)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -494,8 +253,8 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
 
-	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL || *in_out_message == NULL
-	 || (*in_out_message)->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
+	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
+	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
 	 || peerstate == NULL || autocryptheader == NULL || keyring==NULL || plain == NULL ) {
 		goto cleanup;
 	}
@@ -535,42 +294,61 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 	/* encrypt message, if possible */
 	if( do_encrypt )
 	{
-		struct mailmime* in_message = *in_out_message;
+		/* prepare part to encrypt */
+		mailprivacy_prepare_mime(in_out_message); /* encode quoted printable all text parts */
 
-		mailprivacy_prepare_mime(in_message); /* encode quoted printable all text parts */
+		struct mailmime* part_to_encrypt = in_out_message->mm_data.mm_message.mm_msg_mime;
 
-		mailmime_write_mem(plain, &col, in_message);
+		/* convert part to encrypt to plain text */
+		mailmime_write_mem(plain, &col, part_to_encrypt);
 		if( plain->str == NULL || plain->len<=0 ) {
 			goto cleanup;
 		}
+		#if 0
+		char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1);
+		#endif
 
-		//char* t1 = mr_null_terminate(plain->str, plain->len); printf("PLAIN:\n%s\n", t1); free(t1);
-
+		/* encrypt the plain text */
 		mrkeyring_add(keyring, peerstate->m_public_key);
 		if( !mre2ee_driver_encrypt__(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
+		#if 0
+		char* t2=mr_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2);
+		#endif
 
-		//char* t2 = mr_null_terminate(ctext, ctext_bytes); printf("ENCRYPTED:\n%s\n", t2); free(t2);
+		/* create MIME-structure that will contain the encrypted text */
+		struct mailmime* encrypted_part = new_data_part(NULL, 0, "multipart/encrypted", -1);
 
-		struct mailmime* out_message = new_data_part(NULL, 0, "multipart/encrypted", -1);
-
-		struct mailmime_content* content = out_message->mm_content_type;
+		struct mailmime_content* content = encrypted_part->mm_content_type;
 		clist_append(content->ct_parameters, mailmime_param_new_with_data("protocol", "application/pgp-encrypted"));
 
-		#define PGP_VERSION "Version: 1\r\n"
-		struct mailmime* version_mime = new_data_part(PGP_VERSION, sizeof(PGP_VERSION), "application/pgp-encrypted", MAILMIME_MECHANISM_8BIT);
-		mailmime_smart_add_part(out_message, version_mime);
+		static char version_content[] = "Version: 1\r\n";
+		struct mailmime* version_mime = new_data_part(version_content, strlen(version_content), "application/pgp-encrypted", MAILMIME_MECHANISM_7BIT);
+		mailmime_smart_add_part(encrypted_part, version_mime);
 
-		struct mailmime* encrypted_mime = new_data_part(ctext, ctext_bytes, "application/octet-stream", MAILMIME_MECHANISM_8BIT);
-		mailmime_smart_add_part(out_message, encrypted_mime);
+		struct mailmime* ctext_part = new_data_part(ctext, ctext_bytes, "application/octet-stream", MAILMIME_MECHANISM_7BIT);
+		mailmime_smart_add_part(encrypted_part, ctext_part);
 
-		//MMAPString* t3 = mmap_string_new(""); mailmime_write_mem(t3, &col, out_message); char* t4 = mr_null_terminate(t3->str, t3->len); printf("ENCRYPTED:\n%s\n", t4); free(t4); mmap_string_free(t3);
+		/* replace the original MIME-structure by the encrypted MIME-structure */
+		in_out_message->mm_data.mm_message.mm_msg_mime = encrypted_part;
+		encrypted_part->mm_parent = in_out_message;
+		part_to_encrypt->mm_parent = NULL;
+		mailmime_free(part_to_encrypt);
+
+		#if 1
+		MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3);
+		#endif
+
+		/* the subject in PGP-messages is not encrypted - replace it by a standard text à la "Chat: Encrypted message" */
+
+		// TODO: subject
+		// TODO: is transfer-encoding: 7bit okay?
+		// TODO: free data "ctext" after mailmime_free(in_out_message) someway (mime also takes the pointer and does not free it later on)
 	}
 
-	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
-	(do this last to avoid blowing up the encrypted part and to allow reading the key if decryption fails) */
-	imffields = mr_find_mailimf_fields(*in_out_message);
+	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back */
+	imffields = mr_find_mailimf_fields(in_out_message);
 	char* p = mraheader_render(autocryptheader);
 	if( p == NULL ) {
 		goto cleanup;
@@ -587,9 +365,8 @@ cleanup:
 }
 
 
-void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
+void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 {
-	struct mailmime*       in_message = NULL;
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*           autocryptheader = NULL;
 	int                    autocryptheader_fine = 0;
@@ -599,15 +376,14 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime** in_out_message)
 	char*                  from = NULL, *self_addr = NULL;
 	mrkey_t*               private_key = mrkey_new();
 
-	if( mailbox == NULL || in_out_message == NULL || *in_out_message == NULL
+	if( mailbox == NULL || in_out_message == NULL
 	 || private_key == NULL ) {
 		goto cleanup;
 	}
 
 	peerstate = mrapeerstate_new();
 	autocryptheader = mraheader_new();
-	in_message = *in_out_message;
-	imffields = mr_find_mailimf_fields(in_message);
+	imffields = mr_find_mailimf_fields(in_out_message);
 
 	/* get From: and Date: */
 	{

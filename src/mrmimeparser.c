@@ -1087,7 +1087,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy or replace the given object) */
-	mre2ee_decrypt(ths->m_mailbox, &ths->m_mimeroot);
+	mre2ee_decrypt(ths->m_mailbox, ths->m_mimeroot);
 
 	/* recursively check, whats parsed */
 	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
