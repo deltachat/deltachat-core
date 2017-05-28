@@ -255,7 +255,7 @@ cleanup:
 }
 
 
-int mre2ee_driver_encrypt__(mrmailbox_t* mailbox,
+int mre2ee_driver_encrypt(  mrmailbox_t* mailbox,
                             const void* plain, size_t plain_bytes,
                             const mrkeyring_t* raw_keys, int use_armor,
                             void** ret_ctext, size_t* ret_ctext_bytes)
@@ -307,7 +307,7 @@ cleanup:
 }
 
 
-int mre2ee_driver_decrypt__(mrmailbox_t* mailbox,
+int mre2ee_driver_decrypt(  mrmailbox_t* mailbox,
                             const void* ctext, size_t ctext_bytes,
                             const mrkeyring_t* raw_keys,
                             int use_armor,

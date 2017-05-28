@@ -1272,6 +1272,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	int                          col = 0;
 	MMAPString*                  ret = NULL;
 	int                          parts = 0;
+	mre2ee_helper_t              e2ee_helper;
 
 	/* create empty mail */
 	{
@@ -1395,7 +1396,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 
 	/* encrypt the message, if possible; add Autocrypt:-header
 	(encryption may modifiy or replace the given object) */
-	mre2ee_encrypt(chat->m_mailbox, recipients_addr, message);
+	mre2ee_encrypt(chat->m_mailbox, recipients_addr, message, &e2ee_helper);
 
 	/* create the full mail and return */
 	ret = mmap_string_new("");
@@ -1405,6 +1406,7 @@ cleanup:
 	if( message ) {
 		mailmime_free(message);
 	}
+	mre2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(afwd_email);
 	return ret;

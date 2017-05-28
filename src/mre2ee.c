@@ -242,7 +242,7 @@ void mre2ee_exit(mrmailbox_t* mailbox)
 }
 
 
-void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime* in_out_message)
+void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime* in_out_message, mre2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -253,9 +253,11 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
 
+	if( helper ) { memset(helper, 0, sizeof(mre2ee_helper_t)); }
+
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
-	 || peerstate == NULL || autocryptheader == NULL || keyring==NULL || plain == NULL ) {
+	 || peerstate == NULL || autocryptheader == NULL || keyring==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
 
@@ -310,9 +312,10 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 
 		/* encrypt the plain text */
 		mrkeyring_add(keyring, peerstate->m_public_key);
-		if( !mre2ee_driver_encrypt__(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
+		if( !mre2ee_driver_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
+		helper->m_cdata_to_free = ctext;
 		#if 0
 		char* t2=mr_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2);
 		#endif
@@ -336,15 +339,13 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		part_to_encrypt->mm_parent = NULL;
 		mailmime_free(part_to_encrypt);
 
-		#if 1
+		#if 0
 		MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3);
 		#endif
 
 		/* the subject in PGP-messages is not encrypted - replace it by a standard text à la "Chat: Encrypted message" */
 
 		// TODO: subject
-		// TODO: is transfer-encoding: 7bit okay?
-		// TODO: free data "ctext" after mailmime_free(in_out_message) someway (mime also takes the pointer and does not free it later on)
 	}
 
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back */
@@ -361,7 +362,17 @@ cleanup:
 	mraheader_unref(autocryptheader);
 	mrkeyring_unref(keyring);
 	if( plain ) { mmap_string_free(plain); }
-	free(ctext);
+}
+
+
+void mre2ee_thanks(mre2ee_helper_t* helper)
+{
+	if( helper == NULL ) {
+		return;
+	}
+
+	free(helper->m_cdata_to_free);
+	helper->m_cdata_to_free = NULL;
 }
 
 

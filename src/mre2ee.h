@@ -38,11 +38,15 @@ extern "C" {
 #define MR_E2EE_DEFAULT_ENABLED 0
 #endif
 
+typedef struct mre2ee_helper_t {
+	void* m_cdata_to_free;
+} mre2ee_helper_t;
+
 void mre2ee_init    (mrmailbox_t*);
 void mre2ee_exit    (mrmailbox_t*);
-void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, struct mailmime* in_out_message);
+void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, struct mailmime* in_out_message, mre2ee_helper_t*);
 void mre2ee_decrypt (mrmailbox_t*, struct mailmime* in_out_message);
-
+void mre2ee_thanks  (mre2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
 
 #ifdef __cplusplus
 } /* /extern "C" */
