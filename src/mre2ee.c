@@ -306,9 +306,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		if( plain->str == NULL || plain->len<=0 ) {
 			goto cleanup;
 		}
-		#if 0
-		char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1);
-		#endif
+		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
 		/* encrypt the plain text */
 		mrkeyring_add(keyring, peerstate->m_public_key);
@@ -316,9 +314,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
-		#if 0
-		char* t2=mr_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2);
-		#endif
+		//char* t2=mr_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2); // DEBUG OUTPUT
 
 		/* create MIME-structure that will contain the encrypted text */
 		struct mailmime* encrypted_part = new_data_part(NULL, 0, "multipart/encrypted", -1);
@@ -338,19 +334,16 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		encrypted_part->mm_parent = in_out_message;
 		part_to_encrypt->mm_parent = NULL;
 		mailmime_free(part_to_encrypt);
-
-		#if 0
-		MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3);
-		#endif
+		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
 
 		helper->m_encryption_successfull = 1;
-		/* the subject in PGP-messages is not encrypted - replace it by a standard text à la "Chat: Encrypted message" */
-
-		// TODO: subject
 	}
 
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back */
-	imffields = mr_find_mailimf_fields(in_out_message);
+	if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
+		goto cleanup;
+	}
+
 	char* p = mraheader_render(autocryptheader);
 	if( p == NULL ) {
 		goto cleanup;
@@ -379,25 +372,25 @@ void mre2ee_thanks(mre2ee_helper_t* helper)
 
 void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 {
-	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
-	mraheader_t*           autocryptheader = NULL;
+	struct mailimf_fields* imffields = mr_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
+	mraheader_t*           autocryptheader = mraheader_new();
 	int                    autocryptheader_fine = 0;
 	time_t                 message_time = 0;
-	mrapeerstate_t*        peerstate = NULL;
+	mrapeerstate_t*        peerstate = mrapeerstate_new();
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	mrkey_t*               private_key = mrkey_new();
 
-	if( mailbox == NULL || in_out_message == NULL
-	 || private_key == NULL ) {
+	if( mailbox==NULL || in_out_message==NULL
+	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_key==NULL ) {
 		goto cleanup;
 	}
 
-	peerstate = mrapeerstate_new();
-	autocryptheader = mraheader_new();
-	imffields = mr_find_mailimf_fields(in_out_message);
-
-	/* get From: and Date: */
+	/* Autocrypt preparations:
+	- Set message_time and from (both may be unset)
+	- Get the autocrypt header, if any.
+	- Do not abort on errors - we should try at last the decyption below */
+	if( imffields )
 	{
 		struct mailimf_field* field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_FROM);
 		if( field && field->fld_data.fld_from ) {
@@ -414,13 +407,8 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 				}
 			}
 		}
-
-		if( message_time <= 0 ) {
-			goto cleanup; /* from checked later, may be set by Autocrypt:-header */
-		}
 	}
 
-	/* check the autocrypt header, if any */
 	autocryptheader_fine = mraheader_set_from_imffields(autocryptheader, imffields);
 	if( autocryptheader_fine ) {
 		if( from == NULL ) {
@@ -435,16 +423,14 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 		}
 	}
 
-	if( from == NULL ) {
-		goto cleanup;
-	}
-
 	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		/* apply Autocrypt:-header only if encryption is enabled (if we're out of beta, we should do this always to track the correct state; now we want no bugs spread widely to the databases :-) */
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) != 0 )
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) != 0
+		 && message_time > 0
+		 && from )
 		{
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
 				if( autocryptheader_fine ) {
