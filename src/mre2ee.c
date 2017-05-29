@@ -462,6 +462,9 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 		goto cleanup;
     }
 
+	//mailmime_substitute(mime, new_mime);
+	//s. mailprivacy_gnupg.c::pgp_decrypt()
+
     sth_decrypted = 1;
 
 cleanup:
@@ -489,14 +492,14 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
-					return 1;
+					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
-					return 1;
+					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
 		}
@@ -504,7 +507,7 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
 		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring) ) {
-			return 1;
+			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
 	}
 
