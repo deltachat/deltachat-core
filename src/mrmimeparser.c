@@ -607,7 +607,7 @@ static int is_attachment_disposition(struct mailmime* mime)
 }
 
 
-static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
+static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 {
 	#define MR_MIMETYPE_MP_ALTERNATIVE  1
 	#define MR_MIMETYPE_MP_RELATED      2
@@ -679,6 +679,9 @@ static int mrmimeparser_get_mime_type_(struct mailmime* mime, int* msg_type)
 				else if( strcmp(c->ct_subtype, "related")==0 ) {
 					return MR_MIMETYPE_MP_RELATED;
 				}
+				else if( strcmp(c->ct_subtype, "encrypted")==0 ) {
+					return MR_MIMETYPE_MP_OTHER;
+				}
 				else { /* eg. "mixed" */
 					return MR_MIMETYPE_MP_OTHER;
 				}
@@ -712,7 +715,7 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 #endif
 
 
-static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct mailmime* mime)
+static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mailmime* mime)
 {
 	mrmimepart_t*                part = mrmimepart_new();
 	int                          do_add_part = 0;
@@ -736,7 +739,7 @@ static int mrmimeparser_add_single_part_if_known_(mrmimeparser_t* ths, struct ma
 	}
 
 	/* get mime type from `mime` */
-	mime_type = mrmimeparser_get_mime_type_(mime, &msg_type);
+	mime_type = mrmimeparser_get_mime_type(mime, &msg_type);
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -932,7 +935,7 @@ cleanup:
 }
 
 
-int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mime)
+static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmime* mime)
 {
 	int        sth_added = 0;
 	clistiter* cur;
@@ -940,25 +943,25 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			sth_added = mrmimeparser_add_single_part_if_known_(ths, mime);
+			sth_added = mrmimeparser_add_single_part_if_known(ths, mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
-			switch( mrmimeparser_get_mime_type_(mime, NULL) )
+			switch( mrmimeparser_get_mime_type(mime, NULL) )
 			{
 				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
 					{
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
-								sth_added = mrmimeparser_parse_mime_recursive__(ths, childmime);
+							if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+								sth_added = mrmimeparser_parse_mime_recursive(ths, childmime);
 								break;
 							}
 						}
 
 						if( !sth_added ) { /* `text/plain` not found - use the first part */
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-								if( mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur)) ) {
+								if( mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
 									sth_added = 1;
 									break; /* out of for() */
 								}
@@ -971,7 +974,7 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 				                             /* we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay. */
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
-						mrmimeparser_parse_mime_recursive__(ths, (struct mailmime*)clist_content(cur));
+						mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
@@ -986,10 +989,10 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 							int plain_cnt = 0, html_cnt = 0;
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-								if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+								if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
 									plain_cnt++;
 								}
-								else if( mrmimeparser_get_mime_type_(childmime, NULL) == MR_MIMETYPE_TEXT_HTML ) {
+								else if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_HTML ) {
 									html_part = childmime;
 									html_cnt++;
 								}
@@ -1004,7 +1007,7 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( childmime != skip_part ) {
-								if( mrmimeparser_parse_mime_recursive__(ths, childmime) ) {
+								if( mrmimeparser_parse_mime_recursive(ths, childmime) ) {
 									sth_added = 1;
 								}
 							}
@@ -1038,7 +1041,7 @@ int mrmimeparser_parse_mime_recursive__(mrmimeparser_t* ths, struct mailmime* mi
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
 			{
-				sth_added = mrmimeparser_parse_mime_recursive__(ths, mime->mm_data.mm_message.mm_msg_mime);
+				sth_added = mrmimeparser_parse_mime_recursive(ths, mime->mm_data.mm_message.mm_msg_mime);
 			}
 			break;
 	}
@@ -1086,11 +1089,11 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	#endif
 
 	/* decrypt, if possible; handle Autocrypt:-header
-	(decryption may modifiy or replace the given object) */
+	(decryption may modifiy the given object) */
 	mre2ee_decrypt(ths->m_mailbox, ths->m_mimeroot);
 
 	/* recursively check, whats parsed */
-	mrmimeparser_parse_mime_recursive__(ths, ths->m_mimeroot);
+	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
 
 	/* prepend subject to message? */
 	if( ths->m_subject )

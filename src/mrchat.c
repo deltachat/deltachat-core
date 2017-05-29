@@ -1393,7 +1393,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	}
 
 	/* encrypt the message, if possible; add Autocrypt:-header
-	(encryption may modifiy or replace the given object) */
+	(encryption may modifiy the given object) */
 	mre2ee_encrypt(chat->m_mailbox, recipients_addr, message, &e2ee_helper);
 
 	/* add a subject line */

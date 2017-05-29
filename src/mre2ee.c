@@ -242,6 +242,11 @@ void mre2ee_exit(mrmailbox_t* mailbox)
 }
 
 
+/*******************************************************************************
+ * Encrypt
+ ******************************************************************************/
+
+
 void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime* in_out_message, mre2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
@@ -370,6 +375,131 @@ void mre2ee_thanks(mre2ee_helper_t* helper)
 }
 
 
+/*******************************************************************************
+ * Decrypt
+ ******************************************************************************/
+
+
+static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
+{
+	const unsigned char *str_end = (const unsigned char*)str__+str_bytes, *p=(const unsigned char*)str__;
+	while( p < str_end ) {
+		if( *p > ' ' ) {
+			break;
+		}
+		p++;
+		str_bytes--;
+	}
+	if( str_bytes>27 && strncmp((const char*)p, "-----BEGIN PGP MESSAGE-----", 27)==0 ) {
+		return 1;
+	}
+	return 0;
+}
+
+
+static void decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+{
+	struct mailmime_data*        mime_data;
+	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	char*                        transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
+	const char*                  decoded_data = NULL; /* must not be free()'d */
+	size_t                       decoded_data_bytes = 0;
+	void*                        plain_buf = NULL;
+	size_t                       plain_bytes = 0;
+
+	/* get data pointer from `mime` */
+	mime_data = mime->mm_data.mm_single;
+	if( mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
+	 || mime_data->dt_data.dt_text.dt_data == NULL
+	 || mime_data->dt_data.dt_text.dt_length <= 0 ) {
+		goto cleanup;
+	}
+
+	/* check headers in `mime` */
+	if( mime->mm_mime_fields != NULL ) {
+		clistiter* cur;
+		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
+			if( field ) {
+				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
+					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
+				}
+			}
+		}
+	}
+
+	/* regard `Content-Transfer-Encoding:` */
+	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
+	{
+		decoded_data       = mime_data->dt_data.dt_text.dt_data;
+		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
+		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			goto cleanup; /* no error - but no data */
+		}
+	}
+	else
+	{
+		int r;
+		size_t current_index = 0;
+		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
+			&current_index, mime_transfer_encoding,
+			&transfer_decoding_buffer, &decoded_data_bytes);
+		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
+			goto cleanup;
+		}
+		decoded_data = transfer_decoding_buffer;
+	}
+
+	/* encrypted, decoded data in decoded_data now ... */
+    if( !has_decrypted_pgp_armor(decoded_data, decoded_data_bytes) ) {
+		goto cleanup;
+    }
+
+    if( !mre2ee_driver_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes) ) {
+		goto cleanup;
+    }
+
+cleanup:
+	if( transfer_decoding_buffer ) {
+		mmap_string_unref(transfer_decoding_buffer);
+	}
+}
+
+
+static void decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+{
+	struct mailmime_content* ct;
+	clistiter*               cur;
+
+	if( mailbox == NULL || mime == NULL ) {
+		return;
+	}
+
+	if( mime->mm_type == MAILMIME_MULTIPLE )
+	{
+		ct = mime->mm_content_type;
+		if( ct && ct->ct_subtype && strcmp(ct->ct_subtype, "encrypted")==0 ) {
+			/* decrypt "multipart/encrypted" -- child parts are eg. "application/pgp-encrypted" (uninteresting, version only),
+			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
+			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+				decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring);
+			}
+		}
+		else {
+			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+				decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring);
+			}
+		}
+	}
+	else if( mime->mm_type == MAILMIME_MESSAGE )
+	{
+		decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring);
+	}
+}
+
+
 void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 {
 	struct mailimf_fields* imffields = mr_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
@@ -463,7 +593,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	locked = 0;
 
 	/* finally, decrypt */
-	//mre2ee_driver_decrypt__(mailbox, in_out_message, &private_key);
+	decrypt_recursive(mailbox, in_out_message, private_keyring);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
