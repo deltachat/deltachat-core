@@ -86,5 +86,26 @@ void mrkeyring_add(mrkeyring_t* ths, mrkey_t* to_add)
 }
 
 
+int mrkeyring_load_self_private__(mrkeyring_t* ths, const char* self_addr, mrsqlite3_t* sql)
+{
+	sqlite3_stmt* stmt;
+	mrkey_t*      key;
 
+	if( ths==NULL || self_addr==NULL || sql==NULL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
+		"SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default=1 DESC;");
+	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		key = mrkey_new();
+			if( mrkey_set_from_stmt(key, stmt, 0, MR_PRIVATE) ) {
+				mrkeyring_add(ths, key);
+			}
+		mrkey_unref(key); /* unref in any case, mrkeyring_add() adds its own reference */
+	}
+
+	return 1;
+}
 

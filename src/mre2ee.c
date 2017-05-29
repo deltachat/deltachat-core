@@ -379,10 +379,10 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
-	mrkey_t*               private_key = mrkey_new();
+	mrkeyring_t*           private_keyring = mrkeyring_new();
 
 	if( mailbox==NULL || in_out_message==NULL
-	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_key==NULL ) {
+	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}
 
@@ -455,7 +455,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 			goto cleanup;
 		}
 
-		if( !mrkey_load_self_private__(private_key, self_addr, mailbox->m_sql) ) {
+		if( !mrkeyring_load_self_private__(private_keyring, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 
@@ -469,7 +469,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);
-	mrkey_unref(private_key);
+	mrkeyring_unref(private_keyring);
 	free(from);
 	free(self_addr);
 }

@@ -48,6 +48,9 @@ void         mrkeyring_unref();
 
 void         mrkeyring_add  (mrkeyring_t*, mrkey_t*); /* the reference counter of the key is increased by one */
 
+int          mrkeyring_load_self_private__(mrkeyring_t*, const char* self_addr, mrsqlite3_t* sql);
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
