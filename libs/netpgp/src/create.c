@@ -1019,6 +1019,9 @@ pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, pgp_pk_sesskey_t *
 	size_t			 sz_encoded_m_buf;
 
     pubkey = pgp_key_get_enckey(key, &id);
+    if( pubkey == NULL ) { // Check by Delta Chat, EDIT BY MR (bp)
+		return NULL;
+    }
 
 	/* allocate unencoded_m_buf here */
 	(void) memset(&cipherinfo, 0x0, sizeof(cipherinfo));

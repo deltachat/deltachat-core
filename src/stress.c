@@ -170,12 +170,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
 		assert( mre2ee_driver_is_valid_key(mailbox, public_key) );
 		assert( mre2ee_driver_is_valid_key(mailbox, private_key) );
-		char* temp = mrkey_render_base64(public_key, 78, "\n");
-		char* tempsec = mrkey_render_base64(private_key, 78, "\n");
-		//printf("\n-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n\n-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n", temp, tempsec);
-		free(temp); free(tempsec);
+		//char *t1 = mrkey_render_base64(public_key, 78, "\n"), *t2 = mrkey_render_base64(private_key, 78, "\n"); printf("\n-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n\n-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n", t1, t2); free(t1); free(t2);
 
-		#if 0
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
 		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
 
@@ -189,7 +185,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			mrkeyring_add(keyring, public_key2);
-				int ok = mre2ee_driver_encrypt__(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
+				int ok = mre2ee_driver_encrypt(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
@@ -224,7 +220,6 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(ctext);
 		mrkey_unref(public_key2);
 		mrkey_unref(private_key2);
-		#endif
 		mrkey_unref(public_key);
 		mrkey_unref(private_key);
 	}
