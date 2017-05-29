@@ -397,7 +397,7 @@ static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 }
 
 
-static void decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
 {
 	struct mailmime_data*        mime_data;
 	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
@@ -406,6 +406,7 @@ static void decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrke
 	size_t                       decoded_data_bytes = 0;
 	void*                        plain_buf = NULL;
 	size_t                       plain_bytes = 0;
+	int                          sth_decrypted = 0;
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -461,20 +462,23 @@ static void decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrke
 		goto cleanup;
     }
 
+    sth_decrypted = 1;
+
 cleanup:
 	if( transfer_decoding_buffer ) {
 		mmap_string_unref(transfer_decoding_buffer);
 	}
+	return sth_decrypted;
 }
 
 
-static void decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
 
 	if( mailbox == NULL || mime == NULL ) {
-		return;
+		return 0;
 	}
 
 	if( mime->mm_type == MAILMIME_MULTIPLE )
@@ -484,19 +488,27 @@ static void decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const
 			/* decrypt "multipart/encrypted" -- child parts are eg. "application/pgp-encrypted" (uninteresting, version only),
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring);
+				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
+					return 1;
+				}
 			}
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring);
+				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
+					return 1;
+				}
 			}
 		}
 	}
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
-		decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring);
+		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring) ) {
+			return 1;
+		}
 	}
+
+	return 0;
 }
 
 
@@ -592,8 +604,14 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* finally, decrypt */
-	decrypt_recursive(mailbox, in_out_message, private_keyring);
+	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
+	int avoid_deadlock = 10;
+	while( avoid_deadlock > 0 ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring) ) {
+			break;
+		}
+		avoid_deadlock--;
+	}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
