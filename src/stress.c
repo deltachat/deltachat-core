@@ -170,7 +170,9 @@ void stress_functions(mrmailbox_t* mailbox)
 		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
 		assert( mre2ee_driver_is_valid_key(mailbox, public_key) );
 		assert( mre2ee_driver_is_valid_key(mailbox, private_key) );
-		//char *t1 = mrkey_render_base64(public_key, 78, "\n"), *t2 = mrkey_render_base64(private_key, 78, "\n"); printf("\n-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n\n-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n", t1, t2); free(t1); free(t2);
+		{char *t1=mrkey_render_base64(public_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n",t1);printf(t2);mr_write_file("/home/bpetersen/temp/stress-public.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
+		{char *t1=mrkey_render_base64(private_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n",t1);printf(t2);mr_write_file("/home/bpetersen/temp/stress-private.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
+
 
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
 		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
@@ -189,9 +191,7 @@ void stress_functions(mrmailbox_t* mailbox)
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
-				char* nt = mr_null_terminate((char*)ctext, ctext_bytes);
-				printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n", (int)ctext_bytes, nt);
-				free(nt);
+				//{char* t3 = mr_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
 			mrkeyring_unref(keyring);
 		}
 
