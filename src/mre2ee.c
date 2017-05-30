@@ -432,7 +432,7 @@ static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 }
 
 
-static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring, struct mailmime** ret_decrypted_mime)
 {
 	struct mailmime_data*        mime_data;
 	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
@@ -442,6 +442,8 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 	void*                        plain_buf = NULL;
 	size_t                       plain_bytes = 0;
 	int                          sth_decrypted = 0;
+
+	*ret_decrypted_mime = NULL;
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
@@ -489,18 +491,34 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 	}
 
 	/* encrypted, decoded data in decoded_data now ... */
-    if( !has_decrypted_pgp_armor(decoded_data, decoded_data_bytes) ) {
+	if( !has_decrypted_pgp_armor(decoded_data, decoded_data_bytes) ) {
 		goto cleanup;
-    }
+	}
 
-    if( !mre2ee_driver_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes) ) {
+	if( !mre2ee_driver_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
+	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
-    }
+	}
+
+	//{char* t1=mr_null_terminate(plain_buf,plain_bytes);printf("\n**********\n%s\n**********\n",t1);free(t1);}
+
+	{
+		size_t index = 0;
+		struct mailmime* decrypted_mime = NULL;
+		if( mailmime_parse(plain_buf, plain_bytes, &index, &decrypted_mime)!=MAIL_NO_ERROR
+		 || decrypted_mime == NULL ) {
+			if(decrypted_mime) {mailmime_free(decrypted_mime);}
+			goto cleanup;
+		}
+
+		//mr_print_mime(new_mime);
+
+		*ret_decrypted_mime = decrypted_mime;
+		sth_decrypted = 1;
+	}
 
 	//mailmime_substitute(mime, new_mime);
 	//s. mailprivacy_gnupg.c::pgp_decrypt()
-
-    sth_decrypted = 1;
 
 cleanup:
 	if( transfer_decoding_buffer ) {
@@ -526,7 +544,11 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 			/* decrypt "multipart/encrypted" -- child parts are eg. "application/pgp-encrypted" (uninteresting, version only),
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
+				struct mailmime* decrypted_mime = NULL;
+				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, &decrypted_mime) )
+				{
+					mailmime_substitute(mime, decrypted_mime);
+					mailmime_free(mime);
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
@@ -650,6 +672,8 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 		}
 		avoid_deadlock--;
 	}
+
+	//mr_print_mime(in_out_message);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
