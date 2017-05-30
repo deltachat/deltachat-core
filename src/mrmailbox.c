@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <sqlite3.h>
 #include <openssl/opensslv.h>
 #include "mrmailbox.h"
@@ -40,9 +39,6 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
-#include "mre2ee_driver.h"
-#include "mraheader.h"
-#include "mrapeerstate.h"
 
 
 /*******************************************************************************
@@ -1088,11 +1084,6 @@ int mrmailbox_is_open(const mrmailbox_t* ths)
 }
 
 
-/*******************************************************************************
- * Import EML-files
- ******************************************************************************/
-
-
 int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 {
 	int     success = 0;
@@ -1107,154 +1098,12 @@ int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
 		goto cleanup;
 	}
 
-	receive_imf(ths, data, data_bytes, "import", 0, 0);
+	receive_imf(ths, data, data_bytes, "import", 0, 0); /* this static function is the reason why this function is not moved to mrmailbox_imex.c */
 	success = 1;
 
 cleanup:
 	free(data);
 
-	return success;
-}
-
-
-int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec__) /* spec is a file, a directory or NULL for the last import */
-{
-	int            success = 0;
-	char*          spec = NULL;
-	char*          suffix = NULL;
-	DIR*           dir = NULL;
-	struct dirent* dir_entry;
-	int            read_cnt = 0;
-	char*          name;
-
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	if( !mrsqlite3_is_open(ths->m_sql) ) {
-        mrmailbox_log_error(ths, 0, "Import: Database not opened.");
-		goto cleanup;
-	}
-
-	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
-	if( spec__ )
-	{
-		spec = safe_strdup(spec__);
-		mrsqlite3_lock(ths->m_sql);
-			mrsqlite3_set_config__(ths->m_sql, "import_spec", spec);
-		mrsqlite3_unlock(ths->m_sql);
-	}
-	else {
-		mrsqlite3_lock(ths->m_sql);
-			spec = mrsqlite3_get_config__(ths->m_sql, "import_spec", NULL); /* may still NULL */
-		mrsqlite3_unlock(ths->m_sql);
-		if( spec == NULL ) {
-			mrmailbox_log_error(ths, 0, "Import: No file or folder given.");
-			goto cleanup;
-		}
-	}
-
-	suffix = mr_get_filesuffix_lc(spec);
-	if( suffix && strcmp(suffix, "eml")==0 ) {
-		/* import a single file */
-		if( mrmailbox_import_file(ths, spec) ) { /* errors are logged in any case */
-			read_cnt++;
-		}
-	}
-	else if( suffix && (strcmp(suffix, "pem")==0||strcmp(suffix, "asc")==0) ) {
-		/* import a key */
-		char* separator = strchr(spec, ' ');
-		if( separator==NULL ) {
-			mrmailbox_log_error(ths, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
-			goto cleanup;
-		}
-		*separator = 0;
-		if( mrmailbox_import_public_key(ths, spec, separator+1) ) {
-			read_cnt++;
-		}
-		*separator = ' ';
-	}
-	else {
-		/* import a directory */
-		if( (dir=opendir(spec))==NULL ) {
-			mrmailbox_log_error(ths, 0, "Import: Cannot open directory \"%s\".", spec);
-			goto cleanup;
-		}
-
-		while( (dir_entry=readdir(dir))!=NULL ) {
-			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
-            if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
-				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
-				mrmailbox_log_info(ths, 0, "Import: %s", path_plus_name);
-				if( path_plus_name ) {
-					if( mrmailbox_import_file(ths, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
-						read_cnt++;
-					}
-					sqlite3_free(path_plus_name);
-				}
-            }
-		}
-	}
-
-	mrmailbox_log_info(ths, 0, "Import: %i items read from \"%s\".", read_cnt, spec);
-	if( read_cnt > 0 ) {
-		ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
-	}
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-cleanup:
-	if( dir ) {
-		closedir(dir);
-	}
-	free(spec);
-	free(suffix);
-	return success;
-}
-
-
-int mrmailbox_import_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
-{
-	/* mainly for testing: if the partner does not support Autocrypt,
-	encryption is disabled as soon as the first messages comes from the partner */
-	mraheader_t*    header = mraheader_new();
-	mrapeerstate_t* peerstate = mrapeerstate_new();
-	int             locked = 0, success = 0;
-
-	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
-		goto cleanup;
-	}
-
-	/* create a fake autocrypt header */
-	header->m_to               = safe_strdup(addr);
-	header->m_prefer_encrypted = MRA_PE_YES;
-	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
-	 || !mre2ee_driver_is_valid_key(mailbox, header->m_public_key) ) {
-		mrmailbox_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
-		goto cleanup;
-	}
-
-	/* update/create peerstate */
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr) ) {
-			mrapeerstate_apply_header(peerstate, header, time(NULL));
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
-		}
-		else {
-			mrapeerstate_init_from_header(peerstate, header, time(NULL));
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
-		}
-
-		success = 1;
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrapeerstate_unref(peerstate);
-	mraheader_unref(header);
 	return success;
 }
 

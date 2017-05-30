@@ -89,6 +89,9 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
 #define MR_EVENT_CONFIGURE_PROGRESS       2041
 
+#define MR_EVENT_EXPORT_ENDED             2050 /* mrmailbox_export done: data1=0:failed, 1=success */
+#define MR_EVENT_EXPORT_PROGRESS          2051
+
 /* Functions that should be provided by the frontends */
 #define MR_EVENT_IS_ONLINE                2080
 #define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
@@ -256,6 +259,11 @@ int                  mrmailbox_import_spec          (mrmailbox_t*, const char* s
 int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
 int                  mrmailbox_import_public_key    (mrmailbox_t*, const char* addr, const char* public_key_file); /* mainly for testing: if the partner does not support Autocrypt, encryption is disabled as soon as the first messages comes from the partner */
 
+/* Export keys, backup etc.
+To avoid double slashes, the given directory should not end with a slash. */
+#define MR_EXPORT_SELF_KEYS 0x01
+#define MR_EXPORT_BACKUP    0x02
+void                 mrmailbox_export               (mrmailbox_t*, int what, const char* dir);
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */

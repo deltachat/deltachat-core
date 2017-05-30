@@ -134,6 +134,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"close\n"
 			"reset <flags>\n"
 			"import [<eml-file>|<folder>|<addr> <key-file>]\n"
+			"export keys|backup\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"
@@ -213,6 +214,19 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "import")==0 )
 	{
 		ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "export")==0 )
+	{
+		if( arg1 ) {
+			int flags = 0;
+			if( strcmp(arg1, "keys")==0 )   { flags |= MR_EXPORT_SELF_KEYS; }
+			if( strcmp(arg1, "backup")==0 ) { flags |= MR_EXPORT_BACKUP; }
+			mrmailbox_export(mailbox, flags, NULL);
+			ret = COMMAND_SUCCEEDED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Valid commands are \"export keys\" or \"export backup\".");
+		}
 	}
 	else if( strcmp(cmd, "set")==0 )
 	{

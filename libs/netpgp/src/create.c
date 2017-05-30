@@ -545,7 +545,7 @@ pgp_write_xfer_key(pgp_output_t *output,
     unsigned          subkeysigidx = 0;
     pgp_subkeysig_t  *subkeysigp;
 
-    #if 0 ////// -- we don't need armored keys (only armored messages)
+    #if 0 ////// -- we don't need armored keys, EDIT BY MR
     if (armoured) {
         pgp_writer_push_armoured(output, PGP_PGP_PUBLIC_KEY_BLOCK);
     }
@@ -1019,7 +1019,7 @@ pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, pgp_pk_sesskey_t *
 	size_t			 sz_encoded_m_buf;
 
     pubkey = pgp_key_get_enckey(key, &id);
-    if( pubkey == NULL ) { // Check by Delta Chat, EDIT BY MR (bp)
+    if( pubkey == NULL ) { // avoid crashes if the key cannot encode, EDIT BY MR (bp)
 		return NULL;
     }
 
