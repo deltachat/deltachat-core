@@ -89,7 +89,7 @@ char* mraheader_render(const mraheader_t* ths)
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if( (keybase64_wrapped = mrkey_render_base64(ths->m_public_key, 78, " ")) == NULL ) {
+	if( (keybase64_wrapped = mrkey_render_base64(ths->m_public_key, 78, " ", 0/*no checksum*/)) == NULL ) {
 		goto cleanup;
 	}
 

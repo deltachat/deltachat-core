@@ -296,46 +296,95 @@ int mrkey_load_self_public__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* s
  ******************************************************************************/
 
 
-char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const char* break_chars)
+static long crc_octets(const unsigned char *octets, size_t len)
+{
+	#define CRC24_INIT 0xB704CEL
+	#define CRC24_POLY 0x1864CFBL
+	long crc = CRC24_INIT;
+	int i;
+	while (len--) {
+		crc ^= (*octets++) << 16;
+		for (i = 0; i < 8; i++) {
+			crc <<= 1;
+			if (crc & 0x1000000)
+			crc ^= CRC24_POLY;
+		}
+	}
+	return crc & 0xFFFFFFL;
+}
+
+
+char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const char* break_chars,
+                       int add_checksum /*0=no checksum, 1=add without break, 2=add with break_chars*/)
 {
 	char* ret = NULL;
-	char* temp = NULL;
+
+	if( buf==NULL || buf_bytes<=0 ) {
+		goto cleanup;
+	}
 
 	if( (ret = encode_base64((const char*)buf, buf_bytes))==NULL ) {
 		goto cleanup;
 	}
 
+	#if 0
+	if( add_checksum == 1/*appended checksum*/ ) {
+		long checksum = crc_octets(buf, buf_bytes);
+		uint8_t c[3];
+		c[0] = (uint8_t)((checksum >> 16)&0xFF);
+		c[1] = (uint8_t)((checksum >> 8)&0xFF);
+		c[2] = (uint8_t)((checksum)&0xFF);
+		char* c64 = encode_base64((const char*)c, 3);
+			char* temp = ret;
+				ret = mr_mprintf("%s=%s", temp, c64);
+			free(temp);
+		free(c64);
+	}
+	#endif
+
 	if( break_every>0 ) {
-		temp = ret;
-		if( (ret=mr_insert_breaks(temp, break_every, break_chars)) == NULL ) {
-			goto cleanup;
-		}
+		char* temp = ret;
+			ret = mr_insert_breaks(temp, break_every, break_chars);
+		free(temp);
+	}
+
+	if( add_checksum == 2/*checksum with break character*/ ) {
+		long checksum = crc_octets(buf, buf_bytes);
+		uint8_t c[3];
+		c[0] = (uint8_t)((checksum >> 16)&0xFF);
+		c[1] = (uint8_t)((checksum >> 8)&0xFF);
+		c[2] = (uint8_t)((checksum)&0xFF);
+		char* c64 = encode_base64((const char*)c, 3);
+			char* temp = ret;
+				ret = mr_mprintf("%s%s=%s", temp, break_chars, c64);
+			free(temp);
+		free(c64);
 	}
 
 cleanup:
-	free(temp);
 	return ret;
 }
 
 
-char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars)
+char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars, int add_checksum)
 {
 	if( ths==NULL ) {
 		return NULL;
 	}
-	return mr_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars);
+	return mr_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars, add_checksum);
 }
 
 
 char* mrkey_render_asc(const mrkey_t* ths)
 {
+	/* see RFC 4880, 6.2.  Forming ASCII Armor, https://tools.ietf.org/html/rfc4880#section-6.2 */
 	char *base64 = NULL, *ret = NULL;
 
 	if( ths==NULL ) {
 		goto cleanup;
 	}
 
-	if( (base64=mrkey_render_base64(ths, 78, "\r\n"))==NULL ) {
+	if( (base64=mrkey_render_base64(ths, 76, "\r\n", 2/*checksum in new line*/))==NULL ) { /* RFC: The encoded output stream must be represented in lines of no more than 76 characters each. */
 		goto cleanup;
 	}
 
