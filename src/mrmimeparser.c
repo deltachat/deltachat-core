@@ -618,6 +618,7 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 	#define MR_MIMETYPE_AUDIO           7
 	#define MR_MIMETYPE_VIDEO           8
 	#define MR_MIMETYPE_FILE            9
+	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE 10
 
 	struct mailmime_content* c = mime->mm_content_type;
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
@@ -680,7 +681,7 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 					return MR_MIMETYPE_MP_RELATED;
 				}
 				else if( strcmp(c->ct_subtype, "encrypted")==0 ) {
-					return MR_MIMETYPE_MP_OTHER;
+					return MR_MIMETYPE_MP_NOT_DECRYPTABLE; /* decryptable parts are already converted to other mime parts in mre2ee_decrypt()  */
 				}
 				else { /* eg. "mixed" */
 					return MR_MIMETYPE_MP_OTHER;
@@ -975,6 +976,15 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
 						mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
+					}
+					break;
+
+				case MR_MIMETYPE_MP_NOT_DECRYPTABLE:
+					{
+						mrmimepart_t* part = mrmimepart_new();
+						part->m_type = MR_MSG_TEXT;
+						part->m_msg = mrstock_str(MR_STR_ENCRYPTEDMSG);
+						carray_add(ths->m_parts, (void*)part, NULL);
 					}
 					break;
 
