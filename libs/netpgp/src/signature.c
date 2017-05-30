@@ -639,7 +639,7 @@ pgp_sig_start_key_sig(pgp_create_sig_t *sig,
 	 * probably use the buffered writer to construct packets
 	 * (done), and also should share code for hash calculation) */
 	sig->sig.info.version = PGP_V4;
-	sig->sig.info.hash_alg = PGP_HASH_SHA1;
+	sig->sig.info.hash_alg = PGP_HASH_SHA256; // changed by Delta Chat from PGP_HASH_SHA1 to PGP_HASH_SHA256, EDIT BY MR (bp)
 	sig->sig.info.key_alg = key->alg;
 	sig->sig.info.type = type;
 	sig->hashlen = (unsigned)-1;
