@@ -629,6 +629,7 @@ start_sig_in_mem(pgp_create_sig_t *sig)
 void
 pgp_sig_start_key_sig(pgp_create_sig_t *sig,
 				  const pgp_pubkey_t *key,
+				  const pgp_pubkey_t *subkey, // added by Delta Chat to allow subkey binding signatures, EDIT BY MR (bp)
 				  const uint8_t *id,
 				  pgp_sig_type_t type)
 {
@@ -643,9 +644,14 @@ pgp_sig_start_key_sig(pgp_create_sig_t *sig,
 	sig->sig.info.type = type;
 	sig->hashlen = (unsigned)-1;
 	init_key_sig(&sig->hash, &sig->sig, key);
-	pgp_hash_add_int(&sig->hash, 0xb4, 1);
-	pgp_hash_add_int(&sig->hash, (unsigned)strlen((const char *) id), 4);
-	sig->hash.add(&sig->hash, id, (unsigned)strlen((const char *) id));
+	if( subkey ) {
+		hash_add_key(&sig->hash, subkey);  // added by Delta Chat to allow subkey binding signatures, EDIT BY MR (bp)
+	}
+	if( id ) {  // condition added by Delta Chat to allow subkey binding signatures, EDIT BY MR (bp)
+		pgp_hash_add_int(&sig->hash, 0xb4, 1);
+		pgp_hash_add_int(&sig->hash, (unsigned)strlen((const char *) id), 4);
+		sig->hash.add(&sig->hash, id, (unsigned)strlen((const char *) id));
+	}
 	start_sig_in_mem(sig);
 }
 

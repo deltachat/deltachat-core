@@ -88,6 +88,87 @@ void mre2ee_driver_exit(mrmailbox_t* mailbox)
 }
 
 
+/*******************************************************************************
+ * Key generatation
+ ******************************************************************************/
+
+
+static void add_selfsigned_userid(pgp_key_t *skey, pgp_key_t *pkey, const uint8_t *userid, time_t key_expiry)
+{
+	/* close to pgp_add_selfsigned_userid() which, however, uses different key flags */
+	pgp_create_sig_t	*sig;
+	pgp_subpacket_t	 sigpacket;
+	pgp_memory_t		*mem_sig = NULL;
+	pgp_output_t		*sigoutput = NULL;
+
+	/* create sig for this pkt */
+	sig = pgp_create_sig_new();
+	pgp_sig_start_key_sig(sig, &skey->key.seckey.pubkey, NULL, userid, PGP_CERT_POSITIVE);
+
+	pgp_add_creation_time(sig, time(NULL));
+	pgp_add_key_expiration_time(sig, key_expiry);
+	pgp_add_issuer_keyid(sig, skey->pubkeyid);
+	pgp_add_primary_userid(sig, 1);
+	pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_CERT_KEYS);
+	pgp_add_key_prefs(sig);
+	pgp_add_key_features(sig);
+
+	pgp_end_hashed_subpkts(sig);
+
+	pgp_setup_memory_write(&sigoutput, &mem_sig, 128);
+	pgp_write_sig(sigoutput, sig, &skey->key.seckey.pubkey, &skey->key.seckey);
+
+	/* add this packet to key */
+	sigpacket.length = pgp_mem_len(mem_sig);
+	sigpacket.raw = pgp_mem_data(mem_sig);
+
+	/* add user id and signature to key */
+	pgp_update_userid(skey, userid, &sigpacket, &sig->sig.info);
+	if(pkey) {
+		pgp_update_userid(pkey, userid, &sigpacket, &sig->sig.info);
+	}
+
+	/* cleanup */
+	pgp_create_sig_delete(sig);
+	pgp_output_delete(sigoutput);
+	pgp_memory_free(mem_sig);
+}
+
+
+static void add_subkey_binding_structure(pgp_subkeysig_t* p, pgp_key_t* primarykey, pgp_key_t* subkey, pgp_key_t* seckey)
+{
+	//pgp_subkeysig_t*  p = &pubkey.subkeysigs[pubkey.subkeysigc++];
+	pgp_create_sig_t* sig;
+	pgp_output_t*     sigoutput = NULL;
+	pgp_memory_t*     mem_sig = NULL;
+
+	sig = pgp_create_sig_new();
+	pgp_sig_start_key_sig(sig, &primarykey->key.pubkey, &subkey->key.pubkey, NULL, PGP_SIG_SUBKEY);
+
+	pgp_add_creation_time(sig, time(NULL));
+	pgp_add_key_expiration_time(sig, 0);
+	pgp_add_issuer_keyid(sig, seckey->pubkeyid);
+	//pgp_add_primary_userid(sig, 1); // seems not be needed for "Subkey Binding Signature"
+	pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM);
+	pgp_add_key_prefs(sig); // algo/hash/compression preferences seems not to be required for subkeys, however, skipping this results in a bad structure
+	//pgp_add_key_features(sig); // will add 0x01 - modification detection, not needed for subkeys
+
+	pgp_end_hashed_subpkts(sig);
+
+	pgp_setup_memory_write(&sigoutput, &mem_sig, 128);
+	pgp_write_sig(sigoutput, sig, &seckey->key.seckey.pubkey, &seckey->key.seckey);
+
+	p->subkey         = primarykey->subkeyc-1; /* index of subkey in array */
+	p->packet.length  = mem_sig->length;
+	p->packet.raw     = mem_sig->buf; mem_sig->buf = NULL; /* move ownership to packet */
+	copy_sig_info(&p->siginfo, &sig->sig.info); /* not sure, if this is okay, however, siginfo should be set up, otherwise we get "bad info-type" errors */
+
+	pgp_create_sig_delete(sig);
+	pgp_output_delete(sigoutput);
+	free(mem_sig); /* do not use pgp_memory_free() as this would also free mem_sig->buf which is owned by the packet */
+}
+
+
 int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
 	int              success = 0;
@@ -133,12 +214,15 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		goto cleanup;
 	}
 
-    /* make a public key out of generated secret key */
+
+	/* Create public key
+	------------------------------------------------------------------------ */
+
 	pubkey.type = PGP_PTAG_CT_PUBLIC_KEY;
 	pgp_pubkey_dup(&pubkey.key.pubkey, &seckey.key.pubkey);
 	memcpy(pubkey.pubkeyid, seckey.pubkeyid, PGP_KEY_ID_SIZE);
 	pgp_fingerprint(&pubkey.pubkeyfpr, &seckey.key.pubkey, 0);
-	pgp_add_selfsigned_userid(&seckey, &pubkey, (const uint8_t*)user_id, 0/*never expire*/);
+	add_selfsigned_userid(&seckey, &pubkey, (const uint8_t*)user_id, 0/*never expire*/);
 
 	/* add subkey to public key and sign it (cmp. pgp_update_subkey()) */
 	EXPAND_ARRAY((&pubkey), subkey);
@@ -151,6 +235,8 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 
 	// add "0x18: Subkey Binding Signature" packet, PGP_SIG_SUBKEY, see also pgp_update_subkey()
 	EXPAND_ARRAY((&pubkey), subkeysig);
+	add_subkey_binding_structure(&pubkey.subkeysigs[pubkey.subkeysigc++], &pubkey, &subkey, &seckey);
+	#if 0
 	{
 		pgp_subkeysig_t*  p = &pubkey.subkeysigs[pubkey.subkeysigc++];
 		pgp_create_sig_t* sig;
@@ -158,15 +244,15 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		pgp_memory_t*     mem_sig = NULL;
 
 		sig = pgp_create_sig_new();
-		pgp_sig_start_key_sig(sig, &subkey.key.pubkey, user_id, PGP_SIG_SUBKEY);
+		pgp_sig_start_key_sig(sig, &pubkey.key.pubkey, &subkey.key.pubkey, NULL, PGP_SIG_SUBKEY);
 
 		pgp_add_creation_time(sig, time(NULL));
 		pgp_add_key_expiration_time(sig, 0);
 		pgp_add_issuer_keyid(sig, seckey.pubkeyid);
-		//pgp_add_primary_userid(sig, 1); -- seems not be needed for "ubkey Binding Signature"
+		//pgp_add_primary_userid(sig, 1); // seems not be needed for "Subkey Binding Signature"
 		pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM);
-		//pgp_add_key_prefs(sig); -- algo/hash/compression preferences seems not to be required for subkeys
-		pgp_add_key_features(sig);
+		pgp_add_key_prefs(sig); // algo/hash/compression preferences seems not to be required for subkeys, however, skipping this results in a bad structure
+		//pgp_add_key_features(sig); // will add 0x01 - modification detection, not needed for subkeys
 
 		pgp_end_hashed_subpkts(sig);
 
@@ -182,8 +268,12 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		pgp_output_delete(sigoutput);
 		free(mem_sig); /* do not use pgp_memory_free() as this would also free mem_sig->buf which is owned by the packet */
 	}
+	#endif
 
-	/* add subkey to private key */
+
+	/* Create secret key
+	------------------------------------------------------------------------ */
+
 	EXPAND_ARRAY((&seckey), subkey);
 	{
 		pgp_subkey_t* p = &seckey.subkeys[seckey.subkeyc++];
@@ -192,7 +282,12 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 		memcpy(p->id, subkeyid, PGP_KEY_ID_SIZE);
 	}
 
-	/* return keys */
+	EXPAND_ARRAY((&seckey), subkeysig);
+	add_subkey_binding_structure(&seckey.subkeysigs[seckey.subkeysigc++], &seckey, &subkey, &seckey);
+
+	/* Done with key generation, write binary keys to memory
+	------------------------------------------------------------------------ */
+
 	pgp_writer_set_memory(pubout, pubmem);
 	if( !pgp_write_xfer_key(pubout, &pubkey, 0/*armored*/)
 	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
@@ -221,6 +316,11 @@ cleanup:
 	free(user_id);
 	return success;
 }
+
+
+/*******************************************************************************
+ * Check keys
+ ******************************************************************************/
 
 
 int mre2ee_driver_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
@@ -253,6 +353,11 @@ cleanup:
 	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return key_is_valid;
 }
+
+
+/*******************************************************************************
+ * Encrypt/Decrypt
+ ******************************************************************************/
 
 
 int mre2ee_driver_encrypt(  mrmailbox_t* mailbox,

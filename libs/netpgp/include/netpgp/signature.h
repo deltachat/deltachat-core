@@ -86,6 +86,7 @@ unsigned pgp_check_hash_sig(pgp_hash_t *,
 			 const pgp_pubkey_t *);
 void pgp_sig_start_key_sig(pgp_create_sig_t *,
 				  const pgp_pubkey_t *,
+				  const pgp_pubkey_t * subkey, // parameter added by Delta Chat to allow subkey binding signatures, EDIT BY MR (bp)
 				  const uint8_t *,
 				  pgp_sig_type_t);
 void pgp_start_sig(pgp_create_sig_t *,
