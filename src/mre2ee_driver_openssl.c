@@ -132,13 +132,14 @@ static void add_selfsigned_userid(pgp_key_t *skey, pgp_key_t *pkey, const uint8_
 
 	pgp_add_creation_time(sig, time(NULL));
 	pgp_add_key_expiration_time(sig, key_expiry);
-	pgp_add_issuer_keyid(sig, skey->pubkeyid);
 	pgp_add_primary_userid(sig, 1);
 	pgp_add_key_flags(sig, PGP_KEYFLAG_SIGN_DATA|PGP_KEYFLAG_CERT_KEYS);
 	add_key_prefs(sig);
 	pgp_add_key_features(sig); /* will add 0x01 - modification detection */
 
 	pgp_end_hashed_subpkts(sig);
+
+	pgp_add_issuer_keyid(sig, skey->pubkeyid); /* the issuer keyid is not hashed by definition */
 
 	pgp_setup_memory_write(&sigoutput, &mem_sig, 128);
 	pgp_write_sig(sigoutput, sig, &skey->key.seckey.pubkey, &skey->key.seckey);
@@ -172,11 +173,12 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 
 	pgp_add_creation_time(sig, time(NULL));
 	pgp_add_key_expiration_time(sig, 0);
-	pgp_add_issuer_keyid(sig, seckey->pubkeyid);
 	pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM);
 	add_key_prefs(sig); // algo/hash/compression preferences seems not to be required for subkeys, however, skipping this results in a bad structure
 
 	pgp_end_hashed_subpkts(sig);
+
+	pgp_add_issuer_keyid(sig, seckey->pubkeyid); /* the issuer keyid is not hashed by definition */
 
 	pgp_setup_memory_write(&sigoutput, &mem_sig, 128);
 	pgp_write_sig(sigoutput, sig, &seckey->key.seckey.pubkey, &seckey->key.seckey);
