@@ -173,8 +173,7 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 
 	pgp_add_creation_time(sig, time(NULL));
 	pgp_add_key_expiration_time(sig, 0);
-	pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM);
-	add_key_prefs(sig); // algo/hash/compression preferences seems not to be required for subkeys, however, skipping this results in a bad structure
+	pgp_add_key_flags(sig, PGP_KEYFLAG_ENC_STORAGE|PGP_KEYFLAG_ENC_COMM); /* NB: algo/hash/compression preferences are not added to subkeys */
 
 	pgp_end_hashed_subpkts(sig);
 
