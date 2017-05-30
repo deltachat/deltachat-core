@@ -40,105 +40,7 @@
  ******************************************************************************/
 
 
-int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a file, a directory or NULL for the last import */
-{
-	int            success = 0;
-	char*          spec = NULL;
-	char*          suffix = NULL;
-	DIR*           dir = NULL;
-	struct dirent* dir_entry;
-	int            read_cnt = 0;
-	char*          name;
-
-	if( mailbox == NULL ) {
-		return 0;
-	}
-
-	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-        mrmailbox_log_error(mailbox, 0, "Import: Database not opened.");
-		goto cleanup;
-	}
-
-	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
-	if( spec__ )
-	{
-		spec = safe_strdup(spec__);
-		mrsqlite3_lock(mailbox->m_sql);
-			mrsqlite3_set_config__(mailbox->m_sql, "import_spec", spec);
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-	else {
-		mrsqlite3_lock(mailbox->m_sql);
-			spec = mrsqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
-		mrsqlite3_unlock(mailbox->m_sql);
-		if( spec == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: No file or folder given.");
-			goto cleanup;
-		}
-	}
-
-	suffix = mr_get_filesuffix_lc(spec);
-	if( suffix && strcmp(suffix, "eml")==0 ) {
-		/* import a single file */
-		if( mrmailbox_import_file(mailbox, spec) ) { /* errors are logged in any case */
-			read_cnt++;
-		}
-	}
-	else if( suffix && (strcmp(suffix, "pem")==0||strcmp(suffix, "asc")==0) ) {
-		/* import a key */
-		char* separator = strchr(spec, ' ');
-		if( separator==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
-			goto cleanup;
-		}
-		*separator = 0;
-		if( mrmailbox_import_public_key(mailbox, spec, separator+1) ) {
-			read_cnt++;
-		}
-		*separator = ' ';
-	}
-	else {
-		/* import a directory */
-		if( (dir=opendir(spec))==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", spec);
-			goto cleanup;
-		}
-
-		while( (dir_entry=readdir(dir))!=NULL ) {
-			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
-			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
-				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
-				mrmailbox_log_info(mailbox, 0, "Import: %s", path_plus_name);
-				if( path_plus_name ) {
-					if( mrmailbox_import_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
-						read_cnt++;
-					}
-					sqlite3_free(path_plus_name);
-				}
-            }
-		}
-	}
-
-	mrmailbox_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, spec);
-	if( read_cnt > 0 ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
-	}
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-cleanup:
-	if( dir ) {
-		closedir(dir);
-	}
-	free(spec);
-	free(suffix);
-	return success;
-}
-
-
-int mrmailbox_import_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
+static int import_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
 {
 	/* mainly for testing: if the partner does not support Autocrypt,
 	encryption is disabled as soon as the first messages comes from the partner */
@@ -182,6 +84,114 @@ cleanup:
 }
 
 
+int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a file, a directory or NULL for the last import */
+{
+	int            success = 0;
+	char*          spec = NULL;
+	char*          suffix = NULL;
+	DIR*           dir = NULL;
+	struct dirent* dir_entry;
+	int            read_cnt = 0;
+	char*          name;
+
+	if( mailbox == NULL ) {
+		return 0;
+	}
+
+	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
+        mrmailbox_log_error(mailbox, 0, "Import: Database not opened.");
+		goto cleanup;
+	}
+
+	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
+	if( spec__ )
+	{
+		spec = safe_strdup(spec__);
+		mrsqlite3_lock(mailbox->m_sql);
+			mrsqlite3_set_config__(mailbox->m_sql, "import_spec", spec);
+		mrsqlite3_unlock(mailbox->m_sql);
+	}
+	else {
+		mrsqlite3_lock(mailbox->m_sql);
+			spec = mrsqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
+		mrsqlite3_unlock(mailbox->m_sql);
+		if( spec == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Import: No file or folder given.");
+			goto cleanup;
+		}
+	}
+
+	suffix = mr_get_filesuffix_lc(spec);
+	if( strcmp(spec, "keys")==0 ) {
+		/* import self keys */
+		read_cnt = mrmailbox_import(mailbox, MR_IMEX_SELF_KEYS, NULL);
+	}
+	else if( suffix && strcmp(suffix, "eml")==0 ) {
+		/* import a single file */
+		if( mrmailbox_import_eml_file(mailbox, spec) ) { /* errors are logged in any case */
+			read_cnt++;
+		}
+	}
+	else if( suffix && (strcmp(suffix, "pem")==0||strcmp(suffix, "asc")==0) ) {
+		/* import a publix key */
+		char* separator = strchr(spec, ' ');
+		if( separator==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
+			goto cleanup;
+		}
+		*separator = 0;
+		if( import_public_key(mailbox, spec, separator+1) ) {
+			read_cnt++;
+		}
+		*separator = ' ';
+	}
+	else {
+		/* import a directory */
+		if( (dir=opendir(spec))==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", spec);
+			goto cleanup;
+		}
+
+		while( (dir_entry=readdir(dir))!=NULL ) {
+			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
+				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
+				mrmailbox_log_info(mailbox, 0, "Import: %s", path_plus_name);
+				if( path_plus_name ) {
+					if( mrmailbox_import_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
+						read_cnt++;
+					}
+					sqlite3_free(path_plus_name);
+				}
+            }
+		}
+	}
+
+	mrmailbox_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, spec);
+	if( read_cnt > 0 ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+	}
+
+	/* success */
+	success = 1;
+
+	/* cleanup */
+cleanup:
+	if( dir ) {
+		closedir(dir);
+	}
+	free(spec);
+	free(suffix);
+	return success;
+}
+
+
+int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir)
+{
+	return 0;
+}
+
+
 /*******************************************************************************
  * Export
  ******************************************************************************/
@@ -195,6 +205,7 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 	char* file_content = mrkey_render_asc(key);
 	char* file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
 	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	mr_delete_file(file_name, mailbox);
 	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
 	}
@@ -257,8 +268,9 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 		mr_create_folder(dir, mailbox);
 	}
 
-	if( what == MR_EXPORT_SELF_KEYS ) {
+	if( what == MR_IMEX_SELF_KEYS ) {
 		if( !export_self_keys(mailbox, dir) ) { /* export all secret and public keys */
+			s_in_export = 0;
 			goto cleanup;
 		}
 		mrmailbox_log_info(mailbox, 0, "Export done.");

@@ -1084,8 +1084,9 @@ int mrmailbox_is_open(const mrmailbox_t* ths)
 }
 
 
-int mrmailbox_import_file(mrmailbox_t* ths, const char* filename)
+int mrmailbox_import_eml_file(mrmailbox_t* ths, const char* filename)
 {
+	/* mainly for testing, may be called by mrmailbox_import_spec() */
 	int     success = 0;
 	char*   data = NULL;
 	size_t  data_bytes;

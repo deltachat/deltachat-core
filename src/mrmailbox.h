@@ -252,23 +252,19 @@ int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* k
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
 
-/* ImportSpec() imports data from EML-files. if `spec` is a folder, all EML-files are imported, if `spec` is a file,
-a single EML-file is imported, if `spec` is NULL, the last import is done again (you may want to call Empty() before)
-ImportFile() always imports a single file, publiuc */
-int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec);
-int                  mrmailbox_import_file          (mrmailbox_t*, const char* file);
-int                  mrmailbox_import_public_key    (mrmailbox_t*, const char* addr, const char* public_key_file); /* mainly for testing: if the partner does not support Autocrypt, encryption is disabled as soon as the first messages comes from the partner */
-
 /* Export keys, backup etc.
 To avoid double slashes, the given directory should not end with a slash. */
-#define MR_EXPORT_SELF_KEYS 0x01
-#define MR_EXPORT_BACKUP    0x02
+#define MR_IMEX_SELF_KEYS 0x01
+#define MR_EXPORT_BACKUP  0x02
 void                 mrmailbox_export               (mrmailbox_t*, int what, const char* dir);
+int                  mrmailbox_import               (mrmailbox_t*, int what, const char* dir);
+int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec); /* a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command; mainly for testing */
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
+int                  mrmailbox_import_eml_file      (mrmailbox_t*, const char* file);
 int                  mrmailbox_reset_tables         (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
 
 

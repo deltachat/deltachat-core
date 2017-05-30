@@ -219,7 +219,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int flags = 0;
-			if( strcmp(arg1, "keys")==0 )   { flags |= MR_EXPORT_SELF_KEYS; }
+			if( strcmp(arg1, "keys")==0 )   { flags |= MR_IMEX_SELF_KEYS; }
 			if( strcmp(arg1, "backup")==0 ) { flags |= MR_EXPORT_BACKUP; }
 			mrmailbox_export(mailbox, flags, NULL);
 			ret = COMMAND_SUCCEEDED;
