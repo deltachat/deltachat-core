@@ -170,8 +170,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
 		assert( mre2ee_driver_is_valid_key(mailbox, public_key) );
 		assert( mre2ee_driver_is_valid_key(mailbox, private_key) );
-		{char *t1=mrkey_render_base64(public_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n",t1);printf(t2);mr_write_file("/home/bpetersen/temp/stress-public.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
-		{char *t1=mrkey_render_base64(private_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n",t1);printf(t2);mr_write_file("/home/bpetersen/temp/stress-private.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
+		{char *t1=mrkey_render_base64(public_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n%s\n-----END PGP PUBLIC KEY BLOCK-----\n",t1);printf("%s",t2);mr_write_file("/home/bpetersen/temp/stress-public.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
+		{char *t1=mrkey_render_base64(private_key,78,"\n");char* t2=mr_mprintf("-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n%s\n-----END PGP PRIVATE KEY BLOCK-----\n",t1);printf("%s",t2);mr_write_file("/home/bpetersen/temp/stress-private.pem",t2,strlen(t2),mailbox);free(t2);free(t1);}
 
 
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();

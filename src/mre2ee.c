@@ -27,6 +27,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h> /* for getpid() */
+#include <unistd.h>    /* for getpid() */
 #include "mrmailbox.h"
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
@@ -152,13 +154,14 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
  ******************************************************************************/
 
 
-static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr)
+static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr,
+                                         struct mailmime* random_data_mime /*for an extra-seed of the random generator*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( mailbox == NULL || public_key == NULL ) {
+	if( mailbox == NULL || public_key == NULL || random_data_mime == NULL ) {
 		goto cleanup;
 	}
 
@@ -168,6 +171,24 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 		if( s_in_key_creation ) { goto cleanup; }
 		key_creation_here = 1;
 		s_in_key_creation = 1;
+
+		{
+			uintptr_t seed[4];
+			seed[0] = (uintptr_t)time(NULL);     /* time */
+			seed[1] = (uintptr_t)seed;           /* stack */
+			seed[2] = (uintptr_t)public_key;     /* heap */
+			seed[3] = (uintptr_t)pthread_self(); /* thread ID */
+			mre2ee_driver_rand_seed(mailbox, seed, sizeof(seed));
+
+			MMAPString* random_data_mmap = NULL;
+			int col = 0;
+			if( (random_data_mmap=mmap_string_new(""))==NULL ) {
+				goto cleanup;
+			}
+			mailmime_write_mem(random_data_mmap, &col, random_data_mime);
+			mre2ee_driver_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
+			mmap_string_free(random_data_mmap);
+		}
 
 		{
 			mrkey_t* private_key = mrkey_new();
@@ -229,6 +250,20 @@ void mre2ee_init(mrmailbox_t* mailbox)
 	}
 
 	mre2ee_driver_init(mailbox);
+
+	/* Random-seed.  An additional seed with more random data is done just before key generation
+	(the timespan between this call and the key generation time is typically random.
+	Moreover, later, we add a hash of the first message data to the random-seed
+	(it would be okay to seed with even more sensible data, the seed values cannot be recovered from the PRNG output, see OpenSSL's RAND_seed() ) */
+	{
+	uintptr_t seed[5];
+	seed[0] = (uintptr_t)time(NULL);     /* time */
+	seed[1] = (uintptr_t)seed;           /* stack */
+	seed[2] = (uintptr_t)mailbox;        /* heap */
+	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
+	seed[4] = (uintptr_t)getpid();       /* process ID */
+	mre2ee_driver_rand_seed(mailbox, seed, sizeof(seed));
+	}
 }
 
 
@@ -281,7 +316,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 			goto cleanup;
 		}
 
-		if( !load_or_generate_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to) ) {
+		if( !load_or_generate_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to, in_out_message/*only for random-seed*/) ) {
 			goto cleanup;
 		}
 

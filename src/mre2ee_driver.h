@@ -41,6 +41,7 @@ typedef struct mrkeyring_t mrkeyring_t;
 
 void mre2ee_driver_init          (mrmailbox_t*);
 void mre2ee_driver_exit          (mrmailbox_t*);
+void mre2ee_driver_rand_seed     (mrmailbox_t*, const void* buf, size_t bytes);
 int  mre2ee_driver_create_keypair(mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);
 int  mre2ee_driver_is_valid_key  (mrmailbox_t*, const mrkey_t*);
 int  mre2ee_driver_encrypt       (mrmailbox_t*, const void* plain, size_t plain_bytes, const mrkeyring_t*, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);

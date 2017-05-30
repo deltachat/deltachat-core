@@ -40,8 +40,6 @@
 
 
 #include <string.h>
-#include <sys/types.h> /* for getpid() */
-#include <unistd.h>    /* for getpid() */
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
@@ -65,16 +63,6 @@ void mre2ee_driver_init(mrmailbox_t* mailbox)
 	                    libEtPan may call SSL_library_init() again later, however, this should be no problem.
 	                    SSL_library_init() always returns "1", so it is safe to discard the return value */
 
-	/* seed random generator a little bit */
-	{
-	uintptr_t seed[4];
-	seed[0] = (uintptr_t)time(NULL); /* time */
-	seed[1] = (uintptr_t)getpid();   /* process ID */
-	seed[2] = (uintptr_t)seed;       /* stack */
-	seed[3] = (uintptr_t)mailbox;    /* heap */
-	RAND_seed(seed, sizeof(seed));
-	}
-
 	/* setup i/o structure */
 	memset(&s_io, 0, sizeof(pgp_io_t));
 	s_io.outs = stdout;
@@ -85,6 +73,16 @@ void mre2ee_driver_init(mrmailbox_t* mailbox)
 
 void mre2ee_driver_exit(mrmailbox_t* mailbox)
 {
+}
+
+
+void mre2ee_driver_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
+{
+	if( buf == NULL || bytes <= 0 ) {
+		return;
+	}
+
+	RAND_seed(buf, bytes);
 }
 
 
@@ -210,17 +208,6 @@ int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t
 	if( mailbox==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
 	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL ) {
 		goto cleanup;
-	}
-
-	/* seed random generator a little bit */
-	{
-	uintptr_t seed[4];
-	RAND_seed(addr, strlen(addr));   /* user's mail address */
-	seed[0] = (uintptr_t)time(NULL); /* time */
-	seed[1] = (uintptr_t)getpid();   /* process ID */
-	seed[2] = (uintptr_t)&addr;      /* stack */
-	seed[3] = (uintptr_t)addr;       /* heap */
-	RAND_seed(seed, sizeof(seed));
 	}
 
 	/* Generate User ID.  For convention, use the same address as given in `Autocrypt: to=...` in angle brackets
