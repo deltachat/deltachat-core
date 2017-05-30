@@ -326,3 +326,26 @@ char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break
 	return mr_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars);
 }
 
+
+char* mrkey_render_asc(const mrkey_t* ths)
+{
+	char *base64 = NULL, *ret = NULL;
+
+	if( ths==NULL ) {
+		goto cleanup;
+	}
+
+	if( (base64=mrkey_render_base64(ths, 78, "\r\n"))==NULL ) {
+		goto cleanup;
+	}
+
+	ret = mr_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
+		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE",
+		base64,
+		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE");
+
+cleanup:
+	free(base64);
+	return ret;
+}
+

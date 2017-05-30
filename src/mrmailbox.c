@@ -1161,7 +1161,7 @@ int mrmailbox_import_spec(mrmailbox_t* ths, const char* spec__) /* spec is a fil
 			read_cnt++;
 		}
 	}
-	else if( suffix && strcmp(suffix, "pem")==0 ) {
+	else if( suffix && (strcmp(suffix, "pem")==0||strcmp(suffix, "asc")==0) ) {
 		/* import a key */
 		char* separator = strchr(spec, ' ');
 		if( separator==NULL ) {
