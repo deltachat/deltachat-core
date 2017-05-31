@@ -35,7 +35,7 @@ extern "C" {
 /*** library-private **********************************************************/
 
 #ifndef MR_E2EE_DEFAULT_ENABLED
-#define MR_E2EE_DEFAULT_ENABLED 0
+#define MR_E2EE_DEFAULT_ENABLED 1
 #endif
 
 typedef struct mre2ee_helper_t {
