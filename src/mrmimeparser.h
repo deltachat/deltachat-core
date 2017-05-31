@@ -50,9 +50,6 @@ typedef struct mrmimepart_t
 	mrparam_t*          m_param;
 } mrmimepart_t;
 
-mrmimepart_t* mrmimepart_new    ();
-void          mrmimepart_unref  (mrmimepart_t*);
-
 
 typedef struct mrmimeparser_t
 {
@@ -62,6 +59,7 @@ typedef struct mrmimeparser_t
 	struct mailimf_fields* m_header;   /* a pointer somewhere to the MIME data, must not be freed */
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
+	int                    m_sth_decrypted;
 	const char*            m_blobdir;
 
 	char*                  m_fwd_name;

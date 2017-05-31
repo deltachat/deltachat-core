@@ -376,7 +376,8 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0), (int)msg->m_type);
 	}
 
-	ret = mr_mprintf("Date: %s%s\n\n%s",
+	ret = mr_mprintf("E2EE: %i\nDate: %s%s\n\n%s",
+		mrparam_get_int(msg->m_param, 'c', 0),
 		timestr,
 		metadata? metadata : "",
 		rawtxt);

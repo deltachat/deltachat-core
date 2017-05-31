@@ -479,7 +479,7 @@ char* mr_find_first_addr(const struct mailimf_mailbox_list* mb_list)
  ******************************************************************************/
 
 
-mrmimepart_t* mrmimepart_new()
+static mrmimepart_t* mrmimepart_new(void)
 {
 	mrmimepart_t* ths = NULL;
 
@@ -494,7 +494,7 @@ mrmimepart_t* mrmimepart_new()
 }
 
 
-void mrmimepart_unref(mrmimepart_t* ths)
+static void mrmimepart_unref(mrmimepart_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -926,6 +926,9 @@ cleanup:
 	free(desired_filename);
 
 	if( do_add_part ) {
+		if( ths->m_sth_decrypted ) {
+			mrparam_set_int(part->m_param, 'c', 1);
+		}
 		carray_add(ths->m_parts, (void*)part, NULL);
 		return 1; /* part used */
 	}
@@ -1100,7 +1103,9 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	mre2ee_decrypt(ths->m_mailbox, ths->m_mimeroot);
+	if( mre2ee_decrypt(ths->m_mailbox, ths->m_mimeroot) ) {
+		ths->m_sth_decrypted = 1;
+	}
 
 	/* recursively check, whats parsed */
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);

@@ -32,6 +32,7 @@
  * Known keys:
  * 'a' forwarded from this email-address
  * 'A' forwarded from this name
+ * 'c'rypted in original
  * 'f'ile
  * 'w'idth
  * 'h'eight

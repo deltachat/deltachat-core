@@ -572,8 +572,10 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 }
 
 
-void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
+int mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 {
+	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
+	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
 	struct mailimf_fields* imffields = mr_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*           autocryptheader = mraheader_new();
 	int                    autocryptheader_fine = 0;
@@ -582,6 +584,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	mrkeyring_t*           private_keyring = mrkeyring_new();
+	int                    sth_decrypted = 0;
 
 	if( mailbox==NULL || in_out_message==NULL
 	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_keyring==NULL ) {
@@ -670,6 +673,7 @@ void mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring) ) {
 			break;
 		}
+		sth_decrypted = 1;
 		avoid_deadlock--;
 	}
 
@@ -682,5 +686,6 @@ cleanup:
 	mrkeyring_unref(private_keyring);
 	free(from);
 	free(self_addr);
+	return sth_decrypted;
 }
 
