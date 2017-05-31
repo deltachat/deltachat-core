@@ -1183,7 +1183,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char* unset = "0";
 	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled, prv_key_count, pub_key_count;
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -1211,6 +1211,16 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		e2ee_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
 
+		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM keypairs;");
+		sqlite3_step(stmt);
+		prv_key_count = sqlite3_column_int(stmt, 0);
+		sqlite3_finalize(stmt);
+
+		stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM apeerstates;");
+		sqlite3_step(stmt);
+		pub_key_count = sqlite3_column_int(stmt, 0);
+		sqlite3_finalize(stmt);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	l_readable_str = mrloginparam_get_readable(l);
@@ -1234,6 +1244,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"config1=%s\n"
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
+		"Private keys=%i, public keys=%i\n"
 		"\n"
 		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
@@ -1247,6 +1258,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		, e2ee_enabled
 		, MR_E2EE_DEFAULT_ENABLED
+		, prv_key_count, pub_key_count
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor()
