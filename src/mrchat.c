@@ -1263,7 +1263,8 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 
 
 static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
-                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor, int* ret_encrypted)
+                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor,
+                                   int encrypt_to_self, int* ret_encrypted)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1273,6 +1274,8 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	MMAPString*                  ret = NULL;
 	int                          parts = 0;
 	mre2ee_helper_t              e2ee_helper;
+
+	memset(&e2ee_helper, 0, sizeof(mre2ee_helper_t));
 
 	*ret_encrypted = 0;
 
@@ -1396,7 +1399,9 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 
 	/* encrypt the message, if possible; add Autocrypt:-header
 	(encryption may modifiy the given object) */
-	mre2ee_encrypt(chat->m_mailbox, recipients_addr, message, &e2ee_helper);
+	if( encrypt_to_self==0 || mrparam_get_int(msg->m_param, 'c', 0)==1 /*if SMTP-encryption fails, we also do not encrypt to our IMAP-server*/ ) {
+		mre2ee_encrypt(chat->m_mailbox, recipients_addr, encrypt_to_self, message, &e2ee_helper);
+	}
 
 	/* add a subject line */
 	if( e2ee_helper.m_encryption_successfull ) {
@@ -1412,6 +1417,8 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	/* create the full mail and return */
 	ret = mmap_string_new("");
 	mailmime_write_mem(ret, &col, message);
+
+	//{char* t4=mr_null_terminate(ret->str,ret->len); printf("MESSAGE:\n%s\n",t4);free(t4);}
 
 cleanup:
 	if( message ) {
@@ -1536,7 +1543,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, &encrypted);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, 1/*encrypt_to_self*/, &encrypted);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1615,7 +1622,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients_addr) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, &encrypted);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, 0/*encrypt_to_self*/, &encrypted);
 		if( data == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */

@@ -282,7 +282,7 @@ void mre2ee_exit(mrmailbox_t* mailbox)
  ******************************************************************************/
 
 
-void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct mailmime* in_out_message, mre2ee_helper_t* helper)
+void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -349,7 +349,13 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
 		/* encrypt the plain text */
-		mrkeyring_add(keyring, peerstate->m_public_key);
+		if( encrypt_to_self ) {
+			mrkeyring_add(keyring, autocryptheader->m_public_key);
+		}
+		else {
+			mrkeyring_add(keyring, peerstate->m_public_key);
+		}
+
 		if( !mre2ee_driver_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
@@ -379,16 +385,20 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, struct m
 		helper->m_encryption_successfull = 1;
 	}
 
-	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back */
-	if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
-		goto cleanup;
-	}
+	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
+	(we do not add an Autocrypt:-header for the IMAP copy) */
+	if( !encrypt_to_self )
+	{
+		if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
+			goto cleanup;
+		}
 
-	char* p = mraheader_render(autocryptheader);
-	if( p == NULL ) {
-		goto cleanup;
+		char* p = mraheader_render(autocryptheader);
+		if( p == NULL ) {
+			goto cleanup;
+		}
+		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 	}
-	mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
