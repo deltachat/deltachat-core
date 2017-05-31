@@ -209,6 +209,9 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
 	}
+	else {
+		mailbox->m_cb(mailbox, MR_EVENT_EXPORT_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/pgp-keys");
+	}
 	free(file_content);
 	free(file_name);
 }

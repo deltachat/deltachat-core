@@ -91,6 +91,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 
 #define MR_EVENT_EXPORT_ENDED             2050 /* mrmailbox_export done: data1=0:failed, 1=success */
 #define MR_EVENT_EXPORT_PROGRESS          2051
+#define MR_EVENT_EXPORT_FILE_WRITTEN      2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
 
 /* Functions that should be provided by the frontends */
 #define MR_EVENT_IS_ONLINE                2080
