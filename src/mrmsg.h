@@ -121,6 +121,7 @@ void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* jo
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 int          mrmsg_is_increation__            (const mrmsg_t*);
+void         mrmsg_save_param_to_disk__       (mrmsg_t*);
 void         mr_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title);
 #define      MR_GHOST_ID_FORMAT               "G@%lu"
 

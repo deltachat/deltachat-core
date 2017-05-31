@@ -376,9 +376,9 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0), (int)msg->m_type);
 	}
 
-	ret = mr_mprintf("E2EE: %i\nDate: %s%s\n\n%s",
-		mrparam_get_int(msg->m_param, 'c', 0),
+	ret = mr_mprintf("Date: %s\nEncryption: %s%s\n\n%s",
 		timestr,
+		mrparam_get_int(msg->m_param, 'c', 0)? "End-to-end" : "Transport",
 		metadata? metadata : "",
 		rawtxt);
 
@@ -605,6 +605,20 @@ int mrmsg_is_increation(mrmsg_t* msg) /* surrounds mrmsg_is_increation__() with 
 }
 
 
+void mrmsg_save_param_to_disk__(mrmsg_t* msg)
+{
+	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
+		return;
+	}
+
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
+		"UPDATE msgs SET param=? WHERE id=?;");
+	sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, msg->m_id);
+	sqlite3_step(stmt);
+}
+
+
 void mrmsg_save_param_to_disk(mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
@@ -612,13 +626,7 @@ void mrmsg_save_param_to_disk(mrmsg_t* msg)
 	}
 
 	mrsqlite3_lock(msg->m_mailbox->m_sql);
-
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
-			"UPDATE msgs SET param=? WHERE id=?;");
-		sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
-		sqlite3_bind_int (stmt, 2, msg->m_id);
-		sqlite3_step(stmt);
-
+		mrmsg_save_param_to_disk__(msg);
 	mrsqlite3_unlock(msg->m_mailbox->m_sql);
 }
 

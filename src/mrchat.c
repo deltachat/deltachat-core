@@ -1263,7 +1263,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 
 
 static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
-                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor)
+                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor, int* ret_encrypted)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1273,6 +1273,8 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	MMAPString*                  ret = NULL;
 	int                          parts = 0;
 	mre2ee_helper_t              e2ee_helper;
+
+	*ret_encrypted = 0;
 
 	/* create empty mail */
 	{
@@ -1399,6 +1401,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	/* add a subject line */
 	if( e2ee_helper.m_encryption_successfull ) {
 		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+		*ret_encrypted = 1;
 	}
 	else {
 		subject_str = get_subject(chat, msg, afwd_email);
@@ -1515,7 +1518,8 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         predecessor = NULL;
 	char*         server_folder = NULL;
 	uint32_t      server_uid = 0;
-	int           increation; /* we can ignore this state here as it already checked when sending to SMTP */
+	int           increation = 0; /* we can ignore this state here as it already checked when sending to SMTP */
+	int           encrypted = 0;
 
 	/* connect to IMAP-server */
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
@@ -1532,7 +1536,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, &encrypted);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1578,7 +1582,8 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
 	char*         predecessor = NULL;
-	int           increation;
+	int           increation = 0;
+	int           encrypted = 0;
 
 	/* connect to SMTP server, if not yet done */
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
@@ -1610,7 +1615,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients_addr) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, &encrypted);
 		if( data == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1626,10 +1631,17 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	/* done */
 	mrsqlite3_lock(mailbox->m_sql);
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
+
 		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_OUT_DELIVERED);
+		if( encrypted ) {
+			mrparam_set_int(msg->m_param, 'c', 1);
+			mrmsg_save_param_to_disk__(msg);
+		}
+
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0 ) {
 			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, msg->m_id, NULL); /* send message to IMAP in another job */
 		}
+
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
