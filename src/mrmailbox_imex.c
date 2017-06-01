@@ -182,10 +182,15 @@ cleanup:
 
 int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 {
-	int            success = 0;
+	int            imported_count = 0, locked = 0;
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry = NULL;
 	char*          suffix = NULL;
+	char*          path_plus_name = NULL;
+	mrkey_t*       private_key = mrkey_new();
+	mrkey_t*       public_key = mrkey_new();
+	sqlite3_stmt*  stmt = NULL;
+	char*          self_addr = NULL;
 
 	if( mailbox==NULL || dir_name==NULL ) {
 		goto cleanup;
@@ -198,15 +203,47 @@ int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 			goto cleanup;
 		}
 
-		while( (dir_entry=readdir(dir_handle))!=NULL ) {
+		while( (dir_entry=readdir(dir_handle))!=NULL )
+		{
 			free(suffix);
 			suffix = mr_get_filesuffix_lc(dir_entry->d_name);
-			if( suffix ) {
-				if( strcmp(suffix, "asc")==0 ) {
-					char* path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
-					mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
-				}
+			if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
+				continue;
 			}
+
+			free(path_plus_name);
+			path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
+			mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+			if( !mrkey_set_from_file(private_key, path_plus_name, mailbox)
+			 || !mre2ee_driver_is_valid_key(mailbox, private_key)
+			 || !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
+				continue;
+			}
+
+			/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
+			mrsqlite3_lock(mailbox->m_sql);
+			locked = 1;
+
+				stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+				sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+				sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+				sqlite3_step(stmt);
+				sqlite3_finalize(stmt);
+				stmt = NULL;
+
+				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;");
+
+				free(self_addr);
+				self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+				if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
+					mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
+					goto cleanup;
+				}
+
+				imported_count++;
+
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
 		}
 
 	}
@@ -215,12 +252,16 @@ int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 		goto cleanup;
 	}
 
-	success = 1;
-
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( dir_handle ) { closedir(dir_handle); }
 	free(suffix);
-	return success;
+	free(path_plus_name);
+	mrkey_unref(private_key);
+	mrkey_unref(public_key);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(self_addr);
+	return imported_count;
 }
 
 
@@ -261,21 +302,26 @@ static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 	int           id = 0, is_default = 0;
 	mrkey_t*      public_key = mrkey_new();
 	mrkey_t*      private_key = mrkey_new();
+	int           locked = 0;
 
-	if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
-		goto cleanup;
-	}
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-	while( sqlite3_step(stmt)==SQLITE_ROW ) {
-		id = sqlite3_column_int(         stmt, 0  );
-		mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
-		mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
-		is_default = sqlite3_column_int( stmt, 3  );
-		export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
-		export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
-	}
+		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+			goto cleanup;
+		}
+
+		while( sqlite3_step(stmt)==SQLITE_ROW ) {
+			id = sqlite3_column_int(         stmt, 0  );
+			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
+			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
+			is_default = sqlite3_column_int( stmt, 3  );
+			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
+			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
+		}
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( stmt ) { sqlite3_finalize(stmt); }
 	mrkey_unref(public_key);
 	mrkey_unref(private_key);

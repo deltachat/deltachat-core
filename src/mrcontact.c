@@ -687,7 +687,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
 		/* end-to-end encryption, TODO: compare peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
-		mrstrbuilder_cat(&ret, "• End-to-end-encrypted.");
+		mrstrbuilder_cat(&ret, "• End-to-end-encrypted\n\n• Compare fingerprint: TODO ...");
 	}
 	else
 	{
@@ -696,12 +696,12 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
 			/* transport encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "• Transport-encryption at least up to my server.");
+			mrstrbuilder_cat(&ret, "• Transport-encryption at least up to my server");
 		}
 		else
 		{
 			/* no encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "• No encryption to my server.");
+			mrstrbuilder_cat(&ret, "• No encryption to my server");
 		}
 	}
 

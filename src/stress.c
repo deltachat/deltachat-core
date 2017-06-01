@@ -173,6 +173,12 @@ void stress_functions(mrmailbox_t* mailbox)
 		//{char *t1=mrkey_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
 		//{char *t1=mrkey_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
 
+		{
+			mrkey_t *test_key = mrkey_new();
+			assert( mre2ee_driver_split_key(mailbox, private_key, test_key) );
+			assert( mrkey_equals(public_key, test_key) );
+			mrkey_unref(test_key);
+		}
 
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
 		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);

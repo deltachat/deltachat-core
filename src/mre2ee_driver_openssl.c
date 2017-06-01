@@ -334,6 +334,53 @@ cleanup:
 }
 
 
+int mre2ee_driver_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* ret_public_key)
+{
+	int             success = 0;
+	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t*   keysmem = pgp_memory_new();
+	pgp_memory_t*   pubmem = pgp_memory_new();
+	pgp_output_t*   pubout = pgp_output_new();
+
+	if( mailbox == NULL || private_in==NULL || ret_public_key==NULL
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL || pubmem==NULL || pubout==NULL ) {
+		goto cleanup;
+	}
+
+	pgp_memory_add(keysmem, private_in->m_binary, private_in->m_bytes);
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
+
+	if( private_in->m_type!=MR_PRIVATE || private_keys->keyc <= 0 ) {
+		mrmailbox_log_warning(mailbox, 0, "Split key: Given key is no private key.");
+		goto cleanup;
+	}
+
+	if( public_keys->keyc <= 0 ) {
+		mrmailbox_log_warning(mailbox, 0, "Split key: Given key does not contain a public key.");
+		goto cleanup;
+	}
+
+	pgp_writer_set_memory(pubout, pubmem);
+	if( !pgp_write_xfer_key(pubout, &public_keys->keys[0], 0/*armored*/)
+	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
+		goto cleanup;
+	}
+
+	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+
+	success = 1;
+
+cleanup:
+	if( pubout ) { pgp_output_delete(pubout); }
+	if( pubmem ) { pgp_memory_free(pubmem); }
+	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	return success;
+}
+
+
 /*******************************************************************************
  * Encrypt/Decrypt
  ******************************************************************************/
