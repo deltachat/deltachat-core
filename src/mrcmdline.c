@@ -213,7 +213,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "import")==0 )
 	{
-		ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		if( arg1 && strcmp(arg1, "keys")==0 ) {
+			ret = mrmailbox_import(mailbox, MR_IMEX_SELF_KEYS, mailbox->m_blobdir)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
 	}
 	else if( strcmp(cmd, "export")==0 )
 	{
@@ -221,7 +226,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			int flags = 0;
 			if( strcmp(arg1, "keys")==0 )   { flags |= MR_IMEX_SELF_KEYS; }
 			if( strcmp(arg1, "backup")==0 ) { flags |= MR_EXPORT_BACKUP; }
-			mrmailbox_export(mailbox, flags, NULL);
+			mrmailbox_export(mailbox, flags, mailbox->m_blobdir);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {

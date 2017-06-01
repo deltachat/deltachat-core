@@ -122,11 +122,7 @@ int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a
 	}
 
 	suffix = mr_get_filesuffix_lc(spec);
-	if( strcmp(spec, "keys")==0 ) {
-		/* import self keys */
-		read_cnt = mrmailbox_import(mailbox, MR_IMEX_SELF_KEYS, NULL);
-	}
-	else if( suffix && strcmp(suffix, "eml")==0 ) {
+	if( suffix && strcmp(suffix, "eml")==0 ) {
 		/* import a single file */
 		if( mrmailbox_import_eml_file(mailbox, spec) ) { /* errors are logged in any case */
 			read_cnt++;
@@ -155,14 +151,12 @@ int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a
 		while( (dir_entry=readdir(dir))!=NULL ) {
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
-				char* path_plus_name = sqlite3_mprintf("%s/%s", spec, name);
+				char* path_plus_name = mr_mprintf("%s/%s", spec, name);
 				mrmailbox_log_info(mailbox, 0, "Import: %s", path_plus_name);
-				if( path_plus_name ) {
-					if( mrmailbox_import_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
-						read_cnt++;
-					}
-					sqlite3_free(path_plus_name);
+				if( mrmailbox_import_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
+					read_cnt++;
 				}
+				free(path_plus_name);
             }
 		}
 	}
@@ -186,9 +180,47 @@ cleanup:
 }
 
 
-int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir)
+int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 {
-	return 0;
+	int            success = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry = NULL;
+	char*          suffix = NULL;
+
+	if( mailbox==NULL || dir_name==NULL ) {
+		goto cleanup;
+	}
+
+	if( what == MR_IMEX_SELF_KEYS )
+	{
+		if( (dir_handle=opendir(dir_name))==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
+			goto cleanup;
+		}
+
+		while( (dir_entry=readdir(dir_handle))!=NULL ) {
+			free(suffix);
+			suffix = mr_get_filesuffix_lc(dir_entry->d_name);
+			if( suffix ) {
+				if( strcmp(suffix, "asc")==0 ) {
+					char* path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
+					mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+				}
+			}
+		}
+
+	}
+	else
+	{
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	if( dir_handle ) { closedir(dir_handle); }
+	free(suffix);
+	return success;
 }
 
 
@@ -255,7 +287,7 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 {
 	int success = 0;
 
-	if( mailbox==NULL ) {
+	if( mailbox==NULL || dir==NULL ) {
 		return; /* do not go to cleanup as mailbox->m_cb() won't work */
 	}
 
@@ -271,12 +303,7 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 		goto cleanup;
 	}
 
-	if( dir==NULL ) {
-		dir = mailbox->m_blobdir;
-	}
-	else {
-		mr_create_folder(dir, mailbox);
-	}
+	mr_create_folder(dir, mailbox);
 
 	if( what == MR_IMEX_SELF_KEYS ) {
 		if( !export_self_keys(mailbox, dir) ) { /* export all secret and public keys */
