@@ -200,10 +200,16 @@ int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir)
 static int s_in_export = 0;
 
 
-static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key)
+static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
 {
 	char* file_content = mrkey_render_asc(key);
-	char* file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+	char* file_name;
+	if( is_default ) {
+		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
+	}
+	else {
+		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+	}
 	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
 	mr_delete_file(file_name, mailbox);
 	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
@@ -220,11 +226,11 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 {
 	sqlite3_stmt* stmt = NULL;
-	int           id = 0;
+	int           id = 0, is_default = 0;
 	mrkey_t*      public_key = mrkey_new();
 	mrkey_t*      private_key = mrkey_new();
 
-	if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key FROM keypairs;"))==NULL ) {
+	if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 		goto cleanup;
 	}
 
@@ -232,8 +238,9 @@ static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 		id = sqlite3_column_int(         stmt, 0  );
 		mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
 		mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
-		export_key_to_asc_file(mailbox, dir, id, public_key);
-		export_key_to_asc_file(mailbox, dir, id, private_key);
+		is_default = sqlite3_column_int( stmt, 3  );
+		export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
+		export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
 	}
 
 cleanup:
