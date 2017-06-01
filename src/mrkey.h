@@ -69,7 +69,8 @@ int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sq
 char* mr_render_base64   (const void* buf, size_t buf_bytes, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
 char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
 char* mrkey_render_asc   (const mrkey_t*); /* the result must be freed */
-
+char* mrkey_render_fingerprint(const mrkey_t*, mrmailbox_t* mailbox);
+char* mr_render_fingerprint(const uint8_t* data, size_t bytes);
 
 #ifdef __cplusplus
 } /* /extern "C" */

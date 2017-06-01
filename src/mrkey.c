@@ -31,6 +31,7 @@
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
+#include "mre2ee_driver.h"
 #include "mrtools.h"
 
 
@@ -396,5 +397,46 @@ char* mrkey_render_asc(const mrkey_t* ths)
 cleanup:
 	free(base64);
 	return ret;
+}
+
+
+char* mr_render_fingerprint(const uint8_t* data, size_t bytes)
+{
+	int i;
+	char* temp;
+
+	if( data ==NULL || bytes <= 0 ) {
+		return safe_strdup("ErrFingerprint2");
+	}
+
+	char* ret = malloc(bytes*3+1); if( ret==NULL ) { exit(46); }
+	ret[0] = 0;
+
+	for( i = 0; i < bytes; i++ ) {
+		temp = mr_mprintf("%02X ", (int)data[i]);
+		strcat(ret, temp);
+		free(temp);
+	}
+
+	return ret;
+}
+
+
+char* mrkey_render_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
+{
+	uint8_t* fingerprint_buf = NULL;
+	size_t   fingerprint_bytes = 0;
+
+	if( key==NULL || mailbox == NULL ) {
+		return safe_strdup("ErrFingerprint0");
+	}
+
+	if( !mre2ee_driver_calc_fingerprint(mailbox, key, &fingerprint_buf, &fingerprint_bytes) ) {
+		return safe_strdup("ErrFingerprint1");
+	}
+
+	char* fingerprint_str = mr_render_fingerprint(fingerprint_buf, fingerprint_bytes);
+	free(fingerprint_buf);
+	return fingerprint_str;
 }
 

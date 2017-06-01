@@ -39,6 +39,7 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
+#include "mrkey.h"
 
 
 /*******************************************************************************
@@ -1181,9 +1182,10 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char* unset = "0";
-	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL;
+	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled, prv_key_count, pub_key_count;
+	mrkey_t* self_public = mrkey_new();
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -1221,6 +1223,13 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		pub_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
+		if( mrkey_load_self_public__(self_public, l2->m_addr, ths->m_sql) ) {
+			fingerprint_str = mrkey_render_fingerprint(self_public, ths);
+		}
+		else {
+			fingerprint_str = safe_strdup("<Not yet calculated>");
+		}
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	l_readable_str = mrloginparam_get_readable(l);
@@ -1244,7 +1253,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"config1=%s\n"
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
-		"Private keys=%i, public keys=%i\n"
+		"Private keys=%i, public keys=%i, fingerprint=%s\n"
 		"\n"
 		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */
@@ -1258,7 +1267,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		, e2ee_enabled
 		, MR_E2EE_DEFAULT_ENABLED
-		, prv_key_count, pub_key_count
+		, prv_key_count, pub_key_count, fingerprint_str
 
 		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor()
@@ -1273,7 +1282,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
-
+	free(fingerprint_str);
+	mrkey_unref(self_public);
 	return info; /* must be freed by the caller */
 }
 

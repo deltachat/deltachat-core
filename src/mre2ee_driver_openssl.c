@@ -334,6 +334,47 @@ cleanup:
 }
 
 
+int mre2ee_driver_calc_fingerprint(mrmailbox_t* mailbox, const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
+{
+	int             success = 0;
+	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t*   keysmem = pgp_memory_new();
+
+	if( mailbox==NULL || raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
+	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
+		goto cleanup;
+	}
+
+	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
+
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
+
+	if( raw_key->m_type != MR_PUBLIC || public_keys->keyc <= 0 ) {
+		goto cleanup;
+	}
+
+	pgp_key_t* key0 = &public_keys->keys[0];
+	pgp_pubkey_t* pubkey0 = &key0->key.pubkey;
+	if( !pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0) ) {
+		goto cleanup;
+	}
+
+	*ret_fingerprint_bytes = key0->pubkeyfpr.length;
+    *ret_fingerprint = malloc(*ret_fingerprint_bytes);
+	memcpy(*ret_fingerprint, key0->pubkeyfpr.fingerprint, *ret_fingerprint_bytes);
+
+	success = 1;
+
+cleanup:
+	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	return success;
+}
+
+
 int mre2ee_driver_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* ret_public_key)
 {
 	int             success = 0;
