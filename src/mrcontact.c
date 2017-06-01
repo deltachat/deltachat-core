@@ -656,6 +656,15 @@ cleanup:
 }
 
 
+static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* fingerprint_str)
+{
+	mrstrbuilder_cat(ret, addr);
+	mrstrbuilder_cat(ret, ":\n");
+	mrstrbuilder_cat(ret, fingerprint_str);
+	mrstrbuilder_cat(ret, "\n\n");
+}
+
+
 char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
@@ -664,6 +673,9 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	mrcontact_t*    contact = mrcontact_new();
 	mrapeerstate_t* peerstate = mrapeerstate_new();
 	int             peerstate_ok = 0;
+	mrkey_t*        self_key = mrkey_new();
+	char*           fingerprint_str_self = NULL;
+	char*           fingerprint_str_other = NULL;
 
 	mrstrbuilder_t  ret;
 	mrstrbuilder_init(&ret);
@@ -678,6 +690,8 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
 		e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
 
+		mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
@@ -686,22 +700,34 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	 && peerstate->m_prefer_encrypted!=MRA_PE_NO
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
-		/* end-to-end encryption, TODO: compare peer and self fingerprint, sorted by email-address (to make a device-side-by-side comparison easier) */
-		mrstrbuilder_cat(&ret, "• End-to-end-encrypted\n\n• Compare fingerprint: TODO ...");
+		/* end-to-end encrypted, show keys for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
+		fingerprint_str_self = mrkey_render_fingerprint(self_key, mailbox);
+		fingerprint_str_other = mrkey_render_fingerprint(peerstate->m_public_key, mailbox);
+
+		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
+			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
+			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
+		}
+		else {
+			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
+			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
+		}
+
+		mrstrbuilder_cat(&ret, "If both keys match on the other device, the connection is safe.");
 	}
 	else
 	{
-		mrstrbuilder_cat(&ret, "• No key available.\n\n");
+		mrstrbuilder_cat(&ret, "No keys available, ");
 		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
 		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
 			/* transport encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "• Transport-encryption at least up to my server");
+			mrstrbuilder_cat(&ret, "transport-encryption at least up to my server.");
 		}
 		else
 		{
 			/* no encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "• No encryption to my server");
+			mrstrbuilder_cat(&ret, "no encryption to my server.");
 		}
 	}
 
@@ -710,6 +736,9 @@ cleanup:
 	mrapeerstate_unref(peerstate);
 	mrcontact_unref(contact);
 	mrloginparam_unref(loginparam);
+	mrkey_unref(self_key);
+	free(fingerprint_str_self);
+	free(fingerprint_str_other);
 	return ret.m_buf;
 }
 
