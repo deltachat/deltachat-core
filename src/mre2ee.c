@@ -386,19 +386,17 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 	}
 
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
-	(we do not add an Autocrypt:-header for the IMAP copy) */
-	if( !encrypt_to_self )
-	{
-		if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
-			goto cleanup;
-		}
-
-		char* p = mraheader_render(autocryptheader);
-		if( p == NULL ) {
-			goto cleanup;
-		}
-		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
+	(the Autocrypt:-header in the IMAP copy is needed to detect the presence of the first Autocrypt:-client if the user tries to enable multiple device
+	(we show a warning then to avoid the generation of a second keypair and to allow the user to import the first key)) */
+	if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
+		goto cleanup;
 	}
+
+	char* p = mraheader_render(autocryptheader);
+	if( p == NULL ) {
+		goto cleanup;
+	}
+	mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
