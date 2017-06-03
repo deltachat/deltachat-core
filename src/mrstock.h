@@ -56,6 +56,12 @@ extern "C" {
 #define MR_STR_NONETWORK        22
 #define MR_STR_GIF              23
 #define MR_STR_ENCRYPTEDMSG     24
+#define MR_STR_ENCR_E2E         25
+#define MR_STR_ENCR_E2E_EXPLN   26
+#define MR_STR_ENCR_TRANSP      27
+#define MR_STR_ENCR_NONE        28
+#define MR_STR_ENCR_NOE2E_EXPLN 29
+#define MR_STR_FINGERPRINTS     30
 
 
 /*** library-private **********************************************************/

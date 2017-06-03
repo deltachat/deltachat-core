@@ -155,7 +155,7 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
 
 
 static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr,
-                                              struct mailmime* random_data_mime /*for an extra-seed of the random generator*/)
+                                              struct mailmime* random_data_mime /*for an extra-seed of the random generator. For speed reasons, only give _available_ pointers here, do not create any data - in very most cases, the key is not generated!*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
 	int        key_created = 0;

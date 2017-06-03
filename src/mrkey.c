@@ -409,11 +409,11 @@ char* mr_render_fingerprint(const uint8_t* data, size_t bytes)
 		return safe_strdup("ErrFingerprint2");
 	}
 
-	char* ret = malloc(bytes*3+1); if( ret==NULL ) { exit(46); }
+	char* ret = malloc(bytes*4+1); if( ret==NULL ) { exit(46); }
 	ret[0] = 0;
 
 	for( i = 0; i < bytes; i++ ) {
-		temp = mr_mprintf("%02X ", (int)data[i]);
+		temp = mr_mprintf("%02X%s", (int)data[i], (i==6||i==13)?"\n":" ");
 		strcat(ret, temp);
 		free(temp);
 	}

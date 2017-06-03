@@ -68,6 +68,12 @@ static char* default_string(int id, int qty)
 		case MR_STR_ERROR:         return safe_strdup("Error: %1$s");
 		case MR_STR_SELFNOTINGRP:  return safe_strdup("You must be a member of the group to perform this action.");
 		case MR_STR_NONETWORK:     return safe_strdup("No network available.");
+		case MR_STR_ENCR_E2E:      return safe_strdup("End-to-end-encrypted.");
+		case MR_STR_ENCR_E2E_EXPLN:return safe_strdup("");
+		case MR_STR_ENCR_TRANSP:   return safe_strdup("Transport-encryption.");
+		case MR_STR_ENCR_NONE:     return safe_strdup("No encryption.");
+		case MR_STR_ENCR_NOE2E_EXPLN:return safe_strdup("");
+		case MR_STR_FINGERPRINTS:  return safe_strdup("Fingerprints");
 	}
 	return safe_strdup("ErrStr");
 }

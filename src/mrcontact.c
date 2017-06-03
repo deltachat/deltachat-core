@@ -32,6 +32,7 @@
 #include "mrcontact.h"
 #include "mrloginparam.h"
 #include "mre2ee.h"
+#include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
 
@@ -676,6 +677,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	mrkey_t*        self_key = mrkey_new();
 	char*           fingerprint_str_self = NULL;
 	char*           fingerprint_str_other = NULL;
+	char*           p;
 
 	mrstrbuilder_t  ret;
 	mrstrbuilder_init(&ret);
@@ -700,7 +702,23 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	 && peerstate->m_prefer_encrypted!=MRA_PE_NO
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
+		/* end-to-end encrypted, if we got the key from the contact but have no own key yet, generate one. */
+		if( self_key->m_binary == NULL ) {
+			mre2ee_driver_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
+			mre2ee_make_sure_private_key_exists(mailbox);
+			mrsqlite3_lock(mailbox->m_sql);
+			locked = 1;
+				mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
+		}
+
 		/* end-to-end encrypted, show keys for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
+		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
+		mrstrbuilder_cat(&ret, " ");
+		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
+		mrstrbuilder_cat(&ret, ":\n\n");
+
 		fingerprint_str_self = mrkey_render_fingerprint(self_key, mailbox);
 		fingerprint_str_other = mrkey_render_fingerprint(peerstate->m_public_key, mailbox);
 
@@ -713,22 +731,24 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
 		}
 
-		mrstrbuilder_cat(&ret, "If both keys match on the other device, the connection is safe.");
+		p = mrstock_str(MR_STR_ENCR_E2E_EXPLN); mrstrbuilder_cat(&ret, p); free(p);
 	}
 	else
 	{
-		mrstrbuilder_cat(&ret, "No keys available, ");
 		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
 		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
 			/* transport encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "transport-encryption at least up to my server.");
+			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
 		}
 		else
 		{
 			/* no encryption at least up to the user's server */
-			mrstrbuilder_cat(&ret, "no encryption to my server.");
+			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
 		}
+
+		mrstrbuilder_cat(&ret, "\n\n");
+		p = mrstock_str(MR_STR_ENCR_NOE2E_EXPLN); mrstrbuilder_cat(&ret, p); free(p);
 	}
 
 cleanup:
