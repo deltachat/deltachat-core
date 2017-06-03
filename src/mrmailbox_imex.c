@@ -349,6 +349,11 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 		goto cleanup;
 	}
 
+	if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Export: Cannot create private key or private key not available.");
+		goto cleanup;
+	}
+
 	mr_create_folder(dir, mailbox);
 
 	if( what == MR_IMEX_SELF_KEYS ) {

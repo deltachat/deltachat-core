@@ -154,14 +154,14 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
  ******************************************************************************/
 
 
-static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr,
-                                         struct mailmime* random_data_mime /*for an extra-seed of the random generator*/)
+static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr,
+                                              struct mailmime* random_data_mime /*for an extra-seed of the random generator*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( mailbox == NULL || public_key == NULL || random_data_mime == NULL ) {
+	if( mailbox == NULL || public_key == NULL ) {
 		goto cleanup;
 	}
 
@@ -172,6 +172,7 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 		key_creation_here = 1;
 		s_in_key_creation = 1;
 
+		/* seed the random generator */
 		{
 			uintptr_t seed[4];
 			seed[0] = (uintptr_t)time(NULL);     /* time */
@@ -180,14 +181,16 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 			seed[3] = (uintptr_t)pthread_self(); /* thread ID */
 			mre2ee_driver_rand_seed(mailbox, seed, sizeof(seed));
 
-			MMAPString* random_data_mmap = NULL;
-			int col = 0;
-			if( (random_data_mmap=mmap_string_new(""))==NULL ) {
-				goto cleanup;
+			if( random_data_mime ) {
+				MMAPString* random_data_mmap = NULL;
+				int col = 0;
+				if( (random_data_mmap=mmap_string_new(""))==NULL ) {
+					goto cleanup;
+				}
+				mailmime_write_mem(random_data_mmap, &col, random_data_mime);
+				mre2ee_driver_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
+				mmap_string_free(random_data_mmap);
 			}
-			mailmime_write_mem(random_data_mmap, &col, random_data_mime);
-			mre2ee_driver_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
-			mmap_string_free(random_data_mmap);
 		}
 
 		{
@@ -234,6 +237,39 @@ static int load_or_generate_public_key__(mrmailbox_t* mailbox, mrkey_t* public_k
 
 cleanup:
 	if( key_creation_here ) { s_in_key_creation = 0; }
+	return success;
+}
+
+
+int mre2ee_make_sure_private_key_exists(mrmailbox_t* mailbox)
+{
+	/* normally, the key is generated as soon as the first mail is send
+	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
+	int      success = 0, locked = 0;
+	mrkey_t* public_key = mrkey_new();
+	char*    self_addr = NULL;
+
+	if( mailbox==NULL || public_key==NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
+			goto cleanup;
+		}
+
+		if( !load_or_generate_self_public_key__(mailbox, public_key, self_addr, NULL/*no random text data for seeding available*/) ) {
+			goto cleanup;
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrkey_unref(public_key);
+	free(self_addr);
 	return success;
 }
 
@@ -316,7 +352,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 			goto cleanup;
 		}
 
-		if( !load_or_generate_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to, in_out_message/*only for random-seed*/) ) {
+		if( !load_or_generate_self_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to, in_out_message/*only for random-seed*/) ) {
 			goto cleanup;
 		}
 
