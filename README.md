@@ -4,7 +4,7 @@ Delta Chat Core
 **Delta Chat** is a project that aims to create a messaging app that is
 completely **compatible** to the existing e-mail infrastructure.
 
-![Logo](https://delta.chat/public/images/features/start-img4.png)
+![Logo](https://delta.chat/assets/features/start-img4.png)
 
 So, with Delta Chat you get the **ease** of well-known messengers with the
 **reach** of e-mail. Moreover, you're **independent** from other companies or
