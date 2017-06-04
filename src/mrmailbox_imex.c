@@ -28,6 +28,7 @@
 #include <string.h>
 #include <dirent.h>
 #include "mrmailbox.h"
+#include "mrosnative.h"
 #include "mraheader.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
@@ -284,6 +285,7 @@ cleanup:
 
 
 static int s_in_export = 0;
+pthread_t  s_backup_thread;
 
 
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
@@ -344,6 +346,49 @@ cleanup:
 }
 
 
+static void* backup_thread_entry_point(void* entry_arg)
+{
+	int                success = 0, locked = 0, closed = 0;
+	mrmailbox_t*       mailbox = (mrmailbox_t*)entry_arg;
+
+	mrosnative_setup_thread(mailbox); /* must be very first */
+	mrmailbox_log_info(mailbox, 0, "Backup-thread started.");
+
+	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
+
+	//TODO
+
+	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+	mrsqlite3_close__(mailbox->m_sql);
+	closed = 1;
+
+	/* copy file to backup directory */
+
+	//TODO
+
+	/* unlock and re-open the source and make it availabe again for the normal use */
+	mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile);
+	closed = 0;
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	/* add all files as blobs to the database copy (this does not require the source to be locked) */
+
+	s_in_export = 1;
+
+cleanup:
+	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrmailbox_log_info(mailbox, 0, "Backup-thread ended.");
+	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
+	s_in_export = 0;
+	mrosnative_unsetup_thread(mailbox); /* must be very last */
+	return NULL;
+}
+
+
 void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 {
 	int success = 0;
@@ -379,6 +424,11 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 		mrmailbox_log_info(mailbox, 0, "Export done.");
 		success = 1;
 		s_in_export = 0;
+	}
+	else if( what == MR_EXPORT_BACKUP ) {
+		s_in_export = 1;
+		memset(&s_backup_thread, 0, sizeof(pthread_t));
+		pthread_create(&s_backup_thread, NULL, backup_thread_entry_point, mailbox);
 	}
 	else {
 		s_in_export = 0;

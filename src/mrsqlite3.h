@@ -156,7 +156,7 @@ typedef struct mrsqlite3_t
 	/* helper for MrSqlite3Transaction */
 	int           m_transactionCount;
 
-	mrmailbox_t*  m_mailbox;
+	mrmailbox_t*  m_mailbox; /* used for logging and to acquire wakelocks, there may be N mrsqlite_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
 
 	/* the user must make sure, only one thread uses sqlite at the same time!
 	for this purpose, all calls must be enclosed by a locked m_critical; use mrsqlite3_lock() for this purpose */
