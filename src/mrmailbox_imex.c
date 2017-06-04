@@ -312,7 +312,7 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 {
 	sqlite3_stmt* stmt = NULL;
-	int           id = 0, is_default = 0;
+	int           success = 0, id = 0, is_default = 0;
 	mrkey_t*      public_key = mrkey_new();
 	mrkey_t*      private_key = mrkey_new();
 	int           locked = 0;
@@ -333,12 +333,14 @@ static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
 		}
 
+		success = 1;
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( stmt ) { sqlite3_finalize(stmt); }
 	mrkey_unref(public_key);
 	mrkey_unref(private_key);
-	return 0;
+	return success;
 }
 
 
