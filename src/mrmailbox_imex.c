@@ -214,9 +214,22 @@ int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 			free(path_plus_name);
 			path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
 			mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
-			if( !mrkey_set_from_file(private_key, path_plus_name, mailbox)
-			 || !mre2ee_driver_is_valid_key(mailbox, private_key)
-			 || !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
+			if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
+				mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
+				continue;
+			}
+
+			if( private_key->m_type!=MR_PRIVATE ) {
+				continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
+			}
+
+			if( !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
+				mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
+				continue;
+			}
+
+			if( !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
+				mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
 				continue;
 			}
 
