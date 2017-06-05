@@ -284,8 +284,16 @@ cleanup:
  ******************************************************************************/
 
 
-static int s_in_export = 0;
-pthread_t  s_backup_thread;
+typedef struct mrexportthreadparam_t
+{
+	mrmailbox_t* m_mailbox;
+	int          m_what;
+	char*        m_dir;
+} mrexportthreadparam_t;
+
+
+static pthread_t s_export_thread;
+static int       s_export_thread_created = 0;
 
 
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
@@ -346,13 +354,9 @@ cleanup:
 }
 
 
-static void* backup_thread_entry_point(void* entry_arg)
+static int export_backup(mrmailbox_t* mailbox)
 {
-	int                success = 0, locked = 0, closed = 0;
-	mrmailbox_t*       mailbox = (mrmailbox_t*)entry_arg;
-
-	mrosnative_setup_thread(mailbox); /* must be very first */
-	mrmailbox_log_info(mailbox, 0, "Backup-thread started.");
+	int success = 0, locked = 0, closed = 0;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
 
@@ -376,64 +380,80 @@ static void* backup_thread_entry_point(void* entry_arg)
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked) */
 
-	s_in_export = 1;
+	//TODO
 
-cleanup:
+	/* done */
+	success = 1;
+
+//cleanup:
 	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrmailbox_log_info(mailbox, 0, "Backup-thread ended.");
-	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
-	s_in_export = 0;
-	mrosnative_unsetup_thread(mailbox); /* must be very last */
+	return success;
+}
+
+
+static void* export_thread_entry_point(void* entry_arg)
+{
+	int                    success = 0;
+	mrexportthreadparam_t* thread_param = (mrexportthreadparam_t*)entry_arg;
+
+	mrosnative_setup_thread(thread_param->m_mailbox); /* must be first */
+	mrmailbox_log_info(thread_param->m_mailbox, 0, "Backup-thread started.");
+
+	if( !mrsqlite3_is_open(thread_param->m_mailbox->m_sql) ) {
+        mrmailbox_log_error(thread_param->m_mailbox, 0, "Export: Database not opened.");
+		goto cleanup;
+	}
+
+	if( !mre2ee_make_sure_private_key_exists(thread_param->m_mailbox) ) {
+		mrmailbox_log_error(thread_param->m_mailbox, 0, "Export: Cannot create private key or private key not available.");
+		goto cleanup;
+	}
+
+	mr_create_folder(thread_param->m_dir, thread_param->m_mailbox);
+
+	if( thread_param->m_what == MR_IMEX_SELF_KEYS ) {
+		if( !export_self_keys(thread_param->m_mailbox, thread_param->m_dir) ) { /* export all secret and public keys */
+			goto cleanup;
+		}
+	}
+	else if( thread_param->m_what == MR_EXPORT_BACKUP ) {
+		if( !export_backup(thread_param->m_mailbox) ) {
+			goto cleanup;
+		}
+	}
+
+	success = 1;
+
+cleanup:
+	mrmailbox_log_info(thread_param->m_mailbox, 0, "Backup-thread ended.");
+	thread_param->m_mailbox->m_cb(thread_param->m_mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
+	s_export_thread_created = 0;
+	free(thread_param->m_dir);
+	free(thread_param);
+	mrosnative_unsetup_thread(thread_param->m_mailbox); /* must be very last */
 	return NULL;
 }
 
 
 void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 {
-	int success = 0;
+	mrexportthreadparam_t* thread_param;
 
-	if( mailbox==NULL || dir==NULL ) {
-		return; /* do not go to cleanup as mailbox->m_cb() won't work */
+	if( mailbox==NULL || mailbox->m_sql==NULL || dir==NULL ) {
+		return;
 	}
 
-	if( s_in_export ) {
+	if( s_export_thread_created ) {
 		mrmailbox_log_warning(mailbox, 0, "Already exporting.");
+		return;
 	}
-	s_in_export = 1;
+	s_export_thread_created = 1;
 
-	mrmailbox_log_info(mailbox, 0, "Starting export ...");
-
-	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-        mrmailbox_log_error(mailbox, 0, "Export: Database not opened.");
-		goto cleanup;
-	}
-
-	if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Export: Cannot create private key or private key not available.");
-		goto cleanup;
-	}
-
-	mr_create_folder(dir, mailbox);
-
-	if( what == MR_IMEX_SELF_KEYS ) {
-		if( !export_self_keys(mailbox, dir) ) { /* export all secret and public keys */
-			s_in_export = 0;
-			goto cleanup;
-		}
-		mrmailbox_log_info(mailbox, 0, "Export done.");
-		success = 1;
-		s_in_export = 0;
-	}
-	else if( what == MR_EXPORT_BACKUP ) {
-		s_in_export = 1;
-		memset(&s_backup_thread, 0, sizeof(pthread_t));
-		pthread_create(&s_backup_thread, NULL, backup_thread_entry_point, mailbox);
-	}
-	else {
-		s_in_export = 0;
-	}
-
-cleanup:
-	if( !s_in_export ) { mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0); }
+	memset(&s_export_thread, 0, sizeof(pthread_t));
+	thread_param = calloc(1, sizeof(mrexportthreadparam_t));
+	thread_param->m_mailbox = mailbox;
+	thread_param->m_what = what;
+	thread_param->m_dir = safe_strdup(dir);
+	pthread_create(&s_export_thread, NULL, export_thread_entry_point, thread_param);
 }
