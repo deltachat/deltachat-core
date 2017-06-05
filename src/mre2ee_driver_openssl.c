@@ -317,9 +317,7 @@ int mre2ee_driver_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
 
 	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
 
-	if( !pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem) ) {
-		goto cleanup;
-	}
+	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
 	if( raw_key->m_type == MR_PUBLIC && public_keys->keyc >= 1 ) {
 		key_is_valid = 1;
