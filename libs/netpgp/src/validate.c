@@ -927,9 +927,9 @@ pgp_filter_keys_from_mem(
     filter.destpubring = destpubring;
     filter.destsecring = destsecring;
 
-	//stream = pgp_new(sizeof(*stream));                            -- Memory leak fixed by Delta Chat: not needed, stream is overwritten in
-	//pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED); -- pgp_setup_memory_read()
+	//stream = pgp_new(sizeof(*stream)); -- Memory leak fixed by Delta Chat: not needed, stream is overwritten in pgp_setup_memory_read()
 	pgp_setup_memory_read(io, &stream, mem, &vdata, pgp_validate_key_cb, 1);
+	pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED); // the original code does not set PGP_PARSE_PARSED, however this seems to be a bug as this function was called before pgp_setup_memory_read() - as pgp_filter_keys_fileread() uses the same callback, I assume, PGP_PARSE_PARSED is the expected behaviour.
 
 	if (armour) {
 		pgp_reader_push_dearmour(stream);
