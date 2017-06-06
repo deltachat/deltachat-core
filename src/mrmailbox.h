@@ -62,7 +62,7 @@ typedef struct mre2ee_driver_t mre2ee_driver_t;
 
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    9
-#define MR_VERSION_REVISION 1
+#define MR_VERSION_REVISION 2
 
 
 /* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes
@@ -87,10 +87,10 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
 
 #define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
-#define MR_EVENT_CONFIGURE_PROGRESS       2041
+#define MR_EVENT_CONFIGURE_PROGRESS       2041 /* data1=percent */
 
 #define MR_EVENT_EXPORT_ENDED             2050 /* mrmailbox_export done: data1=0:failed, 1=success */
-#define MR_EVENT_EXPORT_PROGRESS          2051
+#define MR_EVENT_EXPORT_PROGRESS          2051 /* data1=percent */
 #define MR_EVENT_EXPORT_FILE_WRITTEN      2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
 
 /* Functions that should be provided by the frontends */

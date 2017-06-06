@@ -1521,6 +1521,7 @@ int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NUL
 		close(fd_src);
 		fd_src = -1;
 		if( mr_get_filebytes(src)!=0 ) {
+			mrmailbox_log_error(log, 0, "Different size informatio for \"%s\".", bytes_read, dest);
 			goto cleanup;
 		}
     }

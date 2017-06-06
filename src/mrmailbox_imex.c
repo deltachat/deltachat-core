@@ -368,6 +368,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	void*          buf = NULL;
 	size_t         buf_bytes = 0;
 	sqlite3_stmt*  stmt = NULL;
+	int            total_files_count = 0, processed_files_count = 0;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
 	{
@@ -376,6 +377,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, MR_BAK_PREFIX "-%Y-%m-%d." MR_BAK_SUFFIX, timeinfo);
 		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
 	}
@@ -389,7 +391,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	/* copy file to backup directory */
 	mrmailbox_log_info(mailbox, 0, "Backup \"%s\" to \"%s\".", mailbox->m_dbfile, dest_pathNfilename);
 	if( !mr_copy_file(mailbox->m_dbfile, dest_pathNfilename, mailbox) ) {
-		goto cleanup;
+		goto cleanup; /* error already logged */
 	}
 
 	/* unlock and re-open the source and make it availabe again for the normal use */
@@ -401,50 +403,80 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=mrsqlite3_new(mailbox/*for logging only*/))==NULL
 	 || !mrsqlite3_open__(dest_sql, dest_pathNfilename) ) {
-		goto cleanup;
+		goto cleanup; /* error already logged */
 	}
 
 	if( !mrsqlite3_table_exists__(dest_sql, "backup_blobs") ) {
 		if( !mrsqlite3_execute__(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
-			goto cleanup;
+			goto cleanup; /* error already logged */
 		}
 	}
 
 	mrsqlite3_set_config_int__(dest_sql, "backup_time", now);
 	mrsqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
 
+	/* scan directory, pass 1: collect file info */
+	total_files_count = 0;
 	if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Backup: Cannot open blob-directory \"%s\".", mailbox->m_blobdir);
+		mrmailbox_log_error(mailbox, 0, "Backup: Cannot get info for blob-directory \"%s\".", mailbox->m_blobdir);
 		goto cleanup;
 	}
 
-	stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
-
-	while( (dir_entry=readdir(dir_handle))!=NULL )
-	{
-		char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
-		int name_len = strlen(name);
-		if( (name_len==1 && name[0]=='.')
-		 || (name_len==2 && name[0]=='.' && name[1]=='.')
-		 || (name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0) ) {
-			mrmailbox_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
-			continue;
-		}
-
-		mrmailbox_log_info(mailbox, 0, "Backup \"%s\".", name);
-		free(curr_pathNfilename);
-		curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
-		free(buf);
-		if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, mailbox) || buf==NULL ) {
-			continue;
-		}
-
-		sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
-		sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
-		sqlite3_step(stmt);
-		sqlite3_reset(stmt);
+	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+		total_files_count++;
 	}
 
+	closedir(dir_handle);
+	dir_handle = NULL;
+
+	if( total_files_count>0 )
+	{
+		/* scan directory, pass 2: copy files */
+		if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Backup: Cannot copy from blob-directory \"%s\".", mailbox->m_blobdir);
+			goto cleanup;
+		}
+
+		stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
+		while( (dir_entry=readdir(dir_handle))!=NULL )
+		{
+			processed_files_count++;
+
+			int percent = (processed_files_count*100)/total_files_count;
+			if( percent < 1 ) { percent = 1; }
+			if( percent > 100 ) { percent = 100; }
+			mailbox->m_cb(mailbox, MR_EVENT_EXPORT_PROGRESS, percent, 0);
+
+			char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+			int name_len = strlen(name);
+			if( (name_len==1 && name[0]=='.')
+			 || (name_len==2 && name[0]=='.' && name[1]=='.')
+			 || (name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0) ) {
+				//mrmailbox_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
+				continue;
+			}
+
+			//mrmailbox_log_info(mailbox, 0, "Backup \"%s\".", name);
+			free(curr_pathNfilename);
+			curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
+			free(buf);
+			if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, mailbox) || buf==NULL || buf_bytes<=0 ) {
+				continue;
+			}
+
+			sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
+			sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
+			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+				mrmailbox_log_error(mailbox, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
+				goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
+			}
+			sqlite3_reset(stmt);
+		}
+	}
+	else
+	{
+		mrmailbox_log_info(mailbox, 0, "Backup: No files to copy.", mailbox->m_blobdir);
+	}
 
 	/* done */
 	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, (uintptr_t)"application/octet-stream");
@@ -468,29 +500,30 @@ static void* export_thread_entry_point(void* entry_arg)
 {
 	int                    success = 0;
 	mrexportthreadparam_t* thread_param = (mrexportthreadparam_t*)entry_arg;
+	mrmailbox_t*           mailbox = thread_param->m_mailbox; /*keep a local pointer as we free thread_param sooner or later */
 
-	mrosnative_setup_thread(thread_param->m_mailbox); /* must be first */
-	mrmailbox_log_info(thread_param->m_mailbox, 0, "Backup-thread started.");
+	mrosnative_setup_thread(mailbox); /* must be first */
+	mrmailbox_log_info(mailbox, 0, "Backup-thread started.");
 
 	if( !mrsqlite3_is_open(thread_param->m_mailbox->m_sql) ) {
-        mrmailbox_log_error(thread_param->m_mailbox, 0, "Export: Database not opened.");
+        mrmailbox_log_error(mailbox, 0, "Export: Database not opened.");
 		goto cleanup;
 	}
 
-	if( !mre2ee_make_sure_private_key_exists(thread_param->m_mailbox) ) {
-		mrmailbox_log_error(thread_param->m_mailbox, 0, "Export: Cannot create private key or private key not available.");
+	if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Export: Cannot create private key or private key not available.");
 		goto cleanup;
 	}
 
-	mr_create_folder(thread_param->m_dir, thread_param->m_mailbox);
+	mr_create_folder(thread_param->m_dir, mailbox);
 
 	if( thread_param->m_what == MR_IMEX_SELF_KEYS ) {
-		if( !export_self_keys(thread_param->m_mailbox, thread_param->m_dir) ) { /* export all secret and public keys */
+		if( !export_self_keys(mailbox, thread_param->m_dir) ) { /* export all secret and public keys */
 			goto cleanup;
 		}
 	}
 	else if( thread_param->m_what == MR_EXPORT_BACKUP ) {
-		if( !export_backup(thread_param->m_mailbox, thread_param->m_dir) ) {
+		if( !export_backup(mailbox, thread_param->m_dir) ) {
 			goto cleanup;
 		}
 	}
@@ -498,12 +531,12 @@ static void* export_thread_entry_point(void* entry_arg)
 	success = 1;
 
 cleanup:
-	mrmailbox_log_info(thread_param->m_mailbox, 0, "Backup-thread ended.");
-	thread_param->m_mailbox->m_cb(thread_param->m_mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
+	mrmailbox_log_info(mailbox, 0, "Backup-thread ended.");
+	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
 	s_export_thread_created = 0;
 	free(thread_param->m_dir);
 	free(thread_param);
-	mrosnative_unsetup_thread(thread_param->m_mailbox); /* must be very last */
+	mrosnative_unsetup_thread(mailbox); /* must be very last (here we really new the local copy of the pointer) */
 	return NULL;
 }
 
