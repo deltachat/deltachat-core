@@ -134,7 +134,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"close\n"
 			"reset <flags>\n"
 			"import [<eml-file>|<folder>|<addr> <key-file>]\n"
-			"export keys|backup\n"
+			"export keys|backup|cancel\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"

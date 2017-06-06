@@ -294,6 +294,7 @@ typedef struct mrexportthreadparam_t
 
 static pthread_t s_export_thread;
 static int       s_export_thread_created = 0;
+static int       s_export_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
 
 
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
@@ -369,6 +370,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	size_t         buf_bytes = 0;
 	sqlite3_stmt*  stmt = NULL;
 	int            total_files_count = 0, processed_files_count = 0;
+	int            delete_dest_file = 0;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
 	{
@@ -440,6 +442,11 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
+			if( s_export_do_exit ) {
+				delete_dest_file = 1;
+				goto cleanup;
+			}
+
 			processed_files_count++;
 
 			int percent = (processed_files_count*100)/total_files_count;
@@ -486,11 +493,14 @@ cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
 	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	free(dest_pathNfilename);
+
+	if( stmt ) { sqlite3_finalize(stmt); }
 	mrsqlite3_close__(dest_sql);
 	mrsqlite3_unref(dest_sql);
+	if( delete_dest_file ) { mr_delete_file(dest_pathNfilename, mailbox); }
+	free(dest_pathNfilename);
+
 	free(curr_pathNfilename);
-	if( stmt ) { sqlite3_finalize(stmt); }
 	free(buf);
 	return success;
 }
@@ -532,6 +542,7 @@ static void* export_thread_entry_point(void* entry_arg)
 
 cleanup:
 	mrmailbox_log_info(mailbox, 0, "Backup-thread ended.");
+	s_export_do_exit = 1; /* set this before sending MR_EVENT_EXPORT_ENDED, avoids MR_IMEX_CANCEL to stop the thread */
 	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
 	s_export_thread_created = 0;
 	free(thread_param->m_dir);
@@ -545,15 +556,32 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 {
 	mrexportthreadparam_t* thread_param;
 
-	if( mailbox==NULL || mailbox->m_sql==NULL || dir==NULL ) {
+	if( mailbox==NULL || mailbox->m_sql==NULL ) {
 		return;
 	}
 
-	if( s_export_thread_created ) {
+	if( what == MR_IMEX_CANCEL ) {
+		/* cancel an running export */
+		if( s_export_thread_created && s_export_do_exit==0 ) {
+			mrmailbox_log_info(mailbox, 0, "Stopping export-thread...");
+				s_export_do_exit = 1;
+				pthread_join(s_export_thread, NULL);
+			mrmailbox_log_info(mailbox, 0, "Export-thread stopped.");
+		}
+		return;
+	}
+
+	if( dir == NULL ) {
+		mrmailbox_log_error(mailbox, 0, "No export dir given.");
+		return;
+	}
+
+	if( s_export_thread_created || s_export_do_exit==0 ) {
 		mrmailbox_log_warning(mailbox, 0, "Already exporting.");
 		return;
 	}
 	s_export_thread_created = 1;
+	s_export_do_exit = 0;
 
 	memset(&s_export_thread, 0, sizeof(pthread_t));
 	thread_param = calloc(1, sizeof(mrexportthreadparam_t));

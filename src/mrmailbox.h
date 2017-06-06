@@ -255,6 +255,7 @@ int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* k
 
 /* Export keys, backup etc.
 To avoid double slashes, the given directory should not end with a slash. */
+#define MR_IMEX_CANCEL    0
 #define MR_IMEX_SELF_KEYS 0x01
 #define MR_EXPORT_BACKUP  0x02
 #define MR_BAK_PREFIX     "delta-chat"
