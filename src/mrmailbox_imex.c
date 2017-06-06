@@ -354,13 +354,31 @@ cleanup:
 }
 
 
-static int export_backup(mrmailbox_t* mailbox)
+static int export_backup(mrmailbox_t* mailbox, const char* dir)
 {
-	int success = 0, locked = 0, closed = 0;
+	int            success = 0, locked = 0, closed = 0;
+	char*          dest_pathNfilename = NULL;
+	mrsqlite3_t*   dest_sql = NULL;
+	time_t         now = time(NULL);
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry;
+	int            prefix_len = strlen(MR_BAK_PREFIX);
+	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	char*          curr_pathNfilename = NULL;
+	void*          buf = NULL;
+	size_t         buf_bytes = 0;
+	sqlite3_stmt*  stmt = NULL;
 
 	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
-
-	//TODO
+	{
+		struct tm* timeinfo;
+		char buffer[256];
+		timeinfo = localtime(&now);
+		strftime(buffer, 256, MR_BAK_PREFIX "-%Y-%m-%d." MR_BAK_SUFFIX, timeinfo);
+		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
+			goto cleanup;
+		}
+	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
 	mrsqlite3_lock(mailbox->m_sql);
@@ -369,8 +387,10 @@ static int export_backup(mrmailbox_t* mailbox)
 	closed = 1;
 
 	/* copy file to backup directory */
-
-	//TODO
+	mrmailbox_log_info(mailbox, 0, "Backup \"%s\" to \"%s\".", mailbox->m_dbfile, dest_pathNfilename);
+	if( !mr_copy_file(mailbox->m_dbfile, dest_pathNfilename, mailbox) ) {
+		goto cleanup;
+	}
 
 	/* unlock and re-open the source and make it availabe again for the normal use */
 	mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile);
@@ -378,16 +398,68 @@ static int export_backup(mrmailbox_t* mailbox)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* add all files as blobs to the database copy (this does not require the source to be locked) */
+	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
+	if( (dest_sql=mrsqlite3_new(mailbox/*for logging only*/))==NULL
+	 || !mrsqlite3_open__(dest_sql, dest_pathNfilename) ) {
+		goto cleanup;
+	}
 
-	//TODO
+	if( !mrsqlite3_table_exists__(dest_sql, "backup_blobs") ) {
+		if( !mrsqlite3_execute__(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
+			goto cleanup;
+		}
+	}
+
+	mrsqlite3_set_config_int__(dest_sql, "backup_time", now);
+	mrsqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
+
+	if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Backup: Cannot open blob-directory \"%s\".", mailbox->m_blobdir);
+		goto cleanup;
+	}
+
+	stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
+
+	while( (dir_entry=readdir(dir_handle))!=NULL )
+	{
+		char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+		int name_len = strlen(name);
+		if( (name_len==1 && name[0]=='.')
+		 || (name_len==2 && name[0]=='.' && name[1]=='.')
+		 || (name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0) ) {
+			mrmailbox_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
+			continue;
+		}
+
+		mrmailbox_log_info(mailbox, 0, "Backup \"%s\".", name);
+		free(curr_pathNfilename);
+		curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
+		free(buf);
+		if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, mailbox) || buf==NULL ) {
+			continue;
+		}
+
+		sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
+		sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
+		sqlite3_step(stmt);
+		sqlite3_reset(stmt);
+	}
+
 
 	/* done */
+	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, (uintptr_t)"application/octet-stream");
 	success = 1;
 
-//cleanup:
+cleanup:
+	if( dir_handle ) { closedir(dir_handle); }
 	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(dest_pathNfilename);
+	mrsqlite3_close__(dest_sql);
+	mrsqlite3_unref(dest_sql);
+	free(curr_pathNfilename);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(buf);
 	return success;
 }
 
@@ -418,7 +490,7 @@ static void* export_thread_entry_point(void* entry_arg)
 		}
 	}
 	else if( thread_param->m_what == MR_EXPORT_BACKUP ) {
-		if( !export_backup(thread_param->m_mailbox) ) {
+		if( !export_backup(thread_param->m_mailbox, thread_param->m_dir) ) {
 			goto cleanup;
 		}
 	}

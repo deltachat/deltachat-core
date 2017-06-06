@@ -104,6 +104,7 @@ int     mr_file_exist              (const char* pathNfilename);
 size_t  mr_get_filebytes           (const char* pathNfilename);
 char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
 int     mr_delete_file             (const char* pathNFilename, mrmailbox_t* log);
+int     mr_copy_file               (const char* src_pathNFilename, const char* dest_pathNFilename, mrmailbox_t* log);
 int     mr_create_folder           (const char* pathNfilename, mrmailbox_t* log);
 int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log);
 int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log);

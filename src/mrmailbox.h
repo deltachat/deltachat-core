@@ -257,6 +257,8 @@ int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* k
 To avoid double slashes, the given directory should not end with a slash. */
 #define MR_IMEX_SELF_KEYS 0x01
 #define MR_EXPORT_BACKUP  0x02
+#define MR_BAK_PREFIX     "delta-chat"
+#define MR_BAK_SUFFIX     "bak"
 void                 mrmailbox_export               (mrmailbox_t*, int what, const char* dir);
 int                  mrmailbox_import               (mrmailbox_t*, int what, const char* dir);
 int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec); /* a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command; mainly for testing */

@@ -29,6 +29,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sqlite3.h>
 #include <sys/stat.h>
 #include <sys/types.h> /* for getpid() */
@@ -1470,7 +1472,7 @@ char* mr_get_filename(const char* pathNfilename)
 }
 
 
-int mr_delete_file(const char* pathNfilename, mrmailbox_t* log)
+int mr_delete_file(const char* pathNfilename, mrmailbox_t* log/*may be NULL*/)
 {
 	if( pathNfilename==NULL ) {
 		return 0;
@@ -1482,6 +1484,53 @@ int mr_delete_file(const char* pathNfilename, mrmailbox_t* log)
 	}
 
 	return 1;
+}
+
+
+int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NULL*/)
+{
+    int     success = 0, fd_src = -1, fd_dest = -1;
+    #define MR_COPY_BUF_SIZE 4096
+    char    buf[MR_COPY_BUF_SIZE];
+    size_t  bytes_read;
+    int     anything_copied = 0;
+
+	if( src==NULL || dest==NULL ) {
+		return 0;
+	}
+
+    if( (fd_src=open(src, O_RDONLY)) < 0 ) {
+		mrmailbox_log_error(log, 0, "Cannot open source file \"%s\".", src);
+        goto cleanup;
+	}
+
+    if( (fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0 ) {
+		mrmailbox_log_error(log, 0, "Cannot open destination file \"%s\".", dest);
+        goto cleanup;
+	}
+
+    while( (bytes_read=read(fd_src, buf, MR_COPY_BUF_SIZE)) > 0 ) {
+        if (write(fd_dest, buf, bytes_read) != bytes_read) {
+            mrmailbox_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
+		}
+		anything_copied = 1;
+    }
+
+    if( !anything_copied ) {
+		/* not a single byte copied -> check if the source is empty, too */
+		close(fd_src);
+		fd_src = -1;
+		if( mr_get_filebytes(src)!=0 ) {
+			goto cleanup;
+		}
+    }
+
+    success = 1;
+
+cleanup:
+	if( fd_src >= 0 ) { close(fd_src); }
+	if( fd_dest >= 0 ) { close(fd_dest); }
+	return success;
 }
 
 
