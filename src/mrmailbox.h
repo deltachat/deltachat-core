@@ -89,9 +89,9 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
 #define MR_EVENT_CONFIGURE_PROGRESS       2041 /* data1=percent */
 
-#define MR_EVENT_EXPORT_ENDED             2050 /* mrmailbox_export done: data1=0:failed, 1=success */
-#define MR_EVENT_EXPORT_PROGRESS          2051 /* data1=percent */
-#define MR_EVENT_EXPORT_FILE_WRITTEN      2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
+#define MR_EVENT_IMEX_ENDED               2050 /* mrmailbox_imex() done: data1=0:failed, 1=success */
+#define MR_EVENT_IMEX_PROGRESS            2051 /* data1=percent */
+#define MR_EVENT_IMEX_FILE_WRITTEN        2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
 
 /* Functions that should be provided by the frontends */
 #define MR_EVENT_IS_ONLINE                2080
@@ -253,22 +253,22 @@ int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* k
 int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
 
-/* Export keys, backup etc.
+/* Import/export keys, backup etc.
 To avoid double slashes, the given directory should not end with a slash. */
-#define MR_IMEX_CANCEL    0
-#define MR_IMEX_SELF_KEYS 0x01
-#define MR_EXPORT_BACKUP  0x02
-#define MR_BAK_PREFIX     "delta-chat"
-#define MR_BAK_SUFFIX     "bak"
-void                 mrmailbox_export               (mrmailbox_t*, int what, const char* dir);
-int                  mrmailbox_import               (mrmailbox_t*, int what, const char* dir);
-int                  mrmailbox_import_spec          (mrmailbox_t*, const char* spec); /* a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command; mainly for testing */
+#define MR_IMEX_CANCEL                      0
+#define MR_IMEX_EXPORT_BITS        0x0000FFFF
+#define MR_IMEX_EXPORT_SELF_KEYS   0x00000001
+#define MR_IMEX_EXPORT_BACKUP      0x00000002
+#define MR_IMEX_IMPORT_SELF_KEYS   0x00010000
+#define MR_BAK_PREFIX             "delta-chat"
+#define MR_BAK_SUFFIX             "bak"
+void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* dir); /* user import/export function, sends MR_EVENT_IMEX_* events */
+int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);          /* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */
 
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
 char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
-int                  mrmailbox_import_eml_file      (mrmailbox_t*, const char* file);
 int                  mrmailbox_reset_tables         (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
 
 
@@ -293,6 +293,7 @@ void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...
 void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
 
 int  mrmailbox_get_thread_index    (void);
+int  mrmailbox_poke_eml_file       (mrmailbox_t*, const char* file);
 
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */

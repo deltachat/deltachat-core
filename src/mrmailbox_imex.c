@@ -35,13 +35,15 @@
 #include "mre2ee.h"
 #include "mre2ee_driver.h"
 
+static int s_imex_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
+
 
 /*******************************************************************************
  * Import
  ******************************************************************************/
 
 
-static int import_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
+static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
 {
 	/* mainly for testing: if the partner does not support Autocrypt,
 	encryption is disabled as soon as the first messages comes from the partner */
@@ -85,7 +87,7 @@ cleanup:
 }
 
 
-int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a file, a directory or NULL for the last import */
+int mrmailbox_poke_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a file, a directory or NULL for the last import */
 {
 	int            success = 0;
 	char*          spec = NULL;
@@ -125,7 +127,7 @@ int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a
 	suffix = mr_get_filesuffix_lc(spec);
 	if( suffix && strcmp(suffix, "eml")==0 ) {
 		/* import a single file */
-		if( mrmailbox_import_eml_file(mailbox, spec) ) { /* errors are logged in any case */
+		if( mrmailbox_poke_eml_file(mailbox, spec) ) { /* errors are logged in any case */
 			read_cnt++;
 		}
 	}
@@ -137,7 +139,7 @@ int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a
 			goto cleanup;
 		}
 		*separator = 0;
-		if( import_public_key(mailbox, spec, separator+1) ) {
+		if( poke_public_key(mailbox, spec, separator+1) ) {
 			read_cnt++;
 		}
 		*separator = ' ';
@@ -154,7 +156,7 @@ int mrmailbox_import_spec(mrmailbox_t* mailbox, const char* spec__) /* spec is a
 			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = mr_mprintf("%s/%s", spec, name);
 				mrmailbox_log_info(mailbox, 0, "Import: %s", path_plus_name);
-				if( mrmailbox_import_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
+				if( mrmailbox_poke_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 					read_cnt++;
 				}
 				free(path_plus_name);
@@ -181,7 +183,7 @@ cleanup:
 }
 
 
-int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
+static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 {
 	int            imported_count = 0, locked = 0;
 	DIR*           dir_handle = NULL;
@@ -197,72 +199,69 @@ int mrmailbox_import(mrmailbox_t* mailbox, int what, const char* dir_name)
 		goto cleanup;
 	}
 
-	if( what == MR_IMEX_SELF_KEYS )
-	{
-		if( (dir_handle=opendir(dir_name))==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
-			goto cleanup;
-		}
-
-		while( (dir_entry=readdir(dir_handle))!=NULL )
-		{
-			free(suffix);
-			suffix = mr_get_filesuffix_lc(dir_entry->d_name);
-			if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
-				continue;
-			}
-
-			free(path_plus_name);
-			path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
-			mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
-			if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
-				mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
-				continue;
-			}
-
-			if( private_key->m_type!=MR_PRIVATE ) {
-				continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
-			}
-
-			if( !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
-				mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
-				continue;
-			}
-
-			if( !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
-				mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
-				continue;
-			}
-
-			/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
-			mrsqlite3_lock(mailbox->m_sql);
-			locked = 1;
-
-				stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-				sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-				sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
-				sqlite3_step(stmt);
-				sqlite3_finalize(stmt);
-				stmt = NULL;
-
-				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;");
-
-				free(self_addr);
-				self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-				if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
-					mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
-					goto cleanup;
-				}
-
-				imported_count++;
-
-			mrsqlite3_unlock(mailbox->m_sql);
-			locked = 0;
-		}
-
+	if( (dir_handle=opendir(dir_name))==NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
+		goto cleanup;
 	}
-	else
+
+	while( (dir_entry=readdir(dir_handle))!=NULL )
 	{
+		free(suffix);
+		suffix = mr_get_filesuffix_lc(dir_entry->d_name);
+		if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
+			continue;
+		}
+
+		free(path_plus_name);
+		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
+		mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+		if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
+			continue;
+		}
+
+		if( private_key->m_type!=MR_PRIVATE ) {
+			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
+		}
+
+		if( !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
+			mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
+			continue;
+		}
+
+		if( !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
+			mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
+			continue;
+		}
+
+		/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+
+			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+			sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+			sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
+			stmt = NULL;
+
+			mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;");
+
+			free(self_addr);
+			self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
+				mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
+				goto cleanup;
+			}
+
+			imported_count++;
+
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+	}
+
+	if( imported_count == 0 ) {
+		mrmailbox_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
 
@@ -284,19 +283,6 @@ cleanup:
  ******************************************************************************/
 
 
-typedef struct mrexportthreadparam_t
-{
-	mrmailbox_t* m_mailbox;
-	int          m_what;
-	char*        m_dir;
-} mrexportthreadparam_t;
-
-
-static pthread_t s_export_thread;
-static int       s_export_thread_created = 0;
-static int       s_export_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
-
-
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
 {
 	char* file_content = mrkey_render_asc(key);
@@ -308,13 +294,18 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
 	}
 	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
-	mr_delete_file(file_name, mailbox);
+
+	if( mr_file_exist(file_name) ) {
+		mr_delete_file(file_name, mailbox);
+	}
+
 	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
 	}
 	else {
-		mailbox->m_cb(mailbox, MR_EVENT_EXPORT_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/pgp-keys");
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/pgp-keys");
 	}
+
 	free(file_content);
 	free(file_name);
 }
@@ -442,7 +433,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
-			if( s_export_do_exit ) {
+			if( s_imex_do_exit ) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -452,7 +443,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 			int percent = (processed_files_count*100)/total_files_count;
 			if( percent < 1 ) { percent = 1; }
 			if( percent > 100 ) { percent = 100; }
-			mailbox->m_cb(mailbox, MR_EVENT_EXPORT_PROGRESS, percent, 0);
+			mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, percent, 0);
 
 			char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			int name_len = strlen(name);
@@ -486,7 +477,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	}
 
 	/* done */
-	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, (uintptr_t)"application/octet-stream");
+	mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, (uintptr_t)"application/octet-stream");
 	success = 1;
 
 cleanup:
@@ -506,45 +497,75 @@ cleanup:
 }
 
 
-static void* export_thread_entry_point(void* entry_arg)
+/*******************************************************************************
+ * Import/Export Thread and Main Interface
+ ******************************************************************************/
+
+
+typedef struct mrimexthreadparam_t
 {
-	int                    success = 0;
-	mrexportthreadparam_t* thread_param = (mrexportthreadparam_t*)entry_arg;
-	mrmailbox_t*           mailbox = thread_param->m_mailbox; /*keep a local pointer as we free thread_param sooner or later */
+	mrmailbox_t* m_mailbox;
+	int          m_what;
+	char*        m_dir;
+} mrimexthreadparam_t;
+
+
+static pthread_t s_imex_thread;
+static int       s_imex_thread_created = 0;
+
+
+static void* imex_thread_entry_point(void* entry_arg)
+{
+	int                  success = 0;
+	mrimexthreadparam_t* thread_param = (mrimexthreadparam_t*)entry_arg;
+	mrmailbox_t*         mailbox = thread_param->m_mailbox; /*keep a local pointer as we free thread_param sooner or later */
 
 	mrosnative_setup_thread(mailbox); /* must be first */
-	mrmailbox_log_info(mailbox, 0, "Backup-thread started.");
+	mrmailbox_log_info(mailbox, 0, "Import/export thread started.");
 
 	if( !mrsqlite3_is_open(thread_param->m_mailbox->m_sql) ) {
-        mrmailbox_log_error(mailbox, 0, "Export: Database not opened.");
+        mrmailbox_log_error(mailbox, 0, "Import/export: Database not opened.");
 		goto cleanup;
 	}
 
-	if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Export: Cannot create private key or private key not available.");
-		goto cleanup;
+	if( (thread_param->m_what&MR_IMEX_EXPORT_BITS)!=0 ) {
+		/* before we export anything, make sure the private key exists */
+		if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
+			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
+			goto cleanup;
+		}
 	}
 
 	mr_create_folder(thread_param->m_dir, mailbox);
 
-	if( thread_param->m_what == MR_IMEX_SELF_KEYS ) {
-		if( !export_self_keys(mailbox, thread_param->m_dir) ) { /* export all secret and public keys */
-			goto cleanup;
-		}
-	}
-	else if( thread_param->m_what == MR_EXPORT_BACKUP ) {
-		if( !export_backup(mailbox, thread_param->m_dir) ) {
-			goto cleanup;
-		}
+	switch( thread_param->m_what )
+	{
+		case MR_IMEX_EXPORT_SELF_KEYS:
+			if( !export_self_keys(mailbox, thread_param->m_dir) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_IMPORT_SELF_KEYS:
+			if( !import_self_keys(mailbox, thread_param->m_dir) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_EXPORT_BACKUP:
+			if( !export_backup(mailbox, thread_param->m_dir) ) {
+				goto cleanup;
+			}
+			break;
 	}
 
 	success = 1;
 
 cleanup:
-	mrmailbox_log_info(mailbox, 0, "Backup-thread ended.");
-	s_export_do_exit = 1; /* set this before sending MR_EVENT_EXPORT_ENDED, avoids MR_IMEX_CANCEL to stop the thread */
-	mailbox->m_cb(mailbox, MR_EVENT_EXPORT_ENDED, success, 0);
-	s_export_thread_created = 0;
+	mrmailbox_log_info(mailbox, 0, "Import/export thread ended.");
+	s_imex_do_exit = 1; /* set this before sending MR_EVENT_EXPORT_ENDED, avoids MR_IMEX_CANCEL to stop the thread */
+	mailbox->m_cb(mailbox, MR_EVENT_IMEX_ENDED, success, 0);
+	s_imex_thread_created = 0;
 	free(thread_param->m_dir);
 	free(thread_param);
 	mrosnative_unsetup_thread(mailbox); /* must be very last (here we really new the local copy of the pointer) */
@@ -552,9 +573,9 @@ cleanup:
 }
 
 
-void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
+void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir)
 {
-	mrexportthreadparam_t* thread_param;
+	mrimexthreadparam_t* thread_param;
 
 	if( mailbox==NULL || mailbox->m_sql==NULL ) {
 		return;
@@ -562,31 +583,31 @@ void mrmailbox_export(mrmailbox_t* mailbox, int what, const char* dir)
 
 	if( what == MR_IMEX_CANCEL ) {
 		/* cancel an running export */
-		if( s_export_thread_created && s_export_do_exit==0 ) {
-			mrmailbox_log_info(mailbox, 0, "Stopping export-thread...");
-				s_export_do_exit = 1;
-				pthread_join(s_export_thread, NULL);
-			mrmailbox_log_info(mailbox, 0, "Export-thread stopped.");
+		if( s_imex_thread_created && s_imex_do_exit==0 ) {
+			mrmailbox_log_info(mailbox, 0, "Stopping import/export thread...");
+				s_imex_do_exit = 1;
+				pthread_join(s_imex_thread, NULL);
+			mrmailbox_log_info(mailbox, 0, "Import/export thread stopped.");
 		}
 		return;
 	}
 
 	if( dir == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "No export dir given.");
+		mrmailbox_log_error(mailbox, 0, "No Import/export dir given.");
 		return;
 	}
 
-	if( s_export_thread_created || s_export_do_exit==0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Already exporting.");
+	if( s_imex_thread_created || s_imex_do_exit==0 ) {
+		mrmailbox_log_warning(mailbox, 0, "Already importing/exporting.");
 		return;
 	}
-	s_export_thread_created = 1;
-	s_export_do_exit = 0;
+	s_imex_thread_created = 1;
+	s_imex_do_exit = 0;
 
-	memset(&s_export_thread, 0, sizeof(pthread_t));
-	thread_param = calloc(1, sizeof(mrexportthreadparam_t));
+	memset(&s_imex_thread, 0, sizeof(pthread_t));
+	thread_param = calloc(1, sizeof(mrimexthreadparam_t));
 	thread_param->m_mailbox = mailbox;
 	thread_param->m_what = what;
 	thread_param->m_dir = safe_strdup(dir);
-	pthread_create(&s_export_thread, NULL, export_thread_entry_point, thread_param);
+	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
 }

@@ -133,8 +133,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"open <file to open or create>\n"
 			"close\n"
 			"reset <flags>\n"
-			"import [<eml-file>|<folder>|<addr> <key-file>]\n"
-			"export keys|backup|cancel\n"
+			"imex import-keys|export-keys|export-backup|cancel\n"
+			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
 			"configure\n"
@@ -211,26 +211,22 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=e2ee, 8=rest but server config");
 		}
 	}
-	else if( strcmp(cmd, "import")==0 )
+	else if( strcmp(cmd, "poke")==0 )
 	{
-		if( arg1 && strcmp(arg1, "keys")==0 ) {
-			ret = mrmailbox_import(mailbox, MR_IMEX_SELF_KEYS, mailbox->m_blobdir)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-		}
-		else {
-			ret = mrmailbox_import_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-		}
+		ret = mrmailbox_poke_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
-	else if( strcmp(cmd, "export")==0 )
+	else if( strcmp(cmd, "imex")==0 )
 	{
 		if( arg1 ) {
 			int flags = 0;
-			if( strcmp(arg1, "keys")==0 )   { flags |= MR_IMEX_SELF_KEYS; }
-			if( strcmp(arg1, "backup")==0 ) { flags |= MR_EXPORT_BACKUP; }
-			mrmailbox_export(mailbox, flags, mailbox->m_blobdir);
+			if( strcmp(arg1, "export-keys")==0 )   { flags |= MR_IMEX_EXPORT_SELF_KEYS; }
+			if( strcmp(arg1, "export-backup")==0 ) { flags |= MR_IMEX_EXPORT_BACKUP; }
+			if( strcmp(arg1, "import-keys")==0 )   { flags |= MR_IMEX_IMPORT_SELF_KEYS; }
+			mrmailbox_imex(mailbox, flags, mailbox->m_blobdir);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Valid commands are \"export keys\" or \"export backup\".");
+			ret = safe_strdup("ERROR: Argument <what> missing.");
 		}
 	}
 	else if( strcmp(cmd, "set")==0 )
