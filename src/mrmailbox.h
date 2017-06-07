@@ -165,6 +165,12 @@ void                 mrmailbox_configure_cancel     (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*);
 
 
+/* if the mailbox is not yet conffgured (mrmailbox_is_configured() returns 0),
+the following function can be used to import a backup. */
+char*                mrmailbox_has_backup           (mrmailbox_t*, const char* dir); /* returns backup_file or NULL, may only be used on fresh installations; returned strings must be free()'d */
+void                 mrmailbox_configure_by_backup  (mrmailbox_t*, const char* backup_file); /* sends the same events as mrmailbox_configure_and_connect() and may be interrupted by mrmailbox_configure_cancel() */
+
+
 /* Connect to the mailbox using the configured settings. normally, there is no
 need to call mrmailbox_fetch() manually as we get push events from the IMAP server;
 if this fails, we fallback to a smart pull-mode. */

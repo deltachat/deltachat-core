@@ -711,3 +711,22 @@ int mrmailbox_is_configured(mrmailbox_t* mailbox)
 }
 
 
+char* mrmailbox_has_backup(mrmailbox_t* mailbox, const char* dir)
+{
+	if( mailbox == NULL ) {
+		return NULL;
+	}
+
+	if( mrmailbox_is_configured(mailbox) ) {
+		return NULL; /* we import a backup only on a fresh installation */
+	}
+
+	// TODO: check for a backup in the given directory
+	return NULL;
+}
+
+
+void mrmailbox_configure_by_backup(mrmailbox_t* mailbox, const char* backup_file)
+{
+	/* sends the same events as mrmailbox_configure_and_connect() and may be interrupted by mrmailbox_configure_cancel() */
+}
