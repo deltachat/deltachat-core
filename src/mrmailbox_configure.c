@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 #include "mrmailbox.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
@@ -711,8 +712,17 @@ int mrmailbox_is_configured(mrmailbox_t* mailbox)
 }
 
 
-char* mrmailbox_has_backup(mrmailbox_t* mailbox, const char* dir)
+char* mrmailbox_has_backup(mrmailbox_t* mailbox, const char* dir_name)
 {
+	char*          ret = NULL;
+	time_t         ret_backup_time = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry;
+	int            prefix_len = strlen(MR_BAK_PREFIX);
+	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	char*          curr_pathNfilename = NULL;
+	mrsqlite3_t*   test_sql = NULL;
+
 	if( mailbox == NULL ) {
 		return NULL;
 	}
@@ -721,8 +731,43 @@ char* mrmailbox_has_backup(mrmailbox_t* mailbox, const char* dir)
 		return NULL; /* we import a backup only on a fresh installation */
 	}
 
-	// TODO: check for a backup in the given directory
-	return NULL;
+	if( (dir_handle=opendir(dir_name))==NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name);
+		goto cleanup;
+	}
+
+	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+		int name_len = strlen(name);
+		if( name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0
+		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0 )
+		{
+			free(curr_pathNfilename);
+			curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
+
+			mrsqlite3_unref(test_sql);
+			if( (test_sql=mrsqlite3_new(mailbox/*for logging only*/))!=NULL
+			 && mrsqlite3_open__(test_sql, curr_pathNfilename) )
+			{
+				time_t curr_backup_time = mrsqlite3_get_config_int__(test_sql, "backup_time", 0);
+				if( curr_backup_time > 0
+				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
+				{
+					/* set return value to the tested database name */
+					free(ret);
+					ret = curr_pathNfilename;
+					ret_backup_time = curr_backup_time;
+					curr_pathNfilename = NULL;
+				}
+			}
+		}
+	}
+
+cleanup:
+	if( dir_handle ) { closedir(dir_handle); }
+	free(curr_pathNfilename);
+	mrsqlite3_unref(test_sql);
+	return ret;
 }
 
 

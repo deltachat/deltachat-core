@@ -405,9 +405,6 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		}
 	}
 
-	mrsqlite3_set_config_int__(dest_sql, "backup_time", now);
-	mrsqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
-
 	/* scan directory, pass 1: collect file info */
 	total_files_count = 0;
 	if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
@@ -476,7 +473,10 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		mrmailbox_log_info(mailbox, 0, "Backup: No files to copy.", mailbox->m_blobdir);
 	}
 
-	/* done */
+	/* done - set some special config values (do this last to avoid importing crashed backups) */
+	mrsqlite3_set_config_int__(dest_sql, "backup_time", now);
+	mrsqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
+
 	mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, (uintptr_t)"application/octet-stream");
 	success = 1;
 
