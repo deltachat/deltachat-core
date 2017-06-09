@@ -1377,6 +1377,15 @@ char* mr_create_id(void)
 }
 
 
+char* mr_create_dummy_references_mid()
+{
+	char* msgid = mr_create_id(), *ret = NULL;
+	ret = mr_mprintf("Rf.%s@mr.thread", msgid);
+	free(msgid);
+	return ret;
+}
+
+
 char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 {
 	/* Function generates a Message-ID that can be used for a new outgoing message.

@@ -1263,7 +1263,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 
 
 static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
-                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor,
+                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor, const char* references,
                                    int encrypt_to_self, int* ret_encrypted)
 {
 	struct mailimf_fields*       imf_fields;
@@ -1295,10 +1295,12 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 			}
 		}
 
+		clist* references_list = clist_new();
+		clist_append(references_list,  (void*)safe_strdup(references));
 		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(msg->m_timestamp), from,
 			NULL /* sender */, NULL /* reply-to */,
 			to, NULL /* cc */, NULL /* bcc */, safe_strdup(msg->m_rfc724_mid), NULL /* in-reply-to */,
-			NULL /* references */,
+			references_list /* references */,
 			NULL /* subject set later */);
 
 		/* add additional basic parameters */
@@ -1441,7 +1443,8 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
                              mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname,
                              clist* ret_recipients_names, clist* ret_recipients_addr,
                              int* ret_increation,
-                             char** ret_predecessor)
+                             char** ret_predecessor,
+                             char** ret_references)
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1501,6 +1504,27 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 				*ret_predecessor = strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
 			}
 
+			/* get a References:-header: either the same as the last one or a random one */
+			time_t prev_msg_time = 0;
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MAX_timestamp_FROM_msgs,
+				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
+			sqlite3_bind_int  (stmt, 1, ret_msg->m_chat_id);
+			sqlite3_bind_int  (stmt, 2, ret_msg->m_id);
+			if( sqlite3_step(stmt) == SQLITE_ROW ) {
+				prev_msg_time = sqlite3_column_int64(stmt, 0);
+			}
+
+			#define NEW_THREAD_THRESHOLD 1*60*60
+			if( prev_msg_time != 0 && ret_msg->m_timestamp - prev_msg_time < NEW_THREAD_THRESHOLD ) {
+				*ret_references = mrparam_get(ret_chat->m_param, 'R', NULL);
+			}
+
+			if( *ret_references == NULL ) {
+				*ret_references = mr_create_dummy_references_mid();
+				mrparam_set(ret_chat->m_param, 'R', *ret_references);
+				mrchat_update_param__(ret_chat);
+			}
+
 			success = 1;
 		}
 
@@ -1523,6 +1547,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
 	char*         predecessor = NULL;
+	char*         references = NULL;
 	char*         server_folder = NULL;
 	uint32_t      server_uid = 0;
 	int           increation = 0; /* we can ignore this state here as it already checked when sending to SMTP */
@@ -1538,12 +1563,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references)==0
 	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, 1/*encrypt_to_self*/, &encrypted);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, 1/*encrypt_to_self*/, &encrypted);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1575,6 +1600,7 @@ cleanup:
 	free(from_addr);
 	free(from_displayname);
 	free(predecessor);
+	free(references);
 	free(server_folder);
 }
 
@@ -1589,6 +1615,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         from_addr = NULL;
 	char*         from_displayname = NULL;
 	char*         predecessor = NULL;
+	char*         references = NULL;
 	int           increation = 0;
 	int           encrypted = 0;
 
@@ -1607,7 +1634,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references)==0
 	 || from_addr == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1622,7 +1649,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients_addr) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, 0/*encrypt_to_self*/, &encrypted);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, 0/*encrypt_to_self*/, &encrypted);
 		if( data == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -1665,6 +1692,7 @@ cleanup:
 	free(from_addr);
 	free(from_displayname);
 	free(predecessor);
+	free(references);
 }
 
 

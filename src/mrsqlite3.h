@@ -83,6 +83,7 @@ enum
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,SELECT_id_FROM_CHATS_WHERE_grpid
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
+	,SELECT_MAX_timestamp_FROM_msgs
 	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
 	,UPDATE_chats_SET_draft_WHERE_id
 	,UPDATE_chats_SET_n_WHERE_c

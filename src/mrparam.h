@@ -48,6 +48,7 @@
  * 'S'ystem command
  * 'E'xtra parameter for system command
  * 'P'hysically delete group after message sending
+ * 'R'eferences header last used for a chat
  *
  ******************************************************************************/
 
