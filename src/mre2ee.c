@@ -346,7 +346,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 		}
 
 		/* load autocrypt header from db */
-		autocryptheader->m_prefer_encrypted = MRA_PE_NOPREFERENCE;
+		autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE;
 		autocryptheader->m_to = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( autocryptheader->m_to == NULL ) {
 			goto cleanup;
@@ -361,7 +361,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 			clistiter* iter1 = clist_begin(recipients_addr);
 			const char* recipient_addr = clist_content(iter1);
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-			 && peerstate->m_prefer_encrypted!=MRA_PE_NO ) {
+			 && peerstate->m_prefer_encrypt!=MRA_PE_NO ) {
 				do_encrypt = 1;
 			}
 		}

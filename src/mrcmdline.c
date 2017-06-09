@@ -80,12 +80,12 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 				line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
 				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr) ) {
 					char* pe = "unknown-value";
-					switch( peerstate->m_prefer_encrypted ) {
+					switch( peerstate->m_prefer_encrypt ) {
 						case MRA_PE_NO: pe = "no"; break;
 						case MRA_PE_YES: pe = "yes"; break;
 						case MRA_PE_NOPREFERENCE: pe = "no-preference"; break;
 					}
-					line2 = mr_mprintf(", prefer-encrypted=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
+					line2 = mr_mprintf(", prefer-encrypt=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
 				}
 			}
 			else {

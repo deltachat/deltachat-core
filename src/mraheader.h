@@ -40,7 +40,7 @@ typedef struct mraheader_t
 {
 	char*          m_to;
 	mrkey_t*       m_public_key; /* != NULL */
-	int            m_prefer_encrypted; /* YES, NO or NOPREFERENCE if attribute is missing */
+	int            m_prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
 } mraheader_t;
 
 

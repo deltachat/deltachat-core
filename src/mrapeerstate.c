@@ -51,7 +51,7 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 
 	ths->m_changed          = 0;
 	ths->m_last_seen        = 0;
-	ths->m_prefer_encrypted = 0;
+	ths->m_prefer_encrypt   = 0;
 	ths->m_to_save          = 0;
 
 	free(ths->m_addr);
@@ -84,7 +84,7 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	ths->m_addr             = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
 	ths->m_changed          =                    sqlite3_column_int64 (stmt, 1);
 	ths->m_last_seen        =                    sqlite3_column_int64 (stmt, 2);
-	ths->m_prefer_encrypted =                    sqlite3_column_int   (stmt, 3);
+	ths->m_prefer_encrypt   =                    sqlite3_column_int   (stmt, 3);
 	mrkey_set_from_stmt     (ths->m_public_key,                        stmt, 4, MR_PUBLIC);
 
 	success = 1;
@@ -116,7 +116,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 			"UPDATE apeerstates SET last_seen=?, changed=?, prefer_encrypted=?, public_key=? WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_changed);
-		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypted);
+		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypt);
 		sqlite3_bind_blob (stmt, 4, ths->m_public_key->m_binary, ths->m_public_key->m_bytes, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 5, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -188,7 +188,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	ths->m_changed          = message_time;
 	ths->m_last_seen        = message_time;
 	ths->m_to_save          = MRA_SAVE_ALL;
-	ths->m_prefer_encrypted = header->m_prefer_encrypted;
+	ths->m_prefer_encrypt   = header->m_prefer_encrypt;
 	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
 	return 1;
 }
@@ -200,7 +200,7 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 		return 0;
 	}
 
-	ths->m_prefer_encrypted = MRA_PE_NO;
+	ths->m_prefer_encrypt = MRA_PE_NO;
 	ths->m_changed = message_time; /*last_seen is not updated as there was not Autocrypt:-header seen*/
 	ths->m_to_save = MRA_SAVE_ALL;
 	return 1;
@@ -221,11 +221,11 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 		ths->m_last_seen = message_time;
 		ths->m_to_save |= MRA_SAVE_LAST_SEEN;
 
-		if( (header->m_prefer_encrypted==MRA_PE_NO || header->m_prefer_encrypted==MRA_PE_YES || header->m_prefer_encrypted==MRA_PE_NOPREFERENCE)
-		 &&  header->m_prefer_encrypted != ths->m_prefer_encrypted )
+		if( (header->m_prefer_encrypt==MRA_PE_NO || header->m_prefer_encrypt==MRA_PE_YES || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE)
+		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
 		{
 			ths->m_changed = message_time;
-			ths->m_prefer_encrypted = header->m_prefer_encrypted;
+			ths->m_prefer_encrypt = header->m_prefer_encrypt;
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 
