@@ -78,11 +78,8 @@ char* mraheader_render(const mraheader_t* ths)
 	mrstrbuilder_cat(&ret, ths->m_to);
 	mrstrbuilder_cat(&ret, "; ");
 
-	if( ths->m_prefer_encrypt==MRA_PE_YES ) {
-		mrstrbuilder_cat(&ret, "prefer-encrypt=yes; ");
-	}
-	else if( ths->m_prefer_encrypt==MRA_PE_NO ) {
-		mrstrbuilder_cat(&ret, "prefer-encrypt=no; ");
+	if( ths->m_prefer_encrypt==MRA_PE_MUTUAL ) {
+		mrstrbuilder_cat(&ret, "prefer-encrypt=mutual; ");
 	}
 
 	mrstrbuilder_cat(&ret, "key= "); /* the trailing space together with mr_insert_breaks() allows a proper transport */
@@ -133,9 +130,8 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 	else if( strcasecmp(name, "prefer-encrypt")==0 )
 	{
 		if( value == NULL ) { return 0; }
-        if( strcasecmp(value, "no")==0 ) { ths->m_prefer_encrypt = MRA_PE_NO; return 1; }
-        if( strcasecmp(value, "yes")==0 ) { ths->m_prefer_encrypt = MRA_PE_YES; return 1; }
-		return 0; /* Autocrypt-Level0: If prefer-encrypt is set, but neither yes nor no, the MUA must skip the header as invalid. */
+        if( strcasecmp(value, "mutual")==0 ) { ths->m_prefer_encrypt = MRA_PE_MUTUAL; return 1; }
+		return 0; /* Autocrypt-Level0: If prefer-encrypt is set, but not "mutual" regard the header as invalid (?) */
 	}
 	else if( strcasecmp(name, "key")==0 )
 	{

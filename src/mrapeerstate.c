@@ -200,7 +200,7 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 		return 0;
 	}
 
-	ths->m_prefer_encrypt = MRA_PE_NO;
+	ths->m_prefer_encrypt = MRA_PE_RESET;
 	ths->m_changed = message_time; /*last_seen is not updated as there was not Autocrypt:-header seen*/
 	ths->m_to_save = MRA_SAVE_ALL;
 	return 1;
@@ -221,7 +221,7 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 		ths->m_last_seen = message_time;
 		ths->m_to_save |= MRA_SAVE_LAST_SEEN;
 
-		if( (header->m_prefer_encrypt==MRA_PE_NO || header->m_prefer_encrypt==MRA_PE_YES || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE)
+		if( (header->m_prefer_encrypt==MRA_PE_MUTUAL || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE) /*this also switches from MRA_PE_RESET to MRA_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
 		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
 		{
 			ths->m_changed = message_time;

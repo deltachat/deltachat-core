@@ -361,7 +361,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 			clistiter* iter1 = clist_begin(recipients_addr);
 			const char* recipient_addr = clist_content(iter1);
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-			 && peerstate->m_prefer_encrypt!=MRA_PE_NO ) {
+			 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL ) {
 				do_encrypt = 1;
 			}
 		}

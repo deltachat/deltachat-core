@@ -699,7 +699,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	if( e2ee_enabled
 	 && peerstate_ok
-	 && peerstate->m_prefer_encrypt!=MRA_PE_NO
+	 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
 		/* end-to-end encrypted, if we got the key from the contact but have no own key yet, generate one. */
