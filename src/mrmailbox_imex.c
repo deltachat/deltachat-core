@@ -56,7 +56,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	}
 
 	/* create a fake autocrypt header */
-	header->m_to               = safe_strdup(addr);
+	header->m_addr             = safe_strdup(addr);
 	header->m_prefer_encrypt   = MRA_PE_MUTUAL;
 	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
 	 || !mre2ee_driver_is_valid_key(mailbox, header->m_public_key) ) {

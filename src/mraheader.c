@@ -53,8 +53,8 @@ static void mraheader_empty(mraheader_t* ths)
 
 	ths->m_prefer_encrypt = 0;
 
-	free(ths->m_to);
-	ths->m_to = NULL;
+	free(ths->m_addr);
+	ths->m_addr = NULL;
 
 	if( ths->m_public_key->m_binary ) {
 		mrkey_unref(ths->m_public_key);
@@ -70,12 +70,12 @@ char* mraheader_render(const mraheader_t* ths)
 	mrstrbuilder_t ret;
 	mrstrbuilder_init(&ret);
 
-	if( ths==NULL || ths->m_to==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=MR_PUBLIC ) {
+	if( ths==NULL || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=MR_PUBLIC ) {
 		goto cleanup;
 	}
 
-	mrstrbuilder_cat(&ret, "to=");
-	mrstrbuilder_cat(&ret, ths->m_to);
+	mrstrbuilder_cat(&ret, "addr=");
+	mrstrbuilder_cat(&ret, ths->m_addr);
 	mrstrbuilder_cat(&ret, "; ");
 
 	if( ths->m_prefer_encrypt==MRA_PE_MUTUAL ) {
@@ -109,14 +109,14 @@ cleanup:
 static int add_attribute(mraheader_t* ths, const char* name, const char* value /*may be NULL*/)
 {
 	/* returns 0 if the attribute will result in an invalid header, 1 if the attribute is okay */
-	if( strcasecmp(name, "to")==0 )
+	if( strcasecmp(name, "addr")==0 )
 	{
 		if( value == NULL
 		 || strlen(value) < 3 || strchr(value, '@')==NULL || strchr(value, '.')==NULL /* rough check if email-address is valid */
-		 || ths->m_to /* email already given */ ) {
+		 || ths->m_addr /* email already given */ ) {
 			return 0;
 		}
-		ths->m_to = mr_normalize_addr(value);
+		ths->m_addr = mr_normalize_addr(value);
 		return 1;
 	}
 	else if( strcasecmp(name, "type")==0 )
@@ -209,7 +209,7 @@ int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 	}
 
 	/* all needed data found? */
-	if( ths->m_to && ths->m_public_key->m_binary ) {
+	if( ths->m_addr && ths->m_public_key->m_binary ) {
 		success = 1;
 	}
 
@@ -274,7 +274,7 @@ void mraheader_unref(mraheader_t* ths)
 		return;
 	}
 
-	free(ths->m_to);
+	free(ths->m_addr);
 	mrkey_unref(ths->m_public_key);
 	free(ths);
 }

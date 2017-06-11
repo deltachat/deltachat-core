@@ -347,12 +347,12 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 
 		/* load autocrypt header from db */
 		autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE;
-		autocryptheader->m_to = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-		if( autocryptheader->m_to == NULL ) {
+		autocryptheader->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+		if( autocryptheader->m_addr == NULL ) {
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_to, in_out_message/*only for random-seed*/) ) {
+		if( !load_or_generate_self_public_key__(mailbox, autocryptheader->m_public_key, autocryptheader->m_addr, in_out_message/*only for random-seed*/) ) {
 			goto cleanup;
 		}
 
@@ -661,9 +661,9 @@ int mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	autocryptheader_fine = mraheader_set_from_imffields(autocryptheader, imffields);
 	if( autocryptheader_fine ) {
 		if( from == NULL ) {
-			from = safe_strdup(autocryptheader->m_to);
+			from = safe_strdup(autocryptheader->m_addr);
 		}
-		else if( strcasecmp(autocryptheader->m_to, from /*SIC! compare to= against From: - the key is for answering!*/)!=0 ) {
+		else if( strcasecmp(autocryptheader->m_addr, from /*SIC! compare to= against From: - the key is for answering!*/)!=0 ) {
 			autocryptheader_fine = 0;
 		}
 

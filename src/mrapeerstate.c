@@ -184,7 +184,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	}
 
 	mrapeerstate_empty(ths);
-	ths->m_addr             = safe_strdup(header->m_to);
+	ths->m_addr             = safe_strdup(header->m_addr);
 	ths->m_changed          = message_time;
 	ths->m_last_seen        = message_time;
 	ths->m_to_save          = MRA_SAVE_ALL;
@@ -211,8 +211,8 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 {
 	if( ths==NULL || header==NULL
 	 || ths->m_addr==NULL
-	 || header->m_to==NULL || header->m_public_key->m_binary==NULL
-	 || strcasecmp(ths->m_addr, header->m_to)!=0 ) {
+	 || header->m_addr==NULL || header->m_public_key->m_binary==NULL
+	 || strcasecmp(ths->m_addr, header->m_addr)!=0 ) {
 		return 0;
 	}
 

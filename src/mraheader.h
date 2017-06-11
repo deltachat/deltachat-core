@@ -38,7 +38,7 @@ extern "C" {
 
 typedef struct mraheader_t
 {
-	char*          m_to;
+	char*          m_addr;
 	mrkey_t*       m_public_key; /* != NULL */
 	int            m_prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
 } mraheader_t;
