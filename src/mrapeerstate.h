@@ -49,8 +49,8 @@ typedef struct mraheader_t mraheader_t;
 typedef struct mrapeerstate_t
 {
 	char*          m_addr;
-	time_t         m_changed;
 	time_t         m_last_seen;
+	time_t         m_last_seen_autocrypt;
 	mrkey_t*       m_public_key; /*!=NULL*/
 	int            m_prefer_encrypt;
 

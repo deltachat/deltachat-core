@@ -284,15 +284,6 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 	#define NEW_DB_VERSION 7
 		if( dbversion < NEW_DB_VERSION )
 		{
-			mrsqlite3_execute__(ths, "CREATE TABLE apeerstates ("
-						" id INTEGER PRIMARY KEY,"
-						" addr TEXT DEFAULT '' COLLATE NOCASE," /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
-						" changed INTEGER DEFAULT 0,"       /* UTC Timestamp when pah (Parsed Autocrypt Header) was last changed */
-						" last_seen INTEGER DEFAULT 0,"     /* Most recent UTC time that pah was confirmed */
-						" public_key,"
-						" prefer_encrypted INTEGER DEFAULT 0);");
-			mrsqlite3_execute__(ths, "CREATE INDEX apeerstates_index1 ON apeerstates (addr);");
-
 			mrsqlite3_execute__(ths, "CREATE TABLE keypairs ("
 						" id INTEGER PRIMARY KEY,"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
@@ -306,14 +297,22 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 8
+	#define NEW_DB_VERSION 10
 		if( dbversion < NEW_DB_VERSION )
 		{
-			mrsqlite3_execute__(ths, "DELETE FROM apeerstates;"); /* prefer-encrypt and other meanings have changed in autocrypt in July 2017 Hackathlon */
+			mrsqlite3_execute__(ths, "CREATE TABLE acpeerstates ("
+						" id INTEGER PRIMARY KEY,"
+						" addr TEXT DEFAULT '' COLLATE NOCASE,"    /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
+						" last_seen INTEGER DEFAULT 0,"
+						" last_seen_autocrypt INTEGER DEFAULT 0,"
+						" public_key,"
+						" prefer_encrypted INTEGER DEFAULT 0);");
+			mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
+
 			dbversion = NEW_DB_VERSION;
 			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
 		}
-	#define NEW_DB_VERSION
+	#undef NEW_DB_VERSION
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;

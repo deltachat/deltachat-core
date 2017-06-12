@@ -686,7 +686,7 @@ int mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
 				else {
-					if( message_time > peerstate->m_last_seen ) {
+					if( message_time > peerstate->m_last_seen_autocrypt ) {
 						mrapeerstate_degrade_encryption(peerstate, message_time);
 						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 					}

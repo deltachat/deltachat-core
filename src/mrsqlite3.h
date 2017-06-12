@@ -133,10 +133,10 @@ enum
 
 	,SELECT_FROM_leftgrps_WHERE_grpid
 
-	,INSERT_INTO_apeerstates_a
-	,SELECT_aclpp_FROM_apeerstates_WHERE_a
-	,UPDATE_apeerstates_SET_l_WHERE_a
-	,UPDATE_apeerstates_SET_lcpp_WHERE_a
+	,INSERT_INTO_acpeerstates_a
+	,SELECT_aclpp_FROM_acpeerstates_WHERE_a
+	,UPDATE_acpeerstates_SET_l_WHERE_a
+	,UPDATE_acpeerstates_SET_lcpp_WHERE_a
 
 	,INSERT_INTO_keypairs_aippc
 	,SELECT_private_key_FROM_keypairs_WHERE_default

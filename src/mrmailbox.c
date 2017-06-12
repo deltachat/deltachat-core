@@ -1218,7 +1218,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		prv_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
-		stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM apeerstates;");
+		stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM acpeerstates;");
 		sqlite3_step(stmt);
 		pub_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
@@ -1304,7 +1304,7 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 		}
 
 		if( bits & 2 ) {
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM apeerstates;");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
 		}
 
