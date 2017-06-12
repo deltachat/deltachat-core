@@ -340,13 +340,12 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		/* encryption enabled? */
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) == 0 ) {
-			goto cleanup;
-		}
-
 		/* load autocrypt header from db */
 		autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE;
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) ) {
+			autocryptheader->m_prefer_encrypt = MRA_PE_MUTUAL;
+		}
+
 		autocryptheader->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( autocryptheader->m_addr == NULL ) {
 			goto cleanup;
@@ -361,7 +360,8 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 			clistiter* iter1 = clist_begin(recipients_addr);
 			const char* recipient_addr = clist_content(iter1);
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-			 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL ) {
+			 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
+			 && autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL ) {
 				do_encrypt = 1;
 			}
 		}
@@ -676,9 +676,8 @@ int mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		/* apply Autocrypt:-header only if encryption is enabled (if we're out of beta, we should do this always to track the correct state; now we want no bugs spread widely to the databases :-) */
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) != 0
-		 && message_time > 0
+		/* apply Autocrypt:-header */
+		if( message_time > 0
 		 && from )
 		{
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {

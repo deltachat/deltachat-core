@@ -306,6 +306,15 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
+	#define NEW_DB_VERSION 8
+		if( dbversion < NEW_DB_VERSION )
+		{
+			mrsqlite3_execute__(ths, "DELETE FROM apeerstates;"); /* prefer-encrypt and other meanings have changed in autocrypt in July 2017 Hackathlon */
+			dbversion = NEW_DB_VERSION;
+			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+		}
+	#define NEW_DB_VERSION
+
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
