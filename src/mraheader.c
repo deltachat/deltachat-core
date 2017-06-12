@@ -121,17 +121,21 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 	}
 	else if( strcasecmp(name, "type")==0 )
 	{
-		if( value == NULL
-		 || strcasecmp(value, "p")!=0) {
-			return 0; /* we do not support any types but "p" (=PGP), if the type is ommited, this is okay and we assume "p" */
+		if( value == NULL ) {
+			return 0; /* attribute with no value results in an invalid header */
 		}
-		return 1;
+		if( strcasecmp(value, "1")==0 || strcasecmp(value, "0" /*deprecated*/)==0 || strcasecmp(value, "p" /*deprecated*/)==0 ) {
+			return 1; /* PGP-type */
+		}
+		return 0; /* unknown types result in an invalid header */
 	}
 	else if( strcasecmp(name, "prefer-encrypt")==0 )
 	{
-		if( value == NULL ) { return 0; }
-        if( strcasecmp(value, "mutual")==0 ) { ths->m_prefer_encrypt = MRA_PE_MUTUAL; return 1; }
-		return 0; /* Autocrypt-Level0: If prefer-encrypt is set, but not "mutual" regard the header as invalid (?) */
+		if( value && strcasecmp(value, "mutual")==0 ) {
+			ths->m_prefer_encrypt = MRA_PE_MUTUAL;
+			return 1;
+		}
+		return 1; /* An Autocrypt level 0 client that sees the attribute with any other value (or that does not see the attribute at all) should interpret the value as nopreference.*/
 	}
 	else if( strcasecmp(name, "key")==0 )
 	{
