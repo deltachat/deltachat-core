@@ -118,7 +118,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		char*        rendered = NULL;
 		int          ah_ok;
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; type=p; prefer-encrypt=mutual; key=RGVsdGEgQ2hhdA==");
+		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; type=1; prefer-encrypt=mutual; key=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 );
 		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
@@ -133,8 +133,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
 		assert( ah->m_prefer_encrypt==MRA_PE_MUTUAL );
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; type=p; prefer-encrypt=nopreference; key=RGVsdGEgQ2hhdA==");
-		assert( ah_ok == 0 ); /* only "yes" or "no" are valid for prefer-encrypt ... */
+		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; type=1; prefer-encrypt=ignoreUnknownValues; key=RGVsdGEgQ2hhdA==");
+		assert( ah_ok == 1 ); /* only "yes" or "no" are valid for prefer-encrypt ... */
 
 		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; key=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 && ah->m_prefer_encrypt==MRA_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
