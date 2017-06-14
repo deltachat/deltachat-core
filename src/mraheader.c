@@ -82,7 +82,7 @@ char* mraheader_render(const mraheader_t* ths)
 		mrstrbuilder_cat(&ret, "prefer-encrypt=mutual; ");
 	}
 
-	mrstrbuilder_cat(&ret, "key= "); /* the trailing space together with mr_insert_breaks() allows a proper transport */
+	mrstrbuilder_cat(&ret, "keydata= "); /* the trailing space together with mr_insert_breaks() allows a proper transport */
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
@@ -137,7 +137,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		}
 		return 1; /* An Autocrypt level 0 client that sees the attribute with any other value (or that does not see the attribute at all) should interpret the value as nopreference.*/
 	}
-	else if( strcasecmp(name, "key")==0 )
+	else if( strcasecmp(name, "keydata")==0 )
 	{
 		if( value == NULL
 		 || ths->m_public_key->m_binary || ths->m_public_key->m_bytes ) {
