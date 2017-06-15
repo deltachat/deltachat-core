@@ -432,6 +432,9 @@
 		<Unit filename="src/mrapeerstate.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrasetup.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrchat.c">
 			<Option compilerVar="CC" />
 		</Unit>
