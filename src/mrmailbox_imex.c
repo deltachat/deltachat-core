@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
@@ -734,5 +735,24 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char*
 Linebreaks and spaces MUST NOT be added to the setup code, but the "-" are. */
 char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 {
-	return safe_strdup("0000-0000-0000-0000-0000-0000-0000-0000-0000");
+	#define   CODE_ELEMS 9
+	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
+	uint16_t  buf[CODE_ELEMS];
+	int       i;
+
+	if( !RAND_bytes((unsigned char*)buf, BUF_BYTES) ) {
+		mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
+		RAND_pseudo_bytes((unsigned char*)buf, BUF_BYTES);
+	}
+
+	for( i = 0; i < CODE_ELEMS; i++ ) {
+		buf[i] = buf[i] % 10000; /* force all blocks into the range 0..9999 */
+	}
+
+	return mr_mprintf("%04i-%04i-%04i-"
+	                  "%04i-%04i-%04i-"
+	                  "%04i-%04i-%04i",
+		(int)buf[0], (int)buf[1], (int)buf[2],
+		(int)buf[3], (int)buf[4], (int)buf[5],
+		(int)buf[6], (int)buf[7], (int)buf[8]);
 }
