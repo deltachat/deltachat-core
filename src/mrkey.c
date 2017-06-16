@@ -40,6 +40,17 @@
  ******************************************************************************/
 
 
+void mr_wipe_secret_mem(void* buf, size_t buf_bytes)
+{
+	/* wipe private keys or othere secrets with zeros so that secrets are no longer in RAM */
+	if( buf == NULL || buf_bytes <= 0 ) {
+		return;
+	}
+
+	memset(buf, 0x00, buf_bytes);
+}
+
+
 static void mrkey_empty(mrkey_t* ths) /* only use before calling setters; take care when using this function together with reference counting, prefer new objects instead */
 {
 	if( ths == NULL ) {
@@ -47,15 +58,7 @@ static void mrkey_empty(mrkey_t* ths) /* only use before calling setters; take c
 	}
 
 	if( ths->m_type==MR_PRIVATE ) {
-		if( ths->m_binary && ths->m_bytes>0 ) {
-			/* wipe private keys with different patterns. Don't know, if this helps, however, it should not hurt.
-			(in general, we keep the private keys in memory as short as possible and only if really needed.
-			on disk, eg. on Android, it is not accessible for other Apps - so all this should be quite safe) */
-			memset(ths->m_binary, 0xFF, ths->m_bytes); /* pattern 11111111 */
-			memset(ths->m_binary, 0xAA, ths->m_bytes); /* pattern 10101010 */
-			memset(ths->m_binary, 0x55, ths->m_bytes); /* pattern 01010101 */
-			memset(ths->m_binary, 0x00, ths->m_bytes); /* pattern 00000000 */
-		}
+		mr_wipe_secret_mem(ths->m_binary, ths->m_bytes);
 	}
 
 	free(ths->m_binary);

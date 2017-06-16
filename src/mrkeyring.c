@@ -96,7 +96,7 @@ int mrkeyring_load_self_private__(mrkeyring_t* ths, const char* self_addr, mrsql
 	}
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
-		"SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default=1 DESC;");
+		"SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		key = mrkey_new();

@@ -27,7 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <libetpan/mmapstring.h>
 #include "mrmailbox.h"
+#include "mrmimeparser.h"
 #include "mrosnative.h"
 #include "mraheader.h"
 #include "mrapeerstate.h"
@@ -279,74 +281,183 @@ cleanup:
 
 
 /*******************************************************************************
- * Export
+ * Export keys
  ******************************************************************************/
 
 
-static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
+/* a complete Autocrypt Setup Message looks like the following
+
+To: me@mydomain.com
+From: me@mydomain.com
+Autocrypt-Setup-Message: v1
+Content-type: multipart/mixed; boundary="==break1=="
+
+	--==break1==
+	Content-Type: text/plain
+
+	This is the Autocrypt setup message.
+
+	--==break1==
+	Content-Type: application/autocrypt-key-backup
+	Content-Disposition: attachment; filename="autocrypt-key-backup.html"
+
+	<html>
+	<body>
+	<p>
+		This is the Autocrypt setup file used to transfer keys between clients.
+	</p>
+	<pre>
+	-----BEGIN PGP MESSAGE-----
+	Version: BCPG v1.53
+	Passphrase-Format: numeric9x4
+	Passphrase-Begin: 12
+
+	hQIMAxC7JraDy7DVAQ//SK1NltM+r6uRf2BJEg+rnpmiwfAEIiopU0LeOQ6ysmZ0
+	CLlfUKAcryaxndj4sBsxLllXWzlNiFDHWw4OOUEZAZd8YRbOPfVq2I8+W4jO3Moe
+	-----END PGP MESSAGE-----
+	</pre>
+	</body>
+	</html>
+	--==break1==--
+
+The encrypted message part contains:
+
+	Content-type: multipart/mixed; boundary="==break2=="
+	Autocrypt-Prefer-Encrypt: mutual
+
+	--==break2==
+	Content-type: application/autocrypt-key-backup
+
+	-----BEGIN PGP PRIVATE KEY BLOCK-----
+	Version: GnuPG v1.2.3 (GNU/Linux)
+
+	xcLYBFke7/8BCAD0TTmX9WJm9elc7/xrT4/lyzUDMLbuAuUqRINtCoUQPT2P3Snfx/jou1YcmjDgwT
+	Ny9ddjyLcdSKL/aR6qQ1UBvlC5xtriU/7hZV6OZEmW2ckF7UgGd6ajE+UEjUwJg2+eKxGWFGuZ1P7a
+	4Av1NXLayZDsYa91RC5hCsj+umLN2s+68ps5pzLP3NoK2zIFGoCRncgGI/pTAVmYDirhVoKh14hCh5
+	.....
+	-----END PGP PRIVATE KEY BLOCK-----
+	--==break2==--
+
+mrmailbox_render_keys_to_html() renders the part after the second `-==break1==` part in this example. */
+int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, char** ret_msg)
 {
-	char* file_content = mrkey_render_asc(key);
-	char* file_name;
-	if( is_default ) {
-		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
-	}
-	else {
-		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
-	}
-	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	int                    success = 0, locked = 0, col = 0;
+	sqlite3_stmt*          stmt = NULL;
+	mrkey_t*               private_key = mrkey_new();
+	struct mailmime*       payload_mime_msg = NULL;
+	struct mailmime*       payload_mime_anchor = NULL;
+	MMAPString*            payload_string = mmap_string_new("");
 
-	if( mr_file_exist(file_name) ) {
-		mr_delete_file(file_name, mailbox);
+	if( mailbox==NULL || setup_code==NULL || ret_msg==NULL
+	 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
+		goto cleanup;
 	}
 
-	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
-	}
-	else {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/pgp-keys");
-	}
-
-	free(file_content);
-	free(file_name);
-}
-
-
-static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
-{
-	sqlite3_stmt* stmt = NULL;
-	int           success = 0, id = 0, is_default = 0;
-	mrkey_t*      public_key = mrkey_new();
-	mrkey_t*      private_key = mrkey_new();
-	int           locked = 0;
+	/* create the payload */
+	payload_mime_anchor = mailmime_new_empty(mailmime_content_new_with_str("multipart/mixed"), mailmime_fields_new_empty());
+	payload_mime_msg    = mailmime_new_message_data(payload_mime_anchor);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+		int e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+
+		struct mailimf_fields* imffields = mailimf_fields_new_empty();
+		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt-Prefer-Encrypt"), strdup(e2ee_enabled? "mutual" : "nopreference")));
+		mailmime_set_imf_fields(payload_mime_msg, imffields);
+
+		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;"))==NULL ) {
 			goto cleanup;
 		}
 
-		while( sqlite3_step(stmt)==SQLITE_ROW ) {
-			id = sqlite3_column_int(         stmt, 0  );
-			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
-			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
-			is_default = sqlite3_column_int( stmt, 3  );
-			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
-			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
+		while( sqlite3_step(stmt)==SQLITE_ROW )
+		{
+			if( !mrkey_set_from_stmt(private_key, stmt, 0, MR_PRIVATE) ) {
+				goto cleanup;
+			}
+
+			char* key_asc = mrkey_render_asc(private_key);
+			if( key_asc == NULL ) {
+				goto cleanup;
+			}
+
+			struct mailmime_content* content_type = mailmime_content_new_with_str("application/autocrypt-key-backup");
+			struct mailmime_fields* mime_fields = mailmime_fields_new_empty();
+			struct mailmime* key_mime = mailmime_new_empty(content_type, mime_fields);
+			mailmime_set_body_text(key_mime, key_asc, strlen(key_asc));
+
+			mailmime_smart_add_part(payload_mime_anchor, key_mime);
 		}
 
-		success = 1;
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	mailmime_write_mem(payload_string, &col, payload_mime_msg);
+	//char* t2=mr_null_terminate(payload_string->str,payload_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
+
+	/* encrypt the payload using the setup code */
+
+	// TODO
+
+	/* wrap HTML-commands with instructions around the encrypted payload */
+
+	// TODO
+
+	success = 1;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( stmt ) { sqlite3_finalize(stmt); }
-	mrkey_unref(public_key);
-	mrkey_unref(private_key);
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( payload_mime_msg && payload_mime_anchor ) {
+		clistiter* cur;
+		for( cur=clist_begin(payload_mime_anchor->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) { /* looks complicated, but only free()'s the pointers allocated above (they're used by mime, but not owned by it) */
+			struct mailmime* key_mime = (struct mailmime*)clist_content(cur);
+			if( key_mime->mm_type==MAILMIME_SINGLE
+			 && key_mime->mm_data.mm_single->dt_type==MAILMIME_DATA_TEXT ) {
+				char* key_asc = (char*)key_mime->mm_data.mm_single->dt_data.dt_text.dt_data;
+				free(key_asc);
+			}
+		}
+		mailmime_free(payload_mime_msg);
+	}
+	if( payload_string ) { mmap_string_free(payload_string); }
 	return success;
 }
 
 
-static int export_backup(mrmailbox_t* mailbox, const char* dir)
+static int export_self_keys(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
+{
+	int           success = 0;
+	char*         file_content = NULL;
+	char*         file_name = mr_mprintf("%s/autocrypt-key-backup.html", dir);
+
+	if( !mrmailbox_render_keys_to_html(mailbox, setup_code, &file_content) || file_content==NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot generate Autocrypt setup file in %s", file_name);
+		goto cleanup;
+	}
+
+	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot write keys to %s", file_name);
+	}
+	else {
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/autocrypt-key-backup");
+	}
+
+	success = 1;
+
+cleanup:
+	free(file_content);
+	free(file_name);
+	return success;
+}
+
+
+/*******************************************************************************
+ * Export backup
+ ******************************************************************************/
+
+
+static int export_backup(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
 {
 	int            success = 0, locked = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
@@ -507,6 +618,7 @@ typedef struct mrimexthreadparam_t
 	mrmailbox_t* m_mailbox;
 	int          m_what;
 	char*        m_dir;
+	char*        m_setup_code;
 } mrimexthreadparam_t;
 
 
@@ -541,7 +653,7 @@ static void* imex_thread_entry_point(void* entry_arg)
 	switch( thread_param->m_what )
 	{
 		case MR_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys(mailbox, thread_param->m_dir) ) {
+			if( !export_self_keys(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
 				goto cleanup;
 			}
 			break;
@@ -553,7 +665,7 @@ static void* imex_thread_entry_point(void* entry_arg)
 			break;
 
 		case MR_IMEX_EXPORT_BACKUP:
-			if( !export_backup(mailbox, thread_param->m_dir) ) {
+			if( !export_backup(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
 				goto cleanup;
 			}
 			break;
@@ -567,13 +679,14 @@ cleanup:
 	mailbox->m_cb(mailbox, MR_EVENT_IMEX_ENDED, success, 0);
 	s_imex_thread_created = 0;
 	free(thread_param->m_dir);
+	free(thread_param->m_setup_code);
 	free(thread_param);
 	mrosnative_unsetup_thread(mailbox); /* must be very last (here we really new the local copy of the pointer) */
 	return NULL;
 }
 
 
-void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir)
+void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char* setup_code)
 {
 	mrimexthreadparam_t* thread_param;
 
@@ -606,8 +719,20 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir)
 
 	memset(&s_imex_thread, 0, sizeof(pthread_t));
 	thread_param = calloc(1, sizeof(mrimexthreadparam_t));
-	thread_param->m_mailbox = mailbox;
-	thread_param->m_what = what;
-	thread_param->m_dir = safe_strdup(dir);
+	thread_param->m_mailbox    = mailbox;
+	thread_param->m_what       = what;
+	thread_param->m_dir        = safe_strdup(dir);
+	thread_param->m_setup_code = safe_strdup(setup_code); /*empty string if no code given, this will not work but also not crash.*/
 	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
+}
+
+
+/* create an "Autocrypt Level 1" setup code in the form
+1234-1234-1234-
+1234-1234-1234-
+1234-1234-1234
+Linebreaks and spaces MUST NOT be added to the setup code, but the "-" are. */
+char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
+{
+	return safe_strdup("0000-0000-0000-0000-0000-0000-0000-0000-0000");
 }

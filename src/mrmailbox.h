@@ -268,7 +268,8 @@ To avoid double slashes, the given directory should not end with a slash. */
 #define MR_IMEX_IMPORT_SELF_KEYS   0x00010000
 #define MR_BAK_PREFIX             "delta-chat"
 #define MR_BAK_SUFFIX             "bak"
-void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* dir); /* user import/export function, sends MR_EVENT_IMEX_* events */
+void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* dir, const char* setup_code); /* user import/export function, sends MR_EVENT_IMEX_* events */
+char*                mrmailbox_create_setup_code    (mrmailbox_t*); /* should be written down by the user, forwareded to mrmailbox_imex() for encryption then, must be wiped and free()'d after usage */
 int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);          /* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */
 
 /* Misc. */
