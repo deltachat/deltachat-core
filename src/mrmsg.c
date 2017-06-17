@@ -378,7 +378,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 
 	ret = mr_mprintf("Date: %s\nEncryption: %s%s\n\n%s",
 		timestr,
-		mrparam_get_int(msg->m_param, 'c', 0)? "End-to-end" : "Transport",
+		mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0)? "End-to-end" : "Transport",
 		metadata? metadata : "",
 		rawtxt);
 

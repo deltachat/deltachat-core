@@ -45,7 +45,7 @@ typedef struct mre2ee_helper_t {
 
 void mre2ee_init    (mrmailbox_t*);
 void mre2ee_exit    (mrmailbox_t*);
-void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t*);
+void mre2ee_encrypt (mrmailbox_t*, const clist* recipients_addr, int e2ee_guaranteed, int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t*);
 int  mre2ee_decrypt (mrmailbox_t*, struct mailmime* in_out_message); /* returns 1 if sth. was decrypted, 0 in other cases */
 void mre2ee_thanks  (mre2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
 

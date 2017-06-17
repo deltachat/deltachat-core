@@ -318,7 +318,9 @@ void mre2ee_exit(mrmailbox_t* mailbox)
  ******************************************************************************/
 
 
-void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t* helper)
+void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
+                    int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
+                    int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -360,8 +362,10 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr, int encr
 			clistiter* iter1 = clist_begin(recipients_addr);
 			const char* recipient_addr = clist_content(iter1);
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-			 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
-			 && autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL ) {
+			 && peerstate->m_public_key->m_binary!=NULL
+			 && peerstate->m_public_key->m_bytes>0
+			 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed)
+			 && (autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) ) {
 				do_encrypt = 1;
 			}
 		}

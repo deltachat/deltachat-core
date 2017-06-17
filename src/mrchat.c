@@ -30,6 +30,7 @@
 #include "mrmailbox.h"
 #include "mrtools.h"
 #include "mrcontact.h"
+#include "mrapeerstate.h"
 #include "mrjob.h"
 #include "mrsmtp.h"
 #include "mrimap.h"
@@ -1401,8 +1402,10 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 
 	/* encrypt the message, if possible; add Autocrypt:-header
 	(encryption may modifiy the given object) */
-	if( encrypt_to_self==0 || mrparam_get_int(msg->m_param, 'c', 0)==1 /*if SMTP-encryption fails, we also do not encrypt to our IMAP-server*/ ) {
-		mre2ee_encrypt(chat->m_mailbox, recipients_addr, encrypt_to_self, message, &e2ee_helper);
+	int e2ee_guaranteed = mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0);
+	if( encrypt_to_self==0 || e2ee_guaranteed ) {
+		/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
+		mre2ee_encrypt(chat->m_mailbox, recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
 	}
 
 	/* add a subject line */
@@ -1605,6 +1608,15 @@ cleanup:
 }
 
 
+static void mark_as_error(mrmailbox_t* mailbox, mrmsg_t* msg)
+{
+	mrsqlite3_lock(mailbox->m_sql);
+		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_OUT_ERROR);
+	mrsqlite3_unlock(mailbox->m_sql);
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
+}
+
+
 void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	mrchat_t*     chat = mrchat_new(mailbox);
@@ -1637,7 +1649,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references)==0
 	 || from_addr == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
-		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
 	}
 
 	/* check if the message is ready (normally, only video files may be delayed this way) */
@@ -1651,8 +1663,16 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	if( clist_count(recipients_addr) > 0 ) {
 		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, 0/*encrypt_to_self*/, &encrypted);
 		if( data == NULL ) {
+			mark_as_error(mailbox, msg);
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
+		}
+
+		/* have we guaranteed encryption but cannot fullfill it for any reason? Do not send the message then.*/
+		if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) && !encrypted ) {
+			mark_as_error(mailbox, msg);
+			mrmailbox_log_error(mailbox, 0, "End-to-end-encryption unavailable unexpectedly.");
+			goto cleanup; /* unrecoverable */
 		}
 
 		if( !mrsmtp_send_msg(mailbox->m_smtp, recipients_addr, data->str, data->len) ) {
@@ -1667,8 +1687,8 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 
 		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_OUT_DELIVERED);
-		if( encrypted ) {
-			mrparam_set_int(msg->m_param, 'c', 1);
+		if( encrypted && mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0)==0 ) {
+			mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			mrmsg_save_param_to_disk__(msg);
 		}
 
@@ -1731,6 +1751,31 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 			mrparam_set(ths->m_param, 'U', NULL);
 			mrchat_update_param__(ths);
 		}
+	}
+
+	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
+	int can_guarantee_e2ee = 0;
+	if( mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) ) {
+		if( ths->m_type == MR_CHAT_NORMAL ) {
+			mrcontact_t* contact = mrcontact_new();
+			if( mrcontact_load_from_db__(contact, ths->m_mailbox->m_sql, to_id) ) {
+				mrapeerstate_t* peerstate = mrapeerstate_new();
+				if( mrapeerstate_load_from_db__(peerstate, ths->m_mailbox->m_sql, contact->m_addr)
+				 && peerstate->m_prefer_encrypt == MRA_PE_MUTUAL
+				 && peerstate->m_public_key->m_binary != NULL
+				 && peerstate->m_public_key->m_bytes > 0 )
+				{
+					can_guarantee_e2ee = 1;
+				}
+				mrapeerstate_unref(peerstate);
+			}
+			mrcontact_unref(contact);
+		}
+
+	}
+
+	if( can_guarantee_e2ee ) {
+		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
 
 	/* add message to the database */

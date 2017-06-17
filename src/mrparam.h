@@ -32,7 +32,7 @@
  * Known keys:
  * 'a' forwarded from this email-address
  * 'A' forwarded from this name
- * 'c'rypted in original
+ * 'c'rypted in original/guarantee E2EE or the message is not send
  * 'f'ile
  * 'w'idth
  * 'h'eight
@@ -58,6 +58,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+#define MRP_GUARANTEE_E2EE 'c'  /* 'c'rypted in original/guarantee E2EE or the message is not send */
 
 
 typedef struct mrparam_t

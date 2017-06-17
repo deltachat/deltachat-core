@@ -927,7 +927,7 @@ cleanup:
 
 	if( do_add_part ) {
 		if( ths->m_sth_decrypted ) {
-			mrparam_set_int(part->m_param, 'c', 1);
+			mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 		}
 		carray_add(ths->m_parts, (void*)part, NULL);
 		return 1; /* part used */
