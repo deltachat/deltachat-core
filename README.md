@@ -9,10 +9,12 @@ completely **compatible** to the existing e-mail infrastructure.
 So, with Delta Chat you get the **ease** of well-known messengers with the
 **reach** of e-mail. Moreover, you're **independent** from other companies or
 services - as your data are not related to Delta Chat, you won't even add new
-dependecies here.
+dependencies here.
 
 Some features at a glance
 
+- **Secure** with automatic end-to-end-encryption, supporting the new
+  [Autocrypt](https://autocrypt.readthedocs.io/en/latest/) standard
 - **Fast** by the use of Push-IMAP
 - **Largest userbase** - receivers _not_ using Delta Chat can be reached as well
 - **Compatible** - not only to itself
@@ -31,7 +33,7 @@ Currently, the project is in alpha state under heavy development.  A working
 **Android version** is available eg. on F-Droid or at https://delta.chat .
 
 The source code for the Android version is available at
-https://github.com/r10s/deltachat-android .
+https://github.com/deltachat/deltachat-android .
 
 
 Build
@@ -104,4 +106,4 @@ that comes together with the source code.
 
 ---
 
-Copyright (C) 2017 Delta Chat contributors
+Copyright © 2017 Delta Chat contributors
