@@ -192,7 +192,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			mrkeyring_add(keyring, public_key2);
-				int ok = mrpgp_encrypt(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
+				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
@@ -204,7 +204,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
 			void* plain = NULL;
-			int ok = mrpgp_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
+			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			mrkeyring_unref(keyring);
@@ -215,7 +215,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key2);
 			void* plain = NULL;
-			int ok = mrpgp_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
+			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);

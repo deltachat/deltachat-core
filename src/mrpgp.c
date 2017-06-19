@@ -423,14 +423,14 @@ cleanup:
 
 
 /*******************************************************************************
- * Encrypt/Decrypt
+ * Public key encrypt/decrypt
  ******************************************************************************/
 
 
-int mrpgp_encrypt(  mrmailbox_t* mailbox,
-                    const void* plain, size_t plain_bytes,
-                    const mrkeyring_t* raw_keys, int use_armor,
-                    void** ret_ctext, size_t* ret_ctext_bytes)
+int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
+                       const void* plain, size_t plain_bytes,
+                       const mrkeyring_t* raw_keys, int use_armor,
+                       void** ret_ctext, size_t* ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
@@ -479,11 +479,11 @@ cleanup:
 }
 
 
-int mrpgp_decrypt(  mrmailbox_t* mailbox,
-                    const void* ctext, size_t ctext_bytes,
-                    const mrkeyring_t* raw_keys,
-                    int use_armor,
-                    void** ret_plain, size_t* ret_plain_bytes)
+int mrpgp_pk_decrypt(  mrmailbox_t* mailbox,
+                       const void* ctext, size_t ctext_bytes,
+                       const mrkeyring_t* raw_keys,
+                       int use_armor,
+                       void** ret_plain, size_t* ret_plain_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));

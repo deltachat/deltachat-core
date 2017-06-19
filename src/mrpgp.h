@@ -38,15 +38,21 @@ extern "C" {
 typedef struct mrkey_t mrkey_t;
 typedef struct mrkeyring_t mrkeyring_t;
 
+
+/* misc. */
 void mrpgp_init             (mrmailbox_t*);
 void mrpgp_exit             (mrmailbox_t*);
 void mrpgp_rand_seed        (mrmailbox_t*, const void* buf, size_t bytes);
+
+
+/* public key encryption */
 int  mrpgp_create_keypair   (mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);
 int  mrpgp_is_valid_key     (mrmailbox_t*, const mrkey_t*);
 int  mrpgp_calc_fingerprint (mrmailbox_t*, const mrkey_t*, uint8_t** fingerprint, size_t* fingerprint_bytes);
 int  mrpgp_split_key        (mrmailbox_t*, const mrkey_t* private_in, mrkey_t* public_out);
-int  mrpgp_encrypt          (mrmailbox_t*, const void* plain, size_t plain_bytes, const mrkeyring_t*, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
-int  mrpgp_decrypt          (mrmailbox_t*, const void* ctext, size_t ctext_bytes, const mrkeyring_t*, int use_armor, void** plain, size_t* plain_bytes);
+
+int  mrpgp_pk_encrypt       (mrmailbox_t*, const void* plain, size_t plain_bytes, const mrkeyring_t*, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
+int  mrpgp_pk_decrypt       (mrmailbox_t*, const void* ctext, size_t ctext_bytes, const mrkeyring_t*, int use_armor, void** plain, size_t* plain_bytes);
 
 
 #ifdef __cplusplus

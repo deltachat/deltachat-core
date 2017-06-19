@@ -354,7 +354,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			mrkeyring_add(keyring, peerstate->m_public_key);
 		}
 
-		if( !mrpgp_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
+		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
@@ -501,7 +501,7 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 		goto cleanup;
 	}
 
-	if( !mrpgp_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
+	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}
