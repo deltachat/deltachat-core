@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
+#include <netpgp-extra.h>
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
 #include "mrosnative.h"
@@ -348,6 +349,9 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	struct mailmime*       payload_mime_anchor = NULL;
 	MMAPString*            payload_string = mmap_string_new("");
 
+	#define                AES_128_KEY_BYTES 16 // = 128 bit
+	uint8_t                key[AES_128_KEY_BYTES];
+
 	if( mailbox==NULL || setup_code==NULL || ret_msg==NULL
 	 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
 		goto cleanup;
@@ -395,7 +399,20 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	mailmime_write_mem(payload_string, &col, payload_mime_msg);
 	//char* t2=mr_null_terminate(payload_string->str,payload_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
 
-	/* encrypt the payload using the setup code */
+	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key) */
+
+	// TODO
+
+	/* encrypt the payload using the key */
+
+	{
+		pgp_output_t* encr_output = NULL;
+		pgp_memory_t* encr_mem = NULL;
+
+		pgp_setup_memory_write(&encr_output, &encr_mem, 128);
+
+		pgp_write_symm_enc_data((const uint8_t*)payload_string->str, payload_string->len, PGP_SA_AES_128, key, encr_output);
+	}
 
 	//AES_encrypt();
 	// TODO

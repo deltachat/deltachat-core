@@ -1317,6 +1317,8 @@ pgp_filewrite(const char *filename, const char *buf,
 unsigned
 pgp_write_symm_enc_data(const uint8_t *data,
 				       const int len,
+				       pgp_symm_alg_t alg, // EDIT BY MR, eg. PGP_SA_AES_128 or PGP_SA_AES_256
+				       const uint8_t* key, // EDIT BY MR - the key was simply missing
 				       pgp_output_t * output)
 {
 	pgp_crypt_t	crypt_info;
@@ -1324,8 +1326,10 @@ pgp_write_symm_enc_data(const uint8_t *data,
 	size_t		encrypted_sz;
 	int             done = 0;
 
-	/* \todo assume AES256 for now */
-	pgp_crypt_any(&crypt_info, PGP_SA_AES_256);
+	pgp_crypt_any(&crypt_info, alg);
+
+	crypt_info.set_crypt_key(&crypt_info, key);
+
 	pgp_encrypt_init(&crypt_info);
 
 	encrypted_sz = (size_t)(len + crypt_info.blocksize + 2);
