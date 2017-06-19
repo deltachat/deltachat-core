@@ -31,7 +31,7 @@
 #include <sqlite3.h>
 #include "mrmailbox.h"
 #include "mrkey.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 #include "mrtools.h"
 
 
@@ -434,7 +434,7 @@ char* mrkey_render_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
 		return safe_strdup("ErrFingerprint0");
 	}
 
-	if( !mre2ee_driver_calc_fingerprint(mailbox, key, &fingerprint_buf, &fingerprint_bytes) ) {
+	if( !mrpgp_calc_fingerprint(mailbox, key, &fingerprint_buf, &fingerprint_bytes) ) {
 		return safe_strdup("ErrFingerprint1");
 	}
 

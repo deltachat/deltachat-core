@@ -19,8 +19,9 @@
  *
  *******************************************************************************
  *
- * File:    mre2ee_driver_bsd.c
- * Purpose: End-To-End-Encryption based upon BSD's netpgp.
+ * File:    mrpgp.c
+ * Purpose: End-to-end-encryption and other cryptographic functions
+ *          based upon OpenSSL and BSD's netpgp.
  *
  *******************************************************************************
  *
@@ -48,14 +49,14 @@
 #include "mrmailbox.h"
 #include "mrkey.h"
 #include "mrkeyring.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 #include "mrtools.h"
 
 
 static pgp_io_t s_io;
 
 
-void mre2ee_driver_init(mrmailbox_t* mailbox)
+void mrpgp_init(mrmailbox_t* mailbox)
 {
 	SSL_library_init(); /* older, but more compatible function, simply defined as OPENSSL_init_ssl().
 						SSL_library_init() should be called from the main thread before OpenSSL is called from other threads.
@@ -70,12 +71,12 @@ void mre2ee_driver_init(mrmailbox_t* mailbox)
 }
 
 
-void mre2ee_driver_exit(mrmailbox_t* mailbox)
+void mrpgp_exit(mrmailbox_t* mailbox)
 {
 }
 
 
-void mre2ee_driver_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
+void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 {
 	if( buf == NULL || bytes <= 0 ) {
 		return;
@@ -192,7 +193,7 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 }
 
 
-int mre2ee_driver_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
+int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
 {
 	int              success = 0;
 	pgp_key_t        seckey, pubkey, subkey;
@@ -301,7 +302,7 @@ cleanup:
  ******************************************************************************/
 
 
-int mre2ee_driver_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
+int mrpgp_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
 {
 	int             key_is_valid = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -333,7 +334,7 @@ cleanup:
 }
 
 
-int mre2ee_driver_calc_fingerprint(mrmailbox_t* mailbox, const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
+int mrpgp_calc_fingerprint(mrmailbox_t* mailbox, const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -374,7 +375,7 @@ cleanup:
 }
 
 
-int mre2ee_driver_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* ret_public_key)
+int mrpgp_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* ret_public_key)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -426,10 +427,10 @@ cleanup:
  ******************************************************************************/
 
 
-int mre2ee_driver_encrypt(  mrmailbox_t* mailbox,
-                            const void* plain, size_t plain_bytes,
-                            const mrkeyring_t* raw_keys, int use_armor,
-                            void** ret_ctext, size_t* ret_ctext_bytes)
+int mrpgp_encrypt(  mrmailbox_t* mailbox,
+                    const void* plain, size_t plain_bytes,
+                    const mrkeyring_t* raw_keys, int use_armor,
+                    void** ret_ctext, size_t* ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
@@ -478,11 +479,11 @@ cleanup:
 }
 
 
-int mre2ee_driver_decrypt(  mrmailbox_t* mailbox,
-                            const void* ctext, size_t ctext_bytes,
-                            const mrkeyring_t* raw_keys,
-                            int use_armor,
-                            void** ret_plain, size_t* ret_plain_bytes)
+int mrpgp_decrypt(  mrmailbox_t* mailbox,
+                    const void* ctext, size_t ctext_bytes,
+                    const mrkeyring_t* raw_keys,
+                    int use_armor,
+                    void** ret_plain, size_t* ret_plain_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));

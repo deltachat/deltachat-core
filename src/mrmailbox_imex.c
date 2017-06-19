@@ -35,7 +35,7 @@
 #include "mraheader.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 
 static int s_imex_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
 
@@ -61,7 +61,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	header->m_addr             = safe_strdup(addr);
 	header->m_prefer_encrypt   = MRA_PE_MUTUAL;
 	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
-	 || !mre2ee_driver_is_valid_key(mailbox, header->m_public_key) ) {
+	 || !mrpgp_is_valid_key(mailbox, header->m_public_key) ) {
 		mrmailbox_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
@@ -226,12 +226,12 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
 		}
 
-		if( !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
+		if( !mrpgp_is_valid_key(mailbox, private_key) ) {
 			mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
 			continue;
 		}
 
-		if( !mre2ee_driver_split_key(mailbox, private_key, public_key) ) {
+		if( !mrpgp_split_key(mailbox, private_key, public_key) ) {
 			mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
 			continue;
 		}

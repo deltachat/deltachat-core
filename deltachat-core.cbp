@@ -444,12 +444,6 @@
 		<Unit filename="src/mrcontact.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/mre2ee.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/mre2ee_driver_openssl.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="src/mrimap.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -471,6 +465,9 @@
 		<Unit filename="src/mrmailbox_configure.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrmailbox_e2ee.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrmailbox_imex.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -487,6 +484,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrparam.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/mrpgp.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrpoortext.c">

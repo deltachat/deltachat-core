@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mrmailbox.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
 #include "mrkeyring.h"
@@ -176,7 +176,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 			seed[1] = (uintptr_t)seed;           /* stack */
 			seed[2] = (uintptr_t)public_key;     /* heap */
 			seed[3] = (uintptr_t)pthread_self(); /* thread ID */
-			mre2ee_driver_rand_seed(mailbox, seed, sizeof(seed));
+			mrpgp_rand_seed(mailbox, seed, sizeof(seed));
 
 			if( random_data_mime ) {
 				MMAPString* random_data_mmap = NULL;
@@ -185,7 +185,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 					goto cleanup;
 				}
 				mailmime_write_mem(random_data_mmap, &col, random_data_mime);
-				mre2ee_driver_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
+				mrpgp_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
 				mmap_string_free(random_data_mmap);
 			}
 		}
@@ -204,7 +204,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 				- an encryption-capable subkey Ke
 				- a binding signature over Ke by Kp
 				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
-				key_created = mre2ee_driver_create_keypair(mailbox, self_addr, public_key, private_key);
+				key_created = mrpgp_create_keypair(mailbox, self_addr, public_key, private_key);
 
 			mrsqlite3_lock(mailbox->m_sql);
 
@@ -213,8 +213,8 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 				goto cleanup;
 			}
 
-			if( !mre2ee_driver_is_valid_key(mailbox, public_key)
-			 || !mre2ee_driver_is_valid_key(mailbox, private_key) ) {
+			if( !mrpgp_is_valid_key(mailbox, public_key)
+			 || !mrpgp_is_valid_key(mailbox, private_key) ) {
 				mrmailbox_log_warning(mailbox, 0, "Generated keys are not valid.");
 				goto cleanup;
 			}
@@ -354,7 +354,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			mrkeyring_add(keyring, peerstate->m_public_key);
 		}
 
-		if( !mre2ee_driver_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
+		if( !mrpgp_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
@@ -501,7 +501,7 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 		goto cleanup;
 	}
 
-	if( !mre2ee_driver_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
+	if( !mrpgp_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}
@@ -629,7 +629,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 			autocryptheader_fine = 0;
 		}
 
-		if( !mre2ee_driver_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
+		if( !mrpgp_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
 			autocryptheader_fine = 0;
 		}
 	}

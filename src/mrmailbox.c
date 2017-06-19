@@ -41,7 +41,7 @@
 #include "mrjob.h"
 #include "mrloginparam.h"
 #include "mrkey.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 
 
 /*******************************************************************************
@@ -963,7 +963,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 	mrjob_init_thread(ths);
 
-	mre2ee_driver_init(ths);
+	mrpgp_init(ths);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
 	(the timespan between this call and the key generation time is typically random.
@@ -976,7 +976,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 	seed[2] = (uintptr_t)ths;            /* heap */
 	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
 	seed[4] = (uintptr_t)getpid();       /* process ID */
-	mre2ee_driver_rand_seed(ths, seed, sizeof(seed));
+	mrpgp_rand_seed(ths, seed, sizeof(seed));
 	}
 
 	if( s_localize_mb_obj==NULL ) {
@@ -993,7 +993,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 		return;
 	}
 
-	mre2ee_driver_exit(ths);
+	mrpgp_exit(ths);
 
 	mrjob_exit_thread(ths);
 

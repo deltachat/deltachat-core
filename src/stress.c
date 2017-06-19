@@ -37,7 +37,7 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
-#include "mre2ee_driver.h"
+#include "mrpgp.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
 #include "mrkeyring.h"
@@ -166,21 +166,21 @@ void stress_functions(mrmailbox_t* mailbox)
 
 	{
 		mrkey_t *public_key = mrkey_new(), *private_key = mrkey_new();
-		mre2ee_driver_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
-		assert( mre2ee_driver_is_valid_key(mailbox, public_key) );
-		assert( mre2ee_driver_is_valid_key(mailbox, private_key) );
+		mrpgp_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
+		assert( mrpgp_is_valid_key(mailbox, public_key) );
+		assert( mrpgp_is_valid_key(mailbox, private_key) );
 		//{char *t1=mrkey_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
 		//{char *t1=mrkey_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
 
 		{
 			mrkey_t *test_key = mrkey_new();
-			assert( mre2ee_driver_split_key(mailbox, private_key, test_key) );
+			assert( mrpgp_split_key(mailbox, private_key, test_key) );
 			assert( mrkey_equals(public_key, test_key) );
 			mrkey_unref(test_key);
 		}
 
 		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
-		mre2ee_driver_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
+		mrpgp_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
 
 		assert( !mrkey_equals(public_key, public_key2) );
 
@@ -192,7 +192,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			mrkeyring_add(keyring, public_key2);
-				int ok = mre2ee_driver_encrypt(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
+				int ok = mrpgp_encrypt(mailbox, original_text, strlen(original_text), keyring, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
@@ -204,7 +204,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
 			void* plain = NULL;
-			int ok = mre2ee_driver_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
+			int ok = mrpgp_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			mrkeyring_unref(keyring);
@@ -215,7 +215,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key2);
 			void* plain = NULL;
-			int ok = mre2ee_driver_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
+			int ok = mrpgp_decrypt(mailbox, ctext, ctext_bytes, keyring, 1, &plain, &plain_bytes);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);
