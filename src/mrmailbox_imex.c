@@ -349,8 +349,12 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	struct mailmime*       payload_mime_anchor = NULL;
 	MMAPString*            payload_string = mmap_string_new("");
 
-	#define                AES_128_KEY_BYTES 16 // = 128 bit
-	uint8_t                key[AES_128_KEY_BYTES];
+	uint8_t                salt[PGP_SALT_SIZE];
+
+	#define                CAST_KEY_LENGTH 16 // = 128 bit
+	uint8_t                key[CAST_KEY_LENGTH];
+
+
 
 	if( mailbox==NULL || setup_code==NULL || ret_msg==NULL
 	 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
@@ -399,9 +403,74 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	mailmime_write_mem(payload_string, &col, payload_mime_msg);
 	//char* t2=mr_null_terminate(payload_string->str,payload_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
 
-	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key) */
+	/* create salt for the key */
 
-	// TODO
+	pgp_random(salt, PGP_SALT_SIZE);
+
+	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
+	(from netpgp/create.c) */
+
+	{
+		unsigned	done = 0;
+		unsigned	i = 0;
+		int         setup_code_len = strlen(setup_code);
+		pgp_hash_t    hash;
+		for (done = 0, i = 0; done < CAST_KEY_LENGTH; i++) {
+			unsigned 	hashsize;
+			unsigned 	j;
+			unsigned	needed;
+			unsigned	size;
+			uint8_t		zero = 0;
+			uint8_t		*hashed;
+
+			/* Hard-coded SHA1 for session key */
+			pgp_hash_any(&hash, PGP_HASH_SHA1);
+			hashsize = pgp_hash_size(PGP_HASH_SHA1);
+			needed = CAST_KEY_LENGTH - done;
+			size = MIN(needed, hashsize);
+			if ((hashed = calloc(1, hashsize)) == NULL) {
+				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
+				return 0;
+			}
+			if (!hash.init(&hash)) {
+				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
+				free(hashed);
+				return 0;
+			}
+
+			/* preload if iterating  */
+			for (j = 0; j < i; j++) {
+				/*
+				 * Coverity shows a DEADCODE error on this
+				 * line. This is expected since the hardcoded
+				 * use of SHA1 and CAST5 means that it will
+				 * not used. This will change however when
+				 * other algorithms are supported.
+				 */
+				hash.add(&hash, &zero, 1);
+			}
+
+			/*if (key->s2k_specifier == PGP_S2KS_SALTED)*/ {
+				hash.add(&hash, salt, PGP_SALT_SIZE);
+			}
+			hash.add(&hash, (uint8_t*)setup_code, (unsigned)setup_code_len);
+			hash.finish(&hash, hashed);
+
+			/*
+			 * if more in hash than is needed by session key, use
+			 * the leftmost octets
+			 */
+			(void) memcpy(&key[i * hashsize],
+					hashed, (unsigned)size);
+			done += (unsigned)size;
+			free(hashed);
+			if (done > CAST_KEY_LENGTH) {
+				(void) fprintf(stderr,
+					"write_seckey_body: short add\n");
+				return 0;
+			}
+		}
+	}
 
 	/* encrypt the payload using the key */
 
