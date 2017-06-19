@@ -56,8 +56,6 @@ extern "C" {
 typedef struct mrmailbox_t mrmailbox_t;
 typedef struct mrimap_t mrimap_t;
 typedef struct mrsmtp_t mrsmtp_t;
-typedef struct mre2ee_t mre2ee_t;
-typedef struct mre2ee_driver_t mre2ee_driver_t;
 
 
 #define MR_VERSION_MAJOR    0
@@ -120,9 +118,6 @@ typedef struct mrmailbox_t
 	pthread_mutex_t  m_job_condmutex;
 	int              m_job_condflag;
 	int              m_job_do_exit;
-
-	mre2ee_t*        m_e2ee;        /* may or may not be NULL, completely owned by mre2ee */
-	mre2ee_driver_t* m_e2ee_driver; /* may or may not be NULL, completely owned by mre2ee_driver */
 
 	mrmailboxcb_t    m_cb;
 	void*            m_userData;
@@ -272,6 +267,7 @@ void                 mrmailbox_imex                 (mrmailbox_t*, int what, con
 char*                mrmailbox_create_setup_code    (mrmailbox_t*); /* should be written down by the user, forwareded to mrmailbox_imex() for encryption then, must be wiped and free()'d after usage */
 int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);          /* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */
 
+
 /* Misc. */
 char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
 int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
@@ -286,11 +282,27 @@ force additional checks manually by just calling mrmailbox_heartbeat() about eve
 If in doubt, call this function too often, not too less :-) */
 void                 mrmailbox_heartbeat            (mrmailbox_t*);
 
+
 /*** library-private **********************************************************/
 
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
 void                 mrmailbox_wake_lock            (mrmailbox_t*);
 void                 mrmailbox_wake_unlock          (mrmailbox_t*);
+
+
+/* end-to-end-encryption */
+#define MR_E2EE_DEFAULT_ENABLED 1
+
+typedef struct mrmailbox_e2ee_helper_t {
+	int   m_encryption_successfull;
+	void* m_cdata_to_free;
+} mrmailbox_e2ee_helper_t;
+
+void mrmailbox_e2ee_encrypt             (mrmailbox_t*, const clist* recipients_addr, int e2ee_guaranteed, int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*);
+int  mrmailbox_e2ee_decrypt             (mrmailbox_t*, struct mailmime* in_out_message); /* returns 1 if sth. was decrypted, 0 in other cases */
+void mrmailbox_e2ee_thanks              (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
+int  mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
+
 
 /* logging */
 void mrmailbox_log_error           (mrmailbox_t*, int code, const char* msg, ...);
@@ -299,9 +311,10 @@ void mrmailbox_log_warning         (mrmailbox_t*, int code, const char* msg, ...
 void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...);
 void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
 
+
+/* misc */
 int  mrmailbox_get_thread_index    (void);
 int  mrmailbox_poke_eml_file       (mrmailbox_t*, const char* file);
-
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
 #define MR_CHATS_FOLDER     "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */

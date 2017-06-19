@@ -34,7 +34,6 @@
 #include "mrjob.h"
 #include "mrsmtp.h"
 #include "mrimap.h"
-#include "mre2ee.h"
 
 
 /*******************************************************************************
@@ -1274,9 +1273,9 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	int                          col = 0;
 	MMAPString*                  ret = NULL;
 	int                          parts = 0;
-	mre2ee_helper_t              e2ee_helper;
+	mrmailbox_e2ee_helper_t      e2ee_helper;
 
-	memset(&e2ee_helper, 0, sizeof(mre2ee_helper_t));
+	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
 	*ret_encrypted = 0;
 
@@ -1405,7 +1404,7 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 	int e2ee_guaranteed = mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0);
 	if( encrypt_to_self==0 || e2ee_guaranteed ) {
 		/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
-		mre2ee_encrypt(chat->m_mailbox, recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
+		mrmailbox_e2ee_encrypt(chat->m_mailbox, recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
 	}
 
 	/* add a subject line */
@@ -1429,7 +1428,7 @@ cleanup:
 	if( message ) {
 		mailmime_free(message);
 	}
-	mre2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
+	mrmailbox_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
 	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(afwd_email);

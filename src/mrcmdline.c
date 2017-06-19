@@ -31,6 +31,7 @@
 #include "mrcmdline.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
+#include "mrkey.h"
 
 
 static void log_msglist(mrmailbox_t* mailbox, carray* msglist)

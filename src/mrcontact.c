@@ -31,7 +31,6 @@
 #include "mrmimeparser.h"
 #include "mrcontact.h"
 #include "mrloginparam.h"
-#include "mre2ee.h"
 #include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
@@ -705,7 +704,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		/* end-to-end encrypted, if we got the key from the contact but have no own key yet, generate one. */
 		if( self_key->m_binary == NULL ) {
 			mre2ee_driver_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
-			mre2ee_make_sure_private_key_exists(mailbox);
+			mrmailbox_ensure_secret_key_exists(mailbox);
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 				mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);

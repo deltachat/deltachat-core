@@ -27,10 +27,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> /* for getpid() */
-#include <unistd.h>    /* for getpid() */
 #include "mrmailbox.h"
-#include "mre2ee.h"
 #include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
@@ -241,7 +238,7 @@ cleanup:
 }
 
 
-int mre2ee_make_sure_private_key_exists(mrmailbox_t* mailbox)
+int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 {
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
@@ -275,52 +272,13 @@ cleanup:
 
 
 /*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
-void mre2ee_init(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL ) {
-		return;
-	}
-
-	mre2ee_driver_init(mailbox);
-
-	/* Random-seed.  An additional seed with more random data is done just before key generation
-	(the timespan between this call and the key generation time is typically random.
-	Moreover, later, we add a hash of the first message data to the random-seed
-	(it would be okay to seed with even more sensible data, the seed values cannot be recovered from the PRNG output, see OpenSSL's RAND_seed() ) */
-	{
-	uintptr_t seed[5];
-	seed[0] = (uintptr_t)time(NULL);     /* time */
-	seed[1] = (uintptr_t)seed;           /* stack */
-	seed[2] = (uintptr_t)mailbox;        /* heap */
-	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
-	seed[4] = (uintptr_t)getpid();       /* process ID */
-	mre2ee_driver_rand_seed(mailbox, seed, sizeof(seed));
-	}
-}
-
-
-void mre2ee_exit(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL ) {
-		return;
-	}
-
-	mre2ee_driver_exit(mailbox);
-}
-
-
-/*******************************************************************************
  * Encrypt
  ******************************************************************************/
 
 
-void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
+void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
-                    int encrypt_to_self, struct mailmime* in_out_message, mre2ee_helper_t* helper)
+                    int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -331,7 +289,7 @@ void mre2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
 
-	if( helper ) { memset(helper, 0, sizeof(mre2ee_helper_t)); }
+	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
@@ -447,7 +405,7 @@ cleanup:
 }
 
 
-void mre2ee_thanks(mre2ee_helper_t* helper)
+void mrmailbox_e2ee_thanks(mrmailbox_e2ee_helper_t* helper)
 {
 	if( helper == NULL ) {
 		return;
@@ -620,7 +578,7 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 }
 
 
-int mre2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
+int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */

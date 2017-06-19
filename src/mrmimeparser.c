@@ -31,7 +31,6 @@
 #include "mrmimeparser.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
-#include "mre2ee.h"
 
 
 /*******************************************************************************
@@ -1103,7 +1102,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	if( mre2ee_decrypt(ths->m_mailbox, ths->m_mimeroot) ) {
+	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot) ) {
 		ths->m_sth_decrypted = 1;
 	}
 

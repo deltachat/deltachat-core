@@ -71,6 +71,8 @@ char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break
 char* mrkey_render_asc   (const mrkey_t*); /* the result must be freed */
 char* mrkey_render_fingerprint(const mrkey_t*, mrmailbox_t* mailbox);
 char* mr_render_fingerprint(const uint8_t* data, size_t bytes);
+void  mr_wipe_secret_mem(void* buf, size_t buf_bytes);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

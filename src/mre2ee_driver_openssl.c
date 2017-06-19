@@ -48,7 +48,6 @@
 #include "mrmailbox.h"
 #include "mrkey.h"
 #include "mrkeyring.h"
-#include "mre2ee.h"
 #include "mre2ee_driver.h"
 #include "mrtools.h"
 

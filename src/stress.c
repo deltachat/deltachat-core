@@ -37,7 +37,6 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
-#include "mre2ee.h"
 #include "mre2ee_driver.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"

@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h> /* for getpid() */
+#include <unistd.h>    /* for getpid() */
 #include <sqlite3.h>
 #include <openssl/opensslv.h>
 #include "mrmailbox.h"
@@ -38,8 +40,8 @@
 #include "mrtools.h"
 #include "mrjob.h"
 #include "mrloginparam.h"
-#include "mre2ee.h"
 #include "mrkey.h"
+#include "mre2ee_driver.h"
 
 
 /*******************************************************************************
@@ -961,7 +963,21 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 
 	mrjob_init_thread(ths);
 
-	mre2ee_init(ths);
+	mre2ee_driver_init(ths);
+
+	/* Random-seed.  An additional seed with more random data is done just before key generation
+	(the timespan between this call and the key generation time is typically random.
+	Moreover, later, we add a hash of the first message data to the random-seed
+	(it would be okay to seed with even more sensible data, the seed values cannot be recovered from the PRNG output, see OpenSSL's RAND_seed() ) */
+	{
+	uintptr_t seed[5];
+	seed[0] = (uintptr_t)time(NULL);     /* time */
+	seed[1] = (uintptr_t)seed;           /* stack */
+	seed[2] = (uintptr_t)ths;            /* heap */
+	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
+	seed[4] = (uintptr_t)getpid();       /* process ID */
+	mre2ee_driver_rand_seed(ths, seed, sizeof(seed));
+	}
 
 	if( s_localize_mb_obj==NULL ) {
 		s_localize_mb_obj = ths;
@@ -977,7 +993,7 @@ void mrmailbox_unref(mrmailbox_t* ths)
 		return;
 	}
 
-	mre2ee_exit(ths);
+	mre2ee_driver_exit(ths);
 
 	mrjob_exit_thread(ths);
 

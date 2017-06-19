@@ -35,7 +35,6 @@
 #include "mraheader.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
-#include "mre2ee.h"
 #include "mre2ee_driver.h"
 
 static int s_imex_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
@@ -644,7 +643,7 @@ static void* imex_thread_entry_point(void* entry_arg)
 
 	if( (thread_param->m_what&MR_IMEX_EXPORT_BITS)!=0 ) {
 		/* before we export anything, make sure the private key exists */
-		if( !mre2ee_make_sure_private_key_exists(mailbox) ) {
+		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
 			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
