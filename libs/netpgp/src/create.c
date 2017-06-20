@@ -1347,7 +1347,7 @@ pgp_write_symm_enc_data(const uint8_t *data,
 	}
 
 	return pgp_write_ptag(output, PGP_PTAG_CT_SE_DATA) &&
-		pgp_write_length(output, (unsigned)(1 + encrypted_sz)) &&
+		pgp_write_length(output, (unsigned)(len)) && // EDIT BY MR: length was: 1 + encrypted_sz - why?
 		pgp_write(output, data, (unsigned)len);
 }
 

@@ -410,9 +410,20 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	mailmime_write_mem(payload_string, &col, payload_mime_msg);
 	//char* t2=mr_null_terminate(payload_string->str,payload_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
 
+	/* put the payload into a literal data packet which will be encrypted then */
+
+	//TODO, see file:///home/bpetersen/messy/books/imap-etc/RFC%204880%20-%20OpenPGP%20Message%20Format.html#section-5.7 :
+	// "When it has been decrypted, it contains
+	// other packets (usually a literal data packet or compressed data
+	// packet, but in theory other Symmetrically Encrypted Data packets or
+	// sequences of packets that form whole OpenPGP messages)"
+
 	/* create salt for the key */
 
 	pgp_random(salt, PGP_SALT_SIZE);
+
+	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
+	int s2k_iter_id = 0; // ~1000 iterations
 
 	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
 	(from netpgp/create.c) */
@@ -457,9 +468,10 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 				hash.add(&hash, &zero, 1);
 			}
 
-			/*if (key->s2k_specifier == PGP_S2KS_SALTED)*/ {
+			if (s2k_spec & PGP_S2KS_SALTED) {
 				hash.add(&hash, salt, PGP_SALT_SIZE);
 			}
+
 			hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
 			hash.finish(&hash, hashed);
 
@@ -483,19 +495,34 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3 ) followed by
 	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 9, https://tools.ietf.org/html/rfc4880#section-5.7 ) */
 
-	// TODO: write tag 3
-
-
 	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
 	pgp_writer_push_armor_msg(encr_output);
 
+	/* Tag 3 */
+	pgp_write_ptag     (encr_output, PGP_PTAG_CT_SK_SESSION_KEY);
+	pgp_write_length   (encr_output, 1/*version*/ + 1/*algo*/ + /*S2K*/1+1+((s2k_spec&PGP_S2KS_SALTED)?PGP_SALT_SIZE:0)+((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)?1:0) );
+
+	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
+	pgp_write_scalar   (encr_output, PGP_SA_AES_128, 1);     // 1 octet: symm. algo
+
+	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet
+	pgp_write_scalar   (encr_output, PGP_HASH_SHA1, 1);      // 1 octet: S2 hash algo
+	if( s2k_spec&PGP_S2KS_SALTED ) {
+	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: salt
+	}
+	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
+	  pgp_write_scalar (encr_output, s2k_iter_id, 1);  // 1 octets
+	}
+
+	/* Tag 9 */
 	pgp_write_symm_enc_data((const uint8_t*)payload_string->str, payload_string->len, PGP_SA_AES_128, key, encr_output);
 
+	/* done with symetric key block */
 	pgp_writer_close(encr_output);
-
 	encr_string = mr_null_terminate((const char*)encr_mem->buf, encr_mem->length);
 
 	//printf("\n~~~~~~~~~~~~~~~~~~~~SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n",encr_string); // DEBUG OUTPUT
+
 
 	/* add additional header to armored block */
 
@@ -863,6 +890,7 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char*
 Linebreaks and spaces MUST NOT be added to the setup code, but the "-" are. */
 char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 {
+	return safe_strdup("1234");
 	#define   CODE_ELEMS 9
 	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
 	uint16_t  buf[CODE_ELEMS];
