@@ -340,10 +340,11 @@ The encrypted message part contains:
 	--==break2==--
 
 mrmailbox_render_keys_to_html() renders the part after the second `-==break1==` part in this example. */
-int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, char** ret_msg)
+int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
 {
 	int                    success = 0, locked = 0, col = 0;
 	sqlite3_stmt*          stmt = NULL;
+	char                   passphrase_begin[8];
 	mrkey_t*               private_key = mrkey_new();
 	struct mailmime*       payload_mime_msg = NULL;
 	struct mailmime*       payload_mime_anchor = NULL;
@@ -354,12 +355,18 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	#define                CAST_KEY_LENGTH 16 // = 128 bit
 	uint8_t                key[CAST_KEY_LENGTH];
 
+	pgp_output_t*          encr_output = NULL;
+	pgp_memory_t*          encr_mem = NULL;
+	char*                  encr_string = NULL;
 
 
-	if( mailbox==NULL || setup_code==NULL || ret_msg==NULL
-	 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
+	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
+	 || strlen(passphrase)<2 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
 		goto cleanup;
 	}
+
+	strncpy(passphrase_begin, passphrase, 2);
+	passphrase_begin[2] = 0;
 
 	/* create the payload */
 	payload_mime_anchor = mailmime_new_empty(mailmime_content_new_with_str("multipart/mixed"), mailmime_fields_new_empty());
@@ -413,7 +420,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 	{
 		unsigned	done = 0;
 		unsigned	i = 0;
-		int         setup_code_len = strlen(setup_code);
+		int         passphrase_len = strlen(passphrase);
 		pgp_hash_t    hash;
 		for (done = 0, i = 0; done < CAST_KEY_LENGTH; i++) {
 			unsigned 	hashsize;
@@ -453,7 +460,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 			/*if (key->s2k_specifier == PGP_S2KS_SALTED)*/ {
 				hash.add(&hash, salt, PGP_SALT_SIZE);
 			}
-			hash.add(&hash, (uint8_t*)setup_code, (unsigned)setup_code_len);
+			hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
 			hash.finish(&hash, hashed);
 
 			/*
@@ -472,23 +479,55 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* setup_code, 
 		}
 	}
 
-	/* encrypt the payload using the key */
+	/* encrypt the payload using the key using AES-128 and put it into
+	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3 ) followed by
+	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 9, https://tools.ietf.org/html/rfc4880#section-5.7 ) */
 
+	// TODO: write tag 3
+
+
+	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
+	pgp_writer_push_armor_msg(encr_output);
+
+	pgp_write_symm_enc_data((const uint8_t*)payload_string->str, payload_string->len, PGP_SA_AES_128, key, encr_output);
+
+	pgp_writer_close(encr_output);
+
+	encr_string = mr_null_terminate((const char*)encr_mem->buf, encr_mem->length);
+
+	//printf("\n~~~~~~~~~~~~~~~~~~~~SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n",encr_string); // DEBUG OUTPUT
+
+	/* add additional header to armored block */
+
+	#define LINEEND "\r\n" /* use the same lineends as the PGP armored data */
 	{
-		pgp_output_t* encr_output = NULL;
-		pgp_memory_t* encr_mem = NULL;
-
-		pgp_setup_memory_write(&encr_output, &encr_mem, 128);
-
-		pgp_write_symm_enc_data((const uint8_t*)payload_string->str, payload_string->len, PGP_SA_AES_128, key, encr_output);
+		char* replacement = mr_mprintf("-----BEGIN PGP MESSAGE-----" LINEEND
+		                               "Passphrase-Format: numeric9x4" LINEEND
+		                               "Passphrase-Begin: %s", passphrase_begin);
+		mr_str_replace(&encr_string, "-----BEGIN PGP MESSAGE-----", replacement);
+		free(replacement);
 	}
-
-	//AES_encrypt();
-	// TODO
 
 	/* wrap HTML-commands with instructions around the encrypted payload */
 
-	// TODO
+	*ret_msg = mr_mprintf(
+		"<!DOCTYPE html>" LINEEND
+		"<html>" LINEEND
+			"<head>" LINEEND
+				"<title>Autocrypt setup file</title>" LINEEND
+			"</head>" LINEEND
+			"<body>" LINEEND
+				"<h1>Autocrypt setup file</h1>" LINEEND
+				"<p>This is the <a href=\"https://autocrypt.org\">Autocrypt</a> setup file used to transfer your secret keys between clients.</p>" LINEEND
+                "<p>To decrypt the keys, you need the setup code that was shown to you when this file was created. Hint: The setup code starts with &quot;%s&quot;.</p>" LINEEND
+				"<h2>Encrypted keys</h2>" LINEEND
+				"<pre>" LINEEND
+				"%s" LINEEND
+				"</pre>" LINEEND
+			"</body>" LINEEND
+		"</html>" LINEEND,
+		passphrase_begin,
+		encr_string);
 
 	success = 1;
 
@@ -508,6 +547,9 @@ cleanup:
 		mailmime_free(payload_mime_msg);
 	}
 	if( payload_string ) { mmap_string_free(payload_string); }
+	if( encr_output ) { pgp_output_delete(encr_output); }
+	if( encr_mem ) { pgp_memory_free(encr_mem); }
+	free(encr_string);
 	return success;
 }
 
