@@ -348,8 +348,8 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	char                   passphrase_begin[8];
 	uint8_t                salt[PGP_SALT_SIZE];
-	#define                CAST_KEY_LENGTH 16
-	uint8_t                key[CAST_KEY_LENGTH];
+	#define                AES_KEY_LENGTH 16
+	uint8_t                key[AES_KEY_LENGTH];
 
 	struct mailmime*       decr_mime_msg = NULL;
 	struct mailmime*       decr_mime_anchor = NULL;
@@ -426,7 +426,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	/* S2K */
 
-	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
+	int s2k_spec = PGP_S2KS_SIMPLE; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 0; // ~1000 iterations
 
 	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
@@ -437,7 +437,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 		unsigned	i = 0;
 		int         passphrase_len = strlen(passphrase);
 		pgp_hash_t    hash;
-		for (done = 0, i = 0; done < CAST_KEY_LENGTH; i++) {
+		for (done = 0, i = 0; done < AES_KEY_LENGTH; i++) {
 			unsigned 	hashsize;
 			unsigned 	j;
 			unsigned	needed;
@@ -448,7 +448,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			/* Hard-coded SHA1 for session key */
 			pgp_hash_any(&hash, PGP_HASH_SHA1);
 			hashsize = pgp_hash_size(PGP_HASH_SHA1);
-			needed = CAST_KEY_LENGTH - done;
+			needed = AES_KEY_LENGTH - done;
 			size = MR_MIN(needed, hashsize);
 			if ((hashed = calloc(1, hashsize)) == NULL) {
 				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
@@ -486,7 +486,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			(void) memcpy(&key[i * hashsize], hashed, (unsigned)size);
 			done += (unsigned)size;
 			free(hashed);
-			if (done > CAST_KEY_LENGTH) {
+			if (done > AES_KEY_LENGTH) {
 				(void) fprintf(stderr,
 					"write_seckey_body: short add\n");
 				return 0;
