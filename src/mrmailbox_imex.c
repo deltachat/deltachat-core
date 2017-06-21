@@ -445,7 +445,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			pgp_hash_any(&hash, PGP_HASH_SHA1);
 			hashsize = pgp_hash_size(PGP_HASH_SHA1);
 			needed = CAST_KEY_LENGTH - done;
-			size = MIN(needed, hashsize);
+			size = MR_MIN(needed, hashsize);
 			if ((hashed = calloc(1, hashsize)) == NULL) {
 				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
 				return 0;
