@@ -344,16 +344,18 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 {
 	int                    success = 0, locked = 0, col = 0;
 	sqlite3_stmt*          stmt = NULL;
+	mrkey_t*               curr_private_key = mrkey_new();
+
 	char                   passphrase_begin[8];
-	mrkey_t*               private_key = mrkey_new();
-	struct mailmime*       payload_mime_msg = NULL;
-	struct mailmime*       payload_mime_anchor = NULL;
-	MMAPString*            payload_string = mmap_string_new("");
-
 	uint8_t                salt[PGP_SALT_SIZE];
-
-	#define                CAST_KEY_LENGTH 16 // = 128 bit
+	#define                CAST_KEY_LENGTH 16
 	uint8_t                key[CAST_KEY_LENGTH];
+
+	struct mailmime*       decr_mime_msg = NULL;
+	struct mailmime*       decr_mime_anchor = NULL;
+	MMAPString*            decr_string = mmap_string_new("");
+	pgp_output_t*          decr_output = NULL;
+	pgp_memory_t*          decr_mem = NULL;
 
 	pgp_output_t*          encr_output = NULL;
 	pgp_memory_t*          encr_mem = NULL;
@@ -361,7 +363,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 
 	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
-	 || strlen(passphrase)<2 || *ret_msg!=NULL || private_key==NULL || payload_string==NULL ) {
+	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL || decr_string==NULL ) {
 		goto cleanup;
 	}
 
@@ -369,8 +371,8 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	passphrase_begin[2] = 0;
 
 	/* create the payload */
-	payload_mime_anchor = mailmime_new_empty(mailmime_content_new_with_str("multipart/mixed"), mailmime_fields_new_empty());
-	payload_mime_msg    = mailmime_new_message_data(payload_mime_anchor);
+	decr_mime_anchor = mailmime_new_empty(mailmime_content_new_with_str("multipart/mixed"), mailmime_fields_new_empty());
+	decr_mime_msg    = mailmime_new_message_data(decr_mime_anchor);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -379,7 +381,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 		struct mailimf_fields* imffields = mailimf_fields_new_empty();
 		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt-Prefer-Encrypt"), strdup(e2ee_enabled? "mutual" : "nopreference")));
-		mailmime_set_imf_fields(payload_mime_msg, imffields);
+		mailmime_set_imf_fields(decr_mime_msg, imffields);
 
 		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;"))==NULL ) {
 			goto cleanup;
@@ -387,11 +389,11 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
-			if( !mrkey_set_from_stmt(private_key, stmt, 0, MR_PRIVATE) ) {
+			if( !mrkey_set_from_stmt(curr_private_key, stmt, 0, MR_PRIVATE) ) {
 				goto cleanup;
 			}
 
-			char* key_asc = mrkey_render_asc(private_key);
+			char* key_asc = mrkey_render_asc(curr_private_key);
 			if( key_asc == NULL ) {
 				goto cleanup;
 			}
@@ -401,26 +403,28 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			struct mailmime* key_mime = mailmime_new_empty(content_type, mime_fields);
 			mailmime_set_body_text(key_mime, key_asc, strlen(key_asc));
 
-			mailmime_smart_add_part(payload_mime_anchor, key_mime);
+			mailmime_smart_add_part(decr_mime_anchor, key_mime);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailmime_write_mem(payload_string, &col, payload_mime_msg);
-	//char* t2=mr_null_terminate(payload_string->str,payload_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
+	mailmime_write_mem(decr_string, &col, decr_mime_msg);
+	//char* t2=mr_null_terminate(decr_string->str,decr_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
 
-	/* put the payload into a literal data packet which will be encrypted then */
 
-	//TODO, see file:///home/bpetersen/messy/books/imap-etc/RFC%204880%20-%20OpenPGP%20Message%20Format.html#section-5.7 :
-	// "When it has been decrypted, it contains
-	// other packets (usually a literal data packet or compressed data
-	// packet, but in theory other Symmetrically Encrypted Data packets or
-	// sequences of packets that form whole OpenPGP messages)"
+	/* put the payload into a literal data packet which will be encrypted then, see RFC 4880, 5.7 :
+	"When it has been decrypted, it contains other packets (usually a literal data packet or compressed data
+	packet, but in theory other Symmetrically Encrypted Data packets or sequences of packets that form whole OpenPGP messages)" */
+
+	pgp_setup_memory_write(&decr_output, &decr_mem, 128);
+	pgp_write_litdata(decr_output, (const uint8_t*)decr_string->str, decr_string->len, PGP_LDT_BINARY);
+
 
 	/* create salt for the key */
-
 	pgp_random(salt, PGP_SALT_SIZE);
+
+	/* S2K */
 
 	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 0; // ~1000 iterations
@@ -479,8 +483,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			 * if more in hash than is needed by session key, use
 			 * the leftmost octets
 			 */
-			(void) memcpy(&key[i * hashsize],
-					hashed, (unsigned)size);
+			(void) memcpy(&key[i * hashsize], hashed, (unsigned)size);
 			done += (unsigned)size;
 			free(hashed);
 			if (done > CAST_KEY_LENGTH) {
@@ -515,7 +518,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	}
 
 	/* Tag 9 */
-	pgp_write_symm_enc_data((const uint8_t*)payload_string->str, payload_string->len, PGP_SA_AES_128, key, encr_output);
+	pgp_write_symm_enc_data((const uint8_t*)decr_mem->buf, decr_mem->length, PGP_SA_AES_128, key, encr_output);
 
 	/* done with symetric key block */
 	pgp_writer_close(encr_output);
@@ -561,9 +564,10 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( payload_mime_msg && payload_mime_anchor ) {
+
+	if( decr_mime_msg && decr_mime_anchor ) {
 		clistiter* cur;
-		for( cur=clist_begin(payload_mime_anchor->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) { /* looks complicated, but only free()'s the pointers allocated above (they're used by mime, but not owned by it) */
+		for( cur=clist_begin(decr_mime_anchor->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) { /* looks complicated, but only free()'s the pointers allocated above (they're used by mime, but not owned by it) */
 			struct mailmime* key_mime = (struct mailmime*)clist_content(cur);
 			if( key_mime->mm_type==MAILMIME_SINGLE
 			 && key_mime->mm_data.mm_single->dt_type==MAILMIME_DATA_TEXT ) {
@@ -571,9 +575,12 @@ cleanup:
 				free(key_asc);
 			}
 		}
-		mailmime_free(payload_mime_msg);
+		mailmime_free(decr_mime_msg);
 	}
-	if( payload_string ) { mmap_string_free(payload_string); }
+	if( decr_string ) { mmap_string_free(decr_string); }
+	if( decr_output ) { pgp_output_delete(decr_output); }
+	if( decr_mem ) { pgp_memory_free(decr_mem); }
+
 	if( encr_output ) { pgp_output_delete(encr_output); }
 	if( encr_mem ) { pgp_memory_free(encr_mem); }
 	free(encr_string);
