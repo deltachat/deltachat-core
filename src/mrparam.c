@@ -196,6 +196,9 @@ void mrparam_set(mrparam_t* ths, int key, const char* value)
 			*p1 = 0;
 			old2 = p2;
 		}
+		else if( value==NULL ) {
+			return; /* parameter does not exist and should be cleared -> done. */
+		}
 	}
 
 	mr_rtrim(old1); /* trim functions are null-pointer-safe */

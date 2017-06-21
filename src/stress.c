@@ -109,6 +109,39 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(str);
 	}
 
+	/* test mrparam
+	 **************************************************************************/
+
+	{
+		mrparam_t* p1 = mrparam_new();
+
+		mrparam_set_packed(p1, "\r\n\r\na=1\nb=2\n\nc = 3 ");
+
+		assert( mrparam_get_int(p1, 'a', 0)==1 );
+		assert( mrparam_get_int(p1, 'b', 0)==2 );
+		assert( mrparam_get_int(p1, 'c', 0)==0 ); /* c is not accepted, spaces and weird characters are not allowed in param, were very strict there */
+		assert( mrparam_exists (p1, 'c')==0 );
+
+		mrparam_set_int(p1, 'd', 4);
+		assert( mrparam_get_int(p1, 'd', 0)==4 );
+
+		mrparam_empty(p1);
+		mrparam_set    (p1, 'a', "foo");
+		mrparam_set_int(p1, 'b', 2);
+		mrparam_set    (p1, 'c', NULL);
+		mrparam_set_int(p1, 'd', 4);
+		assert( strcmp(p1->m_packed, "a=foo\nb=2\nd=4")==0 );
+
+		mrparam_set    (p1, 'b', NULL);
+		assert( strcmp(p1->m_packed, "a=foo\nd=4")==0 );
+
+		mrparam_set    (p1, 'a', NULL);
+		mrparam_set    (p1, 'd', NULL);
+		assert( strcmp(p1->m_packed, "")==0 );
+
+		mrparam_unref(p1);
+	}
+
 	/* test Autocrypt header parsing functions
 	 **************************************************************************/
 
