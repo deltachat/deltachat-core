@@ -94,6 +94,10 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 				return (uintptr_t)ret;
 			}
 
+		case MR_EVENT_IMEX_FILE_WRITTEN:
+			printf("{{Received event MR_EVENT_IMEX_FILE_WRITTEN (%s, %s)}}\n", (char*)data1, (char*)data2);
+			break;
+
 		default:
 			printf("{{Received event #%i (%i, %i)}}\n", (int)event, (int)data1, (int)data2);
 			break;
