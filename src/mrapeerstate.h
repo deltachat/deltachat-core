@@ -43,6 +43,7 @@ typedef struct mraheader_t mraheader_t;
 
 #define MRA_PE_NOPREFERENCE   0 /* prefer-encrypt states */
 #define MRA_PE_MUTUAL         1
+#define MRA_PE_GOSSIP         2
 #define MRA_PE_RESET         20
 
 

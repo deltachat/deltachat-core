@@ -1755,22 +1755,23 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int can_guarantee_e2ee = 0;
 	if( mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) ) {
-		if( ths->m_type == MR_CHAT_NORMAL ) {
-			mrcontact_t* contact = mrcontact_new();
-			if( mrcontact_load_from_db__(contact, ths->m_mailbox->m_sql, to_id) ) {
-				mrapeerstate_t* peerstate = mrapeerstate_new();
-				if( mrapeerstate_load_from_db__(peerstate, ths->m_mailbox->m_sql, contact->m_addr)
-				 && peerstate->m_prefer_encrypt == MRA_PE_MUTUAL
-				 && peerstate->m_public_key->m_binary != NULL
-				 && peerstate->m_public_key->m_bytes > 0 )
-				{
-					can_guarantee_e2ee = 1;
-				}
-				mrapeerstate_unref(peerstate);
+		can_guarantee_e2ee = 1;
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
+			"SELECT ps.prefer_encrypted "
+			 " FROM chats_contacts cc "
+			 " LEFT JOIN contacts c ON cc.contact_id=c.id "
+			 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
+			 " WHERE cc.chat_id=? AND cc.contact_id>?;");
+		sqlite3_bind_int(stmt, 1, ths->m_id);
+		sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
+		while( sqlite3_step(stmt) == SQLITE_ROW )
+		{
+			int prefer_encrypted = sqlite3_column_type(stmt, 0)==SQLITE_NULL? MRA_PE_NOPREFERENCE : sqlite3_column_int(stmt, 0);
+			if( prefer_encrypted != MRA_PE_MUTUAL && prefer_encrypted != MRA_PE_GOSSIP ) {
+				can_guarantee_e2ee = 0;
+				break;
 			}
-			mrcontact_unref(contact);
 		}
-
 	}
 
 	if( can_guarantee_e2ee ) {

@@ -280,8 +280,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
-	int                    locked = 0, col = 0, do_encrypt = 0;
-	mrapeerstate_t*        peerstate = mrapeerstate_new();
+	int                    locked = 0, col = 0, do_encrypt = 1;
 	mraheader_t*           autocryptheader = mraheader_new();
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mrkeyring_t*           keyring = mrkeyring_new();
@@ -293,7 +292,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
-	 || peerstate == NULL || autocryptheader == NULL || keyring==NULL || plain == NULL || helper == NULL ) {
+	 || autocryptheader == NULL || keyring==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
 
@@ -316,16 +315,32 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 
 		/* load peerstate information etc. */
-		if( clist_count(recipients_addr)==1 ) {
-			clistiter* iter1 = clist_begin(recipients_addr);
-			const char* recipient_addr = clist_content(iter1);
-			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-			 && peerstate->m_public_key->m_binary!=NULL
-			 && peerstate->m_public_key->m_bytes>0
-			 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed)
-			 && (autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) ) {
-				do_encrypt = 1;
+		if( autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed )
+		{
+			mrapeerstate_t* peerstate = mrapeerstate_new();
+			clistiter*      iter1;
+			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
+				const char* recipient_addr = clist_content(iter1);
+				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
+				 && peerstate->m_public_key->m_binary!=NULL
+				 && peerstate->m_public_key->m_bytes>0
+				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
+				{
+					if( encrypt_to_self ) {
+						if( keyring->m_count == 0 ) {
+							mrkeyring_add(keyring, autocryptheader->m_public_key);
+						}
+					}
+					else {
+						mrkeyring_add(keyring, peerstate->m_public_key);
+					}
+				}
+				else {
+					do_encrypt = 0;
+					break; /* if we cannot encrypt to a single recipient, we cannot encrypt the message at all */
+				}
 			}
+			mrapeerstate_unref(peerstate);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -345,14 +360,6 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			goto cleanup;
 		}
 		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
-
-		/* encrypt the plain text */
-		if( encrypt_to_self ) {
-			mrkeyring_add(keyring, autocryptheader->m_public_key);
-		}
-		else {
-			mrkeyring_add(keyring, peerstate->m_public_key);
-		}
 
 		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
@@ -398,7 +405,6 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrapeerstate_unref(peerstate);
 	mraheader_unref(autocryptheader);
 	mrkeyring_unref(keyring);
 	if( plain ) { mmap_string_free(plain); }
