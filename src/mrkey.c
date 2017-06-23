@@ -295,6 +295,26 @@ int mrkey_load_self_public__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* s
 }
 
 
+int mrkey_load_self_private_for_signing__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* sql)
+{
+	sqlite3_stmt* stmt;
+
+	if( ths==NULL || self_addr==NULL || sql==NULL ) {
+		return 0;
+	}
+
+	mrkey_empty(ths);
+	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
+		"SELECT private_key FROM keypairs WHERE addr=? AND is_default=1;");
+	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+	mrkey_set_from_stmt(ths, stmt, 0, MR_PRIVATE);
+	return 1;
+}
+
+
 /*******************************************************************************
  * Render keys
  ******************************************************************************/

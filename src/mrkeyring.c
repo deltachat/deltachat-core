@@ -86,7 +86,7 @@ void mrkeyring_add(mrkeyring_t* ths, mrkey_t* to_add)
 }
 
 
-int mrkeyring_load_self_private__(mrkeyring_t* ths, const char* self_addr, mrsqlite3_t* sql)
+int mrkeyring_load_self_private_for_decrypting__(mrkeyring_t* ths, const char* self_addr, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 	mrkey_t*      key;
@@ -95,7 +95,7 @@ int mrkeyring_load_self_private__(mrkeyring_t* ths, const char* self_addr, mrsql
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
+	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_ORDER_BY_default,
 		"SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {

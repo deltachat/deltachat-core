@@ -284,6 +284,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	mraheader_t*           autocryptheader = mraheader_new();
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mrkeyring_t*           keyring = mrkeyring_new();
+	mrkey_t*               sign_key = mrkey_new();
 	MMAPString*            plain = mmap_string_new("");
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
@@ -292,7 +293,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
-	 || autocryptheader == NULL || keyring==NULL || plain == NULL || helper == NULL ) {
+	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
 
@@ -343,6 +344,12 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			mrapeerstate_unref(peerstate);
 		}
 
+		if( do_encrypt ) {
+			if( !mrkey_load_self_private_for_signing__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
+				do_encrypt = 0;
+			}
+		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
@@ -361,7 +368,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
-		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, NULL, 1, (void**)&ctext, &ctext_bytes) ) {
+		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
@@ -407,6 +414,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mraheader_unref(autocryptheader);
 	mrkeyring_unref(keyring);
+	mrkey_unref(sign_key);
 	if( plain ) { mmap_string_free(plain); }
 }
 
@@ -671,7 +679,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 			goto cleanup;
 		}
 
-		if( !mrkeyring_load_self_private__(private_keyring, self_addr, mailbox->m_sql) ) {
+		if( !mrkeyring_load_self_private_for_decrypting__(private_keyring, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 

@@ -230,7 +230,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			mrkeyring_add(keyring, public_key2);
-				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext, &ctext_bytes);
+				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext, &ctext_bytes);
 				assert( ok && ctext && ctext_bytes>0 );
 				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
