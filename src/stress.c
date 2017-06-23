@@ -67,6 +67,11 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(plain, "text *bold*<>")==0 );
 		free(plain);
 
+		html = "&lt;&gt;&quot;&apos;&amp; &auml;&Auml;&ouml;&Ouml;&uuml;&Uuml;&szlig; foo&AElig;&ccedil;&Ccedil; &diams;&noent;&lrm;&rlm;&zwnj;&zwj;";
+		plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		assert( strcmp(plain, "<>\"'& äÄöÖüÜß fooÆçÇ ♦&noent;")==0 );
+		free(plain);
+
 		mrsimplify_unref(simplify);
 	}
 
