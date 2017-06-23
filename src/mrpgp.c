@@ -428,18 +428,20 @@ cleanup:
 
 
 int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
-                       const void* plain, size_t plain_bytes,
-                       const mrkeyring_t* raw_keys, int use_armor,
+                       const void* plain_text, size_t plain_bytes,
+                       const mrkeyring_t* raw_keys, const mrkey_t* sign_key, int use_armor,
                        void** ret_ctext, size_t* ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
-	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
-	pgp_memory_t    *keysmem = pgp_memory_new();
+	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*  dummy_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_memory_t*   keysmem = pgp_memory_new();
+	pgp_memory_t*   signedmem = NULL;
 	int             i, success = 0;
 
-	if( mailbox==NULL || plain==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
+	if( mailbox==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
 	 || raw_keys==NULL || raw_keys->m_count<=0
-	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
+	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL ) {
 		goto cleanup;
 	}
 
@@ -459,7 +461,36 @@ int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
 
 	/* encrypt */
 	{
-		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, plain, plain_bytes, public_keys, use_armor, NULL/*cipher*/, 0/*raw*/);
+		const void* signed_text = NULL;
+		size_t      signed_bytes = 0;
+		int         encrypt_raw_packet = 0;
+
+		if( sign_key ) {
+			pgp_memory_clear(keysmem);
+			pgp_memory_add(keysmem, sign_key->m_binary, sign_key->m_bytes);
+			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
+			if( private_keys->keyc <= 0 ) {
+				mrmailbox_log_warning(mailbox, 0, "No key for signing found.");
+				goto cleanup;
+			}
+
+			pgp_key_t* sk0 = &private_keys->keys[0];
+			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/, "sha1", 0/*armored*/, 0/*cleartext*/);
+			if( signedmem == NULL ) {
+				mrmailbox_log_warning(mailbox, 0, "Signing failed.");
+				goto cleanup;
+			}
+			signed_text        = signedmem->buf;
+			signed_bytes       = signedmem->length;
+			encrypt_raw_packet = 1;
+		}
+		else {
+			signed_text        = plain_text;
+			signed_bytes       = plain_bytes;
+			encrypt_raw_packet = 0;
+		}
+
+		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
 		if( outmem == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Encryption failed.");
 			goto cleanup;
@@ -473,8 +504,10 @@ int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
 
 cleanup:
 	if( keysmem )      { pgp_memory_free(keysmem); }
+	if( signedmem )    { pgp_memory_free(signedmem); }
 	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
 	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if( dummy_keys )   { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
 	return success;
 }
 

@@ -361,7 +361,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
-		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, 1, (void**)&ctext, &ctext_bytes) ) {
+		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, NULL, 1, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
