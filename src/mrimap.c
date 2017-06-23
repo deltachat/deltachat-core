@@ -960,7 +960,7 @@ static void* heartbeat_thread_entry_point(void* entry_arg)
 		/* After waiting 50 seconds, call mrimap_heartbeat().
 		As pthread_cond_timedwait() eg. on Android does not always wake up in time when the device sleeps,
 		you may want to call mrimap_heartbeat() (resp. mrmailbox_heartbeat()) from an additional, IDLE-safe, timer. */
-		mrmailbox_log_info(ths->m_mailbox, 0, "<3 IMAP");
+		//mrmailbox_log_info(ths->m_mailbox, 0, "<3 IMAP");
 		mrimap_heartbeat(ths);
 	}
 
@@ -990,7 +990,7 @@ void mrimap_heartbeat(mrimap_t* ths)
 		 && time(NULL)-ths->m_enter_watch_wait_time > (FULL_FETCH_EVERY_SECONDS+10) )
 		{
 			/* force reconnect if the IDLE timeout does not arrive */
-			mrmailbox_log_info(ths->m_mailbox, 0, "<3 <3 <3 <3 <3 <3 Forcing reconnect <3 <3 <3 <3 <3 <3");
+			mrmailbox_log_info(ths->m_mailbox, 0, "Reconnect forced from the heartbeat thread.");
 			ths->m_should_reconnect = 1;
 			ths->m_enter_watch_wait_time = 0;
 			if( ths->m_can_idle )
