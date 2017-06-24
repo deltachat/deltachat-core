@@ -515,7 +515,7 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 		goto cleanup;
 	}
 
-	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, 1, &plain_buf, &plain_bytes)
+	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, NULL, 1, &plain_buf, &plain_bytes)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}

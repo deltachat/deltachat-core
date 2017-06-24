@@ -427,10 +427,14 @@ cleanup:
  ******************************************************************************/
 
 
-int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
-                       const void* plain_text, size_t plain_bytes,
-                       const mrkeyring_t* raw_keys, const mrkey_t* sign_key, int use_armor,
-                       void** ret_ctext, size_t* ret_ctext_bytes)
+int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
+                       const void*        plain_text,
+                       size_t             plain_bytes,
+                       const mrkeyring_t* raw_public_keys_for_encryption,
+                       const mrkey_t*     raw_private_key_for_signing,
+                       int                use_armor,
+                       void**             ret_ctext,
+                       size_t*            ret_ctext_bytes)
 {
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -440,7 +444,7 @@ int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
 	int             i, success = 0;
 
 	if( mailbox==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
-	 || raw_keys==NULL || raw_keys->m_count<=0
+	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->m_count<=0
 	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL ) {
 		goto cleanup;
 	}
@@ -449,8 +453,8 @@ int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
 	*ret_ctext_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_keys->m_count; i++ ) {
-		pgp_memory_add(keysmem, raw_keys->m_keys[i]->m_binary, raw_keys->m_keys[i]->m_bytes);
+	for( i = 0; i < raw_public_keys_for_encryption->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_public_keys_for_encryption->m_keys[i]->m_binary, raw_public_keys_for_encryption->m_keys[i]->m_bytes);
 	}
 
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
@@ -465,9 +469,9 @@ int mrpgp_pk_encrypt(  mrmailbox_t* mailbox,
 		size_t      signed_bytes = 0;
 		int         encrypt_raw_packet = 0;
 
-		if( sign_key ) {
+		if( raw_private_key_for_signing ) {
 			pgp_memory_clear(keysmem);
-			pgp_memory_add(keysmem, sign_key->m_binary, sign_key->m_bytes);
+			pgp_memory_add(keysmem, raw_private_key_for_signing->m_binary, raw_private_key_for_signing->m_bytes);
 			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
 			if( private_keys->keyc <= 0 ) {
 				mrmailbox_log_warning(mailbox, 0, "No key for signing found.");
@@ -512,20 +516,27 @@ cleanup:
 }
 
 
-int mrpgp_pk_decrypt(  mrmailbox_t* mailbox,
-                       const void* ctext, size_t ctext_bytes,
-                       const mrkeyring_t* raw_keys,
-                       int use_armor,
-                       void** ret_plain, size_t* ret_plain_bytes)
+int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
+                       const void*        ctext,
+                       size_t             ctext_bytes,
+                       const mrkeyring_t* raw_private_keys_for_decryption,
+                       const mrkey_t*     raw_public_key_for_validation,
+                       int                use_armor,
+                       void**             ret_plain,
+                       size_t*            ret_plain_bytes)
 {
-	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
-	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
-	pgp_memory_t    *keysmem = pgp_memory_new();
-	int             i, success = 0;
+	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
+	pgp_keyring_t*    private_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_keyring_t*    dummy_keys = calloc(1, sizeof(pgp_keyring_t));
+	pgp_validation_t* vresult = calloc(1, sizeof(pgp_validation_t));
+	key_id_t*         recipients_key_ids = NULL;
+	unsigned          recipients_count = 0;
+	pgp_memory_t*     keysmem = pgp_memory_new();
+	int               i, success = 0;
 
 	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
-	 || raw_keys==NULL || raw_keys->m_count<=0
-	 || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
+	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->m_count<=0
+	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
 	}
 
@@ -533,20 +544,26 @@ int mrpgp_pk_decrypt(  mrmailbox_t* mailbox,
 	*ret_plain_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_keys->m_count; i++ ) {
-		pgp_memory_add(keysmem, raw_keys->m_keys[i]->m_binary, raw_keys->m_keys[i]->m_bytes);
+	for( i = 0; i < raw_private_keys_for_decryption->m_count; i++ ) {
+		pgp_memory_add(keysmem, raw_private_keys_for_decryption->m_keys[i]->m_binary, raw_private_keys_for_decryption->m_keys[i]->m_bytes);
 	}
 
-	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
+	pgp_filter_keys_from_mem(&s_io, dummy_keys/*should stay empty*/, private_keys, NULL, 0, keysmem);
 	if( private_keys->keyc<=0 ) {
 		mrmailbox_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
+	if( raw_public_key_for_validation ) {
+		pgp_memory_clear(keysmem);
+		pgp_memory_add(keysmem, raw_public_key_for_validation->m_binary, raw_public_key_for_validation->m_bytes);
+		pgp_filter_keys_from_mem(&s_io, public_keys, dummy_keys/*should stay empty*/, NULL, 0, keysmem);
+	}
+
 	/* decrypt */
 	{
-		pgp_memory_t* outmem = pgp_decrypt_buf(&s_io, ctext, ctext_bytes, private_keys, public_keys,
-			use_armor, 0/*sshkeys*/, NULL/*passfp*/, 0/*numtries*/, NULL/*getpassfunc*/);
+		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
+			use_armor, &recipients_key_ids, &recipients_count);
 		if( outmem == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Decryption failed.");
 			goto cleanup;
@@ -554,13 +571,18 @@ int mrpgp_pk_decrypt(  mrmailbox_t* mailbox,
 		*ret_plain       = outmem->buf;
 		*ret_plain_bytes = outmem->length;
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
+
+		// TODO: check vresult
 	}
 
 	success = 1;
 
 cleanup:
-	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if( keysmem )            { pgp_memory_free(keysmem); }
+	if( public_keys )        { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if( private_keys )       { pgp_keyring_purge(private_keys); free(private_keys); }
+	if( dummy_keys )         { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
+	if( vresult )            { pgp_validate_result_free(vresult); }
+	if( recipients_key_ids ) { free(recipients_key_ids); }
 	return success;
 }

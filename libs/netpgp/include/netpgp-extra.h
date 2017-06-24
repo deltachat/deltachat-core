@@ -10,6 +10,7 @@
 #include "netpgp/signature.h"
 #include "netpgp/readerwriter.h"
 #include "netpgp/validate.h"
+#include "netpgp/netpgpsdk.h"
 unsigned rsa_generate_keypair(pgp_key_t *keydata, const int numbits, const unsigned long e, const char *hashalg, const char *cipher);
 
 #endif // __NETPGP_EXTRA_H__
