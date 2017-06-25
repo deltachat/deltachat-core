@@ -62,7 +62,7 @@ extern "C" {
 
 
 #define MRP_GUARANTEE_E2EE    'c'  /* 'c'rypted in original/guarantee E2EE or the message is not send */
-#define MRP_VALIDATION_ERRORS 'v'  /* decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
+#define MRP_ERRONEOUS_E2EE    'e'  /* decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
 
 
 typedef struct mrparam_t

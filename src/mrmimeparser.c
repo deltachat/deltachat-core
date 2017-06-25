@@ -929,7 +929,7 @@ cleanup:
 			mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 		}
 		else if( ths->m_decrypted_with_validation_errors ) {
-			mrparam_set_int(part->m_param, MRP_VALIDATION_ERRORS, ths->m_decrypted_with_validation_errors);
+			mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, ths->m_decrypted_with_validation_errors);
 		}
 		carray_add(ths->m_parts, (void*)part, NULL);
 		return 1; /* part used */

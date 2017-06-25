@@ -33,6 +33,7 @@
 #include "mrcontact.h"
 #include "mrtools.h"
 #include "mrjob.h"
+#include "mrpgp.h"
 
 
 /*******************************************************************************
@@ -338,7 +339,7 @@ cleanup:
 
 char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
-	char*         ret = NULL, *rawtxt = NULL, *timestr = NULL, *file = NULL, *metadata = NULL;
+	char*         ret = NULL, *rawtxt = NULL, *timestr = NULL, *file = NULL, *metadata = NULL, *encryption = NULL;
 	int           locked = 0;
 	sqlite3_stmt* stmt;
 	mrmsg_t*      msg = mrmsg_new();
@@ -376,9 +377,28 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0), (int)msg->m_type);
 	}
 
+	int e2ee_errors;
+	if( (e2ee_errors=mrparam_get_int(msg->m_param, MRP_ERRONEOUS_E2EE, 0)) ) {
+		if( e2ee_errors&MR_VALIDATE_BAD_SIGNATURE/* check worst errors first */ ) {
+			encryption = safe_strdup("End-to-end, bad signature");
+		}
+		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
+			encryption = safe_strdup("End-to-end, unknown signature");
+		}
+		else {
+			encryption = safe_strdup("End-to-end, no signature");
+		}
+	}
+	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
+		encryption = safe_strdup("End-to-end, valid signature");
+	}
+	else {
+		encryption = safe_strdup("Transport");
+	}
+
 	ret = mr_mprintf("Date: %s\nEncryption: %s%s\n\n%s",
 		timestr,
-		mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0)? "End-to-end" : "Transport",
+		encryption,
 		metadata? metadata : "",
 		rawtxt);
 
@@ -389,6 +409,7 @@ cleanup:
 	free(rawtxt);
 	free(file);
 	free(metadata);
+	free(encryption);
 	return ret? ret : safe_strdup(NULL);
 }
 

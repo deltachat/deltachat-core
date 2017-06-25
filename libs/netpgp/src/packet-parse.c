@@ -3493,9 +3493,9 @@ pgp_parse(pgp_stream_t *stream, const int perrors)
 	do {
 		r = parse_packet(stream, &pktlen);
 	} while (r != -1);
-	if (perrors) {
+	/*if (perrors) { -- REMOVED BY MR
 		pgp_print_errors(stream->errors);
-	}
+	}*/
 	return (stream->errors == NULL);
 }
 

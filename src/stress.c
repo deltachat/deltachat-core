@@ -259,13 +259,13 @@ void stress_functions(mrmailbox_t* mailbox)
 			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == MR_VALIDATE_NO_KEY_FOR_SIGNATURE );
+			assert( validation_errors == MR_VALIDATE_UNKNOWN_SIGNATURE );
 			free(plain); plain = NULL;
 
 			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key2/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == MR_VALIDATE_NO_KEY_FOR_SIGNATURE );
+			assert( validation_errors == MR_VALIDATE_UNKNOWN_SIGNATURE );
 			free(plain); plain = NULL;
 
 			ok = mrpgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
