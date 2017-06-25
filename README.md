@@ -47,17 +47,15 @@ The core relies on the following external libs:
   compilation, use eg. the following commands: `./autogen.sh; make;
   sudo make install prefix=/usr`
   To link against LibEtPan, add `libetpan-config --libs` in backticks to your
-  project.  
-  Alternatively, use the ready-to-use files from the libs-directory which are
-  suitable for common system.
+  project. This should also add the needed OpenSSL libraries.
 
 - [SQLite](http://sqlite.org/) is available on most systems, however, you
   will also need the headers, please look for packages as `libsqlite3-dev`.
   To link against SQLite, add `-lsqlite3` to your project.
 
-- [libgcrypt](https://www.gnupg.org/related_software/libgcrypt/) for the
-  headers, please look for packages as `libgrypt20-dev` and `libgpg-error-dev`.
-  To link against libgcrypt, add `-lgcrypt -lgpg-error` to your project.
+Alternatively, use the ready-to-use files from the libs-directory which are
+suitable for common system.  You'll also find a fork of the needed Netpgp
+library there.
 
 Information about how to build the frontends can be found in the corresponding
 repositories as https://github.com/r10s/deltachat-android .
