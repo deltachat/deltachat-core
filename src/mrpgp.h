@@ -40,7 +40,9 @@ typedef struct mrkeyring_t mrkeyring_t;
 
 
 /* validation errors */
-#define MR_NOTHING_TO_VALIDATE  0x01
+#define MR_VALIDATE_NO_SIGNATURE           0x01
+#define MR_VALIDATE_NO_KEY_FOR_SIGNATURE   0x02
+#define MR_VALIDATE_KEY_DOES_NOT_MATCH     0x04
 
 /* misc. */
 void mrpgp_init             (mrmailbox_t*);

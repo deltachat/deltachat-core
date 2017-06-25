@@ -574,8 +574,26 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
 
 		/* validate */
-		if( raw_public_key_for_validation ) {
-			// TODO: check vresult
+		*ret_validation_errors = 0;
+		if( vresult->validc <= 0 && vresult->invalidc <= 0 && vresult->unknownc <= 0 )
+		{
+			/* no valid nor invalid signatures found */
+			*ret_validation_errors = MR_VALIDATE_NO_SIGNATURE;
+		}
+		else if( raw_public_key_for_validation==NULL || vresult->unknownc > 0 )
+		{
+			/* at least one valid or invalid signature found, but now key for verification */
+			*ret_validation_errors = MR_VALIDATE_NO_KEY_FOR_SIGNATURE;
+		}
+		else if( vresult->invalidc > 0 )
+		{
+			/* at least one invalid signature found */
+			*ret_validation_errors = MR_VALIDATE_KEY_DOES_NOT_MATCH;
+		}
+		else
+		{
+			/* only valid signatures found */
+			;
 		}
 	}
 

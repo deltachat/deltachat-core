@@ -223,18 +223,24 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( !mrkey_equals(public_key, public_key2) );
 
 		const char* original_text = "This is a test";
-		void* ctext = NULL;
-		size_t ctext_bytes = 0, plain_bytes = 0;
+		void *ctext_signed = NULL, *ctext_unsigned = NULL;
+		size_t ctext_signed_bytes = 0, ctext_unsigned_bytes, plain_bytes = 0;
 
 		{
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, public_key);
 			mrkeyring_add(keyring, public_key2);
-				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext, &ctext_bytes);
-				assert( ok && ctext && ctext_bytes>0 );
-				assert( strncmp((char*)ctext, "-----BEGIN PGP MESSAGE-----", 27)==0 );
-				assert( ((char*)ctext)[ctext_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
+				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext_signed, &ctext_signed_bytes);
+				assert( ok && ctext_signed && ctext_signed_bytes>0 );
+				assert( strncmp((char*)ctext_signed, "-----BEGIN PGP MESSAGE-----", 27)==0 );
+				assert( ((char*)ctext_signed)[ctext_signed_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
 				//{char* t3 = mr_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
+
+				ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
+				assert( ok && ctext_unsigned && ctext_unsigned_bytes>0 );
+				assert( strncmp((char*)ctext_unsigned, "-----BEGIN PGP MESSAGE-----", 27)==0 );
+				assert( ctext_unsigned_bytes < ctext_signed_bytes );
+
 			mrkeyring_unref(keyring);
 		}
 
@@ -242,12 +248,33 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
 			void* plain = NULL;
-			int validation_errors = 0;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			int validation_errors = 0, ok;
+
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
+			assert( validation_errors == 0 );
+			free(plain); plain = NULL;
+
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			assert( ok && plain && plain_bytes>0 );
+			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
+			assert( validation_errors == MR_VALIDATE_NO_KEY_FOR_SIGNATURE );
+			free(plain); plain = NULL;
+
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key2/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			assert( ok && plain && plain_bytes>0 );
+			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
+			assert( validation_errors == MR_VALIDATE_NO_KEY_FOR_SIGNATURE );
+			free(plain); plain = NULL;
+
+			ok = mrpgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			assert( ok && plain && plain_bytes>0 );
+			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
+			assert( validation_errors == MR_VALIDATE_NO_SIGNATURE );
+			free(plain); plain = NULL;
+
 			mrkeyring_unref(keyring);
-			free(plain);
 		}
 
 		{
@@ -255,14 +282,15 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_add(keyring, private_key2);
 			void* plain = NULL;
 			int validation_errors = 0;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			int ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);
 			free(plain);
 		}
 
-		free(ctext);
+		free(ctext_signed);
+		free(ctext_unsigned);
 		mrkey_unref(public_key2);
 		mrkey_unref(private_key2);
 		mrkey_unref(public_key);
