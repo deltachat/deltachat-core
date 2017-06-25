@@ -390,7 +390,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 	}
 	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
-		encryption = safe_strdup("End-to-end, valid signature");
+		encryption = safe_strdup("End-to-end");
 	}
 	else {
 		encryption = safe_strdup("Transport");
