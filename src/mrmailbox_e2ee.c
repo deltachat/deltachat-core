@@ -452,7 +452,11 @@ static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 }
 
 
-static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring, struct mailmime** ret_decrypted_mime)
+static int decrypt_part(mrmailbox_t*       mailbox,
+                        struct mailmime*   mime,
+                        const mrkeyring_t* private_keyring,
+                        const mrkey_t*     public_key_for_verify, /*may be NULL*/
+                        struct mailmime**  ret_decrypted_mime)
 {
 	struct mailmime_data*        mime_data;
 	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
@@ -515,7 +519,7 @@ static int decrypt_part(mrmailbox_t* mailbox, struct mailmime* mime, const mrkey
 		goto cleanup;
 	}
 
-	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, NULL, 1, &plain_buf, &plain_bytes)
+	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, public_key_for_verify, 1, &plain_buf, &plain_bytes)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}
@@ -548,7 +552,10 @@ cleanup:
 }
 
 
-static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const mrkeyring_t* private_keyring)
+static int decrypt_recursive(mrmailbox_t*       mailbox,
+                             struct mailmime*   mime,
+                             const mrkeyring_t* private_keyring,
+                             const mrkey_t*     public_key_for_verify)
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
@@ -565,7 +572,7 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 				struct mailmime* decrypted_mime = NULL;
-				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, &decrypted_mime) )
+				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_verify, &decrypted_mime) )
 				{
 					mailmime_substitute(mime, decrypted_mime);
 					mailmime_free(mime);
@@ -575,7 +582,7 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring) ) {
+				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_verify) ) {
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
@@ -583,7 +590,7 @@ static int decrypt_recursive(mrmailbox_t* mailbox, struct mailmime* mime, const 
 	}
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
-		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring) ) {
+		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_verify) ) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
 	}
@@ -683,13 +690,18 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 			goto cleanup;
 		}
 
+		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
+		if( peerstate->m_public_key->m_bytes <= 0 ) {
+			mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from);
+		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
-		if( !decrypt_recursive(mailbox, in_out_message, private_keyring) ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key->m_bytes>0? peerstate->m_public_key : NULL) ) {
 			break;
 		}
 		sth_decrypted = 1;
