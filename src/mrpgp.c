@@ -524,7 +524,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
                        int                use_armor,
                        void**             ret_plain,
                        size_t*            ret_plain_bytes,
-                       int*               ret_validated)
+                       int*               ret_validation_errors)
 {
 	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*    private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -535,15 +535,14 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 	pgp_memory_t*     keysmem = pgp_memory_new();
 	int               i, success = 0;
 
-	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || ret_validated==NULL
+	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || ret_validation_errors==NULL
 	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->m_count<=0
 	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
 	}
 
-	*ret_plain       = NULL;
-	*ret_plain_bytes = 0;
-	*ret_validated   = 0;
+	*ret_plain             = NULL;
+	*ret_plain_bytes       = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
 	for( i = 0; i < raw_private_keys_for_decryption->m_count; i++ ) {

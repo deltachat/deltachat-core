@@ -925,8 +925,11 @@ cleanup:
 	free(desired_filename);
 
 	if( do_add_part ) {
-		if( ths->m_sth_decrypted_and_verified ) {
+		if( ths->m_decrypted_and_validated ) {
 			mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
+		}
+		else if( ths->m_decrypted_with_validation_errors ) {
+			mrparam_set_int(part->m_param, MRP_VALIDATION_ERRORS, ths->m_decrypted_with_validation_errors);
 		}
 		carray_add(ths->m_parts, (void*)part, NULL);
 		return 1; /* part used */
@@ -1102,10 +1105,13 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	int verified = 0;
-	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, &verified) ) {
-		if( verified ) {
-			ths->m_sth_decrypted_and_verified = 1;
+	int validation_errors = 0;
+	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, &validation_errors) ) {
+		if( validation_errors == 0 ) {
+			ths->m_decrypted_and_validated = 1;
+		}
+		else {
+			ths->m_decrypted_with_validation_errors = validation_errors;
 		}
 	}
 

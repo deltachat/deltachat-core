@@ -242,8 +242,8 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
 			void* plain = NULL;
-			int validated = 0;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for verify*/, 1, &plain, &plain_bytes, &validated);
+			int validation_errors = 0;
+			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			mrkeyring_unref(keyring);
@@ -254,8 +254,8 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key2);
 			void* plain = NULL;
-			int validated = 0;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for verify*/, 1, &plain, &plain_bytes, &validated);
+			int validation_errors = 0;
+			int ok = mrpgp_pk_decrypt(mailbox, ctext, ctext_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);

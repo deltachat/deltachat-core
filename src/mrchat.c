@@ -1781,6 +1781,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 		/* if we cannot guarantee E2EE, clear the flag (may be set if the message was loaded from the database, eg. for forwarding messages ) */
 		mrparam_set(msg->m_param, MRP_GUARANTEE_E2EE, NULL);
 	}
+	mrparam_set(msg->m_param, MRP_VALIDATION_ERRORS, NULL); /* reset eg. on forwarding */
 
 	/* add message to the database */
 	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,

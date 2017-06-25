@@ -39,6 +39,9 @@ typedef struct mrkey_t mrkey_t;
 typedef struct mrkeyring_t mrkeyring_t;
 
 
+/* validation errors */
+#define MR_NOTHING_TO_VALIDATE  0x01
+
 /* misc. */
 void mrpgp_init             (mrmailbox_t*);
 void mrpgp_exit             (mrmailbox_t*);
@@ -52,7 +55,7 @@ int  mrpgp_calc_fingerprint (mrmailbox_t*, const mrkey_t*, uint8_t** fingerprint
 int  mrpgp_split_key        (mrmailbox_t*, const mrkey_t* private_in, mrkey_t* public_out);
 
 int  mrpgp_pk_encrypt       (mrmailbox_t*, const void* plain, size_t plain_bytes, const mrkeyring_t*, const mrkey_t* sign_key, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
-int  mrpgp_pk_decrypt       (mrmailbox_t*, const void* ctext, size_t ctext_bytes, const mrkeyring_t*, const mrkey_t* validate_key, int use_armor, void** plain, size_t* plain_bytes, int* ret_validated);
+int  mrpgp_pk_decrypt       (mrmailbox_t*, const void* ctext, size_t ctext_bytes, const mrkeyring_t*, const mrkey_t* validate_key, int use_armor, void** plain, size_t* plain_bytes, int* ret_validation_errors);
 
 
 #ifdef __cplusplus

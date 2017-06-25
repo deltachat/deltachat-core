@@ -456,7 +456,7 @@ static int decrypt_part(mrmailbox_t*       mailbox,
                         struct mailmime*   mime,
                         const mrkeyring_t* private_keyring,
                         const mrkey_t*     public_key_for_validate, /*may be NULL*/
-                        int*               ret_all_valid,
+                        int*               ret_validation_errors,
                         struct mailmime**  ret_decrypted_mime)
 {
 	struct mailmime_data*        mime_data;
@@ -466,7 +466,7 @@ static int decrypt_part(mrmailbox_t*       mailbox,
 	size_t                       decoded_data_bytes = 0;
 	void*                        plain_buf = NULL;
 	size_t                       plain_bytes = 0;
-	int                          part_validated = 0;
+	int                          part_validation_errors = 0;
 	int                          sth_decrypted = 0;
 
 	*ret_decrypted_mime = NULL;
@@ -521,13 +521,13 @@ static int decrypt_part(mrmailbox_t*       mailbox,
 		goto cleanup;
 	}
 
-	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, public_key_for_validate, 1, &plain_buf, &plain_bytes, &part_validated)
+	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, public_key_for_validate, 1, &plain_buf, &plain_bytes, &part_validation_errors)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}
 
-	if( part_validated == 0 ) {
-		*ret_all_valid = 0;
+	if( part_validation_errors ) {
+		(*ret_validation_errors) |= part_validation_errors;
 	}
 
 	//{char* t1=mr_null_terminate(plain_buf,plain_bytes);printf("\n**********\n%s\n**********\n",t1);free(t1);}
@@ -562,7 +562,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
                              struct mailmime*   mime,
                              const mrkeyring_t* private_keyring,
                              const mrkey_t*     public_key_for_validate,
-                             int*               ret_all_valid)
+                             int*               ret_validation_errors)
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
@@ -579,7 +579,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 				struct mailmime* decrypted_mime = NULL;
-				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_all_valid, &decrypted_mime) )
+				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_validation_errors, &decrypted_mime) )
 				{
 					mailmime_substitute(mime, decrypted_mime);
 					mailmime_free(mime);
@@ -589,7 +589,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_all_valid) ) {
+				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_validation_errors) ) {
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
@@ -597,7 +597,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 	}
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
-		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_validate, ret_all_valid) ) {
+		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_validate, ret_validation_errors) ) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
 	}
@@ -606,7 +606,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 }
 
 
-int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message, int* ret_all_valid)
+int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message, int* ret_validation_errors)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
@@ -620,13 +620,10 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	mrkeyring_t*           private_keyring = mrkeyring_new();
 	int                    sth_decrypted = 0;
 
-	if( mailbox==NULL || in_out_message==NULL || ret_all_valid==NULL
+	if( mailbox==NULL || in_out_message==NULL || ret_validation_errors==NULL
 	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}
-
-	/* assume 1, any errors on verification sets this value to 0 */
-	*ret_all_valid = 1;
 
 	/* Autocrypt preparations:
 	- Set message_time and from (both may be unset)
@@ -709,17 +706,14 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	locked = 0;
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
+	*ret_validation_errors = 0;
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
-		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key->m_bytes>0? peerstate->m_public_key : NULL, ret_all_valid) ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key->m_bytes>0? peerstate->m_public_key : NULL, ret_validation_errors) ) {
 			break;
 		}
 		sth_decrypted = 1;
 		avoid_deadlock--;
-	}
-
-	if( !sth_decrypted ) {
-		*ret_all_valid = 0;
 	}
 
 	//mr_print_mime(in_out_message);
