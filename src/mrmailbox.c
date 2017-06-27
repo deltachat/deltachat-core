@@ -224,7 +224,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	{
 		recreate_member_list = 1;
 	}
-	else if( X_MrGrpNameChanged && grpname && strlen(grpname) < 100 )
+	else if( X_MrGrpNameChanged && grpname && strlen(grpname) < 200 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET name=? WHERE id=?;");
 		sqlite3_bind_text(stmt, 1, grpname, -1, SQLITE_STATIC);
