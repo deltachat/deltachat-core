@@ -188,6 +188,12 @@ cleanup:
 
 static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 {
+	/* hint: even if we switch to import Autocrypt Setup files, we should leave the possibility to import
+	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
+	Importing ASC keys is useful to use keys in Delta Chat used by any other non-Autocrypt-PGP implementation.
+
+	Maybe we should make the "default" key handlong also a little bit smarter (currently, the last imported key is the standard key) */
+
 	int            imported_count = 0, locked = 0;
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry = NULL;
