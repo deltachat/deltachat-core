@@ -608,16 +608,17 @@ static int is_attachment_disposition(struct mailmime* mime)
 
 static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 {
-	#define MR_MIMETYPE_MP_ALTERNATIVE  1
-	#define MR_MIMETYPE_MP_RELATED      2
-	#define MR_MIMETYPE_MP_OTHER        3
-	#define MR_MIMETYPE_TEXT_PLAIN      4
-	#define MR_MIMETYPE_TEXT_HTML       5
-	#define MR_MIMETYPE_IMAGE           6
-	#define MR_MIMETYPE_AUDIO           7
-	#define MR_MIMETYPE_VIDEO           8
-	#define MR_MIMETYPE_FILE            9
-	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE 10
+	#define MR_MIMETYPE_MP_ALTERNATIVE      10
+	#define MR_MIMETYPE_MP_RELATED          20
+	#define MR_MIMETYPE_MP_MIXED            30
+	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE  40
+	#define MR_MIMETYPE_MP_OTHER            50
+	#define MR_MIMETYPE_TEXT_PLAIN          60
+	#define MR_MIMETYPE_TEXT_HTML           70
+	#define MR_MIMETYPE_IMAGE               80
+	#define MR_MIMETYPE_AUDIO               90
+	#define MR_MIMETYPE_VIDEO              100
+	#define MR_MIMETYPE_FILE               110
 
 	struct mailmime_content* c = mime->mm_content_type;
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
@@ -682,7 +683,10 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 				else if( strcmp(c->ct_subtype, "encrypted")==0 ) {
 					return MR_MIMETYPE_MP_NOT_DECRYPTABLE; /* decryptable parts are already converted to other mime parts in mre2ee_decrypt()  */
 				}
-				else { /* eg. "mixed" */
+				else if( strcmp(c->ct_subtype, "mixed")==0 ) {
+					return MR_MIMETYPE_MP_MIXED;
+				}
+				else {
 					return MR_MIMETYPE_MP_OTHER;
 				}
 			}
@@ -955,8 +959,20 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 		case MAILMIME_MULTIPLE:
 			switch( mrmimeparser_get_mime_type(mime, NULL) )
 			{
-				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part - this is either `text/plain` or the first part */
-					{
+				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part */
+					/* Most times, mutlipart/alternative contains true alternatives as text/plain and text/html.
+					If we find a multipart/mixed inside mutlipart/alternative, we use this (happens eg in apple mail: "plaintext" as an alternative to "html+PDF attachment") */
+					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+						struct mailmime* childmime = (struct mailmime*)clist_content(cur);
+						if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_MP_MIXED ) {
+							sth_added = mrmimeparser_parse_mime_recursive(ths, childmime);
+							break;
+						}
+					}
+
+
+					if( !sth_added ) {
+						/* search for text/plain and add this */
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
@@ -964,13 +980,13 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 								break;
 							}
 						}
+					}
 
-						if( !sth_added ) { /* `text/plain` not found - use the first part */
-							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-								if( mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
-									sth_added = 1;
-									break; /* out of for() */
-								}
+					if( !sth_added ) { /* `text/plain` not found - use the first part */
+						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+							if( mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
+								sth_added = 1;
+								break; /* out of for() */
 							}
 						}
 					}
