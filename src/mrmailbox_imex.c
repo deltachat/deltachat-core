@@ -288,7 +288,69 @@ cleanup:
 
 
 /*******************************************************************************
- * Export keys
+ * Export keys, deprecated routines
+ ******************************************************************************/
+
+
+static void export_key_to_asc_file_deprecated(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
+{
+	char* file_content = mrkey_render_asc(key);
+	char* file_name;
+	if( is_default ) {
+		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
+	}
+	else {
+		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+	}
+	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	mr_delete_file(file_name, mailbox);
+	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
+	}
+	else {
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, (uintptr_t)"application/pgp-keys");
+	}
+	free(file_content);
+	free(file_name);
+}
+
+
+static int export_self_keys_deprecated(mrmailbox_t* mailbox, const char* dir)
+{
+	sqlite3_stmt* stmt = NULL;
+	int           id = 0, is_default = 0;
+	mrkey_t*      public_key = mrkey_new();
+	mrkey_t*      private_key = mrkey_new();
+	int           locked = 0;
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+			goto cleanup;
+		}
+
+		while( sqlite3_step(stmt)==SQLITE_ROW ) {
+			id = sqlite3_column_int(         stmt, 0  );
+			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
+			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
+			is_default = sqlite3_column_int( stmt, 3  );
+			export_key_to_asc_file_deprecated(mailbox, dir, id, public_key,  is_default);
+			export_key_to_asc_file_deprecated(mailbox, dir, id, private_key, is_default);
+		}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( stmt ) { sqlite3_finalize(stmt); }
+	mrkey_unref(public_key);
+	mrkey_unref(private_key);
+	return 0;
+}
+
+
+
+/*******************************************************************************
+ * Export setup file
  ******************************************************************************/
 
 
@@ -594,7 +656,7 @@ cleanup:
 }
 
 
-static int export_self_keys(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
+static int export_self_setup_file(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
 {
 	int           success = 0;
 	char*         file_content = NULL;
@@ -822,9 +884,12 @@ static void* imex_thread_entry_point(void* entry_arg)
 	switch( thread_param->m_what )
 	{
 		case MR_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
+			if( !export_self_keys_deprecated(mailbox, thread_param->m_dir) ) {
 				goto cleanup;
 			}
+			/*if( !export_self_setup_file(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
+				goto cleanup;
+			}*/
 			break;
 
 		case MR_IMEX_IMPORT_SELF_KEYS:
