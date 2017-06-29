@@ -1793,7 +1793,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{
 			int prefer_encrypted = sqlite3_column_type(stmt, 0)==SQLITE_NULL? MRA_PE_NOPREFERENCE : sqlite3_column_int(stmt, 0);
-			if( prefer_encrypted != MRA_PE_MUTUAL && prefer_encrypted != MRA_PE_GOSSIP ) {
+			if( prefer_encrypted != MRA_PE_MUTUAL ) { /* when gossip becomes available, gossip keys should be used only in groups */
 				can_guarantee_e2ee = 0;
 				break;
 			}
