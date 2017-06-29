@@ -63,7 +63,7 @@ int   mrkey_set_from_file (mrkey_t*, const char* file, mrmailbox_t* mailbox);
 
 int   mrkey_equals        (const mrkey_t*, const mrkey_t*);
 
-int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql);
+int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, int is_default, mrsqlite3_t* sql);
 int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 int   mrkey_load_self_private_for_signing__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
 

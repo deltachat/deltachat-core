@@ -1269,7 +1269,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"config1=%s\n"
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
-		"Private keys=%i, public keys=%i, fingerprint=%s\n"
+		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
 		"\n"
 		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
 		/* In the frontends, additional software hints may follow here. */

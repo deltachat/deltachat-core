@@ -251,7 +251,7 @@ int mrkey_equals(const mrkey_t* ths, const mrkey_t* o)
  ******************************************************************************/
 
 
-int mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, mrsqlite3_t* sql)
+int mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, int is_default, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
@@ -263,7 +263,7 @@ int mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_
 	stmt = mrsqlite3_predefine__(sql, INSERT_INTO_keypairs_aippc,
 		"INSERT INTO keypairs (addr, is_default, public_key, private_key, created) VALUES (?,?,?,?,?);");
 	sqlite3_bind_text (stmt, 1, addr, -1, SQLITE_STATIC);
-	sqlite3_bind_int  (stmt, 2, 1);
+	sqlite3_bind_int  (stmt, 2, is_default);
 	sqlite3_bind_blob (stmt, 3, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
 	sqlite3_bind_blob (stmt, 4, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
 	sqlite3_bind_int64(stmt, 5, time(NULL));

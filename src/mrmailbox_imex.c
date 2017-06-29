@@ -192,7 +192,8 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
 	Importing ASC keys is useful to use keys in Delta Chat used by any other non-Autocrypt-PGP implementation.
 
-	Maybe we should make the "default" key handlong also a little bit smarter (currently, the last imported key is the standard key) */
+	Maybe we should make the "default" key handlong also a little bit smarter
+	(currently, the last imported key is the standard key unless it contains the string "legacy" in its name) */
 
 	int            imported_count = 0, locked = 0;
 	DIR*           dir_handle = NULL;
@@ -203,6 +204,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	mrkey_t*       public_key = mrkey_new();
 	sqlite3_stmt*  stmt = NULL;
 	char*          self_addr = NULL;
+	int            set_default = 0;
 
 	if( mailbox==NULL || dir_name==NULL ) {
 		goto cleanup;
@@ -243,6 +245,11 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			continue;
 		}
 
+		set_default = 1;
+		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
+			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
+		}
+
 		/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
@@ -254,11 +261,13 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			sqlite3_finalize(stmt);
 			stmt = NULL;
 
-			mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;");
+			if( set_default ) {
+				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+			}
 
 			free(self_addr);
 			self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
+			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
 				mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}

@@ -219,7 +219,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 				goto cleanup;
 			}
 
-			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, mailbox->m_sql) ) {
+			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, mailbox->m_sql) ) {
 				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
