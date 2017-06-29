@@ -669,6 +669,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
 	int             e2ee_enabled = 0;
+	int             explain_id = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
 	mrcontact_t*    contact = mrcontact_new();
 	mrapeerstate_t* peerstate = mrapeerstate_new();
@@ -696,12 +697,31 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	/* show the encryption that would be used for the next outgoing message */
 	if( e2ee_enabled
 	 && peerstate_ok
 	 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
-		/* end-to-end encrypted, if we got the key from the contact but have no own key yet, generate one. */
+		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
+		explain_id = MR_STR_ENCR_E2E_EXPLN;
+	}
+	else if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
+	      && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
+	{
+		p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
+		explain_id = MR_STR_ENCR_NOE2E_EXPLN;
+	}
+	else
+	{
+		p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
+		explain_id = MR_STR_ENCR_NOE2E_EXPLN;
+	}
+
+	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
+	if( peerstate_ok
+	 && peerstate->m_public_key->m_binary!=NULL )
+	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
 			mrmailbox_ensure_secret_key_exists(mailbox);
@@ -712,8 +732,6 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 			locked = 0;
 		}
 
-		/* end-to-end encrypted, show keys for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
-		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
 		mrstrbuilder_cat(&ret, " ");
 		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
 		mrstrbuilder_cat(&ret, ":\n\n");
@@ -729,26 +747,13 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
 		}
-
-		p = mrstock_str(MR_STR_ENCR_E2E_EXPLN); mrstrbuilder_cat(&ret, p); free(p);
 	}
 	else
 	{
-		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
-		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
-		{
-			/* transport encryption at least up to the user's server */
-			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
-		}
-		else
-		{
-			/* no encryption at least up to the user's server */
-			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
-		}
-
 		mrstrbuilder_cat(&ret, "\n\n");
-		p = mrstock_str(MR_STR_ENCR_NOE2E_EXPLN); mrstrbuilder_cat(&ret, p); free(p);
 	}
+
+	p = mrstock_str(explain_id); mrstrbuilder_cat(&ret, p); free(p);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
