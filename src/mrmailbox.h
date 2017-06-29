@@ -285,14 +285,15 @@ void                 mrmailbox_heartbeat            (mrmailbox_t*);
 
 /*** library-private **********************************************************/
 
+#define MR_E2EE_DEFAULT_ENABLED  1
+#define MR_READRECEIPTS_DEFAULT  1
+
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
 void                 mrmailbox_wake_lock            (mrmailbox_t*);
 void                 mrmailbox_wake_unlock          (mrmailbox_t*);
 
 
 /* end-to-end-encryption */
-#define MR_E2EE_DEFAULT_ENABLED 1
-
 typedef struct mrmailbox_e2ee_helper_t {
 	int   m_encryption_successfull;
 	void* m_cdata_to_free;

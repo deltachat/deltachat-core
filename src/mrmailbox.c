@@ -1200,7 +1200,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char* unset = "0";
 	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, e2ee_enabled, prv_key_count, pub_key_count;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, readreceipts, e2ee_enabled, prv_key_count, pub_key_count;
 	mrkey_t* self_public = mrkey_new();
 
 	if( ths == NULL ) {
@@ -1228,6 +1228,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		dbversion       = mrsqlite3_get_config_int__(ths->m_sql, "dbversion", 0);
 
 		e2ee_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+
+		readreceipts    = mrsqlite3_get_config_int__(ths->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT);
 
 		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM keypairs;");
 		sqlite3_step(stmt);
@@ -1267,6 +1269,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"configured=%i\n"
 		"config0=%s\n"
 		"config1=%s\n"
+		"readreceipts=%i\n"
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
 		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
@@ -1280,6 +1283,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
         , displayname? displayname : unset
 		, is_configured
 		, l_readable_str, l2_readable_str
+
+		, readreceipts
 
 		, e2ee_enabled
 		, MR_E2EE_DEFAULT_ENABLED

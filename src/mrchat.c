@@ -1262,9 +1262,17 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 }
 
 
-static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, const char* from_addr, const char* from_displayname,
-                                   const clist* recipients_names, const clist* recipients_addr, const char* predecessor, const char* references,
-                                   int encrypt_to_self, int* ret_encrypted)
+static MMAPString* create_mime_msg(const mrchat_t* chat,
+                                   const mrmsg_t*  msg,
+                                   const char*     from_addr,
+                                   const char*     from_displayname,
+                                   const clist*    recipients_names,
+                                   const clist*    recipients_addr,
+                                   const char*     predecessor,
+                                   const char*     references,
+                                   int             req_readreceipt,
+                                   int             encrypt_to_self,
+                                   int*            ret_encrypted)
 {
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
@@ -1308,6 +1316,10 @@ static MMAPString* create_mime_msg(const mrchat_t* chat, const mrmsg_t* msg, con
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( predecessor ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrPredecessor"), strdup(predecessor)));
+		}
+
+		if( req_readreceipt ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Disposition-Notification-To"), strdup(from_addr)));
 		}
 
 		/* add additional group paramters */
@@ -1442,11 +1454,16 @@ cleanup:
 
 
 static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
-                             mrchat_t* ret_chat, mrmsg_t* ret_msg, char** ret_from, char** ret_displayname,
-                             clist* ret_recipients_names, clist* ret_recipients_addr,
-                             int* ret_increation,
-                             char** ret_predecessor,
-                             char** ret_references)
+                             mrchat_t* ret_chat,
+                             mrmsg_t*  ret_msg,
+                             char**    ret_from,
+                             char**    ret_displayname,
+                             clist*    ret_recipients_names,
+                             clist*    ret_recipients_addr,
+                             int*      ret_increation,
+                             char**    ret_predecessor,
+                             char**    ret_references,
+                             int*      ret_req_readreceipt)
 {
 	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1485,6 +1502,13 @@ static int load_data_to_send(mrmailbox_t* mailbox, uint32_t msg_id,
 
 			*ret_from        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 			*ret_displayname = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
+
+			*ret_req_readreceipt = 0;
+			if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
+				if( clist_count(ret_recipients_addr)==1 ) { /* for groups, read receipts are a little bit more complicated to receive */
+					*ret_req_readreceipt = 1;
+				}
+			}
 
 			/* Get a predecessor of the mail to send.
 			For simplicity, we use the last message send not by us.
@@ -1554,6 +1578,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	uint32_t      server_uid = 0;
 	int           increation = 0; /* we can ignore this state here as it already checked when sending to SMTP */
 	int           encrypted = 0;
+	int           req_readreceipt = 0;
 
 	/* connect to IMAP-server */
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
@@ -1565,12 +1590,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* create message */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references, &req_readreceipt)==0
 	 || from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
 
-	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, 1/*encrypt_to_self*/, &encrypted);
+	data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, req_readreceipt, 1/*encrypt_to_self*/, &encrypted);
 	if( data == NULL ) {
 		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
 	}
@@ -1629,6 +1654,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	char*         references = NULL;
 	int           increation = 0;
 	int           encrypted = 0;
+	int           req_readreceipt = 0;
 
 	/* connect to SMTP server, if not yet done */
 	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
@@ -1645,7 +1671,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* load message data */
-	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references)==0
+	if( load_data_to_send(mailbox, job->m_foreign_id, chat, msg, &from_addr, &from_displayname, recipients_names, recipients_addr, &increation, &predecessor, &references, &req_readreceipt)==0
 	 || from_addr == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
@@ -1660,7 +1686,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are not recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(recipients_addr) > 0 ) {
-		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, 0/*encrypt_to_self*/, &encrypted);
+		data = create_mime_msg(chat, msg, from_addr, from_displayname, recipients_names, recipients_addr, predecessor, references, req_readreceipt, 0/*encrypt_to_self*/, &encrypted);
 		if( data == NULL ) {
 			mark_as_error(mailbox, msg);
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
