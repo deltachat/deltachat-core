@@ -955,3 +955,29 @@ int mrmailbox_markseen_msg(mrmailbox_t* ths, uint32_t msg_id)
 	return 1;
 }
 
+
+int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid)
+{
+	if( mailbox == NULL || from_id <= MR_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL ) {
+		return 0;
+	}
+
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724,
+		"SELECT m.id, c.type FROM msgs m "
+		" LEFT JOIN chats c ON m.chat_id=c.id "
+		" WHERE rfc724_mid=? AND from_id=1 AND (state=20 OR state=26);");
+	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+	uint32_t msg_id = sqlite3_column_int(stmt, 0);
+	int      chat_type = sqlite3_column_int(stmt, 1);
+	if( chat_type != MR_CHAT_NORMAL ) {
+		return 0;
+	}
+
+	mrmailbox_update_msg_state__(mailbox, msg_id, MR_OUT_READ);
+	return 1; /* send event about new state */
+}
+

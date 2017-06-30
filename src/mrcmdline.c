@@ -51,10 +51,19 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
 			int contact_id = contact? contact->m_id : 0;
 
+			const char* statestr = "";
+			switch( msg->m_state ) {
+				case MR_OUT_PENDING:   statestr = " o";   break;
+				case MR_OUT_DELIVERED: statestr = " √";   break;
+				case MR_OUT_READ:      statestr = " √√";  break;
+				case MR_OUT_ERROR:     statestr = " ERR"; break;
+			}
+
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
-				mrmailbox_log_info(mailbox, 0, "Msg #%i: %s (Contact #%i): %s %s%s[%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+				mrmailbox_log_info(mailbox, 0, "Msg #%i: %s (Contact #%i): %s %s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
 					mrparam_get(msg->m_param, MRP_GUARANTEE_E2EE, 0)? "[E2E]" : "",
 					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
+					statestr,
 					temp2);
 			free(temp2);
 

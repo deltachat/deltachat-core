@@ -439,6 +439,29 @@ struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int w
 }
 
 
+struct mailimf_optional_field* mr_find_mailimf_field2(struct mailimf_fields* header, const char* wanted_fld_name)
+{
+	if( header == NULL || header->fld_list == NULL ) {
+		return NULL;
+	}
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		{
+			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+			if( optional_field && optional_field->fld_name && optional_field->fld_value && strcasecmp(optional_field->fld_name, wanted_fld_name)==0 ) {
+				return optional_field;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
 struct mailmime_parameter* mr_find_ct_parameter(struct mailmime* mime, const char* name)
 {
 	/* find a parameter in `Content-Type: foo/bar; name=value;` */
@@ -451,7 +474,7 @@ struct mailmime_parameter* mr_find_ct_parameter(struct mailmime* mime, const cha
 	clistiter* cur;
 	for( cur = clist_begin(mime->mm_content_type->ct_parameters); cur != NULL; cur = clist_next(cur) ) {
 		struct mailmime_parameter* param = (struct mailmime_parameter*)clist_content(cur);
-		if( param ) {
+		if( param && param->pa_name ) {
 			if( strcmp(param->pa_name, name)==0 ) {
 				return param;
 			}
@@ -553,6 +576,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_mailbox = mailbox;
 	ths->m_parts   = carray_new(16);
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
+	ths->m_reports = carray_new(16);
 
 	return ths;
 }
@@ -565,9 +589,8 @@ void mrmimeparser_unref(mrmimeparser_t* ths)
 	}
 
 	mrmimeparser_empty(ths);
-	if( ths->m_parts ) {
-		carray_free(ths->m_parts);
-	}
+	if( ths->m_parts )   { carray_free(ths->m_parts); }
+	if( ths->m_reports ) { carray_free(ths->m_reports); }
 	free(ths);
 }
 
@@ -607,6 +630,10 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 
 	free(ths->m_fwd_name);
 	ths->m_fwd_name = NULL;
+
+	if( ths->m_reports ) {
+		carray_set_size(ths->m_reports, 0);
+	}
 }
 
 
@@ -635,6 +662,7 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 	#define MR_MIMETYPE_MP_RELATED          20
 	#define MR_MIMETYPE_MP_MIXED            30
 	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE  40
+	#define MR_MIMETYPE_MP_REPORT           45
 	#define MR_MIMETYPE_MP_OTHER            50
 	#define MR_MIMETYPE_TEXT_PLAIN          60
 	#define MR_MIMETYPE_TEXT_HTML           70
@@ -708,6 +736,9 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 				}
 				else if( strcmp(c->ct_subtype, "mixed")==0 ) {
 					return MR_MIMETYPE_MP_MIXED;
+				}
+				else if( strcmp(c->ct_subtype, "report")==0 ) {
+					return MR_MIMETYPE_MP_REPORT;
 				}
 				else {
 					return MR_MIMETYPE_MP_OTHER;
@@ -1048,6 +1079,10 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					}
 					break;
 
+				case MR_MIMETYPE_MP_REPORT:
+					carray_add(ths->m_reports, (void*)mime, NULL);
+					break;
+
 				default: /* eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
 					{
 						/* HACK: the following lines are a hack for clients who use multipart/mixed instead of multipart/alternative for
@@ -1122,20 +1157,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 static struct mailimf_optional_field* mrmimeparser_find_xtra_field(mrmimeparser_t* ths, const char* wanted_fld_name)
 {
-	clistiter* cur1;
-	for( cur1 = clist_begin(ths->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-		{
-			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-			if( optional_field && optional_field->fld_name && optional_field->fld_value && strcasecmp(optional_field->fld_name, wanted_fld_name)==0 ) {
-				return optional_field;
-			}
-		}
-	}
-
-	return NULL;
+	return mr_find_mailimf_field2(ths->m_header, wanted_fld_name);
 }
 
 
@@ -1247,7 +1269,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
-	if( carray_count(ths->m_parts)==0 ) {
+	if( carray_count(ths->m_parts)==0 && carray_count(ths->m_reports)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
 		part->m_type = MR_MSG_TEXT;
 		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");

@@ -59,7 +59,6 @@ typedef struct mrchat_t mrchat_t;
 #define MR_IN_UNSEEN       10 /* incoming message not read */
 #define MR_IN_SEEN         16 /* incoming message read */
 #define MR_OUT_PENDING     20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
-#define MR_OUT_SENDING     22 /* the message is just now being sending */
 #define MR_OUT_ERROR       24 /* unrecoverable error (recoverable errors result in pending messages) */
 #define MR_OUT_DELIVERED   26 /* outgoing message successfully delivered to server (one checkmark) */
 #define MR_OUT_READ        28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
@@ -118,6 +117,7 @@ void         mrmailbox_update_server_uid__    (mrmailbox_t*, const char* rfc724_
 void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
+int          mrmailbox_readreceipt_from_ext__ (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid); /* returns 1 if an event should be send */
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 int          mrmsg_is_increation__            (const mrmsg_t*);

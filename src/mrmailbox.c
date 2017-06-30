@@ -612,248 +612,315 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		}
 
 
-		/* collect the rest information */
-		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+		if( carray_count(mime_parser->m_parts) > 0 )
 		{
-			field = (struct mailimf_field*)clist_content(cur1);
-			if( field )
+
+			/**********************************************************************
+			 * Add parts
+			 *********************************************************************/
+
+			/* collect the rest information */
+			for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 			{
-				if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+				field = (struct mailimf_field*)clist_content(cur1);
+				if( field )
 				{
-					struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
-					if( fld_message_id ) {
-						rfc724_mid = safe_strdup(fld_message_id->mid_value);
+					if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
+					{
+						struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
+						if( fld_message_id ) {
+							rfc724_mid = safe_strdup(fld_message_id->mid_value);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_CC )
+					{
+						struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
+						if( fld_cc ) {
+							add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
+								outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list, NULL);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_BCC )
+					{
+						struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
+						if( outgoing && fld_bcc ) {
+							add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
+								MR_ORIGIN_OUTGOING_BCC, to_list, NULL);
+						}
+					}
+					else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
+					{
+						struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+						if( orig_date ) {
+							message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+						}
 					}
 				}
-				else if( field->fld_type == MAILIMF_FIELD_CC )
-				{
-					struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
-					if( fld_cc ) {
-						add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
-							outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list, NULL);
-					}
-				}
-				else if( field->fld_type == MAILIMF_FIELD_BCC )
-				{
-					struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
-					if( outgoing && fld_bcc ) {
-						add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
-							MR_ORIGIN_OUTGOING_BCC, to_list, NULL);
-					}
-				}
-				else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
-				{
-					struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-					if( orig_date ) {
-						message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-					}
-				}
-			}
 
-		} /* for */
+			} /* for */
 
 
-		/* check if the message introduces a new chat:
-		- outgoing messages introduce a chat with the first to: address if they are send by a messenger
-		- incoming messages introduce a chat only for known contacts if they are send by a messenger
-		(of course, the user can add other chats manually later) */
-		if( incoming )
-		{
-			state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
-			to_id = MR_CONTACT_ID_SELF;
-
-			chat_id = lookup_group_by_grpid__(ths, mime_parser,
-				(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_list);
-			if( chat_id )
+			/* check if the message introduces a new chat:
+			- outgoing messages introduce a chat with the first to: address if they are send by a messenger
+			- incoming messages introduce a chat only for known contacts if they are send by a messenger
+			(of course, the user can add other chats manually later) */
+			if( incoming )
 			{
-				is_group = 1;
-			}
-			else
-			{
-				chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
-				if( chat_id == 0 )
-				{
-					if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
-						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
-					}
-					else if( is_reply_to_known_message__(ths, mime_parser) ) {
-						mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
-						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
-					}
-				}
+				state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
+				to_id = MR_CONTACT_ID_SELF;
 
-				if( chat_id == 0 ) {
-					chat_id = MR_CHAT_ID_DEADDROP;
-				}
-			}
-		}
-		else /* outgoing */
-		{
-			state = MR_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
-			from_id = MR_CONTACT_ID_SELF;
-			if( carray_count(to_list) >= 1 ) {
-				to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
-
-				chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_list);
+				chat_id = lookup_group_by_grpid__(ths, mime_parser,
+					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_list);
 				if( chat_id )
 				{
 					is_group = 1;
 				}
 				else
 				{
-					chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
-					if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
-						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
+					chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
+					if( chat_id == 0 )
+					{
+						if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
+							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+						}
+						else if( is_reply_to_known_message__(ths, mime_parser) ) {
+							mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
+							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+						}
+					}
+
+					if( chat_id == 0 ) {
+						chat_id = MR_CHAT_ID_DEADDROP;
 					}
 				}
 			}
+			else /* outgoing */
+			{
+				state = MR_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
+				from_id = MR_CONTACT_ID_SELF;
+				if( carray_count(to_list) >= 1 ) {
+					to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
 
-			if( chat_id == 0 ) {
-				chat_id = MR_CHAT_ID_TO_DEADDROP;
+					chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_list);
+					if( chat_id )
+					{
+						is_group = 1;
+					}
+					else
+					{
+						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
+						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
+							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
+						}
+					}
+				}
+
+				if( chat_id == 0 ) {
+					chat_id = MR_CHAT_ID_TO_DEADDROP;
+				}
 			}
-		}
 
-		/* correct message_timestamp, it should not be used before,
-		however, we cannot do this earlier as we need from_id to be set */
-		message_timestamp = correct_bad_timestamp__(ths, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
+			/* correct message_timestamp, it should not be used before,
+			however, we cannot do this earlier as we need from_id to be set */
+			message_timestamp = correct_bad_timestamp__(ths, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
 
-		/* check, if the mail is already in our database - if so, there's nothing more to do
-		(we may get a mail twice eg. it it is moved between folders) */
-		if( rfc724_mid == NULL ) {
-			/* header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail client
-			the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
-			in these cases, we build a message ID based on some useful header fields that do never change (date, to)
-			we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-			rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_list);
+			/* check, if the mail is already in our database - if so, there's nothing more to do
+			(we may get a mail twice eg. it it is moved between folders) */
 			if( rfc724_mid == NULL ) {
-				goto cleanup;
-			}
-		}
-
-		{
-			char*    old_server_folder = NULL;
-			uint32_t old_server_uid = 0;
-			if( mrmailbox_rfc724_mid_exists__(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
-				/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
-				if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
-					mrsqlite3_rollback__(ths->m_sql);
-					transaction_pending = 0;
-					mrmailbox_update_server_uid__(ths, rfc724_mid, server_folder, server_uid);
+				/* header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail client
+				the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
+				in these cases, we build a message ID based on some useful header fields that do never change (date, to)
+				we do not use the folder-local id, as this will change if the mail is moved to another folder. */
+				rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_list);
+				if( rfc724_mid == NULL ) {
+					goto cleanup;
 				}
-				free(old_server_folder);
-				goto cleanup;
-			}
-		}
-
-		/* fine, so far.  now, split the message into simple parts usable as "short messages"
-		and add them to the database (mails send by other messenger clients should result
-		into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
-		icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
-		for( i = 0; i < icnt; i++ )
-		{
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
-
-			if( part->m_type == MR_MSG_TEXT ) {
-				txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 			}
 
-			stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
-				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param,bytes)"
-				" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?,?);");
-			sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (stmt,  3, server_uid);
-			sqlite3_bind_int  (stmt,  4, chat_id);
-			sqlite3_bind_int  (stmt,  5, from_id);
-			sqlite3_bind_int  (stmt,  6, to_id);
-			sqlite3_bind_int64(stmt,  7, message_timestamp);
-			sqlite3_bind_int  (stmt,  8, part->m_type);
-			sqlite3_bind_int  (stmt,  9, state);
-			sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
-			sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
-			sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (stmt, 14, part->m_bytes);
-			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
-			}
-
-			free(txt_raw);
-			txt_raw = NULL;
-
-			if( first_dblocal_id == 0 ) {
-				first_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
-			}
-
-			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
-			carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
-		}
-
-		/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
-		(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
-		if( outgoing && is_group == 0 && carray_count(to_list)>1 && first_dblocal_id != 0 )
-		{
-			char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
-			char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=Ghost message flag with the original message ID */
-			char* ghost_txt = NULL;
 			{
-				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
-				ghost_txt = mrmsg_get_summarytext_by_raw(part->m_type, part->m_msg, part->m_param, APPROX_SUBJECT_CHARS);
+				char*    old_server_folder = NULL;
+				uint32_t old_server_uid = 0;
+				if( mrmailbox_rfc724_mid_exists__(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+					/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
+					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
+						mrsqlite3_rollback__(ths->m_sql);
+						transaction_pending = 0;
+						mrmailbox_update_server_uid__(ths, rfc724_mid, server_folder, server_uid);
+					}
+					free(old_server_folder);
+					goto cleanup;
+				}
 			}
 
-			icnt = carray_count(to_list);
-			for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
+			/* fine, so far.  now, split the message into simple parts usable as "short messages"
+			and add them to the database (mails send by other messenger clients should result
+			into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
+			icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
+			for( i = 0; i < icnt; i++ )
 			{
-				uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
-				uint32_t ghost_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, ghost_to_id);
-				uint32_t ghost_dblocal_id;
-				if( ghost_chat_id==0 ) {
-					ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
+				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
+
+				if( part->m_type == MR_MSG_TEXT ) {
+					txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 				}
 
-				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
-				sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt,  3, 0);
-				sqlite3_bind_int  (stmt,  4, ghost_chat_id);
+				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
+					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param,bytes)"
+					" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?,?);");
+				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt,  3, server_uid);
+				sqlite3_bind_int  (stmt,  4, chat_id);
 				sqlite3_bind_int  (stmt,  5, from_id);
-				sqlite3_bind_int  (stmt,  6, ghost_to_id);
+				sqlite3_bind_int  (stmt,  6, to_id);
 				sqlite3_bind_int64(stmt,  7, message_timestamp);
-				sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
+				sqlite3_bind_int  (stmt,  8, part->m_type);
 				sqlite3_bind_int  (stmt,  9, state);
 				sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
-				sqlite3_bind_text (stmt, 11, ghost_txt, -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt, 14, 0);
+				sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt, 14, part->m_bytes);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
-				ghost_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
+				free(txt_raw);
+				txt_raw = NULL;
 
-				carray_add(created_db_entries, (void*)(uintptr_t)ghost_chat_id, NULL);
-				carray_add(created_db_entries, (void*)(uintptr_t)ghost_dblocal_id, NULL);
-			}
-			free(ghost_txt);
-			free(ghost_param);
-			free(ghost_rfc724_mid_str);
-		}
+				if( first_dblocal_id == 0 ) {
+					first_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
+				}
 
-		/* check event to send */
-		if( incoming && state==MR_IN_UNSEEN )
-		{
-			if( from_id_blocked ) {
-				event_to_send = 0;
+				carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
+				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
 			}
-			else if( chat_id == MR_CHAT_ID_DEADDROP ) {
-				if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
+
+			/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
+			(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
+			if( outgoing && is_group == 0 && carray_count(to_list)>1 && first_dblocal_id != 0 )
+			{
+				char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
+				char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=Ghost message flag with the original message ID */
+				char* ghost_txt = NULL;
+				{
+					mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
+					ghost_txt = mrmsg_get_summarytext_by_raw(part->m_type, part->m_msg, part->m_param, APPROX_SUBJECT_CHARS);
+				}
+
+				icnt = carray_count(to_list);
+				for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
+				{
+					uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
+					uint32_t ghost_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, ghost_to_id);
+					uint32_t ghost_dblocal_id;
+					if( ghost_chat_id==0 ) {
+						ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
+					}
+
+					stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
+					sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
+					sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
+					sqlite3_bind_int  (stmt,  3, 0);
+					sqlite3_bind_int  (stmt,  4, ghost_chat_id);
+					sqlite3_bind_int  (stmt,  5, from_id);
+					sqlite3_bind_int  (stmt,  6, ghost_to_id);
+					sqlite3_bind_int64(stmt,  7, message_timestamp);
+					sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
+					sqlite3_bind_int  (stmt,  9, state);
+					sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
+					sqlite3_bind_text (stmt, 11, ghost_txt, -1, SQLITE_STATIC);
+					sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
+					sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
+					sqlite3_bind_int  (stmt, 14, 0);
+					if( sqlite3_step(stmt) != SQLITE_DONE ) {
+						goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
+					}
+
+					ghost_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
+
+					carray_add(created_db_entries, (void*)(uintptr_t)ghost_chat_id, NULL);
+					carray_add(created_db_entries, (void*)(uintptr_t)ghost_dblocal_id, NULL);
+				}
+				free(ghost_txt);
+				free(ghost_param);
+				free(ghost_rfc724_mid_str);
+			}
+
+			/* check event to send */
+			if( incoming && state==MR_IN_UNSEEN )
+			{
+				if( from_id_blocked ) {
+					event_to_send = 0;
+				}
+				else if( chat_id == MR_CHAT_ID_DEADDROP ) {
+					if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
+						event_to_send = MR_EVENT_INCOMING_MSG;
+					}
+				}
+				else {
 					event_to_send = MR_EVENT_INCOMING_MSG;
 				}
 			}
-			else {
-				event_to_send = MR_EVENT_INCOMING_MSG;
+
+		}
+
+
+		if( carray_count(mime_parser->m_reports) > 0 )
+		{
+			/******************************************************************
+			 * Handle reports (mainly read receipts)
+			 *****************************************************************/
+
+			icnt = carray_count(mime_parser->m_reports);
+			for( i = 0; i < icnt; i++ )
+			{
+				struct mailmime*           report_root = carray_get(mime_parser->m_reports, i);
+				struct mailmime_parameter* report_type = mr_find_ct_parameter(report_root, "report-type");
+				if( report_root==NULL || report_type==NULL || report_type->pa_value==NULL ) {
+					continue;
+				}
+
+				if( strcmp(report_type->pa_value, "disposition-notification") == 0
+				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */ )
+				{
+					struct mailmime* report_data = (struct mailmime*)clist_content(clist_next(clist_begin(report_root->mm_data.mm_multipart.mm_mp_list)));
+					if( report_data
+					 && report_data->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
+					 && report_data->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type==MAILMIME_COMPOSITE_TYPE_MESSAGE
+					 && strcmp(report_data->mm_content_type->ct_subtype, "disposition-notification")==0 )
+					{
+						/* we received a read receipt (although the read receipt is only a header, we parse it as a complete mail) */
+						struct mailmime* report_parsed = NULL;
+						size_t dummy = 0;
+						if( mailmime_parse(report_data->mm_data.mm_single->dt_data.dt_text.dt_data, report_data->mm_data.mm_single->dt_data.dt_text.dt_length, &dummy, &report_parsed)==MAIL_NO_ERROR
+						 && report_parsed!=NULL )
+						{
+							struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
+							if( report_fields )
+							{
+								struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
+								struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
+								if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
+								{
+									char* msg_id = NULL;
+									dummy = 0;
+									if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &msg_id)==MAIL_NO_ERROR
+									 && msg_id!=NULL )
+									{
+										if( mrmailbox_readreceipt_from_ext__(ths, from_id, msg_id) ) {
+										}
+										free(msg_id);
+									}
+								}
+							}
+							mailmime_free(report_parsed);
+						}
+					}
+				}
+
 			}
+
 		}
 
 	/* end sql-transaction */
