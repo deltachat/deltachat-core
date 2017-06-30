@@ -690,6 +690,16 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 					return MR_MIMETYPE_MP_OTHER;
 				}
 			}
+			else if( c->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MESSAGE )
+			{
+				/* Enacapsulated messages, see https://www.w3.org/Protocols/rfc1341/7_3_Message.html
+				Also used as part "message/disposition-notification" of "multipart/report", which, however, will be handled separatedly.
+
+				So, if we go here, we create an attachment for the message/* part.
+				I've not seen many messages using this, if this floods the chat with unwanted stuff, we may decide to return "unknown" and skip these parts. */
+				*msg_type = MR_MSG_FILE;
+				return MR_MIMETYPE_FILE;
+			}
 			break;
 
 		default:
