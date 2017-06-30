@@ -695,7 +695,7 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 				/* Enacapsulated messages, see https://www.w3.org/Protocols/rfc1341/7_3_Message.html
 				Also used as part "message/disposition-notification" of "multipart/report", which, however, will be handled separatedly.
 
-				So, if we go here, we create an attachment for the message/* part.
+				So, if we go here, we create an attachment for the message/... part.
 				I've not seen many messages using this, if this floods the chat with unwanted stuff, we may decide to return "unknown" and skip these parts. */
 				*msg_type = MR_MSG_FILE;
 				return MR_MIMETYPE_FILE;
@@ -860,6 +860,20 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 						if( dsp_param ) {
 							if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
 								desired_filename = safe_strdup(dsp_param->pa_data.pa_filename);
+							}
+						}
+					}
+				}
+
+				if( desired_filename==NULL ) {
+					if( mime->mm_content_type && mime->mm_content_type->ct_parameters ) {
+						clistiter* cur;
+						for( cur = clist_begin(mime->mm_content_type->ct_parameters); cur != NULL; cur = clist_next(cur) ) {
+							struct mailmime_parameter* param = (struct mailmime_parameter*)clist_content(cur);
+							if( param ) {
+								if( strcmp(param->pa_name, "name")==0 && param->pa_value && param->pa_value[0] ) {
+									desired_filename = safe_strdup(param->pa_value);
+								}
 							}
 						}
 					}
