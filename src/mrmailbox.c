@@ -493,7 +493,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	uint32_t         to_id   = 0;
 	uint32_t         chat_id = 0;
 	int              state   = MR_STATE_UNDEFINED;
-	int              event_to_send = MR_EVENT_MSGS_CHANGED;
 
 	sqlite3_stmt*    stmt;
 	size_t           i, icnt;
@@ -505,12 +504,17 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              transaction_pending = 0;
 	clistiter*       cur1;
 	const struct mailimf_field* field;
+
 	carray*          created_db_entries = carray_new(16);
+	int              create_event_to_send = MR_EVENT_MSGS_CHANGED;
+
+	carray*          rr_event_to_send = carray_new(16);
+
 	int              has_return_path = 0;
 	char*            txt_raw = NULL;
 
 	to_list = carray_new(16);
-	if( to_list==NULL || created_db_entries==NULL || mime_parser == NULL ) {
+	if( to_list==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
 		goto cleanup;
 	}
 
@@ -851,15 +855,15 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( incoming && state==MR_IN_UNSEEN )
 			{
 				if( from_id_blocked ) {
-					event_to_send = 0;
+					create_event_to_send = 0;
 				}
 				else if( chat_id == MR_CHAT_ID_DEADDROP ) {
 					if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
-						event_to_send = MR_EVENT_INCOMING_MSG;
+						create_event_to_send = MR_EVENT_INCOMING_MSG;
 					}
 				}
 				else {
-					event_to_send = MR_EVENT_INCOMING_MSG;
+					create_event_to_send = MR_EVENT_INCOMING_MSG;
 				}
 			}
 
@@ -903,14 +907,18 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 								struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
 								if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
 								{
-									char* msg_id = NULL;
+									char* rfc724_mid = NULL;
 									dummy = 0;
-									if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &msg_id)==MAIL_NO_ERROR
-									 && msg_id!=NULL )
+									if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &rfc724_mid)==MAIL_NO_ERROR
+									 && rfc724_mid!=NULL )
 									{
-										if( mrmailbox_readreceipt_from_ext__(ths, from_id, msg_id) ) {
+										uint32_t chat_id = 0;
+										uint32_t msg_id = 0;
+										if( mrmailbox_readreceipt_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
+											carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
+											carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
 										}
-										free(msg_id);
+										free(rfc724_mid);
 									}
 								}
 							}
@@ -967,12 +975,22 @@ cleanup:
 		carray_free(to_list);
 	}
 
-	if( created_db_entries && event_to_send ) {
-		size_t i, icnt = carray_count(created_db_entries);
-		for( i = 0; i < icnt; i += 2 ) {
-			ths->m_cb(ths, event_to_send, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+	if( created_db_entries ) {
+		if( create_event_to_send ) {
+			size_t i, icnt = carray_count(created_db_entries);
+			for( i = 0; i < icnt; i += 2 ) {
+				ths->m_cb(ths, create_event_to_send, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+			}
 		}
 		carray_free(created_db_entries);
+	}
+
+	if( rr_event_to_send ) {
+		size_t i, icnt = carray_count(rr_event_to_send);
+		for( i = 0; i < icnt; i += 2 ) {
+			ths->m_cb(ths, MR_EVENT_MSG_READ, (uintptr_t)carray_get(rr_event_to_send, i), (uintptr_t)carray_get(rr_event_to_send, i+1));
+		}
+		carray_free(rr_event_to_send);
 	}
 
 	free(txt_raw);

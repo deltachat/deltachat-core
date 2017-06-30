@@ -117,7 +117,7 @@ void         mrmailbox_update_server_uid__    (mrmailbox_t*, const char* rfc724_
 void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
-int          mrmailbox_readreceipt_from_ext__ (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid); /* returns 1 if an event should be send */
+int          mrmailbox_readreceipt_from_ext__ (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 int          mrmsg_is_increation__            (const mrmsg_t*);

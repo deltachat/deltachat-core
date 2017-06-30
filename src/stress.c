@@ -37,6 +37,7 @@
 #include <assert.h>
 #include "mrmailbox.h"
 #include "mrsimplify.h"
+#include "mrmimeparser.h"
 #include "mrpgp.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
@@ -73,6 +74,34 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(plain);
 
 		mrsimplify_unref(simplify);
+	}
+
+	/* test mime
+	**************************************************************************/
+
+	{
+		const char* txt =  "FieldA: ValueA\nFieldB: ValueB\n";
+		struct mailmime* mime = NULL;
+		size_t dummy = 0;
+		assert( mailmime_parse(txt, strlen(txt), &dummy, &mime) == MAIL_NO_ERROR );
+		assert( mime != NULL );
+
+		struct mailimf_fields* fields = mr_find_mailimf_fields(mime);
+		assert( fields != NULL );
+
+		struct mailimf_optional_field* of_a = mr_find_mailimf_field2(fields, "fielda");
+		assert( of_a && of_a->fld_value );
+		assert( strcmp(of_a->fld_name, "FieldA")==0 );
+		assert( strcmp(of_a->fld_value, "ValueA")==0 );
+
+		struct mailimf_optional_field* of_b = mr_find_mailimf_field2(fields, "FieldB");
+		assert( of_b && of_b->fld_value );
+		assert( strcmp(of_b->fld_value, "ValueB")==0 );
+
+
+
+
+		mailmime_free(mime);
 	}
 
 	/* test some string functions
