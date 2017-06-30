@@ -86,6 +86,7 @@ char*                        mr_find_first_addr    (const struct mailimf_mailbox
 char*                        mr_normalize_addr     (const char*); /*the result must be freed*/
 struct mailimf_fields*       mr_find_mailimf_fields(struct mailmime*); /*the result is a pointer to mime, must not be freed*/
 struct mailimf_field*        mr_find_mailimf_field (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
+struct mailmime_parameter*   mr_find_ct_parameter  (struct mailmime*, const char* name);
 
 #ifdef MR_USE_MIME_DEBUG
 void mr_print_mime(struct mailmime * mime);

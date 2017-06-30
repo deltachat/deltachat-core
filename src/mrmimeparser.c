@@ -439,6 +439,29 @@ struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int w
 }
 
 
+struct mailmime_parameter* mr_find_ct_parameter(struct mailmime* mime, const char* name)
+{
+	/* find a parameter in `Content-Type: foo/bar; name=value;` */
+	if( mime==NULL || name==NULL
+	 || mime->mm_content_type==NULL || mime->mm_content_type->ct_parameters==NULL )
+	{
+		return NULL;
+	}
+
+	clistiter* cur;
+	for( cur = clist_begin(mime->mm_content_type->ct_parameters); cur != NULL; cur = clist_next(cur) ) {
+		struct mailmime_parameter* param = (struct mailmime_parameter*)clist_content(cur);
+		if( param ) {
+			if( strcmp(param->pa_name, name)==0 ) {
+				return param;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
 char* mr_normalize_addr(const char* addr__)
 {
 	/* Not sure if we should also unifiy international characters before the @,
@@ -865,16 +888,9 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				}
 
 				if( desired_filename==NULL ) {
-					if( mime->mm_content_type && mime->mm_content_type->ct_parameters ) {
-						clistiter* cur;
-						for( cur = clist_begin(mime->mm_content_type->ct_parameters); cur != NULL; cur = clist_next(cur) ) {
-							struct mailmime_parameter* param = (struct mailmime_parameter*)clist_content(cur);
-							if( param ) {
-								if( strcmp(param->pa_name, "name")==0 && param->pa_value && param->pa_value[0] ) {
-									desired_filename = safe_strdup(param->pa_value);
-								}
-							}
-						}
+					struct mailmime_parameter* param = mr_find_ct_parameter(mime, "name");
+					if( param && param->pa_value && param->pa_value[0] ) {
+						desired_filename = safe_strdup(param->pa_value);
 					}
 				}
 
