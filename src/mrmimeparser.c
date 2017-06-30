@@ -694,11 +694,10 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 			{
 				/* Enacapsulated messages, see https://www.w3.org/Protocols/rfc1341/7_3_Message.html
 				Also used as part "message/disposition-notification" of "multipart/report", which, however, will be handled separatedly.
+				I've not seen any messages using this, so we do not attach these parts (maybe they're used to attach replies, which are unwanted at all).
 
-				So, if we go here, we create an attachment for the message/... part.
-				I've not seen many messages using this, if this floods the chat with unwanted stuff, we may decide to return "unknown" and skip these parts. */
-				*msg_type = MR_MSG_FILE;
-				return MR_MIMETYPE_FILE;
+				For now, we skip these parts at all; if desired, we could return MR_MIMETYPE_FILE/MR_MSG_FILE for selected and known subparts. */
+				return 0;
 			}
 			break;
 
