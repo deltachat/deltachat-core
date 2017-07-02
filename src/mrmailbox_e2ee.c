@@ -606,6 +606,37 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 }
 
 
+static int contains_report(struct mailmime* mime)
+{
+	/* returns true if the mime structure contains a multipart/report
+	(as reports are often unencrypted, we do not reset the Autocrypt header in this case)
+	(however, MUA should be encouraged to encrpyt multipart/reports as well so that we can use the normal Autocrypt processing) */
+	if( mime->mm_type == MAILMIME_MULTIPLE )
+	{
+		if( mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
+		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART
+		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0 ) {
+			return 1;
+		}
+
+		clistiter* cur;
+		for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+			if( contains_report((struct mailmime*)clist_content(cur)) ) {
+				return 1;
+			}
+		}
+	}
+	else if( mime->mm_type == MAILMIME_MESSAGE )
+	{
+		if( contains_report(mime->mm_data.mm_message.mm_msg_mime) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
 int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message, int* ret_validation_errors)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
@@ -676,7 +707,8 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
 				else {
-					if( message_time > peerstate->m_last_seen_autocrypt ) {
+					if( message_time > peerstate->m_last_seen_autocrypt
+					 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
 						mrapeerstate_degrade_encryption(peerstate, message_time);
 						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 					}
