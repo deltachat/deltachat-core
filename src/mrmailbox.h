@@ -184,7 +184,7 @@ mrchat_t*            mrmailbox_get_chat                  (mrmailbox_t*, uint32_t
 uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* does a chat with a given single user exist? */
 uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* create a normal chat with a single user */
 carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
-carray*              mrmailbox_get_unseen_msgs           (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
+carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, no messages are deleted (we do not so as we cannot distinguish between chat messages and normal mails) */
 
 
@@ -229,8 +229,8 @@ mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_
 char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
 int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 int                  mrmailbox_forward_msgs         (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
-int                  mrmailbox_markseen_msg         (mrmailbox_t*, uint32_t msg_id);
-int                  mrmailbox_markseen_chat        (mrmailbox_t*, uint32_t chat_id);
+int                  mrmailbox_marknoticed_chat     (mrmailbox_t*, uint32_t chat_id);
+int                  mrmailbox_markseen_msgs        (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 
 
 /* handle contacts. */

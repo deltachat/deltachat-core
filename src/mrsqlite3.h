@@ -108,12 +108,11 @@ enum
 	,SELECT_COUNT_DISTINCT_f_FROM_msgs_WHERE_c
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_cm
-	,SELECT_id_FROM_msgs_WHERE_chat_id_AND_state
 	,SELECT_txt_raw_FROM_msgs_WHERE_id
 	,SELECT_ircftttstpb_FROM_msg_WHERE_i
 	,SELECT_ss_FROM_msgs_WHERE_m
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_unseen
+	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh
 	,SELECT_i_FROM_msgs_WHERE_query
 	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
 	,INSERT_INTO_msgs_msscftttsmttpb
@@ -121,6 +120,7 @@ enum
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id_AND_state
+	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
 	,UPDATE_msgs_SET_param_WHERE_id
 	,DELETE_FROM_msgs_WHERE_id

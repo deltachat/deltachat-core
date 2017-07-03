@@ -56,8 +56,9 @@ typedef struct mrchat_t mrchat_t;
 
 /* message states */
 #define MR_STATE_UNDEFINED  0
-#define MR_IN_UNSEEN       10 /* incoming message not read */
-#define MR_IN_SEEN         16 /* incoming message read */
+#define MR_IN_FRESH        10 /* incoming message, not noticed nor seen */
+#define MR_IN_NOTICED      13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor result in read receipts) */
+#define MR_IN_SEEN         16 /* incoming message marked as read on IMAP and read receipt send */
 #define MR_OUT_PENDING     20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
 #define MR_OUT_ERROR       24 /* unrecoverable error (recoverable errors result in pending messages) */
 #define MR_OUT_DELIVERED   26 /* outgoing message successfully delivered to server (one checkmark) */

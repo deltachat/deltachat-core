@@ -296,7 +296,7 @@ cleanup:
 static time_t correct_bad_timestamp__(mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg)
 {
 	/* use the last message from another user (including SELF) as the MINIMUM
-	(we do this check only for UNSEEN messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
+	(we do this check only for fresh messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
 	if( is_fresh_msg )
 	{
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(ths->m_sql, SELECT_timestamp_FROM_msgs_WHERE_timestamp,
@@ -670,7 +670,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			(of course, the user can add other chats manually later) */
 			if( incoming )
 			{
-				state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_UNSEEN;
+				state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_FRESH;
 				to_id = MR_CONTACT_ID_SELF;
 
 				chat_id = lookup_group_by_grpid__(ths, mime_parser,
@@ -852,7 +852,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 
 			/* check event to send */
-			if( incoming && state==MR_IN_UNSEEN )
+			if( incoming && state==MR_IN_FRESH )
 			{
 				if( from_id_blocked ) {
 					create_event_to_send = 0;

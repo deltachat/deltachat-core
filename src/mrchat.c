@@ -51,14 +51,13 @@
 #define MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP   5
 
 
-int mrmailbox_get_unseen_count__(mrmailbox_t* mailbox, uint32_t chat_id)
+int mrmailbox_get_fresh_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE state=? AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few unseen messages */
-	sqlite3_bind_int(stmt, 1, MR_IN_UNSEEN);
-	sqlite3_bind_int(stmt, 2, chat_id);
+		"SELECT COUNT(*) FROM msgs WHERE state=" MR_STRINGIFY(MR_IN_FRESH) " AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+	sqlite3_bind_int(stmt, 1, chat_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
@@ -363,11 +362,11 @@ cleanup:
 }
 
 
-int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
+int mrmailbox_marknoticed_chat(mrmailbox_t* ths, uint32_t chat_id)
 {
-	int           transaction_pending = 0;
+	/* marking a chat as "seen" is done by marking all fresh chat messages as "noticed" -
+	"noticed" messages are not counted as being unread but are still waiting for being marked as "seen" using mrmailbox_markseen_msgs() */
 	sqlite3_stmt* stmt;
-	uint32_t      msg_id;
 
 	if( ths == NULL ) {
 		return 0;
@@ -375,25 +374,10 @@ int mrmailbox_markseen_chat(mrmailbox_t* ths, uint32_t chat_id)
 
 	mrsqlite3_lock(ths->m_sql);
 
-		stmt = mrsqlite3_predefine__(ths->m_sql, SELECT_id_FROM_msgs_WHERE_chat_id_AND_state,
-			"SELECT id FROM msgs WHERE chat_id=? AND state=?;");
+		stmt = mrsqlite3_predefine__(ths->m_sql, UPDATE_msgs_SET_state_WHERE_chat_id_AND_state,
+			"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_NOTICED) " WHERE chat_id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
 		sqlite3_bind_int(stmt, 1, chat_id);
-		sqlite3_bind_int(stmt, 2, MR_IN_UNSEEN);
-		while( sqlite3_step(stmt) == SQLITE_ROW )
-		{
-			if( transaction_pending == 0 ) {
-				mrsqlite3_begin_transaction__(ths->m_sql);
-				transaction_pending = 1;
-			}
-
-			msg_id = sqlite3_column_int(stmt, 0);
-			mrmailbox_update_msg_state__(ths, msg_id, MR_IN_SEEN);
-			mrjob_add__(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL);
-		}
-
-		if( transaction_pending ) {
-			mrsqlite3_commit__(ths->m_sql);
-		}
+		sqlite3_step(stmt);
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -639,7 +623,7 @@ void mrchat_empty(mrchat_t* ths)
 }
 
 
-carray* mrmailbox_get_unseen_msgs(mrmailbox_t* mailbox)
+carray* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 {
 	int           show_deaddrop, success = 0, locked = 0;
 	carray*       ret = carray_new(128);
@@ -654,14 +638,13 @@ carray* mrmailbox_get_unseen_msgs(mrmailbox_t* mailbox)
 
 		show_deaddrop = mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0);
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_unseen,
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh,
 			"SELECT m.id"
 				" FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE m.state=? AND m.chat_id!=? AND ct.blocked=0"
+				" WHERE m.state=" MR_STRINGIFY(MR_IN_FRESH) " AND m.chat_id!=? AND ct.blocked=0"
 				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
-		sqlite3_bind_int(stmt, 1, MR_IN_UNSEEN);
-		sqlite3_bind_int(stmt, 2, show_deaddrop? 0 : MR_CHAT_ID_DEADDROP);
+		sqlite3_bind_int(stmt, 1, show_deaddrop? 0 : MR_CHAT_ID_DEADDROP);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
@@ -961,7 +944,7 @@ int mrchat_get_total_msg_count(mrchat_t* ths)
 }
 
 
-int mrchat_get_unseen_count(mrchat_t* ths)
+int mrchat_get_fresh_msg_count(mrchat_t* ths)
 {
 	int ret;
 
@@ -970,7 +953,7 @@ int mrchat_get_unseen_count(mrchat_t* ths)
 	}
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
-		ret = mrmailbox_get_unseen_count__(ths->m_mailbox, ths->m_id);
+		ret = mrmailbox_get_fresh_msg_count__(ths->m_mailbox, ths->m_id);
 	mrsqlite3_unlock(ths->m_mailbox->m_sql);
 
 	return ret;

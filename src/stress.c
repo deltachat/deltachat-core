@@ -141,6 +141,14 @@ void stress_functions(mrmailbox_t* mailbox)
 		str = mr_null_terminate(NULL, 0);
 		assert( strcmp(str, "")==0 );
 		free(str);
+
+        assert( strcmp("fresh="     MR_STRINGIFY(MR_IN_FRESH),      "fresh=10")==0 ); /* these asserts check the values, the existance of the macros and also MR_STRINGIFY() */
+        assert( strcmp("noticed="   MR_STRINGIFY(MR_IN_NOTICED),    "noticed=13")==0 );
+        assert( strcmp("seen="      MR_STRINGIFY(MR_IN_SEEN),       "seen=16")==0 );
+        assert( strcmp("pending="   MR_STRINGIFY(MR_OUT_PENDING),   "pending=20")==0 );
+        assert( strcmp("error="     MR_STRINGIFY(MR_OUT_ERROR),     "error=24")==0 );
+        assert( strcmp("delivered=" MR_STRINGIFY(MR_OUT_DELIVERED), "delivered=26")==0 );
+        assert( strcmp("read="      MR_STRINGIFY(MR_OUT_READ),      "read=28")==0 );
 	}
 
 	/* test mrparam

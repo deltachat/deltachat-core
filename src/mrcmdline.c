@@ -62,7 +62,7 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
 				mrmailbox_log_info(mailbox, 0, "Msg #%i: %s (Contact #%i): %s %s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
 					mrparam_get(msg->m_param, MRP_GUARANTEE_E2EE, 0)? "[E2E]" : "",
-					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]":"[UNSEEN]"),
+					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]" : (msg->m_state==MR_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					statestr,
 					temp2);
 			free(temp2);
@@ -172,7 +172,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"\nMessage commands:\n"
 			"listmsgs <query>\n"
 			"msginfo <msg-id>\n"
-			"listunseen\n"
+			"listfresh\n"
 			"forward <msg-id> <chat-id>\n"
 			"markseen <msg-id>\n"
 			"delmsg <msg-id>\n"
@@ -344,8 +344,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					char *temp;
 
 					temp = mrchat_get_subtitle(chat);
-						mrmailbox_log_info(mailbox, 0, "%s #%i: %s [%s] [%i unseen]", chat->m_type==MR_CHAT_GROUP? "Group" : "Chat",
-							(int)chat->m_id, chat->m_name, temp, (int)mrchat_get_unseen_count(chat));
+						mrmailbox_log_info(mailbox, 0, "%s #%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_GROUP? "Group" : "Chat",
+							(int)chat->m_id, chat->m_name, temp, (int)mrchat_get_fresh_msg_count(chat));
 					free(temp);
 
 					mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
@@ -409,6 +409,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				free(timestr);
 			}
 			ret = mr_mprintf("%i messages.", mrchat_get_total_msg_count(sel_chat));
+			mrmailbox_marknoticed_chat(mailbox, sel_chat->m_id);
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
@@ -608,12 +609,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
-	else if( strcmp(cmd, "listunseen")==0 )
+	else if( strcmp(cmd, "listfresh")==0 )
 	{
-		carray* msglist = mrmailbox_get_unseen_msgs(mailbox);
+		carray* msglist = mrmailbox_get_fresh_msgs(mailbox);
 		if( msglist ) {
 			log_msglist(mailbox, msglist);
-			ret = mr_mprintf("%i unseen messages.", (int)carray_count(msglist));
+			ret = mr_mprintf("%i fresh messages.", (int)carray_count(msglist));
 			carray_free(msglist);
 		}
 	}
@@ -634,8 +635,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "markseen")==0 )
 	{
 		if( arg1 ) {
-			int id = atoi(arg1);
-			ret = mrmailbox_markseen_msg(mailbox, id)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			uint32_t msg_ids[1];
+			msg_ids[0] = atoi(arg1);
+			ret = mrmailbox_markseen_msgs(mailbox, msg_ids, 1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <msg-id> missing.");

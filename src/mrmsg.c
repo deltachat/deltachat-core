@@ -116,19 +116,6 @@ void mrmailbox_update_msg_state__(mrmailbox_t* mailbox, uint32_t msg_id, int sta
 }
 
 
-static int mrmailbox_update_msg_state_conditional__(mrmailbox_t* mailbox, uint32_t msg_id, int old_state, int new_state)
-{
-	/* updates the message state only if the message has an given old state, returns the number of affected rows */
-    sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
-		"UPDATE msgs SET state=? WHERE id=? AND state=?;");
-	sqlite3_bind_int(stmt, 1, new_state);
-	sqlite3_bind_int(stmt, 2, msg_id);
-	sqlite3_bind_int(stmt, 3, old_state);
-	sqlite3_step(stmt);
-	return sqlite3_changes(mailbox->m_sql->m_cobj);
-}
-
-
 size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
@@ -339,10 +326,13 @@ cleanup:
 
 char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
-	char*         ret = NULL, *rawtxt = NULL, *timestr = NULL, *file = NULL, *metadata = NULL, *encryption = NULL;
-	int           locked = 0;
-	sqlite3_stmt* stmt;
-	mrmsg_t*      msg = mrmsg_new();
+	mrstrbuilder_t ret;
+	int            locked = 0;
+	sqlite3_stmt*  stmt;
+	mrmsg_t*       msg = mrmsg_new();
+	char           *rawtxt = NULL, *p;
+
+	mrstrbuilder_init(&ret);
 
 	if( mailbox == NULL ) {
 		goto cleanup;
@@ -358,7 +348,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 			"SELECT txt_raw FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
-			ret = mr_mprintf("Cannot load message #%i.", (int)msg_id);
+			p = mr_mprintf("Cannot load message #%i.", (int)msg_id); mrstrbuilder_cat(&ret, p); free(p);
 			goto cleanup;
 		}
 
@@ -367,50 +357,73 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	timestr = mr_timestamp_to_str(msg->m_timestamp);
+	/* add time */
+	mrstrbuilder_cat(&ret, "Date: ");
+	p = mr_timestamp_to_str(msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
+	mrstrbuilder_cat(&ret, "\n");
 
-	file = mrparam_get(msg->m_param, 'f', NULL);
-	if( file ) {
-		int bytes = mr_get_filebytes(file);
-		metadata = mr_mprintf("\nFile: %s\nBytes: %i\nWidth: %i\nHeight: %i\nDuration: %i ms\nType: %i", file? file : "",
-			(int)bytes,
-			mrparam_get_int(msg->m_param, 'w', 0), mrparam_get_int(msg->m_param, 'h', 0), mrparam_get_int(msg->m_param, 'd', 0), (int)msg->m_type);
-	}
-
+	/* add encryption state */
 	int e2ee_errors;
 	if( (e2ee_errors=mrparam_get_int(msg->m_param, MRP_ERRONEOUS_E2EE, 0)) ) {
 		if( e2ee_errors&MR_VALIDATE_BAD_SIGNATURE/* check worst errors first */ ) {
-			encryption = safe_strdup("End-to-end, bad signature");
+			p = safe_strdup("End-to-end, bad signature");
 		}
 		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
-			encryption = safe_strdup("End-to-end, unknown signature");
+			p = safe_strdup("End-to-end, unknown signature");
 		}
 		else {
-			encryption = safe_strdup("End-to-end, no signature");
+			p = safe_strdup("End-to-end, no signature");
 		}
 	}
 	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
-		encryption = safe_strdup("End-to-end");
+		p = safe_strdup("End-to-end");
 	}
 	else {
-		encryption = safe_strdup("Transport");
+		p = safe_strdup("Transport");
+	}
+	mrstrbuilder_cat(&ret, "Encryption: ");
+	mrstrbuilder_cat(&ret, p); free(p);
+	mrstrbuilder_cat(&ret, "\n");
+
+	/* add "suspicious" status */
+	if( msg->m_state==MR_IN_FRESH ) {
+		mrstrbuilder_cat(&ret, "Status: Fresh\n");
+	}
+	else if( msg->m_state==MR_IN_NOTICED ) {
+		mrstrbuilder_cat(&ret, "Status: Noticed\n");
 	}
 
-	ret = mr_mprintf("Date: %s\nEncryption: %s%s\n\n%s",
-		timestr,
-		encryption,
-		metadata? metadata : "",
-		rawtxt);
+	/* add file info */
+	char* file = mrparam_get(msg->m_param, 'f', NULL);
+	if( file ) {
+		p = mr_mprintf("File: %s, %i bytes\n", file, mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
+	}
+
+	if( msg->m_type != MR_MSG_TEXT ) {
+		p = mr_mprintf("Type: %i\n", msg->m_type); mrstrbuilder_cat(&ret, p); free(p);
+	}
+
+	int w = mrparam_get_int(msg->m_param, 'w', 0), h = mrparam_get_int(msg->m_param, 'h', 0);
+	if( w != 0 || h != 0 ) {
+		p = mr_mprintf("Dimension: %i x %i\n", w, h); mrstrbuilder_cat(&ret, p); free(p);
+	}
+
+	int duration = mrparam_get_int(msg->m_param, 'd', 0);
+	if( duration != 0 ) {
+		p = mr_mprintf("Duration: %i ms\n", duration); mrstrbuilder_cat(&ret, p); free(p);
+	}
+
+	/* add rawtext */
+	if( rawtxt && rawtxt[0] ) {
+		mrstrbuilder_cat(&ret, "\n");
+		mrstrbuilder_cat(&ret, rawtxt);
+	}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
-	free(timestr);
 	free(rawtxt);
-	free(file);
-	free(metadata);
-	free(encryption);
-	return ret? ret : safe_strdup(NULL);
+	return ret.m_buf;
 }
 
 
@@ -938,19 +951,41 @@ cleanup:
 }
 
 
-int mrmailbox_markseen_msg(mrmailbox_t* ths, uint32_t msg_id)
+int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
-	if( ths == NULL ) {
+	int transaction_pending = 0;
+	int i;
+
+	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
 		return 0;
 	}
 
-	mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
 
-		if( mrmailbox_update_msg_state_conditional__(ths, msg_id, MR_IN_UNSEEN, MR_IN_SEEN) ) { /* avoid converting outgoing messages to incoming ones and protect against double calls */
-			mrjob_add__(ths, MRJ_MARKSEEN_MSG_ON_IMAP, msg_id, NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+		for( i = 0; i < msg_cnt; i++ )
+		{
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
+				"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_SEEN) " WHERE id=? AND (state=" MR_STRINGIFY(MR_IN_FRESH) " OR state=" MR_STRINGIFY(MR_IN_NOTICED) ");");
+			sqlite3_bind_int(stmt, 1, msg_ids[i]);
+			sqlite3_step(stmt);
+			if( sqlite3_changes(mailbox->m_sql->m_cobj) )
+			{
+				if( transaction_pending == 0 ) {
+					mrsqlite3_begin_transaction__(mailbox->m_sql);
+					transaction_pending = 1;
+				}
+
+				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
+				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+			}
 		}
 
-	mrsqlite3_unlock(ths->m_sql);
+		if( transaction_pending ) {
+			mrsqlite3_commit__(mailbox->m_sql);
+			transaction_pending = 0;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
 
 	return 1;
 }

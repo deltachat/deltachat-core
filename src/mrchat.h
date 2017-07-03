@@ -69,7 +69,7 @@ void          mrchat_empty                 (mrchat_t*);
 void          mrchat_unref                 (mrchat_t*);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the email-address or the number of group members, the result must be free()'d! */
 int           mrchat_get_total_msg_count   (mrchat_t*);
-int           mrchat_get_unseen_count      (mrchat_t*);
+int           mrchat_get_fresh_msg_count   (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_UPDATED".  Returns true/false. */
 uint32_t      mrchat_send_msg              (mrchat_t*, mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function but some fields are set up! */
 
@@ -82,7 +82,7 @@ size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
 uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
 uint32_t      mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
 int           mrmailbox_get_total_msg_count__        (mrmailbox_t*, uint32_t chat_id);
-int           mrmailbox_get_unseen_count__           (mrmailbox_t*, uint32_t chat_id);
+int           mrmailbox_get_fresh_msg_count__        (mrmailbox_t*, uint32_t chat_id);
 void          mrmailbox_send_msg_to_smtp             (mrmailbox_t*, mrjob_t*);
 void          mrmailbox_send_msg_to_imap             (mrmailbox_t*, mrjob_t*);
 int           mrmailbox_add_contact_to_chat__        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
