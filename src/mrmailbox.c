@@ -876,6 +876,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			 * Handle reports (mainly read receipts)
 			 *****************************************************************/
 
+			int readreceipts_enabled = mrsqlite3_get_config_int__(ths->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT);
 			icnt = carray_count(mime_parser->m_reports);
 			for( i = 0; i < icnt; i++ )
 			{
@@ -886,7 +887,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 
 				if( strcmp(report_type->pa_value, "disposition-notification") == 0
-				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */ )
+				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */
+				 && readreceipts_enabled /*to get a clear functionality, do not show incoming read receipts if the options is disabled*/ )
 				{
 					struct mailmime* report_data = (struct mailmime*)clist_content(clist_next(clist_begin(report_root->mm_data.mm_multipart.mm_mp_list)));
 					if( report_data
