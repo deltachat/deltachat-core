@@ -409,6 +409,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	int                          success = 0;
 	int                          parts = 0;
 	mrmailbox_e2ee_helper_t      e2ee_helper;
+	int                          e2ee_guaranteed = 0;
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
@@ -545,6 +546,8 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		if( parts == 0 ) {
 			goto cleanup;
 		}
+
+		e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
 	}
 	else if( factory->m_loaded == MR_MF_READRECEIPT_LOADED )
 	{
@@ -558,7 +561,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 		/* human-readable part */
 		char* p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
-			char* p2 = mrstock_str_repl_string(MR_STR_READRCPT_HUMAN, p1);
+			char* p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
 				message_text = mr_mprintf("%s" LINEEND, p2);
 			free(p2);
 		free(p1);
@@ -595,8 +598,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	/* Encrypt the message
 	 *************************************************************************/
 
-	int e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
-	if( (encrypt_to_self==0 || e2ee_guaranteed) && factory->m_loaded != MR_MF_READRECEIPT_LOADED ) {
+	if( encrypt_to_self==0 || e2ee_guaranteed ) {
 		/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
 		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
 	}
