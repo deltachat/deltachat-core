@@ -642,8 +642,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
 	struct mailimf_fields* imffields = mr_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
-	mraheader_t*           autocryptheader = mraheader_new();
-	int                    autocryptheader_fine = 0;
+	mraheader_t*           autocryptheader = NULL;
 	time_t                 message_time = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
 	int                    locked = 0;
@@ -652,7 +651,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	int                    sth_decrypted = 0;
 
 	if( mailbox==NULL || in_out_message==NULL || ret_validation_errors==NULL
-	 || imffields==NULL || autocryptheader==NULL || peerstate==NULL || private_keyring==NULL ) {
+	 || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}
 
@@ -679,17 +678,11 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		}
 	}
 
-	autocryptheader_fine = mraheader_set_from_imffields(autocryptheader, imffields);
-	if( autocryptheader_fine ) {
-		if( from == NULL ) {
-			from = safe_strdup(autocryptheader->m_addr);
-		}
-		else if( strcasecmp(autocryptheader->m_addr, from /*SIC! compare to= against From: - the key is for answering!*/)!=0 ) {
-			autocryptheader_fine = 0;
-		}
-
+	autocryptheader = mraheader_new_from_imffields(from, imffields);
+	if( autocryptheader ) {
 		if( !mrpgp_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
-			autocryptheader_fine = 0;
+			mraheader_unref(autocryptheader);
+			autocryptheader = NULL;
 		}
 	}
 
@@ -702,7 +695,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		 && from )
 		{
 			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
-				if( autocryptheader_fine ) {
+				if( autocryptheader ) {
 					mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
@@ -714,7 +707,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 					}
 				}
 			}
-			else if( autocryptheader_fine ) {
+			else if( autocryptheader ) {
 				mrapeerstate_init_from_header(peerstate, autocryptheader, message_time);
 				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 			}

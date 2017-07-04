@@ -224,35 +224,6 @@ cleanup:
 }
 
 
-static const char* find_aheader_string(const struct mailimf_fields* header)
-{
-	clistiter*  cur;
-	const char* header_str = NULL;
-
-	for( cur = clist_begin(header->fld_list); cur!=NULL ; cur=clist_next(cur) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-		if( field )
-		{
-			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-			{
-				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "Autocrypt")==0 ) {
-						if( header_str ) {
-							return NULL; /* Autocrypt-Level0: if there are multiple Autocrypt:-headers  */
-						}
-						header_str = optional_field->fld_value;
-					}
-				}
-			}
-		}
-	}
-
-	return header_str; /* may be NULL */
-}
-
-
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
@@ -284,12 +255,43 @@ void mraheader_unref(mraheader_t* ths)
 }
 
 
-int mraheader_set_from_imffields(mraheader_t* ths, const struct mailimf_fields* header)
+mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* header)
 {
-	if( ths == NULL || header == NULL ) {
+	clistiter*   cur;
+	mraheader_t* fine_header = NULL;
+
+	if( wanted_from == NULL || header == NULL ) {
 		return 0;
 	}
 
-	return mraheader_set_from_string(ths, find_aheader_string(header));
+	for( cur = clist_begin(header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
+		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		{
+			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+			if( optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt")==0 )
+			{
+				/* header found, check if it is valid and matched the wanted address */
+				mraheader_t* test = mraheader_new();
+				if( !mraheader_set_from_string(test, optional_field->fld_value)
+				 || strcasecmp(test->m_addr, wanted_from)!=0 ) {
+					mraheader_unref(test);
+					test = NULL;
+				}
+
+				if( fine_header == NULL ) {
+					fine_header = test; /* may still be NULL */
+				}
+				else if( test ) {
+					mraheader_unref(fine_header);
+					mraheader_unref(test);
+					return NULL; /* more than one valid header for the same address results in an error, see Autocrypt Level 1 */
+				}
+			}
+		}
+	}
+
+	return fine_header; /* may be NULL */
 }
 

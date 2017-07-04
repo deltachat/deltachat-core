@@ -45,10 +45,10 @@ typedef struct mraheader_t
 
 
 mraheader_t* mraheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
+mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* mime);
 void         mraheader_unref             (mraheader_t*);
 
 int          mraheader_set_from_string   (mraheader_t*, const char* header_str);
-int          mraheader_set_from_imffields(mraheader_t*, const struct mailimf_fields* mime);
 
 char*        mraheader_render            (const mraheader_t*);
 
