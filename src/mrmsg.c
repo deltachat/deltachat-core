@@ -1052,6 +1052,8 @@ void mrmailbox_send_readreceipt(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup;
     }
 
+	//char* t1=mr_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~READ RECEIPT~~~~~\n%s\n~~~~~/READ RECEIPT~~~~~",t1);free(t1); // DEBUG OUTPUT
+
 	if( !mrsmtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
 		mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */

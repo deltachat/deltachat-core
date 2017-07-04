@@ -30,6 +30,9 @@
 #include "mrmimefactory.h"
 #include "mrtools.h"
 
+#define LINEEND "\r\n" /* lineend used in IMF */
+
+
 
 /*******************************************************************************
  * Load data
@@ -82,6 +85,9 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 		factory->m_out = NULL;
 	}
 	factory->m_out_encrypted = 0;
+	factory->m_loaded = MR_MF_NOTHING_LOADED;
+
+	factory->m_timestamp = 0;
 }
 
 
@@ -196,6 +202,9 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			}
 
 			success = 1;
+			factory->m_loaded = MR_MF_MSG_LOADED;
+			factory->m_timestamp = factory->m_msg->m_timestamp;
+			factory->m_rfc724_mid = safe_strdup(factory->m_msg->m_rfc724_mid);
 		}
 
 		if( success ) {
@@ -242,10 +251,14 @@ int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
 
 		load_from__(factory);
 
+		factory->m_timestamp = mr_create_smeared_timestamp__();
+		factory->m_rfc724_mid = mr_create_outgoing_rfc724_mid(NULL, factory->m_from_addr);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	success = 0; // TODO
+	success = 1;
+	factory->m_loaded = MR_MF_READRECEIPT_LOADED;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -383,16 +396,15 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* a
 int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 {
 	if( factory == NULL
+	 || factory->m_loaded == MR_MF_NOTHING_LOADED
 	 || factory->m_out/*call empty() before*/ ) {
 		return 0;
 	}
 
-	mrmsg_t*                     msg = factory->m_msg;
-	mrchat_t*                    chat = factory->m_chat;
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
-	char*                        message_text = NULL, *subject_str = NULL;
-	char*                        afwd_email = mrparam_get(msg->m_param, 'a', NULL);
+	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL;
+	char*                        afwd_email = NULL;
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
@@ -400,7 +412,10 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
-	/* create empty mail */
+
+	/* create basic mail
+	 *************************************************************************/
+
 	{
 		struct mailimf_mailbox_list* from = mailimf_mailbox_list_new_empty();
 		mailimf_mailbox_list_add(from, mailimf_mailbox_new(factory->m_from_displayname? mr_encode_header_string(factory->m_from_displayname) : NULL, safe_strdup(factory->m_from_addr)));
@@ -416,16 +431,19 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			}
 		}
 
-		clist* references_list = clist_new();
-		clist_append(references_list,  (void*)safe_strdup(factory->m_references));
-		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(msg->m_timestamp), from,
+		clist* references_list = NULL;
+		if( factory->m_references ) {
+			clist* references_list = clist_new();
+			clist_append(references_list,  (void*)safe_strdup(factory->m_references));
+		}
+
+		imf_fields = mailimf_fields_new_with_data_all(mailimf_get_date(factory->m_timestamp), from,
 			NULL /* sender */, NULL /* reply-to */,
-			to, NULL /* cc */, NULL /* bcc */, safe_strdup(msg->m_rfc724_mid), NULL /* in-reply-to */,
+			to, NULL /* cc */, NULL /* bcc */, safe_strdup(factory->m_rfc724_mid), NULL /* in-reply-to */,
 			references_list /* references */,
 			NULL /* subject set later */);
 
-		/* add additional basic parameters */
-		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("MrMsg %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"), mr_mprintf("Delta Chat %i.%i.%i", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION))); /* only informational, for debugging, may be removed in the release */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( factory->m_predecessor ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrPredecessor"), strdup(factory->m_predecessor)));
@@ -435,7 +453,18 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Disposition-Notification-To"), strdup(factory->m_from_addr)));
 		}
 
-		/* add additional group paramters */
+		message = mailmime_new_message_data(NULL);
+		mailmime_set_imf_fields(message, imf_fields);
+	}
+
+	if( factory->m_loaded == MR_MF_MSG_LOADED )
+	{
+		/* Render a normal message
+		 *********************************************************************/
+
+		mrchat_t* chat = factory->m_chat;
+		mrmsg_t*  msg  = factory->m_msg;
+
 		if( chat->m_type==MR_CHAT_GROUP )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
@@ -459,7 +488,6 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			}
 		}
 
-		/* add additional media paramters */
 		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
 		{
 			if( msg->m_type == MR_MSG_VOICE ) {
@@ -472,21 +500,16 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			}
 		}
 
-	}
-
-	message = mailmime_new_message_data(NULL);
-	mailmime_set_imf_fields(message, imf_fields);
-
-	/* add text part - we even add empty text and force a MIME-message as:
-	- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
-	- we can add "forward hints" this way
-	- it looks better */
-	{
+		/* add text part - we even add empty text and force a MIME-multipart-message as:
+		- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
+		- we can add "forward hints" this way
+		- it looks better */
+		afwd_email = mrparam_get(msg->m_param, 'a', NULL);
 		char* fwdhint = NULL;
 		if( afwd_email ) {
 			char* afwd_name = mrparam_get(msg->m_param, 'A', NULL);
 				char* nameNAddr = mr_get_headerlike_name(afwd_email, afwd_name);
-					fwdhint = mr_mprintf("---------- Forwarded message ----------\nFrom: %s\n\n", nameNAddr); /* no not chage this! expected this way in the simplifier to detect forwarding! */
+					fwdhint = mr_mprintf("---------- Forwarded message ----------" LINEEND "From: %s" LINEEND LINEEND, nameNAddr); /* no not chage this! expected this way in the simplifier to detect forwarding! */
 				free(nameNAddr);
 			free(afwd_name);
 		}
@@ -500,8 +523,8 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		message_text = mr_mprintf("%s%s%s%s%s",
 			fwdhint? fwdhint : "",
 			write_m_text? msg->m_text : "",
-			(write_m_text&&footer&&footer[0])? "\n\n" : "",
-			(footer&&footer[0])? "-- \n"  : "",
+			(write_m_text&&footer&&footer[0])? (LINEEND LINEEND) : "",
+			(footer&&footer[0])? ("-- " LINEEND)  : "",
 			(footer&&footer[0])? footer       : "");
 		free(footer);
 		struct mailmime* text_part = build_body_text(message_text);
@@ -509,27 +532,73 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		parts++;
 
 		free(fwdhint);
-	}
 
-	/* add attachment part */
-	if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
-		struct mailmime* file_part = build_body_file(msg);
-		if( file_part ) {
-			mailmime_smart_add_part(message, file_part);
-			parts++;
+		/* add attachment part */
+		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
+			struct mailmime* file_part = build_body_file(msg);
+			if( file_part ) {
+				mailmime_smart_add_part(message, file_part);
+				parts++;
+			}
+		}
+
+		if( parts == 0 ) {
+			goto cleanup;
 		}
 	}
+	else if( factory->m_loaded == MR_MF_READRECEIPT_LOADED )
+	{
+		/* Render a read receipt
+		 *********************************************************************/
 
-	if( parts == 0 ) {
+		struct mailmime* multipart = mailmime_multiple_new("multipart/report");
+		struct mailmime_content* content = multipart->mm_content_type;
+		clist_append(content->ct_parameters, mailmime_param_new_with_data("report-type", "disposition-notification"));
+		mailmime_add_part(message, multipart);
+
+		/* human-readable part */
+		char* p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
+			char* p2 = mrstock_str_repl_string(MR_STR_READRCPT_HUMAN, p1);
+				message_text = mr_mprintf("%s" LINEEND, p2);
+			free(p2);
+		free(p1);
+
+		struct mailmime* human_mime_part = build_body_text(message_text);
+		mailmime_add_part(multipart, human_mime_part);
+
+
+		/* machine-readable part */
+		message_text2 = mr_mprintf(
+			"Reporting-UA: Delta Chat %i.%i.%i" LINEEND
+			"Original-Recipient: rfc822;%s" LINEEND
+			"Final-Recipient: rfc822;%s" LINEEND
+			"Original-Message-ID: <%s>" LINEEND
+			"Disposition: manual-action/MDN-sent-automatically; displayed" LINEEND, /* manual-action: the user has configured the MUA to send Read receipts (automatic-action implies the receipts cannot be disabled) */
+			MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION,
+			factory->m_from_addr,
+			factory->m_from_addr,
+			factory->m_msg->m_rfc724_mid);
+
+		struct mailmime_content* content_type = mailmime_content_new_with_str("message/disposition-notification");
+		struct mailmime_fields* mime_fields = mailmime_fields_new_empty();
+		struct mailmime* mach_mime_part = mailmime_new_empty(content_type, mime_fields);
+		mailmime_set_body_text(mach_mime_part, message_text2, strlen(message_text2));
+
+		mailmime_add_part(multipart, mach_mime_part);
+	}
+	else
+	{
 		goto cleanup;
 	}
 
-	/* encrypt the message, if possible; add Autocrypt:-header
-	(encryption may modifiy the given object) */
-	int e2ee_guaranteed = mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0);
-	if( encrypt_to_self==0 || e2ee_guaranteed ) {
+
+	/* Encrypt the message
+	 *************************************************************************/
+
+	int e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
+	if( (encrypt_to_self==0 || e2ee_guaranteed) && factory->m_loaded != MR_MF_READRECEIPT_LOADED ) {
 		/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
-		mrmailbox_e2ee_encrypt(chat->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
+		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
 	}
 
 	/* add a subject line */
@@ -538,7 +607,12 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		factory->m_out_encrypted = 1;
 	}
 	else {
-		subject_str = get_subject(chat, msg, afwd_email);
+		if( factory->m_loaded==MR_MF_READRECEIPT_LOADED ) {
+			char* e = mrstock_str(MR_STR_READRCPT); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+		}
+		else {
+			subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);
+		}
 	}
 	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
@@ -556,7 +630,7 @@ cleanup:
 		mailmime_free(message);
 	}
 	mrmailbox_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
-	free(message_text); /* mailmime_set_body_text() does not take ownership of "text" */
+	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(afwd_email);
 	return success;

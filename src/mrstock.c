@@ -74,6 +74,8 @@ static char* default_string(int id, int qty)
 		case MR_STR_ENCR_NONE:        return safe_strdup("No encryption.");
 		case MR_STR_ENCR_NOE2E_EXPLN: return safe_strdup("End-to-end encryption will be enabled automatically.");
 		case MR_STR_FINGERPRINTS:     return safe_strdup("Fingerprints");
+		case MR_STR_READRCPT:         return safe_strdup("Read receipt");
+		case MR_STR_READRCPT_HUMAN:   return safe_strdup("This is a read receipt for the message \"%1$s\".");
 	}
 	return safe_strdup("ErrStr");
 }

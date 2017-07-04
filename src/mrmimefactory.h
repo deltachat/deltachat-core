@@ -44,6 +44,13 @@ typedef struct mrmailbox_t mrmailbox_t;
 #define MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP   5
 
 
+typedef enum {
+	MR_MF_NOTHING_LOADED = 0,
+	MR_MF_MSG_LOADED,
+	MR_MF_READRECEIPT_LOADED
+} mrmimefactory_loaded_t;
+
+
 typedef struct mrmimefactory_t {
 
 	/* in: parameters, set eg. by mrmimefactory_load_msg() */
@@ -51,6 +58,11 @@ typedef struct mrmimefactory_t {
 	char*        m_from_displayname;
 	clist*       m_recipients_names;
 	clist*       m_recipients_addr;
+	time_t       m_timestamp;
+	char*        m_rfc724_mid;
+
+	/* what is loaded? */
+	mrmimefactory_loaded_t m_loaded;
 
 	mrmsg_t*     m_msg;
 	mrchat_t*    m_chat;

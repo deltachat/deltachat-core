@@ -62,6 +62,8 @@ extern "C" {
 #define MR_STR_ENCR_NONE        28
 #define MR_STR_ENCR_NOE2E_EXPLN 29
 #define MR_STR_FINGERPRINTS     30
+#define MR_STR_READRCPT         31
+#define MR_STR_READRCPT_HUMAN   32
 
 
 /*** library-private **********************************************************/
