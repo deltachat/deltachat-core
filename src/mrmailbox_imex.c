@@ -665,6 +665,7 @@ cleanup:
 }
 
 
+#if 0
 static int export_self_setup_file(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
 {
 	int           success = 0;
@@ -690,6 +691,7 @@ cleanup:
 	free(file_name);
 	return success;
 }
+#endif
 
 
 /*******************************************************************************

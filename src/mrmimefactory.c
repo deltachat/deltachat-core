@@ -228,15 +228,19 @@ int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		load_from__(factory);
-
 		if( !mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
 		 || !mrcontact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
 			goto cleanup;
 		}
 
+		if( factory->m_msg->m_from_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+			goto cleanup;
+		}
+
 		clist_append(factory->m_recipients_names, (void*)((contact->m_authname&&contact->m_authname[0])? safe_strdup(contact->m_authname) : NULL));
 		clist_append(factory->m_recipients_addr,  (void*)safe_strdup(contact->m_addr));
+
+		load_from__(factory);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
