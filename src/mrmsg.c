@@ -977,8 +977,12 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 				}
 
 				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
+
 				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
-				mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg_ids[i], NULL);     /* results in a call to mrmailbox_send_readreceipt() */
+
+				if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
+					mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg_ids[i], NULL);     /* results in a call to mrmailbox_send_readreceipt() */
+				}
 			}
 		}
 

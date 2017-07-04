@@ -237,8 +237,16 @@ int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
+		if( !mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
+			goto cleanup; /* readreceipts not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
+		}
+
 		if( !mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
 		 || !mrcontact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
+			goto cleanup;
+		}
+
+		if( contact->m_blocked ) {
 			goto cleanup;
 		}
 
