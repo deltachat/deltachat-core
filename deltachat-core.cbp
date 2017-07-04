@@ -474,6 +474,9 @@
 		<Unit filename="src/mrmailbox_log.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrmimefactory.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrmimeparser.c">
 			<Option compilerVar="CC" />
 		</Unit>
