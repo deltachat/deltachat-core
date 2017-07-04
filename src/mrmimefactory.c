@@ -32,7 +32,7 @@
 
 
 /*******************************************************************************
- * Set data
+ * Load data
  ******************************************************************************/
 
 
@@ -85,8 +85,17 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 }
 
 
+static void load_from__(mrmimefactory_t* factory)
+{
+	factory->m_from_addr        = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
+	factory->m_from_displayname = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
+}
+
+
 int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 {
+	int success = 0, locked = 0;
+
 	if( factory == NULL || msg_id <= MR_MSG_ID_LAST_SPECIAL
 	 || factory->m_mailbox == NULL
 	 || factory->m_msg /*call empty() before */ ) {
@@ -100,8 +109,9 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 	factory->m_msg              = mrmsg_new();
 	factory->m_chat             = mrchat_new(mailbox);
 
-	int success = 0;
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
 		if( mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
 		 && mrchat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
 		{
@@ -135,8 +145,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				free(self_addr);
 			}
 
-			factory->m_from_addr        = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-			factory->m_from_displayname = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
+			load_from__(factory);
 
 			factory->m_req_readreceipt = 0;
 			if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
@@ -193,8 +202,49 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			factory->m_increation = mrmsg_is_increation__(factory->m_msg);
 		}
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	return success;
+}
+
+
+int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
+{
+	int           success = 0, locked = 0;
+	mrcontact_t*  contact = mrcontact_new();
+
+	if( factory == NULL ) {
+		goto cleanup;
+	}
+
+	mrmailbox_t* mailbox = factory->m_mailbox;
+
+	factory->m_recipients_names = clist_new();
+	factory->m_recipients_addr  = clist_new();
+	factory->m_msg              = mrmsg_new();
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		load_from__(factory);
+
+		if( !mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
+		 || !mrcontact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
+			goto cleanup;
+		}
+
+		clist_append(factory->m_recipients_names, (void*)((contact->m_authname&&contact->m_authname[0])? safe_strdup(contact->m_authname) : NULL));
+		clist_append(factory->m_recipients_addr,  (void*)safe_strdup(contact->m_addr));
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	success = 0; // TODO
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return success;
 }
 

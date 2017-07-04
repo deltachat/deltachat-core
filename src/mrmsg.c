@@ -34,6 +34,7 @@
 #include "mrtools.h"
 #include "mrjob.h"
 #include "mrpgp.h"
+#include "mrmimefactory.h"
 
 
 /*******************************************************************************
@@ -977,6 +978,7 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 
 				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
 				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+				mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg_ids[i], NULL);     /* results in a call to mrmailbox_send_readreceipt() */
 			}
 		}
 
@@ -1019,5 +1021,44 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 	*ret_chat_id = chat_id;
 	*ret_msg_id  = msg_id;
 	return 1; /* send event about new state */
+}
+
+
+void mrmailbox_send_readreceipt(mrmailbox_t* mailbox, mrjob_t* job)
+{
+	mrmimefactory_t mimefactory;
+	mrmimefactory_init(&mimefactory, mailbox);
+
+	if( mailbox == NULL || job == NULL ) {
+		return;
+	}
+
+	/* connect to SMTP server, if not yet done */
+	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
+		mrloginparam_t* loginparam = mrloginparam_new();
+			mrsqlite3_lock(mailbox->m_sql);
+				mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+			mrsqlite3_unlock(mailbox->m_sql);
+			int connected = mrsmtp_connect(mailbox->m_smtp, loginparam);
+		mrloginparam_unref(loginparam);
+		if( !connected ) {
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			goto cleanup;
+		}
+	}
+
+    if( !mrmimefactory_load_readreceipts(&mimefactory, job->m_foreign_id)
+     || !mrmimefactory_render(&mimefactory, 0/*encrypt to self*/) ) {
+		goto cleanup;
+    }
+
+	if( !mrsmtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
+		mrsmtp_disconnect(mailbox->m_smtp);
+		mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+		goto cleanup;
+	}
+
+cleanup:
+	mrmimefactory_empty(&mimefactory);
 }
 

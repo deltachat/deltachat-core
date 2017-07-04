@@ -69,10 +69,11 @@ typedef struct mrmimefactory_t {
 } mrmimefactory_t;
 
 
-void        mrmimefactory_init     (mrmimefactory_t*, mrmailbox_t*);
-void        mrmimefactory_empty    (mrmimefactory_t*);
-int         mrmimefactory_load_msg (mrmimefactory_t*, uint32_t msg_id);
-int         mrmimefactory_render   (mrmimefactory_t*, int encrypt_to_self);
+void        mrmimefactory_init              (mrmimefactory_t*, mrmailbox_t*);
+void        mrmimefactory_empty             (mrmimefactory_t*);
+int         mrmimefactory_load_msg          (mrmimefactory_t*, uint32_t msg_id);
+int         mrmimefactory_load_readreceipts (mrmimefactory_t*, uint32_t msg_id);
+int         mrmimefactory_render            (mrmimefactory_t*, int encrypt_to_self);
 
 
 #ifdef __cplusplus
