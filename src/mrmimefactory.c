@@ -155,7 +155,8 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			factory->m_req_readreceipt = 0;
 			if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
-				if( clist_count(factory->m_recipients_addr)==1 ) { /* for groups, read receipts are a little bit more complicated to receive */
+				int threshold = mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts_grp_threshold", 20);
+				if( clist_count(factory->m_recipients_addr) < threshold ) { /* for large groups, read receipts do not work well as the chance of people not send read receipts grows (one person not sending read receipts does not bring messages into the "read" state) */
 					factory->m_req_readreceipt = 1;
 				}
 			}

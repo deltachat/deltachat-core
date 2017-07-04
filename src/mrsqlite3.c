@@ -314,6 +314,19 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
+	#define NEW_DB_VERSION 11
+		if( dbversion < NEW_DB_VERSION )
+		{
+			mrsqlite3_execute__(ths, "CREATE TABLE msgs_rreceipts ("
+						" msg_id INTEGER, "
+						" contact_id INTEGER);");
+			mrsqlite3_execute__(ths, "CREATE INDEX msgs_rreceipts_index1 ON msgs_rreceipts (msg_id);");
+
+			dbversion = NEW_DB_VERSION;
+			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+		}
+	#undef NEW_DB_VERSION
+
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 

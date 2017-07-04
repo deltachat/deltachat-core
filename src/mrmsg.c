@@ -1014,17 +1014,47 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 		return 0;
 	}
 
-	uint32_t msg_id    = sqlite3_column_int(stmt, 0);
-	uint32_t chat_id   = sqlite3_column_int(stmt, 1);
-	int      chat_type = sqlite3_column_int(stmt, 2);
-	if( chat_type != MR_CHAT_NORMAL ) {
-		return 0;
+	*ret_msg_id    = sqlite3_column_int(stmt, 0);
+	*ret_chat_id   = sqlite3_column_int(stmt, 1);
+	int chat_type  = sqlite3_column_int(stmt, 2);
+
+	/* normal chat? that's quite easy. */
+	if( chat_type == MR_CHAT_NORMAL )
+	{
+		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_READ);
+		return 1; /* send event about new state */
 	}
 
-	mrmailbox_update_msg_state__(mailbox, msg_id, MR_OUT_READ);
-	*ret_chat_id = chat_id;
-	*ret_msg_id  = msg_id;
-	return 1; /* send event about new state */
+	/* group chat: collect receipt senders */
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_msgs_rreceipts_WHERE_mc, "SELECT contact_id FROM msgs_rreceipts WHERE msg_id=? AND contact_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	sqlite3_bind_int(stmt, 2, from_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_rreceipts, "INSERT INTO msgs_rreceipts (msg_id, contact_id) VALUES (?, ?);");
+		sqlite3_bind_int(stmt, 1, *ret_msg_id);
+		sqlite3_bind_int(stmt, 2, from_id);
+		sqlite3_step(stmt);
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_rreceipts_WHERE_m, "SELECT COUNT(*) FROM msgs_rreceipts WHERE msg_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0; /* error */
+	}
+
+	int ist_cnt  = sqlite3_column_int(stmt, 0);
+	int soll_cnt = mrmailbox_get_chat_contact_count__(mailbox, *ret_chat_id) - 1 /* remove self */;
+	if( ist_cnt < soll_cnt ) {
+		return 0; /* wait for more receipts */
+	}
+
+	/* got all receipts :-) */
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_rreceipts_WHERE_m, "DELETE FROM msgs_rreceipts WHERE msg_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	sqlite3_step(stmt);
+
+	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_READ);
+	return 1;
 }
 
 

@@ -126,6 +126,11 @@ enum
 	,DELETE_FROM_msgs_WHERE_id
 	,DELETE_FROM_msgs_WHERE_rfc724_mid
 
+	,SELECT_c_FROM_msgs_rreceipts_WHERE_mc
+	,INSERT_INTO_msgs_rreceipts
+	,SELECT_COUNT_FROM_msgs_rreceipts_WHERE_m
+	,DELETE_FROM_msgs_rreceipts_WHERE_m
+
 	,INSERT_INTO_jobs_aafp
 	,SELECT_MIN_d_FROM_jobs
 	,SELECT_iafp_FROM_jobs
