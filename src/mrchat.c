@@ -528,7 +528,7 @@ cleanup:
 
 carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 {
-	/* Normal chats to not include SELF.  Group chats do (as it may happen that one is deleted from a
+	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
 	carray*       ret = carray_new(100);
 	sqlite3_stmt* stmt;
