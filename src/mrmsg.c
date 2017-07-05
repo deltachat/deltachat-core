@@ -921,6 +921,12 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			goto cleanup;
 		}
 
+		/* add an additional job for sending read receipts (here in a thread for fast ui resonses) (an extra job as the read receipts have a lower priority) */
+		if( mrparam_get_int(msg->m_param, MRP_WANTS_READRECEIPT, 0) /* MRP_WANTS_READRECEIPT is set only for one part of a multipart-message */
+		 && mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
+			mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg->m_id, NULL); /* results in a call to mrmailbox_send_readreceipt() */
+		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
@@ -979,10 +985,6 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
 
 				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
-
-				if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
-					mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg_ids[i], NULL);     /* results in a call to mrmailbox_send_readreceipt() */
-				}
 			}
 		}
 

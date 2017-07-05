@@ -1267,6 +1267,42 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	}
 
+	/* check, if the message asks for a read receipt */
+	{
+		const struct mailimf_optional_field* dn_field = mrmimeparser_find_xtra_field(ths, "Disposition-Notification-To");
+		if( dn_field && carray_count(ths->m_parts) >= 1 )
+		{
+			struct mailimf_mailbox_list* mb_list = NULL;
+			size_t index = 0;
+			if( mailimf_mailbox_list_parse(dn_field->fld_value, strlen(dn_field->fld_value), &index, &mb_list)==MAILIMF_NO_ERROR && mb_list )
+			{
+				char* dn_to_addr = mr_find_first_addr(mb_list);
+				if( dn_to_addr )
+				{
+					struct mailimf_field* from_field = mr_find_mailimf_field(ths->m_header, MAILIMF_FIELD_FROM); /* we need From: as this MUST match Disposition-Notification-To: */
+					if( from_field && from_field->fld_data.fld_from )
+					{
+						char* from_addr = mr_find_first_addr(from_field->fld_data.fld_from->frm_mb_list);
+						if( from_addr )
+						{
+							if( strcmp(from_addr, dn_to_addr)==0 )
+							{
+								/* we mark _only_ the _last_ part to send a read receipt
+								(this avoids trouble with multi-part-messages who should send only one read receipt.
+								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
+								mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, carray_count(ths->m_parts)-1);
+								mrparam_set_int(part->m_param, MRP_WANTS_READRECEIPT, 1);
+							}
+							free(from_addr);
+						}
+					}
+					free(dn_to_addr);
+				}
+				mailimf_mailbox_list_free(mb_list);
+			}
+		}
+	}
+
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
 	if( carray_count(ths->m_parts)==0 && carray_count(ths->m_reports)==0 ) {
