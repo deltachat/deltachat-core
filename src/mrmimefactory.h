@@ -47,7 +47,7 @@ typedef struct mrmailbox_t mrmailbox_t;
 typedef enum {
 	MR_MF_NOTHING_LOADED = 0,
 	MR_MF_MSG_LOADED,
-	MR_MF_READRECEIPT_LOADED
+	MR_MF_MDN_LOADED
 } mrmimefactory_loaded_t;
 
 
@@ -69,7 +69,7 @@ typedef struct mrmimefactory_t {
 	int          m_increation;
 	char*        m_predecessor;
 	char*        m_references;
-	int          m_req_readreceipt;
+	int          m_req_mdn;
 
 	/* out: after a successfull mrmimefactory_create_mime(), here's the data */
 	MMAPString*  m_out;
@@ -84,7 +84,7 @@ typedef struct mrmimefactory_t {
 void        mrmimefactory_init              (mrmimefactory_t*, mrmailbox_t*);
 void        mrmimefactory_empty             (mrmimefactory_t*);
 int         mrmimefactory_load_msg          (mrmimefactory_t*, uint32_t msg_id);
-int         mrmimefactory_load_readreceipts (mrmimefactory_t*, uint32_t msg_id);
+int         mrmimefactory_load_mdn          (mrmimefactory_t*, uint32_t msg_id);
 int         mrmimefactory_render            (mrmimefactory_t*, int encrypt_to_self);
 
 

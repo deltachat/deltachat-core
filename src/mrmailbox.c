@@ -873,10 +873,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		if( carray_count(mime_parser->m_reports) > 0 )
 		{
 			/******************************************************************
-			 * Handle reports (mainly read receipts)
+			 * Handle reports (mainly MDNs)
 			 *****************************************************************/
 
-			int readreceipts_enabled = mrsqlite3_get_config_int__(ths->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT);
+			int mdns_enabled = mrsqlite3_get_config_int__(ths->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
 			icnt = carray_count(mime_parser->m_reports);
 			for( i = 0; i < icnt; i++ )
 			{
@@ -888,7 +888,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				if( strcmp(report_type->pa_value, "disposition-notification") == 0
 				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */
-				 && readreceipts_enabled /*to get a clear functionality, do not show incoming read receipts if the options is disabled*/ )
+				 && mdns_enabled /*to get a clear functionality, do not show incoming MDNs if the options is disabled*/ )
 				{
 					struct mailmime* report_data = (struct mailmime*)clist_content(clist_next(clist_begin(report_root->mm_data.mm_multipart.mm_mp_list)));
 					if( report_data
@@ -896,7 +896,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					 && report_data->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type==MAILMIME_COMPOSITE_TYPE_MESSAGE
 					 && strcmp(report_data->mm_content_type->ct_subtype, "disposition-notification")==0 )
 					{
-						/* we received a read receipt (although the read receipt is only a header, we parse it as a complete mail) */
+						/* we received a MDN (although the MDN is only a header, we parse it as a complete mail) */
 						const char* report_body = NULL;
 						size_t      report_body_bytes = 0;
 						char*       to_mmap_string_unref = NULL;
@@ -921,7 +921,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 										{
 											uint32_t chat_id = 0;
 											uint32_t msg_id = 0;
-											if( mrmailbox_readreceipt_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
+											if( mrmailbox_mdn_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
 												carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
 												carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
 											}
@@ -1295,7 +1295,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	const char* unset = "0";
 	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, readreceipts, e2ee_enabled, prv_key_count, pub_key_count;
+	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
 	mrkey_t* self_public = mrkey_new();
 
 	if( ths == NULL ) {
@@ -1324,7 +1324,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		e2ee_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
 
-		readreceipts    = mrsqlite3_get_config_int__(ths->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT);
+		mdns_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
 
 		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_sql, "SELECT COUNT(*) FROM keypairs;");
 		sqlite3_step(stmt);
@@ -1364,7 +1364,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"configured=%i\n"
 		"config0=%s\n"
 		"config1=%s\n"
-		"readreceipts=%i\n"
+		"mdns_enabled=%i\n"
 		"e2ee_enabled=%i\n"
 		"E2EE_DEFAULT_ENABLED=%i\n"
 		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
@@ -1379,7 +1379,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, is_configured
 		, l_readable_str, l2_readable_str
 
-		, readreceipts
+		, mdns_enabled
 
 		, e2ee_enabled
 		, MR_E2EE_DEFAULT_ENABLED

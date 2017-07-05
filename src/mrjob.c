@@ -142,7 +142,7 @@ static void* job_thread_entry_point(void* entry_arg)
                 case MRJ_SEND_MSG_TO_IMAP:     mrmailbox_send_msg_to_imap     (mailbox, &job); break;
                 case MRJ_DELETE_MSG_ON_IMAP:   mrmailbox_delete_msg_on_imap   (mailbox, &job); break;
                 case MRJ_MARKSEEN_MSG_ON_IMAP: mrmailbox_markseen_msg_on_imap (mailbox, &job); break;
-                case MRJ_SEND_READRECEIPT:     mrmailbox_send_readreceipt     (mailbox, &job); break;
+                case MRJ_SEND_MDN:             mrmailbox_send_mdn             (mailbox, &job); break;
 			}
 
 			/* delete job or execute job later again */

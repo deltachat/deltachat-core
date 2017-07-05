@@ -64,7 +64,7 @@ extern "C" {
 
 #define MRP_GUARANTEE_E2EE    'c'  /* 'c'rypted in original/guarantee E2EE or the message is not send */
 #define MRP_ERRONEOUS_E2EE    'e'  /* decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
-#define MRP_WANTS_READRECEIPT 'r'  /* an incoming message which requestes a read receipt */
+#define MRP_WANTS_MDN         'r'  /* an incoming message which requestes a MDN (aka read receipt) */
 
 
 typedef struct mrparam_t

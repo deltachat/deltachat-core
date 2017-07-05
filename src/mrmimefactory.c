@@ -153,11 +153,11 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			load_from__(factory);
 
-			factory->m_req_readreceipt = 0;
-			if( mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
-				int threshold = mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts_grp_threshold", 20);
-				if( clist_count(factory->m_recipients_addr) < threshold ) { /* for large groups, read receipts do not work well as the chance of people not send read receipts grows (one person not sending read receipts does not bring messages into the "read" state) */
-					factory->m_req_readreceipt = 1;
+			factory->m_req_mdn = 0;
+			if( mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+				int threshold = mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_grp_threshold", 20);
+				if( clist_count(factory->m_recipients_addr) < threshold ) { /* for large groups, MDNs do not work well as the chance of people not sending MDNs grows (one person not sending MDNs does not bring messages into the "read" state) */
+					factory->m_req_mdn = 1;
 				}
 			}
 
@@ -220,7 +220,7 @@ cleanup:
 }
 
 
-int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
+int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
 {
 	int           success = 0, locked = 0;
 	mrcontact_t*  contact = mrcontact_new();
@@ -238,8 +238,8 @@ int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
-			goto cleanup; /* readreceipts not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
+		if( !mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
 		}
 
 		if( !mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
@@ -267,7 +267,7 @@ int mrmimefactory_load_readreceipts(mrmimefactory_t* factory, uint32_t msg_id)
 	locked = 0;
 
 	success = 1;
-	factory->m_loaded = MR_MF_READRECEIPT_LOADED;
+	factory->m_loaded = MR_MF_MDN_LOADED;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -459,7 +459,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrPredecessor"), strdup(factory->m_predecessor)));
 		}
 
-		if( factory->m_req_readreceipt ) {
+		if( factory->m_req_mdn ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Disposition-Notification-To"), strdup(factory->m_from_addr)));
 		}
 
@@ -558,9 +558,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 		e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
 	}
-	else if( factory->m_loaded == MR_MF_READRECEIPT_LOADED )
+	else if( factory->m_loaded == MR_MF_MDN_LOADED )
 	{
-		/* Render a read receipt
+		/* Render a MDN
 		 *********************************************************************/
 
 		struct mailmime* multipart = mailmime_multiple_new("multipart/report");
@@ -585,7 +585,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			"Original-Recipient: rfc822;%s" LINEEND
 			"Final-Recipient: rfc822;%s" LINEEND
 			"Original-Message-ID: <%s>" LINEEND
-			"Disposition: manual-action/MDN-sent-automatically; displayed" LINEEND, /* manual-action: the user has configured the MUA to send Read receipts (automatic-action implies the receipts cannot be disabled) */
+			"Disposition: manual-action/MDN-sent-automatically; displayed" LINEEND, /* manual-action: the user has configured the MUA to send MDNs (automatic-action implies the receipts cannot be disabled) */
 			MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION,
 			factory->m_from_addr,
 			factory->m_from_addr,
@@ -618,7 +618,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		factory->m_out_encrypted = 1;
 	}
 	else {
-		if( factory->m_loaded==MR_MF_READRECEIPT_LOADED ) {
+		if( factory->m_loaded==MR_MF_MDN_LOADED ) {
 			char* e = mrstock_str(MR_STR_READRCPT); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
 		}
 		else {

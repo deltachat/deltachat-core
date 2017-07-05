@@ -55,7 +55,7 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			switch( msg->m_state ) {
 				case MR_OUT_PENDING:   statestr = " o";   break;
 				case MR_OUT_DELIVERED: statestr = " √";   break;
-				case MR_OUT_READ:      statestr = " √√";  break;
+				case MR_OUT_MDN_RCVD:  statestr = " √√";  break;
 				case MR_OUT_ERROR:     statestr = " ERR"; break;
 			}
 
@@ -354,7 +354,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 						switch( poortext->m_state ) {
 							case MR_OUT_PENDING:   statestr = " o";   break;
 							case MR_OUT_DELIVERED: statestr = " √";   break;
-							case MR_OUT_READ:      statestr = " √√";  break;
+							case MR_OUT_MDN_RCVD:  statestr = " √√";  break;
 							case MR_OUT_ERROR:     statestr = " ERR"; break;
 						}
 

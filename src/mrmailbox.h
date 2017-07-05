@@ -286,7 +286,7 @@ void                 mrmailbox_heartbeat            (mrmailbox_t*);
 /*** library-private **********************************************************/
 
 #define MR_E2EE_DEFAULT_ENABLED  1
-#define MR_READRECEIPTS_DEFAULT  1
+#define MR_MDNS_DEFAULT_ENABLED  1
 
 void                 mrmailbox_connect_to_imap      (mrmailbox_t*, mrjob_t*);
 void                 mrmailbox_wake_lock            (mrmailbox_t*);

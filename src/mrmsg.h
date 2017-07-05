@@ -57,12 +57,12 @@ typedef struct mrchat_t mrchat_t;
 /* message states */
 #define MR_STATE_UNDEFINED  0
 #define MR_IN_FRESH        10 /* incoming message, not noticed nor seen */
-#define MR_IN_NOTICED      13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor result in read receipts) */
-#define MR_IN_SEEN         16 /* incoming message marked as read on IMAP and read receipt send */
+#define MR_IN_NOTICED      13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs) */
+#define MR_IN_SEEN         16 /* incoming message marked as read on IMAP and MDN may be send */
 #define MR_OUT_PENDING     20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
 #define MR_OUT_ERROR       24 /* unrecoverable error (recoverable errors result in pending messages) */
 #define MR_OUT_DELIVERED   26 /* outgoing message successfully delivered to server (one checkmark) */
-#define MR_OUT_READ        28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
+#define MR_OUT_MDN_RCVD    28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 
 
 /* special message IDs (only returned if requested) */
@@ -118,8 +118,8 @@ void         mrmailbox_update_server_uid__    (mrmailbox_t*, const char* rfc724_
 void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
 void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
-int          mrmailbox_readreceipt_from_ext__ (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
-void         mrmailbox_send_readreceipt       (mrmailbox_t*, mrjob_t* job);
+int          mrmailbox_mdn_from_ext__         (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
+void         mrmailbox_send_mdn               (mrmailbox_t*, mrjob_t* job);
 void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
 char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 int          mrmsg_is_increation__            (const mrmsg_t*);

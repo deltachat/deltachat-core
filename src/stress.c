@@ -148,7 +148,7 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( strcmp("pending="   MR_STRINGIFY(MR_OUT_PENDING),   "pending=20")==0 );
         assert( strcmp("error="     MR_STRINGIFY(MR_OUT_ERROR),     "error=24")==0 );
         assert( strcmp("delivered=" MR_STRINGIFY(MR_OUT_DELIVERED), "delivered=26")==0 );
-        assert( strcmp("read="      MR_STRINGIFY(MR_OUT_READ),      "read=28")==0 );
+        assert( strcmp("mdn_rcvd="  MR_STRINGIFY(MR_OUT_MDN_RCVD),  "mdn_rcvd=28")==0 );
 	}
 
 	/* test mrparam

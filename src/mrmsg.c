@@ -921,10 +921,10 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			goto cleanup;
 		}
 
-		/* add an additional job for sending read receipts (here in a thread for fast ui resonses) (an extra job as the read receipts have a lower priority) */
-		if( mrparam_get_int(msg->m_param, MRP_WANTS_READRECEIPT, 0) /* MRP_WANTS_READRECEIPT is set only for one part of a multipart-message */
-		 && mrsqlite3_get_config_int__(mailbox->m_sql, "readreceipts", MR_READRECEIPTS_DEFAULT) ) {
-			mrjob_add__(mailbox, MRJ_SEND_READRECEIPT, msg->m_id, NULL); /* results in a call to mrmailbox_send_readreceipt() */
+		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
+		if( mrparam_get_int(msg->m_param, MRP_WANTS_MDN, 0) /* MRP_WANTS_MDN is set only for one part of a multipart-message */
+		 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+			mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL); /* results in a call to mrmailbox_send_mdn() */
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -999,7 +999,7 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 }
 
 
-int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid,
+int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid,
                                      uint32_t* ret_chat_id,
                                      uint32_t* ret_msg_id)
 {
@@ -1011,7 +1011,7 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 		"SELECT m.id, c.id, c.type FROM msgs m "
 		" LEFT JOIN chats c ON m.chat_id=c.id "
 		" WHERE rfc724_mid=? AND from_id=1 AND (state=20 OR state=26) "
-		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request read receipts for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
+		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request MDNs for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
@@ -1024,22 +1024,22 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 	/* normal chat? that's quite easy. */
 	if( chat_type == MR_CHAT_NORMAL )
 	{
-		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_READ);
+		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_MDN_RCVD);
 		return 1; /* send event about new state */
 	}
 
 	/* group chat: collect receipt senders */
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_msgs_rreceipts_WHERE_mc, "SELECT contact_id FROM msgs_rreceipts WHERE msg_id=? AND contact_id=?;");
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_msgs_mdns_WHERE_mc, "SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_bind_int(stmt, 2, from_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_rreceipts, "INSERT INTO msgs_rreceipts (msg_id, contact_id) VALUES (?, ?);");
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_mdns, "INSERT INTO msgs_mdns (msg_id, contact_id) VALUES (?, ?);");
 		sqlite3_bind_int(stmt, 1, *ret_msg_id);
 		sqlite3_bind_int(stmt, 2, from_id);
 		sqlite3_step(stmt);
 	}
 
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_rreceipts_WHERE_m, "SELECT COUNT(*) FROM msgs_rreceipts WHERE msg_id=?;");
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_mdns_WHERE_m, "SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0; /* error */
@@ -1052,16 +1052,16 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 	}
 
 	/* got all receipts :-) */
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_rreceipts_WHERE_m, "DELETE FROM msgs_rreceipts WHERE msg_id=?;");
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m, "DELETE FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_step(stmt);
 
-	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_READ);
+	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_MDN_RCVD);
 	return 1;
 }
 
 
-void mrmailbox_send_readreceipt(mrmailbox_t* mailbox, mrjob_t* job)
+void mrmailbox_send_mdn(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	mrmimefactory_t mimefactory;
 	mrmimefactory_init(&mimefactory, mailbox);
@@ -1084,12 +1084,12 @@ void mrmailbox_send_readreceipt(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 	}
 
-    if( !mrmimefactory_load_readreceipts(&mimefactory, job->m_foreign_id)
+    if( !mrmimefactory_load_mdn(&mimefactory, job->m_foreign_id)
      || !mrmimefactory_render(&mimefactory, 0/*encrypt to self*/) ) {
 		goto cleanup;
     }
 
-	//char* t1=mr_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~READ RECEIPT~~~~~\n%s\n~~~~~/READ RECEIPT~~~~~",t1);free(t1); // DEBUG OUTPUT
+	//char* t1=mr_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~MDN~~~~~\n%s\n~~~~~/MDN~~~~~",t1);free(t1); // DEBUG OUTPUT
 
 	if( !mrsmtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
 		mrsmtp_disconnect(mailbox->m_smtp);
