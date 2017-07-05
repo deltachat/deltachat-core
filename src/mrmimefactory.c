@@ -592,7 +592,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			factory->m_msg->m_rfc724_mid);
 
 		struct mailmime_content* content_type = mailmime_content_new_with_str("message/disposition-notification");
-		struct mailmime_fields* mime_fields = mailmime_fields_new_empty();
+		struct mailmime_fields* mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_8BIT);
 		struct mailmime* mach_mime_part = mailmime_new_empty(content_type, mime_fields);
 		mailmime_set_body_text(mach_mime_part, message_text2, strlen(message_text2));
 

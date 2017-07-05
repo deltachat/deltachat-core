@@ -897,34 +897,42 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					 && strcmp(report_data->mm_content_type->ct_subtype, "disposition-notification")==0 )
 					{
 						/* we received a read receipt (although the read receipt is only a header, we parse it as a complete mail) */
-						struct mailmime* report_parsed = NULL;
-						size_t dummy = 0;
-						if( mailmime_parse(report_data->mm_data.mm_single->dt_data.dt_text.dt_data, report_data->mm_data.mm_single->dt_data.dt_text.dt_length, &dummy, &report_parsed)==MAIL_NO_ERROR
-						 && report_parsed!=NULL )
+						const char* report_body = NULL;
+						size_t      report_body_bytes = 0;
+						char*       to_mmap_string_unref = NULL;
+						if( mr_mime_transfer_decode(report_data, &report_body, &report_body_bytes, &to_mmap_string_unref) )
 						{
-							struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
-							if( report_fields )
+							struct mailmime* report_parsed = NULL;
+							size_t dummy = 0;
+							if( mailmime_parse(report_body, report_body_bytes, &dummy, &report_parsed)==MAIL_NO_ERROR
+							 && report_parsed!=NULL )
 							{
-								struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
-								struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
-								if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
+								struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
+								if( report_fields )
 								{
-									char* rfc724_mid = NULL;
-									dummy = 0;
-									if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &rfc724_mid)==MAIL_NO_ERROR
-									 && rfc724_mid!=NULL )
+									struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
+									struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
+									if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
 									{
-										uint32_t chat_id = 0;
-										uint32_t msg_id = 0;
-										if( mrmailbox_readreceipt_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
-											carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
-											carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
+										char* rfc724_mid = NULL;
+										dummy = 0;
+										if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &rfc724_mid)==MAIL_NO_ERROR
+										 && rfc724_mid!=NULL )
+										{
+											uint32_t chat_id = 0;
+											uint32_t msg_id = 0;
+											if( mrmailbox_readreceipt_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
+												carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
+												carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
+											}
+											free(rfc724_mid);
 										}
-										free(rfc724_mid);
 									}
 								}
+								mailmime_free(report_parsed);
 							}
-							mailmime_free(report_parsed);
+
+							if( to_mmap_string_unref ) { mmap_string_unref(to_mmap_string_unref); }
 						}
 					}
 				}

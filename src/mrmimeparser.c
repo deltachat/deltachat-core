@@ -782,6 +782,61 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 #endif
 
 
+int mr_mime_transfer_decode(struct mailmime* mime, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref)
+{
+	int                   mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	struct mailmime_data* mime_data = mime->mm_data.mm_single;
+	const char*           decoded_data = NULL; /* must not be free()'d */
+	size_t                decoded_data_bytes = 0;
+	char*                 transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
+
+	if( mime == NULL || ret_decoded_data == NULL || ret_decoded_data_bytes == NULL || ret_to_mmap_string_unref == NULL
+	 || *ret_decoded_data != NULL || *ret_decoded_data_bytes != 0 || *ret_to_mmap_string_unref != NULL ) {
+		return 0;
+	}
+
+	if( mime->mm_mime_fields != NULL ) {
+		clistiter* cur;
+		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
+			if( field && field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
+				mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
+				break;
+			}
+		}
+	}
+
+	/* regard `Content-Transfer-Encoding:` */
+	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
+	{
+		decoded_data       = mime_data->dt_data.dt_text.dt_data;
+		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
+		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			return 0; /* no error - but no data */
+		}
+	}
+	else
+	{
+		int r;
+		size_t current_index = 0;
+		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
+			&current_index, mime_transfer_encoding,
+			&transfer_decoding_buffer, &decoded_data_bytes);
+		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
+			return 0;
+		}
+		decoded_data = transfer_decoding_buffer;
+	}
+
+	*ret_decoded_data         = decoded_data;
+	*ret_decoded_data_bytes   = decoded_data_bytes;
+	*ret_to_mmap_string_unref = transfer_decoding_buffer;
+	return 1;
+}
+
+
 static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mailmime* mime)
 {
 	mrmimepart_t*                part = mrmimepart_new();
@@ -789,8 +844,6 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 	int                          mime_type;
 	struct mailmime_data*        mime_data;
-	int                          mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
-	struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
 	char*                        pathNfilename = NULL;
 	char*                        file_suffix = NULL, *desired_filename = NULL;
 	int                          msg_type;
@@ -816,44 +869,10 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		goto cleanup;
 	}
 
-	/* check headers in `mime` */
-	if( mime->mm_mime_fields != NULL ) {
-		clistiter* cur;
-		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
-			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
-			if( field ) {
-				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
-					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
-				}
-				else if( field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition ) {
-					file_disposition = field->fld_data.fld_disposition;
-				}
-			}
-		}
-	}
 
 	/* regard `Content-Transfer-Encoding:` */
-	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
-	{
-		decoded_data       = mime_data->dt_data.dt_text.dt_data;
-		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
-		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
-			goto cleanup; /* no error - but no data */
-		}
-	}
-	else
-	{
-		int r;
-		size_t current_index = 0;
-		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
-			&current_index, mime_transfer_encoding,
-			&transfer_decoding_buffer, &decoded_data_bytes);
-		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
-			goto cleanup;
-		}
-		decoded_data = transfer_decoding_buffer;
+	if( !mr_mime_transfer_decode(mime, &decoded_data, &decoded_data_bytes, &transfer_decoding_buffer) ) {
+		goto cleanup; /* no always error - but no data */
 	}
 
 	switch( mime_type )
@@ -906,8 +925,17 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		case MR_MIMETYPE_FILE:
 			{
 				/* get desired file name */
+				struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
+				clistiter* cur;
+				for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+					struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
+					if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition ) {
+						file_disposition = field->fld_data.fld_disposition;
+						break;
+					}
+				}
+
 				if( file_disposition ) {
-					clistiter* cur;
 					for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
 						struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
 						if( dsp_param ) {
