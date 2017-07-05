@@ -1010,7 +1010,8 @@ int mrmailbox_readreceipt_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, con
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724,
 		"SELECT m.id, c.id, c.type FROM msgs m "
 		" LEFT JOIN chats c ON m.chat_id=c.id "
-		" WHERE rfc724_mid=? AND from_id=1 AND (state=20 OR state=26);");
+		" WHERE rfc724_mid=? AND from_id=1 AND (state=20 OR state=26) "
+		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request read receipts for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
