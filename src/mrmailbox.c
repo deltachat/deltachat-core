@@ -745,7 +745,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				char*    old_server_folder = NULL;
 				uint32_t old_server_uid = 0;
 				if( mrmailbox_rfc724_mid_exists__(ths, rfc724_mid, &old_server_folder, &old_server_uid) ) {
-					/* The message is already added to our database; rollback.  If needed update the server_uid which may have changed if the message was moved around on the server. */
+					/* The message is already added to our database; rollback.  If needed, update the server_uid which may have changed if the message was moved around on the server. */
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 						mrsqlite3_rollback__(ths->m_sql);
 						transaction_pending = 0;
@@ -880,6 +880,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			icnt = carray_count(mime_parser->m_reports);
 			for( i = 0; i < icnt; i++ )
 			{
+				int                        mdn_consumed = 0;
 				struct mailmime*           report_root = carray_get(mime_parser->m_reports, i);
 				struct mailmime_parameter* report_type = mr_find_ct_parameter(report_root, "report-type");
 				if( report_root==NULL || report_type==NULL || report_type->pa_value==NULL ) {
@@ -887,57 +888,71 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 
 				if( strcmp(report_type->pa_value, "disposition-notification") == 0
-				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */
-				 && mdns_enabled /*to get a clear functionality, do not show incoming MDNs if the options is disabled*/ )
+				 && clist_count(report_root->mm_data.mm_multipart.mm_mp_list) >= 2 /* the first part is for humans, the second for machines */ )
 				{
-					struct mailmime* report_data = (struct mailmime*)clist_content(clist_next(clist_begin(report_root->mm_data.mm_multipart.mm_mp_list)));
-					if( report_data
-					 && report_data->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
-					 && report_data->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type==MAILMIME_COMPOSITE_TYPE_MESSAGE
-					 && strcmp(report_data->mm_content_type->ct_subtype, "disposition-notification")==0 )
+					if( mdns_enabled /*to get a clear functionality, do not show incoming MDNs if the options is disabled*/ )
 					{
-						/* we received a MDN (although the MDN is only a header, we parse it as a complete mail) */
-						const char* report_body = NULL;
-						size_t      report_body_bytes = 0;
-						char*       to_mmap_string_unref = NULL;
-						if( mr_mime_transfer_decode(report_data, &report_body, &report_body_bytes, &to_mmap_string_unref) )
+						struct mailmime* report_data = (struct mailmime*)clist_content(clist_next(clist_begin(report_root->mm_data.mm_multipart.mm_mp_list)));
+						if( report_data
+						 && report_data->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
+						 && report_data->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type==MAILMIME_COMPOSITE_TYPE_MESSAGE
+						 && strcmp(report_data->mm_content_type->ct_subtype, "disposition-notification")==0 )
 						{
-							struct mailmime* report_parsed = NULL;
-							size_t dummy = 0;
-							if( mailmime_parse(report_body, report_body_bytes, &dummy, &report_parsed)==MAIL_NO_ERROR
-							 && report_parsed!=NULL )
+							/* we received a MDN (although the MDN is only a header, we parse it as a complete mail) */
+							const char* report_body = NULL;
+							size_t      report_body_bytes = 0;
+							char*       to_mmap_string_unref = NULL;
+							if( mr_mime_transfer_decode(report_data, &report_body, &report_body_bytes, &to_mmap_string_unref) )
 							{
-								struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
-								if( report_fields )
+								struct mailmime* report_parsed = NULL;
+								size_t dummy = 0;
+								if( mailmime_parse(report_body, report_body_bytes, &dummy, &report_parsed)==MAIL_NO_ERROR
+								 && report_parsed!=NULL )
 								{
-									struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
-									struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
-									if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
+									struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
+									if( report_fields )
 									{
-										char* rfc724_mid = NULL;
-										dummy = 0;
-										if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &rfc724_mid)==MAIL_NO_ERROR
-										 && rfc724_mid!=NULL )
+										struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
+										struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
+										if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
 										{
-											uint32_t chat_id = 0;
-											uint32_t msg_id = 0;
-											if( mrmailbox_mdn_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
-												carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
-												carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
+											char* rfc724_mid = NULL;
+											dummy = 0;
+											if( mailimf_msg_id_parse(of_org_msgid->fld_value, strlen(of_org_msgid->fld_value), &dummy, &rfc724_mid)==MAIL_NO_ERROR
+											 && rfc724_mid!=NULL )
+											{
+												uint32_t chat_id = 0;
+												uint32_t msg_id = 0;
+												if( mrmailbox_mdn_from_ext__(ths, from_id, rfc724_mid, &chat_id, &msg_id) ) {
+													carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
+													carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
+												}
+												mdn_consumed = (msg_id!=0);
+												free(rfc724_mid);
 											}
-											free(rfc724_mid);
 										}
 									}
+									mailmime_free(report_parsed);
 								}
-								mailmime_free(report_parsed);
-							}
 
-							if( to_mmap_string_unref ) { mmap_string_unref(to_mmap_string_unref); }
+								if( to_mmap_string_unref ) { mmap_string_unref(to_mmap_string_unref); }
+							}
 						}
+					}
+
+					/* Move the MDN away to the chats folder.  We do this for:
+					- Consumed or not consumed MDNs from other messengers
+					- Consumed MDNs from normal MUAs
+					Unconsumed MDNs from normal MUAs are _not_ moved.
+					NB: we do not delete the MDN as it may be used by other clients */
+					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
+						char* jobparam = mr_mprintf("%c=%s\n%c=%lu", MRP_SERVER_FOLDER, server_folder, MRP_SERVER_UID, server_uid);
+							mrjob_add__(ths, MRJ_MARKSEEN_MDN_ON_IMAP, 0, jobparam);
+						free(jobparam);
 					}
 				}
 
-			}
+			} /* for() */
 
 		}
 

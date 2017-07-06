@@ -958,6 +958,31 @@ cleanup:
 }
 
 
+void mrmailbox_markseen_mdn_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
+{
+	char*    server_folder = mrparam_get    (job->m_param, MRP_SERVER_FOLDER, NULL);
+	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
+	char*    new_server_folder = NULL;
+	uint32_t new_server_uid    = 0;
+
+	if( !mrimap_is_connected(mailbox->m_imap) ) {
+		mrmailbox_connect_to_imap(mailbox, NULL);
+		if( !mrimap_is_connected(mailbox->m_imap) ) {
+			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			goto cleanup;
+		}
+	}
+
+	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, 1 /*move to chats folder*/, &new_server_folder, &new_server_uid) == 0 ) {
+		mrjob_try_again_later(job, MR_STANDARD_DELAY);
+	}
+
+cleanup:
+	free(server_folder);
+	free(new_server_folder);
+}
+
+
 int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
 	int transaction_pending = 0;
@@ -1003,7 +1028,8 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
                                      uint32_t* ret_chat_id,
                                      uint32_t* ret_msg_id)
 {
-	if( mailbox == NULL || from_id <= MR_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL ) {
+	if( mailbox == NULL || from_id <= MR_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL
+	 || *ret_chat_id != 0 || *ret_msg_id != 0 ) {
 		return 0;
 	}
 

@@ -43,6 +43,8 @@
  * 'm'ime
  * 't'imes a job was tried
  * 'T'imes a job was tried, used for increation
+ * 'Z' - server_folder
+ * 'z' - server_uid
  *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
@@ -62,9 +64,12 @@ extern "C" {
 #endif
 
 
-#define MRP_GUARANTEE_E2EE    'c'  /* 'c'rypted in original/guarantee E2EE or the message is not send */
-#define MRP_ERRONEOUS_E2EE    'e'  /* decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
-#define MRP_WANTS_MDN         'r'  /* an incoming message which requestes a MDN (aka read receipt) */
+#define MRP_GUARANTEE_E2EE    'c'  /* for msgs: 'c'rypted in original/guarantee E2EE or the message is not send */
+#define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
+#define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
+
+#define MRP_SERVER_FOLDER     'Z'  /* for jobs */
+#define MRP_SERVER_UID        'z'  /* for jobs */
 
 
 typedef struct mrparam_t

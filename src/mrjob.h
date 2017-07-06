@@ -34,6 +34,7 @@ extern "C" {
 /*** library-private **********************************************************/
 
 #define MRJ_DELETE_MSG_ON_IMAP     100    /* low priority ... */
+#define MRJ_MARKSEEN_MDN_ON_IMAP   102
 #define MRJ_SEND_MDN               105
 #define MRJ_MARKSEEN_MSG_ON_IMAP   110
 #define MRJ_SEND_MSG_TO_IMAP       700
