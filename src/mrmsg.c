@@ -1034,9 +1034,9 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 	}
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724,
-		"SELECT m.id, c.id, c.type FROM msgs m "
+		"SELECT m.id, c.id, c.type, m.state FROM msgs m "
 		" LEFT JOIN chats c ON m.chat_id=c.id "
-		" WHERE rfc724_mid=? AND from_id=1 AND (state=20 OR state=26) "
+		" WHERE rfc724_mid=? AND from_id=1 "
 		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request MDNs for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -1046,6 +1046,11 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 	*ret_msg_id    = sqlite3_column_int(stmt, 0);
 	*ret_chat_id   = sqlite3_column_int(stmt, 1);
 	int chat_type  = sqlite3_column_int(stmt, 2);
+	int msg_state  = sqlite3_column_int(stmt, 3);
+
+	if( msg_state!=MR_OUT_PENDING && msg_state!=MR_OUT_DELIVERED ) {
+		return 0; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
+	}
 
 	/* normal chat? that's quite easy. */
 	if( chat_type == MR_CHAT_NORMAL )
@@ -1071,13 +1076,25 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 		return 0; /* error */
 	}
 
+	/*
+	Groupsize:  Min. MDNs
+
+	1 S         n/a
+	2 SR        1
+	3 SRR       2
+	4 SRRR      2
+	5 SRRRR     3
+	6 SRRRRR    3
+
+	(S=Sender, R=Recipient)
+	*/
 	int ist_cnt  = sqlite3_column_int(stmt, 0);
-	int soll_cnt = mrmailbox_get_chat_contact_count__(mailbox, *ret_chat_id) - 1 /* remove self */;
+	int soll_cnt = (mrmailbox_get_chat_contact_count__(mailbox, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
 	if( ist_cnt < soll_cnt ) {
 		return 0; /* wait for more receipts */
 	}
 
-	/* got all receipts :-) */
+	/* got enough receipts :-) */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m, "DELETE FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_step(stmt);

@@ -155,10 +155,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			factory->m_req_mdn = 0;
 			if( mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
-				int threshold = mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_grp_threshold", 20);
-				if( clist_count(factory->m_recipients_addr) < threshold ) { /* for large groups, MDNs do not work well as the chance of people not sending MDNs grows (one person not sending MDNs does not bring messages into the "read" state) */
-					factory->m_req_mdn = 1;
-				}
+				factory->m_req_mdn = 1;
 			}
 
 			/* Get a predecessor of the mail to send.
