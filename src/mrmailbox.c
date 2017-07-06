@@ -124,19 +124,19 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 			{
 				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 ) {
+					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-ID")==0 ) {
 						grpid1 = safe_strdup(optional_field->fld_value);
 					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 ) {
+					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name")==0 ) {
 						grpname = mr_decode_header_string(optional_field->fld_value);
 					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrRemoveFromGrp")==0 ) {
+					else if( strcasecmp(optional_field->fld_name, "X-MrRemoveFromGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Removed")==0 ) {
 						X_MrRemoveFromGrp = optional_field->fld_value;
 					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrAddToGrp")==0 ) {
+					else if( strcasecmp(optional_field->fld_name, "X-MrAddToGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Added")==0 ) {
 						X_MrAddToGrp = optional_field->fld_value;
 					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 ) {
+					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name-Changed")==0 ) {
 						X_MrGrpNameChanged = 1;
 					}
 				}
@@ -444,7 +444,7 @@ static int is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 			{
 				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "X-MrPredecessor")==0 ) { /* see comment in mrchat.c */
+					if( strcasecmp(optional_field->fld_name, "X-MrPredecessor")==0 || strcasecmp(optional_field->fld_name, "Chat-Predecessor")==0 ) { /* see comment in mrchat.c */
 						if( is_known_rfc724_mid__(mailbox, optional_field->fld_value) ) {
 							return 1;
 						}

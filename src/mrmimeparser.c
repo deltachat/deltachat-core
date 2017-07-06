@@ -1164,7 +1164,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 						struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 						if( optional_field ) {
-							if( strcasecmp(optional_field->fld_name, "X-MrMsg")==0 ) {
+							if( strcasecmp(optional_field->fld_name, "X-MrMsg")==0 || strcasecmp(optional_field->fld_name, "Chat-Version")==0 ) {
 								ths->m_is_send_by_messenger = 1;
 							}
 						}
@@ -1274,7 +1274,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	if( carray_count(ths->m_parts)==1 ) {
 		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( part->m_type == MR_MSG_AUDIO ) {
-			if( mrmimeparser_find_xtra_field(ths, "X-MrVoiceMessage") ) {
+			if( mrmimeparser_find_xtra_field(ths, "X-MrVoiceMessage") || mrmimeparser_find_xtra_field(ths, "Chat-Voice-Message") ) {
 				free(part->m_msg);
 				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->m_type = MR_MSG_VOICE;
@@ -1285,6 +1285,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 		if( part->m_type == MR_MSG_AUDIO || part->m_type == MR_MSG_VOICE || part->m_type == MR_MSG_VIDEO ) {
 			const struct mailimf_optional_field* field = mrmimeparser_find_xtra_field(ths, "X-MrDurationMs");
+			if( field==NULL ) { field = mrmimeparser_find_xtra_field(ths, "Chat-Duration"); }
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
