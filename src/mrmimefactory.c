@@ -244,7 +244,8 @@ int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
 			goto cleanup;
 		}
 
-		if( contact->m_blocked ) {
+		if( contact->m_blocked
+		 || factory->m_msg->m_chat_id<=MR_CHAT_ID_LAST_SPECIAL/* Do not send MDNs for contact requests, trash etc. */ ) {
 			goto cleanup;
 		}
 
