@@ -561,12 +561,12 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		/* Render a MDN
 		 *********************************************************************/
 
-		struct mailmime* multipart = mailmime_multiple_new("multipart/report");
+		struct mailmime* multipart = mailmime_multiple_new("multipart/report"); /* RFC 6522, this also requires the `report-type` parameter which is equal to the MIME subtype of the second body part of the multipart/report */
 		struct mailmime_content* content = multipart->mm_content_type;
-		clist_append(content->ct_parameters, mailmime_param_new_with_data("report-type", "disposition-notification"));
+		clist_append(content->ct_parameters, mailmime_param_new_with_data("report-type", "disposition-notification")); /* RFC  */
 		mailmime_add_part(message, multipart);
 
-		/* human-readable part */
+		/* first body part: always human-readable, always REQUIRED by RFC 6522 */
 		char* p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
 			char* p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
 				message_text = mr_mprintf("%s" LINEEND, p2);
@@ -577,7 +577,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mailmime_add_part(multipart, human_mime_part);
 
 
-		/* machine-readable part */
+		/* second body part: machine-readable, always REQUIRED by RFC 6522 */
 		message_text2 = mr_mprintf(
 			"Reporting-UA: Delta Chat %i.%i.%i" LINEEND
 			"Original-Recipient: rfc822;%s" LINEEND
