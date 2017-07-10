@@ -1108,7 +1108,20 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					break;
 
 				case MR_MIMETYPE_MP_REPORT:
-					carray_add(ths->m_reports, (void*)mime, NULL);
+					if( clist_count(mime->mm_data.mm_multipart.mm_mp_list) >= 2 ) /* RFC 6522: the first part is for humans, the second for machines */
+					{
+						struct mailmime_parameter* report_type = mr_find_ct_parameter(mime, "report-type");
+						if( report_type && report_type->pa_value
+						 && strcmp(report_type->pa_value, "disposition-notification") == 0 )
+						{
+							carray_add(ths->m_reports, (void*)mime, NULL);
+						}
+						else
+						{
+							/* eg. `report-type=delivery-status`; maybe we should show them as a little error icon */
+							mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(clist_begin(mime->mm_data.mm_multipart.mm_mp_list)));
+						}
+					}
 					break;
 
 				default: /* eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
