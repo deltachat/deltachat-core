@@ -1,13 +1,14 @@
 Delta Chat Core
 ================================================================================
 
-**Delta Chat** is a project that aims to create a messaging app that is
+Delta Chat is a project that aims to create a messaging app that is
 completely **compatible** to the existing e-mail infrastructure.
 
-![Logo](https://delta.chat/assets/features/start-img4.png)
+This **Delta Chat core library** is the backend library for the Delta Chat 
+frontends. However, it can be used as a backend for your own messenger, too. 
 
-So, with Delta Chat you get the **ease** of well-known messengers with the
-**reach** of e-mail. Moreover, you're **independent** from other companies or
+Using the Delta Chat core library you get the **ease** of well-known messengers
+with the **reach** of e-mail. Moreover, you're **independent** from other companies or
 services - as your data are not related to Delta Chat, you won't even add new
 dependencies here.
 
@@ -16,6 +17,7 @@ Some features at a glance
 - **Secure** with automatic end-to-end-encryption, supporting the new
   [Autocrypt](https://autocrypt.readthedocs.io/en/latest/) standard
 - **Fast** by the use of Push-IMAP
+- **Read receipts**
 - **Largest userbase** - receivers _not_ using Delta Chat can be reached as well
 - **Compatible** - not only to itself
 - **Elegant** and **simple** user interface
