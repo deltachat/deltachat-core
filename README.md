@@ -28,24 +28,15 @@ Some features at a glance
 - fully **OpenSource** and **Standards** based
 
 
-Download
---------------------------------------------------------------------------------
-
-Currently, the project is in alpha state under heavy development.  A working
-**Android version** is available eg. on F-Droid or at https://delta.chat .
-
-The source code for the Android version is available at
-https://github.com/deltachat/deltachat-android .
-
-
 Build
 --------------------------------------------------------------------------------
 
-This repository contains only the core library that is used by all frontends.
+This repository contains only the core library that is used by all frontends
+(if you are searching for a ready-to-use frontend, please refer to <https://delta.chat>).
 
 The core relies on the following external libs:
 
-- [LibEtPan](https://github.com/dinhviethoa/libetpan); for
+- [LibEtPan](https://github.com/dinhviethoa/libetpan), [OpenSSL](https://www.openssl.org/); for
   compilation, use eg. the following commands: `./autogen.sh; make;
   sudo make install prefix=/usr`
   To link against LibEtPan, add `libetpan-config --libs` in backticks to your
@@ -60,7 +51,7 @@ suitable for common system.  You'll also find a fork of the needed Netpgp
 library there.
 
 Information about how to build the frontends can be found in the corresponding
-repositories as https://github.com/r10s/deltachat-android .
+repositories as https://github.com/delta-chat/deltachat-android .
 
 
 Coding
