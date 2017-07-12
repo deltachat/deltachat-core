@@ -107,7 +107,10 @@ int       mrimap_fetch             (mrimap_t*);
 int       mrimap_restore           (mrimap_t*, time_t seconds_to_restore);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
-int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int also_move, char** ret_server_folder, uint32_t* ret_server_uid); /* only returns 0 on connection problems; we should try later again in this case */
+
+#define   MR_MS_ALSO_MOVE          0x01
+int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
+
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
 void      mrimap_heartbeat         (mrimap_t*);

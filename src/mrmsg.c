@@ -905,6 +905,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrmsg_t* msg = mrmsg_new();
 	char*    new_server_folder = NULL;
 	uint32_t new_server_uid = 0;
+	int      in_ms_flags = 0, out_ms_flags = 0;
 
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
 		mrmailbox_connect_to_imap(mailbox, NULL);
@@ -930,8 +931,12 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	if( msg->m_is_msgrmsg ) {
+		in_ms_flags |= MR_MS_ALSO_MOVE;
+	}
+
 	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
-		  msg->m_is_msgrmsg /*move to chats folder?*/, &new_server_folder, &new_server_uid) != 0 )
+		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0 )
 	{
 		if( new_server_folder && new_server_uid )
 		{
@@ -964,6 +969,7 @@ void mrmailbox_markseen_mdn_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
 	char*    new_server_folder = NULL;
 	uint32_t new_server_uid    = 0;
+	int      out_ms_flags = 0;
 
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
 		mrmailbox_connect_to_imap(mailbox, NULL);
@@ -973,7 +979,7 @@ void mrmailbox_markseen_mdn_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 	}
 
-	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, 1 /*move to chats folder*/, &new_server_folder, &new_server_uid) == 0 ) {
+	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
 		mrjob_try_again_later(job, MR_STANDARD_DELAY);
 	}
 

@@ -1613,19 +1613,18 @@ cleanup:
 }
 
 
-int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int also_move, char** ret_server_folder, uint32_t* ret_server_uid)
+int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int ms_flags,
+                        char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags)
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
 	// command would be "STORE 123,456,678 +FLAGS (\Seen)"
 	int                  handle_locked = 0, idle_blocked = 0, r;
 	struct mailimap_set* set = NULL;
 
-	if( ths==NULL || folder==NULL || server_uid==0 ) {
+	if( ths==NULL || folder==NULL || server_uid==0 || ret_server_folder==NULL || ret_server_uid==NULL || ret_ms_flags==NULL
+	 || *ret_server_folder!=NULL || *ret_server_uid!=0 || *ret_ms_flags!=0 ) {
 		return 1; /* job done */
 	}
-
-	*ret_server_folder = NULL;
-	*ret_server_uid = 0;
 
 	LOCK_HANDLE
 
@@ -1646,7 +1645,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as seen.");
 
-		if( also_move && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
+		if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
 		{
 			init_chat_folders__(ths);
 			if( ths->m_moveto_folder )
