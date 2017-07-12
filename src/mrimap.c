@@ -395,6 +395,46 @@ static uint32_t peek_uid(struct mailimap_msg_att* msg_att)
 }
 
 
+static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_keyword)
+{
+	/* search $MDNSent in a list of attributes returned by a FETCH command */
+	if( msg_att == NULL || msg_att->att_list==NULL || flag_keyword == NULL ) {
+		return 0;
+	}
+
+	clistiter *iter1, *iter2;
+	for( iter1=clist_begin(msg_att->att_list); iter1!=NULL; iter1=clist_next(iter1) )
+	{
+		struct mailimap_msg_att_item* item = (struct mailimap_msg_att_item*)clist_content(iter1);
+		if( item )
+		{
+			if( item->att_type == MAILIMAP_MSG_ATT_ITEM_DYNAMIC )
+			{
+				if( item->att_data.att_dyn->att_list /*I've seen NULL here ...*/ )
+				{
+					for( iter2=clist_begin(item->att_data.att_dyn->att_list); iter2!=NULL ; iter2=clist_next(iter2))
+					{
+						struct mailimap_flag_fetch* flag_fetch =(struct mailimap_flag_fetch*) clist_content(iter2);
+						if( flag_fetch && flag_fetch->fl_type==MAILIMAP_FLAG_FETCH_OTHER )
+						{
+							struct mailimap_flag* flag = flag_fetch->fl_flag;
+							if( flag )
+							{
+								if( flag->fl_type == MAILIMAP_FLAG_KEYWORD && flag->fl_data.fl_keyword!=NULL
+								 && strcmp(flag->fl_data.fl_keyword, flag_keyword)==0 ) {
+									return 1; /* flag found */
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
 static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_msg_bytes, uint32_t* flags, int* deleted)
 {
 	/* search body & Co. in a list of attributes returned by a FETCH command */
@@ -1454,6 +1494,9 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_flags());
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
 
+	ths->m_fetch_type_flags = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags only */
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_flags, mailimap_fetch_att_new_flags());
+
     return ths;
 }
 
@@ -1484,6 +1527,7 @@ void mrimap_unref(mrimap_t* ths)
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
+	if( ths->m_fetch_type_flags ){ mailimap_fetch_type_free(ths->m_fetch_type_flags);}
 
 	free(ths);
 }
@@ -1626,6 +1670,10 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 		return 1; /* job done */
 	}
 
+	if( (set=mailimap_set_new_single(server_uid))==NULL ) {
+		goto cleanup;
+	}
+
 	LOCK_HANDLE
 
 	if( ths->m_hEtpan==NULL ) {
@@ -1645,13 +1693,60 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as seen.");
 
+		if( (ms_flags&MR_MS_SET_MDNSent_FLAG)
+		 && ths->m_hEtpan->imap_selection_info!=NULL && ths->m_hEtpan->imap_selection_info->sel_perm_flags!=NULL )
+		{
+			/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
+			If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
+			int can_create_flag = 0;
+			clistiter* iter;
+			for( iter=clist_begin(ths->m_hEtpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter) )
+			{
+				struct mailimap_flag_perm* fp = (struct mailimap_flag_perm*)clist_content(iter);
+				if( fp ) {
+					if( fp->fl_type==MAILIMAP_FLAG_PERM_ALL ) {
+						can_create_flag = 1;
+						break;
+					}
+					else if( fp->fl_type==MAILIMAP_FLAG_PERM_FLAG && fp->fl_flag ) {
+						struct mailimap_flag* fl = (struct mailimap_flag*)fp->fl_flag;
+						if( fl->fl_type==MAILIMAP_FLAG_KEYWORD && fl->fl_data.fl_keyword && strcmp(fl->fl_data.fl_keyword, "$MDNSent")==0 ) {
+							can_create_flag = 1;
+							break;
+						}
+					}
+				}
+			}
+
+			if( can_create_flag )
+			{
+				clist* fetch_result = NULL;
+				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_flags, &fetch_result);
+				if( !is_error(ths, r) && fetch_result ) {
+					clistiter* cur=clist_begin(fetch_result);
+					if( cur ) {
+						if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
+							add_flag__(ths, folder, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
+							*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
+						}
+					}
+					mailimap_fetch_list_free(fetch_result);
+				}
+				mrmailbox_log_info(ths->m_mailbox, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be send." : "$MDNSent already set and MDN already send.");
+			}
+			else
+			{
+				*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
+				mrmailbox_log_info(ths->m_mailbox, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
+			}
+		}
+
 		if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
 		{
 			init_chat_folders__(ths);
 			if( ths->m_moveto_folder )
 			{
 				mrmailbox_log_info(ths->m_mailbox, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
-				set = mailimap_set_new_single(server_uid);
 
 				/* TODO/TOCHECK: MOVE may not be supported on servers, if this is often the case, we should fallback to a COPY/DELETE implementation.
 				Same for the UIDPLUS extension (if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then). */

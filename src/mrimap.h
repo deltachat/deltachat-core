@@ -86,6 +86,7 @@ typedef struct mrimap_t
 
 	struct mailimap_fetch_type* m_fetch_type_uid;
 	struct mailimap_fetch_type* m_fetch_type_body;
+	struct mailimap_fetch_type* m_fetch_type_flags;
 
 	mr_get_config_int_t   m_get_config_int;
 	mr_set_config_int_t   m_set_config_int;
@@ -109,6 +110,8 @@ int       mrimap_restore           (mrimap_t*, time_t seconds_to_restore);
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
 #define   MR_MS_ALSO_MOVE          0x01
+#define   MR_MS_SET_MDNSent_FLAG   0x02
+#define   MR_MS_MDNSent_JUST_SET   0x10
 int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
 
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */

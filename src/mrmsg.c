@@ -925,7 +925,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
 		if( mrparam_get_int(msg->m_param, MRP_WANTS_MDN, 0) /* MRP_WANTS_MDN is set only for one part of a multipart-message */
 		 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
-			mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL); /* results in a call to mrmailbox_send_mdn() */
+			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -938,12 +938,20 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0 )
 	{
-		if( new_server_folder && new_server_uid )
+		if( (new_server_folder && new_server_uid) || out_ms_flags&MR_MS_MDNSent_JUST_SET )
 		{
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				mrmailbox_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
+				if( new_server_folder && new_server_uid )
+				{
+					mrmailbox_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
+				}
+
+				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
+				{
+					mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL); /* results in a call to mrmailbox_send_mdn() */
+				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
 			locked = 0;
