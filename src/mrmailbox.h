@@ -229,7 +229,15 @@ mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_
 char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
 int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 int                  mrmailbox_forward_msgs         (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
+
+
+/* mrmailbox_marknoticed_chat() mark alle message in a whole chat as NOTICED.
+NOTICED messages are no longer FRESH and do not count as being unseen.  IMAP/MDNs is not done for noticed messages. */
 int                  mrmailbox_marknoticed_chat     (mrmailbox_t*, uint32_t chat_id);
+
+
+/* mrmailbox_markseen_msgs() marks a message as SEEN, updates the IMAP state and sends MDNs.
+if the message is not in a real chat (eg. a contact request), the message is only marked as NOTICED and no IMAP/MDNs is done. */
 int                  mrmailbox_markseen_msgs        (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 
 

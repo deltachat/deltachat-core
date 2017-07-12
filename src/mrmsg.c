@@ -985,7 +985,6 @@ cleanup:
 
 int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
-	int transaction_pending = 0;
 	int i;
 
 	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
@@ -993,31 +992,32 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	mrsqlite3_begin_transaction__(mailbox->m_sql);
 
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id_AND_state,
-				"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_SEEN) " WHERE id=? AND (state=" MR_STRINGIFY(MR_IN_FRESH) " OR state=" MR_STRINGIFY(MR_IN_NOTICED) ");");
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_seen_WHERE_id_AND_chat_id_AND_freshORnoticed,
+				"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_SEEN)
+				" WHERE id=? AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND (state=" MR_STRINGIFY(MR_IN_FRESH) " OR state=" MR_STRINGIFY(MR_IN_NOTICED) ");");
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
 			sqlite3_step(stmt);
 			if( sqlite3_changes(mailbox->m_sql->m_cobj) )
 			{
-				if( transaction_pending == 0 ) {
-					mrsqlite3_begin_transaction__(mailbox->m_sql);
-					transaction_pending = 1;
-				}
-
 				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
-
 				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+			}
+			else
+			{
+				/* message may be in contact requests, mark as NOTICED, this does not force IMAP updated nor send MDNs */
+				sqlite3_stmt* stmt2 = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_noticed_WHERE_id_AND_fresh,
+					"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_NOTICED)
+					" WHERE id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
+				sqlite3_bind_int(stmt2, 1, msg_ids[i]);
+				sqlite3_step(stmt2);
 			}
 		}
 
-		if( transaction_pending ) {
-			mrsqlite3_commit__(mailbox->m_sql);
-			transaction_pending = 0;
-		}
-
+	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	return 1;
