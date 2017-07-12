@@ -280,7 +280,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
-	int                    locked = 0, col = 0, do_encrypt = 1;
+	int                    locked = 0, col = 0, do_encrypt = 0;
 	mraheader_t*           autocryptheader = mraheader_new();
 	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mrkeyring_t*           keyring = mrkeyring_new();
@@ -318,6 +318,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		/* load peerstate information etc. */
 		if( autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed )
 		{
+			do_encrypt = 1;
 			mrapeerstate_t* peerstate = mrapeerstate_new();
 			clistiter*      iter1;
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
