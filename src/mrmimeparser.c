@@ -663,6 +663,7 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 	#define MR_MIMETYPE_MP_MIXED            30
 	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE  40
 	#define MR_MIMETYPE_MP_REPORT           45
+	#define MR_MIMETYPE_MP_SIGNED           46
 	#define MR_MIMETYPE_MP_OTHER            50
 	#define MR_MIMETYPE_TEXT_PLAIN          60
 	#define MR_MIMETYPE_TEXT_HTML           70
@@ -733,6 +734,9 @@ static int mrmimeparser_get_mime_type(struct mailmime* mime, int* msg_type)
 				}
 				else if( strcmp(c->ct_subtype, "encrypted")==0 ) {
 					return MR_MIMETYPE_MP_NOT_DECRYPTABLE; /* decryptable parts are already converted to other mime parts in mre2ee_decrypt()  */
+				}
+				else if( strcmp(c->ct_subtype, "signed")==0 ) {
+					return MR_MIMETYPE_MP_SIGNED;
 				}
 				else if( strcmp(c->ct_subtype, "mixed")==0 ) {
 					return MR_MIMETYPE_MP_MIXED;
@@ -1048,6 +1052,10 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 	int        any_part_added = 0;
 	clistiter* cur;
 
+	if( ths == NULL || mime == NULL ) {
+		return 0;
+	}
+
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
@@ -1105,6 +1113,18 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						part->m_msg = mrstock_str(MR_STR_ENCRYPTEDMSG);
 						carray_add(ths->m_parts, (void*)part, NULL);
 						any_part_added = 1;
+					}
+					break;
+
+				case MR_MIMETYPE_MP_SIGNED:
+					/* RFC 1847: "The multipart/signed content type contains exactly two body parts.
+					The first body part is the body part over which the digital signature was created [...]
+					The second body part contains the control information necessary to verify the digital signature."
+					We simpliy take the first body part and skip the rest.
+					(see https://k9mail.github.io/2016/11/24/OpenPGP-Considerations-Part-I.html for background information why we use encrypted+signed) */
+					if( (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list)) != NULL )
+					{
+						any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
