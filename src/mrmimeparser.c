@@ -1045,13 +1045,13 @@ cleanup:
 
 static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmime* mime)
 {
-	int        sth_added = 0;
+	int        any_part_added = 0;
 	clistiter* cur;
 
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			sth_added = mrmimeparser_add_single_part_if_known(ths, mime);
+			any_part_added = mrmimeparser_add_single_part_if_known(ths, mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
@@ -1063,27 +1063,27 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 						struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 						if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_MP_MIXED ) {
-							sth_added = mrmimeparser_parse_mime_recursive(ths, childmime);
+							any_part_added = mrmimeparser_parse_mime_recursive(ths, childmime);
 							break;
 						}
 					}
 
 
-					if( !sth_added ) {
+					if( !any_part_added ) {
 						/* search for text/plain and add this */
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( mrmimeparser_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
-								sth_added = mrmimeparser_parse_mime_recursive(ths, childmime);
+								any_part_added = mrmimeparser_parse_mime_recursive(ths, childmime);
 								break;
 							}
 						}
 					}
 
-					if( !sth_added ) { /* `text/plain` not found - use the first part */
+					if( !any_part_added ) { /* `text/plain` not found - use the first part */
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							if( mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
-								sth_added = 1;
+								any_part_added = 1;
 								break; /* out of for() */
 							}
 						}
@@ -1094,7 +1094,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 				                             /* we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay. */
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
-						mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
+						any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
@@ -1104,6 +1104,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						part->m_type = MR_MSG_TEXT;
 						part->m_msg = mrstock_str(MR_STR_ENCRYPTEDMSG);
 						carray_add(ths->m_parts, (void*)part, NULL);
+						any_part_added = 1;
 					}
 					break;
 
@@ -1119,7 +1120,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						else
 						{
 							/* eg. `report-type=delivery-status`; maybe we should show them as a little error icon */
-							mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(clist_begin(mime->mm_data.mm_multipart.mm_mp_list)));
+							any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(clist_begin(mime->mm_data.mm_multipart.mm_mp_list)));
 						}
 					}
 					break;
@@ -1154,7 +1155,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( childmime != skip_part ) {
 								if( mrmimeparser_parse_mime_recursive(ths, childmime) ) {
-									sth_added = 1;
+									any_part_added = 1;
 								}
 							}
 						}
@@ -1187,12 +1188,12 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
 			{
-				sth_added = mrmimeparser_parse_mime_recursive(ths, mime->mm_data.mm_message.mm_msg_mime);
+				any_part_added = mrmimeparser_parse_mime_recursive(ths, mime->mm_data.mm_message.mm_msg_mime);
 			}
 			break;
 	}
 
-	return sth_added;
+	return any_part_added;
 }
 
 
