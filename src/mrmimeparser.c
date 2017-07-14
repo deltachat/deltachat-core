@@ -634,6 +634,10 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 	if( ths->m_reports ) {
 		carray_set_size(ths->m_reports, 0);
 	}
+
+	ths->m_decrypted_and_validated = 0;
+	ths->m_decrypted_with_validation_errors = 0;
+	ths->m_decrypting_failed = 0;
 }
 
 
@@ -1113,6 +1117,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						part->m_msg = mrstock_str(MR_STR_ENCRYPTEDMSG);
 						carray_add(ths->m_parts, (void*)part, NULL);
 						any_part_added = 1;
+						ths->m_decrypting_failed = 1;
 					}
 					break;
 
@@ -1331,6 +1336,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	}
 
 	/* check, if the message asks for a MDN */
+	if( !ths->m_decrypting_failed )
 	{
 		const struct mailimf_optional_field* dn_field = mrmimeparser_find_xtra_field(ths, "Disposition-Notification-To");
 		if( dn_field && carray_count(ths->m_parts) >= 1 )
