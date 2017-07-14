@@ -362,7 +362,9 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 		goto cleanup;
 	}
 
-	/* create mime part */
+	/* create mime part, for Content-Disposition, see RFC 2183.
+	`Content-Disposition: attachment` seems not to make a difference to `Content-Disposition: inline` at least on tested Thunderbird and Gma'l in 2017.
+	But I've heard about problems with inline and outl'k, so we just use the attachment-type until we run into other problems ... */
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
 		safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
 
