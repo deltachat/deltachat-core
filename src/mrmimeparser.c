@@ -1266,17 +1266,21 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	if( ths->m_subject )
 	{
 		int prepend_subject = 1;
-		char* p = strchr(ths->m_subject, ':');
-		if( (p-ths->m_subject) == 2 /*To: etc.*/
-		 || (p-ths->m_subject) == 3 /*Fwd: etc.*/
-		 || strstr(ths->m_subject, MR_CHAT_PREFIX)!=NULL ) {
-			prepend_subject = 0;
+		if( !ths->m_decrypting_failed /* if decryption has failed, we always prepend the subject as this may contain cleartext hints from non-Delta MUAs. */ )
+		{
+			char* p = strchr(ths->m_subject, ':');
+			if( (p-ths->m_subject) == 2 /*Re: etc.*/
+			 || (p-ths->m_subject) == 3 /*Fwd: etc.*/
+			 || ths->m_is_send_by_messenger
+			 || strstr(ths->m_subject, MR_CHAT_PREFIX)!=NULL ) {
+				prepend_subject = 0;
+			}
 		}
 
 		if( prepend_subject )
 		{
 			char* subj = safe_strdup(ths->m_subject);
-			p = strchr(subj, '['); /* do not add any tags as "[checked by XYZ]" */
+			char* p = strchr(subj, '['); /* do not add any tags as "[checked by XYZ]" */
 			if( p ) {
 				*p = 0;
 			}
