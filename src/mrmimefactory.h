@@ -56,6 +56,7 @@ typedef struct mrmimefactory_t {
 	/* in: parameters, set eg. by mrmimefactory_load_msg() */
 	char*        m_from_addr;
 	char*        m_from_displayname;
+	char*        m_selfstatus;
 	clist*       m_recipients_names;
 	clist*       m_recipients_addr;
 	time_t       m_timestamp;
