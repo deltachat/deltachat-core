@@ -62,6 +62,9 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 	free(factory->m_from_displayname);
 	factory->m_from_displayname = NULL;
 
+	free(factory->m_selfstatus);
+	factory->m_selfstatus = NULL;
+
 	if( factory->m_recipients_names ) {
 		clist_free_content(factory->m_recipients_names);
 		clist_free(factory->m_recipients_names);
@@ -95,6 +98,7 @@ static void load_from__(mrmimefactory_t* factory)
 {
 	factory->m_from_addr        = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
 	factory->m_from_displayname = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
+	factory->m_selfstatus       = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "selfstatus", NULL);
 }
 
 
@@ -529,14 +533,13 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			write_m_text = 1;
 		}
 
-		char* footer = mrstock_str(MR_STR_STATUSLINE);
+		char* footer = factory->m_selfstatus;
 		message_text = mr_mprintf("%s%s%s%s%s",
 			fwdhint? fwdhint : "",
 			write_m_text? msg->m_text : "",
 			(write_m_text&&footer&&footer[0])? (LINEEND LINEEND) : "",
 			(footer&&footer[0])? ("-- " LINEEND)  : "",
 			(footer&&footer[0])? footer       : "");
-		free(footer);
 		struct mailmime* text_part = build_body_text(message_text);
 		mailmime_smart_add_part(message, text_part);
 		parts++;

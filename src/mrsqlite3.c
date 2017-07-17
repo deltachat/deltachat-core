@@ -327,6 +327,19 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
+	#define NEW_DB_VERSION 13
+		if( dbversion < NEW_DB_VERSION )
+		{
+			char* p = mrstock_str(MR_STR_STATUSLINE);
+			mrsqlite3_set_config__(ths, "selfstatus", p);
+			free(p);
+
+			dbversion = NEW_DB_VERSION;
+			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+		}
+	#undef NEW_DB_VERSION
+
+
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
