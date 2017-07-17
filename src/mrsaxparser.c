@@ -46,7 +46,7 @@ static const char* s_ent[] = {
 
 	/* basic XML/HTML */
 	"lt;",      "<",	"gt;",      ">",	"quot;",    "\"",	"apos;",    "'",
-	"amp;",     "&",
+	"amp;",     "&",    "nbsp;",    " ",
 
 	/* advanced HTML */
 	"iexcl;",   "¡",	"cent;",    "¢",	"pound;",   "£",	"curren;",  "¤",
