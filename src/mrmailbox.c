@@ -403,10 +403,11 @@ static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
-			"SELECT id FROM msgs WHERE rfc724_mid=? AND (chat_id>? OR from_id=?);");
+			"SELECT id FROM msgs "
+			" WHERE rfc724_mid=? "
+			" AND chat_id!=" MR_STRINGIFY(MR_CHAT_ID_TRASH) /*eg. do not replies to our mailinglist messages as known*/
+			" AND (chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " OR from_id=" MR_STRINGIFY(MR_CONTACT_ID_SELF) ");");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
-		sqlite3_bind_int (stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
-		sqlite3_bind_int (stmt, 3, MR_CONTACT_ID_SELF);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
 			return 1;
 		}
@@ -681,15 +682,34 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 				else
 				{
-					chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
-					if( chat_id == 0 )
+					if( mrmimeparser_is_mailinglist_message(mime_parser) )
 					{
-						if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger ) {
-							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
-						}
-						else if( is_reply_to_known_message__(ths, mime_parser) ) {
-							mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
-							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+						chat_id = MR_CHAT_ID_TRASH;
+						mrmailbox_log_info(ths, 0, "Message belongs to a mailing list and is ignored.");
+						/* currently we do not show up mailing list messages as this would result in lots of unwanted messages:
+						- if you send a single message to a mailing list ...
+						- all replies to this messages are shown up as is_reply_to_known_message__() will return true
+						- more worse: all messages are shown in single user chats
+						"Mailing lists messages" in this sense are messages marked by a List-Id as defined in RFC 2919
+						For the future, we might want to show mailing lists as groups.
+						NB: MR_CHAT_ID_TRASH does not remove the message on IMAP, it simply copies it to an invisible chat
+						(we have to track the message-id as otherwise the message pops up again and again) */
+					}
+					else
+					{
+						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
+						if( chat_id == 0 )
+						{
+							if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger )
+							{
+								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+							}
+							else if( is_reply_to_known_message__(ths, mime_parser) )
+							{
+								mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
+								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+								mrmailbox_log_info(ths, 0, "Message is a reply, create chat.");
+							}
 						}
 					}
 
