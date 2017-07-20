@@ -6,7 +6,7 @@ plugin, that is completely **compatible** to the existing email infrastructure.
 
 ![Logo](https://delta.chat/assets/features/start-img4.png)
 
-The library is used eg. in the [Delta Chat Android Frontend](https://github.com/delta-chat/deltachat-android).
+The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android).
 
 Using this library if your app, you get the **ease** of well-known messengers
 with the **reach** of e-mail. Moreover, you're **independent** from other companies or
@@ -28,6 +28,7 @@ Some features at a glance
 - **Trustworthy** - can even be used for business messages
 - fully **OpenSource** and [Standards-based](https://delta.chat/en/standards)
 
+
 Build
 --------------------------------------------------------------------------------
 
@@ -46,9 +47,6 @@ The Delta Chat Core Library relies on the following external libs:
 Alternatively, use the ready-to-use files from the libs-directory which are
 suitable for common system.  You'll also find a fork of the needed Netpgp
 library there.
-
-Information about how to build the frontends can be found in the corresponding
-repositories as https://github.com/delta-chat/deltachat-android .
 
 
 Coding
