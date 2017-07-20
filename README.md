@@ -1,13 +1,14 @@
-Delta Chat Core
+Delta Chat Core Library
 ================================================================================
 
-Delta Chat is a project that aims to create a messaging app that is
-completely **compatible** to the existing e-mail infrastructure.
+You can use the _Delta Chat Core Library_ to build **your own messenger** or
+plugin, that is completely **compatible** to the existing email infrastructure.
 
-This **Delta Chat core library** is the backend library for the Delta Chat 
-frontends. However, it can be used as a backend for your own messenger, too. 
+![Logo](https://delta.chat/assets/features/start-img4.png)
 
-Using the Delta Chat core library you get the **ease** of well-known messengers
+The library is used eg. in the [Delta Chat Android Frontend](https://github.com/delta-chat/deltachat-android).
+
+Using this library if your app, you get the **ease** of well-known messengers
 with the **reach** of e-mail. Moreover, you're **independent** from other companies or
 services - as your data are not related to Delta Chat, you won't even add new
 dependencies here.
@@ -25,16 +26,12 @@ Some features at a glance
 - **No Spam** - only messages of known users are shown by default
 - **Reliable** - safe for professional use
 - **Trustworthy** - can even be used for business messages
-- fully **OpenSource** and **Standards** based
-
+- fully **OpenSource** and [Standards-based](https://delta.chat/en/standards)
 
 Build
 --------------------------------------------------------------------------------
 
-This repository contains only the core library that is used by all frontends
-(if you are searching for a ready-to-use frontend, please refer to <https://delta.chat>).
-
-The core relies on the following external libs:
+The Delta Chat Core Library relies on the following external libs:
 
 - [LibEtPan](https://github.com/dinhviethoa/libetpan), [OpenSSL](https://www.openssl.org/); for
   compilation, use eg. the following commands: `./autogen.sh; make;
