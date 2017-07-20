@@ -84,6 +84,9 @@ Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 of course, these empty messages are not added to any chat) */
 void                  mrmimeparser_parse          (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
 
+/* mrmimeparser_is_mailinglist_message() just checks if there is a `List-ID`-header. */
+int                   mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
+
 /* low-level-tools for working with mailmime structures directly */
 char*                          mr_find_first_addr    (const struct mailimf_mailbox_list*); /*the result must be freed*/
 char*                          mr_normalize_addr     (const char*); /*the result must be freed*/

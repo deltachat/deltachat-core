@@ -94,6 +94,11 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(of_a->fld_name, "FieldA")==0 );
 		assert( strcmp(of_a->fld_value, "ValueA")==0 );
 
+		of_a = mr_find_mailimf_field2(fields, "FIELDA");
+		assert( of_a && of_a->fld_value );
+		assert( strcmp(of_a->fld_name, "FieldA")==0 );
+		assert( strcmp(of_a->fld_value, "ValueA")==0 );
+
 		struct mailimf_optional_field* of_b = mr_find_mailimf_field2(fields, "FieldB");
 		assert( of_b && of_b->fld_value );
 		assert( strcmp(of_b->fld_value, "ValueB")==0 );
@@ -149,6 +154,16 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( strcmp("error="     MR_STRINGIFY(MR_OUT_ERROR),     "error=24")==0 );
         assert( strcmp("delivered=" MR_STRINGIFY(MR_OUT_DELIVERED), "delivered=26")==0 );
         assert( strcmp("mdn_rcvd="  MR_STRINGIFY(MR_OUT_MDN_RCVD),  "mdn_rcvd=28")==0 );
+
+        assert( strcmp("deaddrop="     MR_STRINGIFY(MR_CHAT_ID_DEADDROP),         "deaddrop=1")==0 );
+        assert( strcmp("to_deaddrop="  MR_STRINGIFY(MR_CHAT_ID_TO_DEADDROP),      "to_deaddrop=2")==0 );
+        assert( strcmp("trash="        MR_STRINGIFY(MR_CHAT_ID_TRASH),            "trash=3")==0 );
+        assert( strcmp("in_creation="  MR_STRINGIFY(MR_CHAT_ID_MSGS_IN_CREATION), "in_creation=4")==0 );
+        assert( strcmp("spcl_chat="    MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL),     "spcl_chat=9")==0 );
+
+        assert( strcmp("self="         MR_STRINGIFY(MR_CONTACT_ID_SELF),          "self=1")==0 );
+        assert( strcmp("system="       MR_STRINGIFY(MR_CONTACT_ID_SYSTEM),        "system=2")==0 );
+        assert( strcmp("spcl_contact=" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL),     "spcl_contact=9")==0 );
 	}
 
 	/* test mrparam

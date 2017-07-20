@@ -441,6 +441,7 @@ struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int w
 
 struct mailimf_optional_field* mr_find_mailimf_field2(struct mailimf_fields* header, const char* wanted_fld_name)
 {
+	/* Note: the function does not return fields with no value set! */
 	if( header == NULL || header->fld_list == NULL ) {
 		return NULL;
 	}
@@ -1384,4 +1385,27 @@ cleanup:
 		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
 		carray_add(ths->m_parts, (void*)part, NULL);
 	}
+}
+
+
+int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
+{
+	/* the function checks if the header of the mail looks as if it is a message from a mailing list */
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	if( mr_find_mailimf_field2(ths->m_header, "List-Id") != NULL ) {
+		return 1; /* mailing list identified by the presence of `List-ID` from RFC 2919 */
+	}
+
+	struct mailimf_optional_field* precedence = mr_find_mailimf_field2(ths->m_header, "Precedence");
+	if( precedence != NULL ) {
+		if( strcasecmp(precedence->fld_value, "list")==0
+		 || strcasecmp(precedence->fld_value, "bulk")==0 ) {
+			return 1; /* mailing list identified by the presence of `Precedence: bulk` or `Precedence: list` from RFC 3834 */
+		}
+	}
+
+	return 0;
 }
