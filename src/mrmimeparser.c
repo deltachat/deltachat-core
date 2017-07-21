@@ -1390,7 +1390,25 @@ cleanup:
 
 int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 {
-	/* the function checks if the header of the mail looks as if it is a message from a mailing list */
+	/* the function checks if the header of the mail looks as if it is a message from a mailing list
+
+	Some statistics:
+	=> sorted out by `List-ID`-header:
+	   - Mailman mailing list messages     - OK, mass messages
+	   - Xing forum/event notifications    - OK, mass messages
+	   - Xing welcome-back, contact-reqest - Hm, but it _has_ the List-ID header
+
+	=> sorted out by `Precedence`-header:
+	   - Majordomo mailing list messages   - OK, mass messages
+
+	=> NOT sorted out:
+	   - Pingdom notifications             - OK, individual message
+	   - Paypal notifications              - OK, individual message
+	   - Linked in visits, do-you-know     - OK, individual message
+	   - Share-It notifications            - OK, individual message
+	   - Transifex, Github notifications   - OK, individual message
+	*/
+
 	if( ths == NULL ) {
 		return 0;
 	}

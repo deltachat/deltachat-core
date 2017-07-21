@@ -686,11 +686,18 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					{
 						chat_id = MR_CHAT_ID_TRASH;
 						mrmailbox_log_info(ths, 0, "Message belongs to a mailing list and is ignored.");
-						/* currently we do not show up mailing list messages as this would result in lots of unwanted messages:
-						- if you send a single message to a mailing list ...
-						- all replies to this messages are shown up as is_reply_to_known_message__() will return true
-						- more worse: all messages are shown in single user chats
-						"Mailing lists messages" in this sense are messages marked by a List-Id as defined in RFC 2919
+						/* currently we do not show mailing list messages as the would result in lots of unwanted mesages:
+						(NB: typical mailing list header: `From: sender@gmx.net To: list@address.net)
+
+						- even if we know the sender, it does not make sense, to extract an mailing list message from the context and
+						  show it in the thread
+
+						- if we do not know the sender, it may be "known" by the is_reply_to_known_message__() function -
+						  this would be even more irritating as the sender may be unknown to the user
+						  (typical scenario: the users posts a message to a mailing list and an formally unknown user answers -
+						  this message would pop up in Delta Chat as it is a reply to a sent message)
+
+						"Mailing lists messages" in this sense are messages marked by List-Id or Precedence headers.
 						For the future, we might want to show mailing lists as groups.
 						NB: MR_CHAT_ID_TRASH does not remove the message on IMAP, it simply copies it to an invisible chat
 						(we have to track the message-id as otherwise the message pops up again and again) */
