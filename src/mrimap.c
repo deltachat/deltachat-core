@@ -1744,7 +1744,13 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 		if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
 		{
 			init_chat_folders__(ths);
-			if( ths->m_moveto_folder )
+			if( ths->m_moveto_folder && strcmp(folder, ths->m_moveto_folder)==0 )
+			{
+				mrmailbox_log_info(ths->m_mailbox, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, ths->m_moveto_folder);
+				/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
+				we will catch these messages again on the next pull, try to move them away and so on, see also (***) */
+			}
+			else if( ths->m_moveto_folder )
 			{
 				mrmailbox_log_info(ths->m_mailbox, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
 

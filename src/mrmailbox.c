@@ -975,7 +975,11 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					- Consumed or not consumed MDNs from other messengers
 					- Consumed MDNs from normal MUAs
 					Unconsumed MDNs from normal MUAs are _not_ moved.
-					NB: we do not delete the MDN as it may be used by other clients */
+					NB: we do not delete the MDN as it may be used by other clients
+
+					CAVE: we rely on mrimap_markseen_msg() not to move messages that are aready in the correct folder.
+					otherwiese, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
+					a classical deadlock, see also (***) */
 					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
 						char* jobparam = mr_mprintf("%c=%s\n%c=%lu", MRP_SERVER_FOLDER, server_folder, MRP_SERVER_UID, server_uid);
 							mrjob_add__(ths, MRJ_MARKSEEN_MDN_ON_IMAP, 0, jobparam);
