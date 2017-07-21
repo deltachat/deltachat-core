@@ -304,7 +304,7 @@ static struct mailmime* build_body_text(char* text)
 }
 
 
-static struct mailmime* build_body_file(const mrmsg_t* msg)
+static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name_as_sended)
 {
 	struct mailmime_fields*  mime_fields;
 	struct mailmime*         mime_sub = NULL;
@@ -373,8 +373,9 @@ static struct mailmime* build_body_file(const mrmsg_t* msg)
 	/* create mime part, for Content-Disposition, see RFC 2183.
 	`Content-Disposition: attachment` seems not to make a difference to `Content-Disposition: inline` at least on tested Thunderbird and Gma'l in 2017.
 	But I've heard about problems with inline and outl'k, so we just use the attachment-type until we run into other problems ... */
+	*ret_file_name_as_sended = safe_strdup(filename_to_send);
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
-		safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
+		(*ret_file_name_as_sended)/*mime takes owndership of the pointer*/, MAILMIME_MECHANISM_BASE64);
 
 	content = mailmime_content_new_with_str(mimetype);
 
@@ -420,13 +421,14 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
-	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL;
+	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL, *ptr_to_free = NULL;
 	char*                        afwd_email = NULL;
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
 	mrmailbox_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
+	int                          system_command = 0;
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
@@ -483,12 +485,20 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mrchat_t* chat = factory->m_chat;
 		mrmsg_t*  msg  = factory->m_msg;
 
+		/* prepare attachment part (we do this first as we need some information for the header) */
+		struct mailmime* file_part = NULL;
+		char*            file_name_as_sended = NULL; /* must not be freed */
+		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
+			file_part = build_body_file(msg, &file_name_as_sended);
+		}
+
+		/* build header etc. */
 		if( chat->m_type==MR_CHAT_GROUP )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
 
-			int system_command = mrparam_get_int(msg->m_param, 'S', 0);
+			system_command = mrparam_get_int(msg->m_param, 'S', 0);
 			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
 				char* email_to_remove = mrparam_get(msg->m_param, 'E', NULL);
 				if( email_to_remove ) {
@@ -503,6 +513,10 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			}
 			else if( system_command == MR_SYSTEM_GROUPNAME_CHANGED ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
+			}
+			else if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"),
+					strdup(file_name_as_sended? file_name_as_sended : "0")));
 			}
 		}
 
@@ -551,12 +565,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		free(fwdhint);
 
 		/* add attachment part */
-		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
-			struct mailmime* file_part = build_body_file(msg);
-			if( file_part ) {
-				mailmime_smart_add_part(message, file_part);
-				parts++;
-			}
+		if( file_part ) {
+			mailmime_smart_add_part(message, file_part);
+			parts++;
 		}
 
 		if( parts == 0 ) {
@@ -651,6 +662,7 @@ cleanup:
 	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(afwd_email);
+	free(ptr_to_free);
 	return success;
 }
 

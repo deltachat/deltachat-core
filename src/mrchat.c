@@ -1626,6 +1626,64 @@ cleanup:
 }
 
 
+int mrmailbox_set_chat_image(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
+{
+	int       success = 0, locked = 0;;
+	mrchat_t* chat = mrchat_new(mailbox);
+	mrmsg_t*  msg = mrmsg_new();
+
+	if( mailbox==NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( 0==mrmailbox_real_group_exists__(mailbox, chat_id)
+		 || 0==mrchat_load_from_db__(chat, chat_id) ) {
+			goto cleanup;
+		}
+
+		if( !IS_SELF_IN_GROUP__ ) {
+			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+		}
+
+		mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, new_image/*may be NULL*/);
+		if( !mrchat_update_param__(chat) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	/* send a status mail to all group members, also needed for outself to allow multi-client */
+	if( DO_SEND_STATUS_MAILS )
+	{
+		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
+		if( new_image ) {
+			msg->m_type = MR_MSG_IMAGE;
+			mrparam_set(msg->m_param, 'f', new_image);
+		}
+		else {
+			msg->m_type = MR_MSG_TEXT;
+			msg->m_text = mrstock_str(MR_STR_MSGGRPIMAGE);
+		}
+		msg->m_id = mrchat_send_msg(chat, msg);
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+	}
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+
+	success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrchat_unref(chat);
+	mrmsg_unref(msg);
+	return success;
+}
+
+
 int mrmailbox_get_chat_contact_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,

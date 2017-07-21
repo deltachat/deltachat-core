@@ -29,6 +29,7 @@
 #include <string.h>
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
+#include "mrmimefactory.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
 
@@ -1313,9 +1314,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 	}
 
-	/* mark audio as voice message, if appropriate (we have to do this on global level as we do not know the global header in the recursice parse).
-	and read some additional parameters */
-	if( carray_count(ths->m_parts)==1 ) {
+	if( carray_count(ths->m_parts)==1 )
+	{
+		/* mark audio as voice message, if appropriate (we have to do this on global level as we do not know the global header in the recursice parse).
+		and read some additional parameters */
 		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( part->m_type == MR_MSG_AUDIO ) {
 			if( mrmimeparser_find_xtra_field(ths, "X-MrVoiceMessage") || mrmimeparser_find_xtra_field(ths, "Chat-Voice-Message") ) {
@@ -1338,6 +1340,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 			}
 		}
 
+		/* some special system message? */
+		if( mrmimeparser_find_xtra_field(ths, "Chat-Group-Image") ) {
+			mrparam_set_int(part->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
+		}
 	}
 
 	/* check, if the message asks for a MDN */

@@ -161,6 +161,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"creategroup <name>\n"
 			"addmember <contact-id>\n"
 			"removemember <contact-id>\n"
+			"groupimage [<file>]\n"
 			"listmembers\n"
 			"send <text>\n"
 			"sendimage <file>\n"
@@ -469,6 +470,15 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			else {
 				ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 			}
+		}
+		else {
+			ret = safe_strdup("No chat selected.");
+		}
+	}
+	else if( strcmp(cmd, "groupimage")==0 )
+	{
+		if( sel_chat ) {
+			ret = mrmailbox_set_chat_image(mailbox, sel_chat->m_id, (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("No chat selected.");

@@ -206,6 +206,7 @@ int                  mrmailbox_is_contact_in_chat        (mrmailbox_t*, uint32_t
 int                  mrmailbox_add_contact_to_chat       (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int                  mrmailbox_remove_contact_from_chat  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int                  mrmailbox_set_chat_name             (mrmailbox_t*, uint32_t chat_id, const char* name);
+int                  mrmailbox_set_chat_image            (mrmailbox_t*, uint32_t chat_id, const char* image); /* set image to NULL to remove it */
 
 
 /* mrmailbox_get_chat_msgs() returns a view on a chat.

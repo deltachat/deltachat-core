@@ -71,6 +71,8 @@ extern "C" {
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */
 #define MRP_SERVER_UID        'z'  /* for jobs */
 
+#define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
+
 
 typedef struct mrparam_t
 {
