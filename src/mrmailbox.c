@@ -872,7 +872,11 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 
 			/* check event to send */
-			if( incoming && state==MR_IN_FRESH )
+			if( chat_id == MR_CHAT_ID_TRASH )
+			{
+				create_event_to_send = 0;
+			}
+			else if( incoming && state==MR_IN_FRESH )
 			{
 				if( from_id_blocked ) {
 					create_event_to_send = 0;
