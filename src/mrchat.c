@@ -1586,6 +1586,11 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 			goto cleanup;
 		}
 
+		if( strcmp(chat->m_name, new_name)==0 ) {
+			success = 1;
+			goto cleanup; /* name not modified */
+		}
+
 		if( !IS_SELF_IN_GROUP__ ) {
 			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
@@ -1599,7 +1604,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* send a status mail to all group members */
+	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
 		msg->m_type = MR_MSG_TEXT;
