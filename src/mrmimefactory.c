@@ -421,7 +421,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
-	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL, *ptr_to_free = NULL;
+	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL;
 	char*                        afwd_email = NULL;
 	int                          col = 0;
 	int                          success = 0;
@@ -662,7 +662,6 @@ cleanup:
 	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(afwd_email);
-	free(ptr_to_free);
 	return success;
 }
 
