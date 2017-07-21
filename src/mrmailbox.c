@@ -1282,14 +1282,14 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 	char* ret;
 
 	if( ths == NULL || key == NULL ) { /* "def" may be NULL */
-		return safe_strdup(def);
+		return strdup_keep_null(def);
 	}
 
 	mrsqlite3_lock(ths->m_sql);
 		ret = mrsqlite3_get_config__(ths->m_sql, key, def);
 	mrsqlite3_unlock(ths->m_sql);
 
-	return ret; /* the returned string must be free()'d, returns NULL on errors */
+	return ret; /* the returned string must be free()'d, returns NULL only if "def" is NULL and "key" is unset */
 }
 
 

@@ -98,7 +98,11 @@ static void load_from__(mrmimefactory_t* factory)
 {
 	factory->m_from_addr        = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
 	factory->m_from_displayname = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
+
 	factory->m_selfstatus       = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "selfstatus", NULL);
+	if( factory->m_selfstatus == NULL ) {
+		factory->m_selfstatus = mrstock_str(MR_STR_STATUSLINE);
+	}
 }
 
 

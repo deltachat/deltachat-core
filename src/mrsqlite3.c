@@ -327,18 +327,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		}
 	#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 13
-		if( dbversion < NEW_DB_VERSION )
-		{
-			char* p = mrstock_str(MR_STR_STATUSLINE);
-			mrsqlite3_set_config__(ths, "selfstatus", p);
-			free(p);
-
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-		}
+	#define NEW_DB_VERSION 13 /* just leave this to make sure version 13 is not used again */
 	#undef NEW_DB_VERSION
-
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
@@ -516,12 +506,12 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 }
 
 
-char* mrsqlite3_get_config__(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d */
+char* mrsqlite3_get_config__(mrsqlite3_t* ths, const char* key, const char* def) /* the returned string must be free()'d, NULL is only returned if def is NULL */
 {
 	sqlite3_stmt* stmt;
 
 	if( !mrsqlite3_is_open(ths) || key == NULL ) {
-		return safe_strdup(def);
+		return strdup_keep_null(def);
 	}
 
 	stmt = mrsqlite3_predefine__(ths, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
@@ -537,10 +527,7 @@ char* mrsqlite3_get_config__(mrsqlite3_t* ths, const char* key, const char* def)
 	}
 
 	/* return the default value */
-	if( def ) {
-		return safe_strdup(def);
-	}
-	return NULL;
+	return strdup_keep_null(def);
 }
 
 
