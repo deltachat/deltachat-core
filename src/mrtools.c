@@ -454,6 +454,7 @@ void mrstrbuilder_init(mrstrbuilder_t* ths)
 
 char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
 {
+	/* this function MUST NOT call logging functions as it is used to output the log */
 	if( ths==NULL || text==NULL ) {
 		return NULL;
 	}

@@ -1098,6 +1098,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userData)
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
+
 	pthread_mutex_init(&ths->m_wake_lock_critical, NULL);
 
 	ths->m_sql      = mrsqlite3_new(ths);
@@ -1150,6 +1152,12 @@ void mrmailbox_unref(mrmailbox_t* ths)
 	mrsmtp_unref(ths->m_smtp);
 	mrsqlite3_unref(ths->m_sql);
 	pthread_mutex_destroy(&ths->m_wake_lock_critical);
+
+	pthread_mutex_destroy(&ths->m_log_ringbuf_critical);
+	for( int i = 0; i < MR_LOG_RINGBUF_SIZE; i++ ) {
+		free(ths->m_log_ringbuf[i]);
+	}
+
 	free(ths);
 
 	if( s_localize_mb_obj==ths ) {
@@ -1343,10 +1351,13 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char* unset = "0";
-	char *displayname = NULL, *info = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
+	char *displayname = NULL, *temp = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
 	mrloginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
 	mrkey_t* self_public = mrkey_new();
+
+	mrstrbuilder_t  ret;
+	mrstrbuilder_init(&ret);
 
 	if( ths == NULL ) {
 		return safe_strdup("ErrBadPtr");
@@ -1403,7 +1414,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
 	- use neutral speach; the Delta Chat Core is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
-	info = mr_mprintf(
+	temp = mr_mprintf(
 		"Chats: %i\n"
 		"Chat messages: %i\n"
 		"Messages in mailbox: %i\n"
@@ -1419,7 +1430,8 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		"E2EE_DEFAULT_ENABLED=%i\n"
 		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
 		"\n"
-		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage."
+		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage.\n\n"
+		"Log excerpt:\n"
 		/* In the frontends, additional software hints may follow here. */
 
 		, chats, real_msgs, deaddrop_msgs, contacts
@@ -1441,6 +1453,23 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 		, sizeof(void*)*8
 
 		);
+	mrstrbuilder_cat(&ret, temp);
+	free(temp);
+
+	/* add log excerpt */
+	pthread_mutex_lock(&ths->m_log_ringbuf_critical); /*take care not to log here! */
+		for( int i = 0; i < MR_LOG_RINGBUF_SIZE; i++ ) {
+			int j = (ths->m_log_ringbuf_pos+i) % MR_LOG_RINGBUF_SIZE;
+			if( ths->m_log_ringbuf[j] ) {
+				struct tm wanted_struct;
+				memcpy(&wanted_struct, localtime(&ths->m_log_ringbuf_times[j]), sizeof(struct tm));
+				temp = mr_mprintf("\n%02i:%02i:%02i ", (int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+					mrstrbuilder_cat(&ret, temp);
+					mrstrbuilder_cat(&ret, ths->m_log_ringbuf[j]);
+				free(temp);
+			}
+		}
+	pthread_mutex_unlock(&ths->m_log_ringbuf_critical);
 
 	/* free data */
 	mrloginparam_unref(l);
@@ -1450,7 +1479,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 	free(l2_readable_str);
 	free(fingerprint_str);
 	mrkey_unref(self_public);
-	return info; /* must be freed by the caller */
+	return ret.m_buf; /* must be freed by the caller */
 }
 
 

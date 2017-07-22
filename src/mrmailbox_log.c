@@ -132,7 +132,13 @@ void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, const char
 	/* finally, log */
 	mailbox->m_cb(mailbox, event, (uintptr_t)code, (uintptr_t)msg);
 
-	free(msg);
+	/* remember the last N log entries */
+	pthread_mutex_lock(&mailbox->m_log_ringbuf_critical);
+		free(mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos]);
+		mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos] = msg;
+		mailbox->m_log_ringbuf_times[mailbox->m_log_ringbuf_pos] = time(NULL);
+		mailbox->m_log_ringbuf_pos = (mailbox->m_log_ringbuf_pos+1) % MR_LOG_RINGBUF_SIZE;
+	pthread_mutex_unlock(&mailbox->m_log_ringbuf_critical);
 }
 
 
