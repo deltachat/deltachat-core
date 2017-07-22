@@ -1667,7 +1667,7 @@ int mrmailbox_set_chat_image(mrmailbox_t* mailbox, uint32_t chat_id, const char*
 		}
 		else {
 			msg->m_type = MR_MSG_TEXT;
-			msg->m_text = mrstock_str(MR_STR_MSGGRPIMAGE);
+			msg->m_text = mrstock_str(MR_STR_MSGGRPIMGDELETED);
 		}
 		msg->m_id = mrchat_send_msg(chat, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);

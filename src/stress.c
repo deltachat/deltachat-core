@@ -38,6 +38,7 @@
 #include "mrmailbox.h"
 #include "mrsimplify.h"
 #include "mrmimeparser.h"
+#include "mrmimefactory.h"
 #include "mrpgp.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
@@ -164,6 +165,8 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( strcmp("self="         MR_STRINGIFY(MR_CONTACT_ID_SELF),          "self=1")==0 );
         assert( strcmp("system="       MR_STRINGIFY(MR_CONTACT_ID_SYSTEM),        "system=2")==0 );
         assert( strcmp("spcl_contact=" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL),     "spcl_contact=9")==0 );
+
+        assert( strcmp("grpimg="    MR_STRINGIFY(MR_SYSTEM_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
 	}
 
 	/* test mrparam

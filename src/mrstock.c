@@ -61,7 +61,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_STATUSLINE:        return safe_strdup("Sent with my Delta Chat Messenger");
 		case MR_STR_NEWGROUPDRAFT:     return safe_strdup("Hello, I've just created the group \"%1$s\" for us.");
 		case MR_STR_MSGGRPNAME:        return safe_strdup("Group name changed from \"%1$s\" to \"%2$s\".");
-		case MR_STR_MSGGRPIMAGE:       return safe_strdup("Group image changed.");
+		case MR_STR_MSGGRPIMGCHANGED:  return safe_strdup("Group image changed.");
 		case MR_STR_MSGADDMEMBER:      return safe_strdup("Member %1$s added.");
 		case MR_STR_MSGDELMEMBER:      return safe_strdup("Member %1$s removed.");
 		case MR_STR_MSGGROUPLEFT:      return safe_strdup("Group left.");
@@ -76,6 +76,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_FINGERPRINTS:      return safe_strdup("Fingerprints");
 		case MR_STR_READRCPT:          return safe_strdup("Return receipt");
 		case MR_STR_READRCPT_MAILBODY: return safe_strdup("This is a return receipt for the message \"%1$s\".");
+		case MR_STR_MSGGRPIMGDELETED:  return safe_strdup("Group image deleted.");
 	}
 	return safe_strdup("ErrStr");
 }

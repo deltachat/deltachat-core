@@ -47,7 +47,7 @@ extern "C" {
 #define MR_STR_STATUSLINE        13
 #define MR_STR_NEWGROUPDRAFT     14
 #define MR_STR_MSGGRPNAME        15
-#define MR_STR_MSGGRPIMAGE       16
+#define MR_STR_MSGGRPIMGCHANGED  16
 #define MR_STR_MSGADDMEMBER      17
 #define MR_STR_MSGDELMEMBER      18
 #define MR_STR_MSGGROUPLEFT      19
@@ -64,6 +64,7 @@ extern "C" {
 #define MR_STR_FINGERPRINTS      30
 #define MR_STR_READRCPT          31
 #define MR_STR_READRCPT_MAILBODY 32
+#define MR_STR_MSGGRPIMGDELETED  33
 
 
 /*** library-private **********************************************************/
