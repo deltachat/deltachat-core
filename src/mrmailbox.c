@@ -514,8 +514,11 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              has_return_path = 0;
 	char*            txt_raw = NULL;
 
+	mrmailbox_log_info(ths, 0, "Receive message #%lu from %s.", server_uid, server_folder? server_folder:"?");
+
 	to_list = carray_new(16);
 	if( to_list==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
+		mrmailbox_log_info(ths, 0, "Bad param.");
 		goto cleanup;
 	}
 
@@ -533,6 +536,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( mime_parser->m_header == NULL ) {
+		mrmailbox_log_info(ths, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
 
@@ -764,6 +768,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				we do not use the folder-local id, as this will change if the mail is moved to another folder. */
 				rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_list);
 				if( rfc724_mid == NULL ) {
+					mrmailbox_log_info(ths, 0, "Cannot create Message-ID.");
 					goto cleanup;
 				}
 			}
@@ -779,6 +784,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						mrmailbox_update_server_uid__(ths, rfc724_mid, server_folder, server_uid);
 					}
 					free(old_server_folder);
+					mrmailbox_log_info(ths, 0, "Message already in DB.");
 					goto cleanup;
 				}
 			}
@@ -813,6 +819,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt, 14, part->m_bytes);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
+					mrmailbox_log_info(ths, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
@@ -865,6 +872,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
 					sqlite3_bind_int  (stmt, 14, 0);
 					if( sqlite3_step(stmt) != SQLITE_DONE ) {
+						mrmailbox_log_info(ths, 0, "Cannot write DB (2).");
 						goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 					}
 

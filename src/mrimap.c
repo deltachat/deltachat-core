@@ -576,6 +576,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	LOCK_HANDLE
 
 		if( ths->m_hEtpan==NULL ) {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Cannot fetch from \"%s\" - no connected.", folder);
 			goto cleanup;
 		}
 
@@ -596,6 +597,8 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 				lastuid_config_key = NULL;
 				lastuid = 0;
 			}
+
+			mrmailbox_log_info(ths->m_mailbox, 0, "%s=%lu", lastuid_config_key, (unsigned long)lastuid);
 		}
 
 		if( lastuid == 0 )
@@ -609,6 +612,8 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
 				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
 			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
+
+			mrmailbox_log_info(ths->m_mailbox, 0, "%s=%lu (validity read from folder)", lastuid_config_key, (unsigned long)lastuid);
 
 			if( lastuid == 0 ) {
 				if( ths->m_hEtpan->imap_selection_info->sel_uidnext != 0 ) {
@@ -662,6 +667,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	{
 		fetch_result = NULL;
 		if( r == MAILIMAP_ERROR_PROTOCOL ) {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" is empty", folder);
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
 		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot fetch message list from folder \"%s\".", folder);
