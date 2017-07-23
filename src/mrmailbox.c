@@ -109,11 +109,13 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	int                   i, to_list_cnt = carray_count(to_list);
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
+	int                   send_EVENT_CHAT_MODIFIED = 0;
 
 	/* special commands */
 	char*                 X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	char*                 X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	int                   X_MrGrpNameChanged = 0;
+	int                   X_MrGrpImageChanged = 0;
 
 	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
@@ -138,6 +140,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name-Changed")==0 ) {
 						X_MrGrpNameChanged = 1;
+					}
+					else if( strcasecmp(optional_field->fld_name, "Chat-Group-Image")==0 && carray_count(mime_parser->m_parts)==1 ) {
+						X_MrGrpImageChanged = 1;
 					}
 				}
 			}
@@ -233,6 +238,19 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		sqlite3_finalize(stmt);
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
+	else if( X_MrGrpImageChanged )
+	{
+		mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
+		char* grpimage = part->m_type==MR_MSG_TEXT? NULL : mrparam_get(part->m_param, 'f', NULL);
+			mrchat_t* chat = mrchat_new(mailbox);
+				mrmailbox_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
+				mrchat_load_from_db__(chat, chat_id);
+				mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, grpimage/*may be NULL*/);
+				mrchat_update_param__(chat);
+			mrchat_unref(chat);
+		free(grpimage);
+		send_EVENT_CHAT_MODIFIED = 1;
+	}
 
 	/* add members to group/check members
 	for recreation: we should add a timestamp */
@@ -264,6 +282,10 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
 			}
 		}
+		send_EVENT_CHAT_MODIFIED = 1;
+	}
+
+	if( send_EVENT_CHAT_MODIFIED ) {
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
 
