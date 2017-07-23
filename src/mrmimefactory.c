@@ -429,6 +429,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	mrmailbox_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
 	int                          system_command = 0;
+	int                          force_unencrypted = 0;
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
@@ -587,10 +588,16 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mailmime_add_part(message, multipart);
 
 		/* first body part: always human-readable, always REQUIRED by RFC 6522 */
-		char* p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
-			char* p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
-				message_text = mr_mprintf("%s" LINEEND, p2);
-			free(p2);
+		char *p1 = NULL, *p2 = NULL;
+		if( mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
+			p1 = safe_strdup(factory->m_msg->m_rfc724_mid); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
+		}
+		else {
+			p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
+		}
+		p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
+		message_text = mr_mprintf("%s" LINEEND, p2);
+		free(p2);
 		free(p1);
 
 		struct mailmime* human_mime_part = build_body_text(message_text);
@@ -615,6 +622,13 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mailmime_set_body_text(mach_mime_part, message_text2, strlen(message_text2));
 
 		mailmime_add_part(multipart, mach_mime_part);
+
+		/* currently, we do not send MDNs encrypted:
+		- in a multi-device-setup that is not set up properly, MDNs would disturb the communication massively as they
+		  are send automatically - which would lead to spreading outdated Autocrypt headers.
+		- they do not carry any information but the Message-ID
+		- this save some KB */
+		force_unencrypted = 1;
 	}
 	else
 	{
@@ -625,9 +639,11 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	/* Encrypt the message
 	 *************************************************************************/
 
-	if( encrypt_to_self==0 || e2ee_guaranteed ) {
-		/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
-		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
+	if( !force_unencrypted ) {
+		if( encrypt_to_self==0 || e2ee_guaranteed ) {
+			/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
+			mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
+		}
 	}
 
 	/* add a subject line */
