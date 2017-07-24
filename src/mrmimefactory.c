@@ -144,9 +144,9 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				}
 			}
 
-			int system_command = mrparam_get_int(factory->m_msg->m_param, 'S', 0);
+			int system_command = mrparam_get_int(factory->m_msg->m_param, MRP_SYSTEM_CMD, 0);
 			if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
-				char* email_to_remove = mrparam_get(factory->m_msg->m_param, 'E', NULL);
+				char* email_to_remove = mrparam_get(factory->m_msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 				if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 				{
@@ -499,15 +499,15 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
 
-			system_command = mrparam_get_int(msg->m_param, 'S', 0);
+			system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
-				char* email_to_remove = mrparam_get(msg->m_param, 'E', NULL);
+				char* email_to_remove = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_remove ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrRemoveFromGrp"), email_to_remove));
 				}
 			}
 			else if( system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP ) {
-				char* email_to_add = mrparam_get(msg->m_param, 'E', NULL);
+				char* email_to_add = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_add ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrAddToGrp"), email_to_add));
 				}

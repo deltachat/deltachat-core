@@ -1346,7 +1346,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	 && carray_count(ths->m_parts)>=1 ) {
 		mrmimepart_t* textpart = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( textpart->m_type == MR_MSG_TEXT ) {
-			mrparam_set_int(textpart->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
+			mrparam_set_int(textpart->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_GROUPIMAGE_CHANGED);
 			if( carray_count(ths->m_parts)>=2 ) {
 				mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(ths->m_parts, 1);
 				if( imgpart->m_type == MR_MSG_IMAGE ) {

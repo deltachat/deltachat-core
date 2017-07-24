@@ -48,8 +48,6 @@
  *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
- * 'S'ystem command
- * 'E'xtra parameter for system command
  * 'P'hysically delete group after message sending
  * 'r'ead receipt wanted
  * 'R'eferences header last used for a chat
@@ -72,6 +70,9 @@ extern "C" {
 #define MRP_SERVER_UID        'z'  /* for jobs */
 
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
+
+#define MRP_SYSTEM_CMD        'S'
+#define MRP_SYSTEM_CMD_PARAM  'E'
 
 
 typedef struct mrparam_t

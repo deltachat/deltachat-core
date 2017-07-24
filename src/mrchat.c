@@ -1091,8 +1091,8 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		contact = mrmailbox_get_contact(mailbox, MR_CONTACT_ID_SELF);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
-		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
-		mrparam_set    (msg->m_param, 'E', contact->m_addr);
+		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
+		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
 		mrparam_set_int(msg->m_param, 'P', link_msg_to_chat_deletion);
 		mrchat_send_msg(chat, msg);
 	}
@@ -1609,7 +1609,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
-		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_GROUPNAME_CHANGED);
+		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_GROUPNAME_CHANGED);
 		msg->m_id = mrchat_send_msg(chat, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -1768,8 +1768,8 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
-		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
-		mrparam_set    (msg->m_param, 'E', contact->m_addr);
+		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
+		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
 		msg->m_id = mrchat_send_msg(chat, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -1829,8 +1829,8 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			else {
 				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
-			mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
-			mrparam_set    (msg->m_param, 'E', contact->m_addr);
+			mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
+			mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
 			msg->m_id = mrchat_send_msg(chat, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
