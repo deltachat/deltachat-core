@@ -1339,10 +1339,20 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				}
 			}
 		}
+	}
 
-		/* some special system message? */
-		if( mrmimeparser_find_xtra_field(ths, "Chat-Group-Image") ) {
-			mrparam_set_int(part->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
+	/* some special system message? */
+	if( mrmimeparser_find_xtra_field(ths, "Chat-Group-Image")
+	 && carray_count(ths->m_parts)>=1 ) {
+		mrmimepart_t* textpart = (mrmimepart_t*)carray_get(ths->m_parts, 0);
+		if( textpart->m_type == MR_MSG_TEXT ) {
+			mrparam_set_int(textpart->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
+			if( carray_count(ths->m_parts)>=2 ) {
+				mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(ths->m_parts, 1);
+				if( imgpart->m_type == MR_MSG_IMAGE ) {
+					imgpart->m_is_meta = 1;
+				}
+			}
 		}
 	}
 
@@ -1350,7 +1360,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	if( !ths->m_decrypting_failed )
 	{
 		const struct mailimf_optional_field* dn_field = mrmimeparser_find_xtra_field(ths, "Disposition-Notification-To");
-		if( dn_field && carray_count(ths->m_parts) >= 1 )
+		if( dn_field && mrmimeparser_get_last_nonmeta(ths) )
 		{
 			struct mailimf_mailbox_list* mb_list = NULL;
 			size_t index = 0;
@@ -1370,8 +1380,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 								/* we mark _only_ the _last_ part to send a MDN
 								(this avoids trouble with multi-part-messages who should send only one MDN.
 								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
-								mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, carray_count(ths->m_parts)-1);
-								mrparam_set_int(part->m_param, MRP_WANTS_MDN, 1);
+								mrmimepart_t* part = mrmimeparser_get_last_nonmeta(ths);
+								if( part ) {
+									mrparam_set_int(part->m_param, MRP_WANTS_MDN, 1);
+								}
 							}
 							free(from_addr);
 						}
@@ -1385,12 +1397,27 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
-	if( carray_count(ths->m_parts)==0 && carray_count(ths->m_reports)==0 ) {
+	if( !mrmimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
 		part->m_type = MR_MSG_TEXT;
 		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
 		carray_add(ths->m_parts, (void*)part, NULL);
 	}
+}
+
+
+mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
+{
+	if( ths && ths->m_parts ) {
+		int i, icnt = carray_count(ths->m_parts);
+		for( i = icnt-1; i >= 0; i-- ) {
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			if( part && !part->m_is_meta ) {
+				return part;
+			}
+		}
+	}
+	return NULL;
 }
 
 
@@ -1433,3 +1460,4 @@ int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 
 	return 0;
 }
+

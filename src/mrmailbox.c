@@ -141,7 +141,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name-Changed")==0 ) {
 						X_MrGrpNameChanged = 1;
 					}
-					else if( strcasecmp(optional_field->fld_name, "Chat-Group-Image")==0 && carray_count(mime_parser->m_parts)==1 ) {
+					else if( strcasecmp(optional_field->fld_name, "Chat-Group-Image")==0 ) {
 						X_MrGrpImageChanged = 1;
 					}
 				}
@@ -240,16 +240,34 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	}
 	else if( X_MrGrpImageChanged )
 	{
-		mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
-		char* grpimage = part->m_type==MR_MSG_TEXT? NULL : mrparam_get(part->m_param, 'f', NULL);
+		int   ok = 0;
+		char* grpimage = NULL;
+		if( carray_count(mime_parser->m_parts)>=1 ) {
+			mrmimepart_t* textpart = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
+			if( textpart->m_type == MR_MSG_TEXT ) {
+				if( carray_count(mime_parser->m_parts)>=2 ) {
+					mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(mime_parser->m_parts, 1);
+					if( imgpart->m_type == MR_MSG_IMAGE ) {
+						grpimage = mrparam_get(imgpart->m_param, 'f', NULL);
+						ok = 1;
+					}
+				}
+				else {
+					ok = 1;
+				}
+			}
+		}
+
+		if( ok ) {
 			mrchat_t* chat = mrchat_new(mailbox);
 				mrmailbox_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
 				mrchat_load_from_db__(chat, chat_id);
 				mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, grpimage/*may be NULL*/);
 				mrchat_update_param__(chat);
 			mrchat_unref(chat);
-		free(grpimage);
-		send_EVENT_CHAT_MODIFIED = 1;
+			free(grpimage);
+			send_EVENT_CHAT_MODIFIED = 1;
+		}
 	}
 
 	/* add members to group/check members
@@ -643,7 +661,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		}
 
 
-		if( carray_count(mime_parser->m_parts) > 0 )
+		if( mrmimeparser_has_nonmeta(mime_parser) )
 		{
 
 			/**********************************************************************
@@ -818,6 +836,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			for( i = 0; i < icnt; i++ )
 			{
 				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
+				if( part->m_is_meta ) {
+					continue;
+				}
 
 				if( part->m_type == MR_MSG_TEXT ) {
 					txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);

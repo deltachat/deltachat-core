@@ -44,6 +44,7 @@ extern "C" {
 typedef struct mrmimepart_t
 {
 	int                 m_type; /*one of MR_MSG_* */
+	int                 m_is_meta; /*meta parts contain eg. profile or group images and are only present if there is at least one "normal" part*/
 	char*               m_msg;
 	char*               m_msg_raw;
 	int                 m_bytes;
@@ -83,6 +84,10 @@ Unless memory-allocation-errors occur, Parse() returns at least one empty part.
 (this is because we want to add even these message to our database to avoid reading them several times.
 of course, these empty messages are not added to any chat) */
 void                  mrmimeparser_parse          (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+
+/* mrmimeparser_get_last_nonmeta() gets the _last_ part _not_ flagged with m_is_meta. */
+mrmimepart_t*   mrmimeparser_get_last_nonmeta  (mrmimeparser_t*);
+#define         mrmimeparser_has_nonmeta(a)    (mrmimeparser_get_last_nonmeta((a))!=NULL)
 
 /* mrmimeparser_is_mailinglist_message() just checks if there is a `List-ID`-header. */
 int                   mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
