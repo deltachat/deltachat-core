@@ -373,9 +373,12 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name
 	/* create mime part, for Content-Disposition, see RFC 2183.
 	`Content-Disposition: attachment` seems not to make a difference to `Content-Disposition: inline` at least on tested Thunderbird and Gma'l in 2017.
 	But I've heard about problems with inline and outl'k, so we just use the attachment-type until we run into other problems ... */
-	*ret_file_name_as_sended = safe_strdup(filename_to_send);
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
-		(*ret_file_name_as_sended)/*mime takes owndership of the pointer*/, MAILMIME_MECHANISM_BASE64);
+		safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
+
+	if( ret_file_name_as_sended ) {
+		*ret_file_name_as_sended = safe_strdup(filename_to_send);
+	}
 
 	content = mailmime_content_new_with_str(mimetype);
 
@@ -486,12 +489,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mrchat_t* chat = factory->m_chat;
 		mrmsg_t*  msg  = factory->m_msg;
 
-		/* prepare attachment part (we do this first as we need some information for the header) */
-		struct mailmime* file_part = NULL;
-		char*            file_name_as_sended = NULL; /* must not be freed */
-		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
-			file_part = build_body_file(msg, &file_name_as_sended);
-		}
+		struct mailmime* meta_part = NULL;
 
 		/* build header etc. */
 		if( chat->m_type==MR_CHAT_GROUP )
@@ -516,8 +514,21 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
 			}
 			else if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"),
-					strdup(file_name_as_sended? file_name_as_sended : "0")));
+				char* grpimage = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+				if( grpimage==NULL ) {
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), safe_strdup("0")));
+				}
+				else {
+					mrmsg_t* meta = mrmsg_new();
+					meta->m_type = MR_MSG_IMAGE;
+					mrparam_set(meta->m_param, 'f', grpimage);
+					char* filename_as_sended = NULL;
+					if( (meta_part=build_body_file(meta, &filename_as_sended))!=NULL ) {
+						mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sended/*takes ownership*/));
+					}
+					mrmsg_unref(meta);
+				}
+				free(grpimage);
 			}
 		}
 
@@ -566,13 +577,21 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		free(fwdhint);
 
 		/* add attachment part */
-		if( file_part ) {
-			mailmime_smart_add_part(message, file_part);
-			parts++;
+		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
+			struct mailmime* file_part = build_body_file(msg, NULL);
+			if( file_part ) {
+				mailmime_smart_add_part(message, file_part);
+				parts++;
+			}
 		}
 
 		if( parts == 0 ) {
 			goto cleanup;
+		}
+
+		if( meta_part ) {
+			mailmime_smart_add_part(message, meta_part); /* meta parts are only added if there are other parts */
+			parts++;
 		}
 
 		e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);

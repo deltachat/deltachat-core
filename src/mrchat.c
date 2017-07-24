@@ -1660,15 +1660,10 @@ int mrmailbox_set_chat_image(mrmailbox_t* mailbox, uint32_t chat_id, const char*
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		mrparam_set_int(msg->m_param, 'S', MR_SYSTEM_GROUPIMAGE_CHANGED);
-		if( new_image ) {
-			msg->m_type = MR_MSG_IMAGE;
-			mrparam_set(msg->m_param, 'f', new_image);
-		}
-		else {
-			msg->m_type = MR_MSG_TEXT;
-			msg->m_text = mrstock_str(MR_STR_MSGGRPIMGDELETED);
-		}
+		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_GROUPIMAGE_CHANGED);
+		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, new_image);
+		msg->m_type = MR_MSG_TEXT;
+		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
 		msg->m_id = mrchat_send_msg(chat, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}

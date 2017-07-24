@@ -481,12 +481,8 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 {
 	char* ret = NULL;
 	char* pathNfilename = NULL, *label = NULL, *value = NULL;
-	int   system_command = mrparam_get_int(param, 'S', 0);
 
-	if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
-		ret = mrstock_str(type==MR_MSG_IMAGE? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
-	}
-	else switch( type ) {
+	switch( type ) {
 		case MR_MSG_IMAGE:
 			ret = mrstock_str(MR_STR_IMAGE);
 			break;
