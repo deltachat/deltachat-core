@@ -548,10 +548,10 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
 		- we can add "forward hints" this way
 		- it looks better */
-		afwd_email = mrparam_get(msg->m_param, 'a', NULL);
+		afwd_email = mrparam_get(msg->m_param, MRP_FWD_ADDR, NULL);
 		char* fwdhint = NULL;
 		if( afwd_email ) {
-			char* afwd_name = mrparam_get(msg->m_param, 'A', NULL);
+			char* afwd_name = mrparam_get(msg->m_param, MRP_FWD_NAME, NULL);
 				char* nameNAddr = mr_get_headerlike_name(afwd_email, afwd_name);
 					fwdhint = mr_mprintf("---------- Forwarded message ----------" LINEEND "From: %s" LINEEND LINEEND, nameNAddr); /* no not chage this! expected this way in the simplifier to detect forwarding! */
 				free(nameNAddr);

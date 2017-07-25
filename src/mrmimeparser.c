@@ -1309,8 +1309,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 		for( i = 0; i < icnt; i++ ) {
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
-			mrparam_set(part->m_param, 'a', ths->m_fwd_email);
-			mrparam_set(part->m_param, 'A', ths->m_fwd_name);
+			mrparam_set(part->m_param, MRP_FWD_ADDR, ths->m_fwd_email);
+			mrparam_set(part->m_param, MRP_FWD_NAME, ths->m_fwd_name);
 		}
 	}
 

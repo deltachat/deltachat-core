@@ -836,7 +836,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				goto cleanup;
 			}
 
-			if( mrparam_exists(msg->m_param, 'a') ) {
+			if( mrparam_exists(msg->m_param, MRP_FWD_ADDR) ) {
 				/* forwarding already forwarded mails: keep the original name and mail */
 				;
 			}
@@ -846,9 +846,9 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				error if the forwarding-headline is missing for some mails.  KISS. */
 				char* addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 				char* name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
-					mrparam_set(msg->m_param, 'a', addr);
+					mrparam_set(msg->m_param, MRP_FWD_ADDR, addr);
 					if( name ) {
-						mrparam_set(msg->m_param, 'A', name);
+						mrparam_set(msg->m_param, MRP_FWD_NAME, name);
 					}
 				free(name);
 				free(addr);
@@ -858,9 +858,9 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
 					goto cleanup;
 				}
-				mrparam_set(msg->m_param, 'a', contact->m_addr);
+				mrparam_set(msg->m_param, MRP_FWD_ADDR, contact->m_addr);
 				if( contact->m_authname&&contact->m_authname[0] ) {
-					mrparam_set(msg->m_param, 'A', contact->m_authname);
+					mrparam_set(msg->m_param, MRP_FWD_NAME, contact->m_authname);
 				}
 			}
 
