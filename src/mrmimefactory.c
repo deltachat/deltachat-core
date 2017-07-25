@@ -609,7 +609,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		/* first body part: always human-readable, always REQUIRED by RFC 6522 */
 		char *p1 = NULL, *p2 = NULL;
 		if( mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
-			p1 = safe_strdup(factory->m_msg->m_rfc724_mid); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
+			p1 = mrstock_str(MR_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
 		}
 		else {
 			p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
