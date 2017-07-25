@@ -43,7 +43,7 @@
 
 
 #define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
-#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, 'U', 0)==0)
+#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
 
 
 int mrmailbox_get_fresh_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -1290,9 +1290,9 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 	}
 	else if( ths->m_type == MR_CHAT_GROUP )
 	{
-		if( mrparam_get_int(ths->m_param, 'U', 0)==1 ) {
-			/* mark group as being no longer 'U'npromoted */
-			mrparam_set(ths->m_param, 'U', NULL);
+		if( mrparam_get_int(ths->m_param, MRP_UNPROMOTED, 0)==1 ) {
+			/* mark group as being no longer unpromoted */
+			mrparam_set(ths->m_param, MRP_UNPROMOTED, NULL);
 			mrchat_update_param__(ths);
 		}
 	}
@@ -1534,7 +1534,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 		grpid = mr_create_id();
 
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*'U'npromoted group*/ );
+			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=MRP_UNPROMOTED*/ );
 		sqlite3_bind_int  (stmt, 1, MR_CHAT_GROUP);
 		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
 		sqlite3_bind_int64(stmt, 3, time(NULL));

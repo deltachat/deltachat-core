@@ -31,7 +31,6 @@
  *
  * Known keys:
  *
- * 'U'npromoted group
  * 'P'hysically delete group after message sending
  * 'r'ead receipt wanted
  * 'R'eferences header last used for a chat
@@ -67,6 +66,7 @@ extern "C" {
 #define MRP_TIMES             't'  /* for jobs: times a job was tried */
 #define MRP_TIMES_INCREATION  'T'  /* for jobs: times a job was tried, used for increation */
 
+#define MRP_UNPROMOTED        'U'  /* for groups */
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
 
 
