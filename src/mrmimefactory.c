@@ -71,7 +71,7 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 		factory->m_recipients_names = NULL;
 	}
 
-	if( factory->m_recipients_names ) {
+	if( factory->m_recipients_addr ) {
 		clist_free_content(factory->m_recipients_addr);
 		clist_free(factory->m_recipients_addr);
 		factory->m_recipients_addr = NULL;
