@@ -304,7 +304,7 @@ static struct mailmime* build_body_text(char* text)
 }
 
 
-static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name_as_sended)
+static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_name, char** ret_file_name_as_sended)
 {
 	struct mailmime_fields*  mime_fields;
 	struct mailmime*         mime_sub = NULL;
@@ -341,7 +341,10 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name
 		free(title);
 	}
 	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF ) {
-		filename_to_send = mr_mprintf("image.%s", suffix? suffix : "dat");
+		if( base_name == NULL ) {
+			base_name = "image";
+		}
+		filename_to_send = mr_mprintf("%s.%s", base_name, suffix? suffix : "dat");
 	}
 	else if( msg->m_type == MR_MSG_VIDEO ) {
 		filename_to_send = mr_mprintf("video.%s", suffix? suffix : "dat");
@@ -433,6 +436,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	int                          e2ee_guaranteed = 0;
 	int                          system_command = 0;
 	int                          force_unencrypted = 0;
+	char*                        grpimage = NULL;
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
 
@@ -508,28 +512,30 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 				char* email_to_add = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_add ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrAddToGrp"), email_to_add));
+					grpimage = mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
 				}
 			}
 			else if( system_command == MR_SYSTEM_GROUPNAME_CHANGED ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
 			}
 			else if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
-				char* grpimage = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+				grpimage = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( grpimage==NULL ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), safe_strdup("0")));
 				}
-				else {
-					mrmsg_t* meta = mrmsg_new();
-					meta->m_type = MR_MSG_IMAGE;
-					mrparam_set(meta->m_param, MRP_FILE, grpimage);
-					char* filename_as_sended = NULL;
-					if( (meta_part=build_body_file(meta, &filename_as_sended))!=NULL ) {
-						mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sended/*takes ownership*/));
-					}
-					mrmsg_unref(meta);
-				}
-				free(grpimage);
 			}
+		}
+
+		if( grpimage )
+		{
+			mrmsg_t* meta = mrmsg_new();
+			meta->m_type = MR_MSG_IMAGE;
+			mrparam_set(meta->m_param, MRP_FILE, grpimage);
+			char* filename_as_sended = NULL;
+			if( (meta_part=build_body_file(meta, "group-image", &filename_as_sended))!=NULL ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sended/*takes ownership*/));
+			}
+			mrmsg_unref(meta);
 		}
 
 		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
@@ -578,7 +584,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 		/* add attachment part */
 		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
-			struct mailmime* file_part = build_body_file(msg, NULL);
+			struct mailmime* file_part = build_body_file(msg, NULL, NULL);
 			if( file_part ) {
 				mailmime_smart_add_part(message, file_part);
 				parts++;
@@ -700,6 +706,7 @@ cleanup:
 	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(afwd_email);
+	free(grpimage);
 	return success;
 }
 
