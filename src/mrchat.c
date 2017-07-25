@@ -1415,8 +1415,8 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 			if( msg->m_text ) { free(msg->m_text); }
 			if( msg->m_type == MR_MSG_AUDIO ) {
 				char* filename = mr_get_filename(pathNfilename);
-				char* author = mrparam_get(msg->m_param, 'N', "");
-				char* title = mrparam_get(msg->m_param, 'n', "");
+				char* author = mrparam_get(msg->m_param, MRP_AUTHORNAME, "");
+				char* title = mrparam_get(msg->m_param, MRP_TRACKNAME, "");
 				msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
 				free(filename);
 				free(author);

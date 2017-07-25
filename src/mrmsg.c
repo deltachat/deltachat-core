@@ -500,7 +500,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_AUDIO:
-			if( (value=mrparam_get(param, 'n', NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
+			if( (value=mrparam_get(param, MRP_TRACKNAME, NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
 				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
 				mr_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
 			}
@@ -583,8 +583,8 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 	}
 	else
 	{
-		ret->m_text1 = mrparam_get(msg->m_param, 'N', NULL);
-		ret->m_text2 = mrparam_get(msg->m_param, 'n', NULL);
+		ret->m_text1 = mrparam_get(msg->m_param, MRP_AUTHORNAME, NULL);
+		ret->m_text2 = mrparam_get(msg->m_param, MRP_TRACKNAME, NULL);
 		if( ret->m_text1 && ret->m_text1[0] && ret->m_text2 && ret->m_text2[0] ) {
 			goto cleanup;
 		}
