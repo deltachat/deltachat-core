@@ -249,7 +249,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 				if( carray_count(mime_parser->m_parts)>=2 ) {
 					mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(mime_parser->m_parts, 1);
 					if( imgpart->m_type == MR_MSG_IMAGE ) {
-						grpimage = mrparam_get(imgpart->m_param, 'f', NULL);
+						grpimage = mrparam_get(imgpart->m_param, MRP_FILE, NULL);
 						ok = 1;
 					}
 				}

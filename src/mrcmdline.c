@@ -529,7 +529,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			if( arg1 && arg1[0] ) {
 				mrmsg_t* msg = mrmsg_new();
 					msg->m_type = strcmp(cmd, "sendimage")==0? MR_MSG_IMAGE : MR_MSG_FILE;
-					mrparam_set(msg->m_param, 'f', arg1);
+					mrparam_set(msg->m_param, MRP_FILE, arg1);
 					if( mrchat_send_msg(sel_chat, msg) ) {
 						ret = safe_strdup("File sent.");
 					}

@@ -1373,7 +1373,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 	}
 	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 		if( pathNfilename )
 		{
 			/* Got an attachment. Take care, the file may not be ready in this moment!

@@ -984,7 +984,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 				part->m_type  = msg_type;
 				part->m_bytes = decoded_data_bytes;
-				mrparam_set(part->m_param, 'f', pathNfilename);
+				mrparam_set(part->m_param, MRP_FILE, pathNfilename);
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
 					part->m_msg = mr_get_filename(pathNfilename);
 				}

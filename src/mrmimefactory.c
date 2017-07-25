@@ -310,7 +310,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name
 	struct mailmime*         mime_sub = NULL;
 	struct mailmime_content* content;
 
-	char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+	char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
 	char* suffix = mr_get_filesuffix_lc(pathNfilename);
 	char* filename_to_send = NULL;
@@ -521,7 +521,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 				else {
 					mrmsg_t* meta = mrmsg_new();
 					meta->m_type = MR_MSG_IMAGE;
-					mrparam_set(meta->m_param, 'f', grpimage);
+					mrparam_set(meta->m_param, MRP_FILE, grpimage);
 					char* filename_as_sended = NULL;
 					if( (meta_part=build_body_file(meta, &filename_as_sended))!=NULL ) {
 						mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sended/*takes ownership*/));

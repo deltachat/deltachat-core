@@ -542,7 +542,7 @@ char* mrmsg_get_filename(mrmsg_t* msg)
 		goto cleanup;
 	}
 
-	pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+	pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	if( pathNfilename == NULL ) {
 		goto cleanup;
 	}
@@ -591,7 +591,7 @@ mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 		free(ret->m_text1); ret->m_text1 = NULL;
 		free(ret->m_text2); ret->m_text2 = NULL;
 
-		pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
