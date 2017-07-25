@@ -245,8 +245,8 @@ void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 
 	if( initial_delay_seconds == MR_INCREATION_POLL )
 	{
-		int tries = mrparam_get_int(ths->m_param, 'T', 0) + 1;
-		mrparam_set_int(ths->m_param, 'T', tries);
+		int tries = mrparam_get_int(ths->m_param, MRP_TIMES_INCREATION, 0) + 1;
+		mrparam_set_int(ths->m_param, MRP_TIMES_INCREATION, tries);
 
 		if( tries < 120/MR_INCREATION_POLL ) {
 			ths->m_start_again_at = time(NULL)+MR_INCREATION_POLL;
@@ -257,8 +257,8 @@ void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 	}
 	else
 	{
-		int tries = mrparam_get_int(ths->m_param, 't', 0) + 1;
-		mrparam_set_int(ths->m_param, 't', tries);
+		int tries = mrparam_get_int(ths->m_param, MRP_TIMES, 0) + 1;
+		mrparam_set_int(ths->m_param, MRP_TIMES, tries);
 
 		if( tries == 1 ) {
 			ths->m_start_again_at = time(NULL)+initial_delay_seconds;

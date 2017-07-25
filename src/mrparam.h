@@ -30,8 +30,6 @@
  *******************************************************************************
  *
  * Known keys:
- * 't'imes a job was tried
- * 'T'imes a job was tried, used for increation
  *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
@@ -66,6 +64,8 @@ extern "C" {
 
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */
 #define MRP_SERVER_UID        'z'  /* for jobs */
+#define MRP_TIMES             't'  /* for jobs: times a job was tried */
+#define MRP_TIMES_INCREATION  'T'  /* for jobs: times a job was tried, used for increation */
 
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
 
