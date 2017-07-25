@@ -32,8 +32,6 @@
  * Known keys:
  * 'a' forwarded from this email-address
  * 'A' forwarded from this name
-
- * 'd'uration in milliseconds
  * 'n'ame of track
  * 'N'ame of author or artist
  * 'm'ime
@@ -58,6 +56,7 @@ extern "C" {
 #define MRP_FILE              'f'  /* for msgs */
 #define MRP_WIDTH             'w'  /* for msgs */
 #define MRP_HEIGHT            'h'  /* for msgs */
+#define MRP_DURATION          'd'  /* for msgs */
 #define MRP_GUARANTEE_E2EE    'c'  /* for msgs: 'c'rypted in original/guarantee E2EE or the message is not send */
 #define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */

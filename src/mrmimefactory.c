@@ -538,7 +538,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrVoiceMessage"), strdup("1")));
 			}
 
-			int duration_ms = mrparam_get_int(msg->m_param, 'd', 0);
+			int duration_ms = mrparam_get_int(msg->m_param, MRP_DURATION, 0);
 			if( duration_ms > 0 ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrDurationMs"), mr_mprintf("%i", (int)duration_ms)));
 			}

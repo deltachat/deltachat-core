@@ -167,6 +167,11 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( strcmp("spcl_contact=" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL),     "spcl_contact=9")==0 );
 
         assert( strcmp("grpimg="    MR_STRINGIFY(MR_SYSTEM_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
+
+        assert( MRP_FILE == 'f' );
+        assert( MRP_WIDTH == 'w' );
+        assert( MRP_HEIGHT == 'h' );
+        assert( MRP_DURATION == 'd' );
 	}
 
 	/* test mrparam

@@ -404,12 +404,12 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		p = mr_mprintf("Type: %i\n", msg->m_type); mrstrbuilder_cat(&ret, p); free(p);
 	}
 
-	int w = mrparam_get_int(msg->m_param, 'w', 0), h = mrparam_get_int(msg->m_param, 'h', 0);
+	int w = mrparam_get_int(msg->m_param, MRP_WIDTH, 0), h = mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
 	if( w != 0 || h != 0 ) {
 		p = mr_mprintf("Dimension: %i x %i\n", w, h); mrstrbuilder_cat(&ret, p); free(p);
 	}
 
-	int duration = mrparam_get_int(msg->m_param, 'd', 0);
+	int duration = mrparam_get_int(msg->m_param, MRP_DURATION, 0);
 	if( duration != 0 ) {
 		p = mr_mprintf("Duration: %i ms\n", duration); mrstrbuilder_cat(&ret, p); free(p);
 	}
@@ -613,7 +613,7 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
 	int is_increation = 0;
 	if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 		if( pathNfilename ) {
 			char* totest = mr_mprintf("%s.increation", pathNfilename);
 			if( mr_file_exist(totest) ) {
@@ -720,7 +720,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
-		char* pathNfilename = mrparam_get(msg->m_param, 'f', NULL);
+		char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
 		if( pathNfilename ) {
 			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
 			{

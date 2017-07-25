@@ -995,8 +995,8 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				if( mime_type == MR_MIMETYPE_IMAGE ) {
 					uint32_t w = 0, h = 0;
 					if( mr_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
-						mrparam_set_int(part->m_param, 'w', w);
-						mrparam_set_int(part->m_param, 'h', h);
+						mrparam_set_int(part->m_param, MRP_WIDTH, w);
+						mrparam_set_int(part->m_param, MRP_HEIGHT, h);
 					}
 				}
 
@@ -1335,7 +1335,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
-					mrparam_set_int(part->m_param, 'd', duration_ms);
+					mrparam_set_int(part->m_param, MRP_DURATION, duration_ms);
 				}
 			}
 		}

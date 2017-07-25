@@ -1398,13 +1398,13 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 			}
 
 			if( (msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF)
-			 && (mrparam_get_int(msg->m_param, 'w', 0)<=0 || mrparam_get_int(msg->m_param, 'h', 0)<=0) ) {
+			 && (mrparam_get_int(msg->m_param, MRP_WIDTH, 0)<=0 || mrparam_get_int(msg->m_param, MRP_HEIGHT, 0)<=0) ) {
 				/* set width/height of images, if not yet done */
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
 				if( mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_mailbox) ) {
 					if( mr_get_filemeta(buf, buf_bytes, &w, &h) ) {
-						mrparam_set_int(msg->m_param, 'w', w);
-						mrparam_set_int(msg->m_param, 'h', h);
+						mrparam_set_int(msg->m_param, MRP_WIDTH, w);
+						mrparam_set_int(msg->m_param, MRP_HEIGHT, h);
 					}
 				}
 				free(buf);
