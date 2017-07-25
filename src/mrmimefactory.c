@@ -643,10 +643,13 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mailmime_add_part(multipart, mach_mime_part);
 
 		/* currently, we do not send MDNs encrypted:
-		- in a multi-device-setup that is not set up properly, MDNs would disturb the communication massively as they
-		  are send automatically - which would lead to spreading outdated Autocrypt headers.
+		- in a multi-device-setup that is not set up properly, MDNs would disturb the communication as they
+		  are send automatically which may lead to spreading outdated Autocrypt headers.
 		- they do not carry any information but the Message-ID
-		- this save some KB */
+		- this save some KB
+		- in older versions, we did not encrypt messages to ourself when they to to SMTP - however, if these messages
+		  are forwarded for any reasons (eg. gmail always forwards to IMAP), we have no chance to decrypt them;
+		  this issue is fixed with 0.9.4 */
 		force_unencrypted = 1;
 	}
 	else

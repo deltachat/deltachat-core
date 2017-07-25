@@ -328,14 +328,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				 && peerstate->m_public_key->m_bytes>0
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
-					if( encrypt_to_self ) {
-						if( keyring->m_count == 0 ) {
-							mrkeyring_add(keyring, autocryptheader->m_public_key);
-						}
-					}
-					else {
-						mrkeyring_add(keyring, peerstate->m_public_key);
-					}
+					mrkeyring_add(keyring, peerstate->m_public_key); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 				}
 				else {
 					do_encrypt = 0;
@@ -346,6 +339,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 
 		if( do_encrypt ) {
+			mrkeyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
 			if( !mrkey_load_self_private_for_signing__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
 				do_encrypt = 0;
 			}
