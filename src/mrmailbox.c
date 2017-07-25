@@ -238,7 +238,8 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 		sqlite3_finalize(stmt);
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
-	else if( X_MrGrpImageChanged )
+
+	if( X_MrGrpImageChanged )
 	{
 		int   ok = 0;
 		char* grpimage = NULL;

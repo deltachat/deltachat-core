@@ -32,19 +32,13 @@
  * Known keys:
  * 'a' forwarded from this email-address
  * 'A' forwarded from this name
- * 'c'rypted in original/guarantee E2EE or the message is not send
- * 'v'alidation errors on decryption
- * 'f'ile
- * 'w'idth
- * 'h'eight
+
  * 'd'uration in milliseconds
  * 'n'ame of track
  * 'N'ame of author or artist
  * 'm'ime
  * 't'imes a job was tried
  * 'T'imes a job was tried, used for increation
- * 'Z' - server_folder
- * 'z' - server_uid
  *
  * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
@@ -61,9 +55,11 @@
 extern "C" {
 #endif
 
-
+#define MRP_FILE              'f'  /* for msgs */
+#define MRP_WIDTH             'w'  /* for msgs */
+#define MRP_HEIGHT            'h'  /* for msgs */
 #define MRP_GUARANTEE_E2EE    'c'  /* for msgs: 'c'rypted in original/guarantee E2EE or the message is not send */
-#define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'v' are preset, the messages is only transport encrypted */
+#define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
 
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */

@@ -395,7 +395,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	}
 
 	/* add file info */
-	char* file = mrparam_get(msg->m_param, 'f', NULL);
+	char* file = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	if( file ) {
 		p = mr_mprintf("File: %s, %i bytes\n", file, mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
 	}
@@ -501,7 +501,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 
 		case MR_MSG_AUDIO:
 			if( (value=mrparam_get(param, 'n', NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
-				pathNfilename = mrparam_get(param, 'f', "ErrFilename");
+				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
 				mr_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
 			}
 			label = mrstock_str(MR_STR_AUDIO);
@@ -509,7 +509,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_FILE:
-			pathNfilename = mrparam_get(param, 'f', "ErrFilename");
+			pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
 			value = mr_get_filename(pathNfilename);
 			label = mrstock_str(MR_STR_FILE);
 			ret = mr_mprintf("%s: %s", label, value);
