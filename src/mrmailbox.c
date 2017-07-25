@@ -883,7 +883,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( outgoing && is_group == 0 && carray_count(to_list)>1 && first_dblocal_id != 0 )
 			{
 				char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
-				char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=Ghost message flag with the original message ID */
+				char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=MRP_GHOST_CC flag with the original message ID */
 				char* ghost_txt = NULL;
 				{
 					mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);

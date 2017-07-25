@@ -31,7 +31,6 @@
  *
  * Known keys:
  *
- * 'G'host-CC, parameter is the original msg_id
  * 'U'npromoted group
  * 'P'hysically delete group after message sending
  * 'r'ead receipt wanted
@@ -59,6 +58,7 @@ extern "C" {
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
 #define MRP_FWD_NAME          'A'  /* for msgs */
 #define MRP_FWD_ADDR          'a'  /* for msgs */
+#define MRP_GHOST_CC          'G'  /* for msgs: Ghost-CC, parameter is the original msg_id */
 #define MRP_SYSTEM_CMD        'S'  /* for msgs */
 #define MRP_SYSTEM_CMD_PARAM  'E'  /* for msgs */
 

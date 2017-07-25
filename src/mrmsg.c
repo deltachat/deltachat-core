@@ -343,7 +343,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	locked = 1;
 
 		mrmsg_load_from_db__(msg, mailbox, msg_id);
-		msg_id = mrparam_get_int(msg->m_param, 'G', msg_id);
+		msg_id = mrparam_get_int(msg->m_param, MRP_GHOST_CC, msg_id);
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
