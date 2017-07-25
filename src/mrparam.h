@@ -31,7 +31,7 @@
  *
  * Known keys:
  *
- * 'P'hysically delete group after message sending
+ *
  * 'r'ead receipt wanted
  * 'R'eferences header last used for a chat
  *
@@ -68,6 +68,7 @@ extern "C" {
 
 #define MRP_UNPROMOTED        'U'  /* for groups */
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
+#define MRP_DEL_AFTER_SEND    'P'  /* for groups and msgs: physically delete group after message sending if msg-value matches group-value */
 
 
 typedef struct mrparam_t

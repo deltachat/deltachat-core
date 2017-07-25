@@ -967,9 +967,9 @@ there may be other chat messages waiting to be send.
 We use the following approach:
 1. If we do not need to send a message, we delete the chat directly
 2. If we need to send a message, we set chats.blocked=1 and add the parameter
-   'P' with a random value to both, the last message to be send and to the
+   MRP_DEL_AFTER_SEND with a random value to both, the last message to be send and to the
    chat (we would use msg_id, however, we may not get this in time)
-3. When the messag with the 'P'-value of the chat was send to IMAP, we physically
+3. When the messag with the MRP_DEL_AFTER_SEND-value of the chat was send to IMAP, we physically
    delete the chat. */
 
 
@@ -1079,7 +1079,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		(the order is important - otherwise the message may be send asynchronous before we update the group. */
 		int link_msg_to_chat_deletion = (int)time(NULL);
 
-		mrparam_set_int(chat->m_param, 'P', link_msg_to_chat_deletion);
+		mrparam_set_int(chat->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
 		mrsqlite3_lock(mailbox->m_sql);
 			sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET blocked=1, param=? WHERE id=?;");
 			sqlite3_bind_text (stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
@@ -1093,7 +1093,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-		mrparam_set_int(msg->m_param, 'P', link_msg_to_chat_deletion);
+		mrparam_set_int(msg->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
 		mrchat_send_msg(chat, msg);
 	}
 	else
@@ -1156,8 +1156,8 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* check, if the chat shall be deleted pysically */
-	if( mrparam_get_int(mimefactory.m_chat->m_param, 'P', 0)!=0
-	 && mrparam_get_int(mimefactory.m_chat->m_param, 'P', 0)==mrparam_get_int(mimefactory.m_msg->m_param, 'P', 0) ) {
+	if( mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)!=0
+	 && mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)==mrparam_get_int(mimefactory.m_msg->m_param, MRP_DEL_AFTER_SEND, 0) ) {
 		mrmailbox_delete_chat_part2(mailbox, mimefactory.m_chat->m_id);
 	}
 
