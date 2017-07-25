@@ -27,14 +27,6 @@
  *          - we expect the packed string to be well formatted and do not
  *            allow spaces around the key; spaces right of the value are trimmed
  *
- *******************************************************************************
- *
- * Known keys:
- *
- *
- * 'r'ead receipt wanted
- * 'R'eferences header last used for a chat
- *
  ******************************************************************************/
 
 
@@ -66,6 +58,7 @@ extern "C" {
 #define MRP_TIMES             't'  /* for jobs: times a job was tried */
 #define MRP_TIMES_INCREATION  'T'  /* for jobs: times a job was tried, used for increation */
 
+#define MRP_REFERENCES        'R'  /* for groups and chats: References-header last used for a chat */
 #define MRP_UNPROMOTED        'U'  /* for groups */
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
 #define MRP_DEL_AFTER_SEND    'P'  /* for groups and msgs: physically delete group after message sending if msg-value matches group-value */

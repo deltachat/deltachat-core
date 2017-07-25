@@ -198,12 +198,12 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			#define NEW_THREAD_THRESHOLD 1*60*60
 			if( prev_msg_time != 0 && factory->m_msg->m_timestamp - prev_msg_time < NEW_THREAD_THRESHOLD ) {
-				factory->m_references = mrparam_get(factory->m_chat->m_param, 'R', NULL);
+				factory->m_references = mrparam_get(factory->m_chat->m_param, MRP_REFERENCES, NULL);
 			}
 
 			if( factory->m_references == NULL ) {
 				factory->m_references = mr_create_dummy_references_mid();
-				mrparam_set(factory->m_chat->m_param, 'R', factory->m_references);
+				mrparam_set(factory->m_chat->m_param, MRP_REFERENCES, factory->m_references);
 				mrchat_update_param__(factory->m_chat);
 			}
 
