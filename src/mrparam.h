@@ -32,7 +32,6 @@
  * Known keys:
  * 'a' forwarded from this email-address
  * 'A' forwarded from this name
- * 'm'ime
  * 't'imes a job was tried
  * 'T'imes a job was tried, used for increation
  *
@@ -51,23 +50,24 @@
 extern "C" {
 #endif
 
+
 #define MRP_FILE              'f'  /* for msgs */
 #define MRP_WIDTH             'w'  /* for msgs */
 #define MRP_HEIGHT            'h'  /* for msgs */
 #define MRP_DURATION          'd'  /* for msgs */
+#define MRP_MIMETYPE          'm'  /* for msgs */
 #define MRP_AUTHORNAME        'N'  /* for msgs: name of author or artist */
 #define MRP_TRACKNAME         'n'  /* for msgs: name of author or artist */
 #define MRP_GUARANTEE_E2EE    'c'  /* for msgs: 'c'rypted in original/guarantee E2EE or the message is not send */
 #define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
+#define MRP_SYSTEM_CMD        'S'  /* for msgs */
+#define MRP_SYSTEM_CMD_PARAM  'E'  /* for msgs */
 
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */
 #define MRP_SERVER_UID        'z'  /* for jobs */
 
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
-
-#define MRP_SYSTEM_CMD        'S'
-#define MRP_SYSTEM_CMD_PARAM  'E'
 
 
 typedef struct mrparam_t

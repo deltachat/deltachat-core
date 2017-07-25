@@ -1392,7 +1392,7 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 				mr_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
 				if( better_type ) {
 					msg->m_type = better_type;
-					mrparam_set(msg->m_param, 'm', better_mime);
+					mrparam_set(msg->m_param, MRP_MIMETYPE, better_mime);
 				}
 				free(better_mime);
 			}

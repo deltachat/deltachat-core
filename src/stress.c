@@ -172,6 +172,7 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( MRP_WIDTH == 'w' );
         assert( MRP_HEIGHT == 'h' );
         assert( MRP_DURATION == 'd' );
+        assert( MRP_MIMETYPE == 'm' );
         assert( MRP_AUTHORNAME == 'N' );
         assert( MRP_TRACKNAME == 'n' );
 	}

@@ -311,7 +311,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, char** ret_file_name
 	struct mailmime_content* content;
 
 	char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
-	char* mimetype = mrparam_get(msg->m_param, 'm', NULL);
+	char* mimetype = mrparam_get(msg->m_param, MRP_MIMETYPE, NULL);
 	char* suffix = mr_get_filesuffix_lc(pathNfilename);
 	char* filename_to_send = NULL;
 
