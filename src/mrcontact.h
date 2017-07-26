@@ -56,6 +56,9 @@ extern "C" {
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
 
+#define MR_ORIGIN_MIN_CONTACT_LIST   (MR_ORIGIN_INCOMING_REPLY_TO)
+#define MR_ORIGIN_MIN_START_NEW_CHAT (MR_ORIGIN_INCOMING_REPLY_TO)
+
 
 typedef struct mrcontact_t
 {

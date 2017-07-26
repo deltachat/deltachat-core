@@ -306,7 +306,7 @@ int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id, int*
 		goto cleanup;
 	}
 
-	if( ths->m_origin > MR_ORIGIN_INCOMING_UNKNOWN_FROM ) {
+	if( ths->m_origin >= MR_ORIGIN_MIN_START_NEW_CHAT ) {
 		is_known = 1;
 		goto cleanup;
 	}
@@ -476,7 +476,7 @@ carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 					" WHERE id>? AND origin>=? AND blocked=0 AND (name LIKE ? OR addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
 					" ORDER BY LOWER(name||addr),id;");
 			sqlite3_bind_int (stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-			sqlite3_bind_int (stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+			sqlite3_bind_int (stmt, 2, MR_ORIGIN_MIN_CONTACT_LIST);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 4, s3strLikeCmd, -1, SQLITE_STATIC);
 		}
@@ -486,7 +486,7 @@ carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 					" WHERE id>? AND origin>=? AND blocked=0"
 					" ORDER BY LOWER(name||addr),id;");
 			sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-			sqlite3_bind_int(stmt, 2, MR_ORIGIN_INCOMING_REPLY_TO);
+			sqlite3_bind_int(stmt, 2, MR_ORIGIN_MIN_CONTACT_LIST);
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
