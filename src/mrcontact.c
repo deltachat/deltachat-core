@@ -351,42 +351,6 @@ cleanup:
 }
 
 
-char* mr_get_headerlike_name(const char* addr, const char* name) /* create `Prename Familyname <addr>` */
-{
-	if( addr && addr[0] ) {
-		if( name && name[0] ) {
-			return mr_mprintf("%s <%s>", name, addr);
-		}
-		else {
-			return safe_strdup(addr);
-		}
-	}
-	else {
-		return safe_strdup("ErrName");
-	}
-}
-
-
-void mr_parse_headerlike_name(const char* in, char** ret_addr, char** ret_name) /* split `Prename Familyname <addr>` */
-{
-	char* name = safe_strdup(in), *addr = NULL;
-    char* p = strrchr(name, '<');
-    if( p ) {
-		*p = 0;
-		p++;
-		addr = safe_strdup(p);
-		p = strrchr(addr, '>'); if( p ) { *p = 0; }
-    }
-    else {
-		addr = safe_strdup(name);
-    }
-    mr_trim(name);
-    mr_trim(addr);
-    *ret_addr = addr;
-    *ret_name = name;
-}
-
-
 /*******************************************************************************
  * Main interface
  ******************************************************************************/

@@ -836,33 +836,7 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 				goto cleanup;
 			}
 
-			if( mrparam_exists(msg->m_param, MRP_FWD_ADDR) ) {
-				/* forwarding already forwarded mails: keep the original name and mail */
-				;
-			}
-			else if( msg->m_from_id == MR_CONTACT_ID_SELF ) {
-				/* forwarding our own mails: also show the forward state in this case - the mail may be address to another person and
-				without the forwarding hint it may look strange.  Moreover, when forwarding a list of mails, it may feel like an
-				error if the forwarding-headline is missing for some mails.  KISS. */
-				char* addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-				char* name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
-					mrparam_set(msg->m_param, MRP_FWD_ADDR, addr);
-					if( name ) {
-						mrparam_set(msg->m_param, MRP_FWD_NAME, name);
-					}
-				free(name);
-				free(addr);
-			}
-			else {
-				/* forward mails received from other persons: add the original author */
-				if( !mrcontact_load_from_db__(contact, mailbox->m_sql, msg->m_from_id) ) {
-					goto cleanup;
-				}
-				mrparam_set(msg->m_param, MRP_FWD_ADDR, contact->m_addr);
-				if( contact->m_authname&&contact->m_authname[0] ) {
-					mrparam_set(msg->m_param, MRP_FWD_NAME, contact->m_authname);
-				}
-			}
+			mrparam_set_int(msg->m_param, MRP_FORWARDED, 1);
 
 			uint32_t new_msg_id = mrchat_send_msg__(chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);

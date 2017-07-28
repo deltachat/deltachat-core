@@ -398,7 +398,7 @@ cleanup:
 }
 
 
-static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, const char* afwd_email)
+static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_email)
 {
 	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
@@ -428,7 +428,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	struct mailimf_fields*       imf_fields;
 	struct mailmime*             message = NULL;
 	char*                        message_text = NULL, *message_text2 = NULL, *subject_str = NULL;
-	char*                        afwd_email = NULL;
+	int                          afwd_email = 0;
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
@@ -554,14 +554,10 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		- some Apps have problems with Non-text in the main part (eg. "Mail" from stock Android)
 		- we can add "forward hints" this way
 		- it looks better */
-		afwd_email = mrparam_get(msg->m_param, MRP_FWD_ADDR, NULL);
+		afwd_email = mrparam_exists(msg->m_param, MRP_FORWARDED);
 		char* fwdhint = NULL;
 		if( afwd_email ) {
-			char* afwd_name = mrparam_get(msg->m_param, MRP_FWD_NAME, NULL);
-				char* nameNAddr = mr_get_headerlike_name(afwd_email, afwd_name);
-					fwdhint = mr_mprintf("---------- Forwarded message ----------" LINEEND "From: %s" LINEEND LINEEND, nameNAddr); /* no not chage this! expected this way in the simplifier to detect forwarding! */
-				free(nameNAddr);
-			free(afwd_name);
+			fwdhint = safe_strdup("---------- Forwarded message ----------" LINEEND "From: Delta Chat" LINEEND LINEEND); /* do not chage this! expected this way in the simplifier to detect forwarding! */
 		}
 
 		int write_m_text = 0;
@@ -705,7 +701,6 @@ cleanup:
 	mrmailbox_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
 	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
-	free(afwd_email);
 	free(grpimage);
 	return success;
 }

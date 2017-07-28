@@ -627,11 +627,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		ths->m_mimeroot = NULL;
 	}
 
-	free(ths->m_fwd_email);
-	ths->m_fwd_email = NULL;
-
-	free(ths->m_fwd_name);
-	ths->m_fwd_name = NULL;
+	ths->m_is_forwarded = 0;
 
 	if( ths->m_reports ) {
 		carray_set_size(ths->m_reports, 0);
@@ -922,9 +918,8 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					do_add_part = 1;
 				}
 
-				if( simplifier->m_fwdemail && ths->m_fwd_email == NULL ) {
-					ths->m_fwd_email = simplifier->m_fwdemail; simplifier->m_fwdemail = NULL; /* save this even for empty text (shown eg. above pictures then) */
-					ths->m_fwd_name  = simplifier->m_fwdname;  simplifier->m_fwdname  = NULL;
+				if( simplifier->m_is_forwarded ) {
+					ths->m_is_forwarded = 1;
 				}
 			}
 			break;
@@ -1305,12 +1300,11 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	}
 
 	/* add forward information to every part */
-	if( ths->m_fwd_email ) {
+	if( ths->m_is_forwarded ) {
 		int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 		for( i = 0; i < icnt; i++ ) {
 			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
-			mrparam_set(part->m_param, MRP_FWD_ADDR, ths->m_fwd_email);
-			mrparam_set(part->m_param, MRP_FWD_NAME, ths->m_fwd_name);
+			mrparam_set_int(part->m_param, MRP_FORWARDED, 1);
 		}
 	}
 

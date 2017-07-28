@@ -175,8 +175,7 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( MRP_MIMETYPE == 'm' );
         assert( MRP_AUTHORNAME == 'N' );
         assert( MRP_TRACKNAME == 'n' );
-        assert( MRP_FWD_NAME == 'A' );
-        assert( MRP_FWD_ADDR == 'a' );
+        assert( MRP_FORWARDED == 'a' );
         assert( MRP_GHOST_CC == 'G' );
         assert( MRP_UNPROMOTED == 'U' );
 	}

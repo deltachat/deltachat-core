@@ -37,8 +37,7 @@ extern "C" {
 
 typedef struct mrsimplify_t
 {
-	char* m_fwdname;
-	char* m_fwdemail;
+	int m_is_forwarded;
 } mrsimplify_t;
 
 

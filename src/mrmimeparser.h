@@ -65,8 +65,7 @@ typedef struct mrmimeparser_t
 	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 	const char*            m_blobdir;
 
-	char*                  m_fwd_name;
-	char*                  m_fwd_email;
+	int                    m_is_forwarded;
 
 	mrmailbox_t*           m_mailbox;
 
