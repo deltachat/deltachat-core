@@ -478,7 +478,8 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		}
 
 		if( factory->m_req_mdn ) {
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Disposition-Notification-To"), strdup(factory->m_from_addr)));
+			/* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Disposition-Notification-To"), strdup(factory->m_from_addr)));
 		}
 
 		message = mailmime_new_message_data(NULL);

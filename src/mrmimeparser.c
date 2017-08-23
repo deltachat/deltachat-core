@@ -1353,8 +1353,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* check, if the message asks for a MDN */
 	if( !ths->m_decrypting_failed )
 	{
-		const struct mailimf_optional_field* dn_field = mrmimeparser_find_xtra_field(ths, "Disposition-Notification-To");
-		if( dn_field && mrmimeparser_get_last_nonmeta(ths) )
+		const struct mailimf_optional_field* dn_field = mrmimeparser_find_xtra_field(ths, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
+		if( dn_field && mrmimeparser_get_last_nonmeta(ths)/*just check if the mail is not empty*/ )
 		{
 			struct mailimf_mailbox_list* mb_list = NULL;
 			size_t index = 0;
