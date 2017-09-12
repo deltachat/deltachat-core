@@ -226,7 +226,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 					" timestamp INTEGER DEFAULT 0,"
 					" type INTEGER DEFAULT 0,"
 					" state INTEGER DEFAULT 0,"
-					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? */
+					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? (0=no, 1=yes, 2=no, but the message is a reply to a messenger message) */
 					" bytes INTEGER DEFAULT 0,"        /* not used, added in ~ v0.1.12 */
 					" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 					" txt_raw TEXT DEFAULT '',"

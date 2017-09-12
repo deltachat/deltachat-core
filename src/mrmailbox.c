@@ -45,7 +45,7 @@
 
 
 /*******************************************************************************
- * Handle Groups
+ * Handle groups for received messages
  ******************************************************************************/
 
 
@@ -330,7 +330,7 @@ cleanup:
 
 
 /*******************************************************************************
- * Receive a message and add it to the database
+ * Tools for checking received messsages
  ******************************************************************************/
 
 
@@ -440,6 +440,11 @@ static void add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct ma
 }
 
 
+/*******************************************************************************
+ * Check if a message is a reply to a known message (messenger or non-messenger)
+ ******************************************************************************/
+
+
 static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
@@ -517,6 +522,87 @@ static int is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 
 	return 0;
 }
+
+
+/*******************************************************************************
+ * Check if a message is a reply to any messenger message
+ ******************************************************************************/
+
+
+static int is_msgrmsg_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
+{
+	if( rfc724_mid ) {
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_mcm,
+			"SELECT id FROM msgs "
+			" WHERE rfc724_mid=? "
+			" AND msgrmsg!=0 "
+			" AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt) == SQLITE_ROW ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+static int is_msgrmsg_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_list)
+{
+	if( mid_list ) {
+		clistiter* cur;
+		for( cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur) ) {
+			if( is_msgrmsg_rfc724_mid__(mailbox, clist_content(cur)) ) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
+static int is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser)
+{
+	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
+
+	This is similar to is_reply_to_known_message__() but
+	- checks also if any of the referenced IDs are send by a messenger
+	- it is okay, if the referenced messages are moved to trash here
+	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
+	clistiter* cur;
+	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
+		if( field )
+		{
+			if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
+			{
+				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+				if( fld_in_reply_to ) {
+					if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
+						return 1;
+					}
+				}
+			}
+			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
+			{
+				struct mailimf_references* fld_references = field->fld_data.fld_references;
+				if( fld_references ) {
+					if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
+						return 1;
+					}
+				}
+			}
+
+		}
+	}
+	return 0;
+}
+
+
+/*******************************************************************************
+ * Receive a message and add it to the database
+ ******************************************************************************/
 
 
 static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
@@ -830,6 +916,22 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 			}
 
+			/* if the message is not send by a messenger, check if it sent at least a reply to a messenger message
+			(later, we move these replies to the Chats-folder) */
+			int msgrmsg = mime_parser->m_is_send_by_messenger; /* 1 or 0 for yes/no */
+			if( msgrmsg )
+			{
+				mrmailbox_log_info(ths, 0, "Message sent by another messenger (will be moved to Chats-folder).");
+			}
+			else
+			{
+				if( is_reply_to_messenger_message__(ths, mime_parser) )
+				{
+					mrmailbox_log_info(ths, 0, "Message is a reply to a messenger message (will be moved to Chats-folder).");
+					msgrmsg = 2; /* 2=no, but is reply to messenger message */
+				}
+			}
+
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
 			and add them to the database (mails send by other messenger clients should result
 			into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
@@ -857,7 +959,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				sqlite3_bind_int64(stmt,  7, message_timestamp);
 				sqlite3_bind_int  (stmt,  8, part->m_type);
 				sqlite3_bind_int  (stmt,  9, state);
-				sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
+				sqlite3_bind_int  (stmt, 10, msgrmsg);
 				sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);

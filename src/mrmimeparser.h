@@ -22,8 +22,8 @@
  * File:    mrmimeparser.h
  * Purpose: Parse MIME body; this is the text part of an IMF, see
  *          https://tools.ietf.org/html/rfc5322
- *          mrmimeparser_t has no dependencies to mrmailbox_t or to the
- *          database.
+ *          mrmimeparser_t has no deep dependencies to mrmailbox_t or to the
+ *          database (mrmailbox_t is used for logging only).
  *
  ******************************************************************************/
 
