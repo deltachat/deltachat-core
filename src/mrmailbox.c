@@ -612,7 +612,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              incoming = 0;
 	int              incoming_from_known_sender = 0;
 	#define          outgoing (!incoming)
-	int              is_group = 0;
 
 	carray*          to_list = NULL;
 
@@ -807,11 +806,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				chat_id = lookup_group_by_grpid__(ths, mime_parser,
 					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_list);
-				if( chat_id )
-				{
-					is_group = 1;
-				}
-				else
+				if( chat_id == 0 )
 				{
 					if( mrmimeparser_is_mailinglist_message(mime_parser) )
 					{
@@ -864,11 +859,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
 
 					chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_list);
-					if( chat_id )
-					{
-						is_group = 1;
-					}
-					else
+					if( chat_id == 0 )
 					{
 						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
 						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
@@ -978,58 +969,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
-			}
-
-			/* finally, create "ghost messages" for additional to:, cc: bcc: receivers
-			(just to be more compatibe to standard email-programs, the flow in the Messanger would not need this) */
-			if( outgoing && is_group == 0 && carray_count(to_list)>1 && first_dblocal_id != 0 )
-			{
-				char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, first_dblocal_id); /* G@id is used to find the message if the original is deleted */
-				char* ghost_param = mr_mprintf("G=%lu", first_dblocal_id);                    /* G=MRP_GHOST_CC flag with the original message ID */
-				char* ghost_txt = NULL;
-				{
-					mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
-					ghost_txt = mrmsg_get_summarytext_by_raw(part->m_type, part->m_msg, part->m_param, APPROX_SUBJECT_CHARS);
-				}
-
-				icnt = carray_count(to_list);
-				for( i = 1/*the first one is added in detail above*/; i < icnt; i++ )
-				{
-					uint32_t ghost_to_id   = (uint32_t)(uintptr_t)carray_get(to_list, i);
-					uint32_t ghost_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, ghost_to_id);
-					uint32_t ghost_dblocal_id;
-					if( ghost_chat_id==0 ) {
-						ghost_chat_id = MR_CHAT_ID_TO_DEADDROP;
-					}
-
-					stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb, NULL /*the first_dblocal_id-check above makes sure, the query is really created*/);
-					sqlite3_bind_text (stmt,  1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
-					sqlite3_bind_text (stmt,  2, "", -1, SQLITE_STATIC);
-					sqlite3_bind_int  (stmt,  3, 0);
-					sqlite3_bind_int  (stmt,  4, ghost_chat_id);
-					sqlite3_bind_int  (stmt,  5, from_id);
-					sqlite3_bind_int  (stmt,  6, ghost_to_id);
-					sqlite3_bind_int64(stmt,  7, message_timestamp);
-					sqlite3_bind_int  (stmt,  8, MR_MSG_TEXT);
-					sqlite3_bind_int  (stmt,  9, state);
-					sqlite3_bind_int  (stmt, 10, mime_parser->m_is_send_by_messenger);
-					sqlite3_bind_text (stmt, 11, ghost_txt, -1, SQLITE_STATIC);
-					sqlite3_bind_text (stmt, 12, "", -1, SQLITE_STATIC);
-					sqlite3_bind_text (stmt, 13, ghost_param, -1, SQLITE_STATIC);
-					sqlite3_bind_int  (stmt, 14, 0);
-					if( sqlite3_step(stmt) != SQLITE_DONE ) {
-						mrmailbox_log_info(ths, 0, "Cannot write DB (2).");
-						goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
-					}
-
-					ghost_dblocal_id = sqlite3_last_insert_rowid(ths->m_sql->m_cobj);
-
-					carray_add(created_db_entries, (void*)(uintptr_t)ghost_chat_id, NULL);
-					carray_add(created_db_entries, (void*)(uintptr_t)ghost_dblocal_id, NULL);
-				}
-				free(ghost_txt);
-				free(ghost_param);
-				free(ghost_rfc724_mid_str);
 			}
 
 			/* check event to send */

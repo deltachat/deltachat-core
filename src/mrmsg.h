@@ -126,7 +126,6 @@ char*        mrmsg_get_summarytext_by_raw     (int type, const char* text, mrpar
 int          mrmsg_is_increation__            (const mrmsg_t*);
 void         mrmsg_save_param_to_disk__       (mrmsg_t*);
 void         mr_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title);
-#define      MR_GHOST_ID_FORMAT               "G@%lu"
 
 
 #ifdef __cplusplus

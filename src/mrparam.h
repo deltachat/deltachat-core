@@ -48,7 +48,6 @@ extern "C" {
 #define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
 #define MRP_FORWARDED         'a'  /* for msgs */
-#define MRP_GHOST_CC          'G'  /* for msgs: Ghost-CC, parameter is the original msg_id */
 #define MRP_SYSTEM_CMD        'S'  /* for msgs */
 #define MRP_SYSTEM_CMD_PARAM  'E'  /* for msgs */
 

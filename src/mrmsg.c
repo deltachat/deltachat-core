@@ -343,7 +343,6 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	locked = 1;
 
 		mrmsg_load_from_db__(msg, mailbox, msg_id);
-		msg_id = mrparam_get_int(msg->m_param, MRP_GHOST_CC, msg_id);
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
@@ -691,7 +690,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* if this is the last existing part of the message (ghost messages not counted), we delete the message from the server */
+	/* if this is the last existing part of the message, we delete the message from the server */
 	if( delete_from_server )
 	{
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
@@ -756,12 +755,6 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			}
 			free(pathNfilename);
 		}
-
-		char* ghost_rfc724_mid_str = mr_mprintf(MR_GHOST_ID_FORMAT, msg->m_id);
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_rfc724_mid, "DELETE FROM msgs WHERE rfc724_mid=?;");
-		sqlite3_bind_text(stmt, 1, ghost_rfc724_mid_str, -1, SQLITE_STATIC);
-		sqlite3_step(stmt);
-		free(ghost_rfc724_mid_str);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
