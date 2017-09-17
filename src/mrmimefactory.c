@@ -186,7 +186,13 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				factory->m_predecessor = strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
 			}
 
-			/* get a References:-header: either the same as the last one or a random one */
+			/* get a References:-header: either the same as the last one or a random one.
+			To avoid endless nested threads, we do not use In-Reply-To: here but link subsequent mails to the same reference.
+			This "same reference" is re-calculated after 24 hours to avoid completely different messages being linked to an old context.
+
+			Regarding multi-client: Different clients will create difference References:-header, maybe we will sync these headers some day,
+			however one could also see this as a feature :) (there may be different contextes on different clients)
+			(also, the References-header is not the most important thing, and, at least for now, we do not want to make things too complicated.  */
 			time_t prev_msg_time = 0;
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MAX_timestamp_FROM_msgs,
 				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
@@ -196,7 +202,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				prev_msg_time = sqlite3_column_int64(stmt, 0);
 			}
 
-			#define NEW_THREAD_THRESHOLD 1*60*60
+			#define NEW_THREAD_THRESHOLD 24*60*60
 			if( prev_msg_time != 0 && factory->m_msg->m_timestamp - prev_msg_time < NEW_THREAD_THRESHOLD ) {
 				factory->m_references = mrparam_get(factory->m_chat->m_param, MRP_REFERENCES, NULL);
 			}
