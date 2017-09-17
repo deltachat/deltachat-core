@@ -461,7 +461,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 		clist* references_list = NULL;
 		if( factory->m_references ) {
-			clist* references_list = clist_new();
+			references_list = clist_new();
 			clist_append(references_list,  (void*)safe_strdup(factory->m_references));
 		}
 
