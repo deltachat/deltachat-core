@@ -49,7 +49,10 @@
  ******************************************************************************/
 
 
-static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_as_needed,
+#define MR_CREATE_GROUP_AS_NEEDED  0x01
+
+
+static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_flags,
                                         uint32_t from_id, carray* to_ids)
 {
 	/* search the grpid in the header */
@@ -150,7 +153,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
-	 && create_as_needed
+	 && (create_flags&MR_CREATE_GROUP_AS_NEEDED)
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
 	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
@@ -488,7 +491,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				to_id = MR_CONTACT_ID_SELF;
 
 				chat_id = lookup_group_by_grpid__(ths, mime_parser,
-					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_ids);
+					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)? MR_CREATE_GROUP_AS_NEEDED : 0,
+					from_id, to_ids);
 				if( chat_id == 0 )
 				{
 					if( mrmimeparser_is_mailinglist_message(mime_parser) )
@@ -541,7 +545,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				if( carray_count(to_ids) >= 1 ) {
 					to_id   = (uint32_t)(uintptr_t)carray_get(to_ids, 0);
 
-					chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_ids);
+					chat_id = lookup_group_by_grpid__(ths, mime_parser, MR_CREATE_GROUP_AS_NEEDED, from_id, to_ids);
 					if( chat_id == 0 )
 					{
 						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
