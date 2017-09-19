@@ -771,27 +771,20 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		}
 
+		/* debug print? */
+		if( mrsqlite3_get_config_int__(ths->m_sql, "save_eml", 0) ) {
+			char* emlname = mr_mprintf("%s/%s-%i.eml", ths->m_blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
+			FILE* emlfileob = fopen(emlname, "w");
+			if( emlfileob ) {
+				fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, emlfileob);
+				fclose(emlfileob);
+			}
+			free(emlname);
+		}
+
 	/* end sql-transaction */
 	mrsqlite3_commit__(ths->m_sql);
 	transaction_pending = 0;
-
-	#if 0
-	{
-		mrsqlite3_lock(ths->m_sql);
-			char* debugDir = mrsqlite3_get_config_(ths->m_sql, "debug_dir", NULL);
-			if( debugDir ) {
-				char filename[512];
-				snprintf(filename, sizeof(filename), "%s/%s-%i.eml", debugDir, server_folder, (int)first_dblocal_id);
-				FILE* f = fopen(filename, "w");
-				if( f ) {
-					fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, f);
-					fclose(f);
-				}
-				free(debugDir);
-			}
-		mrsqlite3_unlock(ths->m_sql);
-	}
-	#endif
 
 	/* done */
 cleanup:

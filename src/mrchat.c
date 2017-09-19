@@ -1207,6 +1207,17 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 
+		/* debug print? */
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
+			char* emlname = mr_mprintf("%s/to-smtp-%i.eml", mailbox->m_blobdir, (int)mimefactory.m_msg->m_id);
+			FILE* emlfileob = fopen(emlname, "w");
+			if( emlfileob ) {
+				fwrite(mimefactory.m_out->str, 1, mimefactory.m_out->len, emlfileob);
+				fclose(emlfileob);
+			}
+			free(emlname);
+		}
+
 		mrmailbox_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0)==0 ) {
 			mrparam_set_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
