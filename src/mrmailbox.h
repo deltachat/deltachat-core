@@ -330,11 +330,13 @@ void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const cha
 int  mrmailbox_get_thread_index    (void);
 
 
-/* misc */
-int    mrmailbox_poke_eml_file                   (mrmailbox_t*, const char* file);
-int    mrmailbox_is_reply_to_known_message__     (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
-int    mrmailbox_is_reply_to_messenger_message__ (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
-time_t mrmailbox_correct_bad_timestamp__         (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
+/* misc. tools */
+int    mrmailbox_poke_eml_file                           (mrmailbox_t*, const char* file);
+int    mrmailbox_is_reply_to_known_message__             (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
+int    mrmailbox_is_reply_to_messenger_message__         (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
+time_t mrmailbox_correct_bad_timestamp__                 (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
+void   mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self);
+void   mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self);
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
 #define MR_CHATS_FOLDER     "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */

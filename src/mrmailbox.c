@@ -45,83 +45,6 @@
 
 
 /*******************************************************************************
- * Add contacts to database on receiving messages
- ******************************************************************************/
-
-
-static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
-{
-	/* is addr_spec equal to SELF? */
-	int dummy;
-	if( check_self == NULL ) { check_self = &dummy; }
-
-	*check_self = 0;
-
-	char* self_addr = mrsqlite3_get_config__(ths->m_sql, "configured_addr", "");
-		if( strcasecmp(self_addr, addr_spec)==0 ) {
-			*check_self = 1;
-		}
-	free(self_addr);
-
-	if( *check_self ) {
-		return;
-	}
-
-	/* add addr_spec if missing, update otherwise */
-	char* display_name_dec = NULL;
-	if( display_name_enc ) {
-		display_name_dec = mr_decode_header_string(display_name_enc);
-		mr_normalize_name(display_name_dec);
-	}
-
-	uint32_t row_id = mrmailbox_add_or_lookup_contact__(ths, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
-
-	free(display_name_dec);
-
-	if( row_id ) {
-		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
-			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
-		}
-	}
-}
-
-
-static void add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self)
-{
-	clistiter* cur;
-	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
-		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
-		if( mb ) {
-			add_or_lookup_contact_by_addr__(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
-		}
-	}
-}
-
-
-static void add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self)
-{
-	clistiter* cur;
-	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
-		struct mailimf_address* adr = (struct mailimf_address*)clist_content(cur);
-		if( adr ) {
-			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
-				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
-				if( mb ) {
-					add_or_lookup_contact_by_addr__(ths, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
-				}
-			}
-			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
-				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
-				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					add_or_lookup_contacts_by_mailbox_list__(ths, group->grp_mb_list, origin, ids, check_self);
-				}
-			}
-		}
-	}
-}
-
-
-/*******************************************************************************
  * Handle groups for received messages
  ******************************************************************************/
 
@@ -473,7 +396,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			{
 				int check_self;
 				carray* from_list = carray_new(16);
-				add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
@@ -501,7 +424,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
 			{
-				add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
+				mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
 					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_ids, NULL);
 			}
 		}
@@ -531,7 +454,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					{
 						struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 						if( fld_cc ) {
-							add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
+							mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
 								outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_ids, NULL);
 						}
 					}
@@ -539,7 +462,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					{
 						struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
 						if( outgoing && fld_bcc ) {
-							add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
+							mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
 								MR_ORIGIN_OUTGOING_BCC, to_ids, NULL);
 						}
 					}
