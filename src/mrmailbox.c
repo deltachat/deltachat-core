@@ -96,7 +96,7 @@ static char* get_first_grpid_from_char_clist(const clist* list)
 
 
 static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_as_needed,
-                                        uint32_t from_id, carray* to_list)
+                                        uint32_t from_id, carray* to_ids)
 {
 	/* search the grpid in the header */
 	uint32_t              chat_id = 0;
@@ -106,7 +106,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
-	int                   i, to_list_cnt = carray_count(to_list);
+	int                   i, to_ids_cnt = carray_count(to_ids);
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
 	int                   send_EVENT_CHAT_MODIFIED = 0;
@@ -293,9 +293,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 			}
 		}
 
-		for( i = 0; i < to_list_cnt; i++ )
+		for( i = 0; i < to_ids_cnt; i++ )
 		{
-			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_list, i); /* to_id is only once in to_list and is non-special */
+			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
@@ -310,9 +310,9 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 	/* check the number of receivers -
 	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
-	if( to_list_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
+	if( to_ids_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
 		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
-		if( is_contact_cnt > 3 /* to_list_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_list_cnt. So everything up to 3 is no error. */ ) {
+		if( is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */ ) {
 			chat_id = 0;
 			goto cleanup;
 		}
@@ -613,7 +613,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              incoming_from_known_sender = 0;
 	#define          outgoing (!incoming)
 
-	carray*          to_list = NULL;
+	carray*          to_ids = NULL;
 
 	uint32_t         from_id = 0;
 	int              from_id_blocked = 0;
@@ -642,8 +642,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 	mrmailbox_log_info(ths, 0, "Receive message #%lu from %s.", server_uid, server_folder? server_folder:"?");
 
-	to_list = carray_new(16);
-	if( to_list==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
+	to_ids = carray_new(16);
+	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
 		mrmailbox_log_info(ths, 0, "Bad param.");
 		goto cleanup;
 	}
@@ -734,7 +734,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 		}
 
-		/* Make sure, to_list starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
+		/* Make sure, to_ids starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
 		if( (outgoing || incoming_from_known_sender)
 		 && (field=mr_find_mailimf_field(mime_parser->m_header,  MAILIMF_FIELD_TO  ))!=NULL )
 		{
@@ -742,7 +742,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( fld_to )
 			{
 				add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
-					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_list, NULL);
+					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_ids, NULL);
 			}
 		}
 
@@ -772,7 +772,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 						if( fld_cc ) {
 							add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
-								outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_list, NULL);
+								outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_ids, NULL);
 						}
 					}
 					else if( field->fld_type == MAILIMF_FIELD_BCC )
@@ -780,7 +780,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
 						if( outgoing && fld_bcc ) {
 							add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
-								MR_ORIGIN_OUTGOING_BCC, to_list, NULL);
+								MR_ORIGIN_OUTGOING_BCC, to_ids, NULL);
 						}
 					}
 					else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
@@ -805,7 +805,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				to_id = MR_CONTACT_ID_SELF;
 
 				chat_id = lookup_group_by_grpid__(ths, mime_parser,
-					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_list);
+					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)/*create as needed?*/, from_id, to_ids);
 				if( chat_id == 0 )
 				{
 					if( mrmimeparser_is_mailinglist_message(mime_parser) )
@@ -855,10 +855,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			{
 				state = MR_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
 				from_id = MR_CONTACT_ID_SELF;
-				if( carray_count(to_list) >= 1 ) {
-					to_id   = (uint32_t)(uintptr_t)carray_get(to_list, 0);
+				if( carray_count(to_ids) >= 1 ) {
+					to_id   = (uint32_t)(uintptr_t)carray_get(to_ids, 0);
 
-					chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_list);
+					chat_id = lookup_group_by_grpid__(ths, mime_parser, true/*create as needed*/, from_id, to_ids);
 					if( chat_id == 0 )
 					{
 						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
@@ -884,7 +884,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
 				in these cases, we build a message ID based on some useful header fields that do never change (date, to)
 				we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-				rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_list);
+				rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_ids);
 				if( rfc724_mid == NULL ) {
 					mrmailbox_log_info(ths, 0, "Cannot create Message-ID.");
 					goto cleanup;
@@ -1124,8 +1124,8 @@ cleanup:
 		free(rfc724_mid);
 	}
 
-	if( to_list ) {
-		carray_free(to_list);
+	if( to_ids ) {
+		carray_free(to_ids);
 	}
 
 	if( created_db_entries ) {
