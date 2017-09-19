@@ -93,12 +93,15 @@ time_t mr_smeared_time__             (void);
 time_t mr_create_smeared_timestamp__ (void);
 time_t mr_create_smeared_timestamps__(int count);
 
-/* generate Message-IDs */
+/* Message-ID tools */
 #define MR_VALID_ID_LEN 11
-char* mr_create_id                 (void);
-char* mr_create_dummy_references_mid(void);
-char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);
-char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* addr);
+char* mr_create_id                         (void);
+char* mr_create_dummy_references_mid       (void);
+char* mr_create_incoming_rfc724_mid        (time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);
+char* mr_create_outgoing_rfc724_mid        (const char* grpid, const char* addr);
+char* mr_extract_grpid_from_rfc724_mid     (const char* rfc724_mid);
+char* mr_extract_grpid_from_rfc724_mid_list(const clist* rfc724_mid_list);
+
 
 /* file tools */
 int     mr_file_exist              (const char* pathNfilename);

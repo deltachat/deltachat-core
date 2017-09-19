@@ -56,6 +56,7 @@ extern "C" {
 typedef struct mrmailbox_t mrmailbox_t;
 typedef struct mrimap_t mrimap_t;
 typedef struct mrsmtp_t mrsmtp_t;
+typedef struct mrmimeparser_t mrmimeparser_t;
 
 
 #define MR_VERSION_MAJOR    0
@@ -326,11 +327,14 @@ void mrmailbox_log_error_if        (int* condition, mrmailbox_t*, int code, cons
 void mrmailbox_log_warning         (mrmailbox_t*, int code, const char* msg, ...);
 void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...);
 void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
+int  mrmailbox_get_thread_index    (void);
 
 
 /* misc */
-int  mrmailbox_get_thread_index    (void);
-int  mrmailbox_poke_eml_file       (mrmailbox_t*, const char* file);
+int    mrmailbox_poke_eml_file                   (mrmailbox_t*, const char* file);
+int    mrmailbox_is_reply_to_known_message__     (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
+int    mrmailbox_is_reply_to_messenger_message__ (mrmailbox_t* mailbox, mrmimeparser_t* mime_parser);
+time_t mrmailbox_correct_bad_timestamp__         (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
 
 #define MR_CHAT_PREFIX      "Chat:"      /* you MUST NOT modify this or the following strings */
 #define MR_CHATS_FOLDER     "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */

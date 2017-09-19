@@ -1436,6 +1436,53 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 }
 
 
+char* mr_extract_grpid_from_rfc724_mid(const char* mid)
+{
+	/* extract our group ID from Message-IDs as `Gr.12345678.morerandom.user@domain.de`; "12345678" is the wanted ID in this example. */
+	int success = 0;
+	char* ret = NULL, *p1;
+
+    if( mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.' ) {
+		goto cleanup;
+    }
+
+	ret = safe_strdup(&mid[3]);
+
+	p1 = strchr(ret, '.');
+	if( p1 == NULL ) {
+		goto cleanup;
+	}
+	*p1 = 0;
+
+	if( strlen(ret)!=MR_VALID_ID_LEN ) {
+		goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	if( success == 0 ) { free(ret); ret = NULL; }
+    return success? ret : NULL;
+}
+
+
+char* mr_extract_grpid_from_rfc724_mid_list(const clist* list)
+{
+	clistiter* cur;
+	if( list ) {
+		for( cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur) ) {
+			const char* mid = clist_content(cur);
+			char* grpid = mr_extract_grpid_from_rfc724_mid(mid);
+			if( grpid ) {
+				return grpid;
+			}
+		}
+	}
+	return NULL;
+}
+
+
+
 /*******************************************************************************
  * file tools
  ******************************************************************************/
