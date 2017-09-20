@@ -165,7 +165,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"addmember <contact-id>\n"
 			"removemember <contact-id>\n"
 			"groupimage [<file>]\n"
-			"listmembers\n"
+			"chatinfo\n"
 			"send <text>\n"
 			"sendimage <file>\n"
 			"sendfile <file>\n"
@@ -184,7 +184,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"\nContact commands:\n"
 			"listcontacts [<query>]\n"
 			"addcontact <name> <addr>\n"
-			"encrinfo <contact-id>\n"
+			"contactinfo <contact-id>\n"
 
 			"\nMisc.:\n"
 			"event <event-id to test>\n"
@@ -487,11 +487,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strcmp(cmd, "listmembers")==0 )
+	else if( strcmp(cmd, "chatinfo")==0 )
 	{
 		if( sel_chat ) {
 			carray* contacts = mrmailbox_get_chat_contacts(mailbox, sel_chat->m_id);
 			if( contacts ) {
+				mrmailbox_log_info(mailbox, 0, "Memberlist:");
 				log_contactlist(mailbox, contacts);
 				ret = mr_mprintf("%i contacts.", (int)carray_count(contacts));
 			}
@@ -700,7 +701,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("ERROR: Arguments <name> <addr> expected.");
 		}
 	}
-	else if( strcmp(cmd, "encrinfo")==0 )
+	else if( strcmp(cmd, "contactinfo")==0 )
 	{
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
