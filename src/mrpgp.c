@@ -582,7 +582,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 		}
 		else if( raw_public_key_for_validation==NULL || vresult->unknownc > 0 )
 		{
-			/* at least one valid or invalid signature found, but now key for verification */
+			/* at least one valid or invalid signature found, but no key for verification */
 			*ret_validation_errors = MR_VALIDATE_UNKNOWN_SIGNATURE;
 		}
 		else if( vresult->invalidc > 0 )
