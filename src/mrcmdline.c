@@ -222,7 +222,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=e2ee, 8=rest but server config");
+			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
 		}
 	}
 	else if( strcmp(cmd, "poke")==0 )

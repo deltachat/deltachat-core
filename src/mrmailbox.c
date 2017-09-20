@@ -1269,11 +1269,17 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 
 		if( bits & 1 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
+			mrmailbox_log_info(ths, 0, "Job resetted.");
 		}
 
 		if( bits & 2 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
+			mrmailbox_log_info(ths, 0, "Peerstates resetted.");
+		}
+
+		if( bits & 4 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
+			mrmailbox_log_info(ths, 0, "Private keypairs resetted.");
 		}
 
 		if( bits & 8 ) {
@@ -1283,11 +1289,10 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
+			mrmailbox_log_info(ths, 0, "Rest but server config resetted.");
 		}
 
 	mrsqlite3_unlock(ths->m_sql);
-
-	mrmailbox_log_info(ths, 0, "Tables resetted.");
 
 	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 
