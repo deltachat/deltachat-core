@@ -232,7 +232,7 @@ Searching can be done globally (chat_id=0) or in a specified chat only (chat_id 
 carray*  mrmailbox_search_msgs (mrmailbox_t*, uint32_t chat_id, const char* query);
 
 
-/* Get messages - for a list, see mrchat_get_msglist() */
+/* Get messages - for a list, see mrmailbox_get_chatlist() */
 mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
 char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
 int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
