@@ -60,7 +60,7 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			}
 
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
-				mrmailbox_log_info(mailbox, 0, "Msg #%i: %s (Contact #%i): %s %s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
 					mrparam_get(msg->m_param, MRP_GUARANTEE_E2EE, 0)? "[E2E]" : "",
 					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]" : (msg->m_state==MR_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					statestr,
@@ -104,7 +104,7 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 			else {
 				line = safe_strdup("Read error.");
 			}
-			mrmailbox_log_info(mailbox, 0, "Contact #%i: %s%s", (int)contact_id, line, line2? line2:"");
+			mrmailbox_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
 			free(line);
 			free(line2);
 		}
@@ -348,7 +348,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					char *temp;
 
 					temp = mrchat_get_subtitle(chat);
-						mrmailbox_log_info(mailbox, 0, "%s #%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_GROUP? "Group" : "Chat",
+						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_GROUP? "Groupchat" : "Chat",
 							(int)chat->m_id, chat->m_name, temp, (int)mrchat_get_fresh_msg_count(chat));
 					free(temp);
 
@@ -401,7 +401,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
-				mrmailbox_log_info(mailbox, 0, "Chat #%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
+				mrmailbox_log_info(mailbox, 0, "Chat#%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
 			free(temp2);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
@@ -423,7 +423,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
-			ret = mrmailbox_create_chat_by_contact_id(mailbox, contact_id)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			int chat_id = mrmailbox_create_chat_by_contact_id(mailbox, contact_id);
+			ret = chat_id!=0? mr_mprintf("Chat#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
@@ -432,7 +433,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "creategroup")==0 )
 	{
 		if( arg1 ) {
-			ret = mrmailbox_create_group_chat(mailbox, arg1)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			int chat_id = mrmailbox_create_group_chat(mailbox, arg1);
+			ret = chat_id!=0? mr_mprintf("Groupchat#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <name> missing.");
@@ -587,7 +589,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			int i, icnt = carray_count(images);
 			ret = mr_mprintf("%i images or videos: ", icnt);
 			for( i = 0; i < icnt; i++ ) {
-				char* temp = mr_mprintf("%s%sMsg #%i", i? ", ":"", ret, (int)(uintptr_t)carray_get(images, i));
+				char* temp = mr_mprintf("%s%sMsg#%i", i? ", ":"", ret, (int)(uintptr_t)carray_get(images, i));
 				free(ret);
 				ret = temp;
 			}
