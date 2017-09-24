@@ -1033,7 +1033,7 @@ void mrimap_heartbeat(mrimap_t* ths)
 		}
 
 		if( ths->m_enter_watch_wait_time != 0
-		 && time(NULL)-ths->m_enter_watch_wait_time > (FULL_FETCH_EVERY_SECONDS+10) )
+		 && time(NULL)-ths->m_enter_watch_wait_time > (IDLE_DELAY_SECONDS+60) )
 		{
 			/* force reconnect if the IDLE timeout does not arrive */
 			mrmailbox_log_info(ths->m_mailbox, 0, "Reconnect forced from the heartbeat thread.");
