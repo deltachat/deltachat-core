@@ -30,7 +30,7 @@
 #include "mrmailbox.h"
 #include "mrsimplify.h"
 #include "mrtools.h"
-#include "mrsaxparser.h"
+#include "mrdehtml.h"
 #include "mrmimeparser.h"
 
 
@@ -108,159 +108,6 @@ void mrsimplify_unref(mrsimplify_t* ths)
 	}
 
 	free(ths);
-}
-
-
-/*******************************************************************************
- * Simplify HTML
- ******************************************************************************/
-
-
-typedef struct dehtml_t
-{
-    mrstrbuilder_t m_strbuilder;
-
-    #define DO_NOT_ADD               0
-    #define DO_ADD_REMOVE_LINEENDS   1
-    #define DO_ADD_PRESERVE_LINEENDS 2
-    int     m_add_text;
-    char*   m_last_href;
-
-} dehtml_t;
-
-
-static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
-{
-	dehtml_t* dehtml = (dehtml_t*)userdata;
-
-	if( strcmp(tag, "p")==0 || strcmp(tag, "div")==0 || strcmp(tag, "table")==0 || strcmp(tag, "td")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n");
-		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
-	}
-	else if( strcmp(tag, "br")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n");
-		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
-	}
-	else if( strcmp(tag, "style")==0 || strcmp(tag, "script")==0 || strcmp(tag, "title")==0 )
-	{
-		dehtml->m_add_text = DO_NOT_ADD;
-	}
-	else if( strcmp(tag, "pre")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n");
-		dehtml->m_add_text = DO_ADD_PRESERVE_LINEENDS;
-	}
-	else if( strcmp(tag, "a")==0 )
-	{
-		free(dehtml->m_last_href);
-		dehtml->m_last_href = strdup_keep_null(mrattr_find(attr, "href"));
-		if( dehtml->m_last_href ) {
-			mrstrbuilder_cat(&dehtml->m_strbuilder, "[");
-		}
-	}
-	else if( strcmp(tag, "b")==0 || strcmp(tag, "strong")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "*");
-	}
-	else if( strcmp(tag, "i")==0 || strcmp(tag, "em")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "_");
-	}
-}
-
-
-static void dehtml_text_cb(void* userdata, const char* text, int len)
-{
-	dehtml_t* dehtml = (dehtml_t*)userdata;
-
-	if( dehtml->m_add_text != DO_NOT_ADD )
-	{
-		char* last_added = mrstrbuilder_cat(&dehtml->m_strbuilder, text);
-
-		if( dehtml->m_add_text==DO_ADD_REMOVE_LINEENDS )
-		{
-			unsigned char* p = (unsigned char*)last_added;
-			while( *p ) {
-				if( *p=='\n' ) {
-					int last_is_lineend = 1; /* avoid converting `text1<br>\ntext2` to `text1\n text2` (`\r` is removed later) */
-					const unsigned char* p2 = p-1;
-					while( p2>=(const unsigned char*)dehtml->m_strbuilder.m_buf ) {
-						if( *p2 == '\r' ) {
-						}
-						else if( *p2 == '\n' ) {
-							break;
-						}
-						else {
-							last_is_lineend = 0;
-							break;
-						}
-						p2--;
-					}
-					*p = last_is_lineend? '\r' : ' ';
-				}
-				p++;
-			}
-		}
-	}
-}
-
-
-static void dehtml_endtag_cb(void* userdata, const char* tag)
-{
-	dehtml_t* dehtml = (dehtml_t*)userdata;
-
-	if( strcmp(tag, "p")==0 || strcmp(tag, "div")==0 || strcmp(tag, "table")==0 || strcmp(tag, "td")==0
-	 || strcmp(tag, "style")==0 || strcmp(tag, "script")==0 || strcmp(tag, "title")==0
-	 || strcmp(tag, "pre")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n"); /* do not expect an starting block element (which, of course, should come right now) */
-		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
-	}
-	else if( strcmp(tag, "a")==0 )
-	{
-		if( dehtml->m_last_href ) {
-			mrstrbuilder_cat(&dehtml->m_strbuilder, "](");
-			mrstrbuilder_cat(&dehtml->m_strbuilder, dehtml->m_last_href);
-			mrstrbuilder_cat(&dehtml->m_strbuilder, ")");
-			free(dehtml->m_last_href);
-			dehtml->m_last_href = NULL;
-		}
-	}
-	else if( strcmp(tag, "b")==0 || strcmp(tag, "strong")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "*");
-	}
-	else if( strcmp(tag, "i")==0 || strcmp(tag, "em")==0 )
-	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "_");
-	}
-}
-
-
-static char* dehtml(char* buf_terminated)
-{
-	mr_trim(buf_terminated);
-	if( buf_terminated[0] == 0 ) {
-		return safe_strdup(""); /* support at least empty HTML-messages; for empty messages, we'll replace the message by the subject later */
-	}
-	else {
-		dehtml_t      dehtml;
-		mrsaxparser_t saxparser;
-
-		memset(&dehtml, 0, sizeof(dehtml_t));
-		dehtml.m_add_text   = DO_ADD_REMOVE_LINEENDS;
-		mrstrbuilder_init(&dehtml.m_strbuilder);
-
-		mrsaxparser_init(&saxparser, &dehtml);
-		mrsaxparser_set_tag_handler(&saxparser, dehtml_starttag_cb, dehtml_endtag_cb);
-		mrsaxparser_set_text_handler(&saxparser, dehtml_text_cb);
-		mrsaxparser_parse(&saxparser, buf_terminated);
-
-		free(dehtml.m_last_href);
-		return dehtml.m_strbuilder.m_buf;
-	}
 }
 
 
@@ -449,7 +296,7 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 
 	/* convert HTML to text, if needed */
 	if( is_html ) {
-		char* temp = dehtml(out); /* dehtml() returns way too much lineends, however they're removed in the simplification below */
+		char* temp = mr_dehtml(out); /* mr_dehtml() returns way too much lineends, however they're removed in the simplification below */
 		if( temp ) {
 			free(out);
 			out = temp;
