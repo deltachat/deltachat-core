@@ -444,6 +444,9 @@
 		<Unit filename="src/mrcontact.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrdehtml.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrimap.c">
 			<Option compilerVar="CC" />
 		</Unit>
