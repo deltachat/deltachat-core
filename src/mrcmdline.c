@@ -146,7 +146,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"open <file to open or create>\n"
 			"close\n"
 			"reset <flags>\n"
-			"imex export-keys|import-keys <setup-code>|cancel\n"
+			"imex export-keys|import-keys <setup-code>|backup|cancel\n"
 			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
@@ -245,6 +245,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			}
 			else if( arg1[0]=='i'/*import-keys*/ && arg2!=NULL ) {
 				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, arg2);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else if( arg1[0]=='b'/*backup*/ && arg2==NULL ) {
+				char* setup_code = mrmailbox_create_setup_code(mailbox);
+				mrmailbox_log_info(mailbox, 0, "Setup code needed for importing: %s", setup_code);
+				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, setup_code);
+				free(setup_code);
 				ret = COMMAND_SUCCEEDED;
 			}
 			else if( strcmp(arg1, "cancel")==0 ) {
