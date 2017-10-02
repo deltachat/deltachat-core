@@ -33,6 +33,7 @@
 #include "mrmailbox.h"
 #include "mrmimeparser.h"
 #include "mrosnative.h"
+#include "mrloginparam.h"
 #include "mraheader.h"
 #include "mrapeerstate.h"
 #include "mrtools.h"
@@ -969,6 +970,43 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char*
 	thread_param->m_dir        = safe_strdup(dir);
 	thread_param->m_setup_code = safe_strdup(setup_code); /*empty string if no code given, this will not work but also not crash.*/
 	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
+}
+
+
+int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
+{
+	/* Check if the given password matches the configured mail_pw.
+	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.
+	When we start supporting OAuth some day, we should think this over, maybe force the user to re-authenticate hinself with the Android password. */
+	mrloginparam_t* loginparam = mrloginparam_new();
+	int             success = 0;
+
+	if( mailbox==NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+
+		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	if( (loginparam->m_mail_pw==NULL || loginparam->m_mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
+		/* both empty or unset */
+		success = 1;
+	}
+	else if( loginparam->m_mail_pw==NULL || test_pw==NULL ) {
+		/* one set, the other not */
+		success = 0;
+	}
+	else if( strcmp(loginparam->m_mail_pw, test_pw)==0 ) {
+		/* string-compared passwords are equal */
+		success = 1;
+	}
+
+cleanup:
+	mrloginparam_unref(loginparam);
+	return success;
 }
 
 
