@@ -663,7 +663,7 @@ void mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 	/* disconnect */
 	mrmailbox_disconnect(mailbox);
 	mrsqlite3_lock(mailbox->m_sql);
-		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the frontends)
+		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
 		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);

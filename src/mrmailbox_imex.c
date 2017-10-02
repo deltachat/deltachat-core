@@ -298,11 +298,11 @@ cleanup:
 
 
 /*******************************************************************************
- * Export keys, deprecated routines
+ * Export keys
  ******************************************************************************/
 
 
-static void export_key_to_asc_file_deprecated(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
+static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
 {
 	char* file_content = mrkey_render_asc(key);
 	char* file_name;
@@ -325,7 +325,7 @@ static void export_key_to_asc_file_deprecated(mrmailbox_t* mailbox, const char* 
 }
 
 
-static int export_self_keys_deprecated(mrmailbox_t* mailbox, const char* dir)
+static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 {
 	sqlite3_stmt* stmt = NULL;
 	int           id = 0, is_default = 0;
@@ -345,8 +345,8 @@ static int export_self_keys_deprecated(mrmailbox_t* mailbox, const char* dir)
 			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
 			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
 			is_default = sqlite3_column_int( stmt, 3  );
-			export_key_to_asc_file_deprecated(mailbox, dir, id, public_key,  is_default);
-			export_key_to_asc_file_deprecated(mailbox, dir, id, private_key, is_default);
+			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
+			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
 		}
 
 cleanup:
@@ -700,7 +700,7 @@ cleanup:
  ******************************************************************************/
 
 
-static int export_backup(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
+static int export_backup(mrmailbox_t* mailbox, const char* dir)
 {
 	int            success = 0, locked = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
@@ -852,6 +852,17 @@ cleanup:
 
 
 /*******************************************************************************
+ * Import backup
+ ******************************************************************************/
+
+
+static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
+{
+	return 1;
+}
+
+
+/*******************************************************************************
  * Import/Export Thread and Main Interface
  ******************************************************************************/
 
@@ -860,7 +871,7 @@ typedef struct mrimexthreadparam_t
 {
 	mrmailbox_t* m_mailbox;
 	int          m_what;
-	char*        m_dir;
+	char*        m_param1; /* meaning depends on m_what */
 	char*        m_setup_code;
 } mrimexthreadparam_t;
 
@@ -889,14 +900,14 @@ static void* imex_thread_entry_point(void* entry_arg)
 			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
+		/* also make sure, the directory for exporting exists */
+		mr_create_folder(thread_param->m_param1, mailbox);
 	}
-
-	mr_create_folder(thread_param->m_dir, mailbox);
 
 	switch( thread_param->m_what )
 	{
 		case MR_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys_deprecated(mailbox, thread_param->m_dir) ) {
+			if( !export_self_keys(mailbox, thread_param->m_param1) ) {
 				goto cleanup;
 			}
 			/*if( !export_self_setup_file(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
@@ -905,13 +916,19 @@ static void* imex_thread_entry_point(void* entry_arg)
 			break;
 
 		case MR_IMEX_IMPORT_SELF_KEYS:
-			if( !import_self_keys(mailbox, thread_param->m_dir) ) {
+			if( !import_self_keys(mailbox, thread_param->m_param1) ) {
 				goto cleanup;
 			}
 			break;
 
 		case MR_IMEX_EXPORT_BACKUP:
-			if( !export_backup(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
+			if( !export_backup(mailbox, thread_param->m_param1) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_IMPORT_BACKUP:
+			if( !import_backup(mailbox, thread_param->m_param1) ) {
 				goto cleanup;
 			}
 			break;
@@ -924,7 +941,7 @@ cleanup:
 	s_imex_do_exit = 1; /* set this before sending MR_EVENT_EXPORT_ENDED, avoids MR_IMEX_CANCEL to stop the thread */
 	mailbox->m_cb(mailbox, MR_EVENT_IMEX_ENDED, success, 0);
 	s_imex_thread_created = 0;
-	free(thread_param->m_dir);
+	free(thread_param->m_param1);
 	free(thread_param->m_setup_code);
 	free(thread_param);
 	mrosnative_unsetup_thread(mailbox); /* must be very last (here we really new the local copy of the pointer) */
@@ -932,7 +949,7 @@ cleanup:
 }
 
 
-void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char* setup_code)
+void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const char* setup_code)
 {
 	mrimexthreadparam_t* thread_param;
 
@@ -951,8 +968,8 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char*
 		return;
 	}
 
-	if( dir == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "No Import/export dir given.");
+	if( param1 == NULL ) {
+		mrmailbox_log_error(mailbox, 0, "No Import/export dir/file given.");
 		return;
 	}
 
@@ -967,8 +984,8 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* dir, const char*
 	thread_param = calloc(1, sizeof(mrimexthreadparam_t));
 	thread_param->m_mailbox    = mailbox;
 	thread_param->m_what       = what;
-	thread_param->m_dir        = safe_strdup(dir);
-	thread_param->m_setup_code = safe_strdup(setup_code); /*empty string if no code given, this will not work but also not crash.*/
+	thread_param->m_param1     = safe_strdup(param1);
+	thread_param->m_setup_code = safe_strdup(setup_code);
 	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
 }
 

@@ -146,7 +146,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"open <file to open or create>\n"
 			"close\n"
 			"reset <flags>\n"
-			"imex export-keys|import-keys <setup-code>|backup|cancel\n"
+			"imex export-keys|import-keys <setup-code>|backup|import-backup|cancel\n"
+			"hasbackup\n"
 			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 			"set <configuration-key> [<value>]\n"
 			"get <configuration-key>\n"
@@ -236,22 +237,19 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			if( arg2 ) { *arg2 = 0; arg2++; }
 
 			if( arg1[0]=='e'/*export-keys*/ && arg2==NULL ) {
-				char* setup_code = mrmailbox_create_setup_code(mailbox);
-				mrmailbox_log_info(mailbox, 0, "Setup code needed for importing: %s", setup_code);
-				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, setup_code);
-				mr_wipe_secret_mem(setup_code, strlen(setup_code));
-				free(setup_code);
+				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
-			else if( arg1[0]=='i'/*import-keys*/ && arg2!=NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, arg2);
+			else if( strcmp(arg1, "import-keys")==0 ) {
+				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+				ret = COMMAND_SUCCEEDED;
+			}
+			else if( strcmp(arg1, "import-backup")==0 && arg2!=NULL ) {
+				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
 			else if( arg1[0]=='b'/*backup*/ && arg2==NULL ) {
-				char* setup_code = mrmailbox_create_setup_code(mailbox);
-				mrmailbox_log_info(mailbox, 0, "Setup code needed for importing: %s", setup_code);
-				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, setup_code);
-				free(setup_code);
+				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
 			else if( strcmp(arg1, "cancel")==0 ) {
@@ -264,6 +262,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <what> missing.");
+		}
+	}
+	else if( strcmp(cmd, "hasbackup")==0 )
+	{
+		ret = mrmailbox_has_backup(mailbox, mailbox->m_blobdir);
+		if( ret == NULL ) {
+			ret = safe_strdup("No backup found.");
 		}
 	}
 	else if( strcmp(cmd, "set")==0 )
