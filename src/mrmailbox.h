@@ -89,7 +89,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_EVENT_CONFIGURE_PROGRESS       2041 /* data1=percent */
 
 #define MR_EVENT_IMEX_ENDED               2050 /* mrmailbox_imex() done: data1=0:failed, 1=success */
-#define MR_EVENT_IMEX_PROGRESS            2051 /* data1=percent */
+#define MR_EVENT_IMEX_PROGRESS            2051 /* data1=permille */
 #define MR_EVENT_IMEX_FILE_WRITTEN        2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
 
 /* Functions that should be provided by the frontends */
@@ -165,12 +165,6 @@ int                  mrmailbox_is_open              (const mrmailbox_t*);
 void                 mrmailbox_configure_and_connect(mrmailbox_t*);
 void                 mrmailbox_configure_cancel     (mrmailbox_t*);
 int                  mrmailbox_is_configured        (mrmailbox_t*);
-
-
-/* if the mailbox is not yet configured (mrmailbox_is_configured() returns 0),
-the following function can be used to import a backup.
-The backup can be imported using mrmailbox_imex() then. */
-char*                mrmailbox_has_backup           (mrmailbox_t*, const char* dir); /* returns backup_file or NULL, may only be used on fresh installations; returned strings must be free()'d */
 
 
 /* Connect to the mailbox using the configured settings. normally, there is no
@@ -273,14 +267,14 @@ int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* k
 /* Import/export keys, backup etc.
 To avoid double slashes, the given directory should not end with a slash. */
 #define MR_IMEX_CANCEL                      0
-#define MR_IMEX_EXPORT_BITS        0x0000FFFF
-#define MR_IMEX_EXPORT_SELF_KEYS   0x00000001 /* param1 is a directory where the keys are written to */
-#define MR_IMEX_EXPORT_BACKUP      0x00000002 /* param1 is a directory where the backup is written to */
-#define MR_IMEX_IMPORT_SELF_KEYS   0x00010000 /* param1 is a firectory where the keys are searched in and read from */
-#define MR_IMEX_IMPORT_BACKUP      0x00010002 /* param1 is the file with the backup as returned eg. from mrmailbox_has_backup() */
+#define MR_IMEX_EXPORT_SELF_KEYS            1 /* param1 is a directory where the keys are written to */
+#define MR_IMEX_IMPORT_SELF_KEYS            2 /* param1 is a directory where the keys are searched in and read from */
+#define MR_IMEX_EXPORT_BACKUP              11 /* param1 is a directory where the backup is written to */
+#define MR_IMEX_IMPORT_BACKUP              12 /* param1 is the file with the backup to import */
 #define MR_BAK_PREFIX             "delta-chat"
 #define MR_BAK_SUFFIX             "bak"
 void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* param1, const char* setup_code); /* user import/export function, sends MR_EVENT_IMEX_* events */
+char*                mrmailbox_imex_has_backup      (mrmailbox_t*, const char* dir); /* returns backup_file or NULL, may only be used on fresh installations (mrmailbox_is_configured() returns 0); returned strings must be free()'d */
 int                  mrmailbox_check_password       (mrmailbox_t*, const char* pw); /* Check if the user is authorized by the given password in some way. This is to promt for the password eg. before exporting keys/backup. */
 char*                mrmailbox_create_setup_code    (mrmailbox_t*); /* should be written down by the user, forwareded to mrmailbox_imex() for encryption then, must be wiped and free()'d after usage */
 int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);          /* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */

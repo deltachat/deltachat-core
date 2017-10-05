@@ -178,7 +178,10 @@ typedef struct mrsqlite3_t
 
 mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
 void          mrsqlite3_unref            (mrsqlite3_t*);
-int           mrsqlite3_open__           (mrsqlite3_t*, const char* dbfile);
+
+#define       MR_OPEN_READONLY           0x01
+int           mrsqlite3_open__           (mrsqlite3_t*, const char* dbfile, int flags);
+
 void          mrsqlite3_close__          (mrsqlite3_t*);
 int           mrsqlite3_is_open          (const mrsqlite3_t*);
 
@@ -194,6 +197,9 @@ sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the
 int           mrsqlite3_execute__        (mrsqlite3_t*, const char* sql);
 int           mrsqlite3_table_exists__   (mrsqlite3_t*, const char* name);
 void          mrsqlite3_log_error        (mrsqlite3_t*, const char* msg, ...);
+
+/* reset all predefined statements, this is needed only in very rare cases, eg. when dropping a table and there are pending statements */
+void          mrsqlite3_reset_all_predefinitions(mrsqlite3_t*);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
 the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.

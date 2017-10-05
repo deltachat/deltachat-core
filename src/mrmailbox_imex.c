@@ -700,6 +700,14 @@ cleanup:
  ******************************************************************************/
 
 
+#define FILE_PROGRESS \
+	processed_files_count++; \
+	int permille = (processed_files_count*1000)/total_files_count; \
+	if( permille < 1 ) { permille = 1; } \
+	if( permille > 1000 ) { permille = 1000; } \
+	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, permille, 0);
+
+
 static int export_backup(mrmailbox_t* mailbox, const char* dir)
 {
 	int            success = 0, locked = 0, closed = 0;
@@ -742,14 +750,14 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	}
 
 	/* unlock and re-open the source and make it availabe again for the normal use */
-	mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile);
+	mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0);
 	closed = 0;
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=mrsqlite3_new(mailbox/*for logging only*/))==NULL
-	 || !mrsqlite3_open__(dest_sql, dest_pathNfilename) ) {
+	 || !mrsqlite3_open__(dest_sql, dest_pathNfilename, 0) ) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -789,12 +797,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 				goto cleanup;
 			}
 
-			processed_files_count++;
-
-			int percent = (processed_files_count*100)/total_files_count;
-			if( percent < 1 ) { percent = 1; }
-			if( percent > 100 ) { percent = 100; }
-			mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, percent, 0);
+			FILE_PROGRESS
 
 			char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			int name_len = strlen(name);
@@ -836,7 +839,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
-	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile); }
+	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( stmt ) { sqlite3_finalize(stmt); }
@@ -856,9 +859,155 @@ cleanup:
  ******************************************************************************/
 
 
+char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
+{
+	char*          ret = NULL;
+	time_t         ret_backup_time = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry;
+	int            prefix_len = strlen(MR_BAK_PREFIX);
+	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	char*          curr_pathNfilename = NULL;
+	mrsqlite3_t*   test_sql = NULL;
+
+	if( mailbox == NULL ) {
+		return NULL;
+	}
+
+	if( mrmailbox_is_configured(mailbox) ) {
+		mrmailbox_log_info(mailbox, 0, "Backup check: Won't search or import backups for mailboxes in use.");
+		return NULL; /* we import a backup only on a fresh installation, so there is no need to search for one otherwise. */
+	}
+
+	if( (dir_handle=opendir(dir_name))==NULL ) {
+		mrmailbox_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
+		goto cleanup;
+	}
+
+	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+		int name_len = strlen(name);
+		if( name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0
+		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0 )
+		{
+			free(curr_pathNfilename);
+			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);
+
+			mrsqlite3_unref(test_sql);
+			if( (test_sql=mrsqlite3_new(mailbox/*for logging only*/))!=NULL
+			 && mrsqlite3_open__(test_sql, curr_pathNfilename, MR_OPEN_READONLY) )
+			{
+				time_t curr_backup_time = mrsqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
+				if( curr_backup_time > 0
+				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
+				{
+					/* set return value to the tested database name */
+					free(ret);
+					ret = curr_pathNfilename;
+					ret_backup_time = curr_backup_time;
+					curr_pathNfilename = NULL;
+				}
+			}
+		}
+	}
+
+cleanup:
+	if( dir_handle ) { closedir(dir_handle); }
+	free(curr_pathNfilename);
+	mrsqlite3_unref(test_sql);
+	return ret;
+}
+
+
 static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 {
-	return 1;
+	/* command for testing eg.
+	imex import-backup /home/bpetersen/temp/delta-chat-2017-10-05.bak
+	*/
+
+	int           success = 0;
+	int           locked = 0;
+	int           processed_files_count = 0, total_files_count = 0;
+	sqlite3_stmt* stmt = NULL;
+	char*         pathNfilename = NULL;
+
+	mrmailbox_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
+
+	if( mrmailbox_is_configured(mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot import backups to mailboxes in use.");
+		goto cleanup;
+	}
+
+	/* close and delete the original file */
+	mrmailbox_disconnect(mailbox);
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+	if( mrsqlite3_is_open(mailbox->m_sql) ) {
+		mrsqlite3_close__(mailbox->m_sql);
+	}
+
+	mr_delete_file(mailbox->m_dbfile, mailbox);
+
+	if( mr_file_exist(mailbox->m_dbfile) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot import backups: Cannot delete the old file.");
+		goto cleanup;
+	}
+
+	/* copy the database file */
+	if( !mr_copy_file(backup_to_import, mailbox->m_dbfile, mailbox) ) {
+		goto cleanup; /* error already logged */
+	}
+
+	/* re-open copied database file */
+	if( !mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0) ) {
+		goto cleanup;
+	}
+
+	/* copy all blobs to files */
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
+	sqlite3_step(stmt);
+	total_files_count = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
+	while( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		if( s_imex_do_exit ) {
+			goto cleanup;
+		}
+
+        FILE_PROGRESS
+
+        const char* file_name    = (const char*)sqlite3_column_text (stmt, 0);
+        int         file_bytes   = sqlite3_column_bytes(stmt, 1);
+        const void* file_content = sqlite3_column_blob (stmt, 1);
+
+        if( file_bytes > 0 && file_content ) {
+			free(pathNfilename);
+			pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, file_name);
+			if( !mr_write_file(pathNfilename, file_content, file_bytes, mailbox) ) {
+				mrmailbox_log_error(mailbox, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
+				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
+			}
+		}
+	}
+
+	/* finalize/reset all statements - otherwise the table cannot be DROPped below */
+	sqlite3_finalize(stmt);
+	stmt = 0;
+	mrsqlite3_reset_all_predefinitions(mailbox->m_sql);
+
+	mrsqlite3_execute__(mailbox->m_sql, "DROP TABLE backup_blobs;");
+	mrsqlite3_execute__(mailbox->m_sql, "VACUUM;");
+
+cleanup:
+	free(pathNfilename);
+	if( stmt )  { sqlite3_finalize(stmt); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	return success;
 }
 
 
@@ -894,7 +1043,7 @@ static void* imex_thread_entry_point(void* entry_arg)
 		goto cleanup;
 	}
 
-	if( (thread_param->m_what&MR_IMEX_EXPORT_BITS)!=0 ) {
+	if( thread_param->m_what==MR_IMEX_EXPORT_SELF_KEYS || thread_param->m_what==MR_IMEX_EXPORT_BACKUP ) {
 		/* before we export anything, make sure the private key exists */
 		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
 			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");

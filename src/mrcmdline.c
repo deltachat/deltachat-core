@@ -146,7 +146,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"open <file to open or create>\n"
 			"close\n"
 			"reset <flags>\n"
-			"imex export-keys|import-keys <setup-code>|backup|import-backup|cancel\n"
+			"imex export-keys|import-keys <setup-code>|export-backup|import-backup|cancel\n"
 			"hasbackup\n"
 			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 			"set <configuration-key> [<value>]\n"
@@ -236,7 +236,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			char* arg2 = strchr(arg1, ' ');
 			if( arg2 ) { *arg2 = 0; arg2++; }
 
-			if( arg1[0]=='e'/*export-keys*/ && arg2==NULL ) {
+			if( strcmp(arg1, "export-keys")==0 && arg2==NULL ) {
 				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
@@ -244,12 +244,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
-			else if( strcmp(arg1, "import-backup")==0 && arg2!=NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL);
+			else if( strcmp(arg1, "export-backup")==0 && arg2==NULL ) {
+				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
-			else if( arg1[0]=='b'/*backup*/ && arg2==NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
+			else if( strcmp(arg1, "import-backup")==0 && arg2!=NULL ) {
+				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL);
 				ret = COMMAND_SUCCEEDED;
 			}
 			else if( strcmp(arg1, "cancel")==0 ) {
@@ -266,7 +266,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "hasbackup")==0 )
 	{
-		ret = mrmailbox_has_backup(mailbox, mailbox->m_blobdir);
+		ret = mrmailbox_imex_has_backup(mailbox, mailbox->m_blobdir);
 		if( ret == NULL ) {
 			ret = safe_strdup("No backup found.");
 		}

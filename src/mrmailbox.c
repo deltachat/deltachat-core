@@ -955,7 +955,7 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 	from which all configuration is read/written to. */
 
 	/* Create/open sqlite database */
-	if( !mrsqlite3_open__(ths->m_sql, dbfile) ) {
+	if( !mrsqlite3_open__(ths->m_sql, dbfile, 0) ) {
 		goto cleanup;
 	}
 	mrjob_kill_action__(ths, MRJ_CONNECT_TO_IMAP);

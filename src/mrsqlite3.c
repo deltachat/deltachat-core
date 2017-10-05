@@ -162,7 +162,7 @@ void mrsqlite3_unref(mrsqlite3_t* ths)
 }
 
 
-int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
+int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 {
 	if( ths == NULL || dbfile == NULL ) {
 		goto cleanup;
@@ -178,157 +178,160 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile)
 		goto cleanup;
 	}
 
-	/* Init tables to dbversion=0 */
-	if( !mrsqlite3_table_exists__(ths, "config") )
+	if( !(flags&MR_OPEN_READONLY) )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
-
-		mrsqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-		mrsqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
-
-		mrsqlite3_execute__(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
-					" name TEXT DEFAULT '',"
-					" addr TEXT DEFAULT '' COLLATE NOCASE,"
-					" origin INTEGER DEFAULT 0,"
-					" blocked INTEGER DEFAULT 0,"
-					" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
-					" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
-		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
-		mrsqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
-		mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
-		#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
-			#error
-		#endif
-
-		mrsqlite3_execute__(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
-					" type INTEGER DEFAULT 0,"
-					" name TEXT DEFAULT '',"
-					" draft_timestamp INTEGER DEFAULT 0,"
-					" draft_txt TEXT DEFAULT '',"
-					" blocked INTEGER DEFAULT 0,"
-					" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
-					" param TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
-		mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
-		mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);"); /* the other way round, an index on contact_id is only needed for blocking users */
-		mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-		#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TO_DEADDROP!=2 || MR_CHAT_ID_TRASH!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
-			#error
-		#endif
-
-		mrsqlite3_execute__(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
-					" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
-					" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
-					" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
-					" chat_id INTEGER DEFAULT 0,"
-					" from_id INTEGER DEFAULT 0,"
-					" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "deaddrop" to a normal chat, may be unset */
-					" timestamp INTEGER DEFAULT 0,"
-					" type INTEGER DEFAULT 0,"
-					" state INTEGER DEFAULT 0,"
-					" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? (0=no, 1=yes, 2=no, but the message is a reply to a messenger message) */
-					" bytes INTEGER DEFAULT 0,"        /* not used, added in ~ v0.1.12 */
-					" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
-					" txt_raw TEXT DEFAULT '',"
-					" param TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
-		mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of fresh messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
-		mrsqlite3_execute__(ths, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
-
-		mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
-					" added_timestamp INTEGER,"
-					" desired_timestamp INTEGER DEFAULT 0,"
-					" action INTEGER,"
-					" foreign_id INTEGER,"
-					" param TEXT DEFAULT '');");
-		mrsqlite3_execute__(ths, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
-
-		if( !mrsqlite3_table_exists__(ths, "config") || !mrsqlite3_table_exists__(ths, "contacts")
-		 || !mrsqlite3_table_exists__(ths, "chats") || !mrsqlite3_table_exists__(ths, "chats_contacts")
-		 || !mrsqlite3_table_exists__(ths, "msgs") || !mrsqlite3_table_exists__(ths, "jobs") )
+		/* Init tables to dbversion=0 */
+		if( !mrsqlite3_table_exists__(ths, "config") )
 		{
-			mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
-			goto cleanup; /* cannot create the tables - maybe we cannot write? */
-		}
+			mrmailbox_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
 
-		mrsqlite3_set_config_int__(ths, "dbversion", 0);
-	}
+			mrsqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+			mrsqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
 
-	/* Update database */
-	int dbversion = mrsqlite3_get_config_int__(ths, "dbversion", 0);
-	#define NEW_DB_VERSION 1
-		if( dbversion < NEW_DB_VERSION )
-		{
-			mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
-						" id INTEGER PRIMARY KEY,"
-						" grpid TEXT DEFAULT '');");
-			mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
-
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-		}
-	#undef NEW_DB_VERSION
-
-	#define NEW_DB_VERSION 2
-		if( dbversion < NEW_DB_VERSION )
-		{
-			mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
-
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-		}
-	#undef NEW_DB_VERSION
-
-	#define NEW_DB_VERSION 7
-		if( dbversion < NEW_DB_VERSION )
-		{
-			mrsqlite3_execute__(ths, "CREATE TABLE keypairs ("
-						" id INTEGER PRIMARY KEY,"
+			mrsqlite3_execute__(ths, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+						" name TEXT DEFAULT '',"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
-						" is_default INTEGER DEFAULT 0,"
-						" private_key,"
-						" public_key,"
-						" created INTEGER DEFAULT 0);");
+						" origin INTEGER DEFAULT 0,"
+						" blocked INTEGER DEFAULT 0,"
+						" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
+						" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
+			mrsqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
+			mrsqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
+			mrsqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'system',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
+			#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
+				#error
+			#endif
 
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			mrsqlite3_execute__(ths, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+						" type INTEGER DEFAULT 0,"
+						" name TEXT DEFAULT '',"
+						" draft_timestamp INTEGER DEFAULT 0,"
+						" draft_txt TEXT DEFAULT '',"
+						" blocked INTEGER DEFAULT 0,"
+						" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
+						" param TEXT DEFAULT '');");
+			mrsqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
+			mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
+			mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);"); /* the other way round, an index on contact_id is only needed for blocking users */
+			mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+			#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TO_DEADDROP!=2 || MR_CHAT_ID_TRASH!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
+				#error
+			#endif
+
+			mrsqlite3_execute__(ths, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+						" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
+						" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
+						" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
+						" chat_id INTEGER DEFAULT 0,"
+						" from_id INTEGER DEFAULT 0,"
+						" to_id INTEGER DEFAULT 0,"        /* to_id is needed to allow moving messages eg. from "deaddrop" to a normal chat, may be unset */
+						" timestamp INTEGER DEFAULT 0,"
+						" type INTEGER DEFAULT 0,"
+						" state INTEGER DEFAULT 0,"
+						" msgrmsg INTEGER DEFAULT 1,"      /* does the message come from a messenger? (0=no, 1=yes, 2=no, but the message is a reply to a messenger message) */
+						" bytes INTEGER DEFAULT 0,"        /* not used, added in ~ v0.1.12 */
+						" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
+						" txt_raw TEXT DEFAULT '',"
+						" param TEXT DEFAULT '');");
+			mrsqlite3_execute__(ths, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
+			mrsqlite3_execute__(ths, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
+			mrsqlite3_execute__(ths, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
+			mrsqlite3_execute__(ths, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of fresh messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+			mrsqlite3_execute__(ths, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
+
+			mrsqlite3_execute__(ths, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+						" added_timestamp INTEGER,"
+						" desired_timestamp INTEGER DEFAULT 0,"
+						" action INTEGER,"
+						" foreign_id INTEGER,"
+						" param TEXT DEFAULT '');");
+			mrsqlite3_execute__(ths, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
+
+			if( !mrsqlite3_table_exists__(ths, "config") || !mrsqlite3_table_exists__(ths, "contacts")
+			 || !mrsqlite3_table_exists__(ths, "chats") || !mrsqlite3_table_exists__(ths, "chats_contacts")
+			 || !mrsqlite3_table_exists__(ths, "msgs") || !mrsqlite3_table_exists__(ths, "jobs") )
+			{
+				mrsqlite3_log_error(ths, "Cannot create tables in new database \"%s\".", dbfile);
+				goto cleanup; /* cannot create the tables - maybe we cannot write? */
+			}
+
+			mrsqlite3_set_config_int__(ths, "dbversion", 0);
 		}
-	#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 10
-		if( dbversion < NEW_DB_VERSION )
-		{
-			mrsqlite3_execute__(ths, "CREATE TABLE acpeerstates ("
-						" id INTEGER PRIMARY KEY,"
-						" addr TEXT DEFAULT '' COLLATE NOCASE,"    /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
-						" last_seen INTEGER DEFAULT 0,"
-						" last_seen_autocrypt INTEGER DEFAULT 0,"
-						" public_key,"
-						" prefer_encrypted INTEGER DEFAULT 0);");
-			mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
+		/* Update database */
+		int dbversion = mrsqlite3_get_config_int__(ths, "dbversion", 0);
+		#define NEW_DB_VERSION 1
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "CREATE TABLE leftgrps ("
+							" id INTEGER PRIMARY KEY,"
+							" grpid TEXT DEFAULT '');");
+				mrsqlite3_execute__(ths, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-		}
-	#undef NEW_DB_VERSION
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 12
-		if( dbversion < NEW_DB_VERSION )
-		{
-			mrsqlite3_execute__(ths, "CREATE TABLE msgs_mdns ("
-						" msg_id INTEGER, "
-						" contact_id INTEGER);");
-			mrsqlite3_execute__(ths, "CREATE INDEX msgs_mdns_index1 ON msgs_mdns (msg_id);");
+		#define NEW_DB_VERSION 2
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
 
-			dbversion = NEW_DB_VERSION;
-			mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-		}
-	#undef NEW_DB_VERSION
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
 
-	#define NEW_DB_VERSION 13 /* just leave this to make sure version 13 is not used again */
-	#undef NEW_DB_VERSION
+		#define NEW_DB_VERSION 7
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "CREATE TABLE keypairs ("
+							" id INTEGER PRIMARY KEY,"
+							" addr TEXT DEFAULT '' COLLATE NOCASE,"
+							" is_default INTEGER DEFAULT 0,"
+							" private_key,"
+							" public_key,"
+							" created INTEGER DEFAULT 0);");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 10
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "CREATE TABLE acpeerstates ("
+							" id INTEGER PRIMARY KEY,"
+							" addr TEXT DEFAULT '' COLLATE NOCASE,"    /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
+							" last_seen INTEGER DEFAULT 0,"
+							" last_seen_autocrypt INTEGER DEFAULT 0,"
+							" public_key,"
+							" prefer_encrypted INTEGER DEFAULT 0);");
+				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 12
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "CREATE TABLE msgs_mdns ("
+							" msg_id INTEGER, "
+							" contact_id INTEGER);");
+				mrsqlite3_execute__(ths, "CREATE INDEX msgs_mdns_index1 ON msgs_mdns (msg_id);");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 13 /* just leave this to make sure version 13 is not used again */
+		#undef NEW_DB_VERSION
+	}
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
@@ -403,6 +406,17 @@ sqlite3_stmt* mrsqlite3_predefine__(mrsqlite3_t* ths, size_t idx, const char* qu
 	}
 
 	return ths->m_pd[idx];
+}
+
+
+void mrsqlite3_reset_all_predefinitions(mrsqlite3_t* ths)
+{
+	int i;
+	for( i = 0; i < PREDEFINED_CNT; i++ ) {
+		if( ths->m_pd[i] ) {
+			sqlite3_reset(ths->m_pd[i]);
+		}
+	}
 }
 
 
