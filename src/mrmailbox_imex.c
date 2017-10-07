@@ -874,11 +874,6 @@ char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
 		return NULL;
 	}
 
-	if( mrmailbox_is_configured(mailbox) ) {
-		mrmailbox_log_info(mailbox, 0, "Backup check: Won't search or import backups for mailboxes in use.");
-		return NULL; /* we import a backup only on a fresh installation, so there is no need to search for one otherwise. */
-	}
-
 	if( (dir_handle=opendir(dir_name))==NULL ) {
 		mrmailbox_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
 		goto cleanup;
@@ -1002,6 +997,8 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 
 	mrsqlite3_execute__(mailbox->m_sql, "DROP TABLE backup_blobs;");
 	mrsqlite3_execute__(mailbox->m_sql, "VACUUM;");
+
+	success = 1;
 
 cleanup:
 	free(pathNfilename);
