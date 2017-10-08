@@ -1059,9 +1059,6 @@ static void* imex_thread_entry_point(void* entry_arg)
 			if( !export_self_keys(mailbox, thread_param->m_param1) ) {
 				goto cleanup;
 			}
-			/*if( !export_self_setup_file(mailbox, thread_param->m_dir, thread_param->m_setup_code) ) {
-				goto cleanup;
-			}*/
 			break;
 
 		case MR_IMEX_IMPORT_SELF_KEYS:
