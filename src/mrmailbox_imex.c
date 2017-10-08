@@ -703,11 +703,13 @@ cleanup:
  ******************************************************************************/
 
 
+/* the FILE_PROGRESS macro calls the callback with the permille of files processed.
+The macro avoids weird values of 0% or 100% while still working. */
 #define FILE_PROGRESS \
 	processed_files_count++; \
 	int permille = (processed_files_count*1000)/total_files_count; \
-	if( permille < 1 ) { permille = 1; } \
-	if( permille > 1000 ) { permille = 1000; } \
+	if( permille <  10 ) { permille =  10; } \
+	if( permille > 990 ) { permille = 990; } \
 	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, permille, 0);
 
 
