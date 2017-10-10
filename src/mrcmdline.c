@@ -115,6 +115,15 @@ static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
 }
 
 
+static int s_is_auth = 0;
+
+
+void mrmailbox_cmdline_skip_auth()
+{
+	s_is_auth = 1;
+}
+
+
 char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 {
 	#define      COMMAND_FAILED    ((char*)1)
@@ -122,6 +131,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	#define      COMMAND_UNKNOWN   ((char*)3)
 	char*        cmd = NULL, *arg1 = NULL, *ret = COMMAND_FAILED;
 	mrchat_t*    sel_chat = NULL;
+
 
 	if( mailbox == NULL || cmdline == NULL || cmdline[0]==0 ) {
 		goto cleanup;
@@ -194,6 +204,22 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"clear -- clear screen\n" /* must be implemented by  the caller */
 			"exit" /* must be implemented by  the caller */
 		);
+	}
+	else if( !s_is_auth )
+	{
+		if( strcmp(cmd, "auth")==0 ) {
+			char* is_pw = mrmailbox_get_config(mailbox, "mail_pw", "");
+			if( strcmp(arg1, is_pw)==0 ) {
+				s_is_auth = 1;
+				ret = COMMAND_SUCCEEDED;
+			}
+			else {
+				ret = "Bad password.";
+			}
+		}
+		else {
+			ret = safe_strdup("Please authorize yourself using: auth <password>");
+		}
 	}
 
 

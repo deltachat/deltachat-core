@@ -43,6 +43,12 @@ extern "C" {
 char* mrmailbox_cmdline (mrmailbox_t*, const char* cmd);
 
 
+/* For security reasons, the first command should be `auth <password>`
+- If a user is authorized one time, this is valid for _all_ exising and future mailbox objects.
+- If the authorisation is not desired, eg. for a command line client, you can skip this using mrmailbox_cmdline_skip_auth().*/
+void mrmailbox_cmdline_skip_auth();
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

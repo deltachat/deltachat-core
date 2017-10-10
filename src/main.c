@@ -110,6 +110,8 @@ int main(int argc, char ** argv)
 {
 	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL);
 
+	mrmailbox_cmdline_skip_auth(mailbox); /* disable the need to enter the command `auth <password>` for all mailboxes. */
+
 	printf("Delta Chat Core is awaiting your commands.\n"); /* use neutral speach here, the Delta Chat Core is not directly related to any front end or end-product. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
