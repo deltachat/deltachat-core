@@ -221,6 +221,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("Please authorize yourself using: auth <password>");
 		}
 	}
+	else if( strcmp(cmd, "auth")==0 )
+	{
+		ret = safe_strdup("Already authorized.");
+	}
 
 
 	/*******************************************************************************
