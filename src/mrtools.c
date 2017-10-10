@@ -271,6 +271,49 @@ void mr_remove_cr_chars(char* buf)
 }
 
 
+void mr_replace_bad_utf8_chars(char* buf)
+{
+	if( buf==NULL ) {
+		return;
+	}
+
+	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
+	int            p1len = strlen(buf);
+	int            c, i, ix, n, j;
+	for( i=0, ix=p1len; i < ix; i++ )
+	{
+		c = p1[i];
+		     if( c > 0 && c <= 0x7f )                           { n=0; }        /* 0bbbbbbb */
+		else if( (c & 0xE0) == 0xC0 )                           { n=1; }        /* 110bbbbb */
+		else if( c==0xed && i<(ix-1) && (p1[i+1] & 0xa0)==0xa0) { goto error; } /* U+d800 to U+dfff */
+		else if( (c & 0xF0) == 0xE0 )                           { n=2; }        /* 1110bbbb */
+		else if( (c & 0xF8) == 0xF0)                            { n=3; }        /* 11110bbb */
+		//else if( (c & 0xFC) == 0xF8)                          { n=4; }        /* 111110bb - not valid in https://tools.ietf.org/html/rfc3629 */
+		//else if( (c & 0xFE) == 0xFC)                          { n=5; }        /* 1111110b - not valid in https://tools.ietf.org/html/rfc3629 */
+		else                                                    { goto error; }
+
+		for( j = 0; j < n && i < ix; j++ ) { /* n bytes matching 10bbbbbb follow ? */
+			if( (++i == ix) || (( p1[i] & 0xC0) != 0x80) ) {
+				goto error;
+			}
+		}
+	}
+
+    /* everything is fine */
+    return;
+
+error:
+	/* there are errors in the string -> replace potential errors by the character `_`
+	(to avoid problems in filenames, we do not use eg. `?`) */
+	while( *p1 ) {
+		if( *p1 > 0x7f ) {
+			*p1 = '_';
+		}
+		p1++;
+	}
+}
+
+
 #if 0 /* not needed at the moment */
 static size_t mr_utf8_strlen(const char* s)
 {

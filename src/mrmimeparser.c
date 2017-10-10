@@ -967,6 +967,8 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					}
 				}
 
+				mr_replace_bad_utf8_chars(desired_filename);
+
 				/* create a free file name to use */
 				if( (pathNfilename=mr_get_fine_pathNfilename(ths->m_blobdir, desired_filename)) == NULL ) {
 					goto cleanup;

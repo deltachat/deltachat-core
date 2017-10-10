@@ -177,6 +177,23 @@ void stress_functions(mrmailbox_t* mailbox)
         assert( MRP_TRACKNAME == 'n' );
         assert( MRP_FORWARDED == 'a' );
         assert( MRP_UNPROMOTED == 'U' );
+
+        char* buf1 = strdup("ol\xc3\xa1 mundo <>\"'& äÄöÖüÜß fooÆçÇ ♦&noent;"); char* buf2 = strdup(buf1);
+        mr_replace_bad_utf8_chars(buf2);
+        assert( strcmp(buf1, buf2)==0 );
+        free(buf1); free(buf2);
+
+        buf1 = strdup("ISO-String with Ae: \xC4"); buf2 = strdup(buf1);
+        mr_replace_bad_utf8_chars(buf2);
+        assert( strcmp("ISO-String with Ae: _", buf2)==0 );
+        free(buf1); free(buf2);
+
+        buf1 = strdup(""); buf2 = strdup(buf1);
+        mr_replace_bad_utf8_chars(buf2);
+        assert( buf2[0]==0 );
+        free(buf1); free(buf2);
+
+        mr_replace_bad_utf8_chars(NULL); /* should do nothing */
 	}
 
 	/* test mrparam
