@@ -120,12 +120,14 @@ pgp_keyring_fileread(pgp_io_t *io,
 			const unsigned armour,
 			const char *filename);
 
-unsigned 
+#if 0 //////
+unsigned
 pgp_keyring_read_from_mem(pgp_io_t *io,
             pgp_keyring_t *pubring,
             pgp_keyring_t *secring,
             const unsigned armour,
             pgp_memory_t *mem);
+#endif //////
 
 int pgp_keyring_list(pgp_io_t *, const pgp_keyring_t *, const int);
 

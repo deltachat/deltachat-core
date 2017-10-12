@@ -1010,6 +1010,7 @@ pgp_keyring_fileread(pgp_io_t *io,
    \sa pgp_keyring_fileread
    \sa pgp_keyring_free
 */
+#if 0 //////
 unsigned
 pgp_keyring_read_from_mem(pgp_io_t *io,
             pgp_keyring_t *pubring,
@@ -1024,6 +1025,7 @@ pgp_keyring_read_from_mem(pgp_io_t *io,
                 armour,
                 mem);
 }
+#endif //////
 
 /**
    \ingroup HighLevel_KeyringRead
