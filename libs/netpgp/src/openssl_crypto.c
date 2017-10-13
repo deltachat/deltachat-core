@@ -91,26 +91,7 @@ __RCSID("$NetBSD$");
 #include "netpgp/openssl11stub.h"
 
 
-static void
-test_seckey(const pgp_seckey_t *seckey)
-{
-	RSA *test = RSA_new();
 
-    RSA_set0_key(test,
-     BN_dup(seckey->pubkey.key.rsa.n),
-     BN_dup(seckey->pubkey.key.rsa.e),
-     BN_dup(seckey->key.rsa.d));
-
-    RSA_set0_factors(test,
-     BN_dup(seckey->key.rsa.p),
-     BN_dup(seckey->key.rsa.q));
-
-	if (RSA_check_key(test) != 1) {
-		(void) fprintf(stderr,
-			"test_seckey: RSA_check_key failed\n");
-	}
-	RSA_free(test);
-}
 
 static int
 md5_init(pgp_hash_t *hash)
@@ -559,6 +540,47 @@ pgp_rsa_private_encrypt(uint8_t *out,
 	return n;
 }
 
+
+
+int
+pgp_rsa_private_check(const pgp_seckey_t *seckey)
+{
+    RSA *test = RSA_new();
+    int res = 1;
+
+    RSA_set0_key(test,
+                 BN_dup(seckey->pubkey.key.rsa.n),
+                 BN_dup(seckey->pubkey.key.rsa.e),
+                 BN_dup(seckey->key.rsa.d));
+
+    RSA_set0_factors(test,
+                     BN_dup(seckey->key.rsa.p),
+                     BN_dup(seckey->key.rsa.q));
+
+    if (RSA_check_key(test) != 1) {
+        res = 0;
+        (void) fprintf(stderr,
+                       "test_seckey: RSA_check_key failed\n");
+    }
+    RSA_free(test);
+    return res;
+}
+
+int pgp_dsa_private_check(const pgp_dsa_seckey_t *secdsa)
+{
+    // No ready made OpenSSL method to check DSA private key.
+    // ==> reject DSA until consistency can be checked
+    return 0;
+
+}
+
+int pgp_elgamal_private_check(const pgp_elgamal_seckey_t *seckey)
+{
+    // No ready made OpenSSL method to check Elgamal private key.
+    // ==> reject ElGamal until consistency can be checked
+    return 0;
+}
+
 /**
 \ingroup Core_Crypto
 \brief Decrypts RSA-encrypted data
@@ -819,7 +841,7 @@ pgp_rsa_generate_keypair(pgp_key_t *keydata,
 
 	/* test */
 	if (pgp_get_debug_level(__FILE__)) {
-		test_seckey(seckey);
+		pgp_rsa_private_check(seckey);
 	}
 
 	return 1;

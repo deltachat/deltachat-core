@@ -2810,19 +2810,22 @@ parse_seckey(pgp_content_enum tag, pgp_region_t *region, pgp_stream_t *stream)
 		if (!limread_mpi(&pkt.u.seckey.key.rsa.d, region, stream) ||
 		    !limread_mpi(&pkt.u.seckey.key.rsa.p, region, stream) ||
 		    !limread_mpi(&pkt.u.seckey.key.rsa.q, region, stream) ||
-		    !limread_mpi(&pkt.u.seckey.key.rsa.u, region, stream)) {
+		    !limread_mpi(&pkt.u.seckey.key.rsa.u, region, stream) /*||
+            !pgp_rsa_private_check(&pkt.u.seckey)*/) {
 			ret = 0;
 		}
 		break;
 
 	case PGP_PKA_DSA:
-		if (!limread_mpi(&pkt.u.seckey.key.dsa.x, region, stream)) {
+            if (!limread_mpi(&pkt.u.seckey.key.dsa.x, region, stream) /*||
+                !pgp_dsa_private_check(&pkt.u.seckey)*/) {
 			ret = 0;
 		}
 		break;
 
 	case PGP_PKA_ELGAMAL:
-		if (!limread_mpi(&pkt.u.seckey.key.elgamal.x, region, stream)) {
+            if (!limread_mpi(&pkt.u.seckey.key.elgamal.x, region, stream) /*||
+                !pgp_elgamal_private_check(&pkt.u.seckey)*/) {
 			ret = 0;
 		}
 		break;

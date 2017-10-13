@@ -285,14 +285,13 @@ pgp_validate_key_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 		return PGP_KEEP_MEMORY;
 
 	case PGP_PTAG_CT_SECRET_KEY:
-        /* TODO
-         * check pubkey seckey consistency  */
+        /* check pubkey seckey consistency  */
         validate_key_cb_free(vdata);
-		vdata->key.seckey = content->seckey;
-	    pgp_keyid(vdata->pubkeyid, PGP_KEY_ID_SIZE,
+        vdata->key.seckey = content->seckey;
+        pgp_keyid(vdata->pubkeyid, PGP_KEY_ID_SIZE,
                   &vdata->key.seckey.pubkey, PGP_HASH_SHA1); /* TODO v3*/
-		vdata->last_seen = LS_PRIMARY;
-	    vdata->type = PGP_PTAG_CT_SECRET_KEY;
+        vdata->last_seen = LS_PRIMARY;
+        vdata->type = PGP_PTAG_CT_SECRET_KEY;
         vdata->not_commited = 1;
 		return PGP_KEEP_MEMORY;
 
@@ -312,8 +311,7 @@ pgp_validate_key_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
         }
 
 	case PGP_PTAG_CT_SECRET_SUBKEY:
-        /* TODO
-         * check pubkey seckey consistency */
+        /* check pubkey seckey consistency */
 		if(vdata->type == PGP_PTAG_CT_SECRET_KEY && (
                vdata->last_seen == LS_ID ||
                vdata->last_seen == LS_ATTRIBUTE)){

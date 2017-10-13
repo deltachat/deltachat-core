@@ -139,6 +139,11 @@ int pgp_rsa_private_encrypt(uint8_t *, const uint8_t *, size_t,
 			const pgp_rsa_seckey_t *, const pgp_rsa_pubkey_t *);
 int pgp_rsa_private_decrypt(uint8_t *, const uint8_t *, size_t,
 			const pgp_rsa_seckey_t *, const pgp_rsa_pubkey_t *);
+int pgp_rsa_private_check(const pgp_seckey_t *seckey);
+int pgp_dsa_private_check(const pgp_dsa_seckey_t *seckey);
+int pgp_elgamal_private_check(const pgp_elgamal_seckey_t *seckey);
+
+
 
 int pgp_elgamal_public_encrypt(uint8_t *, uint8_t *, const uint8_t *, size_t,
 			const pgp_elgamal_pubkey_t *);
