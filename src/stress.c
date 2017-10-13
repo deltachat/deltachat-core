@@ -284,6 +284,16 @@ void stress_functions(mrmailbox_t* mailbox)
 	/* test end-to-end-encryption
 	 **************************************************************************/
 
+	#if 1
+	{
+		mrkey_t* public_key  = mrkey_new();
+		mrkey_set_from_file(public_key, "/home/bpetersen/messy/eml/pgp/k-9.pem", mailbox);
+		mrpgp_is_valid_key(mailbox, public_key);
+		mrkey_unref(public_key);
+	}
+	#endif
+
+	#if 0
 	{
 		mrkey_t *public_key = mrkey_new(), *private_key = mrkey_new();
 		mrpgp_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
@@ -378,4 +388,5 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrkey_unref(public_key);
 		mrkey_unref(private_key);
 	}
+	#endif
 }

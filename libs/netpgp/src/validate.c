@@ -173,7 +173,7 @@ to give the final hash value that is checked against the one in the signature
 */
 
 /* Does the signed hash match the given hash? */
-unsigned
+static unsigned
 check_binary_sig(const uint8_t *data,
 		const unsigned len,
 		const pgp_sig_t *sig,
@@ -253,7 +253,7 @@ static void validate_key_cb_free (validate_key_cb_t *vdata){
     }
 }
 
-pgp_cb_ret_t
+static pgp_cb_ret_t
 pgp_validate_key_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 {
 	const pgp_contents_t	 *content = &pkt->u;
@@ -683,6 +683,7 @@ validate_data_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 	return PGP_RELEASE_MEMORY;
 }
 
+#if 0 //////
 static char *
 fmtsecs(int64_t n, char *buf, size_t size)
 {
@@ -714,6 +715,7 @@ fmtsecs(int64_t n, char *buf, size_t size)
 	(void) snprintf(buf, size, "%" PRId64 " second%s", n, (n == 1) ? "" : "s");
 	return buf;
 }
+#endif //////
 
 /**
  * \ingroup HighLevel_Verify
@@ -722,6 +724,7 @@ fmtsecs(int64_t n, char *buf, size_t size)
  * \return 0 if any invalid signatures or unknown signers
  	or no valid signatures; else 1
  */
+#if 0 //////
 static unsigned
 validate_result_status(FILE *errs, const char *f, pgp_validation_t *val)
 {
@@ -759,6 +762,7 @@ validate_result_status(FILE *errs, const char *f, pgp_validation_t *val)
 	}
 	return val->validc && !val->invalidc && !val->unknownc;
 }
+#endif //////
 
 typedef struct key_filter_cb_t{
 	pgp_keyring_t *destpubring;
@@ -920,8 +924,6 @@ pgp_filter_keys_from_mem(
 	unsigned res;
 
 	(void) memset(&vdata, 0x0, sizeof(vdata));
-	vdata.result = NULL;
-	vdata.getpassphrase = NULL;
 
 	(void) memset(&filter, 0x0, sizeof(filter));
     filter.destpubring = destpubring;
@@ -1123,6 +1125,7 @@ pgp_validate_file(pgp_io_t *io,
    \note It is the caller's responsiblity to call
    	pgp_validate_result_free(result) after use.
 */
+#if 0 //////
 static inline unsigned
 _pgp_validate_mem(pgp_io_t *io,
 			pgp_validation_t *result,
@@ -1178,7 +1181,9 @@ _pgp_validate_mem(pgp_io_t *io,
 
 	return validate_result_status(io->errs, NULL, result);
 }
+#endif //////
 
+#if 0 //////
 unsigned
 pgp_validate_mem(pgp_io_t *io,
 			pgp_validation_t *result,
@@ -1195,7 +1200,9 @@ pgp_validate_mem(pgp_io_t *io,
 			keyring,
 	        NULL);
 }
+#endif //////
 
+#if 0 //////
 unsigned
 pgp_validate_mem_detached(pgp_io_t *io,
 			pgp_validation_t *result,
@@ -1213,4 +1220,5 @@ pgp_validate_mem_detached(pgp_io_t *io,
 			keyring,
 	        detachmem);
 }
+#endif //////
 

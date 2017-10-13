@@ -73,7 +73,7 @@ typedef struct validate_key_cb_t{
 
     unsigned not_commited; /* tells on_valid it is first commit of that key */
 	pgp_sig_info_t valid_sig_info; /* store last valid sig info */
-    unsigned sig_is_valid; /* condition to call on_valid at packet end */ 
+    unsigned sig_is_valid; /* condition to call on_valid at packet end */
     pgp_cb_ret_t(*on_valid) ( /* callback for action on valid sig */
                     struct validate_key_cb_t *, /* this struct */
                     const pgp_subpacket_t *); /* sig packet */
@@ -98,12 +98,16 @@ typedef struct {
 	char				*detachname;
 } validate_data_cb_t;
 
+#if 0 //////
 pgp_cb_ret_t pgp_validate_key_cb(const pgp_packet_t *, pgp_cbdata_t *);
+#endif //////
 
+#if 0 //////
 unsigned check_binary_sig(const uint8_t *,
 		const unsigned,
 		const pgp_sig_t *,
 		const pgp_pubkey_t *);
+#endif //////
 
 unsigned   pgp_validate_file(pgp_io_t *,
 			pgp_validation_t *,
@@ -130,15 +134,17 @@ unsigned   pgp_validate_mem_detached(pgp_io_t *,
 pgp_cb_ret_t validate_data_cb(const pgp_packet_t *, pgp_cbdata_t *);
 void pgp_free_sig_info(pgp_sig_info_t *);
 
-unsigned 
+#if 0 //////
+unsigned
 pgp_filter_keys_fileread(pgp_io_t *io,
             pgp_keyring_t *destpubring,
             pgp_keyring_t *destsecring,
             pgp_keyring_t *certring,
 			const unsigned armour,
 			const char *filename);
+#endif //////
 
-unsigned 
+unsigned
 pgp_filter_keys_from_mem(pgp_io_t *io,
             pgp_keyring_t *destpubring,
             pgp_keyring_t *destsecring,
