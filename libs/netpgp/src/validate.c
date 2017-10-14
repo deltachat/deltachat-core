@@ -297,6 +297,7 @@ pgp_validate_key_cb(const pgp_packet_t *pkt, pgp_cbdata_t *cbinfo)
 
 	case PGP_PTAG_CT_PUBLIC_SUBKEY:
 		if(vdata->type == PGP_PTAG_CT_PUBLIC_KEY && (
+		       vdata->last_seen == LS_SUBKEY || /* eg. K-9 has keys with multipe subkeys */
                vdata->last_seen == LS_ID ||
                vdata->last_seen == LS_ATTRIBUTE)){
             pgp_pubkey_free(&vdata->subkey.pubkey);
@@ -773,7 +774,7 @@ static pgp_cb_ret_t key_filter_cb (
     validate_key_cb_t *vdata,
     const pgp_subpacket_t *sigpkt)
 {
-    pgp_key_t		*pubkey;
+    pgp_key_t		*pubkey = NULL;
     pgp_key_t		*seckey = NULL;
     key_filter_cb_t *filter = vdata->on_valid_args;
 
@@ -929,7 +930,7 @@ pgp_filter_keys_from_mem(
 
 	//stream = pgp_new(sizeof(*stream)); -- Memory leak fixed by Delta Chat: not needed, stream is overwritten in pgp_setup_memory_read()
 	pgp_setup_memory_read(io, &stream, mem, &vdata, pgp_validate_key_cb, 1);
-	pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED); // the original code does not set PGP_PARSE_PARSED, however this seems to be a bug as this function was called before pgp_setup_memory_read() - as pgp_filter_keys_fileread() uses the same callback, I assume, PGP_PARSE_PARSED is the expected behaviour.
+	//pgp_parse_options(stream, PGP_PTAG_SS_ALL, PGP_PARSE_PARSED); // the original code does not set PGP_PARSE_PARSED, however this seems to be a bug as this function was called before pgp_setup_memory_read() - as pgp_filter_keys_fileread() uses the same callback, I assume, PGP_PARSE_PARSED is the expected behaviour.
 
 	if (armour) {
 		pgp_reader_push_dearmour(stream);
