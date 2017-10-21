@@ -289,9 +289,9 @@ int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 }
 
 
-int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id, int* ret_blocked)
+int mrmailbox_get_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int* ret_blocked)
 {
-	int          is_known = 0;
+	int          ret = MR_ORIGIN_UNSET;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
 	mrcontact_t* ths = mrcontact_new();
 
@@ -306,14 +306,11 @@ int mrmailbox_is_known_contact__(mrmailbox_t* mailbox, uint32_t contact_id, int*
 		goto cleanup;
 	}
 
-	if( ths->m_origin >= MR_ORIGIN_MIN_START_NEW_CHAT ) {
-		is_known = 1;
-		goto cleanup;
-	}
+	ret = ths->m_origin;
 
 cleanup:
 	mrcontact_unref(ths);
-	return is_known;
+	return ret;
 }
 
 

@@ -296,7 +296,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 {
 	/* the function returns the number of created messages in the database */
 	int              incoming = 0;
-	int              incoming_from_known_sender = 0;
+	int              incoming_origin = MR_ORIGIN_UNSET;
 	#define          outgoing (!incoming)
 
 	carray*          to_ids = NULL;
@@ -411,9 +411,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
-						if( mrmailbox_is_known_contact__(ths, from_id, &from_id_blocked) ) { /* currently, this checks if the contact is non-blocked and is known by any reason, we could be more strict and allow eg. only contacts already used for sending. However, as a first idea, the current approach seems okay. */
-							incoming_from_known_sender = 1;
-						}
+						incoming_origin = mrmailbox_get_contact_origin__(ths, from_id, &from_id_blocked);
 					}
 				}
 				carray_free(from_list);
@@ -421,17 +419,15 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		}
 
 		/* Make sure, to_ids starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
-		if( (outgoing || incoming_from_known_sender)
-		 && (field=mr_find_mailimf_field(mime_parser->m_header,  MAILIMF_FIELD_TO  ))!=NULL )
+		if( (field=mr_find_mailimf_field(mime_parser->m_header, MAILIMF_FIELD_TO))!=NULL )
 		{
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
 			{
 				mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
-					outgoing? MR_ORIGIN_OUTGOING_TO : MR_ORIGIN_INCOMING_TO, to_ids, NULL);
+					outgoing? MR_ORIGIN_OUTGOING_TO : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_TO : MR_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, NULL);
 			}
 		}
-
 
 		if( mrmimeparser_has_nonmeta(mime_parser) )
 		{
@@ -458,7 +454,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 						if( fld_cc ) {
 							mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
-								outgoing? MR_ORIGIN_OUTGOING_CC : MR_ORIGIN_INCOMING_CC, to_ids, NULL);
+								outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
 						}
 					}
 					else if( field->fld_type == MAILIMF_FIELD_BCC )
@@ -490,9 +486,11 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				state = (flags&MR_IMAP_SEEN)? MR_IN_SEEN : MR_IN_FRESH;
 				to_id = MR_CONTACT_ID_SELF;
 
-				chat_id = lookup_group_by_grpid__(ths, mime_parser,
-					(incoming_from_known_sender && mime_parser->m_is_send_by_messenger)? MR_CREATE_GROUP_AS_NEEDED : 0,
-					from_id, to_ids);
+				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
+				int test_normal_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id); /* note that the test_normal_chat_id is also used below (saves one lookup call) */
+
+				/* check for a group chat */
+				chat_id = lookup_group_by_grpid__(ths, mime_parser, (test_normal_chat_id || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT)? MR_CREATE_GROUP_AS_NEEDED : 0, from_id, to_ids);
 				if( chat_id == 0 )
 				{
 					if( mrmimeparser_is_mailinglist_message(mime_parser) )
@@ -517,10 +515,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					}
 					else
 					{
-						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id);
+						chat_id = test_normal_chat_id;
 						if( chat_id == 0 )
 						{
-							if( incoming_from_known_sender && mime_parser->m_is_send_by_messenger )
+							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT )
 							{
 								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
 							}

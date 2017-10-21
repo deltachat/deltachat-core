@@ -45,6 +45,8 @@ extern "C" {
 /* contact origins */
 #define MR_ORIGIN_UNSET                         0
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
+#define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
+#define MR_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) or known Message-ID eg. in In-Reply-To */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
@@ -56,8 +58,9 @@ extern "C" {
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
 
-#define MR_ORIGIN_MIN_CONTACT_LIST   (MR_ORIGIN_INCOMING_REPLY_TO)
-#define MR_ORIGIN_MIN_START_NEW_CHAT (MR_ORIGIN_INCOMING_REPLY_TO)
+#define MR_ORIGIN_MIN_CONTACT_LIST    (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are shown in the contact list */
+#define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
+#define MR_ORIGIN_MIN_START_NEW_NCHAT (0x7FFFFFFF)                  /* contacts with at least this origin value start a new "normal" chat, defaults to off */
 
 
 typedef struct mrcontact_t
@@ -82,7 +85,7 @@ void         mrcontact_empty           (mrcontact_t*);
 int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t id);
 size_t       mrmailbox_get_real_contact_cnt__ (mrmailbox_t*);
 uint32_t     mrmailbox_add_or_lookup_contact__(mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
-int          mrmailbox_is_known_contact__     (mrmailbox_t*, uint32_t id, int* ret_blocked);
+int          mrmailbox_get_contact_origin__   (mrmailbox_t*, uint32_t id, int* ret_blocked);
 int          mrmailbox_is_contact_blocked__   (mrmailbox_t*, uint32_t id);
 int          mrmailbox_real_contact_exists__  (mrmailbox_t*, uint32_t id);
 int          mrmailbox_contact_addr_equals__  (mrmailbox_t*, uint32_t contact_id, const char* other_addr);
