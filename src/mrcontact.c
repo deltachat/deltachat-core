@@ -664,19 +664,33 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
 	 && peerstate->m_public_key->m_binary!=NULL )
 	{
+		/* e2e fine and used */
 		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
-		explain_id = MR_STR_ENCR_E2E_EXPLN;
-	}
-	else if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
-	      && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
-	{
-		p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
-		explain_id = MR_STR_ENCR_NOE2E_EXPLN;
+		explain_id = MR_STR_E2E_FINE;
 	}
 	else
 	{
-		p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
-		explain_id = MR_STR_ENCR_NOE2E_EXPLN;
+		/* e2e not used ... first, show status quo ... */
+		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
+		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
+		{
+			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
+		}
+		else
+		{
+			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
+		}
+
+		/* ... and then explain why we cannot use e2e */
+		if( peerstate_ok && peerstate->m_public_key->m_binary!=NULL && peerstate->m_prefer_encrypt!=MRA_PE_MUTUAL ) {
+			explain_id = MR_STR_E2E_DIS_BY_RCPT;
+		}
+		else if( !e2ee_enabled ) {
+			explain_id = MR_STR_E2E_DIS_BY_YOU;
+		}
+		else {
+			explain_id = MR_STR_E2E_NO_AUTOCRYPT;
+		}
 	}
 
 	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */

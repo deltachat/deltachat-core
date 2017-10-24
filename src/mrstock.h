@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 
-#define MR_STR_FREE_            0 /* the IDs must not change! No gaps, please. */
+#define MR_STR_FREE_             0 /* the IDs must not change! */
 #define MR_STR_NOMESSAGES        1
 #define MR_STR_SELF              2
 #define MR_STR_DRAFT             3
@@ -57,14 +57,16 @@ extern "C" {
 #define MR_STR_GIF               23
 #define MR_STR_ENCRYPTEDMSG      24
 #define MR_STR_ENCR_E2E          25
-#define MR_STR_ENCR_E2E_EXPLN    26
 #define MR_STR_ENCR_TRANSP       27
 #define MR_STR_ENCR_NONE         28
-#define MR_STR_ENCR_NOE2E_EXPLN  29
 #define MR_STR_FINGERPRINTS      30
 #define MR_STR_READRCPT          31
 #define MR_STR_READRCPT_MAILBODY 32
 #define MR_STR_MSGGRPIMGDELETED  33
+#define MR_STR_E2E_FINE          34
+#define MR_STR_E2E_NO_AUTOCRYPT  35
+#define MR_STR_E2E_DIS_BY_YOU    36
+#define MR_STR_E2E_DIS_BY_RCPT   37
 
 
 /*** library-private **********************************************************/
