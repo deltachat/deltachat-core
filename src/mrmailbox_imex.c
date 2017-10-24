@@ -458,7 +458,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		int e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+		int e2ee_enabled = mailbox->m_e2ee_enabled;
 
 		struct mailimf_fields* imffields = mailimf_fields_new_empty();
 		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt-Prefer-Encrypt"), strdup(e2ee_enabled? "mutual" : "nopreference")));

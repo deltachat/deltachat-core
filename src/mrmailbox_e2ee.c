@@ -302,7 +302,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 		/* load autocrypt header from db */
 		autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE;
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) ) {
+		if( mailbox->m_e2ee_enabled ) {
 			autocryptheader->m_prefer_encrypt = MRA_PE_MUTUAL;
 		}
 

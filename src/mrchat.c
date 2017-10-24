@@ -1277,7 +1277,7 @@ uint32_t mrchat_send_msg__(mrchat_t* ths, const mrmsg_t* msg, time_t timestamp)
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int can_guarantee_e2ee = 0;
-	if( mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED) ) {
+	if( ths->m_mailbox->m_e2ee_enabled ) {
 		can_guarantee_e2ee = 1;
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
 			"SELECT ps.prefer_encrypted "

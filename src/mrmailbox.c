@@ -937,6 +937,14 @@ void mrmailbox_unref(mrmailbox_t* ths)
 }
 
 
+static void update_config_cache__(mrmailbox_t* ths, const char* key)
+{
+	if( key==NULL || strcmp(key, "e2ee_enabled")==0 ) {
+		ths->m_e2ee_enabled = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+	}
+}
+
+
 int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
@@ -970,6 +978,9 @@ int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 		ths->m_blobdir = mr_mprintf("%s-blobs", dbfile);
 		mr_create_folder(ths->m_blobdir, ths);
 	}
+
+	/* cache some settings */
+	update_config_cache__(ths, NULL);
 
 	/* success */
 	success = 1;
@@ -1065,6 +1076,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 
 	mrsqlite3_lock(ths->m_sql);
 		ret = mrsqlite3_set_config__(ths->m_sql, key, value);
+		update_config_cache__(ths, key);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -1097,6 +1109,7 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 
 	mrsqlite3_lock(ths->m_sql);
 		ret = mrsqlite3_set_config_int__(ths->m_sql, key, value);
+		update_config_cache__(ths, key);
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -1154,7 +1167,7 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
 
 		dbversion       = mrsqlite3_get_config_int__(ths->m_sql, "dbversion", 0);
 
-		e2ee_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+		e2ee_enabled    = ths->m_e2ee_enabled;
 
 		mdns_enabled    = mrsqlite3_get_config_int__(ths->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
 
@@ -1289,6 +1302,8 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
 			mrmailbox_log_info(ths, 0, "Rest but server config resetted.");
 		}
+
+		update_config_cache__(ths, NULL);
 
 	mrsqlite3_unlock(ths->m_sql);
 

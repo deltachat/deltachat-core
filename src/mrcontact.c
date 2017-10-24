@@ -651,7 +651,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		}
 		peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
-		e2ee_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+		e2ee_enabled = mailbox->m_e2ee_enabled;
 
 		mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);
 

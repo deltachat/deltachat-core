@@ -128,6 +128,8 @@ typedef struct mrmailbox_t
 	int              m_wake_lock;
 	pthread_mutex_t  m_wake_lock_critical;
 
+	int              m_e2ee_enabled;
+
 	#define          MR_LOG_RINGBUF_SIZE 200
 	pthread_mutex_t  m_log_ringbuf_critical;
 	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE];

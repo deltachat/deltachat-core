@@ -376,7 +376,12 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 	}
 	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
-		p = safe_strdup("End-to-end");
+		if( !msg->m_mailbox->m_e2ee_enabled ) {
+			p = safe_strdup("End-to-end, transport for replies");
+		}
+		else {
+			p = safe_strdup("End-to-end");
+		}
 	}
 	else {
 		p = safe_strdup("Transport");
@@ -445,6 +450,20 @@ mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, const mrchat_t* chat)
 cleanup:
 	mrcontact_unref(contact);
 	return ret;
+}
+
+
+int mrmsg_show_padlock(mrmsg_t* msg)
+{
+	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
+	if( msg != NULL ) {
+		if( msg->m_mailbox && msg->m_mailbox->m_e2ee_enabled ) {
+			if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) != 0 ) {
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 

@@ -98,6 +98,7 @@ void          mrmsg_unref                  (mrmsg_t*); /* this also free()s all 
 void          mrmsg_empty                  (mrmsg_t*);
 mrpoortext_t* mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
 char*         mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
+int           mrmsg_show_padlock           (mrmsg_t*); /* a padlock should be shown if the message is e2ee _and_ e2ee is enabled for sending. */
 char*         mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
 mrpoortext_t* mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (as text1, this is not always the sender, NULL if unknown) and title (text2, NULL if unknown) */
 int           mrmsg_is_increation          (mrmsg_t*);
