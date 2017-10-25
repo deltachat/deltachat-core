@@ -2,7 +2,7 @@ Delta Chat Core Library
 ================================================================================
 
 You can use the _Delta Chat Core Library_ to build **your own messenger** or
-plugin, that is completely **compatible** to the existing e-mail infrastructure.
+plugin, that is completely **compatible** to the existing email infrastructure.
 
 ![Logo](https://delta.chat/assets/features/start-img4.png)
 
