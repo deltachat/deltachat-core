@@ -8,9 +8,9 @@ plugin, that is completely **compatible** to the existing email infrastructure.
 
 The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android).
 
-Using this library if your app, you get the **ease** of well-known messengers
+Using this library in your app, you get the **ease** of well-known messengers
 with the **reach** of e-mail. Moreover, you're **independent** from other companies or
-services - as your data are not related to Delta Chat, you won't even add new
+services - as your data is not relayed to Delta Chat, you won't even add new
 dependencies here.
 
 Some features at a glance
@@ -26,7 +26,7 @@ Some features at a glance
 - **No Spam** - only messages of known users are shown by default
 - **Reliable** - safe for professional use
 - **Trustworthy** - can even be used for business messages
-- fully **OpenSource** and [Standards-based](https://delta.chat/en/standards)
+- **Libre software** and [standards-based](https://delta.chat/en/standards)
 
 
 Build
@@ -52,10 +52,10 @@ library there.
 Coding
 --------------------------------------------------------------------------------
 
-You're a developer and have an idea for another crazy chat, social or messaging
-app?  We encourage you to take this source code as a base.  We love to see
+If you are a developer and have an idea for another crazy chat, social or messaging
+app you are encouraged to take this source code as a base. We would love to see
 _many_ different messengers out there, based on existing, distributed
-infrastructure.  But we hate to see the user's data hidden on some companies
+infrastructure. But we hate to see the user's data hidden on some companies
 servers with undefined backgrounds.
 
 Some hints:
@@ -78,17 +78,16 @@ Some hints:
 
 - Threads are implemented using POSIX threads (pthread_* functions)
 
-- For indentation we use tabs.  Alignments that are not placed at the beginning
+- For indentation, use tabs.  Alignments that are not placed at the beginning
   of a line should be done with spaces.
 
-- For padding between funktions, classes etc. we use 2 empty lines
+- For padding between functions, classes etc. use 2 empty lines
 
-- Source files are encoded as UTF-8 with Unix-Lineends (a simple `LF`, `0x0A` or
+- Source files are encoded as UTF-8 with Unix line endings (a simple `LF`, `0x0A` or
   `\n`)
 
 Please keep in mind, that your derived work must be released under a
-GPL-compatible licence.  For details, please have a look at the file LICENSE
-that comes together with the source code.
+GPL-compatible licence.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
 
 ---
 
