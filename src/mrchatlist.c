@@ -48,14 +48,14 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 
 	mrchatlist_empty(ths);
 
-	show_deaddrop = mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
+	show_deaddrop = 1;//mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) " \
 	                " WHERE (c.id>? OR c.id=?) AND blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
-	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
+	                " ORDER BY c.id=? DESC, MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
 	if( query__ )
 	{
@@ -78,6 +78,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 
 	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
 	sqlite3_bind_int(stmt, 2, show_deaddrop? MR_CHAT_ID_DEADDROP : 0);
+	sqlite3_bind_int(stmt, 3, MR_CHAT_ID_DEADDROP);
 
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
