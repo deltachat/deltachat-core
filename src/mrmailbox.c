@@ -490,7 +490,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				int test_normal_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id); /* note that the test_normal_chat_id is also used below (saves one lookup call) */
 
 				/* check for a group chat */
-				chat_id = lookup_group_by_grpid__(ths, mime_parser, (test_normal_chat_id || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT)? MR_CREATE_GROUP_AS_NEEDED : 0, from_id, to_ids);
+				chat_id = lookup_group_by_grpid__(ths, mime_parser, (test_normal_chat_id || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CREATE_GROUP_AS_NEEDED : 0, from_id, to_ids);
 				if( chat_id == 0 )
 				{
 					if( mrmimeparser_is_mailinglist_message(mime_parser) )
@@ -518,15 +518,15 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						chat_id = test_normal_chat_id;
 						if( chat_id == 0 )
 						{
-							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT )
+							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ )
 							{
 								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
 							}
 							else if( mrmailbox_is_reply_to_known_message__(ths, mime_parser) )
 							{
 								mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
-								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
-								mrmailbox_log_info(ths, 0, "Message is a reply, create chat.");
+								//chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id); -- we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine.
+								mrmailbox_log_info(ths, 0, "Message is a reply to a known message, mark sender as known.");
 							}
 						}
 					}
