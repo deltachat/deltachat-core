@@ -667,9 +667,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					create_event_to_send = 0;
 				}
 				else if( chat_id == MR_CHAT_ID_DEADDROP ) {
-					if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
+					create_event_to_send = MR_EVENT_MSGS_CHANGED;
+					/*if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
 						create_event_to_send = MR_EVENT_INCOMING_MSG;
-					}
+					}*/
 				}
 				else {
 					create_event_to_send = MR_EVENT_INCOMING_MSG;

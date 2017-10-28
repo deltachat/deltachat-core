@@ -631,7 +631,7 @@ carray* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		show_deaddrop = mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0);
+		show_deaddrop = 0;//mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0);
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh,
 			"SELECT m.id"

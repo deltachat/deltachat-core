@@ -48,7 +48,10 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 
 	mrchatlist_empty(ths);
 
-	show_deaddrop = 1;//mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
+	show_deaddrop = 0;//mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
+	if( mrmailbox_get_fresh_msg_count__(ths->m_mailbox, MR_CHAT_ID_DEADDROP) > 0 ) {
+		show_deaddrop = 1; // TODO: this should only popup for known contacts! maybe just add unknown messages as noticed? so they won't pop up as being fresh.
+	}
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \

@@ -1020,6 +1020,8 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); // TODO: the event needed only to remove the deaddrop from the chatlist if deaddrop-messages are seen
+
 	return 1;
 }
 
