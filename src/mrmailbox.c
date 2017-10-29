@@ -533,6 +533,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 					if( chat_id == 0 ) {
 						chat_id = MR_CHAT_ID_DEADDROP;
+						if( state == MR_IN_FRESH && incoming_origin<MR_ORIGIN_MIN_VERIFIED ) {
+							state = MR_IN_NOTICED; /* degrade state. noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist */
+						}
 					}
 				}
 			}

@@ -47,7 +47,7 @@ extern "C" {
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
-#define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender (TODO) or known Message-ID eg. in In-Reply-To */
+#define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
 #define MR_ORIGIN_CREATE_CHAT               0x800 /* a chat was manually created for this user, but no message yet sent */

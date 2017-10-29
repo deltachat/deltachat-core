@@ -985,7 +985,7 @@ cleanup:
 
 int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
-	int i;
+	int i, send_event = 0;
 
 	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
 		return 0;
@@ -1005,6 +1005,7 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 			{
 				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
 				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+				send_event = 1;
 			}
 			else
 			{
@@ -1014,13 +1015,19 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 					" WHERE id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
 				sqlite3_bind_int(stmt2, 1, msg_ids[i]);
 				sqlite3_step(stmt2);
+				if( sqlite3_changes(mailbox->m_sql->m_cobj) ) {
+					send_event = 1;
+				}
 			}
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); // TODO: the event needed only to remove the deaddrop from the chatlist if deaddrop-messages are seen
+	/* the event us needed eg. to remove the deaddrop from the chatlist */
+	if( send_event ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	}
 
 	return 1;
 }
