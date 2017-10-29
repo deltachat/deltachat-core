@@ -736,6 +736,12 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		avoid_deadlock--;
 	}
 
+	if( *ret_validation_errors == 0 ) {
+		if( peerstate->m_prefer_encrypt != MRA_PE_MUTUAL ) {
+			*ret_validation_errors = MR_VALIDATE_NOT_MUTUAL; /* this results in MRP_ERRONEOUS_E2EE instead of MRP_GUARANTEE_E2EE and finally in mrmsg_show_padlock() returning `false` */
+		}
+	}
+
 	//mr_print_mime(in_out_message);
 
 cleanup:

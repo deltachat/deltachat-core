@@ -371,6 +371,9 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
 			p = safe_strdup("End-to-end, unknown signature");
 		}
+		else if( e2ee_errors&MR_VALIDATE_NOT_MUTUAL ) {
+			p = safe_strdup("End-to-end, not mutual");
+		}
 		else {
 			p = safe_strdup("End-to-end, no signature");
 		}
