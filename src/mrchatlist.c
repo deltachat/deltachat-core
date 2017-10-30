@@ -39,7 +39,6 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
-	int           show_deaddrop;
 	char*         strLikeCmd = NULL, *query = NULL;
 
 	if( ths == NULL || ths->m_mailbox == NULL ) {
@@ -48,17 +47,12 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 
 	mrchatlist_empty(ths);
 
-	show_deaddrop = 0;//mrsqlite3_get_config_int__(ths->m_mailbox->m_sql, "show_deaddrop", 0);
-	if( mrmailbox_get_fresh_msg_count__(ths->m_mailbox, MR_CHAT_ID_DEADDROP) > 0 ) {
-		show_deaddrop = 1; // TODO: this should only popup for known contacts! maybe just add unknown messages as noticed? so they won't pop up as being fresh.
-	}
-
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) " \
-	                " WHERE (c.id>? OR c.id=?) AND blocked=0"
+	                " WHERE c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
-	                " ORDER BY c.id=? DESC, MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
+	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
 	if( query__ )
 	{
@@ -71,18 +65,19 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 		strLikeCmd = mr_mprintf("%%%s%%", query);
 		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
 			QUR1 " AND c.name LIKE ? " QUR2);
-		sqlite3_bind_text(stmt, 3, strLikeCmd, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
 	else
 	{
+		uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_mailbox);
+		if( last_deaddrop_fresh_msg_id > 0 ) {
+			carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_DEADDROP, NULL); /* show deaddrop with the last fresh message */
+			carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)last_deaddrop_fresh_msg_id, NULL);
+		}
+
 		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
 			QUR1 QUR2);
 	}
-
-	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
-	sqlite3_bind_int(stmt, 2, show_deaddrop? MR_CHAT_ID_DEADDROP : 0);
-	sqlite3_bind_int(stmt, 3, MR_CHAT_ID_DEADDROP);
-
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
