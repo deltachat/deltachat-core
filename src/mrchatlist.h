@@ -48,6 +48,7 @@ void          mrchatlist_unref               (mrchatlist_t*);
 void          mrchatlist_empty               (mrchatlist_t*);
 size_t        mrchatlist_get_cnt             (mrchatlist_t*);
 mrchat_t*     mrchatlist_get_chat_by_index   (mrchatlist_t*, size_t index); /* result must be unref'd */
+mrmsg_t*      mrchatlist_get_msg_by_index    (mrchatlist_t*, size_t index); /* result must be unref'd */
 mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t*, size_t index, mrchat_t*); /* result must be unref'd, the 3rd parameter is only to speed up things */
 
 

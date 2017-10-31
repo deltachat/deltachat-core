@@ -159,6 +159,16 @@ mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index)
 }
 
 
+mrmsg_t* mrchatlist_get_msg_by_index(mrchatlist_t* ths, size_t index)
+{
+	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
+		return 0;
+	}
+
+	return mrmailbox_get_msg(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(ths->m_chatNlastmsg_ids, index*IDS_PER_RESULT+1));
+}
+
+
 mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t index, mrchat_t* chat)
 {
 	/* The summary is created by the chat, not by the last message.
