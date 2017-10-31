@@ -970,6 +970,24 @@ int mrchat_get_fresh_msg_count(mrchat_t* ths)
 }
 
 
+int mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
+{
+	if( mailbox == 0 || (archive!=0 && archive!=1) ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET archived=? WHERE id=?;");
+		sqlite3_bind_int  (stmt, 1, archive);
+		sqlite3_bind_int  (stmt, 2, chat_id);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	return 1;
+}
+
+
 /*******************************************************************************
  * Delete a chat
  ******************************************************************************/

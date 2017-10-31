@@ -329,7 +329,16 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 13 /* just leave this to make sure version 13 is not used again */
+		#define NEW_DB_VERSION 15
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN archived INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN starred INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "CREATE INDEX msgs_index5 ON msgs (starred);");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
 		#undef NEW_DB_VERSION
 	}
 

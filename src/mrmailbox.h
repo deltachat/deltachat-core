@@ -188,6 +188,7 @@ uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t
 uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* create a normal chat with a single user */
 carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
 carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
+int                  mrmailbox_archive_chat              (mrmailbox_t*, uint32_t chat_id, int archive); /* 1=archive, 0=unarchive */
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, messages are deleted from the device and stay on the server. */
 
 
