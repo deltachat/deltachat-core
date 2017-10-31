@@ -276,6 +276,10 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 		free(ths->m_name);
 		ths->m_name = mrstock_str(MR_STR_ARCHIVEDCHATS);
 	}
+	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
+		free(ths->m_name);
+		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
+	}
 
 	return row_offset; /* success, return the next row offset */
 }
@@ -706,13 +710,25 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
-			"SELECT m.id, m.timestamp"
-				" FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE m.chat_id=? AND ct.blocked=0"
-				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		sqlite3_bind_int(stmt, 1, chat_id);
+		if( chat_id == MR_CHAT_ID_STARRED )
+		{
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred,
+				"SELECT m.id, m.timestamp"
+					" FROM msgs m"
+					" LEFT JOIN contacts ct ON m.from_id=ct.id"
+					" WHERE m.starred=1 AND ct.blocked=0"
+					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		}
+		else
+		{
+			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
+				"SELECT m.id, m.timestamp"
+					" FROM msgs m"
+					" LEFT JOIN contacts ct ON m.from_id=ct.id"
+					" WHERE m.chat_id=? AND ct.blocked=0"
+					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+			sqlite3_bind_int(stmt, 1, chat_id);
+		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{

@@ -80,6 +80,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_E2E_DIS_BY_YOU:    return safe_strdup("E2EE will be endable if you enable the corresponding option.");
 		case MR_STR_E2E_DIS_BY_RCPT:   return safe_strdup("E2EE will be enabled if the recipients enables the corresponding option.");/* do not say, the recipient has _disabled_ the option, this may not be true! */
 		case MR_STR_ARCHIVEDCHATS:     return safe_strdup("Archived chats");
+		case MR_STR_STARREDMSGS:       return safe_strdup("Starred messages");
 	}
 	return safe_strdup("ErrStr");
 }

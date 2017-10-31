@@ -115,6 +115,7 @@ enum
 	,SELECT_ircftttstpb_FROM_msg_WHERE_i
 	,SELECT_ss_FROM_msgs_WHERE_m
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
+	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh
 	,SELECT_i_FROM_msgs_WHERE_query
 	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
