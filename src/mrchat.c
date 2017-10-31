@@ -1067,6 +1067,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 			sqlite3_bind_text (stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (stmt, 2, chat_id);
 			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
 			mrmailbox_set_group_explicitly_left__(mailbox, chat->m_grpid);
 		mrsqlite3_unlock(mailbox->m_sql);
 
