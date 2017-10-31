@@ -993,7 +993,7 @@ int mrchat_get_fresh_msg_count(mrchat_t* ths)
 
 int mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
 {
-	if( mailbox == 0 || (archive!=0 && archive!=1) ) {
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (archive!=0 && archive!=1) ) {
 		return 0;
 	}
 
