@@ -246,6 +246,10 @@ if the message is not in a real chat (eg. a contact request), the message is onl
 int                  mrmailbox_markseen_msgs        (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 
 
+/* star/unstar messages */
+int                  mrmailbox_star_msgs            (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, int star);
+
+
 /* handle contacts. */
 carray*              mrmailbox_get_known_contacts   (mrmailbox_t*, const char* query); /* returns known and unblocked contacts, the result must be carray_free()'d */
 mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, uint32_t contact_id);

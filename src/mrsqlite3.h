@@ -127,6 +127,7 @@ enum
 	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
 	,UPDATE_msgs_SET_param_WHERE_id
+	,UPDATE_msgs_SET_starred_WHERE_id
 	,DELETE_FROM_msgs_WHERE_id
 	,DELETE_FROM_msgs_WHERE_rfc724_mid
 

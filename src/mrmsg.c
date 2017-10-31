@@ -62,6 +62,7 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 	ths->m_text         =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
+	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
 
 	if( ths->m_chat_id == MR_CHAT_ID_DEADDROP ) {
 		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
@@ -880,6 +881,33 @@ cleanup:
 	free(idsstr);
 	if( q3 ) { sqlite3_free(q3); }
 	return success;
+}
+
+
+int mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, int star)
+{
+	int i;
+
+	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 || (star!=0 && star!=1) ) {
+		return 0;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	mrsqlite3_begin_transaction__(mailbox->m_sql);
+
+		for( i = 0; i < msg_cnt; i++ )
+		{
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_starred_WHERE_id,
+				"UPDATE msgs SET starred=? WHERE id=?;");
+			sqlite3_bind_int(stmt, 1, star);
+			sqlite3_bind_int(stmt, 2, msg_ids[i]);
+			sqlite3_step(stmt);
+		}
+
+	mrsqlite3_commit__(mailbox->m_sql);
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	return 1;
 }
 
 

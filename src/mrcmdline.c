@@ -60,8 +60,9 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			}
 
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
-				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
 					mrmsg_show_padlock(msg)? "\xF0\x9F\x94\x92" : "",
+					msg->m_starred? " \xE2\x98\x85" : "",
 					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]" : (msg->m_state==MR_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					statestr,
 					temp2);
@@ -192,6 +193,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"listfresh\n"
 			"forward <msg-id> <chat-id>\n"
 			"markseen <msg-id>\n"
+			"star <msg-id>\n"
+			"unstar <msg-id>\n"
 			"delmsg <msg-id>\n"
 
 			"\nContact commands:\n"
@@ -711,6 +714,17 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			uint32_t msg_ids[1];
 			msg_ids[0] = atoi(arg1);
 			ret = mrmailbox_markseen_msgs(mailbox, msg_ids, 1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+		}
+	}
+	else if( strcmp(cmd, "star")==0 || strcmp(cmd, "unstar")==0 )
+	{
+		if( arg1 ) {
+			uint32_t msg_ids[1];
+			msg_ids[0] = atoi(arg1);
+			ret = mrmailbox_star_msgs(mailbox, msg_ids, 1, strcmp(cmd, "star")==0? 1 : 0)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
