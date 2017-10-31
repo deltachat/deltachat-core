@@ -67,6 +67,7 @@ extern "C" {
 #define MR_STR_E2E_NO_AUTOCRYPT  35
 #define MR_STR_E2E_DIS_BY_YOU    36
 #define MR_STR_E2E_DIS_BY_RCPT   37
+#define MR_STR_ARCHIVEDCHATS     40
 
 
 /*** library-private **********************************************************/

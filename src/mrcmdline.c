@@ -182,6 +182,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"sendfile <file>\n"
 			"draft [<text>]\n"
 			"listmedia\n"
+			"archive <chat-id>\n"
+			"unarchive <chat-id>\n"
 			"delchat <chat-id>\n"
 
 			"\nMessage commands:\n"
@@ -397,7 +399,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
 
 						const char* statestr = "";
-						switch( poortext->m_state ) {
+						if( chat->m_archived ) {
+							statestr = " [Archived]";
+						}
+						else switch( poortext->m_state ) {
 							case MR_OUT_PENDING:   statestr = " o";   break;
 							case MR_OUT_DELIVERED: statestr = " √";   break;
 							case MR_OUT_MDN_RCVD:  statestr = " √√";  break;
@@ -639,6 +644,16 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
+		}
+	}
+	else if( strcmp(cmd, "archive")==0 || strcmp(cmd, "unarchive")==0 )
+	{
+		if( arg1 ) {
+			int chat_id = atoi(arg1);
+			ret = mrmailbox_archive_chat(mailbox, chat_id, strcmp(cmd, "archive")==0? 1 : 0)!=0? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <chat-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "delchat")==0 )

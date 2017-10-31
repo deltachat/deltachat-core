@@ -26,6 +26,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include "mrmailbox.h"
 #include "mrtools.h"
 
@@ -38,6 +39,7 @@
 int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 {
 	int           success = 0;
+	int           add_archived_link_item = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         strLikeCmd = NULL, *query = NULL;
 
@@ -54,7 +56,12 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
-	if( query__ )
+	if( query__ && strcmp(query__, "archived")==0 )
+	{
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
+			QUR1 " AND c.archived=1 " QUR2);
+	}
+	else if( query__ )
 	{
 		query = safe_strdup(query__);
 		mr_trim(query);
@@ -76,7 +83,9 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 		}
 
 		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
-			QUR1 QUR2);
+			QUR1 " AND c.archived=0 " QUR2);
+
+		add_archived_link_item = 1;
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
@@ -84,6 +93,17 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 		#define IDS_PER_RESULT 2
 		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
 		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)sqlite3_column_int(stmt, 1), NULL);
+    }
+
+    if( add_archived_link_item )
+    {
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived, "SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
+		if( sqlite3_step(stmt) == SQLITE_ROW ) {
+			if( sqlite3_column_int(stmt, 0) > 0 ) {
+				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_ARCHIVED_LINK, NULL);
+				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)0, NULL);
+			}
+		}
     }
 
 	ths->m_cnt = carray_count(ths->m_chatNlastmsg_ids)/IDS_PER_RESULT;
@@ -206,9 +226,13 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 		mrsqlite3_unlock(chatlist->m_mailbox->m_sql);
 	}
 
-	if( chat->m_draft_timestamp
-	 && chat->m_draft_text
-	 && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
+	if( chat->m_id == MR_CHAT_ID_ARCHIVED_LINK )
+	{
+		ret->m_text2 = mrstock_str(MR_STR_ARCHIVEDCHATS);
+	}
+	else if( chat->m_draft_timestamp
+	      && chat->m_draft_text
+	      && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
 	{
 		/* show the draft as the last message */
 		ret->m_text1 = mrstock_str(MR_STR_DRAFT);

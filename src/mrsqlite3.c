@@ -214,7 +214,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 			mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);"); /* the other way round, an index on contact_id is only needed for blocking users */
 			mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'rsvd'), (6,120,'rsvd'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-			#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TO_DEADDROP!=2 || MR_CHAT_ID_TRASH!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4
+			#if !defined(MR_CHAT_NORMAL) || MR_CHAT_NORMAL!=100 || MR_CHAT_GROUP!=120 || MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TO_DEADDROP!=2 || MR_CHAT_ID_TRASH!=3 || MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_ARCHIVED_LINK!=5
 				#error
 			#endif
 
@@ -329,10 +329,11 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 15
+		#define NEW_DB_VERSION 17
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN archived INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "CREATE INDEX chats_index2 ON chats (archived);");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN starred INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "CREATE INDEX msgs_index5 ON msgs (starred);");
 
