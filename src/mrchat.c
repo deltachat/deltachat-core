@@ -282,7 +282,9 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 	}
 	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
 		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_ARCHIVEDCHATS);
+		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
+			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_mailbox));
+		free(tempname);
 	}
 	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
 		free(ths->m_name);

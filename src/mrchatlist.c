@@ -99,15 +99,10 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)sqlite3_column_int(stmt, 1), NULL);
     }
 
-    if( add_archived_link_item )
+    if( add_archived_link_item && mrmailbox_get_archived_count__(ths->m_mailbox)>0 )
     {
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived, "SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
-		if( sqlite3_step(stmt) == SQLITE_ROW ) {
-			if( sqlite3_column_int(stmt, 0) > 0 ) {
-				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_ARCHIVED_LINK, NULL);
-				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)0, NULL);
-			}
-		}
+		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_ARCHIVED_LINK, NULL);
+		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)0, NULL);
     }
 
 	ths->m_cnt = carray_count(ths->m_chatNlastmsg_ids)/IDS_PER_RESULT;
@@ -232,7 +227,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 
 	if( chat->m_id == MR_CHAT_ID_ARCHIVED_LINK )
 	{
-		ret->m_text2 = mrstock_str(MR_STR_ARCHIVEDCHATS);
+		ret->m_text2 = safe_strdup(NULL);
 	}
 	else if( chat->m_draft_timestamp
 	      && chat->m_draft_text

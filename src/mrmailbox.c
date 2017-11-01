@@ -1279,6 +1279,16 @@ char* mrmailbox_get_info(mrmailbox_t* ths)
  ******************************************************************************/
 
 
+int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
+{
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived, "SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		return sqlite3_column_int(stmt, 0);
+	}
+	return 0;
+}
+
+
 int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
 	mrmailbox_log_info(ths, 0, "Resetting tables (%i)...", bits);
