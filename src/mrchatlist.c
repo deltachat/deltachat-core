@@ -36,7 +36,7 @@
  ******************************************************************************/
 
 
-int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
+int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* query__)
 {
 	int           success = 0;
 	int           add_archived_link_item = 0;
@@ -52,17 +52,34 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id)) " \
-	                " WHERE c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND blocked=0"
+	                " WHERE c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
-	if( query__ && strcmp(query__, "archived")==0 )
+	if( listflags & MR_GCL_ARCHIVED_ONLY )
 	{
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
+		/* show archived chats */
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
 			QUR1 " AND c.archived=1 " QUR2);
 	}
-	else if( query__ )
+	else if( query__==NULL )
 	{
+		/* show normal chatlist  */
+		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
+			uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_mailbox);
+			if( last_deaddrop_fresh_msg_id > 0 ) {
+				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_DEADDROP, NULL); /* show deaddrop with the last fresh message */
+				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)last_deaddrop_fresh_msg_id, NULL);
+			}
+			add_archived_link_item = 1;
+		}
+
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
+			QUR1 " AND c.archived=0 " QUR2);
+	}
+	else
+	{
+		/* show chatlist filtered by a search string, this includes archived and unarchived */
 		query = safe_strdup(query__);
 		mr_trim(query);
 		if( query[0]==0 ) {
@@ -73,19 +90,6 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, const char* query__)
 		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
-	}
-	else
-	{
-		uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_mailbox);
-		if( last_deaddrop_fresh_msg_id > 0 ) {
-			carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_DEADDROP, NULL); /* show deaddrop with the last fresh message */
-			carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)last_deaddrop_fresh_msg_id, NULL);
-		}
-
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs,
-			QUR1 " AND c.archived=0 " QUR2);
-
-		add_archived_link_item = 1;
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW )

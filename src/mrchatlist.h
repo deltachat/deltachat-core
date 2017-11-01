@@ -54,7 +54,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t*, size_t index, mrcha
 
 /*** library-private **********************************************************/
 
-int           mrchatlist_load_from_db__    (mrchatlist_t*, const char* query);
+int           mrchatlist_load_from_db__    (mrchatlist_t*, int listflags, const char* query);
 
 
 #ifdef __cplusplus

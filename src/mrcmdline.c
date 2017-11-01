@@ -171,6 +171,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 			"\nChat commands:\n"
 			"listchats [<query>]\n"
+			"listarchived\n"
 			"chat [<chat-id>|0]\n"
 			"createchat <contact-id>\n"
 			"creategroup <name>\n"
@@ -382,9 +383,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Chat commands
 	 ******************************************************************************/
 
-	else if( strcmp(cmd, "listchats")==0 || strcmp(cmd, "chats")==0 )
+	else if( strcmp(cmd, "listchats")==0 || strcmp(cmd, "listarchived")==0 || strcmp(cmd, "chats")==0 )
 	{
-		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, arg1);
+		int listflags = strcmp(cmd, "listarchived")==0? MR_GCL_ARCHIVED_ONLY : 0;
+		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, listflags, arg1);
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
