@@ -565,6 +565,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			however, we cannot do this earlier as we need from_id to be set */
 			message_timestamp = mrmailbox_correct_bad_timestamp__(ths, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
 
+			/* unarchive chat */
+			mrmailbox_unarchive_chat__(ths, chat_id);
+
 			/* check, if the mail is already in our database - if so, there's nothing more to do
 			(we may get a mail twice eg. it it is moved between folders) */
 			if( rfc724_mid == NULL ) {

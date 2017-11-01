@@ -237,6 +237,14 @@ int mrchat_update_param__(mrchat_t* ths)
 }
 
 
+void mrmailbox_unarchive_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_unarchived, "UPDATE chats SET archived=0 WHERE id=?");
+	sqlite3_bind_int (stmt, 1, chat_id);
+	sqlite3_step(stmt);
+}
+
+
 static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 {
 	int row_offset = 0;
@@ -1476,6 +1484,8 @@ uint32_t mrchat_send_msg(mrchat_t* ths, mrmsg_t* msg)
 
 	mrsqlite3_lock(ths->m_mailbox->m_sql);
 	mrsqlite3_begin_transaction__(ths->m_mailbox->m_sql);
+
+		mrmailbox_unarchive_chat__(ths->m_mailbox, ths->m_id);
 
 		ths->m_mailbox->m_smtp->m_log_connect_errors = 1;
 

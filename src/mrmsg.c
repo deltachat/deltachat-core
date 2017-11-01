@@ -834,6 +834,8 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
 
+		mrmailbox_unarchive_chat__(mailbox, chat_id);
+
 		mailbox->m_smtp->m_log_connect_errors = 1;
 
 		if( !mrchat_load_from_db__(chat, chat_id) ) {

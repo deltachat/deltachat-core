@@ -91,6 +91,7 @@ enum
 	,UPDATE_chats_SET_draft_WHERE_id
 	,UPDATE_chats_SET_n_WHERE_c
 	,UPDATE_chats_SET_blocked
+	,UPDATE_chats_SET_unarchived
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id

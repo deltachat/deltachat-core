@@ -82,6 +82,7 @@ uint32_t      mrchat_send_msg              (mrchat_t*, mrmsg_t*); /* save messag
 uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, time_t);
 int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);
 int           mrchat_update_param__                  (mrchat_t*);
+void          mrmailbox_unarchive_chat__             (mrmailbox_t*, uint32_t chat_id);
 size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
 uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
 uint32_t      mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
