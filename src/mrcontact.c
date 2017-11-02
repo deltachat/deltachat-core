@@ -497,7 +497,7 @@ cleanup:
 
 int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
 {
-	int           ret = 0;
+	int           ret = 0, locked = 0;
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -505,6 +505,7 @@ int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_contacts_WHERE_blocked,
 			"SELECT COUNT(*) FROM contacts"
@@ -516,8 +517,10 @@ int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
 		ret = sqlite3_column_int(stmt, 0);
 
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return ret;
 }
 
