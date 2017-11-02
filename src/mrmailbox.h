@@ -193,7 +193,18 @@ uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t
 carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
 carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
 int                  mrmailbox_archive_chat              (mrmailbox_t*, uint32_t chat_id, int archive); /* 1=archive, 0=unarchive */
-int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id); /* deletes the chat object, messages are deleted from the device and stay on the server. */
+
+
+/* Delete a chat:
+- messages are deleted from the device and the chat database entry is deleted
+- messages are _not_ deleted from the server
+- the chat is not blocked, so new messages from the user/the group may appear and the user may create the chat again
+	- this is also one of the reasons, why groups are _not left_ -  this would be unexpected as deleting a normal chat also does not prevent new mails
+	- moreover, there may be valid reasons only to leave a group and only to delete a group
+	- another argument is, that leaving a group requires sending a message to all group members - esp. for groups not used for a longer time, this is really unexpected
+- to leave a chat, use the `function int mrmailbox_remove_contact_from_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)`
+*/
+int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id);
 
 
 /* Get previous/next media of a given media message (imaging eg. a virtual playlist of all audio tracks in a chat).

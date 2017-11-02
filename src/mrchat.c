@@ -1024,17 +1024,20 @@ int mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
  ******************************************************************************/
 
 
-/* Deleting a group chat implies to leave the group which required to send a
-message before the chat is deleted physically.  To make things even more complicated,
-there may be other chat messages waiting to be send.
+/* _If_ deleting a group chat would implies to leave the group, things get complicated
+as this would require to send a message before the chat is deleted physically.
+To make things even more complicated, there may be other chat messages waiting to be send.
 
-We use the following approach:
+We used the following approach:
 1. If we do not need to send a message, we delete the chat directly
 2. If we need to send a message, we set chats.blocked=1 and add the parameter
    MRP_DEL_AFTER_SEND with a random value to both, the last message to be send and to the
    chat (we would use msg_id, however, we may not get this in time)
 3. When the messag with the MRP_DEL_AFTER_SEND-value of the chat was send to IMAP, we physically
-   delete the chat. */
+   delete the chat.
+
+However, from 2017-11-02, we do not implicitly leave the group as this results in different behaviours to normal
+chat and _only_ leaving a group is also a valid usecase. */
 
 
 int mrmailbox_delete_chat_part2(mrmailbox_t* mailbox, uint32_t chat_id)
@@ -1102,6 +1105,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		goto cleanup;
 	}
 
+	#ifdef GROUP_DELETE_IMPLIES_LEAVING
 	if( chat->m_type == MR_CHAT_GROUP
 	 && mrmailbox_is_contact_in_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)
 	 && DO_SEND_STATUS_MAILS )
@@ -1129,6 +1133,7 @@ int mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		mrchat_send_msg(chat, msg);
 	}
 	else
+	#endif
 	{
 		/* directly delete the chat */
 		mrmailbox_delete_chat_part2(mailbox, chat_id);
@@ -1188,10 +1193,12 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* check, if the chat shall be deleted pysically */
+	#ifdef GROUP_DELETE_IMPLIES_LEAVING
 	if( mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)!=0
 	 && mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)==mrparam_get_int(mimefactory.m_msg->m_param, MRP_DEL_AFTER_SEND, 0) ) {
 		mrmailbox_delete_chat_part2(mailbox, mimefactory.m_chat->m_id);
 	}
+	#endif
 
 cleanup:
 	mrmimefactory_empty(&mimefactory);
