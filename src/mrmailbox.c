@@ -533,8 +533,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 					if( chat_id == 0 ) {
 						chat_id = MR_CHAT_ID_DEADDROP;
-						if( state == MR_IN_FRESH && incoming_origin<MR_ORIGIN_MIN_VERIFIED ) {
-							state = MR_IN_NOTICED; /* degrade state. noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist */
+						if( state == MR_IN_FRESH ) {
+							if( incoming_origin<MR_ORIGIN_MIN_VERIFIED && mime_parser->m_is_send_by_messenger==0 ) {
+								state = MR_IN_NOTICED; /* degrade state for unknown senders and non-delta messages (the latter may be removed if we run into spam problems, currently this is fine) (noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
+							}
 						}
 					}
 				}
