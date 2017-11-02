@@ -71,6 +71,8 @@ typedef struct mrmimeparser_t
 
 	carray*                m_reports; /* array of mailmime objects */
 
+	int                    m_is_system_message;
+
 } mrmimeparser_t;
 
 

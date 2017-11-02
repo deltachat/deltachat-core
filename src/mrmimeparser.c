@@ -617,6 +617,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 
 	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
 	ths->m_is_send_by_messenger  = 0;
+	ths->m_is_system_message = 0;
 
 	free(ths->m_subject);
 	ths->m_subject = NULL;

@@ -36,6 +36,7 @@
 #include "mrimap.h"
 #include "mrsmtp.h"
 #include "mrmimeparser.h"
+#include "mrmimefactory.h"
 #include "mrcontact.h"
 #include "mrtools.h"
 #include "mrjob.h"
@@ -88,18 +89,23 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name")==0 ) {
 						grpname = mr_decode_header_string(optional_field->fld_value);
+						mime_parser->m_is_system_message = MR_SYSTEM_GROUPNAME_CHANGED;
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrRemoveFromGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Removed")==0 ) {
 						X_MrRemoveFromGrp = optional_field->fld_value;
+						mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP;
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrAddToGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Added")==0 ) {
 						X_MrAddToGrp = optional_field->fld_value;
+						mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_ADDED_TO_GROUP;
 					}
 					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name-Changed")==0 ) {
 						X_MrGrpNameChanged = 1;
+						mime_parser->m_is_system_message = MR_SYSTEM_GROUPNAME_CHANGED;
 					}
 					else if( strcasecmp(optional_field->fld_name, "Chat-Group-Image")==0 ) {
 						X_MrGrpImageChanged = 1;
+						mime_parser->m_is_system_message = MR_SYSTEM_GROUPIMAGE_CHANGED;
 					}
 				}
 			}
@@ -629,6 +635,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				if( part->m_type == MR_MSG_TEXT ) {
 					txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
+					if( mime_parser->m_is_system_message ) {
+						mrparam_set_int(part->m_param, MRP_SYSTEM_CMD, mime_parser->m_is_system_message);
+					}
 				}
 
 				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
