@@ -128,6 +128,7 @@ enum
 	,UPDATE_msgs_SET_seen_WHERE_id_AND_chat_id_AND_freshORnoticed
 	,UPDATE_msgs_SET_noticed_WHERE_id_AND_fresh
 	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
+	,UPDATE_msgs_SET_state_WHERE_from_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
 	,UPDATE_msgs_SET_param_WHERE_id
 	,UPDATE_msgs_SET_starred_WHERE_id

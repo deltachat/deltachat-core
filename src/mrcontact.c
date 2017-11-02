@@ -591,6 +591,12 @@ int mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_b
 					goto cleanup;
 				}
 
+				/* mark all messages from the blocked contact as being noticed (this is to remove the deaddrop popup) */
+				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_from_id_AND_state,
+					"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_NOTICED) " WHERE from_id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
+				sqlite3_bind_int(stmt, 1, contact_id);
+				sqlite3_step(stmt);
+
 			mrsqlite3_commit__(mailbox->m_sql);
 			transaction_pending = 0;
 
