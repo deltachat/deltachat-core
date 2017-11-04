@@ -119,6 +119,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		ths->m_addr = mr_normalize_addr(value);
 		return 1;
 	}
+	#if 0 /* autoctypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
 	else if( strcasecmp(name, "type")==0 )
 	{
 		if( value == NULL ) {
@@ -129,6 +130,7 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 		}
 		return 0; /* unknown types result in an invalid header */
 	}
+	#endif
 	else if( strcasecmp(name, "prefer-encrypt")==0 )
 	{
 		if( value && strcasecmp(value, "mutual")==0 ) {
