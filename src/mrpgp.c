@@ -222,8 +222,8 @@ int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_pu
 	user_id = (uint8_t*)mr_mprintf("<%s>", addr);
 
 	/* generate two keypairs */
-	if( !pgp_rsa_generate_keypair(&seckey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
-	 || !pgp_rsa_generate_keypair(&subkey, 2048/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0) ) {
+	if( !pgp_rsa_generate_keypair(&seckey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
+	 || !pgp_rsa_generate_keypair(&subkey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0) ) {
 		goto cleanup;
 	}
 
