@@ -295,7 +295,7 @@ int mrkey_load_self_public__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* s
 }
 
 
-int mrkey_load_self_private_for_signing__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* sql)
+int mrkey_load_self_private__(mrkey_t* ths, const char* self_addr, mrsqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
@@ -399,7 +399,7 @@ char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break
 }
 
 
-char* mrkey_render_asc(const mrkey_t* ths)
+char* mrkey_render_asc(const mrkey_t* ths, const char* add_header_lines /*must be terminated by \r\n*/)
 {
 	/* see RFC 4880, 6.2.  Forming ASCII Armor, https://tools.ietf.org/html/rfc4880#section-6.2 */
 	char *base64 = NULL, *ret = NULL;
@@ -412,8 +412,9 @@ char* mrkey_render_asc(const mrkey_t* ths)
 		goto cleanup;
 	}
 
-	ret = mr_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
+	ret = mr_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n%s\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
 		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE",
+		add_header_lines? add_header_lines : "",
 		base64,
 		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE");
 

@@ -340,7 +340,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 		if( do_encrypt ) {
 			mrkeyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !mrkey_load_self_private_for_signing__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
+			if( !mrkey_load_self_private__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
 				do_encrypt = 0;
 			}
 		}

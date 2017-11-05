@@ -304,7 +304,7 @@ cleanup:
 
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
 {
-	char* file_content = mrkey_render_asc(key);
+	char* file_content = mrkey_render_asc(key, NULL);
 	char* file_name;
 	if( is_default ) {
 		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
@@ -404,27 +404,21 @@ Content-type: multipart/mixed; boundary="==break1=="
 
 The encrypted message part contains:
 
-	Content-type: multipart/mixed; boundary="==break2=="
-	Autocrypt-Prefer-Encrypt: mutual
-
-	--==break2==
-	Content-type: application/autocrypt-key-backup
-
 	-----BEGIN PGP PRIVATE KEY BLOCK-----
-	Version: GnuPG v1.2.3 (GNU/Linux)
+	Autocrypt-Prefer-Encrypt: mutual
 
 	xcLYBFke7/8BCAD0TTmX9WJm9elc7/xrT4/lyzUDMLbuAuUqRINtCoUQPT2P3Snfx/jou1YcmjDgwT
 	Ny9ddjyLcdSKL/aR6qQ1UBvlC5xtriU/7hZV6OZEmW2ckF7UgGd6ajE+UEjUwJg2+eKxGWFGuZ1P7a
 	4Av1NXLayZDsYa91RC5hCsj+umLN2s+68ps5pzLP3NoK2zIFGoCRncgGI/pTAVmYDirhVoKh14hCh5
 	.....
 	-----END PGP PRIVATE KEY BLOCK-----
-	--==break2==--
 
 mrmailbox_render_keys_to_html() renders the part after the second `-==break1==` part in this example. */
 int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
 {
-	int                    success = 0, locked = 0, col = 0;
+	int                    success = 0, locked = 0;
 	sqlite3_stmt*          stmt = NULL;
+	char*                  self_addr = NULL;
 	mrkey_t*               curr_private_key = mrkey_new();
 
 	char                   passphrase_begin[8];
@@ -432,9 +426,6 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	#define                AES_KEY_LENGTH 16
 	uint8_t                key[AES_KEY_LENGTH];
 
-	struct mailmime*       decr_mime_msg = NULL;
-	struct mailmime*       decr_mime_anchor = NULL;
-	MMAPString*            decr_string = mmap_string_new("");
 	pgp_output_t*          decr_output = NULL;
 	pgp_memory_t*          decr_mem = NULL;
 
@@ -444,7 +435,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 
 	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
-	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL || decr_string==NULL ) {
+	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL ) {
 		goto cleanup;
 	}
 
@@ -452,46 +443,22 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	passphrase_begin[2] = 0;
 
 	/* create the payload */
-	decr_mime_anchor = mailmime_new_empty(mailmime_content_new_with_str("multipart/mixed"), mailmime_fields_new_empty());
-	decr_mime_msg    = mailmime_new_message_data(decr_mime_anchor);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		int e2ee_enabled = mailbox->m_e2ee_enabled;
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+		mrkey_load_self_private__(curr_private_key, self_addr, mailbox->m_sql);
 
-		struct mailimf_fields* imffields = mailimf_fields_new_empty();
-		mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt-Prefer-Encrypt"), strdup(e2ee_enabled? "mutual" : "nopreference")));
-		mailmime_set_imf_fields(decr_mime_msg, imffields);
-
-		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;"))==NULL ) {
+		char* key_asc = mrkey_render_asc(curr_private_key, mailbox->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
+		if( key_asc == NULL ) {
 			goto cleanup;
-		}
-
-		while( sqlite3_step(stmt)==SQLITE_ROW )
-		{
-			if( !mrkey_set_from_stmt(curr_private_key, stmt, 0, MR_PRIVATE) ) {
-				goto cleanup;
-			}
-
-			char* key_asc = mrkey_render_asc(curr_private_key);
-			if( key_asc == NULL ) {
-				goto cleanup;
-			}
-
-			struct mailmime_content* content_type = mailmime_content_new_with_str("application/autocrypt-key-backup");
-			struct mailmime_fields* mime_fields = mailmime_fields_new_empty();
-			struct mailmime* key_mime = mailmime_new_empty(content_type, mime_fields);
-			mailmime_set_body_text(key_mime, key_asc, strlen(key_asc));
-
-			mailmime_smart_add_part(decr_mime_anchor, key_mime);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailmime_write_mem(decr_string, &col, decr_mime_msg);
-	//char* t2=mr_null_terminate(decr_string->str,decr_string->len);printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",t2);free(t2); // DEBUG OUTPUT
+	//printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",key_asc); // DEBUG OUTPUT
 
 
 	/* put the payload into a literal data packet which will be encrypted then, see RFC 4880, 5.7 :
@@ -499,7 +466,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	packet, but in theory other Symmetrically Encrypted Data packets or sequences of packets that form whole OpenPGP messages)" */
 
 	pgp_setup_memory_write(&decr_output, &decr_mem, 128);
-	pgp_write_litdata(decr_output, (const uint8_t*)decr_string->str, decr_string->len, PGP_LDT_BINARY);
+	pgp_write_litdata(decr_output, (const uint8_t*)key_asc, strlen(key_asc), PGP_LDT_BINARY);
 
 
 	/* create salt for the key */
@@ -646,25 +613,13 @@ cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	if( decr_mime_msg && decr_mime_anchor ) {
-		clistiter* cur;
-		for( cur=clist_begin(decr_mime_anchor->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) { /* looks complicated, but only free()'s the pointers allocated above (they're used by mime, but not owned by it) */
-			struct mailmime* key_mime = (struct mailmime*)clist_content(cur);
-			if( key_mime->mm_type==MAILMIME_SINGLE
-			 && key_mime->mm_data.mm_single->dt_type==MAILMIME_DATA_TEXT ) {
-				char* key_asc = (char*)key_mime->mm_data.mm_single->dt_data.dt_text.dt_data;
-				free(key_asc);
-			}
-		}
-		mailmime_free(decr_mime_msg);
-	}
-	if( decr_string ) { mmap_string_free(decr_string); }
 	if( decr_output ) { pgp_output_delete(decr_output); }
 	if( decr_mem ) { pgp_memory_free(decr_mem); }
 
 	if( encr_output ) { pgp_output_delete(encr_output); }
 	if( encr_mem ) { pgp_memory_free(encr_mem); }
 	free(encr_string);
+	free(self_addr);
 	return success;
 }
 
@@ -1082,6 +1037,7 @@ static void* imex_thread_entry_point(void* entry_arg)
 
 		case MR_IMEX_EXPORT_SETUP_MESSAGE:
 			if( !export_setup_file(mailbox, thread_param->m_param1, thread_param->m_setup_code) ) {
+				goto cleanup;
 			}
 			break;
 	}
