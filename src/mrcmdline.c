@@ -157,7 +157,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			"open <file to open or create>\n"
 			"close\n"
 			"reset <flags>\n"
-			"imex export-keys|import-keys <setup-code>|export-backup|import-backup|cancel\n"
+			"imex export-keys|import-keys|export-backup|import-backup|cancel\n"
+			"export-setup\n"
 			"hasbackup\n"
 			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 			"set <configuration-key> [<value>]\n"
@@ -265,6 +266,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "poke")==0 )
 	{
 		ret = mrmailbox_poke_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "export-setup")==0 )
+	{
+		char* setup_code = mrmailbox_create_setup_code(mailbox);
+			ret = mr_mprintf("Setup code for the exported setup: %s", setup_code);
+			mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SETUP_MESSAGE, mailbox->m_blobdir, setup_code);
+		free(setup_code);
 	}
 	else if( strcmp(cmd, "imex")==0 )
 	{

@@ -297,6 +297,7 @@ To avoid double slashes, the given directory should not end with a slash. */
 #define MR_IMEX_IMPORT_SELF_KEYS            2 /* param1 is a directory where the keys are searched in and read from */
 #define MR_IMEX_EXPORT_BACKUP              11 /* param1 is a directory where the backup is written to */
 #define MR_IMEX_IMPORT_BACKUP              12 /* param1 is the file with the backup to import */
+#define MR_IMEX_EXPORT_SETUP_MESSAGE       20 /* param1 is a directory where the setup file is written to */
 #define MR_BAK_PREFIX             "delta-chat"
 #define MR_BAK_SUFFIX             "bak"
 void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* param1, const char* setup_code); /* user import/export function, sends MR_EVENT_IMEX_* events */

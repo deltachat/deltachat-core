@@ -669,8 +669,7 @@ cleanup:
 }
 
 
-#if 0
-static int export_self_setup_file(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
+static int export_setup_file(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
 {
 	int           success = 0;
 	char*         file_content = NULL;
@@ -695,7 +694,7 @@ cleanup:
 	free(file_name);
 	return success;
 }
-#endif
+
 
 
 /*******************************************************************************
@@ -1078,6 +1077,11 @@ static void* imex_thread_entry_point(void* entry_arg)
 		case MR_IMEX_IMPORT_BACKUP:
 			if( !import_backup(mailbox, thread_param->m_param1) ) {
 				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_EXPORT_SETUP_MESSAGE:
+			if( !export_setup_file(mailbox, thread_param->m_param1, thread_param->m_setup_code) ) {
 			}
 			break;
 	}
