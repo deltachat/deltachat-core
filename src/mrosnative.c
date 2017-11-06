@@ -21,7 +21,8 @@
  *
  * File:    mrosnative.c
  * Purpose: Some functions that are called by the backend under certain
- *          circumstances.  May or be implemented by the frontend as needed.
+ *          circumstances.  The frontents should create a copy of this file
+ *          and implement the functions as needed.
  *
  ******************************************************************************/
 
@@ -29,9 +30,6 @@
 #include <stdlib.h>
 #include "mrmailbox.h"
 #include "mrosnative.h"
-
-
-#if !( defined(ANDROID) || defined(__ANDROID__) )
 
 
 int mrosnative_setup_thread(mrmailbox_t* mailbox)
@@ -45,4 +43,3 @@ void mrosnative_unsetup_thread(mrmailbox_t* mailbox)
 }
 
 
-#endif /* OS definition */
