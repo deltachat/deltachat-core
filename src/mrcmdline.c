@@ -60,10 +60,15 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 			}
 
 			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
-				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s [%s]", (int)msg->m_id, contact_name, contact_id, msg->m_text,
+				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s%s [%s]",
+					(int)msg->m_id,
+					contact_name,
+					contact_id,
+					msg->m_text,
 					mrmsg_show_padlock(msg)? "\xF0\x9F\x94\x92" : "",
 					msg->m_starred? " \xE2\x98\x85" : "",
 					msg->m_from_id==1? "" : (msg->m_state==MR_IN_SEEN? "[SEEN]" : (msg->m_state==MR_IN_NOTICED? "[NOTICED]":"[FRESH]")),
+					mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)? "[SYSTEM]" : "",
 					statestr,
 					temp2);
 			free(temp2);
