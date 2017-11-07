@@ -569,7 +569,12 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	  pgp_write_scalar (encr_output, s2k_iter_id, 1);  // 1 octets
 	}
 
-	/* Tag 9 */
+	for(int j=0; j<AES_KEY_LENGTH; j++) {
+		printf("%02x", key[j]);
+	}
+		printf("\n----------------\n");
+
+	/* Tag 18 */
 	pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output);
 
 	/* done with symmetric key block */
