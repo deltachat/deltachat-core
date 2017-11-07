@@ -577,7 +577,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			if( arg1 && arg1[0] ) {
 				mrmsg_t* msg = mrmsg_new();
 					msg->m_type = MR_MSG_TEXT;
-					msg->m_text = strdup(arg1);
+					mrmsg_set_text(msg, arg1);
 					if( mrchat_send_msg(sel_chat, msg) ) {
 						ret = safe_strdup("Message sent.");
 					}
