@@ -450,7 +450,6 @@
 		<Unit filename="src/mrimap.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/mrinternal.h" />
 		<Unit filename="src/mrjob.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -476,6 +475,7 @@
 		<Unit filename="src/mrmailbox_imex.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrmailbox_internal.h" />
 		<Unit filename="src/mrmailbox_log.c">
 			<Option compilerVar="CC" />
 		</Unit>
