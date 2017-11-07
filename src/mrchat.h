@@ -77,7 +77,11 @@ int           mrchat_set_draft             (mrchat_t*, const char*); /* Save dra
 uint32_t      mrchat_send_msg              (mrchat_t*, mrmsg_t*); /* save message in database and send it, the given message object is not unref'd by the function but some fields are set up! */
 
 
-/*** library-private **********************************************************/
+/*******************************************************************************
+ * Library privcate
+ ******************************************************************************/
+
+/* the following functions are reserved for library-private usage and SHOULD NOT be used by messenger clients. */
 
 uint32_t      mrchat_send_msg__                      (mrchat_t*, const mrmsg_t*, time_t);
 int           mrchat_load_from_db__                  (mrchat_t*, uint32_t id);

@@ -57,6 +57,7 @@ typedef struct mrmailbox_t mrmailbox_t;
 typedef struct mrimap_t mrimap_t;
 typedef struct mrsmtp_t mrsmtp_t;
 typedef struct mrmimeparser_t mrmimeparser_t;
+typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 
 #define MR_VERSION_MAJOR    0
@@ -64,49 +65,11 @@ typedef struct mrmimeparser_t mrmimeparser_t;
 #define MR_VERSION_REVISION 7
 
 
-/* Callback function that is called on updates, state changes etc. with one of the MR_EVENT_* codes
-- The callback MAY be called from _any_ thread, not only the main/GUI thread!
-- The callback MUST NOT call any mrmailbox_* and related functions unless stated otherwise!
-- The callback SHOULD return _fast_, for GUI updates etc. you should
-  post yourself an asynchronous message to your GUI thread.
-- If not mentioned otherweise, the callback should return 0. */
-typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
-
-#define MR_EVENT_INFO                     100  /* Information, should not be reported, can be logged */
-#define MR_EVENT_WARNING                  300  /* Warning, should not be reported, should be logged */
-#define MR_EVENT_ERROR                    400  /* Error, must be reported to the user by a non-disturbing bubble or so. */
-
-#define MR_EVENT_MSGS_CHANGED             2000 /* one or more messages changed for some reasons in the database - added or removed.  For added messages: data1=chat_id, data2=msg_id */
-#define MR_EVENT_INCOMING_MSG             2005 /* For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send; data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSG_DELIVERED            2010 /* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSG_READ                 2015 /* a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id */
-
-#define MR_EVENT_CHAT_MODIFIED            2020 /* group name/image changed or members added/removed */
-
-#define MR_EVENT_CONTACTS_CHANGED         2030 /* contact(s) created, renamed, blocked or deleted */
-
-#define MR_EVENT_CONFIGURE_ENDED          2040 /* connection state changed, data1=0:failed-not-connected, 1:configured-and-connected */
-#define MR_EVENT_CONFIGURE_PROGRESS       2041 /* data1=percent */
-
-#define MR_EVENT_IMEX_ENDED               2050 /* mrmailbox_imex() done: data1=0:failed, 1=success */
-#define MR_EVENT_IMEX_PROGRESS            2051 /* data1=permille */
-#define MR_EVENT_IMEX_FILE_WRITTEN        2052 /* file written, event may be needed to make the file public to some system services, data1=file name, data2=mime type */
-
-/* Functions that should be provided by the frontends */
-#define MR_EVENT_IS_ONLINE                2080
-#define MR_EVENT_GET_STRING               2091 /* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
-#define MR_EVENT_GET_QUANTITY_STRING      2092 /* get a string from the frontend, data1=MR_STR_*, data2=quantity, ret=string which will free()'d by the backend */
-#define MR_EVENT_HTTP_GET                 2100 /* synchronous http/https(!) call, data1=url, ret=content which will be free()'d by the backend, 0 on errors */
-#define MR_EVENT_WAKE_LOCK                2110 /* acquire wakeLock (data1=1) or release it (data1=0), the backend does not make nested or unsynchronized calls */
-
-/* Error codes */
-#define MR_ERR_SELF_NOT_IN_GROUP  1
-#define MR_ERR_NONETWORK          2
-
-
 typedef struct mrmailbox_t
 {
-	/* the following members should be treated as library private */
+	void*            m_userdata;
+
+	/* the following members should be treated as library-private */
 	mrsqlite3_t*     m_sql;      /* != NULL */
 	char*            m_dbfile;
 	char*            m_blobdir;
@@ -121,7 +84,6 @@ typedef struct mrmailbox_t
 	int              m_job_do_exit;
 
 	mrmailboxcb_t    m_cb;
-	void*            m_userdata;
 
 	char*            m_os_name;
 
@@ -143,9 +105,24 @@ typedef struct mrmailbox_t
 
 /* mrmailbox_new() creates a new mailbox object.  After creation it is usually
 opened, connected and mails are fetched; see the corresponding functions below.
-The os name is only for decorative use and is shown eg. in the X-Mailer header
+After usage, the object should be deleted using mrmailbox_unref().
+
+The first parameter is a callback function that is called for events (update,
+state changes etc.) and to get some information form the client (eg. translation
+for a given string)
+- The callback MAY be called from _any_ thread, not only the main/GUI thread!
+- The callback MUST NOT call any mrmailbox_* and related functions unless stated otherwise!
+- The callback SHOULD return _fast_, for GUI updates etc. you should
+  post yourself an asynchronous message to your GUI thread, if needed.
+- If not mentioned otherweise, the callback should return 0.
+
+`userdata` can be used by the client for any purpuse.  He finds it
+later in mailbox->m_userdata
+
+`os_name` is only for decorative use and is shown eg. in the X-Mailer header
 in the form "Delta Chat <version> for <osName>" */
-mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t, void* userData, const char* osName);
+mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t, void* userdata, const char* os_name);
+
 
 /* After usage, the mailbox object must be freed using mrmailbox_unref().
 If app runs can only be terminated by a forced kill, this may be superfluous. */
@@ -160,6 +137,16 @@ If you give NULL as blobdir, "dbfile-blobs" is used. */
 int                  mrmailbox_open                 (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (const mrmailbox_t*);
+
+
+/* Handle configurations as:
+- addr
+- mail_server, mail_user, mail_pw, mail_port,
+- send_server, send_user, send_pw, send_port, server_flags */
+int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
+char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
+int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);
+int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
 
 
 /* mrmailbox_configure_and_connect() configures and connects a mailbox.
@@ -187,29 +174,67 @@ int                  mrmailbox_fetch                (mrmailbox_t*);
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
 
 
+/* multi-line output; the returned string must be free()'d, returns NULL on errors */
+char*                mrmailbox_get_info             (mrmailbox_t*);
+
+
+/* the return value must be free()'d */
+char*                mrmailbox_get_version_str      (void);
+
+
+/*******************************************************************************
+ * Handle chats
+ ******************************************************************************/
+
+
 /* Get a list of chats. Handle chats.  The result must be unref'd */
 #define              MR_GCL_ARCHIVED_ONLY 0x01
 #define              MR_GCL_NO_SPECIALS   0x02 /* do not add deaddrop and archive link to list (may be used eg. for selecting chats on forwarding) */
 mrchatlist_t*        mrmailbox_get_chatlist              (mrmailbox_t*, int flags, const char* query);
 
-/* Handle chats. */
-mrchat_t*            mrmailbox_get_chat                  (mrmailbox_t*, uint32_t chat_id); /* the result must be unref'd */
-uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* does a chat with a given single user exist? */
-uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id); /* create a normal chat with a single user */
-carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type); /* returns message IDs, the result must be carray_free()'d */
-carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*); /* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
-int                  mrmailbox_archive_chat              (mrmailbox_t*, uint32_t chat_id, int archive); /* 1=archive, 0=unarchive */
+
+/* Get a chat object of type mrchat_t by a chat_id.
+To access the mrchat_t object, see mrchat.h
+The result must be unref'd using mrchat_unref(). */
+mrchat_t*            mrmailbox_get_chat                  (mrmailbox_t*, uint32_t chat_id);
+
+
+/* does a chat with a given single user exist? */
+uint32_t             mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id);
+
+
+/* create a normal chat with a single user */
+uint32_t             mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id);
+
+
+/* returns message IDs, the result must be carray_free()'d */
+carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type);
+
+
+/* returns message IDs, typically used for implementing notification summaries, the result must be free()'d */
+carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*);
+
+
+/* Archived a chat, 1=archive, 0=unarchive
+Archived chats are not returned in the default chatlist returned by mrmailbox_get_chatlist(0, NULL);
+instead, if there are _any_ archived chats, the pseudo-chat with the chat_id MR_CHAT_ID_ARCHIVED_LINK will be returned by
+mrmailbox_get_chatlist(0, NULL).  To get a list of archived chats, use mrmailbox_get_chatlist(MR_GCL_ARCHIVED_ONLY, NULL). */
+int                  mrmailbox_archive_chat              (mrmailbox_t*, uint32_t chat_id, int archive);
 
 
 /* Delete a chat:
 - messages are deleted from the device and the chat database entry is deleted
 - messages are _not_ deleted from the server
-- the chat is not blocked, so new messages from the user/the group may appear and the user may create the chat again
-	- this is also one of the reasons, why groups are _not left_ -  this would be unexpected as deleting a normal chat also does not prevent new mails
-	- moreover, there may be valid reasons only to leave a group and only to delete a group
-	- another argument is, that leaving a group requires sending a message to all group members - esp. for groups not used for a longer time, this is really unexpected
-- to leave a chat, use the `function int mrmailbox_remove_contact_from_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)`
-*/
+- the chat is not blocked, so new messages from the user/the group may appear
+  and the user may create the chat again
+	- this is also one of the reasons, why groups are _not left_ -  this would
+	  be unexpected as deleting a normal chat also does not prevent new mails
+	- moreover, there may be valid reasons only to leave a group and only to
+	  delete a group
+	- another argument is, that leaving a group requires sending a message to
+	  all group members - esp. for groups not used for a longer time, this is
+	  really unexpected
+- to leave a chat, use the `function int mrmailbox_remove_contact_from_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)` */
 int                  mrmailbox_delete_chat               (mrmailbox_t*, uint32_t chat_id);
 
 
@@ -223,15 +248,6 @@ uint32_t             mrmailbox_get_next_media            (mrmailbox_t*, uint32_t
 - for group chats all members are returned, MR_CONTACT_ID_SELF is returned explicitly as it may happen that oneself gets removed from a still existing group
 - for the deaddrop, all contacts are returned, MR_CONTACT_ID_SELF is not added */
 carray*              mrmailbox_get_chat_contacts         (mrmailbox_t*, uint32_t chat_id);
-
-
-/* Handle group chats. */
-uint32_t             mrmailbox_create_group_chat         (mrmailbox_t*, const char* name);
-int                  mrmailbox_is_contact_in_chat        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-int                  mrmailbox_add_contact_to_chat       (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-int                  mrmailbox_remove_contact_from_chat  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-int                  mrmailbox_set_chat_name             (mrmailbox_t*, uint32_t chat_id, const char* name);
-int                  mrmailbox_set_chat_image            (mrmailbox_t*, uint32_t chat_id, const char* image); /* set image to NULL to remove it */
 
 
 /* mrmailbox_get_chat_msgs() returns a view on a chat.
@@ -250,24 +266,73 @@ Searching can be done globally (chat_id=0) or in a specified chat only (chat_id 
 carray*  mrmailbox_search_msgs (mrmailbox_t*, uint32_t chat_id, const char* query);
 
 
-/* Get messages - for a list, see mrmailbox_get_chatlist() */
-mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id); /* the result must be unref'd */
-char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id); /* the result must be free()'d */
-int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
-int                  mrmailbox_forward_msgs         (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
+/*******************************************************************************
+ * Handle group chats
+ ******************************************************************************/
+
+
+/* Create a new group chat.  After creation, the groups has one member with the ID MR_CONTACT_ID_SELF. */
+uint32_t             mrmailbox_create_group_chat         (mrmailbox_t*, const char* name);
+
+
+/* Check of a given contact_id is a member of a group chat defined by chat_id.
+Returns values: 1=contact is in chat, 0=contact is not in chat */
+int                  mrmailbox_is_contact_in_chat        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+
+
+/* Add/remove a given contact_id to a  groupchat defined by chat_id. */
+int                  mrmailbox_add_contact_to_chat       (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int                  mrmailbox_remove_contact_from_chat  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+
+
+/* Set the name of a group chat.  The name is changed locally _and_ for all members of the chat.
+the latter is done by a special message send to all users. */
+int                  mrmailbox_set_chat_name             (mrmailbox_t*, uint32_t chat_id, const char* name);
+
+
+/* Set the group image of a group chat or delete it by passing NULL to the
+`image` parameter.
+The image is changed locally _and_ for all members of the chat.  The latter is
+done by a special message send to all users. */
+int                  mrmailbox_set_chat_image            (mrmailbox_t*, uint32_t chat_id, const char* image);
 
 
 /* mrmailbox_marknoticed_chat() marks all message in a whole chat as NOTICED.
-NOTICED messages are no longer FRESH and do not count as being unseen.  IMAP/MDNs is not done for noticed messages. */
+NOTICED messages are no longer FRESH and do not count as being unseen.  IMAP/MDNs is not done for noticed messages.
+See also mrmailbox_marknoticed_contact() and mrmailbox_markseen_msgs() */
 int                  mrmailbox_marknoticed_chat     (mrmailbox_t*, uint32_t chat_id);
 
 
-/* mrmailbox_marknoticed_contact() marks all messages send by the given contact as NOTICED. */
+/*******************************************************************************
+ * Handle messages
+ ******************************************************************************/
+
+
+/* Get a single message object of the type mrmsg_t - for a list, see mrmailbox_get_chatlist() */
+mrmsg_t*             mrmailbox_get_msg              (mrmailbox_t*, uint32_t msg_id);
+
+
+/* Get an informational text for a single message. the text is multiline and may contain eg. the raw text of the message.
+The result must be unref'd using free(). */
+char*                mrmailbox_get_msg_info         (mrmailbox_t*, uint32_t msg_id);
+
+
+/* Delete a list of messages. The messages are deleted on the current device and on the IMAP server. */
+int                  mrmailbox_delete_msgs          (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
+
+
+/* Forward a list of messages to another chat. */
+int                  mrmailbox_forward_msgs         (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id);
+
+
+/* mrmailbox_marknoticed_contact() marks all messages send by the given contact as NOTICED.
+See also mrmailbox_marknoticed_chat() and mrmailbox_markseen_msgs() */
 int                  mrmailbox_marknoticed_contact  (mrmailbox_t*, uint32_t contact_id);
 
 
 /* mrmailbox_markseen_msgs() marks a message as SEEN, updates the IMAP state and sends MDNs.
-if the message is not in a real chat (eg. a contact request), the message is only marked as NOTICED and no IMAP/MDNs is done. */
+if the message is not in a real chat (eg. a contact request), the message is only marked as NOTICED and no IMAP/MDNs is done.
+See also mrmailbox_marknoticed_chat() and mrmailbox_marknoticed_contact() */
 int                  mrmailbox_markseen_msgs        (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 
 
@@ -275,49 +340,65 @@ int                  mrmailbox_markseen_msgs        (mrmailbox_t*, const uint32_
 int                  mrmailbox_star_msgs            (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt, int star);
 
 
-/* handle contacts. */
+/*******************************************************************************
+ * Handle contacts
+ ******************************************************************************/
+
+
 carray*              mrmailbox_get_known_contacts   (mrmailbox_t*, const char* query); /* returns known and unblocked contacts, the result must be carray_free()'d */
 mrcontact_t*         mrmailbox_get_contact          (mrmailbox_t*, uint32_t contact_id);
 uint32_t             mrmailbox_create_contact       (mrmailbox_t*, const char* name, const char* addr);
 int                  mrmailbox_get_blocked_count    (mrmailbox_t*);
 carray*              mrmailbox_get_blocked_contacts (mrmailbox_t*);
 int                  mrmailbox_block_contact        (mrmailbox_t*, uint32_t contact_id, int block); /* may or may not result in a MR_EVENT_BLOCKING_CHANGED event */
+
+/* get a multi-line encryption info, used to compare the fingerprints. */
 char*                mrmailbox_get_contact_encrinfo (mrmailbox_t*, uint32_t contact_id);
+
+
+/* delete a contact from the local device.  It may happen that this is not possible as the contact is used.
+In this case, the contact can be blocked. */
 int                  mrmailbox_delete_contact       (mrmailbox_t*, uint32_t contact_id);
 
 
-/* Handle configurations as:
-- addr
-- mail_server, mail_user, mail_pw, mail_port,
-- send_server, send_user, send_pw, send_port, server_flags */
-int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
-char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
-int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);
-int32_t              mrmailbox_get_config_int       (mrmailbox_t*, const char* key, int32_t def);
+/* format: Name one\nAddress one\nName two\Address two */
+int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*);
 
 
-/* Import/export keys, backup etc.
-To avoid double slashes, the given directory should not end with a slash. */
+/*******************************************************************************
+ * Import/export
+ ******************************************************************************/
+
+
+/* mrmailbox_imex() imports and exports export keys, backup etc.
+Function, sends MR_EVENT_IMEX_* events.
+To avoid double slashes, the given directory should not end with a slash.
+_what_ to export is defined by a MR_IMEX_* constant */
 #define MR_IMEX_CANCEL                      0
 #define MR_IMEX_EXPORT_SELF_KEYS            1 /* param1 is a directory where the keys are written to */
 #define MR_IMEX_IMPORT_SELF_KEYS            2 /* param1 is a directory where the keys are searched in and read from */
 #define MR_IMEX_EXPORT_BACKUP              11 /* param1 is a directory where the backup is written to */
 #define MR_IMEX_IMPORT_BACKUP              12 /* param1 is the file with the backup to import */
 #define MR_IMEX_EXPORT_SETUP_MESSAGE       20 /* param1 is a directory where the setup file is written to */
-#define MR_BAK_PREFIX             "delta-chat"
-#define MR_BAK_SUFFIX             "bak"
-void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* param1, const char* setup_code); /* user import/export function, sends MR_EVENT_IMEX_* events */
-char*                mrmailbox_imex_has_backup      (mrmailbox_t*, const char* dir); /* returns backup_file or NULL, may only be used on fresh installations (mrmailbox_is_configured() returns 0); returned strings must be free()'d */
-int                  mrmailbox_check_password       (mrmailbox_t*, const char* pw); /* Check if the user is authorized by the given password in some way. This is to promt for the password eg. before exporting keys/backup. */
-char*                mrmailbox_create_setup_code    (mrmailbox_t*); /* should be written down by the user, forwareded to mrmailbox_imex() for encryption then, must be wiped and free()'d after usage */
-int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);          /* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */
+#define MR_BAK_PREFIX                      "delta-chat"
+#define MR_BAK_SUFFIX                      "bak"
+void                 mrmailbox_imex                 (mrmailbox_t*, int what, const char* param1, const char* setup_code);
 
 
-/* Misc. */
-char*                mrmailbox_get_info             (mrmailbox_t*); /* multi-line output; the returned string must be free()'d, returns NULL on errors */
-int                  mrmailbox_add_address_book     (mrmailbox_t*, const char*); /* format: Name one\nAddress one\nName two\Address two */
-char*                mrmailbox_get_version_str      (void); /* the return value must be free()'d */
-int                  mrmailbox_reset_tables         (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
+/* returns backup_file or NULL, may only be used on fresh installations (mrmailbox_is_configured() returns 0); returned strings must be free()'d */
+char*                mrmailbox_imex_has_backup      (mrmailbox_t*, const char* dir);
+
+
+/* Check if the user is authorized by the given password in some way. This is to promt for the password eg. before exporting keys/backup. */
+int                  mrmailbox_check_password       (mrmailbox_t*, const char* pw);
+
+
+/* should be written down by the user, forwareded to mrmailbox_imex() for encryption then, must be wiped and free()'d after usage */
+char*                mrmailbox_create_setup_code    (mrmailbox_t*);
+
+
+/* mainly for testing, import a folder with eml-files, a single eml-file, e-mail plus public key, ... NULL for the last command */
+int                  mrmailbox_poke_spec            (mrmailbox_t*, const char* spec);
 
 
 /* The library tries itself to stay alive. For this purpose there is an additional
@@ -328,7 +409,116 @@ If in doubt, call this function too often, not too less :-) */
 void                 mrmailbox_heartbeat            (mrmailbox_t*);
 
 
-/*** library-private **********************************************************/
+/*******************************************************************************
+ * Events
+ ******************************************************************************/
+
+
+/* The following events may be passed to the callback given to mrmailbox_new() */
+
+
+/* Information, should not be reported, can be logged,
+data1=0, data2=info string */
+#define MR_EVENT_INFO                     100
+
+
+/* Warning, should not be reported, should be logged
+data1=0, data2=warning string */
+#define MR_EVENT_WARNING                  300
+
+
+/* Error, must be reported to the user by a non-disturbing bubble or so.
+data1=error code MR_ERR_*, see below, data2=error string */
+#define MR_EVENT_ERROR                    400
+
+
+/* one or more messages changed for some reasons in the database - added or removed.
+For added messages: data1=chat_id, data2=msg_id */
+#define MR_EVENT_MSGS_CHANGED             2000
+
+
+/* For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send;
+data1=chat_id, data2=msg_id */
+#define MR_EVENT_INCOMING_MSG             2005
+
+
+/* a single message is send successfully (state changed from PENDING/SENDING to DELIVERED);
+data1=chat_id, data2=msg_id */
+#define MR_EVENT_MSG_DELIVERED            2010
+
+
+/* a single message is read by the receiver (state changed from DELIVERED to READ);
+data1=chat_id, data2=msg_id */
+#define MR_EVENT_MSG_READ                 2015
+
+
+/* group name/image changed or members added/removed */
+#define MR_EVENT_CHAT_MODIFIED            2020
+
+
+/* contact(s) created, renamed, blocked or deleted */
+#define MR_EVENT_CONTACTS_CHANGED         2030
+
+
+/* connection state changed,
+data1=0:failed-not-connected, 1:configured-and-connected */
+#define MR_EVENT_CONFIGURE_ENDED          2040
+
+
+/* data1=percent */
+#define MR_EVENT_CONFIGURE_PROGRESS       2041
+
+
+/* mrmailbox_imex() done:
+data1=0:failed, 1=success */
+#define MR_EVENT_IMEX_ENDED               2050
+
+
+/* data1=permille */
+#define MR_EVENT_IMEX_PROGRESS            2051
+
+
+/* file written, event may be needed to make the file public to some system services
+data1=file name, data2=mime type */
+#define MR_EVENT_IMEX_FILE_WRITTEN        2052
+
+
+/* The following events are functions that should be provided by the frontends */
+
+
+/* check, if the system is online currently
+ret=0: not online, ret=1: online */
+#define MR_EVENT_IS_ONLINE                2080
+
+
+/* get a string from the frontend, data1=MR_STR_*, ret=string which will be free()'d by the backend */
+#define MR_EVENT_GET_STRING               2091
+
+
+/* synchronous http/https(!) call, data1=url, ret=content which will be free()'d by the backend, 0 on errors */
+#define MR_EVENT_GET_QUANTITY_STRING      2092
+
+
+/* synchronous http/https(!) call, data1=url, ret=content which will be free()'d by the backend, 0 on errors */
+#define MR_EVENT_HTTP_GET                 2100
+
+/* acquire wakeLock (data1=1) or release it (data1=0), the backend does not make nested or unsynchronized calls */
+#define MR_EVENT_WAKE_LOCK                2110
+
+
+/* Error codes */
+
+#define MR_ERR_SELF_NOT_IN_GROUP  1
+#define MR_ERR_NONETWORK          2
+
+
+/*******************************************************************************
+ * Library privcate
+ ******************************************************************************/
+
+
+/* the following functions are reserved for library-private usage and SHOULD NOT be used by messenger clients. */
+
 
 #define MR_E2EE_DEFAULT_ENABLED  1
 #define MR_MDNS_DEFAULT_ENABLED  1
@@ -358,6 +548,8 @@ void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...
 void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
 int  mrmailbox_get_thread_index    (void);
 
+/* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
+int                  mrmailbox_reset_tables         (mrmailbox_t*, int bits);
 
 /* misc. tools */
 int    mrmailbox_poke_eml_file                           (mrmailbox_t*, const char* file);

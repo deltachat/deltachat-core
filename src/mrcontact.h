@@ -80,7 +80,11 @@ void         mrcontact_unref           (mrcontact_t*);
 void         mrcontact_empty           (mrcontact_t*);
 
 
-/*** library-private **********************************************************/
+/*******************************************************************************
+ * Library privcate
+ ******************************************************************************/
+
+/* the following functions are reserved for library-private usage and SHOULD NOT be used by messenger clients. */
 
 int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t id);
 size_t       mrmailbox_get_real_contact_cnt__ (mrmailbox_t*);
