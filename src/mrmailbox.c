@@ -17,27 +17,18 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    mrmailbox.c
- * Purpose: mrmailbox_t represents a single mailbox, see header for details.
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h> /* for getpid() */
 #include <unistd.h>    /* for getpid() */
-#include <sqlite3.h>
 #include <openssl/opensslv.h>
-#include "mrmailbox.h"
+#include "mrmailbox_internal.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
-#include "mrcontact.h"
 #include "mrtools.h"
 #include "mrjob.h"
 #include "mrloginparam.h"

@@ -17,21 +17,12 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    mrmsg.c
- * Purpose: mrmsg_t represents a single message, see header for details.
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-#include "mrmailbox.h"
+#include "mrmailbox_internal.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
-#include "mrcontact.h"
-#include "mrtools.h"
 #include "mrjob.h"
 #include "mrpgp.h"
 #include "mrmimefactory.h"

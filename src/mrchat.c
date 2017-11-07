@@ -17,19 +17,10 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    mrchat.c
- * Purpose: mrchat_t represents a single chat, see header for details.
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-#include "mrmailbox.h"
-#include "mrtools.h"
-#include "mrcontact.h"
+#include "mrmailbox_internal.h"
 #include "mrapeerstate.h"
 #include "mrjob.h"
 #include "mrsmtp.h"

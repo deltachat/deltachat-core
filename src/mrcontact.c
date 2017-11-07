@@ -17,19 +17,11 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    mrcontact.c
- * Purpose: mrcontact_t represents a single contact, see header for details.
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-#include "mrmailbox.h"
+#include "mrmailbox_internal.h"
 #include "mrmimeparser.h"
-#include "mrcontact.h"
 #include "mrloginparam.h"
 #include "mrpgp.h"
 #include "mrapeerstate.h"

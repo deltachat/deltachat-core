@@ -17,25 +17,18 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    stress.c
- * Purpose: Stress some functions for testing; if used as a lib, this file is
- *          obsolete.
- *
- *******************************************************************************
- *
- * For memory checking, use eg.
- * $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
+/* Stress some functions for testing; if used as a lib, this file is obsolete.
+For memory checking, use eg.
+$ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
+*/
+
+
 #include <ctype.h>
-#include <string.h>
 #include <assert.h>
-#include "mrmailbox.h"
+#include "mrmailbox_internal.h"
 #include "mrsimplify.h"
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
@@ -43,7 +36,6 @@
 #include "mrapeerstate.h"
 #include "mraheader.h"
 #include "mrkeyring.h"
-#include "mrtools.h"
 
 
 void stress_functions(mrmailbox_t* mailbox)

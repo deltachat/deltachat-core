@@ -17,20 +17,15 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see http://www.gnu.org/licenses/ .
  *
- *******************************************************************************
- *
- * File:    mrcmdline.c
- * Purpose: implement mrmailbox_cmdline(), this file is optional
- *
  ******************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-#include "mrmailbox.h"
-#include "mrcmdline.h"
+/* If you do not want to use mrmailbox_cmdline(), this file MAY NOT included to
+your library */
+
+
+#include "mrmailbox_internal.h"
 #include "mrapeerstate.h"
-#include "mrtools.h"
 #include "mrkey.h"
 
 
