@@ -207,11 +207,12 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 	locked = 1;
 
 		if( chat==NULL ) {
-			if( (chat=mrmailbox_get_chat(chatlist->m_mailbox, (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*IDS_PER_RESULT)))==NULL ) {
+			chat = mrchat_new(chatlist->m_mailbox);
+			chat_to_delete = chat;
+			if( !mrchat_load_from_db__(chat, (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*IDS_PER_RESULT)) ) {
 				ret->m_text2 = safe_strdup("ErrCannotReadChat");
 				goto cleanup;
 			}
-			chat_to_delete = chat;
 		}
 
 		if( lastmsg_id )
