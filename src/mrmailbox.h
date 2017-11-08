@@ -193,7 +193,24 @@ void                 mrchatlist_unref                    (mrchatlist_t*);
 size_t               mrchatlist_get_cnt                  (mrchatlist_t*);
 mrchat_t*            mrchatlist_get_chat_by_index        (mrchatlist_t*, size_t index); /* result must be unref'd */
 mrmsg_t*             mrchatlist_get_msg_by_index         (mrchatlist_t*, size_t index); /* result must be unref'd */
-mrpoortext_t*        mrchatlist_get_summary_by_index     (mrchatlist_t*, size_t index, mrchat_t*); /* result must be unref'd, the 3rd parameter is only to speed up things */
+
+
+/* Get a summary for a chatlist index. The last parameter can be set to speed up
+things if the chat object is already available; if not, it is faster to pass NULL
+here.  The result must be freed using mrchatlist_unref().  The returned summary
+has the following format:
+- m_text1:         contains the username or the strings "Me", "Draft" and so on.
+                   the string may be colored by having a look at m_text1_meaning.
+                   If there is no such name, the element is NULL (eg. for "No messages")
+- m_text1_meaning: one of the
+- m_text2          contains an excerpt of the message text or strings as "No messages".
+                   may be NULL of there is no such text (eg. for the archive)
+- m_timestamp      the timestamp of the message.  May be 0 if there is no
+                   message
+- m_state          the state of the message as one of the MR_STATE_*
+                   identifiers.  0 if there is no message.
+*/
+mrpoortext_t*        mrchatlist_get_summary_by_index     (mrchatlist_t*, size_t index, mrchat_t*);
 
 
 /* the poortext object and some function accessing it.  A poortext object
