@@ -570,16 +570,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				mrmsg_t* msg = mrmsg_new();
-					msg->m_type = MR_MSG_TEXT;
-					mrmsg_set_text(msg, arg1);
-					if( mrmailbox_send_msg(mailbox, sel_chat->m_id, msg) ) {
-						ret = safe_strdup("Message sent.");
-					}
-					else {
-						ret = safe_strdup("ERROR: Sending failed.");
-					}
-				mrmsg_unref(msg);
+				if( mrmailbox_send_text_msg(mailbox, sel_chat->m_id, arg1) ) {
+					ret = safe_strdup("Message sent.");
+				}
+				else {
+					ret = safe_strdup("ERROR: Sending failed.");
+				}
 			}
 			else {
 				ret = safe_strdup("ERROR: No message text given.");

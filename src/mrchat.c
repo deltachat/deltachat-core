@@ -1397,6 +1397,26 @@ cleanup:
 }
 
 
+uint32_t mrmailbox_send_text_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text_to_send)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_TEXT;
+	mrmsg_set_text(msg, text_to_send);
+
+	ret = mrmailbox_send_msg(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+}
+
+
 uint32_t mrmailbox_send_msg(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
 {
 	char* pathNfilename = NULL;
