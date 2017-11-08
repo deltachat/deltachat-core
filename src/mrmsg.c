@@ -438,13 +438,21 @@ cleanup:
 }
 
 
-mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, const mrchat_t* chat)
+mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 {
 	mrpoortext_t* ret = mrpoortext_new();
 	mrcontact_t*  contact = NULL;
+	mrchat_t*     chat_to_delete = NULL;
 
-	if( msg==NULL || chat==NULL ) {
+	if( msg==NULL ) {
 		goto cleanup;
+	}
+
+	if( chat == NULL ) {
+		if( (chat=mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id)) == NULL ) {
+			goto cleanup;
+		}
+		chat_to_delete = chat;
 	}
 
 	if( msg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_GROUP ) {
@@ -455,6 +463,7 @@ mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, const mrchat_t* chat)
 
 cleanup:
 	mrcontact_unref(contact);
+	mrchat_unref(chat_to_delete);
 	return ret;
 }
 

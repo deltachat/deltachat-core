@@ -299,18 +299,26 @@ carray*              mrmailbox_get_chat_contacts         (mrmailbox_t*, uint32_t
 
 
 /* mrmailbox_get_chat_msgs() returns a view on a chat.
-The function returns an array of message IDs, which must be carray_free()'d by the caller.
-Optionally, some special markers added to the ID-array may help to implement virtual lists:
-- If you add the flag MR_GCM_ADD_DAY_MARKER, the marker MR_MSG_ID_DAYMARKER will be added before each day (regarding the local timezone)
-- If you specify marker1before, the id MR_MSG_ID_MARKER1 will be added just before the given ID.*/
+The function returns an array of message IDs, which must be carray_free()'d by
+the caller.  Optionally, some special markers added to the ID-array may help to
+implement virtual lists:
+- If you add the flag MR_GCM_ADD_DAY_MARKER, the marker MR_MSG_ID_DAYMARKER will
+  be added before each day (regarding the local timezone)
+- If you specify marker1before, the id MR_MSG_ID_MARKER1 will be added just
+before the given ID.*/
 #define MR_GCM_ADDDAYMARKER 0x01
 carray*              mrmailbox_get_chat_msgs             (mrmailbox_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
 
 
 /* Search messages containing the given query string.
-Searching can be done globally (chat_id=0) or in a specified chat only (chat_id set).
-- The function returns an array of messages IDs which must be carray_free()'d by the caller.
-- If nothing can be found, the function returns NULL.  */
+Searching can be done globally (chat_id=0) or in a specified chat only (chat_id
+set).
+- The function returns an array of messages IDs which must be carray_free()'d
+  by the caller.
+- If nothing can be found, the function returns NULL.
+Global chat results are typically displayed using mrmsg_get_summary(), chat
+search results may just hilite the corresponding messages and present a
+prev/next button. */
 carray*              mrmailbox_search_msgs               (mrmailbox_t*, uint32_t chat_id, const char* query);
 
 
@@ -472,8 +480,18 @@ typedef struct mrmsg_t
 mrmsg_t*             mrmsg_new                    ();
 void                 mrmsg_unref                  (mrmsg_t*); /* this also free()s all strings; so if you set up the object yourself, make sure to use strdup()! */
 void                 mrmsg_empty                  (mrmsg_t*);
-mrpoortext_t*        mrmsg_get_summary            (mrmsg_t*, const mrchat_t*);
+
+
+/* Get a summary for a message. The last parameter can be set to speed up
+things if the chat object is already available; if not, it is faster to pass NULL
+here.  The result must be freed using mrpoortext_unref().
+Typically used to display a search result.
+The returned summary is similar to mrchatlist_get_summary(), however, without
+"draft", "no messages" and so on. */
+mrpoortext_t*        mrmsg_get_summary            (mrmsg_t*, mrchat_t* /*may be NULL*/);
 char*                mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
+
+
 int                  mrmsg_show_padlock           (mrmsg_t*); /* a padlock should be shown if the message is e2ee _and_ e2ee is enabled for sending. */
 char*                mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
 mrpoortext_t*        mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (as text1, this is not always the sender, NULL if unknown) and title (text2, NULL if unknown) */
