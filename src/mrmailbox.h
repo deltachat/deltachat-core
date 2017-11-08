@@ -358,7 +358,7 @@ int           mrchat_set_draft             (mrchat_t*, const char*); /* Save dra
 
 
 /* save message in database and send it, the given message object is not unref'd by the function but some fields are set up! */
-uint32_t      mrchat_send_msg              (mrchat_t*, mrmsg_t*);
+uint32_t      mrmailbox_send_msg           (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
 
 
 
