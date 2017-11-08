@@ -397,10 +397,10 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	mrstrbuilder_cat(&ret, "\n");
 
 	/* add "suspicious" status */
-	if( msg->m_state==MR_IN_FRESH ) {
+	if( msg->m_state==MR_STATE_IN_FRESH ) {
 		mrstrbuilder_cat(&ret, "Status: Fresh\n");
 	}
-	else if( msg->m_state==MR_IN_NOTICED ) {
+	else if( msg->m_state==MR_STATE_IN_NOTICED ) {
 		mrstrbuilder_cat(&ret, "Status: Noticed\n");
 	}
 
@@ -1032,8 +1032,8 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_seen_WHERE_id_AND_chat_id_AND_freshORnoticed,
-				"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_SEEN)
-				" WHERE id=? AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND (state=" MR_STRINGIFY(MR_IN_FRESH) " OR state=" MR_STRINGIFY(MR_IN_NOTICED) ");");
+				"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_SEEN)
+				" WHERE id=? AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND (state=" MR_STRINGIFY(MR_STATE_IN_FRESH) " OR state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) ");");
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
 			sqlite3_step(stmt);
 			if( sqlite3_changes(mailbox->m_sql->m_cobj) )
@@ -1046,8 +1046,8 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 			{
 				/* message may be in contact requests, mark as NOTICED, this does not force IMAP updated nor send MDNs */
 				sqlite3_stmt* stmt2 = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_noticed_WHERE_id_AND_fresh,
-					"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_NOTICED)
-					" WHERE id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
+					"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED)
+					" WHERE id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
 				sqlite3_bind_int(stmt2, 1, msg_ids[i]);
 				sqlite3_step(stmt2);
 				if( sqlite3_changes(mailbox->m_sql->m_cobj) ) {
@@ -1092,14 +1092,14 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 	int chat_type  = sqlite3_column_int(stmt, 2);
 	int msg_state  = sqlite3_column_int(stmt, 3);
 
-	if( msg_state!=MR_OUT_PENDING && msg_state!=MR_OUT_DELIVERED ) {
+	if( msg_state!=MR_STATE_OUT_PENDING && msg_state!=MR_STATE_OUT_DELIVERED ) {
 		return 0; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
 	}
 
 	/* normal chat? that's quite easy. */
 	if( chat_type == MR_CHAT_NORMAL )
 	{
-		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_MDN_RCVD);
+		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_STATE_OUT_MDN_RCVD);
 		return 1; /* send event about new state */
 	}
 
@@ -1143,7 +1143,7 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_step(stmt);
 
-	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_OUT_MDN_RCVD);
+	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_STATE_OUT_MDN_RCVD);
 	return 1;
 }
 

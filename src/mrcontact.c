@@ -546,7 +546,7 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* ths, uint32_t contact_id)
 static void marknoticed_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_from_id_AND_state,
-		"UPDATE msgs SET state=" MR_STRINGIFY(MR_IN_NOTICED) " WHERE from_id=? AND state=" MR_STRINGIFY(MR_IN_FRESH) ";");
+		"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE from_id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	sqlite3_step(stmt);
 }

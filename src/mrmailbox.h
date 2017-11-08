@@ -48,7 +48,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_VERSION_REVISION 7
 
 
-/* mrmailbox_t represents a single mailbox, normally, typically only one 
+/* mrmailbox_t represents a single mailbox, normally, typically only one
 instance of this class is present.
 Each mailbox is linked to an IMAP/POP3 account and uses a separate
 SQLite database for offline functionality and for mailbox-related
@@ -449,14 +449,14 @@ typedef struct mrmsg_t
 	#define          MR_MSG_FILE           60 /* param: MRP_FILE */
 	int              m_type;
 
-	#define          MR_STATE_UNDEFINED     0
-	#define          MR_IN_FRESH           10 /* incoming message, not noticed nor seen */
-	#define          MR_IN_NOTICED         13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs) */
-	#define          MR_IN_SEEN            16 /* incoming message marked as read on IMAP and MDN may be send */
-	#define          MR_OUT_PENDING        20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
-	#define          MR_OUT_ERROR          24 /* unrecoverable error (recoverable errors result in pending messages) */
-	#define          MR_OUT_DELIVERED      26 /* outgoing message successfully delivered to server (one checkmark) */
-	#define          MR_OUT_MDN_RCVD       28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
+	#define          MR_STATE_UNDEFINED      0
+	#define          MR_STATE_IN_FRESH      10 /* incoming message, not noticed nor seen */
+	#define          MR_STATE_IN_NOTICED    13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs) */
+	#define          MR_STATE_IN_SEEN       16 /* incoming message marked as read on IMAP and MDN may be send */
+	#define          MR_STATE_OUT_PENDING   20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
+	#define          MR_STATE_OUT_ERROR     24 /* unrecoverable error (recoverable errors result in pending messages) */
+	#define          MR_STATE_OUT_DELIVERED 26 /* outgoing message successfully delivered to server (one checkmark) */
+	#define          MR_STATE_OUT_MDN_RCVD  28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 	int              m_state;
 
 	char*            m_text;      /* message text or NULL if unset */
