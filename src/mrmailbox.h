@@ -488,16 +488,39 @@ here.  The result must be freed using mrpoortext_unref().
 Typically used to display a search result.
 The returned summary is similar to mrchatlist_get_summary(), however, without
 "draft", "no messages" and so on. */
-mrpoortext_t*        mrmsg_get_summary            (mrmsg_t*, mrchat_t* /*may be NULL*/);
-char*                mrmsg_get_summarytext        (mrmsg_t*, int approx_characters); /* the returned value must be free()'d */
+mrpoortext_t*        mrmsg_get_summary            (mrmsg_t*, mrchat_t*);
 
 
-int                  mrmsg_show_padlock           (mrmsg_t*); /* a padlock should be shown if the message is e2ee _and_ e2ee is enabled for sending. */
-char*                mrmsg_get_filename           (mrmsg_t*); /* returns base file name without part, if appropriate, the returned value must be free()'d */
-mrpoortext_t*        mrmsg_get_mediainfo          (mrmsg_t*); /* returns real author (as text1, this is not always the sender, NULL if unknown) and title (text2, NULL if unknown) */
+/* Get a message summary as a single line of text.  Typically used for
+notifications.  The returned value must be free()'d. */
+char*                mrmsg_get_summarytext        (mrmsg_t*, int approx_characters);
+
+
+/* Check if a padlock should be shown beside the message. */
+int                  mrmsg_show_padlock           (mrmsg_t*);
+
+
+/* Returns base file name without part, if appropriate.  The returned value must
+be free()'d */
+char*                mrmsg_get_filename           (mrmsg_t*);
+
+
+/* Returns real author (as text1, this is not always the sender, NULL if
+unknown) and title (text2, NULL if unknown) */
+mrpoortext_t*        mrmsg_get_mediainfo          (mrmsg_t*);
+
+
+/* check if a message is still in creation. */
 int                  mrmsg_is_increation          (mrmsg_t*);
-void                 mrmsg_save_param_to_disk     (mrmsg_t*); /* can be used to add some additional, persistent information to a messages record */
-void                 mrmsg_set_text               (mrmsg_t*, const char* text); /* only sets the text field, MR_MSG_TEXT must be set additionally */
+
+
+/* can be used to add some additional, persistent information to a messages record */
+void                 mrmsg_save_param_to_disk     (mrmsg_t*);
+
+
+/* Only sets the text field, MR_MSG_TEXT must be set additionally.
+Previously texts are free()'d. */
+void                 mrmsg_set_text               (mrmsg_t*, const char* text);
 
 
 /*******************************************************************************
