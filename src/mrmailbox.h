@@ -197,7 +197,7 @@ mrmsg_t*             mrchatlist_get_msg_by_index         (mrchatlist_t*, size_t 
 
 /* Get a summary for a chatlist index. The last parameter can be set to speed up
 things if the chat object is already available; if not, it is faster to pass NULL
-here.  The result must be freed using mrchatlist_unref().  The returned summary
+here.  The result must be freed using mrpoortext_unref().  The returned summary
 has the following format:
 - m_text1:         contains the username or the strings "Me", "Draft" and so on.
                    the string may be colored by having a look at m_text1_meaning.
