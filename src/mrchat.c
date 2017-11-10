@@ -855,18 +855,21 @@ cleanup:
 }
 
 
-int mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
+
+static void set_draft_int(mrmailbox_t* mailbox, mrchat_t* chat, uint32_t chat_id, const char* msg)
 {
-	int           ret = 0;
 	sqlite3_stmt* stmt;
-	mrchat_t*     chat = NULL;
+	mrchat_t*     chat_to_delete = NULL;
 
 	if( mailbox == NULL ) {
 		goto cleanup;
 	}
 
-	if( (chat=mrmailbox_get_chat(mailbox, chat_id)) == NULL ) {
-		goto cleanup;
+	if( chat==NULL ) {
+		if( (chat=mrmailbox_get_chat(mailbox, chat_id)) == NULL ) {
+			goto cleanup;
+		}
+		chat_to_delete = chat;
 	}
 
 	if( msg && msg[0]==0 ) {
@@ -875,13 +878,11 @@ int mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
 
 	if( chat->m_draft_text==NULL && msg==NULL
 	 && chat->m_draft_timestamp==0 ) {
-		ret = 1; /* nothing to do - there is no old and no new draft */
-		goto cleanup;
+		goto cleanup; /* nothing to do - there is no old and no new draft */
 	}
 
 	if( chat->m_draft_timestamp && chat->m_draft_text && msg && strcmp(chat->m_draft_text, msg)==0 ) {
-		ret = 1; /* for equal texts, we do not update the timestamp */
-		goto cleanup;
+		goto cleanup; /* for equal texts, we do not update the timestamp */
 	}
 
 	/* save draft in object - NULL or empty: clear draft */
@@ -905,8 +906,20 @@ int mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
 	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
-	mrchat_unref(chat);
-	return ret;
+	mrchat_unref(chat_to_delete);
+}
+
+
+void mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
+{
+	set_draft_int(mailbox, NULL, chat_id, msg);
+}
+
+
+int mrchat_set_draft(mrchat_t* chat, const char* msg) /* deprecated */
+{
+	set_draft_int(chat->m_mailbox, chat, chat->m_id, msg);
+	return 1;
 }
 
 

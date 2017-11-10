@@ -303,7 +303,7 @@ uint32_t             mrmailbox_get_next_media            (mrmailbox_t*, uint32_t
 
 /* Save draft in object and, if changed, in database.  May result in
 "MR_EVENT_MSGS_CHANGED".  Returns true/false. */
-int                  mrmailbox_set_draft                 (mrmailbox_t*, uint32_t chat_id, const char*);
+void                 mrmailbox_set_draft                 (mrmailbox_t*, uint32_t chat_id, const char*);
 
 
 /* mrmailbox_get_chat_contacts() returns contact IDs, the result must be carray_free()'d.
@@ -860,6 +860,7 @@ uint32_t             carray_get_uint32              (carray*, unsigned int index
 /* deprecated functions */
 mrchat_t*            mrchatlist_get_chat_by_index        (mrchatlist_t*, size_t index); /* deprecated - use mrchatlist_get_chat_id_by_index() */
 mrmsg_t*             mrchatlist_get_msg_by_index         (mrchatlist_t*, size_t index); /* deprecated - use mrchatlist_get_msg_id_by_index() */
+int                  mrchat_set_draft                    (mrchat_t*, const char* msg);  /* deprecated - use mrmailbox_set_draft() instead */
 
 
 #ifdef __cplusplus
