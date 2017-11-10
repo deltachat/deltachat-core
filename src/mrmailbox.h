@@ -301,6 +301,11 @@ If there is no previous/next media, 0 is returned. */
 uint32_t             mrmailbox_get_next_media            (mrmailbox_t*, uint32_t curr_msg_id, int dir);
 
 
+/* Save draft in object and, if changed, in database.  May result in
+"MR_EVENT_MSGS_CHANGED".  Returns true/false. */
+int                  mrmailbox_set_draft                 (mrmailbox_t*, uint32_t chat_id, const char*);
+
+
 /* mrmailbox_get_chat_contacts() returns contact IDs, the result must be carray_free()'d.
 - for normal chats, the function always returns exactly one contact MR_CONTACT_ID_SELF is _not_ returned.
 - for group chats all members are returned, MR_CONTACT_ID_SELF is returned explicitly as it may happen that oneself gets removed from a still existing group
@@ -359,7 +364,6 @@ typedef struct mrchat_t
 } mrchat_t;
 void          mrchat_unref                 (mrchat_t*);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the email-address or the number of group members, the result must be free()'d! */
-int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_CHANGED".  Returns true/false. */
 
 
 /* send a simple text message to the given chat.

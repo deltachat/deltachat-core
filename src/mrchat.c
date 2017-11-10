@@ -855,48 +855,58 @@ cleanup:
 }
 
 
-int mrchat_set_draft(mrchat_t* ths, const char* msg)
+int mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
 {
+	int           ret = 0;
 	sqlite3_stmt* stmt;
+	mrchat_t*     chat = NULL;
 
-	if( ths == NULL ) {
-		return 0;
+	if( mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	if( (chat=mrmailbox_get_chat(mailbox, chat_id)) == NULL ) {
+		goto cleanup;
 	}
 
 	if( msg && msg[0]==0 ) {
 		msg = NULL; /* an empty draft is no draft */
 	}
 
-	if( ths->m_draft_text==NULL && msg==NULL
-	 && ths->m_draft_timestamp==0 ) {
-		return 1; /* nothing to do - there is no old and no new draft */
+	if( chat->m_draft_text==NULL && msg==NULL
+	 && chat->m_draft_timestamp==0 ) {
+		ret = 1; /* nothing to do - there is no old and no new draft */
+		goto cleanup;
 	}
 
-	if( ths->m_draft_timestamp && ths->m_draft_text && msg && strcmp(ths->m_draft_text, msg)==0 ) {
-		return 1; /* for equal texts, we do not update the timestamp */
+	if( chat->m_draft_timestamp && chat->m_draft_text && msg && strcmp(chat->m_draft_text, msg)==0 ) {
+		ret = 1; /* for equal texts, we do not update the timestamp */
+		goto cleanup;
 	}
 
 	/* save draft in object - NULL or empty: clear draft */
-	free(ths->m_draft_text);
-	ths->m_draft_text      = msg? safe_strdup(msg) : NULL;
-	ths->m_draft_timestamp = msg? time(NULL) : 0;
+	free(chat->m_draft_text);
+	chat->m_draft_text      = msg? safe_strdup(msg) : NULL;
+	chat->m_draft_timestamp = msg? time(NULL) : 0;
 
 	/* save draft in database */
-	mrsqlite3_lock(ths->m_mailbox->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
 
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
 			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
-		sqlite3_bind_int64(stmt, 1, ths->m_draft_timestamp);
-		sqlite3_bind_text (stmt, 2, ths->m_draft_text? ths->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
-		sqlite3_bind_int  (stmt, 3, ths->m_id);
+		sqlite3_bind_int64(stmt, 1, chat->m_draft_timestamp);
+		sqlite3_bind_text (stmt, 2, chat->m_draft_text? chat->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
+		sqlite3_bind_int  (stmt, 3, chat->m_id);
 
 		sqlite3_step(stmt);
 
-	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	mrsqlite3_unlock(mailbox->m_sql);
 
-	ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 
-	return 1;
+cleanup:
+	mrchat_unref(chat);
+	return ret;
 }
 
 

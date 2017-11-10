@@ -626,11 +626,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				mrchat_set_draft(sel_chat, arg1);
+				mrmailbox_set_draft(mailbox, sel_chat->m_id, arg1);
 				ret = safe_strdup("Draft saved.");
 			}
 			else {
-				mrchat_set_draft(sel_chat, NULL);
+				mrmailbox_set_draft(mailbox, sel_chat->m_id, NULL);
 				ret = safe_strdup("Draft deleted.");
 			}
 		}
