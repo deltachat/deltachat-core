@@ -264,6 +264,15 @@ carray*              mrmailbox_get_chat_media            (mrmailbox_t*, uint32_t
 carray*              mrmailbox_get_fresh_msgs            (mrmailbox_t*);
 
 
+/* returns the number of fresh messages in a chat.  Typically used to implement
+a badge with a number in the chatlist. */
+int                  mrmailbox_get_fresh_msg_count       (mrmailbox_t*, uint32_t chat_id);
+
+
+/* returns the total number of messages in a chat. */
+int                  mrmailbox_get_total_msg_count       (mrmailbox_t*, uint32_t chat_id);
+
+
 /* Archived a chat, 1=archive, 0=unarchive
 Archived chats are not returned in the default chatlist returned by mrmailbox_get_chatlist(0, NULL);
 instead, if there are _any_ archived chats, the pseudo-chat with the chat_id MR_CHAT_ID_ARCHIVED_LINK will be returned by
@@ -350,8 +359,6 @@ typedef struct mrchat_t
 } mrchat_t;
 void          mrchat_unref                 (mrchat_t*);
 char*         mrchat_get_subtitle          (mrchat_t*); /* either the email-address or the number of group members, the result must be free()'d! */
-int           mrchat_get_total_msg_count   (mrchat_t*);
-int           mrchat_get_fresh_msg_count   (mrchat_t*);
 int           mrchat_set_draft             (mrchat_t*, const char*); /* Save draft in object and, if changed, in database.  May result in "MR_EVENT_MSGS_CHANGED".  Returns true/false. */
 
 

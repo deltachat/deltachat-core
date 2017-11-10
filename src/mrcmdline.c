@@ -406,7 +406,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					temp = mrchat_get_subtitle(chat);
 						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_GROUP? "Groupchat" : "Chat",
-							(int)chat->m_id, chat->m_name, temp, (int)mrchat_get_fresh_msg_count(chat));
+							(int)chat->m_id, chat->m_name, temp, (int)mrmailbox_get_fresh_msg_count(mailbox, chat->m_id));
 					free(temp);
 
 					mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
@@ -472,7 +472,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					mrmailbox_log_info(mailbox, 0, "Draft: %s [%s]", sel_chat->m_draft_text, timestr);
 				free(timestr);
 			}
-			ret = mr_mprintf("%i messages.", mrchat_get_total_msg_count(sel_chat));
+			ret = mr_mprintf("%i messages.", mrmailbox_get_total_msg_count(mailbox, sel_chat->m_id));
 			mrmailbox_marknoticed_chat(mailbox, sel_chat->m_id);
 		}
 		else {

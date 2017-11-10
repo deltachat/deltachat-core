@@ -960,33 +960,33 @@ char* mrchat_get_subtitle(mrchat_t* ths)
 }
 
 
-int mrchat_get_total_msg_count(mrchat_t* ths)
+int mrmailbox_get_total_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
-	if( ths == NULL ) {
+	if( mailbox == NULL ) {
 		return 0;
 	}
 
-	mrsqlite3_lock(ths->m_mailbox->m_sql);
-		ret = mrmailbox_get_total_msg_count__(ths->m_mailbox, ths->m_id);
-	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
+		ret = mrmailbox_get_total_msg_count__(mailbox, chat_id);
+	mrsqlite3_unlock(mailbox->m_sql);
 
 	return ret;
 }
 
 
-int mrchat_get_fresh_msg_count(mrchat_t* ths)
+int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
-	if( ths == NULL ) {
+	if( mailbox == NULL ) {
 		return 0;
 	}
 
-	mrsqlite3_lock(ths->m_mailbox->m_sql);
-		ret = mrmailbox_get_fresh_msg_count__(ths->m_mailbox, ths->m_id);
-	mrsqlite3_unlock(ths->m_mailbox->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
+		ret = mrmailbox_get_fresh_msg_count__(mailbox, chat_id);
+	mrsqlite3_unlock(mailbox->m_sql);
 
 	return ret;
 }
