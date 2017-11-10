@@ -35,10 +35,6 @@ typedef struct mrchat_t mrchat_t;
 typedef struct mrmsg_t mrmsg_t;
 typedef struct mrcontact_t mrcontact_t;
 typedef struct mrpoortext_t mrpoortext_t;
-typedef struct mrimap_t mrimap_t;
-typedef struct mrsmtp_t mrsmtp_t;
-typedef struct mrmimeparser_t mrmimeparser_t;
-typedef struct mrsqlite3_t mrsqlite3_t;
 typedef struct mrparam_t mrparam_t;
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
@@ -46,49 +42,6 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 #define MR_VERSION_MAJOR    0
 #define MR_VERSION_MINOR    9
 #define MR_VERSION_REVISION 7
-
-
-/* mrmailbox_t represents a single mailbox, normally, typically only one
-instance of this class is present.
-Each mailbox is linked to an IMAP/POP3 account and uses a separate
-SQLite database for offline functionality and for mailbox-related
-settings. */
-typedef struct mrmailbox_t
-{
-	void*            m_userdata;
-
-	/* the following members should be treated as library-private */
-	mrsqlite3_t*     m_sql;      /* != NULL */
-	char*            m_dbfile;
-	char*            m_blobdir;
-
-	mrimap_t*        m_imap;     /* != NULL */
-	mrsmtp_t*        m_smtp;     /* != NULL */
-
-	pthread_t        m_job_thread;
-	pthread_cond_t   m_job_cond;
-	pthread_mutex_t  m_job_condmutex;
-	int              m_job_condflag;
-	int              m_job_do_exit;
-
-	mrmailboxcb_t    m_cb;
-
-	char*            m_os_name;
-
-	uint32_t         m_cmdline_sel_chat_id;
-
-	int              m_wake_lock;
-	pthread_mutex_t  m_wake_lock_critical;
-
-	int              m_e2ee_enabled;
-
-	#define          MR_LOG_RINGBUF_SIZE 200
-	pthread_mutex_t  m_log_ringbuf_critical;
-	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE];
-	time_t           m_log_ringbuf_times[MR_LOG_RINGBUF_SIZE];
-	int              m_log_ringbuf_pos; /* the oldest position resp. the position that is overwritten next */
-
-} mrmailbox_t;
 
 
 /* mrmailbox_new() creates a new mailbox object.  After creation it is usually
@@ -105,7 +58,7 @@ for a given string)
 - If not mentioned otherweise, the callback should return 0.
 
 `userdata` can be used by the client for any purpuse.  He finds it
-later in mailbox->m_userdata
+later in mrmailbox_get_userdata().
 
 `os_name` is only for decorative use and is shown eg. in the X-Mailer header
 in the form "Delta Chat <version> for <osName>" */
@@ -162,8 +115,22 @@ int                  mrmailbox_fetch                (mrmailbox_t*);
 int                  mrmailbox_restore              (mrmailbox_t*, time_t seconds_to_restore);
 
 
-/* multi-line output; the returned string must be free()'d, returns NULL on errors */
+/* mrmailbox_get_info() returns a multi-line output about the current
+configuration and the last log entries. the returned string must be free()'d,
+returns NULL on errors */
 char*                mrmailbox_get_info             (mrmailbox_t*);
+
+
+/* returns the same pointer as given to mrmailbox_new().  If you have passed
+NULL there, this function also returns NULL.  The result is normally not freed
+or unref'd in any way. */
+void*                mrmailbox_get_userdata         (mrmailbox_t*);
+
+
+/* returns the current blob directory in use.  This is the directory given to
+mrmailbox_new() or a subdirectory in the path where the database file is placed.
+The returned values must be free()'d */
+char*                mrmailbox_get_blobdir         (mrmailbox_t*);
 
 
 /* the return value must be free()'d */

@@ -1142,6 +1142,18 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 }
 
 
+char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
+{
+	return safe_strdup(mailbox? mailbox->m_blobdir : NULL);
+}
+
+
+void* mrmailbox_get_userdata(mrmailbox_t* mailbox)
+{
+	return mailbox? mailbox->m_userdata : NULL;
+}
+
+
 char* mrmailbox_get_info(mrmailbox_t* ths)
 {
 	const char* unset = "0";
