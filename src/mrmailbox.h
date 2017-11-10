@@ -193,8 +193,6 @@ void                 mrchatlist_unref                    (mrchatlist_t*);
 size_t               mrchatlist_get_cnt                  (mrchatlist_t*);
 uint32_t             mrchatlist_get_chat_id_by_index     (mrchatlist_t*, size_t index);
 uint32_t             mrchatlist_get_msg_id_by_index      (mrchatlist_t*, size_t index);
-mrchat_t*            mrchatlist_get_chat_by_index        (mrchatlist_t*, size_t index); /* deprecated - result must be unref'd */
-mrmsg_t*             mrchatlist_get_msg_by_index         (mrchatlist_t*, size_t index); /* deprecated - result must be unref'd */
 
 
 /* Get a summary for a chatlist index. The last parameter can be set to speed up
@@ -846,6 +844,11 @@ void                 mrmailbox_cmdline_skip_auth    ();
 /* carray tools, already defined are things as
 unsigned unt carray_count() */
 uint32_t             carray_get_uint32              (carray*, unsigned int index);
+
+
+/* deprecated functions */
+mrchat_t*            mrchatlist_get_chat_by_index        (mrchatlist_t*, size_t index); /* deprecated - use mrchatlist_get_chat_id_by_index() */
+mrmsg_t*             mrchatlist_get_msg_by_index         (mrchatlist_t*, size_t index); /* deprecated - use mrchatlist_get_msg_id_by_index() */
 
 
 #ifdef __cplusplus

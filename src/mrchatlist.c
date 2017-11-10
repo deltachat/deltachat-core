@@ -170,7 +170,7 @@ uint32_t mrchatlist_get_chat_id_by_index(mrchatlist_t* ths, size_t index)
 }
 
 
-mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index)
+mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index) /* deprecated */
 {
 	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
 		return 0;
@@ -180,7 +180,7 @@ mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index)
 }
 
 
-uint32_t mrchatlist_get_msg_id_by_index(mrchatlist_t* ths, size_t index)
+uint32_t mrchatlist_get_msg_id_by_index(mrchatlist_t* ths, size_t index /* deprecated */)
 {
 	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
 		return 0;
