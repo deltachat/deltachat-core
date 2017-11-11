@@ -24,9 +24,9 @@
 your library */
 
 
-#include "mrmailbox_internal.h"
-#include "mrapeerstate.h"
-#include "mrkey.h"
+#include "../src/mrmailbox_internal.h"
+#include "../src/mrapeerstate.h"
+#include "../src/mrkey.h"
 
 
 static void log_msglist(mrmailbox_t* mailbox, carray* msglist)

@@ -28,14 +28,14 @@ $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
 
 #include <ctype.h>
 #include <assert.h>
-#include "mrmailbox_internal.h"
-#include "mrsimplify.h"
-#include "mrmimeparser.h"
-#include "mrmimefactory.h"
-#include "mrpgp.h"
-#include "mrapeerstate.h"
-#include "mraheader.h"
-#include "mrkeyring.h"
+#include "../src/mrmailbox_internal.h"
+#include "../src/mrsimplify.h"
+#include "../src/mrmimeparser.h"
+#include "../src/mrmimefactory.h"
+#include "../src/mrpgp.h"
+#include "../src/mrapeerstate.h"
+#include "../src/mraheader.h"
+#include "../src/mrkeyring.h"
 
 
 void stress_functions(mrmailbox_t* mailbox)

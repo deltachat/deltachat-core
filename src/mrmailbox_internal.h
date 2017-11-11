@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRMSG_H__
-#define __MRMSG_H__
+#ifndef __MRMAILBOX_INTERNAL_H__
+#define __MRMAILBOX_INTERNAL_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -300,5 +300,5 @@ char* mrstock_str_repl_pl (int id, int cnt);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMSG_H__ */
+#endif /* __MRMAILBOX_INTERNAL_H__ */
 
