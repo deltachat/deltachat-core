@@ -241,7 +241,7 @@ mrpoortext_t* mrchatlist_get_summary_by_index(mrchatlist_t* chatlist, size_t ind
 			lastmsg = mrmsg_new();
 			mrmsg_load_from_db__(lastmsg, chatlist->m_mailbox, lastmsg_id);
 
-			if( lastmsg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_GROUP )
+			if( lastmsg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_TYPE_GROUP )
 			{
 				lastcontact = mrcontact_new();
 				mrcontact_load_from_db__(lastcontact, chatlist->m_mailbox->m_sql, lastmsg->m_from_id);

@@ -328,9 +328,9 @@ typedef struct mrchat_t
 {
 	uint32_t          m_id;
 
-	#define          MR_CHAT_UNDEFINED    0
-	#define          MR_CHAT_NORMAL     100 /* a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF is not added. */
-	#define          MR_CHAT_GROUP      120 /* a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF */
+	#define          MR_CHAT_TYPE_UNDEFINED    0
+	#define          MR_CHAT_TYPE_NORMAL     100 /* a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF is not added. */
+	#define          MR_CHAT_TYPE_GROUP      120 /* a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF */
 	int              m_type;
 
 	char*            m_name;            /* NULL if unset */

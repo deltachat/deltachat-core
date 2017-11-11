@@ -405,7 +405,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					char *temp;
 
 					temp = mrchat_get_subtitle(chat);
-						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_GROUP? "Groupchat" : "Chat",
+						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_TYPE_GROUP? "Groupchat" : "Chat",
 							(int)chat->m_id, chat->m_name, temp, (int)mrmailbox_get_fresh_msg_count(mailbox, chat->m_id));
 					free(temp);
 
