@@ -65,7 +65,7 @@ in the form "Delta Chat <version> for <osName>" */
 mrmailbox_t*         mrmailbox_new                  (mrmailboxcb_t, void* userdata, const char* os_name);
 
 
-/* After usage, the mailbox object must be freed using mrmailbox_unref().
+/* After usage, the mailbox object should be freed using mrmailbox_unref().
 If app runs can only be terminated by a forced kill, this may be superfluous. */
 void                 mrmailbox_unref                (mrmailbox_t*);
 
@@ -80,10 +80,22 @@ void                 mrmailbox_close                (mrmailbox_t*);
 int                  mrmailbox_is_open              (const mrmailbox_t*);
 
 
-/* Handle configurations as:
-- addr
-- mail_server, mail_user, mail_pw, mail_port,
-- send_server, send_user, send_pw, send_port, server_flags */
+/* The mailbox configuration is handled by key=value pairs which are accessed
+using the following functins.  Typical configuration options are:
+addr         = [needed] address to display
+mail_server  =          IMAP-server, guessed if left out
+mail_user    =          IMAP-username, guessed if left out
+mail_pw      = [needed] IMAP-password
+mail_port    =          IMAP-port, guessed if left out
+send_server  =          SMTP-server, guessed if left out
+send_user    =          SMTP-user, guessed if left out
+send_pw      =          SMTP-password, guessed if left out
+send_port    =          SMTP-port, guessed if left out
+server_flags =          IMAP-/SMTP-flags, guessed if left out
+displayname  =          Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
+selfstatus   =          Own status to display eg. in email footers, defaults to standard text
+e2ee_enabled =          0=no e2ee, 1=prefer encryption (default)
+*/
 int                  mrmailbox_set_config           (mrmailbox_t*, const char* key, const char* value);
 char*                mrmailbox_get_config           (mrmailbox_t*, const char* key, const char* def);
 int                  mrmailbox_set_config_int       (mrmailbox_t*, const char* key, int32_t value);
