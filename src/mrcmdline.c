@@ -409,7 +409,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 							(int)chat->m_id, chat->m_name, temp, (int)mrmailbox_get_fresh_msg_count(mailbox, chat->m_id));
 					free(temp);
 
-					mrpoortext_t* poortext = mrchatlist_get_summary_by_index(chatlist, i, chat);
+					mrpoortext_t* poortext = mrchatlist_get_summary(chatlist, i, chat);
 
 						const char* statestr = "";
 						if( chat->m_archived ) {

@@ -170,8 +170,8 @@ typedef struct mrchatlist_t
 } mrchatlist_t;
 void                 mrchatlist_unref                    (mrchatlist_t*);
 size_t               mrchatlist_get_cnt                  (mrchatlist_t*);
-uint32_t             mrchatlist_get_chat_id_by_index     (mrchatlist_t*, size_t index);
-uint32_t             mrchatlist_get_msg_id_by_index      (mrchatlist_t*, size_t index);
+uint32_t             mrchatlist_get_chat_id              (mrchatlist_t*, size_t index);
+uint32_t             mrchatlist_get_msg_id               (mrchatlist_t*, size_t index);
 
 
 /* Get a summary for a chatlist index. The last parameter can be set to speed up
@@ -190,7 +190,7 @@ has the following format:
                    identifiers.  0 if there is no message.
 The function never returns NULL.
 */
-mrpoortext_t*        mrchatlist_get_summary_by_index     (mrchatlist_t*, size_t index, mrchat_t*);
+mrpoortext_t*        mrchatlist_get_summary     (mrchatlist_t*, size_t index, mrchat_t*);
 
 
 /* the poortext object and some function accessing it.  A poortext object
