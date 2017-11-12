@@ -603,14 +603,7 @@ int             mrmsg_show_padlock          (mrmsg_t*);
 
 char*           mrmsg_get_fullpath          (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
-
-
-/* Returns real author (as text1, this is not always the sender, NULL if
-unknown) and title (text2, NULL if unknown) */
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
-
-
-/* check if a message is still in creation. */
 int             mrmsg_is_increation         (mrmsg_t*);
 
 

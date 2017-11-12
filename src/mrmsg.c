@@ -624,10 +624,12 @@ cleanup:
 
 
 /**
- * Get authorname and trackname of a message.
+ * Returns real author (as return.text1, this is not always the sender, NULL if
+ * unknown) and title (return.text2, NULL if unknown) of a message.
+ *
  * For voice messages, the author the sender and the trackname is the sending time
  * For music messages, we read the information from the filename
- * We DO NOT read ID3 and such at this stage, the needed libraries may be buggy
+ * We do not read ID3 and such at this stage, the needed libraries may be buggy
  * and the whole stuff is way to complicated.
  * However, this is not a great disadvantage, as the sender usually sets the filename in a way we expect it -
  * if not, we simply print the whole filename as we do it for documents.  All fine in any case :-)
@@ -700,8 +702,20 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
 }
 
 
-int mrmsg_is_increation(mrmsg_t* msg) /* surrounds mrmsg_is_increation__() with locking and error checking */
+/**
+ * Check if a message is still in creation.  The user can mark files as being
+ * in creation by simply creating a file `<filename>.increation`. If
+ * `<filename>` is created then, the user should just delete
+ * `<filename>.increation`
+ *
+ * @param msg the message object
+ *
+ * @return 1=message is still in creation (`<filename>.increation` exists),
+ *     0=message no longer in creation
+ */
+int mrmsg_is_increation(mrmsg_t* msg)
 {
+	/* surrounds mrmsg_is_increation__() with locking and error checking */
 	int is_increation = 0;
 	if( msg && msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
 	{
