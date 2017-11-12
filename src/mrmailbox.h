@@ -560,7 +560,7 @@ typedef struct mrmsg_t
 	int             m_state;
 
 	char*           m_text;                   /* message text or NULL if unset */
-	mrparam_t*      m_param;                  /* MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type, != NULL */
+	mrparam_t*      m_param;                  /**< MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type, != NULL */
 	int             m_starred;
 	int             m_is_msgrmsg;
 

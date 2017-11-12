@@ -163,10 +163,10 @@ int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 }
 
 
+/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
+so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
 int mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
-	/* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
-	so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
 		"SELECT server_folder, server_uid FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
@@ -571,11 +571,11 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
  * Find out full path, file name and extension of the file associated with a
  * message.
  *
- * @msg: the message object
+ * @param msg the message object
  *
- * @returns: full path, file name and extension of the file associated with the
- * message.  If there is no file associated with the message, an emtpy string is
- * returned.  The returned value must be free()'d.
+ * @return full path, file name and extension of the file associated with the
+ *     message.  If there is no file associated with the message, an emtpy
+ *     string is returned.  The returned value must be free()'d.
  */
 char* mrmsg_get_fullpath(mrmsg_t* msg)
 {
@@ -596,11 +596,11 @@ cleanup:
  * Find out the base file name and extension of the file associated with a
  * message.
  *
- * @msg: the message object
+ * @param msg the message object
  *
- * @returns base file name plus extension without part.  If there is no file
- * associated with the message, an empty string is returned.  The returned value
- * must be free()'d.
+ * @return base file name plus extension without part.  If there is no file
+ *     associated with the message, an empty string is returned.  The returned
+ *     value must be free()'d.
  */
 char* mrmsg_get_filename(mrmsg_t* msg)
 {
@@ -623,16 +623,21 @@ cleanup:
 }
 
 
+/**
+ * Get authorname and trackname of a message.
+ * For voice messages, the author the sender and the trackname is the sending time
+ * For music messages, we read the information from the filename
+ * We DO NOT read ID3 and such at this stage, the needed libraries may be buggy
+ * and the whole stuff is way to complicated.
+ * However, this is not a great disadvantage, as the sender usually sets the filename in a way we expect it -
+ * if not, we simply print the whole filename as we do it for documents.  All fine in any case :-)
+ *
+ * @param msg the message object
+ *
+ * @return poortext object that must be unref'd using mrpoortext_unref() when no longer used.
+ */
 mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 {
-	/* Get authorname and trackname of a message.
-	- for voice messages, the author the sender and the trackname is the sending time
-	- for music messages,
-	  - read the information from the filename
-	  - for security reasons, we DO NOT read ID3 and such at this stage, the needed libraries may be buggy
-		and the whole stuff is way to complicated.
-		However, this is not a great disadvantage, as the sender usually sets the filename in a way we expect it -
-		if not, we simply print the whole filename as we do it for documents.  All fine in any case :-) */
 	mrpoortext_t* ret = mrpoortext_new();
 	char *pathNfilename = NULL;
 	mrcontact_t* contact = NULL;
