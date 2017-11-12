@@ -42,47 +42,92 @@ typedef struct mrparam_t    mrparam_t;
 #define MR_VERSION_REVISION 7
 
 
-/* mrmailbox_get_version_str() returns the current version as
-`major.minor.revision`.  The return value must be free()'d. */
-char*           mrmailbox_get_version_str   (void);
+/**
+ * Use mrmailbox_get_version_str() to find out the version of the Delta Chat core library.
+ *
+ * Returns: String with version number as `major.minor.revision`. The return value must be free()'d.
+ */
+char* mrmailbox_get_version_str (void);
 
 
-/* mrmailbox_new() creates a new mailbox object.  After creation it is usually
-opened, connected and mails are fetched; see the corresponding functions below.
-After usage, the object should be deleted using mrmailbox_unref().
-
-The first parameter is a callback function that is called for events (update,
-state changes etc.) and to get some information form the client (eg. translation
-for a given string)
-- The callback MAY be called from _any_ thread, not only the main/GUI thread!
-- The callback MUST NOT call any mrmailbox_* and related functions unless stated
-  otherwise!
-- The callback SHOULD return _fast_, for GUI updates etc. you should
-  post yourself an asynchronous message to your GUI thread, if needed.
-- If not mentioned otherweise, the callback should return 0.
-
-`userdata` can be used by the client for any purpuse.  He finds it
-later in mrmailbox_get_userdata().
-
-`os_name` is only for decorative use and is shown eg. in the X-Mailer header
-in the form "Delta Chat <version> for <osName>" */
+/**
+ * Callback function that should be given to mrmailbox_new().
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ *
+ * @event: one of the MR_EVENT_* constants
+ *
+ * @data1: depends on the event parameter
+ *
+ * @data2: depends on the event parameter
+ *
+ * Returns: return 0 unless stated otherwise in the event parameter documentation
+ */
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
-mrmailbox_t*       mrmailbox_new               (mrmailboxcb_t, void* userdata, const char* os_name);
 
 
-/* After usage, the mailbox object should be freed using mrmailbox_unref().
-If app runs can only be terminated by a forced kill, this may be superfluous. */
-void            mrmailbox_unref             (mrmailbox_t*);
+/**
+ * mrmailbox_new() creates a new mailbox object.  After creation it is usually
+ * opened, connected and mails are fetched.
+ * After usage, the object should be deleted using mrmailbox_unref().
+ *
+ * @cb a callback function that is called for events (update,
+ * state changes etc.) and to get some information form the client (eg. translation
+ * for a given string)
+ * - The callback MAY be called from _any_ thread, not only the main/GUI thread!
+ * - The callback MUST NOT call any mrmailbox_* and related functions unless stated
+ *   otherwise!
+ * - The callback SHOULD return _fast_, for GUI updates etc. you should
+ *   post yourself an asynchronous message to your GUI thread, if needed.
+ * - If not mentioned otherweise, the callback should return 0.
+ *
+ * @userdata can be used by the client for any purpuse.  He finds it
+ * later in mrmailbox_get_userdata().
+ *
+ * @os_name is only for decorative use and is shown eg. in the X-Mailer header
+ * in the form "Delta Chat <version> for <osName>"
+ */
+mrmailbox_t* mrmailbox_new (mrmailboxcb_t, void* userdata, const char* os_name);
 
 
-/* Open/close a mailbox database, if the given file does not exist, it is
-created and can be set up using mrmailbox_set_config() afterwards.
-sth. like "~/file" won't work on all systems, if in doubt, use absolute paths
-for dbfile.  for blobdir: the trailing slash is added by us, so if you want to
-avoid double slashes, do not add one. If you give NULL as blobdir,
-"dbfile-blobs" is used. */
+/**
+ * After usage, the mailbox object should be freed using mrmailbox_unref().
+ * If app runs can only be terminated by a forced kill, this may be superfluous.
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
+void mrmailbox_unref (mrmailbox_t*);
+
+
+/**
+ * Open mailbox database.  If the given file does not exist, it is
+ * created and can be set up using mrmailbox_set_config() afterwards.
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ *
+ * @dbfile the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths
+ *
+ * @blobdir a directory to store the blobs in, the trailing slash is added by us, so if you want to
+ * avoid double slashes, do not add one. If you give NULL as blobdir "dbfile-blobs" is used in the same directory as @dbfile will be created in.
+ *
+ * Returns: 1 on success, 0 on failure
+ */
 int             mrmailbox_open              (mrmailbox_t*, const char* dbfile, const char* blobdir);
+
+
+/**
+ * Close mailbox database.
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
 void            mrmailbox_close             (mrmailbox_t*);
+
+
+/**
+ * Check if a given mailbox database is open.
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
 int             mrmailbox_is_open           (const mrmailbox_t*);
 
 
@@ -854,11 +899,11 @@ Function, sends MR_EVENT_IMEX_* events.
 To avoid double slashes, the given directory should not end with a slash.
 _what_ to export is defined by a MR_IMEX_* constant */
 #define MR_IMEX_CANCEL                      0
-#define MR_IMEX_EXPORT_SELF_KEYS            1 /* param1 is a directory where the keys are written to */
-#define MR_IMEX_IMPORT_SELF_KEYS            2 /* param1 is a directory where the keys are searched in and read from */
-#define MR_IMEX_EXPORT_BACKUP              11 /* param1 is a directory where the backup is written to */
-#define MR_IMEX_IMPORT_BACKUP              12 /* param1 is the file with the backup to import */
-#define MR_IMEX_EXPORT_SETUP_MESSAGE       20 /* param1 is a directory where the setup file is written to */
+#define MR_IMEX_EXPORT_SELF_KEYS            1 /**< param1 is a directory where the keys are written to */
+#define MR_IMEX_IMPORT_SELF_KEYS            2 /**< param1 is a directory where the keys are searched in and read from */
+#define MR_IMEX_EXPORT_BACKUP              11 /**< param1 is a directory where the backup is written to */
+#define MR_IMEX_IMPORT_BACKUP              12 /**< param1 is the file with the backup to import */
+#define MR_IMEX_EXPORT_SETUP_MESSAGE       20 /**< param1 is a directory where the setup file is written to */
 #define MR_BAK_PREFIX                      "delta-chat"
 #define MR_BAK_SUFFIX                      "bak"
 void            mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* setup_code);
