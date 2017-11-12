@@ -601,8 +601,7 @@ char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
 int             mrmsg_show_padlock          (mrmsg_t*);
 
 
-/* Returns base file name without part, if appropriate.  The returned value must
-be free()'d */
+char*           mrmsg_get_fullpath          (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 
 

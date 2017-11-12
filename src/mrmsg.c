@@ -567,6 +567,41 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 }
 
 
+/**
+ * Find out full path, file name and extension of the file associated with a
+ * message.
+ *
+ * @msg: the message object
+ *
+ * @returns: full path, file name and extension of the file associated with the
+ * message.  If there is no file associated with the message, an emtpy string is
+ * returned.  The returned value must be free()'d.
+ */
+char* mrmsg_get_fullpath(mrmsg_t* msg)
+{
+	char* ret = NULL;
+
+	if( msg == NULL ) {
+		goto cleanup;
+	}
+
+	ret = mrparam_get(msg->m_param, MRP_FILE, NULL);
+
+cleanup:
+	return ret? ret : safe_strdup(NULL);
+}
+
+
+/**
+ * Find out the base file name and extension of the file associated with a
+ * message.
+ *
+ * @msg: the message object
+ *
+ * @returns base file name plus extension without part.  If there is no file
+ * associated with the message, an empty string is returned.  The returned value
+ * must be free()'d.
+ */
 char* mrmsg_get_filename(mrmsg_t* msg)
 {
 	char* ret = NULL, *pathNfilename = NULL;
