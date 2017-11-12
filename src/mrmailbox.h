@@ -692,13 +692,6 @@ void            mrcontact_unref             (mrcontact_t*);
  ******************************************************************************/
 
 
-/* The parameter object as used eg. by mrchat_t or mrmsg_t.
-To access the single parameters use the setter and getter functions with an
-MRP_* contant */
-typedef struct mrparam_t
-{
-	char*           m_packed;    /* != NULL */
-} mrparam_t;
 int             mrparam_exists              (mrparam_t*, int key);
 char*           mrparam_get                 (mrparam_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
 int32_t         mrparam_get_int             (mrparam_t*, int key, int32_t def);

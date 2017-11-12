@@ -272,6 +272,15 @@ void mrpoortext_fill(mrpoortext_t*, const mrmsg_t*, const mrchat_t*, const mrcon
  ******************************************************************************/
 
 
+/* The parameter object as used eg. by mrchat_t or mrmsg_t.
+To access the single parameters use the setter and getter functions with an
+MRP_* contant */
+typedef struct mrparam_t
+{
+	char*           m_packed;    /* != NULL */
+} mrparam_t;
+
+
 mrparam_t*    mrparam_new          ();
 void          mrparam_empty        (mrparam_t*);
 void          mrparam_unref        (mrparam_t*);
