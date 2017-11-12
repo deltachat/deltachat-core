@@ -13,6 +13,9 @@
 /bin/
 /obj/
 
+# ignore doxygen output from `doxygen doxygen.config`
+/docs/ 
+
 # ignore autotools temporaries
 autoscan.log
 cleanup.sh
