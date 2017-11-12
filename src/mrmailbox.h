@@ -218,17 +218,6 @@ The last parameter is a query to search for */
 mrchatlist_t*   mrmailbox_get_chatlist      (mrmailbox_t*, int flags, const char* query);
 
 
-/* The chatlist object and some function for helping accessing it.
-The chatlist object is not updated.  If you want an update, you have to recreate
-the object. */
-typedef struct mrchatlist_t
-{
-	size_t          m_cnt;
-	carray*         m_chatNlastmsg_ids;
-	mrmailbox_t*    m_mailbox;
-} mrchatlist_t;
-
-
 /* Free a mrchatlist_t object as created eg. by mrmailbox_get_chatlist(). */
 void            mrchatlist_unref            (mrchatlist_t*);
 

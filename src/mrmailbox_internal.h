@@ -138,6 +138,17 @@ int    mrmailbox_get_archived_count__                    (mrmailbox_t*);
  ******************************************************************************/
 
 
+/* The chatlist object and some function for helping accessing it.
+The chatlist object is not updated.  If you want an update, you have to recreate
+the object. */
+typedef struct mrchatlist_t
+{
+	size_t          m_cnt;
+	carray*         m_chatNlastmsg_ids;
+	mrmailbox_t*    m_mailbox;
+} mrchatlist_t;
+
+
 mrchatlist_t* mrchatlist_new                 (mrmailbox_t*);
 void          mrchatlist_empty               (mrchatlist_t*);
 int           mrchatlist_load_from_db__    (mrchatlist_t*, int listflags, const char* query);
