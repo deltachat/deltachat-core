@@ -27,6 +27,11 @@ extern "C" {
 #endif
 
 
+#define MR_VERSION_MAJOR    0
+#define MR_VERSION_MINOR    9
+#define MR_VERSION_REVISION 7
+
+
 #include <libetpan/libetpan.h> /* defines uint16_t etc. */
 
 typedef struct mrmailbox_t  mrmailbox_t;
@@ -36,10 +41,73 @@ typedef struct mrmsg_t      mrmsg_t;
 typedef struct mrcontact_t  mrcontact_t;
 typedef struct mrpoortext_t mrpoortext_t;
 typedef struct mrparam_t    mrparam_t;
+typedef struct mrimap_t     mrimap_t;
+typedef struct mrsmtp_t     mrsmtp_t;
+typedef struct mrsqlite3_t  mrsqlite3_t;
 
-#define MR_VERSION_MAJOR    0
-#define MR_VERSION_MINOR    9
-#define MR_VERSION_REVISION 7
+
+/**
+ * Callback function that should be given to mrmailbox_new().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new
+ *
+ * @param event one of the MR_EVENT_* constants
+ *
+ * @param data1 depends on the event parameter
+ *
+ * @param data2 depends on the event parameter
+ *
+ * @return return 0 unless stated otherwise in the event parameter documentation
+ */
+typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
+
+
+/**
+ * mrmailbox_t represents a single mailbox, normally, typically only one
+ * instance of this class is present.
+ * Each mailbox is linked to an IMAP/POP3 account and uses a separate
+ * SQLite database for offline functionality and for mailbox-related
+ * settings.
+ */
+typedef struct mrmailbox_t
+{
+	void*            m_userdata;
+
+	/** @privatesection */
+	mrsqlite3_t*     m_sql;      /* != NULL */
+	char*            m_dbfile;
+	char*            m_blobdir;
+
+	mrimap_t*        m_imap;     /* != NULL */
+	mrsmtp_t*        m_smtp;     /* != NULL */
+
+	pthread_t        m_job_thread;
+	pthread_cond_t   m_job_cond;
+	pthread_mutex_t  m_job_condmutex;
+	int              m_job_condflag;
+	int              m_job_do_exit;
+
+	mrmailboxcb_t    m_cb;
+
+	char*            m_os_name;
+
+	uint32_t         m_cmdline_sel_chat_id;
+
+	int              m_wake_lock;
+	pthread_mutex_t  m_wake_lock_critical;
+
+	int              m_e2ee_enabled;
+
+	#define          MR_LOG_RINGBUF_SIZE 200
+	pthread_mutex_t  m_log_ringbuf_critical;
+	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE];
+	time_t           m_log_ringbuf_times[MR_LOG_RINGBUF_SIZE];
+	int              m_log_ringbuf_pos; /* the oldest position resp. the position that is overwritten next */
+
+} mrmailbox_t;
+
 
 
 /**
@@ -50,104 +118,11 @@ typedef struct mrparam_t    mrparam_t;
 char* mrmailbox_get_version_str (void);
 
 
-/**
- * Callback function that should be given to mrmailbox_new().
- *
- * @mailbox: the mailbox object as created by mrmailbox_new
- *
- * @event: one of the MR_EVENT_* constants
- *
- * @data1: depends on the event parameter
- *
- * @data2: depends on the event parameter
- *
- * Returns: return 0 unless stated otherwise in the event parameter documentation
- */
-typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
-
-
-/**
- * mrmailbox_new() creates a new mailbox object.  After creation it is usually
- * opened, connected and mails are fetched.
- * After usage, the object should be deleted using mrmailbox_unref().
- *
- * @cb a callback function that is called for events (update,
- * state changes etc.) and to get some information form the client (eg. translation
- * for a given string)
- * - The callback MAY be called from _any_ thread, not only the main/GUI thread!
- * - The callback MUST NOT call any mrmailbox_* and related functions unless stated
- *   otherwise!
- * - The callback SHOULD return _fast_, for GUI updates etc. you should
- *   post yourself an asynchronous message to your GUI thread, if needed.
- * - If not mentioned otherweise, the callback should return 0.
- *
- * @userdata can be used by the client for any purpuse.  He finds it
- * later in mrmailbox_get_userdata().
- *
- * @os_name is only for decorative use and is shown eg. in the X-Mailer header
- * in the form "Delta Chat <version> for <osName>"
- */
-mrmailbox_t* mrmailbox_new (mrmailboxcb_t, void* userdata, const char* os_name);
-
-
-/**
- * After usage, the mailbox object should be freed using mrmailbox_unref().
- * If app runs can only be terminated by a forced kill, this may be superfluous.
- *
- * @mailbox: the mailbox object as created by mrmailbox_new
- */
-void mrmailbox_unref (mrmailbox_t*);
-
-
-/**
- * Open mailbox database.  If the given file does not exist, it is
- * created and can be set up using mrmailbox_set_config() afterwards.
- *
- * @mailbox: the mailbox object as created by mrmailbox_new
- *
- * @dbfile the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths
- *
- * @blobdir a directory to store the blobs in, the trailing slash is added by us, so if you want to
- * avoid double slashes, do not add one. If you give NULL as blobdir "dbfile-blobs" is used in the same directory as @dbfile will be created in.
- *
- * Returns: 1 on success, 0 on failure
- */
+mrmailbox_t*    mrmailbox_new               (mrmailboxcb_t, void* userdata, const char* os_name);
+void            mrmailbox_unref             (mrmailbox_t*);
 int             mrmailbox_open              (mrmailbox_t*, const char* dbfile, const char* blobdir);
-
-
-/**
- * Close mailbox database.
- *
- * @mailbox: the mailbox object as created by mrmailbox_new
- */
 void            mrmailbox_close             (mrmailbox_t*);
-
-
-/**
- * Check if a given mailbox database is open.
- *
- * @mailbox: the mailbox object as created by mrmailbox_new
- */
 int             mrmailbox_is_open           (const mrmailbox_t*);
-
-
-/* The mailbox configuration is handled by key=value pairs which are accessed
-using the following functins.  Typical configuration options are:
-addr         = [needed] address to display
-mail_server  =          IMAP-server, guessed if left out
-mail_user    =          IMAP-username, guessed if left out
-mail_pw      = [needed] IMAP-password
-mail_port    =          IMAP-port, guessed if left out
-send_server  =          SMTP-server, guessed if left out
-send_user    =          SMTP-user, guessed if left out
-send_pw      =          SMTP-password, guessed if left out
-send_port    =          SMTP-port, guessed if left out
-server_flags =          IMAP-/SMTP-flags, guessed if left out
-displayname  =          Own name to use when sending messages.  MUAs are allowed
-                        to spread this way eg. using CC, defaults to empty
-selfstatus   =          Own status to display eg. in email footers, defaults to
-                        standard text
-e2ee_enabled =          0=no e2ee, 1=prefer encryption (default) */
 int             mrmailbox_set_config        (mrmailbox_t*, const char* key, const char* value);
 char*           mrmailbox_get_config        (mrmailbox_t*, const char* key, const char* def);
 int             mrmailbox_set_config_int    (mrmailbox_t*, const char* key, int32_t value);
@@ -487,13 +462,7 @@ int             mrmailbox_set_chat_image    (mrmailbox_t*, uint32_t chat_id, con
  ******************************************************************************/
 
 
-/* Get an informational text for a single message. the text is multiline and may
-contain eg. the raw text of the message. The result must be unref'd using free(). */
 char*           mrmailbox_get_msg_info      (mrmailbox_t*, uint32_t msg_id);
-
-
-/* Delete a list of messages. The messages are deleted on the current device and
-on the IMAP server. */
 int             mrmailbox_delete_msgs       (mrmailbox_t*, const uint32_t* msg_ids, int msg_cnt);
 
 
@@ -524,46 +493,49 @@ int             mrmailbox_star_msgs         (mrmailbox_t*, const uint32_t* msg_i
 mrmsg_t*        mrmailbox_get_msg           (mrmailbox_t*, uint32_t msg_id);
 
 
-/* The message object and some function for helping accessing it.  The message
-object is not updated.  If you want an update, you have to recreate the
-object. */
+/**
+ * The message object and some function for helping accessing it.  The message
+ * object is not updated.  If you want an update, you have to recreate the
+ * object.
+ */
 typedef struct mrmsg_t
 {
-	#define         MR_MSG_ID_MARKER1       1 /* any user-defined marker */
-	#define         MR_MSG_ID_DAYMARKER     9 /* in a list, the next message is on a new day, useful to show headlines */
+	#define         MR_MSG_ID_MARKER1       1 /**< any user-defined marker */
+	#define         MR_MSG_ID_DAYMARKER     9 /**< in a list, the next message is on a new day, useful to show headlines */
 	#define         MR_MSG_ID_LAST_SPECIAL  9
 	uint32_t        m_id;
 
-	uint32_t        m_from_id;                /* contact, 0=unset, 1=self .. >9=real contacts */
-	uint32_t        m_to_id;                  /* contact, 0=unset, 1=self .. >9=real contacts */
-	uint32_t        m_chat_id;                /* the chat, the message belongs to: 0=unset, 1=unknwon sender .. >9=real chats */
-	time_t          m_timestamp;              /* unix time the message was sended */
+	uint32_t        m_from_id;                /**< contact, 0=unset, 1=self .. >9=real contacts */
+	uint32_t        m_to_id;                  /**< contact, 0=unset, 1=self .. >9=real contacts */
+	uint32_t        m_chat_id;                /**< the chat, the message belongs to: 0=unset, 1=unknwon sender .. >9=real chats */
+	time_t          m_timestamp;              /**< unix time the message was sended */
 
 	#define         MR_MSG_UNDEFINED        0
 	#define         MR_MSG_TEXT            10
-	#define         MR_MSG_IMAGE           20 /* param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
-	#define         MR_MSG_GIF             21 /* param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
-	#define         MR_MSG_AUDIO           40 /* param: MRP_FILE, MRP_DURATION */
-	#define         MR_MSG_VOICE           41 /* param: MRP_FILE, MRP_DURATION */
-	#define         MR_MSG_VIDEO           50 /* param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
-	#define         MR_MSG_FILE            60 /* param: MRP_FILE */
+	#define         MR_MSG_IMAGE           20 /**< param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
+	#define         MR_MSG_GIF             21 /**< param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
+	#define         MR_MSG_AUDIO           40 /**< param: MRP_FILE, MRP_DURATION */
+	#define         MR_MSG_VOICE           41 /**< param: MRP_FILE, MRP_DURATION */
+	#define         MR_MSG_VIDEO           50 /**< param: MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
+	#define         MR_MSG_FILE            60 /**< param: MRP_FILE */
 	int             m_type;
 
 	#define         MR_STATE_UNDEFINED      0
-	#define         MR_STATE_IN_FRESH      10 /* incoming message, not noticed nor seen */
-	#define         MR_STATE_IN_NOTICED    13 /* incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs) */
-	#define         MR_STATE_IN_SEEN       16 /* incoming message marked as read on IMAP and MDN may be send */
-	#define         MR_STATE_OUT_PENDING   20 /* hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
-	#define         MR_STATE_OUT_ERROR     24 /* unrecoverable error (recoverable errors result in pending messages) */
-	#define         MR_STATE_OUT_DELIVERED 26 /* outgoing message successfully delivered to server (one checkmark) */
-	#define         MR_STATE_OUT_MDN_RCVD  28 /* outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
+	#define         MR_STATE_IN_FRESH      10 /**< incoming message, not noticed nor seen */
+	#define         MR_STATE_IN_NOTICED    13 /**< incoming message noticed (eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs) */
+	#define         MR_STATE_IN_SEEN       16 /**< incoming message marked as read on IMAP and MDN may be send */
+	#define         MR_STATE_OUT_PENDING   20 /**< hit "send" button - but the message is pending in some way, maybe we're offline (no checkmark) */
+	#define         MR_STATE_OUT_ERROR     24 /**< unrecoverable error (recoverable errors result in pending messages) */
+	#define         MR_STATE_OUT_DELIVERED 26 /**< outgoing message successfully delivered to server (one checkmark) */
+	#define         MR_STATE_OUT_MDN_RCVD  28 /**< outgoing message read (two checkmarks; this requires goodwill on the receiver's side) */
 	int             m_state;
 
-	char*           m_text;                   /* message text or NULL if unset */
+	char*           m_text;                   /**< message text or NULL if unset */
 	mrparam_t*      m_param;                  /**< MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type, != NULL */
 	int             m_starred;
-	int             m_is_msgrmsg;
 
+	/** \privatesection */
+	int             m_is_msgrmsg;
 	mrmailbox_t*    m_mailbox;                /* may be NULL, set on loading from database and on sending */
 	char*           m_rfc724_mid;
 	char*           m_server_folder;
@@ -571,44 +543,16 @@ typedef struct mrmsg_t
 } mrmsg_t;
 
 
-/* Create new mrmsg_t object as needed for sending messages using
-mrmailbox_send_msg(). */
 mrmsg_t*        mrmsg_new                   ();
-
-
-/* Free an mrmsg_t object created eg. by mrmsg_new() or mrmailbox_get_msg().
-This also free()s all strings; so if you set up the object yourself, make sure
-to use strdup()! */
 void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);
-
-
-/* Get a summary for a message. The last parameter can be set to speed up
-things if the chat object is already available; if not, it is faster to pass
-NULL here.  The result must be freed using mrpoortext_unref().
-Typically used to display a search result.
-The returned summary is similar to mrchatlist_get_summary(), however, without
-"draft", "no messages" and so on. */
 mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
-
-
-/* Get a message summary as a single line of text.  Typically used for
-notifications.  The returned value must be free()'d. */
 char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
-
-
-/* Check if a padlock should be shown beside the message. */
 int             mrmsg_show_padlock          (mrmsg_t*);
-
-
 char*           mrmsg_get_fullpath          (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
 int             mrmsg_is_increation         (mrmsg_t*);
-
-
-/* can be used to add some additional, persistent information to a messages
-record */
 void            mrmsg_save_param_to_disk    (mrmsg_t*);
 
 

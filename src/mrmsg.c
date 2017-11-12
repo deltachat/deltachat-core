@@ -28,6 +28,11 @@
 #include "mrmimefactory.h"
 
 
+/**
+ * Foobar
+ */
+
+
 /*******************************************************************************
  * Tools
  ******************************************************************************/
@@ -238,6 +243,12 @@ cleanup:
  ******************************************************************************/
 
 
+ /**
+ * Create new mrmsg_t object as needed for sending messages using
+ * mrmailbox_send_msg().
+ *
+ * @memberof mrmsg_t
+ */
 mrmsg_t* mrmsg_new()
 {
 	mrmsg_t* ths = NULL;
@@ -254,6 +265,13 @@ mrmsg_t* mrmsg_new()
 }
 
 
+/**
+ * Free an mrmsg_t object created eg. by mrmsg_new() or mrmailbox_get_msg().
+ * This also free()s all strings; so if you set up the object yourself, make sure
+ * to use strdup()!
+ *
+ * @memberof mrmsg_t
+ */
 void mrmsg_unref(mrmsg_t* ths)
 {
 	if( ths==NULL ) {
@@ -328,6 +346,12 @@ void mrmsg_set_text(mrmsg_t* msg, const char* text)
 }
 
 
+/**
+ * Get an informational text for a single message. the text is multiline and may
+ * contain eg. the raw text of the message. The result must be unref'd using free().
+ *
+ * @memberof mrmailbox_t
+ */
 char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
 	mrstrbuilder_t ret;
@@ -438,6 +462,17 @@ cleanup:
 }
 
 
+/**
+ * Get a summary for a message. The last parameter can be set to speed up
+ * things if the chat object is already available; if not, it is faster to pass
+ * NULL here.  The result must be freed using mrpoortext_unref().
+ * Typically used to display a search result.
+ *
+ * @memberof mrmsg_t
+ *
+ * @return  The returned summary is similar to mrchatlist_get_summary(), however, without
+ *     "draft", "no messages" and so on.
+ */
 mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 {
 	mrpoortext_t* ret = mrpoortext_new();
@@ -467,7 +502,11 @@ cleanup:
 	return ret;
 }
 
-
+/**
+ * Check if a padlock should be shown beside the message.
+ *
+ * @memberof mrmsg_t
+ */
 int mrmsg_show_padlock(mrmsg_t* msg)
 {
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
@@ -500,6 +539,12 @@ void mr_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_aut
 }
 
 
+/**
+ * Get a message summary as a single line of text.  Typically used for
+ * notifications.  The returned value must be free()'d.
+ *
+ * @memberof mrmsg_t
+ */
 char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 {
 	if( msg==NULL ) {
@@ -727,6 +772,7 @@ int mrmsg_is_increation(mrmsg_t* msg)
 }
 
 
+/* Internal function similar to mrmsg_save_param_to_disk() but without locking. */
 void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
@@ -741,6 +787,12 @@ void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 }
 
 
+/**
+ * can be used to add some additional, persistent information to a messages
+ * record.
+ *
+ * @memberof mrmsg_t
+ */
 void mrmsg_save_param_to_disk(mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
@@ -758,6 +810,7 @@ void mrmsg_save_param_to_disk(mrmsg_t* msg)
  ******************************************************************************/
 
 
+/* internal function */
 void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	int      locked = 0, delete_from_server = 1;
@@ -855,6 +908,12 @@ cleanup:
 }
 
 
+/**
+ * Delete a list of messages. The messages are deleted on the current device and
+ * on the IMAP server.
+ *
+ * @memberof mrmailbox_t
+ */
 int mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt)
 {
 	int i;

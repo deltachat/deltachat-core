@@ -867,6 +867,29 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
 }
 
 
+/**
+ * mrmailbox_new() creates a new mailbox object.  After creation it is usually
+ * opened, connected and mails are fetched.
+ * After usage, the object should be deleted using mrmailbox_unref().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @cb a callback function that is called for events (update,
+ * state changes etc.) and to get some information form the client (eg. translation
+ * for a given string)
+ * - The callback MAY be called from _any_ thread, not only the main/GUI thread!
+ * - The callback MUST NOT call any mrmailbox_* and related functions unless stated
+ *   otherwise!
+ * - The callback SHOULD return _fast_, for GUI updates etc. you should
+ *   post yourself an asynchronous message to your GUI thread, if needed.
+ * - If not mentioned otherweise, the callback should return 0.
+ *
+ * @userdata can be used by the client for any purpuse.  He finds it
+ * later in mrmailbox_get_userdata().
+ *
+ * @os_name is only for decorative use and is shown eg. in the X-Mailer header
+ * in the form "Delta Chat <version> for <osName>"
+ */
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name)
 {
 	mrmailbox_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
@@ -914,6 +937,14 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 }
 
 
+/**
+ * After usage, the mailbox object should be freed using mrmailbox_unref().
+ * If app runs can only be terminated by a forced kill, this may be superfluous.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
 void mrmailbox_unref(mrmailbox_t* ths)
 {
 	if( ths==NULL ) {
@@ -955,6 +986,21 @@ static void update_config_cache__(mrmailbox_t* ths, const char* key)
 }
 
 
+/**
+ * Open mailbox database.  If the given file does not exist, it is
+ * created and can be set up using mrmailbox_set_config() afterwards.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ *
+ * @dbfile the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths
+ *
+ * @blobdir a directory to store the blobs in, the trailing slash is added by us, so if you want to
+ * avoid double slashes, do not add one. If you give NULL as blobdir "dbfile-blobs" is used in the same directory as @dbfile will be created in.
+ *
+ * Returns: 1 on success, 0 on failure
+ */
 int mrmailbox_open(mrmailbox_t* ths, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
@@ -1011,6 +1057,13 @@ cleanup:
 }
 
 
+/**
+ * Close mailbox database.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
 void mrmailbox_close(mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
@@ -1036,6 +1089,13 @@ void mrmailbox_close(mrmailbox_t* ths)
 }
 
 
+/**
+ * Check if a given mailbox database is open.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @mailbox: the mailbox object as created by mrmailbox_new
+ */
 int mrmailbox_is_open(const mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
@@ -1076,6 +1136,33 @@ cleanup:
  ******************************************************************************/
 
 
+/**
+ * Configure the mailbox.  The configuration is handled by key=value pairs. Typical configuration options are:
+ *
+ * - addr         = address to display (needed)
+ * - mail_server  = IMAP-server, guessed if left out
+ * - mail_user    = IMAP-username, guessed if left out
+ * - mail_pw      = IMAP-password (needed)
+ * - mail_port    = IMAP-port, guessed if left out
+ * - send_server  = SMTP-server, guessed if left out
+ * - send_user    = SMTP-user, guessed if left out
+ * - send_pw      = SMTP-password, guessed if left out
+ * - send_port    = SMTP-port, guessed if left out
+ * - server_flags = IMAP-/SMTP-flags, guessed if left out
+ * - displayname  = Own name to use when sending messages.  MUAs are allowed to spread this way eg. using CC, defaults to empty
+ * - selfstatus   = Own status to display eg. in email footers, defaults to a standard text
+ * - e2ee_enabled = 0=no e2ee, 1=prefer encryption (default)
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param ths the mailbox object
+ *
+ * @param key the option to change, typically one of the strings listed above
+ *
+ * @param value the value to save for "key"
+ *
+ * @return 0=failure, 1=success
+ */
 int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
 	int ret;
@@ -1093,6 +1180,20 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 }
 
 
+/**
+ * Get a configuration option set by mrmailbox_set_config()
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param ths the mailbox object
+ *
+ * @param key the key to query
+ *
+ * @param def default value to return if "key" is unset
+ *
+ * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
+ *     If the returned values is not NULL, the return value must be free()'d,
+ */
 char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 {
 	char* ret;
@@ -1109,6 +1210,12 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 }
 
 
+/**
+ * Same as mrmailbox_set_config() but sets an integer instead of a string.
+ * If there is already a key with a string set, this is overwritten by the given integer value.
+ *
+ * @memberof mrmailbox_t
+ */
 int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 {
 	int ret;
@@ -1126,6 +1233,11 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 }
 
 
+/**
+ * Same as mrmailbox_get_config() but gets the value as an integer instead of a string.
+ *
+ * @memberof mrmailbox_t
+ */
 int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
