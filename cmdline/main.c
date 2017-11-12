@@ -31,6 +31,7 @@ all further options can be set using the set-command (type ? for help). */
 #include <string.h>
 #include "../src/mrmailbox.h"
 #include "../src/mrmailbox_internal.h"
+#include "cmdline.h"
 #include "stress.h"
 
 
