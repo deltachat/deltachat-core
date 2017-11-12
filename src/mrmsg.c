@@ -271,6 +271,8 @@ mrmsg_t* mrmsg_new()
  * to use strdup()!
  *
  * @memberof mrmsg_t
+ *
+ * @param msg The message object to free.
  */
 void mrmsg_unref(mrmsg_t* ths)
 {
@@ -305,16 +307,29 @@ void mrmsg_empty(mrmsg_t* ths)
 }
 
 
-mrmsg_t* mrmailbox_get_msg(mrmailbox_t* ths, uint32_t id)
+/**
+ * Get a single message object of the type mrmsg_t.
+ * For a list of messages in a chat, see mrmailbox_get_chat_msgs()
+ * For a list or chats, see mrmailbox_get_chatlist()
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox Mailbox object as created by mrmailbox_new()
+ *
+ * @param msg_id The message ID for which the message object should be created.
+ *
+ * @return A mrmsg_t message object. When done, the object must be freed using mrmsg_unref()
+ */
+mrmsg_t* mrmailbox_get_msg(mrmailbox_t* mailbox, uint32_t msg_id)
 {
 	int success = 0;
 	int db_locked = 0;
 	mrmsg_t* obj = mrmsg_new();
 
-	mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
-		if( !mrmsg_load_from_db__(obj, ths, id) ) {
+		if( !mrmsg_load_from_db__(obj, mailbox, msg_id) ) {
 			goto cleanup;
 		}
 
@@ -322,7 +337,7 @@ mrmsg_t* mrmailbox_get_msg(mrmailbox_t* ths, uint32_t id)
 
 cleanup:
 	if( db_locked ) {
-		mrsqlite3_unlock(ths->m_sql);
+		mrsqlite3_unlock(mailbox->m_sql);
 	}
 
 	if( success ) {
@@ -348,9 +363,15 @@ void mrmsg_set_text(mrmsg_t* msg, const char* text)
 
 /**
  * Get an informational text for a single message. the text is multiline and may
- * contain eg. the raw text of the message. The result must be unref'd using free().
+ * contain eg. the raw text of the message.
  *
  * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new()
+ *
+ * @param msg_id the message id for which information should be generated
+ *
+ * @return text string, must be free()'d after usage
  */
 char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 {
@@ -913,13 +934,21 @@ cleanup:
  * on the IMAP server.
  *
  * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new()
+ *
+ * @param msg_ids an array of uint32_t containing all message IDs that should be deleted
+ *
+ * @param msg_cnt the number of messages IDs in the msg_ids array
+ *
+ * @return none
  */
-int mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt)
+void mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt)
 {
 	int i;
 
 	if( ths == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
-		return 0;
+		return;
 	}
 
 	mrsqlite3_lock(ths->m_sql);
@@ -933,17 +962,28 @@ int mrmailbox_delete_msgs(mrmailbox_t* ths, const uint32_t* msg_ids, int msg_cnt
 
 	mrsqlite3_commit__(ths->m_sql);
 	mrsqlite3_unlock(ths->m_sql);
-
-	return 1;
 }
 
 
-int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorted, int msg_cnt, uint32_t chat_id)
+/**
+ * Forward a list of messages to another chat.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new()
+ *
+ * @param msg_ids an array of uint32_t containing all message IDs that should be forwarded
+ *
+ * @param msg_cnt the number of messages IDs in the msg_ids array
+ *
+ * @return none
+ */
+void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorted, int msg_cnt, uint32_t chat_id)
 {
 	mrmsg_t*      msg = mrmsg_new();
 	mrchat_t*     chat = mrchat_new(mailbox);
 	mrcontact_t*  contact = mrcontact_new();
-	int           success = 0, locked = 0, transaction_pending = 0;
+	int           locked = 0, transaction_pending = 0;
 	carray*       created_db_entries = carray_new(16);
 	char*         idsstr = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -988,8 +1028,6 @@ int mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids_unsorte
 	mrsqlite3_commit__(mailbox->m_sql);
 	transaction_pending = 0;
 
-	success = 1;
-
 cleanup:
 	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -1006,16 +1044,32 @@ cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	free(idsstr);
 	if( q3 ) { sqlite3_free(q3); }
-	return success;
 }
 
 
-int mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, int star)
+/**
+ * Star/unstar messages by setting the last parameter to 0 (unstar) or 1(star).
+ * Starred messages are collected in a virtual chat that can be shown using
+ * mrmailbox_get_chat_msgs() using the chat_id MR_CHAT_ID_STARRED.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as created by mrmailbox_new()
+ *
+ * @param msg_ids An array of uint32_t message IDs defining the messages to star or unstar
+ *
+ * @param msg_cnt The number of IDs in msg_ids
+ *
+ * @param star 0=unstar the messages in msg_ids, 1=star them
+ *
+ * @return none
+ */
+void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, int star)
 {
 	int i;
 
 	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 || (star!=0 && star!=1) ) {
-		return 0;
+		return;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1032,8 +1086,6 @@ int mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_c
 
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
-
-	return 1;
 }
 
 
@@ -1140,12 +1192,26 @@ cleanup:
 }
 
 
-int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
+/**
+ * Mark a message as _seen_, updates the IMAP state and
+ * sends MDNs. if the message is not in a real chat (eg. a contact request), the
+ * message is only marked as NOTICED and no IMAP/MDNs is done.  See also
+ * mrmailbox_marknoticed_chat() and mrmailbox_marknoticed_contact()
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param msg_ids an array of uint32_t containing all the messages IDs that should be marked as seen
+ *
+ * @param msg_cnt the number of message IDs in msg_ids
+ *
+ * @return none
+ */
+void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
 	int i, send_event = 0;
 
 	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
-		return 0;
+		return;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -1185,8 +1251,6 @@ int mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 	if( send_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}
-
-	return 1;
 }
 
 
