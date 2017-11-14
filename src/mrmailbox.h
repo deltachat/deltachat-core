@@ -33,7 +33,7 @@ extern "C" {
 
 
 /**
- * @mainpage Tutorial
+ * @mainpage Getting started
  *
  * This document describes how to handle the Delta Chat core library.
  * For general information about Delta Chat itself, see <https://delta.chat> and <https://github.com/deltachat>.
@@ -95,7 +95,40 @@ extern "C" {
  * Message 2: Got it!
  * ```
  *
- * I think, you got the idea.  For further reading, please dive into the mrmailbox_t class.  See you.
+ * I think, you got the idea.  For further reading, please dive into the mrmailbox_t class.
+ *
+ *
+ * ## Further hints
+ *
+ * Here are some additional, unsorted hints that may be useful.
+ * If you need any further assistance, please do not hesitate to contact us at <r10s@b44t.com>.
+ *
+ * - Two underscores at the end of a function-name may be a _hint_, that this
+ *   function does no resource locking. Such functions must not be used.
+ *
+ * - For objects, C-structures are used.  If not mentioned otherwise, you can
+ *   read the members here directly.
+ *
+ * - For `get`-functions, you have to unref the return value in some way.
+ *
+ * - Strings in function arguments or return values are usually UTF-8 encoded
+ *
+ * - Threads are implemented using POSIX threads (`pthread_*` functions)
+ *
+ * The following points are important mainly for the authors of the library itself:
+ *
+ * - For indentation, use tabs.  Alignments that are not placed at the beginning
+ *   of a line should be done with spaces.
+ *
+ * - For padding between functions, classes etc. use 2 empty lines
+ *
+ * - Source files are encoded as UTF-8 with Unix line endings (a simple `LF`, `0x0A` or
+ *   `\n`)
+ *
+ * Please keep in mind, that your derived work must be released under a
+ * **GPL-compatible licence**.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
+ *
+ * See you.
  */
 
 
