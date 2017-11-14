@@ -317,7 +317,6 @@ void            mrmailbox_imex              (mrmailbox_t*, int what, const char*
 char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
 char*           mrmailbox_create_setup_code (mrmailbox_t*);
-int             mrmailbox_poke_spec         (mrmailbox_t*, const char* spec);
 void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
