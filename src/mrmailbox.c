@@ -877,7 +877,8 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  *
  * @param cb a callback function that is called for events (update,
  *     state changes etc.) and to get some information form the client (eg. translation
- *     for a given string)
+ *     for a given string).
+ *     See mrevent.h for a list of possible events that may be passed to the callback.
  *     - The callback MAY be called from _any_ thread, not only the main/GUI thread!
  *     - The callback MUST NOT call any mrmailbox_* and related functions unless stated
  *       otherwise!
@@ -1628,6 +1629,16 @@ int mrmailbox_restore(mrmailbox_t* ths, time_t seconds_to_restore)
 }
 
 
+/**
+ * Stay alive.
+ * The library tries itself to stay alive. For this purpose there is an additional
+ * "heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
+ * However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can
+ * force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
+ * If in doubt, call this function too often, not too less :-)
+ *
+ * @memberof mrmailbox_t
+ */
 void mrmailbox_heartbeat(mrmailbox_t* ths)
 {
 	if( ths == NULL ) {
@@ -3083,7 +3094,7 @@ cleanup:
 /**
  * Send a simple text message to the given chat.
  *
- * Sends the event MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -3122,7 +3133,7 @@ cleanup:
  * save message in database and send it, the given message object is not unref'd
  * by the function but some fields are set up!
  *
- * Sends the event MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.

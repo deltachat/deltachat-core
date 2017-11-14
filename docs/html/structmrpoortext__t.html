@@ -90,7 +90,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 
-<p>the poortext object and some function accessing it.  
+<p>An object representing text with some attributes.  
  <a href="structmrpoortext__t.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="mrpoortext_8h_source.html">mrpoortext.h</a>&gt;</code></p>
@@ -98,43 +98,30 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a89c28735bfd718051ffc6b742f9c10ed"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed">mrpoortext_unref</a> (<a class="el" href="structmrpoortext__t.html">mrpoortext_t</a> *poortext)</td></tr>
-<tr class="memdesc:a89c28735bfd718051ffc6b742f9c10ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees a <a class="el" href="structmrpoortext__t.html" title="the poortext object and some function accessing it. ">mrpoortext_t</a> object created eg.  <a href="#a89c28735bfd718051ffc6b742f9c10ed">More...</a><br /></td></tr>
+<tr class="memdesc:a89c28735bfd718051ffc6b742f9c10ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees a poortext object.  <a href="#a89c28735bfd718051ffc6b742f9c10ed">More...</a><br /></td></tr>
 <tr class="separator:a89c28735bfd718051ffc6b742f9c10ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7cd93f6589a7db24561d73ad9160073a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a7cd93f6589a7db24561d73ad9160073a">MR_TEXT1_NORMAL</a>&#160;&#160;&#160;0</td></tr>
-<tr class="separator:a7cd93f6589a7db24561d73ad9160073a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aac967a349b1d5057fc1ebfcc58b64214"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#aac967a349b1d5057fc1ebfcc58b64214">MR_TEXT1_DRAFT</a>&#160;&#160;&#160;1</td></tr>
-<tr class="separator:aac967a349b1d5057fc1ebfcc58b64214"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af92bade56df97efaeb45b8d48d8cf743"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#af92bade56df97efaeb45b8d48d8cf743">MR_TEXT1_USERNAME</a>&#160;&#160;&#160;2</td></tr>
-<tr class="separator:af92bade56df97efaeb45b8d48d8cf743"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a11aaf4806949f8d5028a55df5278ecda"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a11aaf4806949f8d5028a55df5278ecda">MR_TEXT1_SELF</a>&#160;&#160;&#160;3</td></tr>
-<tr class="separator:a11aaf4806949f8d5028a55df5278ecda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a39469bd76b12fc8da2c3341433cab893"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a39469bd76b12fc8da2c3341433cab893"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a39469bd76b12fc8da2c3341433cab893">m_text1_meaning</a></td></tr>
-<tr class="memdesc:a39469bd76b12fc8da2c3341433cab893"><td class="mdescLeft">&#160;</td><td class="mdescRight">One of MR_TEXT1_NORMAL, MR_TEXT1_DRAFT, MR_TEXT1_USERNAME or MR_TEXT1_SELF. <br /></td></tr>
+<tr class="memitem:a39469bd76b12fc8da2c3341433cab893"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a39469bd76b12fc8da2c3341433cab893">m_text1_meaning</a></td></tr>
+<tr class="memdesc:a39469bd76b12fc8da2c3341433cab893"><td class="mdescLeft">&#160;</td><td class="mdescRight">Defines the meaning of the m_text1 string.  <a href="#a39469bd76b12fc8da2c3341433cab893">More...</a><br /></td></tr>
 <tr class="separator:a39469bd76b12fc8da2c3341433cab893"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af3b56661ccf1c783f397c15c310cf36f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af3b56661ccf1c783f397c15c310cf36f"></a>
-char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#af3b56661ccf1c783f397c15c310cf36f">m_text1</a></td></tr>
-<tr class="memdesc:af3b56661ccf1c783f397c15c310cf36f"><td class="mdescLeft">&#160;</td><td class="mdescRight">may be NULL <br /></td></tr>
+<tr class="memitem:af3b56661ccf1c783f397c15c310cf36f"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#af3b56661ccf1c783f397c15c310cf36f">m_text1</a></td></tr>
+<tr class="memdesc:af3b56661ccf1c783f397c15c310cf36f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The meaning is defined by m_text1_meaning and by the creator of the object.  <a href="#af3b56661ccf1c783f397c15c310cf36f">More...</a><br /></td></tr>
 <tr class="separator:af3b56661ccf1c783f397c15c310cf36f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a54e10365f38dddd070a2ab68f4177331"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a54e10365f38dddd070a2ab68f4177331"></a>
-char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a54e10365f38dddd070a2ab68f4177331">m_text2</a></td></tr>
-<tr class="memdesc:a54e10365f38dddd070a2ab68f4177331"><td class="mdescLeft">&#160;</td><td class="mdescRight">may be NULL <br /></td></tr>
+<tr class="memitem:a54e10365f38dddd070a2ab68f4177331"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a54e10365f38dddd070a2ab68f4177331">m_text2</a></td></tr>
+<tr class="memdesc:a54e10365f38dddd070a2ab68f4177331"><td class="mdescLeft">&#160;</td><td class="mdescRight">The meaning is defined by the creator of the object.  <a href="#a54e10365f38dddd070a2ab68f4177331">More...</a><br /></td></tr>
 <tr class="separator:a54e10365f38dddd070a2ab68f4177331"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a372913d9a39616e48722ea04c759f887"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a372913d9a39616e48722ea04c759f887"></a>
-time_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a372913d9a39616e48722ea04c759f887">m_timestamp</a></td></tr>
-<tr class="memdesc:a372913d9a39616e48722ea04c759f887"><td class="mdescLeft">&#160;</td><td class="mdescRight">may be 0 <br /></td></tr>
+<tr class="memitem:a372913d9a39616e48722ea04c759f887"><td class="memItemLeft" align="right" valign="top">time_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#a372913d9a39616e48722ea04c759f887">m_timestamp</a></td></tr>
+<tr class="memdesc:a372913d9a39616e48722ea04c759f887"><td class="mdescLeft">&#160;</td><td class="mdescRight">Typically a message timestamp.  <a href="#a372913d9a39616e48722ea04c759f887">More...</a><br /></td></tr>
 <tr class="separator:a372913d9a39616e48722ea04c759f887"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afbf2ae7473784db66127e63657e04f60"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afbf2ae7473784db66127e63657e04f60"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#afbf2ae7473784db66127e63657e04f60">m_state</a></td></tr>
-<tr class="memdesc:afbf2ae7473784db66127e63657e04f60"><td class="mdescLeft">&#160;</td><td class="mdescRight">may be 0 <br /></td></tr>
+<tr class="memitem:afbf2ae7473784db66127e63657e04f60"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrpoortext__t.html#afbf2ae7473784db66127e63657e04f60">m_state</a></td></tr>
+<tr class="memdesc:afbf2ae7473784db66127e63657e04f60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Typically a MR_MSG_STATE_* constant.  <a href="#afbf2ae7473784db66127e63657e04f60">More...</a><br /></td></tr>
 <tr class="separator:afbf2ae7473784db66127e63657e04f60"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>the poortext object and some function accessing it. </p>
-<p>A poortext object contains some strings together with their meaning and some attributes. The object is mainly used for summary returns of chats and chatlists </p>
+<div class="textblock"><p>An object representing text with some attributes. </p>
+<p>A poortext object contains some strings together with their meaning and some attributes. Poortext objects are returned eg. from <a class="el" href="structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8" title="Get a summary for a chatlist index. ">mrchatlist_get_summary()</a> or <a class="el" href="structmrmsg__t.html#afc3d94448ada0ad7142cf168cab1462e" title="Get a summary for a message. ">mrmsg_get_summary()</a>. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="a89c28735bfd718051ffc6b742f9c10ed"></a>
 <div class="memitem">
@@ -150,15 +137,96 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struc
       </table>
 </div><div class="memdoc">
 
-<p>Frees a <a class="el" href="structmrpoortext__t.html" title="the poortext object and some function accessing it. ">mrpoortext_t</a> object created eg. </p>
-<p>by <a class="el" href="structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8" title="Get a summary for a chatlist index. ">mrchatlist_get_summary()</a> or by mrmsg_eget_summary(). This also frees the strings objects.</p>
+<p>Frees a poortext object. </p>
+<p>Poortext objects are typically created by <a class="el" href="structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8" title="Get a summary for a chatlist index. ">mrchatlist_get_summary()</a> or by <a class="el" href="structmrmsg__t.html#afc3d94448ada0ad7142cf168cab1462e" title="Get a summary for a message. ">mrmsg_get_summary()</a>. This also frees the strings objects.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">poortext</td><td>The <a class="el" href="structmrpoortext__t.html" title="the poortext object and some function accessing it. ">mrpoortext_t</a> object to free.</td></tr>
+    <tr><td class="paramname">poortext</td><td>The <a class="el" href="structmrpoortext__t.html" title="An object representing text with some attributes. ">mrpoortext_t</a> object to free.</td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>None </dd></dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a class="anchor" id="afbf2ae7473784db66127e63657e04f60"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrpoortext_t::m_state</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Typically a MR_MSG_STATE_* constant. </p>
+<p>May be 0. </p>
+
+</div>
+</div>
+<a class="anchor" id="af3b56661ccf1c783f397c15c310cf36f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char* mrpoortext_t::m_text1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The meaning is defined by m_text1_meaning and by the creator of the object. </p>
+<p>May be NULL. </p>
+
+</div>
+</div>
+<a class="anchor" id="a39469bd76b12fc8da2c3341433cab893"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrpoortext_t::m_text1_meaning</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Defines the meaning of the m_text1 string. </p>
+<ul>
+<li>MR_TEXT1_NORMAL (0) = m_text1 is a normal text field.</li>
+<li>MR_TEXT1_DRAFT = m_text1 is the string "Draft", typically, this is shown in another color.</li>
+<li>MR_TEXT1_USERNAME = m_text1 is a username, typically, this is shown in another color.</li>
+<li>MR_TEXT1_SELF = m_text1 is the string "Me", typically, this is shown in another color. </li>
+</ul>
+
+</div>
+</div>
+<a class="anchor" id="a54e10365f38dddd070a2ab68f4177331"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char* mrpoortext_t::m_text2</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The meaning is defined by the creator of the object. </p>
+<p>May be NULL. </p>
+
+</div>
+</div>
+<a class="anchor" id="a372913d9a39616e48722ea04c759f887"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">time_t mrpoortext_t::m_timestamp</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Typically a message timestamp. </p>
+<p>The concrete meaning is defined by the creator of the object. May be 0. </p>
 
 </div>
 </div>
@@ -169,7 +237,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struc
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 14 2017 13:19:04 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 14 2017 15:37:49 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

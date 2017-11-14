@@ -54,6 +54,7 @@ var searchData=
   ['mrmailbox_5fget_5fnext_5fmedia',['mrmailbox_get_next_media',['../structmrmailbox__t.html#a90b7861302d1276a07fdcb2d9c3c73b6',1,'mrmailbox_t']]],
   ['mrmailbox_5fget_5ftotal_5fmsg_5fcount',['mrmailbox_get_total_msg_count',['../structmrmailbox__t.html#a5c17b77d9d26022f0bdbef548d37b5c6',1,'mrmailbox_t']]],
   ['mrmailbox_5fget_5fversion_5fstr',['mrmailbox_get_version_str',['../structmrmailbox__t.html#a74bd83d36d90e1201e5ab8003d9a312f',1,'mrmailbox_t']]],
+  ['mrmailbox_5fheartbeat',['mrmailbox_heartbeat',['../structmrmailbox__t.html#a6faa8ec4056da5d1d664d88d3f6cf176',1,'mrmailbox_t']]],
   ['mrmailbox_5fimex',['mrmailbox_imex',['../structmrmailbox__t.html#a5de7b87b8c95733619cc4051b3508973',1,'mrmailbox_t']]],
   ['mrmailbox_5fimex_5fhas_5fbackup',['mrmailbox_imex_has_backup',['../structmrmailbox__t.html#abcb59b494a430c2d3d6e77cf433f5755',1,'mrmailbox_t']]],
   ['mrmailbox_5fis_5fconfigured',['mrmailbox_is_configured',['../structmrmailbox__t.html#aa6e325e49ecccfc96276db6c327dba94',1,'mrmailbox_t']]],

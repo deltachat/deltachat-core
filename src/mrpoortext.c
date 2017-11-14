@@ -43,8 +43,8 @@ mrpoortext_t* mrpoortext_new()
 
 
 /**
- * Frees a mrpoortext_t object created eg. by mrchatlist_get_summary() or by
- * mrmsg_eget_summary().  This also frees the strings objects.
+ * Frees a poortext object. Poortext objects are typically created by mrchatlist_get_summary() or by
+ * mrmsg_get_summary().  This also frees the strings objects.
  *
  * @memberof mrpoortext_t
  *

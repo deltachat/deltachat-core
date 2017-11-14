@@ -64,7 +64,7 @@ extern "C" {
  * mrmailbox_configure_and_connect(mb);
  * ```
  *
- * If this works, you'll receive the event `MR_EVENT_CONFIGURE_ENDED` with `data1` set to `1` -
+ * If this works, you'll receive the event #MR_EVENT_CONFIGURE_ENDED with `data1` set to `1` -
  * and you can start sending your first message:
  *
  * ```
@@ -115,6 +115,8 @@ extern "C" {
  *
  * - Threads are implemented using POSIX threads (`pthread_*` functions)
  *
+ * - The issue-tracker for the core library is here: <https://github.com/deltachat/deltachat-core/issues>
+ *
  * The following points are important mainly for the authors of the library itself:
  *
  * - For indentation, use tabs.  Alignments that are not placed at the beginning
@@ -139,6 +141,7 @@ extern "C" {
 #include "mrcontact.h"
 #include "mrpoortext.h"
 #include "mrparam.h"
+#include "mrevent.h"
 
 typedef struct mrmailbox_t    mrmailbox_t;
 typedef struct mrimap_t       mrimap_t;
@@ -289,7 +292,6 @@ void            mrmailbox_star_msgs         (mrmailbox_t*, const uint32_t* msg_i
 mrmsg_t*        mrmailbox_get_msg           (mrmailbox_t*, uint32_t msg_id);
 
 
-
 /* Handle contacts */
 uint32_t        mrmailbox_create_contact    (mrmailbox_t*, const char* name, const char* addr);
 int             mrmailbox_add_address_book  (mrmailbox_t*, const char*);
@@ -302,193 +304,35 @@ int             mrmailbox_delete_contact    (mrmailbox_t*, uint32_t contact_id);
 mrcontact_t*    mrmailbox_get_contact       (mrmailbox_t*, uint32_t contact_id);
 
 
-/* logging */
-void mrmailbox_log_error           (mrmailbox_t*, int code, const char* msg, ...);
-void mrmailbox_log_error_if        (int* condition, mrmailbox_t*, int code, const char* msg, ...);
-void mrmailbox_log_warning         (mrmailbox_t*, int code, const char* msg, ...);
-void mrmailbox_log_info            (mrmailbox_t*, int code, const char* msg, ...);
-void mrmailbox_log_vprintf         (mrmailbox_t*, int event, int code, const char* msg, va_list);
-int  mrmailbox_get_thread_index    (void);
-
-
-/* library private */
-uint32_t    mrmailbox_send_msg_i__                            (mrmailbox_t*, mrchat_t*, const mrmsg_t*, time_t);
-void        mrmailbox_connect_to_imap                         (mrmailbox_t*, mrjob_t*);
-void        mrmailbox_wake_lock                               (mrmailbox_t*);
-void        mrmailbox_wake_unlock                             (mrmailbox_t*);
-int         mrmailbox_poke_eml_file                           (mrmailbox_t*, const char* file);
-int         mrmailbox_is_reply_to_known_message__             (mrmailbox_t*, mrmimeparser_t*);
-int         mrmailbox_is_reply_to_messenger_message__         (mrmailbox_t*, mrmimeparser_t*);
-time_t      mrmailbox_correct_bad_timestamp__                 (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
-void        mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self);
-void        mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self);
-int         mrmailbox_get_archived_count__                    (mrmailbox_t*);
-int         mrmailbox_reset_tables                            (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
-size_t      mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
-uint32_t    mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
-int         mrmailbox_get_contact_origin__                    (mrmailbox_t*, uint32_t id, int* ret_blocked);
-int         mrmailbox_is_contact_blocked__                    (mrmailbox_t*, uint32_t id);
-int         mrmailbox_real_contact_exists__                   (mrmailbox_t*, uint32_t id);
-int         mrmailbox_contact_addr_equals__                   (mrmailbox_t*, uint32_t contact_id, const char* other_addr);
-void        mrmailbox_scaleup_contact_origin__                (mrmailbox_t*, uint32_t contact_id, int origin);
-
-
-/* library private: end-to-end-encryption */
-#define MR_E2EE_DEFAULT_ENABLED  1
-#define MR_MDNS_DEFAULT_ENABLED  1
-
-typedef struct mrmailbox_e2ee_helper_t {
-	int   m_encryption_successfull;
-	void* m_cdata_to_free;
-} mrmailbox_e2ee_helper_t;
-
-void mrmailbox_e2ee_encrypt             (mrmailbox_t*, const clist* recipients_addr, int e2ee_guaranteed, int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*);
-int  mrmailbox_e2ee_decrypt             (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors); /* returns 1 if sth. was decrypted, 0 in other cases */
-void mrmailbox_e2ee_thanks              (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
-int  mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
-
-
-/*******************************************************************************
- * Events
- ******************************************************************************/
-
-
-/* The following events may be passed to the callback given to mrmailbox_new() */
-
-
-/* Information, should not be reported, can be logged,
-data1=0, data2=info string */
-#define MR_EVENT_INFO                     100
-
-
-/* Warning, should not be reported, should be logged
-data1=0, data2=warning string */
-#define MR_EVENT_WARNING                  300
-
-
-/* Error, must be reported to the user by a non-disturbing bubble or so.
-data1=error code MR_ERR_*, see below, data2=error string */
-#define MR_EVENT_ERROR                    400
-
-
-/* one or more messages changed for some reasons in the database - added or
-removed.  For added messages: data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSGS_CHANGED             2000
-
-
-/* For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send;
-data1=chat_id, data2=msg_id */
-#define MR_EVENT_INCOMING_MSG             2005
-
-
-/* a single message is send successfully (state changed from PENDING/SENDING to
-DELIVERED); data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSG_DELIVERED            2010
-
-
-/* a single message is read by the receiver (state changed from DELIVERED to
-READ); data1=chat_id, data2=msg_id */
-#define MR_EVENT_MSG_READ                 2015
-
-
-/* group name/image changed or members added/removed */
-#define MR_EVENT_CHAT_MODIFIED            2020
-
-
-/* contact(s) created, renamed, blocked or deleted */
-#define MR_EVENT_CONTACTS_CHANGED         2030
-
-
-/* connection state changed,
-data1=0:failed-not-connected, 1:configured-and-connected */
-#define MR_EVENT_CONFIGURE_ENDED          2040
-
-
-/* data1=percent */
-#define MR_EVENT_CONFIGURE_PROGRESS       2041
-
-
-/* mrmailbox_imex() done:
-data1=0:failed, 1=success */
-#define MR_EVENT_IMEX_ENDED               2050
-
-
-/* data1=permille */
-#define MR_EVENT_IMEX_PROGRESS            2051
-
-
-/* file written, event may be needed to make the file public to some system
-services. data1=file name, data2=mime type */
-#define MR_EVENT_IMEX_FILE_WRITTEN        2052
-
-
-/* The following events are functions that should be provided by the frontends */
-
-
-/* check, if the system is online currently
-ret=0: not online, ret=1: online */
-#define MR_EVENT_IS_ONLINE                2080
-
-
-/* get a string from the frontend, data1=MR_STR_*, ret=string which will be
-free()'d by the backend */
-#define MR_EVENT_GET_STRING               2091
-
-
-/* synchronous http/https(!) call, data1=url, ret=content which will be
-free()'d by the backend, 0 on errors */
-#define MR_EVENT_GET_QUANTITY_STRING      2092
-
-
-/* synchronous http/https(!) call, data1=url, ret=content which will be free()'d
-by the backend, 0 on errors */
-#define MR_EVENT_HTTP_GET                 2100
-
-/* acquire wakeLock (data1=1) or release it (data1=0), the backend does not make
-nested or unsynchronized calls */
-#define MR_EVENT_WAKE_LOCK                2110
-
-
-/* Error codes */
-#define MR_ERR_SELF_NOT_IN_GROUP          1
-#define MR_ERR_NONETWORK                  2
-
-
-/*******************************************************************************
- * Import/export and Tools
- ******************************************************************************/
-
-
-#define MR_IMEX_CANCEL                      0
-#define MR_IMEX_EXPORT_SELF_KEYS            1 /**< param1 is a directory where the keys are written to */
-#define MR_IMEX_IMPORT_SELF_KEYS            2 /**< param1 is a directory where the keys are searched in and read from */
-#define MR_IMEX_EXPORT_BACKUP              11 /**< param1 is a directory where the backup is written to */
-#define MR_IMEX_IMPORT_BACKUP              12 /**< param1 is the file with the backup to import */
-#define MR_IMEX_EXPORT_SETUP_MESSAGE       20 /**< param1 is a directory where the setup file is written to */
-#define MR_BAK_PREFIX                      "delta-chat"
-#define MR_BAK_SUFFIX                      "bak"
+/* Import/export and Tools */
+#define         MR_IMEX_CANCEL                0
+#define         MR_IMEX_EXPORT_SELF_KEYS      1 /* param1 is a directory where the keys are written to */
+#define         MR_IMEX_IMPORT_SELF_KEYS      2 /* param1 is a directory where the keys are searched in and read from */
+#define         MR_IMEX_EXPORT_BACKUP        11 /* param1 is a directory where the backup is written to */
+#define         MR_IMEX_IMPORT_BACKUP        12 /* param1 is the file with the backup to import */
+#define         MR_IMEX_EXPORT_SETUP_MESSAGE 20 /* param1 is a directory where the setup file is written to */
+#define         MR_BAK_PREFIX                "delta-chat"
+#define         MR_BAK_SUFFIX                "bak"
 void            mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* setup_code);
 char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
-
-
-
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
-
-
-
 char*           mrmailbox_create_setup_code (mrmailbox_t*);
-
-
-
 int             mrmailbox_poke_spec         (mrmailbox_t*, const char* spec);
-
-
-/* The library tries itself to stay alive. For this purpose there is an additional
-"heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
-However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can
-force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
-If in doubt, call this function too often, not too less :-) */
 void            mrmailbox_heartbeat         (mrmailbox_t*);
+
+
+/* logging */
+void            mrmailbox_log_error         (mrmailbox_t*, int code, const char* msg, ...);
+void            mrmailbox_log_error_if      (int* condition, mrmailbox_t*, int code, const char* msg, ...);
+void            mrmailbox_log_warning       (mrmailbox_t*, int code, const char* msg, ...);
+void            mrmailbox_log_info          (mrmailbox_t*, int code, const char* msg, ...);
+void            mrmailbox_log_vprintf       (mrmailbox_t*, int event, int code, const char* msg, va_list);
+int             mrmailbox_get_thread_index  (void);
+
+
+/* error codes */
+#define         MR_ERR_SELF_NOT_IN_GROUP    1
+#define         MR_ERR_NONETWORK            2
 
 
 /* carray tools, already defined are things as
@@ -503,33 +347,66 @@ int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* d
 
 
 /* library-internal */
-void          mrmailbox_unarchive_chat__             (mrmailbox_t*, uint32_t chat_id);
-size_t        mrmailbox_get_chat_cnt__               (mrmailbox_t*);
-uint32_t      mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
-uint32_t      mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t*, uint32_t contact_id);
-int           mrmailbox_get_total_msg_count__        (mrmailbox_t*, uint32_t chat_id);
-int           mrmailbox_get_fresh_msg_count__        (mrmailbox_t*, uint32_t chat_id);
-uint32_t      mrmailbox_get_last_deaddrop_fresh_msg__(mrmailbox_t*);
-void          mrmailbox_send_msg_to_smtp             (mrmailbox_t*, mrjob_t*);
-void          mrmailbox_send_msg_to_imap             (mrmailbox_t*, mrjob_t*);
-int           mrmailbox_add_contact_to_chat__        (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-int           mrmailbox_is_contact_in_chat__         (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
-int           mrmailbox_get_chat_contact_count__     (mrmailbox_t*, uint32_t chat_id);
-int           mrmailbox_group_explicitly_left__      (mrmailbox_t*, const char* grpid);
-void          mrmailbox_set_group_explicitly_left__  (mrmailbox_t*, const char* grpid);
+uint32_t        mrmailbox_send_msg_i__                            (mrmailbox_t*, mrchat_t*, const mrmsg_t*, time_t);
+void            mrmailbox_connect_to_imap                         (mrmailbox_t*, mrjob_t*);
+void            mrmailbox_wake_lock                               (mrmailbox_t*);
+void            mrmailbox_wake_unlock                             (mrmailbox_t*);
+int             mrmailbox_poke_eml_file                           (mrmailbox_t*, const char* file);
+int             mrmailbox_is_reply_to_known_message__             (mrmailbox_t*, mrmimeparser_t*);
+int             mrmailbox_is_reply_to_messenger_message__         (mrmailbox_t*, mrmimeparser_t*);
+time_t          mrmailbox_correct_bad_timestamp__                 (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
+void            mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self);
+void            mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self);
+int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
+int             mrmailbox_reset_tables                            (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
+size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
+uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
+int             mrmailbox_get_contact_origin__                    (mrmailbox_t*, uint32_t id, int* ret_blocked);
+int             mrmailbox_is_contact_blocked__                    (mrmailbox_t*, uint32_t id);
+int             mrmailbox_real_contact_exists__                   (mrmailbox_t*, uint32_t id);
+int             mrmailbox_contact_addr_equals__                   (mrmailbox_t*, uint32_t contact_id, const char* other_addr);
+void            mrmailbox_scaleup_contact_origin__                (mrmailbox_t*, uint32_t contact_id, int origin);
+void            mrmailbox_unarchive_chat__                        (mrmailbox_t*, uint32_t chat_id);
+size_t          mrmailbox_get_chat_cnt__                          (mrmailbox_t*);
+uint32_t        mrmailbox_create_or_lookup_nchat_by_contact_id__  (mrmailbox_t*, uint32_t contact_id);
+uint32_t        mrmailbox_lookup_real_nchat_by_contact_id__       (mrmailbox_t*, uint32_t contact_id);
+int             mrmailbox_get_total_msg_count__                   (mrmailbox_t*, uint32_t chat_id);
+int             mrmailbox_get_fresh_msg_count__                   (mrmailbox_t*, uint32_t chat_id);
+uint32_t        mrmailbox_get_last_deaddrop_fresh_msg__           (mrmailbox_t*);
+void            mrmailbox_send_msg_to_smtp                        (mrmailbox_t*, mrjob_t*);
+void            mrmailbox_send_msg_to_imap                        (mrmailbox_t*, mrjob_t*);
+int             mrmailbox_add_contact_to_chat__                   (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int             mrmailbox_is_contact_in_chat__                    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int             mrmailbox_get_chat_contact_count__                (mrmailbox_t*, uint32_t chat_id);
+int             mrmailbox_group_explicitly_left__                 (mrmailbox_t*, const char* grpid);
+void            mrmailbox_set_group_explicitly_left__             (mrmailbox_t*, const char* grpid);
+size_t          mrmailbox_get_real_msg_cnt__                      (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
+size_t          mrmailbox_get_deaddrop_msg_cnt__                  (mrmailbox_t*);
+int             mrmailbox_rfc724_mid_cnt__                        (mrmailbox_t*, const char* rfc724_mid);
+int             mrmailbox_rfc724_mid_exists__                     (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
+void            mrmailbox_update_server_uid__                     (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
+void            mrmailbox_update_msg_chat_id__                    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
+void            mrmailbox_update_msg_state__                      (mrmailbox_t*, uint32_t msg_id, int state);
+void            mrmailbox_delete_msg_on_imap                      (mrmailbox_t* mailbox, mrjob_t* job);
+int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
+void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
+void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
+void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 
-size_t       mrmailbox_get_real_msg_cnt__     (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
-size_t       mrmailbox_get_deaddrop_msg_cnt__ (mrmailbox_t*);
-int          mrmailbox_rfc724_mid_cnt__       (mrmailbox_t*, const char* rfc724_mid);
-int          mrmailbox_rfc724_mid_exists__    (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
-void         mrmailbox_update_server_uid__    (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
-void         mrmailbox_update_msg_chat_id__   (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
-void         mrmailbox_update_msg_state__     (mrmailbox_t*, uint32_t msg_id, int state);
-void         mrmailbox_delete_msg_on_imap     (mrmailbox_t* mailbox, mrjob_t* job);
-int          mrmailbox_mdn_from_ext__         (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
-void         mrmailbox_send_mdn               (mrmailbox_t*, mrjob_t* job);
-void         mrmailbox_markseen_msg_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
-void         mrmailbox_markseen_mdn_on_imap   (mrmailbox_t* mailbox, mrjob_t* job);
+
+/* library private: end-to-end-encryption */
+#define MR_E2EE_DEFAULT_ENABLED  1
+#define MR_MDNS_DEFAULT_ENABLED  1
+
+typedef struct mrmailbox_e2ee_helper_t {
+	int   m_encryption_successfull;
+	void* m_cdata_to_free;
+} mrmailbox_e2ee_helper_t;
+
+void            mrmailbox_e2ee_encrypt      (mrmailbox_t*, const clist* recipients_addr, int e2ee_guaranteed, int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*);
+int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors); /* returns 1 if sth. was decrypted, 0 in other cases */
+void            mrmailbox_e2ee_thanks       (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
+int             mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
 
 
 #ifdef __cplusplus

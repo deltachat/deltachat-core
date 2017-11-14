@@ -146,6 +146,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a7c7921ff7b7f2e10dc30522af980b785"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a7c7921ff7b7f2e10dc30522af980b785">mrmailbox_disconnect</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
 <tr class="memdesc:a7c7921ff7b7f2e10dc30522af980b785"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disonnect the mailbox from the server.  <a href="#a7c7921ff7b7f2e10dc30522af980b785">More...</a><br /></td></tr>
 <tr class="separator:a7c7921ff7b7f2e10dc30522af980b785"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6faa8ec4056da5d1d664d88d3f6cf176"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a6faa8ec4056da5d1d664d88d3f6cf176">mrmailbox_heartbeat</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *ths)</td></tr>
+<tr class="memdesc:a6faa8ec4056da5d1d664d88d3f6cf176"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stay alive.  <a href="#a6faa8ec4056da5d1d664d88d3f6cf176">More...</a><br /></td></tr>
+<tr class="separator:a6faa8ec4056da5d1d664d88d3f6cf176"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4da10c87eb65bbf6c504979d75ec3b19"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19">mrmailbox_get_chatlist</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, int listflags, const char *query)</td></tr>
 <tr class="memdesc:a4da10c87eb65bbf6c504979d75ec3b19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a list of chats.  <a href="#a4da10c87eb65bbf6c504979d75ec3b19">More...</a><br /></td></tr>
 <tr class="separator:a4da10c87eb65bbf6c504979d75ec3b19"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1779,6 +1782,25 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
+<a class="anchor" id="a6faa8ec4056da5d1d664d88d3f6cf176"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmailbox_heartbeat </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>ths</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Stay alive. </p>
+<p>The library tries itself to stay alive. For this purpose there is an additional "heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute. However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can force additional checks manually by just calling <a class="el" href="structmrmailbox__t.html#a6faa8ec4056da5d1d664d88d3f6cf176" title="Stay alive. ">mrmailbox_heartbeat()</a> about every minute. If in doubt, call this function too often, not too less :-) </p>
+
+</div>
+</div>
 <a class="anchor" id="a5de7b87b8c95733619cc4051b3508973"></a>
 <div class="memitem">
 <div class="memproto">
@@ -2113,7 +2135,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <p>After creation it is usually opened, connected and mails are fetched. After usage, the object should be deleted using <a class="el" href="structmrmailbox__t.html#a825cec4a85da05335674eae221d51374" title="Free a mailbox object. ">mrmailbox_unref()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">cb</td><td>a callback function that is called for events (update, state changes etc.) and to get some information form the client (eg. translation for a given string)<ul>
+    <tr><td class="paramname">cb</td><td>a callback function that is called for events (update, state changes etc.) and to get some information form the client (eg. translation for a given string). See <a class="el" href="mrevent_8h.html" title="The following constants are used as events reported to the callback given to mrmailbox_new(). ">mrevent.h</a> for a list of possible events that may be passed to the callback.<ul>
 <li>The callback MAY be called from <em>any</em> thread, not only the main/GUI thread!</li>
 <li>The callback MUST NOT call any mrmailbox_* and related functions unless stated otherwise!</li>
 <li>The callback SHOULD return <em>fast</em>, for GUI updates etc. you should post yourself an asynchronous message to your GUI thread, if needed.</li>
@@ -2293,7 +2315,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>save message in database and send it, the given message object is not unref'd by the function but some fields are set up! </p>
-<p>Sends the event MR_EVENT_MSGS_CHANGED on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="one or more messages changed for some reasons in the database - added or removed. ...">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2337,7 +2359,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Send a simple text message to the given chat. </p>
-<p>Sends the event MR_EVENT_MSGS_CHANGED on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="one or more messages changed for some reasons in the database - added or removed. ...">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2690,7 +2712,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 14 2017 13:19:04 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 14 2017 15:37:49 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

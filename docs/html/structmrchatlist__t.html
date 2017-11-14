@@ -280,7 +280,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Get a summary for a chatlist index. </p>
-<p>The summary is returned by a <a class="el" href="structmrpoortext__t.html" title="the poortext object and some function accessing it. ">mrpoortext_t</a> object with the following fields:</p>
+<p>The summary is returned by a <a class="el" href="structmrpoortext__t.html" title="An object representing text with some attributes. ">mrpoortext_t</a> object with the following fields:</p>
 <ul>
 <li>m_text1: contains the username or the strings "Me", "Draft" and so on. The string may be colored by having a look at m_text1_meaning. If there is no such name, the element is NULL (eg. for "No messages")</li>
 <li>m_text1_meaning: one of the MR_TEXT1_* constants</li>
@@ -296,7 +296,7 @@ Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The result must be freed using <a class="el" href="structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed" title="Frees a mrpoortext_t object created eg. ">mrpoortext_unref()</a>. The function never returns NULL. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The result must be freed using <a class="el" href="structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed" title="Frees a poortext object. ">mrpoortext_unref()</a>. The function never returns NULL. </dd></dl>
 
 </div>
 </div>
@@ -333,7 +333,7 @@ Public Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 14 2017 13:19:04 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 14 2017 15:37:49 for Delta Chat Core C-API by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
