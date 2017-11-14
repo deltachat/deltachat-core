@@ -6,13 +6,14 @@ plugin, that is completely **compatible** to the existing email infrastructure.
 
 ![Logo](https://delta.chat/assets/features/start-img4.png)
 
-The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android)
-or in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios).
-
 Using this library in your app, you get the **ease** of well-known messengers
 with the **reach** of e-mail. Moreover, you're **independent** from other companies or
 services - as your data is not relayed to Delta Chat, you won't even add new
 dependencies here.
+
+The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android)
+or in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios) but can also be used for
+completely different messenger projects.
 
 Some features at a glance
 
@@ -28,12 +29,6 @@ Some features at a glance
 - **Reliable** - safe for professional use
 - **Trustworthy** - can even be used for business messages
 - **Libre software** and [standards-based](https://delta.chat/en/standards)
-
-If you are a developer and have an idea for another crazy chat, social or messaging
-app you are encouraged to take this source code as a base. We would love to see
-_many_ different messengers out there, based on existing, distributed
-infrastructure. But we hate to see the user's data hidden on some companies
-servers with undefined backgrounds.
 
 
 API Documentation
