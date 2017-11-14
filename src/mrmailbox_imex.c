@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 
+#include <assert.h>
 #include <dirent.h>
 #include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
@@ -748,10 +749,22 @@ cleanup:
 }
 
 
+static void ensure_no_slash(char* path)
+{
+	int path_len = strlen(path);
+	if( path_len > 0 ) {
+		if( path[path_len-1] == '/'
+		 || path[path_len-1] == '\\' ) {
+			path[path_len-1] = 0;
+		}
+	}
+}
+
+
 static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 {
 	/* command for testing eg.
-	imex import-backup /home/bpetersen/temp/delta-chat-2017-10-05.bak
+	imex import-backup /home/bpetersen/temp/delta-chat-2017-11-14.bak
 	*/
 
 	int           success = 0;
@@ -759,6 +772,8 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 	int           processed_files_count = 0, total_files_count = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
+	char*         repl_from = NULL;
+	char*         repl_to = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
 
@@ -832,10 +847,38 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 	mrsqlite3_execute__(mailbox->m_sql, "DROP TABLE backup_blobs;");
 	mrsqlite3_execute__(mailbox->m_sql, "VACUUM;");
 
+	/* rewrite references to the blobs */
+	repl_from = mrsqlite3_get_config__(mailbox->m_sql, "backup_for", NULL);
+	if( repl_from && strlen(repl_from)>1 && mailbox->m_blobdir && strlen(mailbox->m_blobdir)>1 )
+	{
+		ensure_no_slash(repl_from);
+		repl_to = safe_strdup(mailbox->m_blobdir);
+		ensure_no_slash(repl_to);
+
+		mrmailbox_log_info(mailbox, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
+
+		assert( 'f' == MRP_FILE );
+		assert( 'i' == MRP_PROFILE_IMAGE );
+
+		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use mr_mprintf() because of "%q" */
+			mrsqlite3_execute__(mailbox->m_sql, q3);
+		sqlite3_free(q3);
+
+		q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
+			mrsqlite3_execute__(mailbox->m_sql, q3);
+		sqlite3_free(q3);
+
+		q3 = sqlite3_mprintf("UPDATE contacts SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
+			mrsqlite3_execute__(mailbox->m_sql, q3);
+		sqlite3_free(q3);
+	}
+
 	success = 1;
 
 cleanup:
 	free(pathNfilename);
+	free(repl_from);
+	free(repl_to);
 	if( stmt )  { sqlite3_finalize(stmt); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return success;
