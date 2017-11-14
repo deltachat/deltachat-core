@@ -45,6 +45,8 @@ extern "C" {
  * Your function should look like the following:
  *
  * ```
+ * #include <mrmailbox.h>
+ *
  * uintptr_t my_delta_handler(mrmailbox_t* nb, int event, uintptr_t data1, uintptr_t data2)
  * {
  *     return 0; // for unhandled events, it is always safe to return 0
@@ -97,7 +99,7 @@ extern "C" {
  */
 
 
-#include <libetpan/libetpan.h> /* defines uint16_t etc. */
+#include <libetpan/libetpan.h> /* defines uint16_t and carray */
 #include "mrchatlist.h"
 #include "mrchat.h"
 #include "mrmsg.h"
@@ -140,37 +142,39 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
  */
 typedef struct mrmailbox_t
 {
-	void*            m_userdata;      /**< the same pointer as given to mrmailbox_new(), may be used by the caller for any purpose */
-	char*            m_dbfile;        /**< the database file in file. */
-	char*            m_blobdir;       /**< full path of the blob directory in use. */
+	void*            m_userdata;              /**< the same pointer as given to mrmailbox_new(), may be used by the caller for any purpose */
+	char*            m_dbfile;                /**< the database file in file. */
+	char*            m_blobdir;               /**< full path of the blob directory in use. */
 
 	/** @privatesection */
-	mrsqlite3_t*     m_sql;           /**< Internal SQL object, never NULL */
-	mrimap_t*        m_imap;          /**< Internal IMAP object, never NULL */
-	mrsmtp_t*        m_smtp;          /**< Internal SMTP object, never NULL */
+	mrsqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
+	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
+	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 
-	pthread_t        m_job_thread;    /**< Internal */
-	pthread_cond_t   m_job_cond;      /**< Internal */
-	pthread_mutex_t  m_job_condmutex; /**< Internal */
-	int              m_job_condflag;  /**< Internal */
-	int              m_job_do_exit;   /**< Internal */
+	pthread_t        m_job_thread;            /**< Internal */
+	pthread_cond_t   m_job_cond;              /**< Internal */
+	pthread_mutex_t  m_job_condmutex;         /**< Internal */
+	int              m_job_condflag;          /**< Internal */
+	int              m_job_do_exit;           /**< Internal */
 
-	mrmailboxcb_t    m_cb;            /**< Internal */
+	mrmailboxcb_t    m_cb;                    /**< Internal */
 
-	char*            m_os_name;       /**< Internal */
+	char*            m_os_name;               /**< Internal */
 
-	uint32_t         m_cmdline_sel_chat_id; /**< Internal */
+	uint32_t         m_cmdline_sel_chat_id;   /**< Internal */
 
-	int              m_wake_lock;           /**< Internal */
-	pthread_mutex_t  m_wake_lock_critical;  /**< Internal */
+	int              m_wake_lock;             /**< Internal */
+	pthread_mutex_t  m_wake_lock_critical;    /**< Internal */
 
-	int              m_e2ee_enabled;        /**< Internal */
+	int              m_e2ee_enabled;          /**< Internal */
 
 	#define          MR_LOG_RINGBUF_SIZE 200
 	pthread_mutex_t  m_log_ringbuf_critical;  /**< Internal */
-	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE]; /**< Internal */
-	time_t           m_log_ringbuf_times[MR_LOG_RINGBUF_SIZE]; /**< Internal */
-	int              m_log_ringbuf_pos; /**< Internal. The oldest position resp. the position that is overwritten next */
+	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE];
+	                                          /**< Internal */
+	time_t           m_log_ringbuf_times[MR_LOG_RINGBUF_SIZE];
+	                                          /**< Internal */
+	int              m_log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
 
 } mrmailbox_t;
 

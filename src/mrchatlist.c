@@ -115,16 +115,18 @@ size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
  *
  * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
  *
+ * @param index The index to get the chat ID for.
+ *
  * @return Returns the chat_id of the item at the given index.  Index must be between
  *     0 and mrchatlist_get_cnt()-1.
  */
-uint32_t mrchatlist_get_chat_id(mrchatlist_t* ths, size_t index)
+uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
 {
-	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
-	return (uint32_t)(uintptr_t)carray_get(ths->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
+	return (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
 }
 
 
@@ -145,16 +147,18 @@ mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index) /* depre
  *
  * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
  *
+ * @param index The index to get the chat ID for.
+ *
  * @return Returns the message_id of the item at the given index.  Index must be between
  *     0 and mrchatlist_get_cnt()-1.  If there is no message at the given index (eg. the chat may be empty), 0 is returned.
  */
-uint32_t mrchatlist_get_msg_id(mrchatlist_t* ths, size_t index)
+uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
 {
-	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
-	return (uint32_t)(uintptr_t)carray_get(ths->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	return (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
 }
 
 

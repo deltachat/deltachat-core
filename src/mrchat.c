@@ -28,101 +28,6 @@
 #include "mrmimefactory.h"
 
 
-int mrchat_update_param__(mrchat_t* ths)
-{
-	int success = 0;
-	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
-	sqlite3_bind_text(stmt, 1, ths->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int (stmt, 2, ths->m_id);
-	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;
-	sqlite3_finalize(stmt);
-	return success;
-}
-
-
-static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
-{
-	int row_offset = 0;
-	const char* draft_text;
-
-	if( ths == NULL || row == NULL ) {
-		return 0;
-	}
-
-	mrchat_empty(ths);
-
-	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived "
-	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
-	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
-	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
-	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	mrparam_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
-	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
-
-	/* We leave a NULL-pointer for the very usual situation of "no draft".
-	Also make sure, m_draft_text and m_draft_timestamp are set together */
-	if( ths->m_draft_timestamp && draft_text && draft_text[0] ) {
-		ths->m_draft_text = safe_strdup(draft_text);
-	}
-	else {
-		ths->m_draft_timestamp = 0;
-	}
-
-	/* correct the title of some special groups */
-	if( ths->m_id == MR_CHAT_ID_DEADDROP ) {
-		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_DEADDROP);
-	}
-	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
-		free(ths->m_name);
-		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
-			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_mailbox));
-		free(tempname);
-	}
-	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
-		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
-	}
-
-	return row_offset; /* success, return the next row offset */
-}
-
-
-/**
- * Library-internal.
- *
- * Calling this function is not thread-safe, locking is up to the caller.
- *
- * @private @memberof mrchat_t
- */
-int mrchat_load_from_db__(mrchat_t* ths, uint32_t id)
-{
-	sqlite3_stmt* stmt;
-
-	if( ths==NULL ) {
-		return 0;
-	}
-
-	mrchat_empty(ths);
-
-	stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
-		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
-	sqlite3_bind_int(stmt, 1, id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	if( !mrchat_set_from_stmt__(ths, stmt) ) {
-		return 0;
-	}
-
-	return 1;
-}
-
-
 /**
  * Create a chat object in memory.
  *
@@ -178,27 +83,27 @@ void mrchat_unref(mrchat_t* chat)
  *
  * @return None.
  */
-void mrchat_empty(mrchat_t* ths)
+void mrchat_empty(mrchat_t* chat)
 {
-	if( ths == NULL ) {
+	if( chat == NULL ) {
 		return;
 	}
 
-	free(ths->m_name);
-	ths->m_name = NULL;
+	free(chat->m_name);
+	chat->m_name = NULL;
 
-	ths->m_draft_timestamp = 0;
+	chat->m_draft_timestamp = 0;
 
-	free(ths->m_draft_text);
-	ths->m_draft_text = NULL;
+	free(chat->m_draft_text);
+	chat->m_draft_text = NULL;
 
-	ths->m_type = MR_CHAT_TYPE_UNDEFINED;
-	ths->m_id   = 0;
+	chat->m_type = MR_CHAT_TYPE_UNDEFINED;
+	chat->m_id   = 0;
 
-	free(ths->m_grpid);
-	ths->m_grpid = NULL;
+	free(chat->m_grpid);
+	chat->m_grpid = NULL;
 
-	mrparam_set_packed(ths->m_param, NULL);
+	mrparam_set_packed(chat->m_param, NULL);
 }
 
 
@@ -270,6 +175,110 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 
 	return ret? ret : safe_strdup("Err");
 }
+
+
+int mrchat_update_param__(mrchat_t* ths)
+{
+	int success = 0;
+	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
+	sqlite3_bind_text(stmt, 1, ths->m_param->m_packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, ths->m_id);
+	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;
+	sqlite3_finalize(stmt);
+	return success;
+}
+
+
+static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
+{
+	int row_offset = 0;
+	const char* draft_text;
+
+	if( ths == NULL || row == NULL ) {
+		return 0;
+	}
+
+	mrchat_empty(ths);
+
+	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived "
+	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
+	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
+	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
+	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	mrparam_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
+	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
+
+	/* We leave a NULL-pointer for the very usual situation of "no draft".
+	Also make sure, m_draft_text and m_draft_timestamp are set together */
+	if( ths->m_draft_timestamp && draft_text && draft_text[0] ) {
+		ths->m_draft_text = safe_strdup(draft_text);
+	}
+	else {
+		ths->m_draft_timestamp = 0;
+	}
+
+	/* correct the title of some special groups */
+	if( ths->m_id == MR_CHAT_ID_DEADDROP ) {
+		free(ths->m_name);
+		ths->m_name = mrstock_str(MR_STR_DEADDROP);
+	}
+	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
+		free(ths->m_name);
+		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
+			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_mailbox));
+		free(tempname);
+	}
+	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
+		free(ths->m_name);
+		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
+	}
+
+	return row_offset; /* success, return the next row offset */
+}
+
+
+/**
+ * Library-internal.
+ *
+ * Calling this function is not thread-safe, locking is up to the caller.
+ *
+ * @private @memberof mrchat_t
+ *
+ * @param chat The chat object that should be filled with the data from the database.
+ *     Existing data are free()'d before using mrchat_empty().
+ *
+ * @param chat_id Chat ID that should be loaded from the database.
+ *
+ * @return 1=success, 0=error.
+ */
+int mrchat_load_from_db__(mrchat_t* chat, uint32_t chat_id)
+{
+	sqlite3_stmt* stmt;
+
+	if( chat==NULL ) {
+		return 0;
+	}
+
+	mrchat_empty(chat);
+
+	stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
+		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		return 0;
+	}
+
+	if( !mrchat_set_from_stmt__(chat, stmt) ) {
+		return 0;
+	}
+
+	return 1;
+}
+
+
 
 
 

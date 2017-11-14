@@ -45,12 +45,12 @@ typedef struct mrchat_t
 	#define         MR_CHAT_ID_STARRED          5 /* virtual chat containing all starred messages */
 	#define         MR_CHAT_ID_ARCHIVED_LINK    6 /* a link at the end of the chatlist, if present the UI should show the button "Archived chats" */
 	#define         MR_CHAT_ID_LAST_SPECIAL     9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
-	uint32_t        m_id;
+	uint32_t        m_id;                         /**< Chat ID under which this object is available in the database. */
 
 	#define         MR_CHAT_TYPE_UNDEFINED      0
 	#define         MR_CHAT_TYPE_NORMAL       100 /* a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF is not added. */
 	#define         MR_CHAT_TYPE_GROUP        120 /* a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF */
-	int             m_type;
+	int             m_type;                       /**< Chat type, one of the MR_CHAT_TYPE_* constants. */
 
 	char*           m_name;                       /**< NULL if unset */
 	time_t          m_draft_timestamp;            /**< 0 if there is no draft */

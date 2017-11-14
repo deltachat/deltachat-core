@@ -1,12 +1,12 @@
 var searchData=
 [
-  ['mrchat_5fempty',['mrchat_empty',['../structmrchat__t.html#af0d39be9ac9885810d8765053cfb81eb',1,'mrchat_t']]],
+  ['mrchat_5fempty',['mrchat_empty',['../structmrchat__t.html#ae5c507c3944e38afe7584d59d9ece3cc',1,'mrchat_t']]],
   ['mrchat_5fget_5fsubtitle',['mrchat_get_subtitle',['../structmrchat__t.html#ae1e9920618c9f6cb8ad66d5bb6962a08',1,'mrchat_t']]],
   ['mrchat_5funref',['mrchat_unref',['../structmrchat__t.html#a3b1befb4542c1bad915f2175c7c2a2b9',1,'mrchat_t']]],
   ['mrchatlist_5fempty',['mrchatlist_empty',['../structmrchatlist__t.html#abadeb636721fe5a021db74c1d63a0844',1,'mrchatlist_t']]],
-  ['mrchatlist_5fget_5fchat_5fid',['mrchatlist_get_chat_id',['../structmrchatlist__t.html#a1b944c248901b701902d9b0ce6ee0b8c',1,'mrchatlist_t']]],
+  ['mrchatlist_5fget_5fchat_5fid',['mrchatlist_get_chat_id',['../structmrchatlist__t.html#a8c8360c76b31057322199e8c51cadfa5',1,'mrchatlist_t']]],
   ['mrchatlist_5fget_5fcnt',['mrchatlist_get_cnt',['../structmrchatlist__t.html#aa132119f18e40e3151ac5fe0299daab7',1,'mrchatlist_t']]],
-  ['mrchatlist_5fget_5fmsg_5fid',['mrchatlist_get_msg_id',['../structmrchatlist__t.html#abba9b5f6b43c3755cc3a65ace159bf8e',1,'mrchatlist_t']]],
+  ['mrchatlist_5fget_5fmsg_5fid',['mrchatlist_get_msg_id',['../structmrchatlist__t.html#a69b67135eeadbdbe9b4a60e645ef22b0',1,'mrchatlist_t']]],
   ['mrchatlist_5fget_5fsummary',['mrchatlist_get_summary',['../structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8',1,'mrchatlist_t']]],
   ['mrchatlist_5funref',['mrchatlist_unref',['../structmrchatlist__t.html#ab036d6e066b5ff78779f36711c9ab2f9',1,'mrchatlist_t']]],
   ['mrcontact_5fempty',['mrcontact_empty',['../structmrcontact__t.html#ac40bd5673e132c31a21ee742dee30696',1,'mrcontact_t']]],
