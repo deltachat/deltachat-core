@@ -2179,6 +2179,7 @@ HIDE_UNDOC_RELATIONS   = YES
 # The default value is: YES.
 
 ######################################################
+# not very useful at the moment. we have no complicated hierarchy.
 HAVE_DOT               = NO
 ######################################################
 
