@@ -38,19 +38,39 @@ typedef struct mrparam_t   mrparam_t;
  */
 typedef struct mrchat_t
 {
-	#define         MR_CHAT_ID_DEADDROP         1 /* messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally. */
+	/**
+	 * Chat ID under which the chat is filed in the database.
+	 *
+	 * Special IDs:
+	 * - MR_CHAT_ID_DEADDROP         (1) - Messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally.
+	 * - MR_CHAT_ID_STARRED          (5) - Virtual chat containing all starred messages-
+	 * - MR_CHAT_ID_ARCHIVED_LINK    (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-
+	 *
+	 * "Normal" chat IDs are larger than these special IDs (larger than MR_CHAT_ID_LAST_SPECIAL).
+	 */
+	uint32_t        m_id;
+	#define         MR_CHAT_ID_DEADDROP         1
 	#define         MR_CHAT_ID_TO_DEADDROP      2 /* messages send from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the email-program) */
 	#define         MR_CHAT_ID_TRASH            3 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again) */
 	#define         MR_CHAT_ID_MSGS_IN_CREATION 4 /* a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be send and shown) */
-	#define         MR_CHAT_ID_STARRED          5 /* virtual chat containing all starred messages */
-	#define         MR_CHAT_ID_ARCHIVED_LINK    6 /* a link at the end of the chatlist, if present the UI should show the button "Archived chats" */
+	#define         MR_CHAT_ID_STARRED          5
+	#define         MR_CHAT_ID_ARCHIVED_LINK    6
 	#define         MR_CHAT_ID_LAST_SPECIAL     9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
-	uint32_t        m_id;                         /**< Chat ID under which this object is available in the database. */
 
+
+	/**
+	 * Chat type.
+	 *
+	 * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is not added.
+	 * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF
+	 *
+	 * If the chat type is not set, it is MR_CHAT_TYPE_UNDEFINED (0).
+	 */
+	int             m_type;
 	#define         MR_CHAT_TYPE_UNDEFINED      0
-	#define         MR_CHAT_TYPE_NORMAL       100 /* a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF is not added. */
-	#define         MR_CHAT_TYPE_GROUP        120 /* a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF */
-	int             m_type;                       /**< Chat type, one of the MR_CHAT_TYPE_* constants. */
+	#define         MR_CHAT_TYPE_NORMAL       100
+	#define         MR_CHAT_TYPE_GROUP        120
+
 
 	char*           m_name;                       /**< NULL if unset */
 	time_t          m_draft_timestamp;            /**< 0 if there is no draft */

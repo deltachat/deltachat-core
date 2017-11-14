@@ -49,7 +49,7 @@ extern "C" {
  * Passed to the callback given to mrmailbox_new().
  * This event should not be reported using a popup or something like that.
  * @param data1 0
- * @param data2 Info string
+ * @param data2 Warning string
  * @return 0
  */
 #define MR_EVENT_WARNING                  300
@@ -65,23 +65,44 @@ extern "C" {
 #define MR_EVENT_ERROR                    400
 
 
-/** one or more messages changed for some reasons in the database - added or
-removed.  For added messages: data1=chat_id, data2=msg_id */
+/**
+ * One or more messages changed for some reasons in the database. Messages may be added or
+ * removed.
+ *
+ * @param data1 chat_id for single added messages
+ * @param data2 msg_id for single added messages
+ * @return 0
+ */
 #define MR_EVENT_MSGS_CHANGED             2000
 
 
-/** For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send;
-data1=chat_id, data2=msg_id */
+/**
+ * There is a fresh message. Typically, the user will show an notification
+ * when receiving this message.
+ * @param data1 chat_id
+ * @param data2 msg_id
+ * @return 0
+ */
 #define MR_EVENT_INCOMING_MSG             2005
 
 
-/** a single message is send successfully (state changed from PENDING/SENDING to
-DELIVERED); data1=chat_id, data2=msg_id */
+/**
+ * A single message is send successfully (state changed from  MR_STATE_OUT_PENDING to
+ * MR_STATE_OUT_DELIVERED, see mrmsg_t::m_state).
+ * @param data1 chat_id
+ * @param data2 msg_id
+ * @return 0
+ */
 #define MR_EVENT_MSG_DELIVERED            2010
 
 
-/** a single message is read by the receiver (state changed from DELIVERED to
-READ); data1=chat_id, data2=msg_id */
+/**
+ * A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to
+ * MR_STATE_OUT_MDN_RCVD, see mrmsg_t::m_state).
+ * @param data1 chat_id
+ * @param data2 msg_id
+ * @return 0
+ */
 #define MR_EVENT_MSG_READ                 2015
 
 

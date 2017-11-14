@@ -37,10 +37,17 @@ typedef struct mrsqlite3_t mrsqlite3_t;
  */
 typedef struct mrcontact_t
 {
+	/**
+	 * The contact ID
+	 *
+	 * Special message IDs:
+	 * - MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by mrmailbox_set_config() using "addr".
+	 *
+	 * Normal contact IDs are larger than these special ones (larger than MR_CONTACT_ID_LAST_SPECIAL).
+	 */
+	uint32_t        m_id;
 	#define         MR_CONTACT_ID_SELF         1
-	#define         MR_CONTACT_ID_SYSTEM       2
 	#define         MR_CONTACT_ID_LAST_SPECIAL 9
-	uint32_t        m_id;       /**< The contact ID */
 
 	char*           m_name;     /**< may be NULL or empty, this name should not be spreaded as it may be "Daddy" and so on; initially set to m_authname */
 	char*           m_authname; /**< may be NULL or empty, this is the name authorized by the sender, only this name may be speaded to others, eg. in To:-lists; for displaying in the app, use m_name */
