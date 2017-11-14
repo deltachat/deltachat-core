@@ -109,19 +109,16 @@ Macros</h2></td></tr>
 <tr class="memdesc:a7088b24d6d49fee42d6b83360bf1fcca"><td class="mdescLeft">&#160;</td><td class="mdescRight">The user should show an error.  <a href="#a7088b24d6d49fee42d6b83360bf1fcca">More...</a><br /></td></tr>
 <tr class="separator:a7088b24d6d49fee42d6b83360bf1fcca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a17eaeb107cbab46c0d9271d0b5560fc8"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8">MR_EVENT_MSGS_CHANGED</a>&#160;&#160;&#160;2000</td></tr>
-<tr class="memdesc:a17eaeb107cbab46c0d9271d0b5560fc8"><td class="mdescLeft">&#160;</td><td class="mdescRight">one or more messages changed for some reasons in the database - added or removed.  <a href="#a17eaeb107cbab46c0d9271d0b5560fc8">More...</a><br /></td></tr>
+<tr class="memdesc:a17eaeb107cbab46c0d9271d0b5560fc8"><td class="mdescLeft">&#160;</td><td class="mdescRight">One or more messages changed for some reasons in the database.  <a href="#a17eaeb107cbab46c0d9271d0b5560fc8">More...</a><br /></td></tr>
 <tr class="separator:a17eaeb107cbab46c0d9271d0b5560fc8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a548525a9d4cc03cd240ca6dda4246ae8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a548525a9d4cc03cd240ca6dda4246ae8"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a548525a9d4cc03cd240ca6dda4246ae8">MR_EVENT_INCOMING_MSG</a>&#160;&#160;&#160;2005</td></tr>
-<tr class="memdesc:a548525a9d4cc03cd240ca6dda4246ae8"><td class="mdescLeft">&#160;</td><td class="mdescRight">For fresh messages from the INBOX, MR_EVENT_INCOMING_MSG is send; data1=chat_id, data2=msg_id. <br /></td></tr>
+<tr class="memitem:a548525a9d4cc03cd240ca6dda4246ae8"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a548525a9d4cc03cd240ca6dda4246ae8">MR_EVENT_INCOMING_MSG</a>&#160;&#160;&#160;2005</td></tr>
+<tr class="memdesc:a548525a9d4cc03cd240ca6dda4246ae8"><td class="mdescLeft">&#160;</td><td class="mdescRight">There is a fresh message.  <a href="#a548525a9d4cc03cd240ca6dda4246ae8">More...</a><br /></td></tr>
 <tr class="separator:a548525a9d4cc03cd240ca6dda4246ae8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a10c4a8b6fa9014e5725e3a1daadf301b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a10c4a8b6fa9014e5725e3a1daadf301b"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b">MR_EVENT_MSG_DELIVERED</a>&#160;&#160;&#160;2010</td></tr>
-<tr class="memdesc:a10c4a8b6fa9014e5725e3a1daadf301b"><td class="mdescLeft">&#160;</td><td class="mdescRight">a single message is send successfully (state changed from PENDING/SENDING to DELIVERED); data1=chat_id, data2=msg_id <br /></td></tr>
+<tr class="memitem:a10c4a8b6fa9014e5725e3a1daadf301b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b">MR_EVENT_MSG_DELIVERED</a>&#160;&#160;&#160;2010</td></tr>
+<tr class="memdesc:a10c4a8b6fa9014e5725e3a1daadf301b"><td class="mdescLeft">&#160;</td><td class="mdescRight">A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVERED, see <a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4" title="Message state. ">mrmsg_t::m_state</a>).  <a href="#a10c4a8b6fa9014e5725e3a1daadf301b">More...</a><br /></td></tr>
 <tr class="separator:a10c4a8b6fa9014e5725e3a1daadf301b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a080965cf1f3dd138999c56ec30580b58"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a080965cf1f3dd138999c56ec30580b58"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58">MR_EVENT_MSG_READ</a>&#160;&#160;&#160;2015</td></tr>
-<tr class="memdesc:a080965cf1f3dd138999c56ec30580b58"><td class="mdescLeft">&#160;</td><td class="mdescRight">a single message is read by the receiver (state changed from DELIVERED to READ); data1=chat_id, data2=msg_id <br /></td></tr>
+<tr class="memitem:a080965cf1f3dd138999c56ec30580b58"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58">MR_EVENT_MSG_READ</a>&#160;&#160;&#160;2015</td></tr>
+<tr class="memdesc:a080965cf1f3dd138999c56ec30580b58"><td class="mdescLeft">&#160;</td><td class="mdescRight">A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_MDN_RCVD, see <a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4" title="Message state. ">mrmsg_t::m_state</a>).  <a href="#a080965cf1f3dd138999c56ec30580b58">More...</a><br /></td></tr>
 <tr class="separator:a080965cf1f3dd138999c56ec30580b58"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5ac741b81ec97628f44795600c0e4d4c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5ac741b81ec97628f44795600c0e4d4c"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a5ac741b81ec97628f44795600c0e4d4c">MR_EVENT_CHAT_MODIFIED</a>&#160;&#160;&#160;2020</td></tr>
@@ -211,6 +208,28 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a548525a9d4cc03cd240ca6dda4246ae8"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MR_EVENT_INCOMING_MSG&#160;&#160;&#160;2005</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>There is a fresh message. </p>
+<p>Typically, the user will show an notification when receiving this message. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data1</td><td>chat_id </td></tr>
+    <tr><td class="paramname">data2</td><td>msg_id </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="abc46d188d1a1a25c92433aa05568e23b"></a>
 <div class="memitem">
 <div class="memproto">
@@ -233,6 +252,50 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a10c4a8b6fa9014e5725e3a1daadf301b"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MR_EVENT_MSG_DELIVERED&#160;&#160;&#160;2010</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVERED, see <a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4" title="Message state. ">mrmsg_t::m_state</a>). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data1</td><td>chat_id </td></tr>
+    <tr><td class="paramname">data2</td><td>msg_id </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a080965cf1f3dd138999c56ec30580b58"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MR_EVENT_MSG_READ&#160;&#160;&#160;2015</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_MDN_RCVD, see <a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4" title="Message state. ">mrmsg_t::m_state</a>). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data1</td><td>chat_id </td></tr>
+    <tr><td class="paramname">data2</td><td>msg_id </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a17eaeb107cbab46c0d9271d0b5560fc8"></a>
 <div class="memitem">
 <div class="memproto">
@@ -243,8 +306,16 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>one or more messages changed for some reasons in the database - added or removed. </p>
-<p>For added messages: data1=chat_id, data2=msg_id </p>
+<p>One or more messages changed for some reasons in the database. </p>
+<p>Messages may be added or removed.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">data1</td><td>chat_id for single added messages </td></tr>
+    <tr><td class="paramname">data2</td><td>msg_id for single added messages </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 </dd></dl>
 
 </div>
 </div>
@@ -262,7 +333,7 @@ Macros</h2></td></tr>
 <p>Passed to the callback given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. This event should not be reported using a popup or something like that. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">data1</td><td>0 </td></tr>
-    <tr><td class="paramname">data2</td><td>Info string </td></tr>
+    <tr><td class="paramname">data2</td><td>Warning string </td></tr>
   </table>
   </dd>
 </dl>

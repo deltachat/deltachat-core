@@ -118,9 +118,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:ab2ee31297c327e04ed14673adbd49716"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab2ee31297c327e04ed14673adbd49716"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716">m_id</a></td></tr>
-<tr class="memdesc:ab2ee31297c327e04ed14673adbd49716"><td class="mdescLeft">&#160;</td><td class="mdescRight">The contact ID. <br /></td></tr>
+<tr class="memitem:ab2ee31297c327e04ed14673adbd49716"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716">m_id</a></td></tr>
+<tr class="memdesc:ab2ee31297c327e04ed14673adbd49716"><td class="mdescLeft">&#160;</td><td class="mdescRight">The contact ID.  <a href="#ab2ee31297c327e04ed14673adbd49716">More...</a><br /></td></tr>
 <tr class="separator:ab2ee31297c327e04ed14673adbd49716"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48fba862b41f7da3b8c6193c0554654b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a48fba862b41f7da3b8c6193c0554654b"></a>
 char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#a48fba862b41f7da3b8c6193c0554654b">m_name</a></td></tr>
@@ -225,6 +224,24 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 <p>Blocked state. </p>
 <p>1=contact is blocked, 0=contact is not blocked. </p>
+
+</div>
+</div>
+<a class="anchor" id="ab2ee31297c327e04ed14673adbd49716"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrcontact_t::m_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The contact ID. </p>
+<p>Special message IDs:</p><ul>
+<li>MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by <a class="el" href="structmrmailbox__t.html#a19b3e9f5209bc326fc77f3944522e8ad" title="Configure the mailbox. ">mrmailbox_set_config()</a> using "addr".</li>
+</ul>
+<p>Normal contact IDs are larger than these special ones (larger than MR_CONTACT_ID_LAST_SPECIAL). </p>
 
 </div>
 </div>

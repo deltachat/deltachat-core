@@ -110,10 +110,10 @@ Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a1591431716413350eaffce0b588e4911"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a1591431716413350eaffce0b588e4911">m_id</a></td></tr>
-<tr class="memdesc:a1591431716413350eaffce0b588e4911"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chat ID under which this object is available in the database.  <a href="#a1591431716413350eaffce0b588e4911">More...</a><br /></td></tr>
+<tr class="memdesc:a1591431716413350eaffce0b588e4911"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chat ID under which the chat is filed in the database.  <a href="#a1591431716413350eaffce0b588e4911">More...</a><br /></td></tr>
 <tr class="separator:a1591431716413350eaffce0b588e4911"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a568c4e6fb9633ffe9a76428db16e0201"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a568c4e6fb9633ffe9a76428db16e0201">m_type</a></td></tr>
-<tr class="memdesc:a568c4e6fb9633ffe9a76428db16e0201"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chat type, one of the MR_CHAT_TYPE_* constants.  <a href="#a568c4e6fb9633ffe9a76428db16e0201">More...</a><br /></td></tr>
+<tr class="memdesc:a568c4e6fb9633ffe9a76428db16e0201"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chat type.  <a href="#a568c4e6fb9633ffe9a76428db16e0201">More...</a><br /></td></tr>
 <tr class="separator:a568c4e6fb9633ffe9a76428db16e0201"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abbd344d8d361a1a4d14bfc9b5dc57140"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abbd344d8d361a1a4d14bfc9b5dc57140"></a>
 char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140">m_name</a></td></tr>
@@ -245,7 +245,13 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Chat ID under which this object is available in the database. </p>
+<p>Chat ID under which the chat is filed in the database. </p>
+<p>Special IDs:</p><ul>
+<li>MR_CHAT_ID_DEADDROP (1) - Messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally.</li>
+<li>MR_CHAT_ID_STARRED (5) - Virtual chat containing all starred messages-</li>
+<li>MR_CHAT_ID_ARCHIVED_LINK (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-</li>
+</ul>
+<p>"Normal" chat IDs are larger than these special IDs (larger than MR_CHAT_ID_LAST_SPECIAL). </p>
 
 </div>
 </div>
@@ -259,7 +265,12 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Chat type, one of the MR_CHAT_TYPE_* constants. </p>
+<p>Chat type. </p>
+<ul>
+<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a>) is not added.</li>
+<li>MR_CHAT_TYPE_GROUP (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF</li>
+</ul>
+<p>If the chat type is not set, it is MR_CHAT_TYPE_UNDEFINED (0). </p>
 
 </div>
 </div>

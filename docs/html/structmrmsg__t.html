@@ -135,7 +135,7 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:a299981cb89b25ebaaedf7a8486a86ee6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contact ID of the sender.  <a href="#a299981cb89b25ebaaedf7a8486a86ee6">More...</a><br /></td></tr>
 <tr class="separator:a299981cb89b25ebaaedf7a8486a86ee6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad549fc02587ba284fda2bbecd162b16a"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ad549fc02587ba284fda2bbecd162b16a">m_to_id</a></td></tr>
-<tr class="memdesc:ad549fc02587ba284fda2bbecd162b16a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contact ID of the receiver, if appropriate.  <a href="#ad549fc02587ba284fda2bbecd162b16a">More...</a><br /></td></tr>
+<tr class="memdesc:ad549fc02587ba284fda2bbecd162b16a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contact ID of the recipient.  <a href="#ad549fc02587ba284fda2bbecd162b16a">More...</a><br /></td></tr>
 <tr class="separator:ad549fc02587ba284fda2bbecd162b16a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac19bdc40e452c8997dd58474a7be6880"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ac19bdc40e452c8997dd58474a7be6880">m_chat_id</a></td></tr>
 <tr class="memdesc:ac19bdc40e452c8997dd58474a7be6880"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chat ID the message belongs to.  <a href="#ac19bdc40e452c8997dd58474a7be6880">More...</a><br /></td></tr>
@@ -144,17 +144,17 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:aba09cb77cdabd1e2b2e6262d25388801"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unix time the message was sended or received.  <a href="#aba09cb77cdabd1e2b2e6262d25388801">More...</a><br /></td></tr>
 <tr class="separator:aba09cb77cdabd1e2b2e6262d25388801"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3896e269c90cbf0f563ab0848fb44c65"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a3896e269c90cbf0f563ab0848fb44c65">m_type</a></td></tr>
-<tr class="memdesc:a3896e269c90cbf0f563ab0848fb44c65"><td class="mdescLeft">&#160;</td><td class="mdescRight">Message type as one of the MR_MSG_* contstants.  <a href="#a3896e269c90cbf0f563ab0848fb44c65">More...</a><br /></td></tr>
+<tr class="memdesc:a3896e269c90cbf0f563ab0848fb44c65"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the message.  <a href="#a3896e269c90cbf0f563ab0848fb44c65">More...</a><br /></td></tr>
 <tr class="separator:a3896e269c90cbf0f563ab0848fb44c65"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca59d28054d3e15b4fe6ca74073d91f4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4">m_state</a></td></tr>
-<tr class="memdesc:aca59d28054d3e15b4fe6ca74073d91f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Message state as one of the MR_MSG_STATE_* contstants.  <a href="#aca59d28054d3e15b4fe6ca74073d91f4">More...</a><br /></td></tr>
+<tr class="memdesc:aca59d28054d3e15b4fe6ca74073d91f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Message state.  <a href="#aca59d28054d3e15b4fe6ca74073d91f4">More...</a><br /></td></tr>
 <tr class="separator:aca59d28054d3e15b4fe6ca74073d91f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae54dcd4036371597d7f8bbd75303527a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae54dcd4036371597d7f8bbd75303527a"></a>
 char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ae54dcd4036371597d7f8bbd75303527a">m_text</a></td></tr>
 <tr class="memdesc:ae54dcd4036371597d7f8bbd75303527a"><td class="mdescLeft">&#160;</td><td class="mdescRight">message text or NULL if unset <br /></td></tr>
 <tr class="separator:ae54dcd4036371597d7f8bbd75303527a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2c31ec5b23e35fbe3ae3896eece09453"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrparam__t.html">mrparam_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453">m_param</a></td></tr>
-<tr class="memdesc:a2c31ec5b23e35fbe3ae3896eece09453"><td class="mdescLeft">&#160;</td><td class="mdescRight">MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc.  <a href="#a2c31ec5b23e35fbe3ae3896eece09453">More...</a><br /></td></tr>
+<tr class="memdesc:a2c31ec5b23e35fbe3ae3896eece09453"><td class="mdescLeft">&#160;</td><td class="mdescRight">Additional paramter for the message.  <a href="#a2c31ec5b23e35fbe3ae3896eece09453">More...</a><br /></td></tr>
 <tr class="separator:a2c31ec5b23e35fbe3ae3896eece09453"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0570bbfc3add48dafb0ae70390b47adb"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a0570bbfc3add48dafb0ae70390b47adb">m_starred</a></td></tr>
 <tr class="memdesc:a0570bbfc3add48dafb0ae70390b47adb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starred-state of the message.  <a href="#a0570bbfc3add48dafb0ae70390b47adb">More...</a><br /></td></tr>
@@ -396,7 +396,7 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Chat ID the message belongs to. </p>
-<p>0=unset, 1=unknwon sender .. &gt;9=real chats </p>
+<p>0 if unset. See <a class="el" href="structmrchat__t.html#a1591431716413350eaffce0b588e4911" title="Chat ID under which the chat is filed in the database. ">mrchat_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get a chat object of type mrchat_t by a chat_id. ">mrmailbox_get_chat()</a> to load details about the chat. </p>
 
 </div>
 </div>
@@ -411,7 +411,7 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Contact ID of the sender. </p>
-<p>0=unset, 1=self .. &gt;9=real contacts </p>
+<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
 
 </div>
 </div>
@@ -426,6 +426,12 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Message ID. </p>
+<p>Special message IDs:</p>
+<ul>
+<li>MR_MSG_ID_MARKER1 (1) - any user-defined marker, see <a class="el" href="structmrmailbox__t.html#a5d3be6ed21d43cc93f250a1e7faf979b" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a></li>
+<li>MR_MSG_ID_DAYMARKER (9) - in a list, the next message is on a new day, useful to show headlines, see <a class="el" href="structmrmailbox__t.html#a5d3be6ed21d43cc93f250a1e7faf979b" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a></li>
+</ul>
+<p>Normal message IDs are larger than these special ones. </p>
 
 </div>
 </div>
@@ -454,8 +460,8 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. </p>
-<p>depends on the type, != NULL </p>
+<p>Additional paramter for the message. </p>
+<p>MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on <a class="el" href="structmrmsg__t.html#a3896e269c90cbf0f563ab0848fb44c65" title="Type of the message. ">m_type</a>. Never a NULL-pointer. </p>
 
 </div>
 </div>
@@ -484,7 +490,19 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Message state as one of the MR_MSG_STATE_* contstants. </p>
+<p>Message state. </p>
+<p>Incoming message states:</p><ul>
+<li>MR_STATE_IN_FRESH (10) - Incoming <em>fresh</em> message. Fresh messages are not noticed nor seen and are typically shown in notifications. Use <a class="el" href="structmrmailbox__t.html#adbdcde6475db0cfafd8aa127b5bd1bc1" title="Returns the message IDs of all fresh messages of any chat. ">mrmailbox_get_fresh_msgs()</a> to get all fresh messages.</li>
+<li>MR_STATE_IN_NOTICED (13) - Incoming <em>noticed</em> message. Eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs. Use <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a7150c575193d43e048689aa264c74c79" title="Mark all messages send by the given contact as noticed. ">mrmailbox_marknoticed_contact()</a> to mark messages as being noticed.</li>
+<li>MR_STATE_IN_SEEN (16) - Incoming message, really <em>seen</em> by the user. Marked as read on IMAP and MDN may be send. Use <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a> to mark messages as being seen.</li>
+</ul>
+<p>Outgoing message states:</p><ul>
+<li>MR_STATE_OUT_PENDING (20) - The user has send the "send" button but the message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).</li>
+<li>MR_STATE_OUT_ERROR (24) - <em>Unrecoverable</em> error (<em>recoverable</em> errors result in pending messages)</li>
+<li>MR_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state MR_STATE_OUT_ERROR if we get such a hint from the server. If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b" title="A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVE...">MR_EVENT_MSG_DELIVERED</a>.</li>
+<li>MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side) If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58" title="A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_M...">MR_EVENT_MSG_READ</a>.</li>
+</ul>
+<p>The state of just created message objects is MR_STATE_UNDEFINED (0). </p>
 
 </div>
 </div>
@@ -499,6 +517,7 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Unix time the message was sended or received. </p>
+<p>0 if unset. </p>
 
 </div>
 </div>
@@ -512,8 +531,8 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Contact ID of the receiver, if appropriate. </p>
-<p>0=unset, 1=self .. &gt;9=real contacts </p>
+<p>Contact ID of the recipient. </p>
+<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
 
 </div>
 </div>
@@ -527,7 +546,17 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Message type as one of the MR_MSG_* contstants. </p>
+<p>Type of the message. </p>
+<ul>
+<li>MR_MSG_TEXT (10)</li>
+<li>MR_MSG_IMAGE (20) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT</li>
+<li>MR_MSG_GIF (21) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT</li>
+<li>MR_MSG_AUDIO (40) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE, MRP_DURATION</li>
+<li>MR_MSG_VOICE (41) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE, MRP_DURATION</li>
+<li>MR_MSG_VIDEO (50) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION</li>
+<li>MR_MSG_FILE (60) - <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453" title="Additional paramter for the message. ">m_param</a> may contain MRP_FILE</li>
+</ul>
+<p>Undefined types are filed under MR_MSG_UNDEFINED (0). </p>
 
 </div>
 </div>
