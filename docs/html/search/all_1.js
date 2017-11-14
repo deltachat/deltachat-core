@@ -25,8 +25,6 @@ var searchData=
   ['m_5fto_5fid',['m_to_id',['../structmrmsg__t.html#ad549fc02587ba284fda2bbecd162b16a',1,'mrmsg_t']]],
   ['m_5ftype',['m_type',['../structmrchat__t.html#a568c4e6fb9633ffe9a76428db16e0201',1,'mrchat_t::m_type()'],['../structmrmsg__t.html#a3896e269c90cbf0f563ab0848fb44c65',1,'mrmsg_t::m_type()']]],
   ['m_5fuserdata',['m_userdata',['../structmrmailbox__t.html#a6c557153209e128b69301246dbf9e230',1,'mrmailbox_t']]],
-  ['mr_5ferr_5fnonetwork',['MR_ERR_NONETWORK',['../mrevent_8h.html#a8e9ffe02dccd563904a22f7e3649fcaa',1,'mrevent.h']]],
-  ['mr_5ferr_5fself_5fnot_5fin_5fgroup',['MR_ERR_SELF_NOT_IN_GROUP',['../mrevent_8h.html#a7ae155c521b9e661c4bae16333d84d7d',1,'mrevent.h']]],
   ['mr_5fevent_5fchat_5fmodified',['MR_EVENT_CHAT_MODIFIED',['../mrevent_8h.html#a5ac741b81ec97628f44795600c0e4d4c',1,'mrevent.h']]],
   ['mr_5fevent_5fconfigure_5fended',['MR_EVENT_CONFIGURE_ENDED',['../mrevent_8h.html#a3be5f7ee95e6d0a8066e7a839f38c30f',1,'mrevent.h']]],
   ['mr_5fevent_5fconfigure_5fprogress',['MR_EVENT_CONFIGURE_PROGRESS',['../mrevent_8h.html#abb0881d4c7c887b8f371cedc471846b5',1,'mrevent.h']]],
