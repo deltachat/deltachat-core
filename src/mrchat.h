@@ -32,7 +32,7 @@ typedef struct mrparam_t   mrparam_t;
 
 
 /**
- * Create and access chat objects. Chat objects are created using eg. mrmailbox_get_chat() and
+ * An object representing a single chat in memory. Chat objects are created using eg. mrmailbox_get_chat() and
  * are not updated on database changes;  if you want an update, you have to recreate the
  * object.
  */
@@ -64,8 +64,17 @@ typedef struct mrchat_t
 } mrchat_t;
 
 
+mrchat_t*       mrchat_new                  (mrmailbox_t*);
+void            mrchat_empty                (mrchat_t*);
 void            mrchat_unref                (mrchat_t*);
 char*           mrchat_get_subtitle         (mrchat_t*);
+
+/* library-internal */
+int             mrchat_load_from_db__       (mrchat_t*, uint32_t id);
+int             mrchat_update_param__       (mrchat_t*);
+
+#define         MR_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
+#define         MR_CHATS_FOLDER             "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */
 
 
 #ifdef __cplusplus

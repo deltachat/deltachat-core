@@ -842,7 +842,7 @@ cleanup:
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
  *
- * @param dir Directory to search backups in.
+ * @param dir_name Directory to search backups in.
  *
  * @return String with the backup file or NULL; returned strings must be free()'d.
  */
@@ -1146,6 +1146,18 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const ch
 }
 
 
+/**
+ * Check if the user is authorized by the given password in some way.
+ * This is to promt for the password eg. before exporting keys/backup.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox Mailbox object as created by mrmailbox_new().
+ *
+ * @param test_pw Password to check.
+ *
+ * @return 1=user is authorized, 0=user is not authorized.
+ */
 int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
 {
 	/* Check if the given password matches the configured mail_pw.
@@ -1188,9 +1200,11 @@ cleanup:
  *
  * The created "Autocrypt Level 1" setup code has the following form:
  *
- *     1234-1234-1234-
- *     1234-1234-1234-
- *     1234-1234-1234
+ * ```
+ * 1234-1234-1234-
+ * 1234-1234-1234-
+ * 1234-1234-1234
+ * ```
  *
  * Linebreaks and spaces are not added to the setup code, but the "-" are.
  * Should be given to  mrmailbox_imex() for encryption, should be wiped and free()'d after usage.
