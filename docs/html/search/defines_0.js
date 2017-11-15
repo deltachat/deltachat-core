@@ -1,7 +1,6 @@
 var searchData=
 [
   ['mr_5fevent_5fchat_5fmodified',['MR_EVENT_CHAT_MODIFIED',['../mrevent_8h.html#a5ac741b81ec97628f44795600c0e4d4c',1,'mrevent.h']]],
-  ['mr_5fevent_5fconfigure_5fended',['MR_EVENT_CONFIGURE_ENDED',['../mrevent_8h.html#a3be5f7ee95e6d0a8066e7a839f38c30f',1,'mrevent.h']]],
   ['mr_5fevent_5fconfigure_5fprogress',['MR_EVENT_CONFIGURE_PROGRESS',['../mrevent_8h.html#abb0881d4c7c887b8f371cedc471846b5',1,'mrevent.h']]],
   ['mr_5fevent_5fcontacts_5fchanged',['MR_EVENT_CONTACTS_CHANGED',['../mrevent_8h.html#ad50b3a76349834631dc26b6c9557be8f',1,'mrevent.h']]],
   ['mr_5fevent_5ferror',['MR_EVENT_ERROR',['../mrevent_8h.html#a7088b24d6d49fee42d6b83360bf1fcca',1,'mrevent.h']]],

@@ -20,7 +20,7 @@ var searchData=
   ['mrmailbox_5fblock_5fcontact',['mrmailbox_block_contact',['../structmrmailbox__t.html#abb069358386b767a60444651195e0895',1,'mrmailbox_t']]],
   ['mrmailbox_5fcheck_5fpassword',['mrmailbox_check_password',['../structmrmailbox__t.html#a3b55fcb1a91c616f032e160914406ed2',1,'mrmailbox_t']]],
   ['mrmailbox_5fclose',['mrmailbox_close',['../structmrmailbox__t.html#a75011d103515e088e950a64d0706ec86',1,'mrmailbox_t']]],
-  ['mrmailbox_5fconfigure_5fand_5fconnect',['mrmailbox_configure_and_connect',['../structmrmailbox__t.html#af204aadf66e8adf5403987c5dcf85387',1,'mrmailbox_t']]],
+  ['mrmailbox_5fconfigure_5fand_5fconnect',['mrmailbox_configure_and_connect',['../structmrmailbox__t.html#a42ca741cc08785585f1dc74d515be5ef',1,'mrmailbox_t']]],
   ['mrmailbox_5fconfigure_5fcancel',['mrmailbox_configure_cancel',['../structmrmailbox__t.html#a8127c0e3f4cfda14fdfd7be9f43715ef',1,'mrmailbox_t']]],
   ['mrmailbox_5fconnect',['mrmailbox_connect',['../structmrmailbox__t.html#a67eef5ffc3369b8ad09326471b0a266f',1,'mrmailbox_t']]],
   ['mrmailbox_5fcreate_5fchat_5fby_5fcontact_5fid',['mrmailbox_create_chat_by_contact_id',['../structmrmailbox__t.html#a1386ec2c091b936b65b25b50a302173d',1,'mrmailbox_t']]],
