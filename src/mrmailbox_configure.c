@@ -693,9 +693,13 @@ cleanup:
  * After that, mrmailbox_configure_cancel() returns _without_ waiting
  * for mrmailbox_configure_and_connect() to return.
  *
- * mrmailbox_configure_and_connect() will return ASAP then, however, it may still take a moment.
- * If in doubt, the caller may also decide the kill the thread after a few seconds; eg. the configuration process may hang
- * in a function not under the control of the core (eg. #MR_EVENT_HTTP_GET)
+ * mrmailbox_configure_and_connect() will return ASAP then, however, it may
+ * still take a moment.  If in doubt, the caller may also decide the kill the
+ * thread after a few seconds; eg. the configuration process may hang in a
+ * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
+ * reason for mrmailbox_configure_cancel() not to wait is that otherwise it
+ * would be GUI-blocking and should be started in another thread then; this
+ * would make things even more complicated.
  *
  * @memberof mrmailbox_t
  *
