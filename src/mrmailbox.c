@@ -1679,9 +1679,7 @@ cleanup:
 
 
 /**
- * Get a chat object of type mrchat_t by a chat_id.
- * To access the mrchat_t object, see mrchat.h
- * The result must be unref'd using mrchat_unref().
+ * Get chat object by a chat ID.
  *
  * @memberof mrmailbox_t
  *
@@ -1689,7 +1687,7 @@ cleanup:
  *
  * @param chat_id The ID of the chat to get the chat object for.
  *
- * @return A chat object, must be freed using mrchat_unref() when done.
+ * @return A chat object of the type mrchat_t, must be freed using mrchat_unref() when done.
  */
 mrchat_t* mrmailbox_get_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 {
