@@ -171,9 +171,18 @@ services. data1=file name, data2=mime type */
 /* The following events are functions that should be provided by the frontends */
 
 
-/** check, if the system is online currently
-ret=0: not online, ret=1: online */
-#define MR_EVENT_IS_ONLINE                2080
+/**
+ * Ask the frontend about the offline state.
+ * This function may be provided by the frontend. If we already know, that we're
+ * offline, eg. there is no need to try to connect and things will speed up.
+ *
+ * @param data1 0
+ *
+ * @param data2 0
+ *
+ * @return 0=online, 1=offline
+ */
+#define MR_EVENT_IS_OFFLINE               2081
 
 
 /** get a string from the frontend, data1=MR_STR_*, ret=string which will be

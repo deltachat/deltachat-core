@@ -384,7 +384,7 @@ static void* configure_thread_entry_point(void* entry_arg)
 
 	PROGRESS(0)
 
-	if( mailbox->m_cb(mailbox, MR_EVENT_IS_ONLINE, 0, 0)!=1 ) {
+	if( mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
 		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
 		goto exit_;
 	}
