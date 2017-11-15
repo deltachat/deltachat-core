@@ -367,8 +367,13 @@ static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_config
  *
  * - Before your call this function, you should set at least `addr` and `mail_pw`
  *   using mrmailbox_set_config().
+ *
  * - mrmailbox_configure_and_connect() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
- *   to cancel the configuration progress, you can then use mrmailbox_configure_cancel()
+ *   to cancel the configuration progress, you can then use mrmailbox_configure_cancel().
+ *
+ * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
+ *   a progress bar or stuff like that.
+ *
  * - There is no need to call this every program start, the result is saved in the
  *   database.
  *
@@ -688,7 +693,7 @@ cleanup:
  * After that, mrmailbox_configure_cancel() returns _without_ waiting
  * for mrmailbox_configure_and_connect() to return.
  *
- * mrmailbox_configure_and_connect() will return ASAP then, however, it may still take a second.
+ * mrmailbox_configure_and_connect() will return ASAP then, however, it may still take a moment.
  * If in doubt, the caller may also decide the kill the thread after a few seconds; eg. the configuration process may hang
  * in a function not under the control of the core (eg. #MR_EVENT_HTTP_GET)
  *

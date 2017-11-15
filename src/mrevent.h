@@ -154,9 +154,8 @@ extern "C" {
 
 /**
  * Inform about the configuration progress started by mrmailbox_configure_and_connect().
- * As we want to get rid of the threads in the core, this event may be deleted.
  *
- * @param data1 permille
+ * @param data1 Permille
  *
  * @param data2 0
  *
