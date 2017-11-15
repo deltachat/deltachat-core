@@ -1603,17 +1603,6 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
 }
 
 
-/* restore old data from the IMAP server, not really implemented. */
-int mrmailbox_restore(mrmailbox_t* ths, time_t seconds_to_restore)
-{
-	if( ths == NULL ) {
-		return 0;
-	}
-
-	return mrimap_restore(ths->m_imap, seconds_to_restore);
-}
-
-
 /**
  * Stay alive.
  * The library tries itself to stay alive. For this purpose there is an additional

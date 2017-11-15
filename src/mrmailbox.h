@@ -235,7 +235,6 @@ int             mrmailbox_is_configured     (mrmailbox_t*);
 void            mrmailbox_connect           (mrmailbox_t*);
 void            mrmailbox_disconnect        (mrmailbox_t*);
 
-int             mrmailbox_restore           (mrmailbox_t*, time_t seconds_to_restore); /* not really implemented */
 char*           mrmailbox_get_info          (mrmailbox_t*);
 
 
