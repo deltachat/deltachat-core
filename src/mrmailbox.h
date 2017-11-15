@@ -64,8 +64,7 @@ extern "C" {
  * mrmailbox_configure_and_connect(mb);
  * ```
  *
- * If this works, you'll receive the event #MR_EVENT_CONFIGURE_ENDED with `data1` set to `1` -
- * and you can start sending your first message:
+ * After that, you can send your first message:
  *
  * ```
  * uint32_t contact_id = mrmailbox_create_contact(mb, "bob@delta.chat"); // use a real testing address here
@@ -229,7 +228,7 @@ int             mrmailbox_set_config_int    (mrmailbox_t*, const char* key, int3
 int32_t         mrmailbox_get_config_int    (mrmailbox_t*, const char* key, int32_t def);
 char*           mrmailbox_get_version_str   (void);
 
-void            mrmailbox_configure_and_connect(mrmailbox_t*);
+int             mrmailbox_configure_and_connect(mrmailbox_t*);
 void            mrmailbox_configure_cancel  (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 

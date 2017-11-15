@@ -153,19 +153,6 @@ extern "C" {
 
 
 /**
- * Configurartion enden.
- * You'll get this event from a call to mrmailbox_configure_and_connect()
- *
- * @param data1 0=failed-not-connected, 1=configured-and-connected
- *
- * @param data2 0
- *
- * @return 0
- */
-#define MR_EVENT_CONFIGURE_ENDED          2040
-
-
-/**
  * Inform about the configuration progress started by mrmailbox_configure_and_connect().
  * As we want to get rid of the threads in the core, this event may be deleted.
  *
