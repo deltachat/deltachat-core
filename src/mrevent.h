@@ -106,29 +106,60 @@ extern "C" {
 #define MR_EVENT_MSG_READ                 2015
 
 
-/** group name/image changed or members added/removed */
+/**
+ * Group name/image changed or members added/removed.
+ * @param data1 chat_id
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_CHAT_MODIFIED            2020
 
 
-/** contact(s) created, renamed, blocked or deleted */
+/**
+ * Contact(s) created, renamed, blocked or deleted.
+ * @param data1 0
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_CONTACTS_CHANGED         2030
 
 
-/** connection state changed,
-data1=0:failed-not-connected, 1:configured-and-connected */
+/**
+ * Configurartion enden.
+ * You'll get this event from a call to mrmailbox_configure_and_connect()
+ * @param data1 0=failed-not-connected, 1=configured-and-connected
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_CONFIGURE_ENDED          2040
 
 
-/** data1=percent */
+/**
+ * Inform about the configuration progress.
+ * As we want to get rid of the threads in the core, this event may be deleted.
+ * @param data1 permille
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_CONFIGURE_PROGRESS       2041
 
 
-/** mrmailbox_imex() done:
-data1=0:failed, 1=success */
+/**
+ * Import/export done. You'll get this event from a call to mrmailbox_imex().
+ * As we want to get rid of the threads in the core, this event may be deleted.
+ * @param data1 0:failed, 1=success
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_IMEX_ENDED               2050
 
 
-/** data1=permille */
+/**
+ * Inform about the import/export progress.
+ * @param data1 permille
+ * @param data2 0
+ * @return 0
+ */
 #define MR_EVENT_IMEX_PROGRESS            2051
 
 

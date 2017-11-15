@@ -158,7 +158,7 @@ typedef struct mrmimeparser_t mrmimeparser_t;
  *
  * @param mailbox the mailbox object as returned by mrmailbox_new().
  *
- * @param event one of the MR_EVENT_* constants
+ * @param event one of the MR_EVENT_* constants as defined in mrevent.h
  *
  * @param data1 depends on the event parameter
  *
