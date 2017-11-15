@@ -32,7 +32,6 @@ var searchData=
   ['mrmailbox_5fdelete_5fmsgs',['mrmailbox_delete_msgs',['../structmrmailbox__t.html#adf02bfc046577b46e1f0f5a31869890f',1,'mrmailbox_t']]],
   ['mrmailbox_5fdisconnect',['mrmailbox_disconnect',['../structmrmailbox__t.html#a7c7921ff7b7f2e10dc30522af980b785',1,'mrmailbox_t']]],
   ['mrmailbox_5fforward_5fmsgs',['mrmailbox_forward_msgs',['../structmrmailbox__t.html#ab316ed8a30c968085fa503e6c215e2f1',1,'mrmailbox_t']]],
-  ['mrmailbox_5fget_5fblobdir',['mrmailbox_get_blobdir',['../structmrmailbox__t.html#a011705ea76c8f9017b999eb009eec9ce',1,'mrmailbox_t']]],
   ['mrmailbox_5fget_5fblocked_5fcontacts',['mrmailbox_get_blocked_contacts',['../structmrmailbox__t.html#a87a210d5e359e3176b923d84a9cd625f',1,'mrmailbox_t']]],
   ['mrmailbox_5fget_5fblocked_5fcount',['mrmailbox_get_blocked_count',['../structmrmailbox__t.html#a6c749ad5736d9c34ff492015ea10a184',1,'mrmailbox_t']]],
   ['mrmailbox_5fget_5fchat',['mrmailbox_get_chat',['../structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096',1,'mrmailbox_t']]],
