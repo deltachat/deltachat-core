@@ -37,8 +37,11 @@ extern "C" {
  * The user may write an informational string to the log.
  * Passed to the callback given to mrmailbox_new().
  * This event should not be reported using a popup or something like that.
+ *
  * @param data1 0
+ *
  * @param data2 Info string
+ *
  * @return 0
  */
 #define MR_EVENT_INFO                     100
@@ -48,8 +51,11 @@ extern "C" {
  * The user should write an warning string to the log.
  * Passed to the callback given to mrmailbox_new().
  * This event should not be reported using a popup or something like that.
+ *
  * @param data1 0
+ *
  * @param data2 Warning string
+ *
  * @return 0
  */
 #define MR_EVENT_WARNING                  300
@@ -58,8 +64,11 @@ extern "C" {
 /**
  * The user should show an error.
  * The error must be reported to the user by a non-disturbing bubble or so.
+ *
  * @param data1 0
+ *
  * @param data2 Error string
+ *
  * @return 0
  */
 #define MR_EVENT_ERROR                    400
@@ -70,7 +79,9 @@ extern "C" {
  * removed.
  *
  * @param data1 chat_id for single added messages
+ *
  * @param data2 msg_id for single added messages
+ *
  * @return 0
  */
 #define MR_EVENT_MSGS_CHANGED             2000
@@ -79,8 +90,11 @@ extern "C" {
 /**
  * There is a fresh message. Typically, the user will show an notification
  * when receiving this message.
+ *
  * @param data1 chat_id
+ *
  * @param data2 msg_id
+ *
  * @return 0
  */
 #define MR_EVENT_INCOMING_MSG             2005
@@ -89,8 +103,11 @@ extern "C" {
 /**
  * A single message is send successfully (state changed from  MR_STATE_OUT_PENDING to
  * MR_STATE_OUT_DELIVERED, see mrmsg_t::m_state).
+ *
  * @param data1 chat_id
+ *
  * @param data2 msg_id
+ *
  * @return 0
  */
 #define MR_EVENT_MSG_DELIVERED            2010
@@ -99,8 +116,11 @@ extern "C" {
 /**
  * A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to
  * MR_STATE_OUT_MDN_RCVD, see mrmsg_t::m_state).
+ *
  * @param data1 chat_id
+ *
  * @param data2 msg_id
+ *
  * @return 0
  */
 #define MR_EVENT_MSG_READ                 2015
@@ -108,8 +128,11 @@ extern "C" {
 
 /**
  * Group name/image changed or members added/removed.
+ *
  * @param data1 chat_id
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_CHAT_MODIFIED            2020
@@ -117,8 +140,11 @@ extern "C" {
 
 /**
  * Contact(s) created, renamed, blocked or deleted.
+ *
  * @param data1 0
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_CONTACTS_CHANGED         2030
@@ -127,8 +153,11 @@ extern "C" {
 /**
  * Configurartion enden.
  * You'll get this event from a call to mrmailbox_configure_and_connect()
+ *
  * @param data1 0=failed-not-connected, 1=configured-and-connected
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_CONFIGURE_ENDED          2040
@@ -137,8 +166,11 @@ extern "C" {
 /**
  * Inform about the configuration progress.
  * As we want to get rid of the threads in the core, this event may be deleted.
+ *
  * @param data1 permille
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_CONFIGURE_PROGRESS       2041
@@ -147,8 +179,11 @@ extern "C" {
 /**
  * Import/export done. You'll get this event from a call to mrmailbox_imex().
  * As we want to get rid of the threads in the core, this event may be deleted.
+ *
  * @param data1 0:failed, 1=success
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_IMEX_ENDED               2050
@@ -156,19 +191,36 @@ extern "C" {
 
 /**
  * Inform about the import/export progress.
- * @param data1 permille
+ *
+ * @param data1 Permille
+ *
  * @param data2 0
+ *
  * @return 0
  */
 #define MR_EVENT_IMEX_PROGRESS            2051
 
 
-/** file written, event may be needed to make the file public to some system
-services. data1=file name, data2=mime type */
+/**
+ * A file has been exported. A file has been written by mrmailbox_imex().
+ * This event may be send multiple times by a single call to mrmailbox_imex();
+ * if the export is done, #MR_EVENT_IMEX_ENDED is sent.
+ *
+ * A typical purpose for a handler of this event may be to make the file public to some system
+ * services.
+ *
+ * @param data1 File name
+ *
+ * @param data2 0
+ *
+ * @return 0
+ */
 #define MR_EVENT_IMEX_FILE_WRITTEN        2052
 
 
-/* The following events are functions that should be provided by the frontends */
+/*******************************************************************************
+ * The following events are functions that should be provided by the frontends
+ ******************************************************************************/
 
 
 /**
