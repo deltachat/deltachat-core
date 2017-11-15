@@ -923,6 +923,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				ret = COMMAND_SUCCEEDED;
 			free(book);
 		}
+		else if( arg1 ) {
+			ret = mrmailbox_create_contact(mailbox, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
 		else {
 			ret = safe_strdup("ERROR: Arguments <name> <addr> expected.");
 		}
