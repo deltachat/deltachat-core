@@ -227,7 +227,6 @@ int             mrmailbox_set_config        (mrmailbox_t*, const char* key, cons
 char*           mrmailbox_get_config        (mrmailbox_t*, const char* key, const char* def);
 int             mrmailbox_set_config_int    (mrmailbox_t*, const char* key, int32_t value);
 int32_t         mrmailbox_get_config_int    (mrmailbox_t*, const char* key, int32_t def);
-char*           mrmailbox_get_blobdir       (mrmailbox_t*);
 char*           mrmailbox_get_version_str   (void);
 
 void            mrmailbox_configure_and_connect(mrmailbox_t*);

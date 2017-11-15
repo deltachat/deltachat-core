@@ -1266,21 +1266,6 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 
 
 /**
- * Get the blob directory.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox Mailbox object as returned by mrmailbox_new().
- *
- * @return String which must be free()'d after usage.
- */
-char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
-{
-	return safe_strdup(mailbox? mailbox->m_blobdir : NULL);
-}
-
-
-/**
  * Get information about the mailbox.  The information is returned by a multi-line string and contains information about the current
  * configuration and the last log entries.
  *
