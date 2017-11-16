@@ -2341,6 +2341,8 @@ cleanup:
 /**
  * Save a draft for a chat.
  *
+ * To get the draft for a given chat ID, use mrchat_t::m_draft_text
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
@@ -2621,6 +2623,8 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  * end of the chatlist.
  *
  * To get a list of archived chats, use mrmailbox_get_chatlist() with the flag MR_GCL_ARCHIVED_ONLY.
+ *
+ * To find out the archived state of a given chat, use mrchat_t::m_archived
  *
  * @memberof mrmailbox_t
  *
@@ -3296,7 +3300,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * Create a new group chat.
  *
  * After creation, the groups has one member with the
- * ID MR_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
+ * ID [MR_CONTACT_ID_SELF](@ref mrcontact_t::m_id) and is in _unpromoted_ state.  This means, you can
  * add or remove members, change the name, the group image and so on without
  * messages being send to all group members.
  *
@@ -3310,6 +3314,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  *
  * @param chat_name The name of the group chat to create.
  *     The name may be changed later using mrmailbox_set_chat_name().
+ *     To find out the name of a group later, see mrchat_t::m_name
  *
  * @return The chat ID of the new group chat, 0 on errors.
  */

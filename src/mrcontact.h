@@ -38,7 +38,7 @@ typedef struct mrsqlite3_t mrsqlite3_t;
 typedef struct mrcontact_t
 {
 	/**
-	 * The contact ID
+	 * The contact ID.
 	 *
 	 * Special message IDs:
 	 * - MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by mrmailbox_set_config() using "addr".

@@ -444,6 +444,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <p>Archive or unarchive a chat. </p>
 <p>Archived chats are not included in the default chatlist returned by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>. Instead, if there are <em>any</em> archived chats, the pseudo-chat with the chat_id MR_CHAT_ID_ARCHIVED_LINK will be added the the end of the chatlist.</p>
 <p>To get a list of archived chats, use <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a> with the flag MR_GCL_ARCHIVED_ONLY.</p>
+<p>To find out the archived state of a given chat, use <a class="el" href="structmrchat__t.html#a5b28b343ceb290d4a613d0e5a7d528bc" title="Flag for the archived state. ">mrchat_t::m_archived</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -752,12 +753,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Create a new group chat. </p>
-<p>After creation, the groups has one member with the ID MR_CONTACT_ID_SELF and is in <em>unpromoted</em> state. This means, you can add or remove members, change the name, the group image and so on without messages being send to all group members.</p>
+<p>After creation, the groups has one member with the ID <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716">MR_CONTACT_ID_SELF</a> and is in <em>unpromoted</em> state. This means, you can add or remove members, change the name, the group image and so on without messages being send to all group members.</p>
 <p>This changes as soon as the first message is sent to the group members and the group becomes <em>promoted</em>. After that, all changes are synced with all group members by sending status message.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
-    <tr><td class="paramname">chat_name</td><td>The name of the group chat to create. The name may be changed later using <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1" title="Set group name. ">mrmailbox_set_chat_name()</a>.</td></tr>
+    <tr><td class="paramname">chat_name</td><td>The name of the group chat to create. The name may be changed later using <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1" title="Set group name. ">mrmailbox_set_chat_name()</a>. To find out the name of a group later, see <a class="el" href="structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140" title="Name of the chat. ">mrchat_t::m_name</a></td></tr>
   </table>
   </dd>
 </dl>
@@ -2558,6 +2559,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Save a draft for a chat. </p>
+<p>To get the draft for a given chat ID, use <a class="el" href="structmrchat__t.html#abe916f48ac83c2ca6476312eae084cfa" title="The draft text. ">mrchat_t::m_draft_text</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
