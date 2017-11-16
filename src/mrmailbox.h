@@ -47,7 +47,7 @@ extern "C" {
  * ```
  * #include <mrmailbox.h>
  *
- * uintptr_t my_delta_handler(mrmailbox_t* nb, int event, uintptr_t data1, uintptr_t data2)
+ * uintptr_t my_delta_handler(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
  * {
  *     return 0; // for unhandled events, it is always safe to return 0
  * }
@@ -56,32 +56,36 @@ extern "C" {
  * After that, you can create and configure a mrmailbox_t object easily as follows:
  *
  * ```
- * mrmailbox_t* mb = mrmailbox_new(my_delta_handler, NULL, NULL);
+ * mrmailbox_t* mailbox = mrmailbox_new(my_delta_handler, NULL, NULL);
  *
- * mrmailbox_set_config(mb, "addr",    "alice@delta.chat"); // use some real test credentials here
- * mrmailbox_set_config(mb, "mail_pw", "***");
+ * mrmailbox_set_config(mailbox, "addr",    "alice@delta.chat"); // use some real test credentials here
+ * mrmailbox_set_config(mailbox, "mail_pw", "***");
  *
- * mrmailbox_configure_and_connect(mb);
+ * mrmailbox_configure_and_connect(mailbox);
  * ```
  *
- * After that, you can send your first message:
+ * mrmailbox_configure_and_connect() may take a while and saves the result in
+ * the database. On subsequent starts, you can call mrmailbox_connect() instead
+ * if mrmailbox_is_configured() returns true.
+ *
+ * However, now you can send your first message:
  *
  * ```
- * uint32_t contact_id = mrmailbox_create_contact(mb, "bob@delta.chat"); // use a real testing address here
- * uint32_t chat_id    = mrmailbox_create_chat_by_contact_id(mb, contact_id);
+ * uint32_t contact_id = mrmailbox_create_contact(mailbox, "bob@delta.chat"); // use a real testing address here
+ * uint32_t chat_id    = mrmailbox_create_chat_by_contact_id(mailbox, contact_id);
  *
- * mrmailbox_send_text_msg(mb, chat_id, "Hi, here is my first message!");
+ * mrmailbox_send_text_msg(mailbox, chat_id, "Hi, here is my first message!");
  * ```
  *
  * Now, go to the testing address (bob) and you should have received a normal email.
  * Answer this email in any email program with "Got it!" and you will get the message from delta as follows:
  *
  * ```
- * carray* msglist = mrmailbox_get_chat_msgs(mb, chat_id, 0, 0);
+ * carray* msglist = mrmailbox_get_chat_msgs(mailbox, chat_id, 0, 0);
  * for( size_t i = 0; i < carray_count(msglist); i++ )
  * {
  *     uint32_t msg_id = carray_get_uint32(msglist, i);
- *     mrmsg_t* msg    = mrmailbox_get_msg(mb, msg_id);
+ *     mrmsg_t* msg    = mrmailbox_get_msg(mailbox, msg_id);
  *
  *     printf("message %i: %s\n", i+1, msg->m_text);
  * }

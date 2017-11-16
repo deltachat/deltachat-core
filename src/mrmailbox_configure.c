@@ -374,15 +374,25 @@ static int       s_configure_do_exit = 1; /* the value 1 avoids mrmailbox_config
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
  *
- * - There is no need to call this every program start, the result is saved in the
- *   database.
- *
  * @memberof mrmailbox_t
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
  *
  * @return 1=configured and connected,
  *     0=not configured, not explicitly connected, however, an existing connection may still be present
+ *
+ * There is no need to call this every program start, the result is saved in the
+ * database. Instead, you can use mrmailbox_connect() which reuses the configuration
+ * and is much faster:
+ *
+ * ```
+ * if( mrmailbox_is_configured(mailbox) ) {
+ *     mrmailbox_connect(mailbox); // fast, reuse the configuration
+ * }
+ * else {
+ *     mrmailbox_configure_and_connect(mailbox); // may take a while, typically started in a thread
+ * }
+ * ```
  */
 int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 {
@@ -726,14 +736,17 @@ void mrmailbox_configure_cancel(mrmailbox_t* mailbox)
 
 
 /**
- * Check if the mailbox is already configured.  Typically, for unconfigured mailboxes, the user is prompeted for
- * to enter some settings and mrmailbox_configure_and_connect() is called with them.
+ * Check if the mailbox is already configured.
+ *
+ * Typically, for unconfigured mailboxes, the user is prompeted for
+ * to enter some settings and mrmailbox_configure_and_connect() is called in a thread then.
  *
  * @memberof mrmailbox_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new()
+ * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @return None
+ * @return 1=mailbox is configured and mrmailbox_connect() can be called directly as needed,
+ *     0=mailbox is not configured and a configuration by mrmailbox_configure_and_connect() is required.
  */
 int mrmailbox_is_configured(mrmailbox_t* mailbox)
 {
