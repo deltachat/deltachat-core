@@ -226,7 +226,9 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Flag for the archived state. </p>
-<p>1=chat archived, 0=chat not archived.</p>
+<p>0=normal chat, not archived, not sticky.</p>
+<p>1=chat archived</p>
+<p>2=chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)</p>
 <p>To archive or unarchive chats, use <a class="el" href="structmrmailbox__t.html#a8e04e43dacbe3128afd71e1d6c1b0911" title="Archive or unarchive a chat. ">mrmailbox_archive_chat()</a>. If chats are archived, this should be shown in the UI by a little icon or text, eg. the search will also return archived chats. </p>
 
 </div>

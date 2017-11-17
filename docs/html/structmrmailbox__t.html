@@ -355,7 +355,8 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Add a number of contacts. </p>
-<p>The contacts must be added as</p>
+<p>Typically used to add the whole address book from the OS. As names here are typically not well formatted, we call <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> for each name given.</p>
+<p>To add a single contact entered by the user, you should prefer <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -449,7 +450,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
     <tr><td class="paramname">chat_id</td><td>The ID of the chat to archive or unarchive.</td></tr>
-    <tr><td class="paramname">archive</td><td>1=archive chat, 0=unarchive chat</td></tr>
+    <tr><td class="paramname">archive</td><td>1=archive chat, 0=unarchive chat, all other values are reserved for future use</td></tr>
   </table>
   </dd>
 </dl>
@@ -715,11 +716,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Add a single contact. </p>
-<p>and return the ID.</p>
+<p>We assume, the contact name, if any, is entered by the user and is used "as is" therefore, <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> is <em>not</em> called for the name.</p>
+<p>To add a number of contacts, see <a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6" title="Add a number of contacts. ">mrmailbox_add_address_book()</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
-    <tr><td class="paramname">name</td><td>Name of the contact to add.</td></tr>
+    <tr><td class="paramname">name</td><td>Name of the contact to add. If you do not know the name belonging to the address, you can give NULL here.</td></tr>
     <tr><td class="paramname">addr</td><td>E-mail-address of the contact to add. If the email address already exists, the name is updated and the origin is increased to "manually created".</td></tr>
   </table>
   </dd>
