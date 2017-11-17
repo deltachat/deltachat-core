@@ -2632,7 +2632,7 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  *
  * @param chat_id The ID of the chat to archive or unarchive.
  *
- * @param archive 1=archive chat, 0=unarchive chat
+ * @param archive 1=archive chat, 0=unarchive chat, all other values are reserved for future use
  *
  * @return None
  */

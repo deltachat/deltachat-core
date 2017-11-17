@@ -113,7 +113,11 @@ typedef struct mrchat_t
 	/**
 	 * Flag for the archived state.
 	 *
-	 * 1=chat archived, 0=chat not archived.
+	 * 0=normal chat, not archived, not sticky.
+	 *
+	 * 1=chat archived
+	 *
+	 * 2=chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)
 	 *
 	 * To archive or unarchive chats, use mrmailbox_archive_chat().
 	 * If chats are archived, this should be shown in the UI by a little icon or text,
