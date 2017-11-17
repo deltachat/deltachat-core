@@ -3956,13 +3956,19 @@ cleanup:
 
 
 /**
- * Add a single contact. and return the ID.
+ * Add a single contact.
+ *
+ * We assume, the contact name, if any, is entered by the user and is used "as is" therefore,
+ * mrcontact_normalize_name() is _not_ called for the name.
+ *
+ * To add a number of contacts, see mrmailbox_add_address_book()
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @param name Name of the contact to add.
+ * @param name Name of the contact to add. If you do not know the name belonging
+ *     to the address, you can give NULL here.
  *
  * @param addr E-mail-address of the contact to add. If the email address
  *     already exists, the name is updated and the origin is increased to
@@ -3992,8 +3998,12 @@ cleanup:
 
 
 /**
- * Add a number of contacts. The contacts must be added as
+ * Add a number of contacts.
  *
+ * Typically used to add the whole address book from the OS. As names here are typically not
+ * well formatted, we call mrcontact_normalize_name() for each name given.
+ *
+ * To add a single contact entered by the user, you should prefer mrmailbox_create_contact()
  *
  * @memberof mrmailbox_t
  *

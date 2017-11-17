@@ -71,7 +71,7 @@ extern "C" {
  * However, now you can send your first message:
  *
  * ```
- * uint32_t contact_id = mrmailbox_create_contact(mailbox, "bob@delta.chat"); // use a real testing address here
+ * uint32_t contact_id = mrmailbox_create_contact(mailbox, NULL, "bob@delta.chat"); // use a real testing address here
  * uint32_t chat_id    = mrmailbox_create_chat_by_contact_id(mailbox, contact_id);
  *
  * mrmailbox_send_text_msg(mailbox, chat_id, "Hi, here is my first message!");
