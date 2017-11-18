@@ -2728,26 +2728,24 @@ cleanup:
 
 
 /**
- * Delete a chat:
+ * Delete a chat.
  *
- * - messages are deleted from the device and the chat database entry is deleted
+ * Messages are deleted from the device and the chat database entry is deleted.
+ * After that, the event #MR_EVENT_MSGS_CHANGED is posted.
  *
- * - messages are _not_ deleted from the server
+ * Things that are _not_ done implicitly:
  *
- * - the chat is not blocked, so new messages from the user/the group may appear
- *   and the user may create the chat again
+ * - Messages are **not deleted from the server**.
  *
- * - this is also one of the reasons, why groups are _not left_ -  this would
+ * - The chat or the contact is **not blocked**, so new messages from the user/the group may appear
+ *   and the user may create the chat again.
+ *
+ * - **Groups are not left** - this would
  *   be unexpected as deleting a normal chat also does not prevent new mails
- *
- * - moreover, there may be valid reasons only to leave a group and only to
- *   delete a group
- *
- * - another argument is, that leaving a group requires sending a message to
+ *   from arriving (another argument is, that leaving a group requires sending a message to
  *   all group members - esp. for groups not used for a longer time, this is
- *   really unexpected
- *
- * - to leave a chat, use mrmailbox_remove_contact_from_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)
+ *   really unexpected when deletion results in contacting all members again.
+ *   To leave a chat explicitly, use mrmailbox_remove_contact_from_chat() with chat_id=MR_CONTACT_ID_SELF)
  *
  * @memberof mrmailbox_t
  *

@@ -58,7 +58,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
  *
  * @memberof mrchat_t
  *
- * @param chat Chat object are returned eg. by mrmailbox_get_chat() or mrchat_new().
+ * @param chat Chat object are returned eg. by mrmailbox_get_chat().
  *
  * @return None.
  */
@@ -77,7 +77,7 @@ void mrchat_unref(mrchat_t* chat)
 /**
  * Empty a chat object.
  *
- * @memberof mrchat_t
+ * @private @memberof mrchat_t
  *
  * @param chat The chat object to empty.
  *

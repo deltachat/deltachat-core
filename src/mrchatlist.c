@@ -50,11 +50,11 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 
 
 /**
- * Free a mrchatlist_t object as created eg. by mrmailbox_get_chatlist().
+ * Free a chatlist object.
  *
  * @memberof mrchatlist_t
  *
- * @param chatlist The chatlist object to free.
+ * @param chatlist The chatlist object to free, created eg. by mrmailbox_get_chatlist().
  *
  * @return None.
  *
@@ -74,7 +74,7 @@ void mrchatlist_unref(mrchatlist_t* chatlist)
 /**
  * Empty a chatlist object.
  *
- * @memberof mrchatlist_t
+ * @private @memberof mrchatlist_t
  *
  * @param chatlist The chatlist object to empty.
  *
@@ -111,6 +111,8 @@ size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
 /**
  * Get a single chat ID of a chatlist.
  *
+ * To get the message object from the message ID, use mrmailbox_get_chat().
+ *
  * @memberof mrchatlist_t
  *
  * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
@@ -142,6 +144,8 @@ mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index) /* depre
 
 /**
  * Get a single message ID of a chatlist.
+ *
+ * To get the message object from the message ID, use mrmailbox_get_msg().
  *
  * @memberof mrchatlist_t
  *

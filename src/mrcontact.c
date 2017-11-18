@@ -26,8 +26,12 @@
 
 /**
  * Create a new contact object in memory.
+ * Typically the user does not call this function directly but gets contact
+ * objects using mrmailbox_get_contact().
  *
- * @memberof mrcontact_t
+ * @private @memberof mrcontact_t
+ *
+ * @return The contact object. Must be freed using mrcontact_unref() when done.
  */
 mrcontact_t* mrcontact_new()
 {
@@ -45,42 +49,52 @@ mrcontact_t* mrcontact_new()
  * Free a contact object.
  *
  * @memberof mrcontact_t
+ *
+ * @param contact The contact object as created eg. by mrmailbox_get_contact().
+ *
+ * @return None.
  */
-void mrcontact_unref(mrcontact_t* ths)
+void mrcontact_unref(mrcontact_t* contact)
 {
-	if( ths==NULL ) {
+	if( contact==NULL ) {
 		return;
 	}
 
-	mrcontact_empty(ths);
-	free(ths);
+	mrcontact_empty(contact);
+	free(contact);
 }
 
 
 /**
  * Empty a contact object.
+ * Typically not needed by the user of the library. To free a contact object,
+ * use mrcontact_unref().
  *
- * @memberof mrcontact_t
+ * @private @memberof mrcontact_t
+ *
+ * @param contact The contact object to free.
+ *
+ * @return None.
  */
-void mrcontact_empty(mrcontact_t* ths)
+void mrcontact_empty(mrcontact_t* contact)
 {
-	if( ths == NULL ) {
+	if( contact == NULL ) {
 		return;
 	}
 
-	ths->m_id = 0;
+	contact->m_id = 0;
 
-	free(ths->m_name); /* it is safe to call free(NULL) */
-	ths->m_name = NULL;
+	free(contact->m_name); /* it is safe to call free(NULL) */
+	contact->m_name = NULL;
 
-	free(ths->m_authname);
-	ths->m_authname = NULL;
+	free(contact->m_authname);
+	contact->m_authname = NULL;
 
-	free(ths->m_addr);
-	ths->m_addr = NULL;
+	free(contact->m_addr);
+	contact->m_addr = NULL;
 
-	ths->m_origin = 0;
-	ths->m_blocked = 0;
+	contact->m_origin = 0;
+	contact->m_blocked = 0;
 }
 
 

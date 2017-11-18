@@ -62,7 +62,7 @@ static char* find_param(char* ths, int key, char** ret_p2)
 /**
  * Create new parameter list object.
  *
- * @memberof mrparam_t
+ * @private @memberof mrparam_t
  *
  * @return The created parameter list object.
  */
@@ -83,7 +83,7 @@ mrparam_t* mrparam_new()
 /**
  * Free an parameter list object created eg. by mrparam_new().
  *
- * @memberof mrparam_t
+ * @private @memberof mrparam_t
  *
  * @param param The parameter list object to free.
  */
