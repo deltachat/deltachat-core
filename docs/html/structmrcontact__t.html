@@ -97,18 +97,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a11d19a7e25ce069131b9b6c629af440a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a11d19a7e25ce069131b9b6c629af440a"></a>
-<a class="el" href="structmrcontact__t.html">mrcontact_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#a11d19a7e25ce069131b9b6c629af440a">mrcontact_new</a> ()</td></tr>
-<tr class="memdesc:a11d19a7e25ce069131b9b6c629af440a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new contact object in memory. <br /></td></tr>
-<tr class="separator:a11d19a7e25ce069131b9b6c629af440a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acdff2696f48b1d5cdbc67a8466322b25"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acdff2696f48b1d5cdbc67a8466322b25"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#acdff2696f48b1d5cdbc67a8466322b25">mrcontact_unref</a> (<a class="el" href="structmrcontact__t.html">mrcontact_t</a> *ths)</td></tr>
-<tr class="memdesc:acdff2696f48b1d5cdbc67a8466322b25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a contact object. <br /></td></tr>
-<tr class="separator:acdff2696f48b1d5cdbc67a8466322b25"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac40bd5673e132c31a21ee742dee30696"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac40bd5673e132c31a21ee742dee30696"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#ac40bd5673e132c31a21ee742dee30696">mrcontact_empty</a> (<a class="el" href="structmrcontact__t.html">mrcontact_t</a> *ths)</td></tr>
-<tr class="memdesc:ac40bd5673e132c31a21ee742dee30696"><td class="mdescLeft">&#160;</td><td class="mdescRight">Empty a contact object. <br /></td></tr>
-<tr class="separator:ac40bd5673e132c31a21ee742dee30696"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38e17e55cd66f5e86a1dcb8d1f67797a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#a38e17e55cd66f5e86a1dcb8d1f67797a">mrcontact_unref</a> (<a class="el" href="structmrcontact__t.html">mrcontact_t</a> *contact)</td></tr>
+<tr class="memdesc:a38e17e55cd66f5e86a1dcb8d1f67797a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a contact object.  <a href="#a38e17e55cd66f5e86a1dcb8d1f67797a">More...</a><br /></td></tr>
+<tr class="separator:a38e17e55cd66f5e86a1dcb8d1f67797a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a804337f9c9e735a5429559b0fcb06121"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrcontact__t.html#a804337f9c9e735a5429559b0fcb06121">mrcontact_get_first_name</a> (const char *full_name)</td></tr>
 <tr class="memdesc:a804337f9c9e735a5429559b0fcb06121"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first name.  <a href="#a804337f9c9e735a5429559b0fcb06121">More...</a><br /></td></tr>
 <tr class="separator:a804337f9c9e735a5429559b0fcb06121"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -191,6 +182,31 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>None. But the given buffer may be modified. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a38e17e55cd66f5e86a1dcb8d1f67797a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrcontact_unref </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrcontact__t.html">mrcontact_t</a> *&#160;</td>
+          <td class="paramname"><em>contact</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free a contact object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">contact</td><td>The contact object as created eg. by <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
 
 </div>
 </div>

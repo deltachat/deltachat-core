@@ -100,9 +100,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a3b1befb4542c1bad915f2175c7c2a2b9">mrchat_unref</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
 <tr class="memdesc:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a chat object.  <a href="#a3b1befb4542c1bad915f2175c7c2a2b9">More...</a><br /></td></tr>
 <tr class="separator:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae5c507c3944e38afe7584d59d9ece3cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#ae5c507c3944e38afe7584d59d9ece3cc">mrchat_empty</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
-<tr class="memdesc:ae5c507c3944e38afe7584d59d9ece3cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Empty a chat object.  <a href="#ae5c507c3944e38afe7584d59d9ece3cc">More...</a><br /></td></tr>
-<tr class="separator:ae5c507c3944e38afe7584d59d9ece3cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#ae1e9920618c9f6cb8ad66d5bb6962a08">mrchat_get_subtitle</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
 <tr class="memdesc:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a subtitle for a chat.  <a href="#ae1e9920618c9f6cb8ad66d5bb6962a08">More...</a><br /></td></tr>
 <tr class="separator:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -138,31 +135,6 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>An object representing a single chat in memory. </p>
 <p>Chat objects are created using eg. <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a> and are not updated on database changes; if you want an update, you have to recreate the object. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="ae5c507c3944e38afe7584d59d9ece3cc"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrchat_empty </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
-          <td class="paramname"><em>chat</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Empty a chat object. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">chat</td><td>The chat object to empty.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
-
-</div>
-</div>
 <a class="anchor" id="ae1e9920618c9f6cb8ad66d5bb6962a08"></a>
 <div class="memitem">
 <div class="memproto">
@@ -206,7 +178,7 @@ Public Attributes</h2></td></tr>
 <p>Free a chat object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">chat</td><td>Chat object are returned eg. by <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a> or mrchat_new().</td></tr>
+    <tr><td class="paramname">chat</td><td>Chat object are returned eg. by <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a>.</td></tr>
   </table>
   </dd>
 </dl>
