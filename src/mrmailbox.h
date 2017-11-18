@@ -137,6 +137,7 @@ extern "C" {
  */
 
 
+#include <pthread.h>
 #include <libetpan/libetpan.h> /* defines uint16_t and carray */
 #include "mrchatlist.h"
 #include "mrchat.h"
