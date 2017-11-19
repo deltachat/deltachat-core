@@ -193,6 +193,34 @@ void stress_functions(mrmailbox_t* mailbox)
 		mr_replace_bad_utf8_chars(NULL); /* should do nothing */
 	}
 
+	/* test mrarray_t
+	 **************************************************************************/
+
+	{
+		#define TEST_CNT  1000
+		mrarray_t* arr = mrarray_new(NULL, 7);
+		assert( mrarray_get_cnt(arr) == 0 );
+
+		int i;
+		for( i = 0; i < TEST_CNT; i++ ) {
+			mrarray_add_id(arr, i+1*2);
+		}
+		assert( mrarray_get_cnt(arr) == TEST_CNT );
+		assert( arr->m_max >= arr->m_len );
+
+		for( i = 0; i< TEST_CNT; i++ ) {
+			assert( mrarray_get_id(arr, i) == i+1*2 );
+		}
+		assert( mrarray_get_id(arr, -1) == 0 ); /* test out-of-range access */
+		assert( mrarray_get_id(arr, TEST_CNT) == 0 ); /* test out-of-range access */
+		assert( mrarray_get_id(arr, TEST_CNT+1) == 0 ); /* test out-of-range access */
+
+		mrarray_empty(arr);
+		assert( mrarray_get_cnt(arr) == 0 );
+
+		mrarray_unref(arr);
+	}
+
 	/* test mrparam
 	 **************************************************************************/
 
