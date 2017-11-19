@@ -151,15 +151,20 @@ typedef struct mrmsg_t
 mrmsg_t*        mrmsg_new                   ();
 void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);
+
+void            mrmsg_set_type              (mrmsg_t*, int type);
+void            mrmsg_set_file              (mrmsg_t*, const char* file);
+void            mrmsg_set_text              (mrmsg_t*, const char* text);
+
 mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
 char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
 int             mrmsg_show_padlock          (mrmsg_t*);
-char*           mrmsg_get_fullpath          (mrmsg_t*);
+char*           mrmsg_get_file              (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
 int             mrmsg_is_increation         (mrmsg_t*);
 void            mrmsg_save_param_to_disk    (mrmsg_t*);
-void            mrmsg_set_text              (mrmsg_t*, const char* text);
+
 
 /* library-private */
 #define         MR_MSG_FIELDS                        " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.starred "

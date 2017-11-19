@@ -887,7 +887,7 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  *     - If not mentioned otherweise, the callback should return 0.
  *
  * @param userdata can be used by the client for any purpuse.  He finds it
- *     later in mrmailbox_get_userdata().
+ *     later in mrmailbox__t::m_userdata().
  *
  * @param os_name is only for decorative use and is shown eg. in the X-Mailer header
  *     in the form "Delta Chat <version> for <osName>"
@@ -1001,10 +1001,15 @@ static void update_config_cache__(mrmailbox_t* ths, const char* key)
  *
  * @param mailbox: the mailbox object as created by mrmailbox_new
  *
- * @param dbfile the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths
+ * @param dbfile the file to use to store the database, sth. like "~/file" won't
+ *     work on all systems, if in doubt, use absolute paths.
+ *     You can find the file path later in mrmailbox_t::m_dbfile
  *
- * @param blobdir a directory to store the blobs in, the trailing slash is added by us, so if you want to
- * avoid double slashes, do not add one. If you give NULL as blobdir, `dbfile-blobs` is used in the same directory as _dbfile_ will be created in.
+ * @param blobdir a directory to store the blobs in, the trailing slash is added
+ *     by us, so if you want to avoid double slashes, do not add one. If you
+ *     give NULL as blobdir, `dbfile-blobs` is used in the same directory as
+ *     _dbfile_ will be created in.
+ *     You can find the path to the blob direcrory later in mrmailbox_t::m_blobdir
  *
  * @return 1 on success, 0 on failure
  */
@@ -1099,7 +1104,7 @@ void mrmailbox_close(mrmailbox_t* mailbox)
 
 
 /**
- * Check if a given mailbox database is open.
+ * Check if the mailbox database is open.
  *
  * @memberof mrmailbox_t
  *
@@ -3104,13 +3109,16 @@ cleanup:
 
 
 /**
- * save message in database and send it, the given message object is not unref'd
- * by the function but some fields are set up!
+ * Send a message of any type to a chat. The given message object is not unref'd
+ * by the function but some fields are set up.
  *
  * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * To send a simple text message, you can also use mrmailbox_send_text_msg()
+ * which is easier to use.
  *
  * @memberof mrmailbox_t
  *
@@ -3123,6 +3131,22 @@ cleanup:
  *     free it using mrmsg_unref() as usual.
  *
  * @return The ID of the message that is about being sent.
+ *
+ * Examples:
+ *
+ * ```
+ * mrmsg_t* msg1 = mrmsg_new();
+ *    mrmsg_set_type(msg1, MR_MSG_TEXT);
+ *    mrmsg_set_text(msg1, "Hi there!");
+ *    mrmailbox_send_msg(mailbox, chat_id, msg1); // send a simple text message
+ * mrmsg_unref(msg1);
+ *
+ * mrmsg_t* msg2 = mrmsg_new();
+ *    mrmsg_set_type(msg2, MR_MSG_IMAGE);
+ *    mrmsg_set_file(msg2, "/path/to/image.jpg");
+ *    mrmailbox_send_msg(mailbox, chat_id, msg2); // send a simple text message
+ * mrmsg_unref(msg1);
+ * ```
  */
 uint32_t mrmailbox_send_msg(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
 {
@@ -4271,7 +4295,7 @@ void mrmailbox_marknoticed_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 /**
  * Block or unblock a contact.
  *
- * May result in a MR_EVENT_BLOCKING_CHANGED event.
+ * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof mrmailbox_t
  *
@@ -4362,9 +4386,9 @@ static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* f
 
 
 /**
- * Get encryption info.
+ * Get encryption info for a contact.
  * Get a multi-line encryption info, containing your fingerprint and the
- * fingerprint of the contact, used eg. to compare the fingerprints.
+ * fingerprint of the contact, used eg. to compare the fingerprints for a simple out-of-band verification.
  *
  * @memberof mrmailbox_t
  *
@@ -4847,7 +4871,7 @@ cleanup:
 
 
 /**
- * Forward a list of messages to another chat.
+ * Forward messages to another chat.
  *
  * @memberof mrmailbox_t
  *
@@ -5076,7 +5100,7 @@ cleanup:
 
 
 /**
- * Delete a list of messages. The messages are deleted on the current device and
+ * Delete messages. The messages are deleted on the current device and
  * on the IMAP server.
  *
  * @memberof mrmailbox_t

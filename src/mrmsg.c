@@ -62,6 +62,8 @@ mrmsg_t* mrmsg_new()
  * @memberof mrmsg_t
  *
  * @param msg The message object to free.
+ *
+ * @param None.
  */
 void mrmsg_unref(mrmsg_t* msg)
 {
@@ -102,6 +104,51 @@ void mrmsg_empty(mrmsg_t* msg)
 	mrparam_set_packed(msg->m_param, NULL);
 
 	msg->m_mailbox = NULL;
+}
+
+
+
+/**
+ * Set the type of a message.
+ * Possible types are MR_MSG_TEXT, MR_MSG_IMAGE, MR_MSG_GIF,MR_MSG_AUDIO,, MR_MSG_VOICE, MR_MSG_VIDEO or MR_MSG_FILE.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object to modify.
+ *
+ * @param type Type to set for the message.
+ *
+ * @return None.
+ */
+void mrmsg_set_type(mrmsg_t* msg, int type)
+{
+	if( msg == NULL ) {
+		return;
+	}
+
+	msg->m_type = type;
+}
+
+
+/**
+ * Set the file belonging to a message.
+ * The file may be an image, a video, an audio file, an PDF and so on.
+ * This function is a shortcut for mrparam_set(msg->m_param, MRP_FILE, file)
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object to modify.
+ *
+ * @param file Path, filename and extension to set for the given message.
+ *
+ * @return None.
+ */
+void mrmsg_set_file(mrmsg_t* msg, const char* file)
+{
+	if( msg == NULL ) {
+		return;
+	}
+	mrparam_set(msg->m_param, MRP_FILE, file);
 }
 
 
@@ -414,7 +461,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
  *     message.  If there is no file associated with the message, an emtpy
  *     string is returned.  The returned value must be free()'d.
  */
-char* mrmsg_get_fullpath(mrmsg_t* msg)
+char* mrmsg_get_file(mrmsg_t* msg)
 {
 	char* ret = NULL;
 
@@ -430,8 +477,8 @@ cleanup:
 
 
 /**
- * Find out the base file name and extension of the file associated with a
- * message.
+ * Get base file name without path. The base file name includes the extension; the path
+ * is not returned. To get the full path, use mrmsg_get_file().
  *
  * @param msg the message object
  *
