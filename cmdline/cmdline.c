@@ -185,12 +185,12 @@ cleanup:
 }
 
 
-static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
+static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 {
-	int i, cnt = carray_count(msglist), lines_out = 0;
+	int i, cnt = mrarray_get_cnt(msglist), lines_out = 0;
 	for( i = 0; i < cnt; i++ )
 	{
-		uint32_t msg_id = (uint32_t)(uintptr_t)carray_get(msglist, i);
+		uint32_t msg_id = mrarray_get_id(msglist, i);
 		if( msg_id == MR_MSG_ID_DAYMARKER ) {
 			mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
 		}
@@ -233,18 +233,18 @@ static void log_msglist(mrmailbox_t* mailbox, carray* msglist)
 }
 
 
-static void log_contactlist(mrmailbox_t* mailbox, carray* contacts)
+static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 {
-	int             i, cnt = carray_count(contacts);
+	int             i, cnt = mrarray_get_cnt(contacts);
 	mrcontact_t*    contact = mrcontact_new();
 	mrapeerstate_t* peerstate = mrapeerstate_new();
 
 	mrsqlite3_lock(mailbox->m_sql);
 		for( i = 0; i < cnt; i++ ) {
-			uint32_t contact_id = (uint32_t)(uintptr_t)carray_get(contacts, i);
+			uint32_t contact_id = mrarray_get_id(contacts, i);
 			char* line = NULL;
 			char* line2 = NULL;
-			if( mrcontact_load_from_db__(contact, mailbox->m_sql, (uint32_t)(uintptr_t)carray_get(contacts, i)) ) {
+			if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 				line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
 				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr) ) {
 					char* pe = NULL;
@@ -542,7 +542,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				mrmailbox_log_info(mailbox, 0, "================================================================================");
 				for( i = cnt-1; i >= 0; i-- )
 				{
-					mrchat_t* chat = mrchatlist_get_chat_by_index(chatlist, i);
+					mrchat_t* chat = mrmailbox_get_chat(mailbox, mrchatlist_get_chat_id(chatlist, i));
 					char *temp;
 
 					temp = mrchat_get_subtitle(chat);
@@ -600,13 +600,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 		/* show chat */
 		if( sel_chat ) {
-			carray* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
+			mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
 				mrmailbox_log_info(mailbox, 0, "Chat#%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
 			free(temp2);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
-				carray_free(msglist);
+				mrarray_unref(msglist);
 			}
 			if( sel_chat->m_draft_timestamp ) {
 				char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
@@ -693,11 +693,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "chatinfo")==0 )
 	{
 		if( sel_chat ) {
-			carray* contacts = mrmailbox_get_chat_contacts(mailbox, sel_chat->m_id);
+			mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, sel_chat->m_id);
 			if( contacts ) {
 				mrmailbox_log_info(mailbox, 0, "Memberlist:");
 				log_contactlist(mailbox, contacts);
-				ret = mr_mprintf("%i contacts.", (int)carray_count(contacts));
+				ret = mr_mprintf("%i contacts.", (int)mrarray_get_cnt(contacts));
 			}
 			else {
 				ret = COMMAND_FAILED;
@@ -752,11 +752,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmsgs")==0 )
 	{
 		if( arg1 ) {
-			carray* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
+			mrarray_t* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
-				ret = mr_mprintf("%i messages.", (int)carray_count(msglist));
-				carray_free(msglist);
+				ret = mr_mprintf("%i messages.", (int)mrarray_get_cnt(msglist));
+				mrarray_unref(msglist);
 			}
 		}
 		else {
@@ -782,15 +782,15 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmedia")==0 )
 	{
 		if( sel_chat ) {
-			carray* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
-			int i, icnt = carray_count(images);
+			mrarray_t* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
+			int i, icnt = mrarray_get_cnt(images);
 			ret = mr_mprintf("%i images or videos: ", icnt);
 			for( i = 0; i < icnt; i++ ) {
-				char* temp = mr_mprintf("%s%sMsg#%i", i? ", ":"", ret, (int)(uintptr_t)carray_get(images, i));
+				char* temp = mr_mprintf("%s%sMsg#%i", i? ", ":"", ret, (int)mrarray_get_id(images, i));
 				free(ret);
 				ret = temp;
 			}
-			carray_free(images);
+			mrarray_unref(images);
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
@@ -836,11 +836,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "listfresh")==0 )
 	{
-		carray* msglist = mrmailbox_get_fresh_msgs(mailbox);
+		mrarray_t* msglist = mrmailbox_get_fresh_msgs(mailbox);
 		if( msglist ) {
 			log_msglist(mailbox, msglist);
-			ret = mr_mprintf("%i fresh messages.", (int)carray_count(msglist));
-			carray_free(msglist);
+			ret = mr_mprintf("%i fresh messages.", (int)mrarray_get_cnt(msglist));
+			mrarray_unref(msglist);
 		}
 	}
 	else if( strcmp(cmd, "forward")==0 )
@@ -902,11 +902,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 )
 	{
-		carray* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
+		mrarray_t* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
 		if( contacts ) {
 			log_contactlist(mailbox, contacts);
-			ret = mr_mprintf("%i contacts.", (int)carray_count(contacts));
-			carray_free(contacts);
+			ret = mr_mprintf("%i contacts.", (int)mrarray_get_cnt(contacts));
+			mrarray_unref(contacts);
 		}
 		else {
 			ret = COMMAND_FAILED;

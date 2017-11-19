@@ -75,8 +75,7 @@ char* mrstrbuilder_cat  (mrstrbuilder_t* ths, const char* text);
 void  mrstrbuilder_empty(mrstrbuilder_t* ths); /* set the string to a lenght of 0, does not free the buffer */
 
 
-/* carray/clist tools */
-int     carray_search              (carray*, void* needle, unsigned int* indx); /* returns 1/0 and the index if `indx` is not NULL */
+/* clist tools */
 void    clist_free_content         (const clist*); /* calls free() for each item content */
 int     clist_search_string_nocase (const clist*, const char* str);
 
@@ -96,7 +95,7 @@ time_t mr_create_smeared_timestamps__(int count);
 #define MR_VALID_ID_LEN 11
 char* mr_create_id                         (void);
 char* mr_create_dummy_references_mid       (void);
-char* mr_create_incoming_rfc724_mid        (time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to);
+char* mr_create_incoming_rfc724_mid        (time_t message_timestamp, uint32_t contact_id_from, mrarray_t* contact_ids_to);
 char* mr_create_outgoing_rfc724_mid        (const char* grpid, const char* addr);
 char* mr_extract_grpid_from_rfc724_mid     (const char* rfc724_mid);
 char* mr_extract_grpid_from_rfc724_mid_list(const clist* rfc724_mid_list);

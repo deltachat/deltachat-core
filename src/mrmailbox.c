@@ -46,7 +46,7 @@
 
 
 static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_flags,
-                                        uint32_t from_id, carray* to_ids)
+                                        uint32_t from_id, mrarray_t* to_ids)
 {
 	/* search the grpid in the header */
 	uint32_t              chat_id = 0;
@@ -56,7 +56,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	const char*           grpid = NULL; /* must not be freed, just one of the others */
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
-	int                   i, to_ids_cnt = carray_count(to_ids);
+	int                   i, to_ids_cnt = mrarray_get_cnt(to_ids);
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
 	int                   send_EVENT_CHAT_MODIFIED = 0;
@@ -249,7 +249,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 		for( i = 0; i < to_ids_cnt; i++ )
 		{
-			uint32_t to_id = (uint32_t)(uintptr_t)carray_get(to_ids, i); /* to_id is only once in to_ids and is non-special */
+			uint32_t to_id = mrarray_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
 				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
@@ -296,7 +296,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              incoming_origin = MR_ORIGIN_UNSET;
 	#define          outgoing (!incoming)
 
-	carray*          to_ids = NULL;
+	mrarray_t*       to_ids = NULL;
 
 	uint32_t         from_id = 0;
 	int              from_id_blocked = 0;
@@ -325,7 +325,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 	mrmailbox_log_info(ths, 0, "Receive message #%lu from %s.", server_uid, server_folder? server_folder:"?");
 
-	to_ids = carray_new(16);
+	to_ids = mrarray_new(ths, 16);
 	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
 		mrmailbox_log_info(ths, 0, "Bad param.");
 		goto cleanup;
@@ -395,7 +395,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( fld_from )
 			{
 				int check_self;
-				carray* from_list = carray_new(16);
+				mrarray_t* from_list = mrarray_new(ths, 16);
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
@@ -405,13 +405,13 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 				else
 				{
-					if( carray_count(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
+					if( mrarray_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
-						from_id = (uint32_t)(uintptr_t)carray_get(from_list, 0);
+						from_id = mrarray_get_id(from_list, 0);
 						incoming_origin = mrmailbox_get_contact_origin__(ths, from_id, &from_id_blocked);
 					}
 				}
-				carray_free(from_list);
+				mrarray_unref(from_list);
 			}
 		}
 
@@ -542,8 +542,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			{
 				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
 				from_id = MR_CONTACT_ID_SELF;
-				if( carray_count(to_ids) >= 1 ) {
-					to_id   = (uint32_t)(uintptr_t)carray_get(to_ids, 0);
+				if( mrarray_get_cnt(to_ids) >= 1 ) {
+					to_id   = mrarray_get_id(to_ids, 0);
 
 					chat_id = lookup_group_by_grpid__(ths, mime_parser, MR_CREATE_GROUP_AS_NEEDED, from_id, to_ids);
 					if( chat_id == 0 )
@@ -812,7 +812,7 @@ cleanup:
 	}
 
 	if( to_ids ) {
-		carray_free(to_ids);
+		mrarray_unref(to_ids);
 	}
 
 	if( created_db_entries ) {
@@ -1842,9 +1842,9 @@ cleanup:
 }
 
 
-static carray* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+static mrarray_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	carray* ret = carray_new(100);
+	mrarray_t* ret = mrarray_new(mailbox, 100);
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
 		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
@@ -1852,7 +1852,7 @@ static carray* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id
 	sqlite3_bind_int(stmt, 2, msg_type);
 	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+		mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 	}
 
 	return ret;
@@ -1861,7 +1861,7 @@ static carray* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id
 
 /**
  * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be carray_free()'d
+ * a gallery.  The result must be mrarray_unref()'d
  *
  * @memberof mrmailbox_t
  *
@@ -1876,9 +1876,9 @@ static carray* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id
  *
  * @return An array with messages from the given chat ID that have the wanted message types.
  */
-carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	carray* ret = NULL;
+	mrarray_t* ret = NULL;
 
 	if( mailbox ) {
 		mrsqlite3_lock(mailbox->m_sql);
@@ -1892,7 +1892,7 @@ carray* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg
 
 /**
  * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be carray_free()'d
+ * a gallery.  The result must be mrarray_unref()'d
  *
  * @memberof mrmailbox_t
  *
@@ -1912,7 +1912,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 	uint32_t ret_msg_id = 0;
 	mrmsg_t* msg = mrmsg_new();
 	int      locked = 0;
-	carray*  list = NULL;
+	mrarray_t* list = NULL;
 	int      i, cnt;
 
 	if( mailbox == NULL ) {
@@ -1933,20 +1933,20 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	cnt = carray_count(list);
+	cnt = mrarray_get_cnt(list);
 	for( i = 0; i < cnt; i++ ) {
-		if( curr_msg_id == (uint32_t)(uintptr_t)carray_get(list, i) )
+		if( curr_msg_id == mrarray_get_id(list, i) )
 		{
 			if( dir > 0 ) {
 				/* get the next message from the current position */
 				if( i+1 < cnt ) {
-					ret_msg_id = (uint32_t)(uintptr_t)carray_get(list, i+1);
+					ret_msg_id = mrarray_get_id(list, i+1);
 				}
 			}
 			else if( dir < 0 ) {
 				/* get the previous message from the current position */
 				if( i-1 >= 0 ) {
-					ret_msg_id = (uint32_t)(uintptr_t)carray_get(list, i-1);
+					ret_msg_id = mrarray_get_id(list, i-1);
 				}
 			}
 			break;
@@ -1956,7 +1956,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( list ) { carray_free(list); }
+	if( list ) { mrarray_unref(list); }
 	mrmsg_unref(msg);
 	return ret_msg_id;
 }
@@ -1981,13 +1981,13 @@ cleanup:
  *
  * @param chat_id Chat ID to get the belonging contact IDs for.
  *
- * @return an array of contact IDs belonging to the chat; must be freed using carray_free() when done.
+ * @return an array of contact IDs belonging to the chat; must be freed using mrarray_unref() when done.
  */
-carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
+mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
-	carray*       ret = carray_new(100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -2013,7 +2013,7 @@ carray* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -2032,10 +2032,10 @@ cleanup:
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
  */
-carray* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
+mrarray_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 {
 	int           show_deaddrop, success = 0, locked = 0;
-	carray*       ret = carray_new(128);
+	mrarray_t*    ret = mrarray_new(mailbox, 128);
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox==NULL || ret == NULL ) {
@@ -2056,7 +2056,7 @@ carray* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 		sqlite3_bind_int(stmt, 1, show_deaddrop? 0 : MR_CHAT_ID_DEADDROP);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -2074,7 +2074,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			carray_free(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -2098,12 +2098,12 @@ cleanup:
  * @param marker1before An optional message ID.  If set, the id MR_MSG_ID_MARKER1 will be added just
  *   before the given ID in the returned array.  Set this to 0 if you do not want this behaviour.
  *
- * @return Array of message IDs, must be carray_free()'d when no longer used.
+ * @return Array of message IDs, must be mrarray_unref()'d when no longer used.
  */
-carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
+mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
 {
 	int           success = 0, locked = 0;
-	carray*       ret = carray_new(512);
+	mrarray_t*    ret = mrarray_new(mailbox, 512);
 	sqlite3_stmt* stmt = NULL;
 
 	uint32_t      curr_id;
@@ -2145,7 +2145,7 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t
 
 			/* add user marker */
 			if( curr_id == marker1before ) {
-				carray_add(ret, (void*)MR_MSG_ID_MARKER1, NULL);
+				mrarray_add_id(ret, MR_MSG_ID_MARKER1);
 			}
 
 			/* add daymarker, if needed */
@@ -2153,12 +2153,12 @@ carray* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t
 				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
 				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
 				if( curr_day != last_day ) {
-					carray_add(ret, (void*)MR_MSG_ID_DAYMARKER, NULL);
+					mrarray_add_id(ret, MR_MSG_ID_DAYMARKER);
 					last_day = curr_day;
 				}
 			}
 
-			carray_add(ret, (void*)(uintptr_t)curr_id, NULL);
+			mrarray_add_id(ret, curr_id);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -2176,7 +2176,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			carray_free(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -2201,13 +2201,13 @@ cleanup:
  *
  * @param query The query to search for.
  *
- * @return An array of message IDs. Must be freed using carray_free() when no longer needed.
+ * @return An array of message IDs. Must be freed using mrarray_unref() when no longer needed.
  *     If nothing can be found, the function returns NULL.
  */
-carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
+mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
 {
 	int           success = 0, locked = 0;
-	carray*       ret = carray_new(100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
@@ -2257,7 +2257,7 @@ carray* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -2277,7 +2277,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			carray_free(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -4066,13 +4066,13 @@ cleanup:
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
  *
- * @return An array containing all contact IDs.  Must be carray_free()'d
+ * @return An array containing all contact IDs.  Must be mrarray_unref()'d
  *     after usage.
  */
-carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
+mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 {
 	int           locked = 0;
-	carray*       ret = carray_new(100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         s3strLikeCmd = NULL;
 	sqlite3_stmt* stmt;
 
@@ -4106,7 +4106,7 @@ carray* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -4130,12 +4130,12 @@ cleanup:
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @return An array containing all blocked contact IDs.  Must be carray_free()'d
+ * @return An array containing all blocked contact IDs.  Must be mrarray_unref()'d
  *     after usage.
  */
-carray* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
+mrarray_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
 {
-	carray*       ret = carray_new(100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL ) {
@@ -4150,7 +4150,7 @@ carray* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
 				" ORDER BY LOWER(name||addr),id;");
 		sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			carray_add(ret, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);

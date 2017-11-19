@@ -41,7 +41,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 	}
 
 	ths->m_mailbox = mailbox;
-	if( (ths->m_chatNlastmsg_ids=carray_new(128))==NULL ) {
+	if( (ths->m_chatNlastmsg_ids=mrarray_new(mailbox, 128))==NULL ) {
 		exit(32);
 	}
 
@@ -54,7 +54,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
  *
  * @memberof mrchatlist_t
  *
- * @param chatlist The chatlist object to free, created eg. by mrmailbox_get_chatlist().
+ * @param chatlist The chatlist object to free, created eg. by mrmailbox_get_chatlist(), mrmailbox_search_msgs().
  *
  * @return None.
  *
@@ -66,7 +66,7 @@ void mrchatlist_unref(mrchatlist_t* chatlist)
 	}
 
 	mrchatlist_empty(chatlist);
-	carray_free(chatlist->m_chatNlastmsg_ids);
+	mrarray_unref(chatlist->m_chatNlastmsg_ids);
 	free(chatlist);
 }
 
@@ -84,7 +84,7 @@ void mrchatlist_empty(mrchatlist_t* chatlist)
 {
 	if( chatlist  ) {
 		chatlist->m_cnt = 0;
-		carray_set_size(chatlist->m_chatNlastmsg_ids, 0);
+		mrarray_empty(chatlist->m_chatNlastmsg_ids);
 	}
 }
 
@@ -128,17 +128,7 @@ uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
 		return 0;
 	}
 
-	return (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
-}
-
-
-mrchat_t* mrchatlist_get_chat_by_index(mrchatlist_t* ths, size_t index) /* deprecated */
-{
-	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
-		return 0;
-	}
-
-	return mrmailbox_get_chat(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(ths->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT));
+	return mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
 }
 
 
@@ -162,17 +152,7 @@ uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
 		return 0;
 	}
 
-	return (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
-}
-
-
-mrmsg_t* mrchatlist_get_msg_by_index(mrchatlist_t* ths, size_t index) /* deprecated */
-{
-	if( ths == NULL || ths->m_chatNlastmsg_ids == NULL || index >= ths->m_cnt ) {
-		return 0;
-	}
-
-	return mrmailbox_get_msg(ths->m_mailbox, (uint32_t)(uintptr_t)carray_get(ths->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1));
+	return mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
 }
 
 
@@ -226,7 +206,7 @@ mrpoortext_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrcha
 		goto cleanup;
 	}
 
-	lastmsg_id = (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	lastmsg_id = mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
 
 	/* load data from database */
 	mrsqlite3_lock(chatlist->m_mailbox->m_sql);
@@ -235,7 +215,7 @@ mrpoortext_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrcha
 		if( chat==NULL ) {
 			chat = mrchat_new(chatlist->m_mailbox);
 			chat_to_delete = chat;
-			if( !mrchat_load_from_db__(chat, (uint32_t)(uintptr_t)carray_get(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
+			if( !mrchat_load_from_db__(chat, mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
 				ret->m_text2 = safe_strdup("ErrCannotReadChat");
 				goto cleanup;
 			}
@@ -334,8 +314,8 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
 			uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_mailbox);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
-				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_DEADDROP, NULL); /* show deaddrop with the last fresh message */
-				carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)last_deaddrop_fresh_msg_id, NULL);
+				mrarray_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
+				mrarray_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
 			}
 			add_archived_link_item = 1;
 		}
@@ -360,17 +340,17 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
-		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)sqlite3_column_int(stmt, 0), NULL);
-		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)sqlite3_column_int(stmt, 1), NULL);
+		mrarray_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
+		mrarray_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
     if( add_archived_link_item && mrmailbox_get_archived_count__(ths->m_mailbox)>0 )
     {
-		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)MR_CHAT_ID_ARCHIVED_LINK, NULL);
-		carray_add(ths->m_chatNlastmsg_ids, (void*)(uintptr_t)0, NULL);
+		mrarray_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_ARCHIVED_LINK);
+		mrarray_add_id(ths->m_chatNlastmsg_ids, 0);
     }
 
-	ths->m_cnt = carray_count(ths->m_chatNlastmsg_ids)/MR_CHATLIST_IDS_PER_RESULT;
+	ths->m_cnt = mrarray_get_cnt(ths->m_chatNlastmsg_ids)/MR_CHATLIST_IDS_PER_RESULT;
 	success = 1;
 
 cleanup:

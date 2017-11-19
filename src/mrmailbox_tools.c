@@ -29,7 +29,7 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, carray* ids, int* check_self)
+static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* display_name_enc, const char* addr_spec, int origin, mrarray_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
 	int dummy;
@@ -59,14 +59,14 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* ths, const char* displa
 	free(display_name_dec);
 
 	if( row_id ) {
-		if( !carray_search(ids, (void*)(uintptr_t)row_id, NULL) ) {
-			carray_add(ids, (void*)(uintptr_t)row_id, NULL);
+		if( !mrarray_search_id(ids, row_id, NULL) ) {
+			mrarray_add_id(ids, row_id);
 		}
 	}
 }
 
 
-void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self)
+void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
@@ -78,7 +78,7 @@ void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct
 }
 
 
-void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self)
+void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {

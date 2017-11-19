@@ -30,6 +30,7 @@ extern "C" {
 typedef struct mrmailbox_t  mrmailbox_t;
 typedef struct mrpoortext_t mrpoortext_t;
 typedef struct mrchat_t     mrchat_t;
+typedef struct mrarray_t    mrarray_t;
 
 
 /**
@@ -46,7 +47,7 @@ typedef struct mrchatlist_t
 	/** @privatesection */
 	#define         MR_CHATLIST_IDS_PER_RESULT 2
 	size_t          m_cnt;
-	carray*         m_chatNlastmsg_ids;
+	mrarray_t*      m_chatNlastmsg_ids;
 } mrchatlist_t;
 
 

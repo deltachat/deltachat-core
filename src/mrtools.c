@@ -1111,32 +1111,8 @@ char* mr_url_encode(const char *str) {
 
 
 /*******************************************************************************
- * carray/clist tools
+ * clist tools
  ******************************************************************************/
-
-
-int carray_search(carray* haystack, void* needle, unsigned int* indx)
-{
-	void** data = carray_data(haystack);
-	unsigned int i, cnt = carray_count(haystack);
-	for( i=0; i<cnt; i++ )
-	{
-		if( data[i] == needle ) {
-			if( indx ) {
-				*indx = i;
-			}
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-
-uint32_t carray_get_uint32(carray* haystack, unsigned int indx)
-{
-	return (uint32_t)(uintptr_t)haystack->array[indx];
-}
 
 
 void clist_free_content(const clist* haystack)
@@ -1448,7 +1424,7 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 }
 
 
-char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, carray* contact_ids_to)
+char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, mrarray_t* contact_ids_to)
 {
 	/* Function generates a Message-ID for incoming messages that lacks one.
 	- normally, this function is not needed as incoming messages already have an ID
@@ -1456,15 +1432,15 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || carray_count(contact_ids_to)==0 ) {
+	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || mrarray_get_cnt(contact_ids_to)==0 ) {
 		return NULL;
 	}
 
 	/* find out the largets receiver ID (we could also take the smallest, but it should be unique) */
-	size_t   i, icnt = carray_count(contact_ids_to);
+	size_t   i, icnt = mrarray_get_cnt(contact_ids_to);
 	uint32_t largest_id_to = 0;
 	for( i = 0; i < icnt; i++ ) {
-		uint32_t cur_id = (uint32_t)(uintptr_t)carray_get(contact_ids_to, i);
+		uint32_t cur_id = mrarray_get_id(contact_ids_to, i);
 		if( cur_id > largest_id_to ) {
 			largest_id_to = cur_id;
 		}

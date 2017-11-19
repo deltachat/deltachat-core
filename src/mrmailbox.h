@@ -81,10 +81,10 @@ extern "C" {
  * Answer this email in any email program with "Got it!" and you will get the message from delta as follows:
  *
  * ```
- * carray* msglist = mrmailbox_get_chat_msgs(mailbox, chat_id, 0, 0);
- * for( size_t i = 0; i < carray_count(msglist); i++ )
+ * mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, chat_id, 0, 0);
+ * for( size_t i = 0; i < mrarray_get_cnt(msglist); i++ )
  * {
- *     uint32_t msg_id = carray_get_uint32(msglist, i);
+ *     uint32_t msg_id = mrarray_get_id(msglist, i);
  *     mrmsg_t* msg    = mrmailbox_get_msg(mailbox, msg_id);
  *
  *     printf("message %i: %s\n", i+1, msg->m_text);
@@ -138,7 +138,8 @@ extern "C" {
 
 
 #include <pthread.h>
-#include <libetpan/libetpan.h> /* defines uint16_t and carray */
+#include <libetpan/libetpan.h> /* defines uint16_t */
+#include "mrarray.h"
 #include "mrchatlist.h"
 #include "mrchat.h"
 #include "mrmsg.h"
@@ -258,19 +259,19 @@ uint32_t        mrmailbox_send_msg          (mrmailbox_t*, uint32_t chat_id, mrm
 void            mrmailbox_set_draft         (mrmailbox_t*, uint32_t chat_id, const char*);
 
 #define         MR_GCM_ADDDAYMARKER         0x01
-carray*         mrmailbox_get_chat_msgs     (mrmailbox_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
+mrarray_t*      mrmailbox_get_chat_msgs     (mrmailbox_t*, uint32_t chat_id, uint32_t flags, uint32_t marker1before);
 int             mrmailbox_get_total_msg_count (mrmailbox_t*, uint32_t chat_id);
 int             mrmailbox_get_fresh_msg_count (mrmailbox_t*, uint32_t chat_id);
-carray*         mrmailbox_get_fresh_msgs    (mrmailbox_t*);
+mrarray_t*      mrmailbox_get_fresh_msgs    (mrmailbox_t*);
 void            mrmailbox_marknoticed_chat  (mrmailbox_t*, uint32_t chat_id);
-carray*         mrmailbox_get_chat_media    (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type);
+mrarray_t*      mrmailbox_get_chat_media    (mrmailbox_t*, uint32_t chat_id, int msg_type, int or_msg_type);
 uint32_t        mrmailbox_get_next_media    (mrmailbox_t*, uint32_t curr_msg_id, int dir);
 
 void            mrmailbox_archive_chat      (mrmailbox_t*, uint32_t chat_id, int archive);
 void            mrmailbox_delete_chat       (mrmailbox_t*, uint32_t chat_id);
 
-carray*         mrmailbox_get_chat_contacts (mrmailbox_t*, uint32_t chat_id);
-carray*         mrmailbox_search_msgs       (mrmailbox_t*, uint32_t chat_id, const char* query);
+mrarray_t*      mrmailbox_get_chat_contacts (mrmailbox_t*, uint32_t chat_id);
+mrarray_t*      mrmailbox_search_msgs       (mrmailbox_t*, uint32_t chat_id, const char* query);
 
 mrchat_t*       mrmailbox_get_chat          (mrmailbox_t*, uint32_t chat_id);
 
@@ -297,9 +298,9 @@ mrmsg_t*        mrmailbox_get_msg           (mrmailbox_t*, uint32_t msg_id);
 /* Handle contacts */
 uint32_t        mrmailbox_create_contact    (mrmailbox_t*, const char* name, const char* addr);
 int             mrmailbox_add_address_book  (mrmailbox_t*, const char*);
-carray*         mrmailbox_get_known_contacts (mrmailbox_t*, const char* query);
+mrarray_t*      mrmailbox_get_known_contacts (mrmailbox_t*, const char* query);
 int             mrmailbox_get_blocked_count (mrmailbox_t*);
-carray*         mrmailbox_get_blocked_contacts (mrmailbox_t*);
+mrarray_t*      mrmailbox_get_blocked_contacts (mrmailbox_t*);
 void            mrmailbox_block_contact     (mrmailbox_t*, uint32_t contact_id, int block);
 char*           mrmailbox_get_contact_encrinfo (mrmailbox_t*, uint32_t contact_id);
 int             mrmailbox_delete_contact    (mrmailbox_t*, uint32_t contact_id);
@@ -336,14 +337,7 @@ int             mrmailbox_get_thread_index  (void);
 #define         MR_ERR_NONETWORK            2
 
 
-/* carray tools, already defined are things as
-unsigned unt carray_count() */
-uint32_t        carray_get_uint32           (carray*, unsigned int index);
-
-
 /* deprecated functions */
-mrchat_t*       mrchatlist_get_chat_by_index (mrchatlist_t*, size_t index); /* deprecated - use mrchatlist_get_chat_id_by_index() */
-mrmsg_t*        mrchatlist_get_msg_by_index (mrchatlist_t*, size_t index);  /* deprecated - use mrchatlist_get_msg_id_by_index() */
 int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* deprecated - use mrmailbox_set_draft() instead */
 
 
@@ -356,8 +350,8 @@ int             mrmailbox_poke_eml_file                           (mrmailbox_t*,
 int             mrmailbox_is_reply_to_known_message__             (mrmailbox_t*, mrmimeparser_t*);
 int             mrmailbox_is_reply_to_messenger_message__         (mrmailbox_t*, mrmimeparser_t*);
 time_t          mrmailbox_correct_bad_timestamp__                 (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
-void            mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, carray* ids, int* check_self);
-void            mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, carray* ids, int* check_self);
+void            mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self);
+void            mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 int             mrmailbox_reset_tables                            (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
