@@ -63,7 +63,7 @@ mrmsg_t* mrmsg_new()
  *
  * @param msg The message object to free.
  *
- * @param None.
+ * @return None.
  */
 void mrmsg_unref(mrmsg_t* msg)
 {
@@ -111,6 +111,8 @@ void mrmsg_empty(mrmsg_t* msg)
 /**
  * Set the type of a message.
  * Possible types are MR_MSG_TEXT, MR_MSG_IMAGE, MR_MSG_GIF,MR_MSG_AUDIO,, MR_MSG_VOICE, MR_MSG_VIDEO or MR_MSG_FILE.
+ *
+ * See mrmailbox_send_msg() for some examples.
  *
  * @memberof mrmsg_t
  *
