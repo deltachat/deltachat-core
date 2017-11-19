@@ -38,7 +38,7 @@ typedef struct mrmailbox_t  mrmailbox_t;
  */
 typedef struct mrarray_t
 {
-	mrmailbox_t*    m_mailbox;   /**< The mailbox the array belongs. to */
+	mrmailbox_t*    m_mailbox;     /**< The mailbox the array belongs to. May be NULL when NULL is given to mrarray_new(). */
 
 	/** @privatesection */
 	size_t          m_max;         /**< The number of allocated items. Initially ~ 200. */
