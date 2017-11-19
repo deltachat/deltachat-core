@@ -117,7 +117,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a75011d103515e088e950a64d0706ec86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close mailbox database.  <a href="#a75011d103515e088e950a64d0706ec86">More...</a><br /></td></tr>
 <tr class="separator:a75011d103515e088e950a64d0706ec86"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aace7cd8b68f45b869956d5c7476a1da0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#aace7cd8b68f45b869956d5c7476a1da0">mrmailbox_is_open</a> (const <a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
-<tr class="memdesc:aace7cd8b68f45b869956d5c7476a1da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a given mailbox database is open.  <a href="#aace7cd8b68f45b869956d5c7476a1da0">More...</a><br /></td></tr>
+<tr class="memdesc:aace7cd8b68f45b869956d5c7476a1da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the mailbox database is open.  <a href="#aace7cd8b68f45b869956d5c7476a1da0">More...</a><br /></td></tr>
 <tr class="separator:aace7cd8b68f45b869956d5c7476a1da0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19b3e9f5209bc326fc77f3944522e8ad"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a19b3e9f5209bc326fc77f3944522e8ad">mrmailbox_set_config</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *ths, const char *key, const char *value)</td></tr>
 <tr class="memdesc:a19b3e9f5209bc326fc77f3944522e8ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure the mailbox.  <a href="#a19b3e9f5209bc326fc77f3944522e8ad">More...</a><br /></td></tr>
@@ -198,7 +198,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a simple text message to the given chat.  <a href="#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">More...</a><br /></td></tr>
 <tr class="separator:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88ef3066cec30fe26f61f273b233d90c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, <a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
-<tr class="memdesc:a88ef3066cec30fe26f61f273b233d90c"><td class="mdescLeft">&#160;</td><td class="mdescRight">save message in database and send it, the given message object is not unref'd by the function but some fields are set up!  <a href="#a88ef3066cec30fe26f61f273b233d90c">More...</a><br /></td></tr>
+<tr class="memdesc:a88ef3066cec30fe26f61f273b233d90c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message of any type to a chat.  <a href="#a88ef3066cec30fe26f61f273b233d90c">More...</a><br /></td></tr>
 <tr class="separator:a88ef3066cec30fe26f61f273b233d90c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47156db87107ec208d6637f460d897a8"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a47156db87107ec208d6637f460d897a8">mrmailbox_create_group_chat</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *chat_name)</td></tr>
 <tr class="memdesc:a47156db87107ec208d6637f460d897a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new group chat.  <a href="#a47156db87107ec208d6637f460d897a8">More...</a><br /></td></tr>
@@ -243,7 +243,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:abb069358386b767a60444651195e0895"><td class="mdescLeft">&#160;</td><td class="mdescRight">Block or unblock a contact.  <a href="#abb069358386b767a60444651195e0895">More...</a><br /></td></tr>
 <tr class="separator:abb069358386b767a60444651195e0895"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4d582bc9d6d80e43038d213b081031f"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#aa4d582bc9d6d80e43038d213b081031f">mrmailbox_get_contact_encrinfo</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t contact_id)</td></tr>
-<tr class="memdesc:aa4d582bc9d6d80e43038d213b081031f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get encryption info.  <a href="#aa4d582bc9d6d80e43038d213b081031f">More...</a><br /></td></tr>
+<tr class="memdesc:aa4d582bc9d6d80e43038d213b081031f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get encryption info for a contact.  <a href="#aa4d582bc9d6d80e43038d213b081031f">More...</a><br /></td></tr>
 <tr class="separator:aa4d582bc9d6d80e43038d213b081031f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a209732d105e40cd0c61d33d76d288c59"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a209732d105e40cd0c61d33d76d288c59">mrmailbox_delete_contact</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t contact_id)</td></tr>
 <tr class="memdesc:a209732d105e40cd0c61d33d76d288c59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete a contact.  <a href="#a209732d105e40cd0c61d33d76d288c59">More...</a><br /></td></tr>
@@ -255,13 +255,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a13e05fe3f43102c3323ba4c7e2761593"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get an informational text for a single message.  <a href="#a13e05fe3f43102c3323ba4c7e2761593">More...</a><br /></td></tr>
 <tr class="separator:a13e05fe3f43102c3323ba4c7e2761593"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab316ed8a30c968085fa503e6c215e2f1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#ab316ed8a30c968085fa503e6c215e2f1">mrmailbox_forward_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const uint32_t *msg_ids, int msg_cnt, uint32_t chat_id)</td></tr>
-<tr class="memdesc:ab316ed8a30c968085fa503e6c215e2f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward a list of messages to another chat.  <a href="#ab316ed8a30c968085fa503e6c215e2f1">More...</a><br /></td></tr>
+<tr class="memdesc:ab316ed8a30c968085fa503e6c215e2f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Forward messages to another chat.  <a href="#ab316ed8a30c968085fa503e6c215e2f1">More...</a><br /></td></tr>
 <tr class="separator:ab316ed8a30c968085fa503e6c215e2f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ed1c3bd08cd6515abf6046ebad9cafc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a8ed1c3bd08cd6515abf6046ebad9cafc">mrmailbox_star_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const uint32_t *msg_ids, int msg_cnt, int star)</td></tr>
 <tr class="memdesc:a8ed1c3bd08cd6515abf6046ebad9cafc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Star/unstar messages by setting the last parameter to 0 (unstar) or 1(star).  <a href="#a8ed1c3bd08cd6515abf6046ebad9cafc">More...</a><br /></td></tr>
 <tr class="separator:a8ed1c3bd08cd6515abf6046ebad9cafc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adf02bfc046577b46e1f0f5a31869890f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#adf02bfc046577b46e1f0f5a31869890f">mrmailbox_delete_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const uint32_t *msg_ids, int msg_cnt)</td></tr>
-<tr class="memdesc:adf02bfc046577b46e1f0f5a31869890f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete a list of messages.  <a href="#adf02bfc046577b46e1f0f5a31869890f">More...</a><br /></td></tr>
+<tr class="memdesc:adf02bfc046577b46e1f0f5a31869890f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete messages.  <a href="#adf02bfc046577b46e1f0f5a31869890f">More...</a><br /></td></tr>
 <tr class="separator:adf02bfc046577b46e1f0f5a31869890f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67281e50b568dc18df710275e0e13f5b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b">mrmailbox_markseen_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const uint32_t *msg_ids, int msg_cnt)</td></tr>
 <tr class="memdesc:a67281e50b568dc18df710275e0e13f5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mark a message as <em>seen</em>, updates the IMAP state and sends MDNs.  <a href="#a67281e50b568dc18df710275e0e13f5b">More...</a><br /></td></tr>
@@ -290,15 +290,14 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a6c557153209e128b69301246dbf9e230"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6c557153209e128b69301246dbf9e230"></a>
-void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a6c557153209e128b69301246dbf9e230">m_userdata</a></td></tr>
-<tr class="memdesc:a6c557153209e128b69301246dbf9e230"><td class="mdescLeft">&#160;</td><td class="mdescRight">the same pointer as given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>, may be used by the caller for any purpose <br /></td></tr>
+<tr class="memitem:a6c557153209e128b69301246dbf9e230"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a6c557153209e128b69301246dbf9e230">m_userdata</a></td></tr>
+<tr class="memdesc:a6c557153209e128b69301246dbf9e230"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use data, may be used for any purpose.  <a href="#a6c557153209e128b69301246dbf9e230">More...</a><br /></td></tr>
 <tr class="separator:a6c557153209e128b69301246dbf9e230"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aab18660500768b611373190720439956"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956">m_dbfile</a></td></tr>
-<tr class="memdesc:aab18660500768b611373190720439956"><td class="mdescLeft">&#160;</td><td class="mdescRight">the database file in file.  <a href="#aab18660500768b611373190720439956">More...</a><br /></td></tr>
+<tr class="memdesc:aab18660500768b611373190720439956"><td class="mdescLeft">&#160;</td><td class="mdescRight">The database file.  <a href="#aab18660500768b611373190720439956">More...</a><br /></td></tr>
 <tr class="separator:aab18660500768b611373190720439956"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ea304d47a08116f6eda8f1c80e5a930"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a0ea304d47a08116f6eda8f1c80e5a930">m_blobdir</a></td></tr>
-<tr class="memdesc:a0ea304d47a08116f6eda8f1c80e5a930"><td class="mdescLeft">&#160;</td><td class="mdescRight">full path of the blob directory in use.  <a href="#a0ea304d47a08116f6eda8f1c80e5a930">More...</a><br /></td></tr>
+<tr class="memdesc:a0ea304d47a08116f6eda8f1c80e5a930"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full path of the blob directory.  <a href="#a0ea304d47a08116f6eda8f1c80e5a930">More...</a><br /></td></tr>
 <tr class="separator:a0ea304d47a08116f6eda8f1c80e5a930"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -489,7 +488,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Block or unblock a contact. </p>
-<p>May result in a MR_EVENT_BLOCKING_CHANGED event.</p>
+<p>May result in a <a class="el" href="mrevent_8h.html#ad50b3a76349834631dc26b6c9557be8f" title="Contact(s) created, renamed, blocked or deleted. ">MR_EVENT_CONTACTS_CHANGED</a> event.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -905,7 +904,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Delete a list of messages. </p>
+<p>Delete messages. </p>
 <p>The messages are deleted on the current device and on the IMAP server.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -980,7 +979,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Forward a list of messages to another chat. </p>
+<p>Forward messages to another chat. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a></td></tr>
@@ -1445,8 +1444,8 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Get encryption info. </p>
-<p>Get a multi-line encryption info, containing your fingerprint and the fingerprint of the contact, used eg. to compare the fingerprints.</p>
+<p>Get encryption info for a contact. </p>
+<p>Get a multi-line encryption info, containing your fingerprint and the fingerprint of the contact, used eg. to compare the fingerprints for a simple out-of-band verification.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1946,7 +1945,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>Check if a given mailbox database is open. </p>
+<p>Check if the mailbox database is open. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2116,7 +2115,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <li>If not mentioned otherweise, the callback should return 0.</li>
 </ul>
 </td></tr>
-    <tr><td class="paramname">userdata</td><td>can be used by the client for any purpuse. He finds it later in mrmailbox_get_userdata().</td></tr>
+    <tr><td class="paramname">userdata</td><td>can be used by the client for any purpuse. He finds it later in mrmailbox__t::m_userdata().</td></tr>
     <tr><td class="paramname">os_name</td><td>is only for decorative use and is shown eg. in the X-Mailer header in the form "Delta Chat &lt;version&gt; for &lt;osName&gt;"</td></tr>
   </table>
   </dd>
@@ -2160,8 +2159,8 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by mrmailbox_new</td></tr>
-    <tr><td class="paramname">dbfile</td><td>the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths</td></tr>
-    <tr><td class="paramname">blobdir</td><td>a directory to store the blobs in, the trailing slash is added by us, so if you want to avoid double slashes, do not add one. If you give NULL as blobdir, <code>dbfile-blobs</code> is used in the same directory as <em>dbfile</em> will be created in.</td></tr>
+    <tr><td class="paramname">dbfile</td><td>the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths. You can find the file path later in <a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956" title="The database file. ">mrmailbox_t::m_dbfile</a></td></tr>
+    <tr><td class="paramname">blobdir</td><td>a directory to store the blobs in, the trailing slash is added by us, so if you want to avoid double slashes, do not add one. If you give NULL as blobdir, <code>dbfile-blobs</code> is used in the same directory as <em>dbfile</em> will be created in. You can find the path to the blob direcrory later in <a class="el" href="structmrmailbox__t.html#a0ea304d47a08116f6eda8f1c80e5a930" title="Full path of the blob directory. ">mrmailbox_t::m_blobdir</a></td></tr>
   </table>
   </dd>
 </dl>
@@ -2288,8 +2287,10 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>save message in database and send it, the given message object is not unref'd by the function but some fields are set up! </p>
+<p>Send a message of any type to a chat. </p>
+<p>The given message object is not unref'd by the function but some fields are set up.</p>
 <p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="One or more messages changed for some reasons in the database. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>To send a simple text message, you can also use <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a> which is easier to use.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2298,8 +2299,9 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
-
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent.</dd></dl>
+<p>Examples:</p>
+<div class="fragment"><div class="line"><a class="code" href="structmrmsg__t.html">mrmsg_t</a>* msg1 = mrmsg_new();</div><div class="line">   mrmsg_set_type(msg1, MR_MSG_TEXT);</div><div class="line">   mrmsg_set_text(msg1, <span class="stringliteral">&quot;Hi there!&quot;</span>);</div><div class="line">   <a class="code" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a>(mailbox, chat_id, msg1); <span class="comment">// send a simple text message</span></div><div class="line">mrmsg_unref(msg1);</div><div class="line"></div><div class="line"><a class="code" href="structmrmsg__t.html">mrmsg_t</a>* msg2 = mrmsg_new();</div><div class="line">   mrmsg_set_type(msg2, MR_MSG_IMAGE);</div><div class="line">   mrmsg_set_file(msg2, <span class="stringliteral">&quot;/path/to/image.jpg&quot;</span>);</div><div class="line">   <a class="code" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a>(mailbox, chat_id, msg2); <span class="comment">// send a simple text message</span></div><div class="line">mrmsg_unref(msg1);</div></div><!-- fragment --> 
 </div>
 </div>
 <a class="anchor" id="a3f9ac5fb9ff2dcbaafdddb5d955ac39b"></a>
@@ -2660,7 +2662,8 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>full path of the blob directory in use. </p>
+<p>Full path of the blob directory. </p>
+<p>This is the directory given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a> or a directory in the same directory as <a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956" title="The database file. ">mrmailbox_t::m_dbfile</a>. </p>
 
 </div>
 </div>
@@ -2674,7 +2677,23 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
       </table>
 </div><div class="memdoc">
 
-<p>the database file in file. </p>
+<p>The database file. </p>
+<p>This is the file given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </p>
+
+</div>
+</div>
+<a class="anchor" id="a6c557153209e128b69301246dbf9e230"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void* mrmailbox_t::m_userdata</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Use data, may be used for any purpose. </p>
+<p>The same pointer as given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>, may be used by the caller for any purpose. </p>
 
 </div>
 </div>
