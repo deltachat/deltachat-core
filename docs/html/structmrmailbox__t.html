@@ -161,24 +161,24 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1386ec2c091b936b65b25b50a302173d"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a1386ec2c091b936b65b25b50a302173d">mrmailbox_create_chat_by_contact_id</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t contact_id)</td></tr>
 <tr class="memdesc:a1386ec2c091b936b65b25b50a302173d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a normal chat with a single user.  <a href="#a1386ec2c091b936b65b25b50a302173d">More...</a><br /></td></tr>
 <tr class="separator:a1386ec2c091b936b65b25b50a302173d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9685194a3318021d1a95eeed29d01277"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a9685194a3318021d1a95eeed29d01277">mrmailbox_get_chat_media</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, int msg_type, int or_msg_type)</td></tr>
-<tr class="memdesc:a9685194a3318021d1a95eeed29d01277"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a9685194a3318021d1a95eeed29d01277">More...</a><br /></td></tr>
-<tr class="separator:a9685194a3318021d1a95eeed29d01277"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4c69c290d57aa2b76f0260c0c2702023"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a4c69c290d57aa2b76f0260c0c2702023">mrmailbox_get_chat_media</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, int msg_type, int or_msg_type)</td></tr>
+<tr class="memdesc:a4c69c290d57aa2b76f0260c0c2702023"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a4c69c290d57aa2b76f0260c0c2702023">More...</a><br /></td></tr>
+<tr class="separator:a4c69c290d57aa2b76f0260c0c2702023"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a90b7861302d1276a07fdcb2d9c3c73b6">mrmailbox_get_next_media</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t curr_msg_id, int dir)</td></tr>
 <tr class="memdesc:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a90b7861302d1276a07fdcb2d9c3c73b6">More...</a><br /></td></tr>
 <tr class="separator:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abf20deb2fd5886b7f3031f946053a847"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#abf20deb2fd5886b7f3031f946053a847">mrmailbox_get_chat_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id)</td></tr>
-<tr class="memdesc:abf20deb2fd5886b7f3031f946053a847"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get contact IDs belonging to a chat.  <a href="#abf20deb2fd5886b7f3031f946053a847">More...</a><br /></td></tr>
-<tr class="separator:abf20deb2fd5886b7f3031f946053a847"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adbdcde6475db0cfafd8aa127b5bd1bc1"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#adbdcde6475db0cfafd8aa127b5bd1bc1">mrmailbox_get_fresh_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
-<tr class="memdesc:adbdcde6475db0cfafd8aa127b5bd1bc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the message IDs of all <em>fresh</em> messages of any chat.  <a href="#adbdcde6475db0cfafd8aa127b5bd1bc1">More...</a><br /></td></tr>
-<tr class="separator:adbdcde6475db0cfafd8aa127b5bd1bc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d3be6ed21d43cc93f250a1e7faf979b"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a5d3be6ed21d43cc93f250a1e7faf979b">mrmailbox_get_chat_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)</td></tr>
-<tr class="memdesc:a5d3be6ed21d43cc93f250a1e7faf979b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get all message IDs belonging to a chat.  <a href="#a5d3be6ed21d43cc93f250a1e7faf979b">More...</a><br /></td></tr>
-<tr class="separator:a5d3be6ed21d43cc93f250a1e7faf979b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27cceecdc6b41f34d7dbf8b6d8dcf18d"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a27cceecdc6b41f34d7dbf8b6d8dcf18d">mrmailbox_search_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *query)</td></tr>
-<tr class="memdesc:a27cceecdc6b41f34d7dbf8b6d8dcf18d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search messages containing the given query string.  <a href="#a27cceecdc6b41f34d7dbf8b6d8dcf18d">More...</a><br /></td></tr>
-<tr class="separator:a27cceecdc6b41f34d7dbf8b6d8dcf18d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab996f74d0e8b5c82ec7175f29da57e3d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#ab996f74d0e8b5c82ec7175f29da57e3d">mrmailbox_get_chat_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id)</td></tr>
+<tr class="memdesc:ab996f74d0e8b5c82ec7175f29da57e3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get contact IDs belonging to a chat.  <a href="#ab996f74d0e8b5c82ec7175f29da57e3d">More...</a><br /></td></tr>
+<tr class="separator:ab996f74d0e8b5c82ec7175f29da57e3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a65215149290bec16b173106269b08e5e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a65215149290bec16b173106269b08e5e">mrmailbox_get_fresh_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
+<tr class="memdesc:a65215149290bec16b173106269b08e5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the message IDs of all <em>fresh</em> messages of any chat.  <a href="#a65215149290bec16b173106269b08e5e">More...</a><br /></td></tr>
+<tr class="separator:a65215149290bec16b173106269b08e5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5ac7f527aef58f8e834f3bd740acd46"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46">mrmailbox_get_chat_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)</td></tr>
+<tr class="memdesc:af5ac7f527aef58f8e834f3bd740acd46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get all message IDs belonging to a chat.  <a href="#af5ac7f527aef58f8e834f3bd740acd46">More...</a><br /></td></tr>
+<tr class="separator:af5ac7f527aef58f8e834f3bd740acd46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abbb08c91369ff2fedc8575f2e1f01e56"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#abbb08c91369ff2fedc8575f2e1f01e56">mrmailbox_search_msgs</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *query)</td></tr>
+<tr class="memdesc:abbb08c91369ff2fedc8575f2e1f01e56"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search messages containing the given query string.  <a href="#abbb08c91369ff2fedc8575f2e1f01e56">More...</a><br /></td></tr>
+<tr class="separator:abbb08c91369ff2fedc8575f2e1f01e56"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af50446c1a5e504d27fe29de9e3b8edc3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#af50446c1a5e504d27fe29de9e3b8edc3">mrmailbox_set_draft</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *msg)</td></tr>
 <tr class="memdesc:af50446c1a5e504d27fe29de9e3b8edc3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save a draft for a chat.  <a href="#af50446c1a5e504d27fe29de9e3b8edc3">More...</a><br /></td></tr>
 <tr class="separator:af50446c1a5e504d27fe29de9e3b8edc3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -224,12 +224,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a25720ea41355cc32cc93aa45709937d6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6">mrmailbox_add_address_book</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *adr_book)</td></tr>
 <tr class="memdesc:a25720ea41355cc32cc93aa45709937d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a number of contacts.  <a href="#a25720ea41355cc32cc93aa45709937d6">More...</a><br /></td></tr>
 <tr class="separator:a25720ea41355cc32cc93aa45709937d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2597f7a6022e6f571fa8cdb7ba3977cc"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a2597f7a6022e6f571fa8cdb7ba3977cc">mrmailbox_get_known_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *query)</td></tr>
-<tr class="memdesc:a2597f7a6022e6f571fa8cdb7ba3977cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns known and unblocked contacts.  <a href="#a2597f7a6022e6f571fa8cdb7ba3977cc">More...</a><br /></td></tr>
-<tr class="separator:a2597f7a6022e6f571fa8cdb7ba3977cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a87a210d5e359e3176b923d84a9cd625f"><td class="memItemLeft" align="right" valign="top">carray *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a87a210d5e359e3176b923d84a9cd625f">mrmailbox_get_blocked_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
-<tr class="memdesc:a87a210d5e359e3176b923d84a9cd625f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get blocked contacts.  <a href="#a87a210d5e359e3176b923d84a9cd625f">More...</a><br /></td></tr>
-<tr class="separator:a87a210d5e359e3176b923d84a9cd625f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4ccc69ba8e8851a04f9b17b37e5f86a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#ae4ccc69ba8e8851a04f9b17b37e5f86a">mrmailbox_get_known_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *query)</td></tr>
+<tr class="memdesc:ae4ccc69ba8e8851a04f9b17b37e5f86a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns known and unblocked contacts.  <a href="#ae4ccc69ba8e8851a04f9b17b37e5f86a">More...</a><br /></td></tr>
+<tr class="separator:ae4ccc69ba8e8851a04f9b17b37e5f86a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a209e3832cd680d4677582923695ae872"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a209e3832cd680d4677582923695ae872">mrmailbox_get_blocked_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
+<tr class="memdesc:a209e3832cd680d4677582923695ae872"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get blocked contacts.  <a href="#a209e3832cd680d4677582923695ae872">More...</a><br /></td></tr>
+<tr class="separator:a209e3832cd680d4677582923695ae872"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6c749ad5736d9c34ff492015ea10a184"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a6c749ad5736d9c34ff492015ea10a184">mrmailbox_get_blocked_count</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
 <tr class="memdesc:a6c749ad5736d9c34ff492015ea10a184"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of blocked contacts.  <a href="#a6c749ad5736d9c34ff492015ea10a184">More...</a><br /></td></tr>
 <tr class="separator:a6c749ad5736d9c34ff492015ea10a184"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -994,12 +994,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="a87a210d5e359e3176b923d84a9cd625f"></a>
+<a class="anchor" id="a209e3832cd680d4677582923695ae872"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_blocked_contacts </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_blocked_contacts </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em></td><td>)</td>
@@ -1015,7 +1015,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>An array containing all blocked contact IDs. Must be carray_free()'d after usage. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>An array containing all blocked contact IDs. Must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d after usage. </dd></dl>
 
 </div>
 </div>
@@ -1079,12 +1079,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="abf20deb2fd5886b7f3031f946053a847"></a>
+<a class="anchor" id="ab996f74d0e8b5c82ec7175f29da57e3d"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_chat_contacts </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_chat_contacts </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em>, </td>
@@ -1116,7 +1116,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>an array of contact IDs belonging to the chat; must be freed using carray_free() when done. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>an array of contact IDs belonging to the chat; must be freed using <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a> when done. </dd></dl>
 
 </div>
 </div>
@@ -1156,12 +1156,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="a9685194a3318021d1a95eeed29d01277"></a>
+<a class="anchor" id="a4c69c290d57aa2b76f0260c0c2702023"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_chat_media </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_chat_media </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em>, </td>
@@ -1193,7 +1193,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Returns all message IDs of the given types in a chat. </p>
-<p>Typically used to show a gallery. The result must be carray_free()'d</p>
+<p>Typically used to show a gallery. The result must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1207,12 +1207,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="a5d3be6ed21d43cc93f250a1e7faf979b"></a>
+<a class="anchor" id="af5ac7f527aef58f8e834f3bd740acd46"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_chat_msgs </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_chat_msgs </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em>, </td>
@@ -1254,7 +1254,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Array of message IDs, must be carray_free()'d when no longer used. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Array of message IDs, must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d when no longer used. </dd></dl>
 
 </div>
 </div>
@@ -1409,7 +1409,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Get a single contact object. </p>
-<p>For a list, see eg. <a class="el" href="structmrmailbox__t.html#a2597f7a6022e6f571fa8cdb7ba3977cc" title="Returns known and unblocked contacts. ">mrmailbox_get_known_contacts()</a>.</p>
+<p>For a list, see eg. <a class="el" href="structmrmailbox__t.html#ae4ccc69ba8e8851a04f9b17b37e5f86a" title="Returns known and unblocked contacts. ">mrmailbox_get_known_contacts()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1495,12 +1495,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="adbdcde6475db0cfafd8aa127b5bd1bc1"></a>
+<a class="anchor" id="a65215149290bec16b173106269b08e5e"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_fresh_msgs </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_fresh_msgs </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em></td><td>)</td>
@@ -1546,12 +1546,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="a2597f7a6022e6f571fa8cdb7ba3977cc"></a>
+<a class="anchor" id="ae4ccc69ba8e8851a04f9b17b37e5f86a"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_get_known_contacts </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_get_known_contacts </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em>, </td>
@@ -1579,7 +1579,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>An array containing all contact IDs. Must be carray_free()'d after usage. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>An array containing all contact IDs. Must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d after usage. </dd></dl>
 
 </div>
 </div>
@@ -1608,7 +1608,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Get a single message object of the type <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a>. </p>
-<p>For a list of messages in a chat, see <a class="el" href="structmrmailbox__t.html#a5d3be6ed21d43cc93f250a1e7faf979b" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a> For a list or chats, see <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a></p>
+<p>For a list of messages in a chat, see <a class="el" href="structmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a> For a list or chats, see <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a></td></tr>
@@ -1688,7 +1688,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Returns all message IDs of the given types in a chat. </p>
-<p>Typically used to show a gallery. The result must be carray_free()'d</p>
+<p>Typically used to show a gallery. The result must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2213,12 +2213,12 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a class="anchor" id="a27cceecdc6b41f34d7dbf8b6d8dcf18d"></a>
+<a class="anchor" id="abbb08c91369ff2fedc8575f2e1f01e56"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">carray * mrmailbox_search_msgs </td>
+          <td class="memname"><a class="el" href="structmrarray__t.html">mrarray_t</a> * mrmailbox_search_msgs </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em>, </td>
@@ -2254,7 +2254,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>An array of message IDs. Must be freed using carray_free() when no longer needed. If nothing can be found, the function returns NULL. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>An array of message IDs. Must be freed using <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a> when no longer needed. If nothing can be found, the function returns NULL. </dd></dl>
 
 </div>
 </div>
@@ -2609,7 +2609,7 @@ void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><div class="memdoc">
 
 <p>Star/unstar messages by setting the last parameter to 0 (unstar) or 1(star). </p>
-<p>Starred messages are collected in a virtual chat that can be shown using <a class="el" href="structmrmailbox__t.html#a5d3be6ed21d43cc93f250a1e7faf979b" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a> using the chat_id MR_CHAT_ID_STARRED.</p>
+<p>Starred messages are collected in a virtual chat that can be shown using <a class="el" href="structmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a> using the chat_id MR_CHAT_ID_STARRED.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a></td></tr>
