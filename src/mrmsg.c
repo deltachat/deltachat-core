@@ -685,7 +685,10 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
  * Check if a message is still in creation.  The user can mark files as being
  * in creation by simply creating a file `<filename>.increation`. If
  * `<filename>` is created then, the user should just delete
- * `<filename>.increation`
+ * `<filename>.increation`.
+ *
+ * Typically, this is used for videos that should be recoded by the user before
+ * they can be sent.
  *
  * @memberof mrmsg_t
  *
