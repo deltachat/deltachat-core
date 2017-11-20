@@ -83,47 +83,21 @@ typedef struct mrmsg_t
 
 
 	/**
-	 * Type of the message.
-	 *
-	 * - MR_MSG_TEXT  (10)
-	 * - MR_MSG_IMAGE (20) - #m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT
-	 * - MR_MSG_GIF   (21) - #m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT
-	 * - MR_MSG_AUDIO (40) - #m_param may contain MRP_FILE, MRP_DURATION
-	 * - MR_MSG_VOICE (41) - #m_param may contain MRP_FILE, MRP_DURATION
-	 * - MR_MSG_VIDEO (50) - #m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION
-	 * - MR_MSG_FILE  (60) - #m_param may contain MRP_FILE
-	 *
-	 * Undefined types are filed under MR_MSG_UNDEFINED (0).
+	 * Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field.
 	 */
 	int             m_type;
 	#define         MR_MSG_UNDEFINED        0
 	#define         MR_MSG_TEXT            10
-	#define         MR_MSG_IMAGE           20
-	#define         MR_MSG_GIF             21
-	#define         MR_MSG_AUDIO           40
-	#define         MR_MSG_VOICE           41
-	#define         MR_MSG_VIDEO           50
-	#define         MR_MSG_FILE            60
+	#define         MR_MSG_IMAGE           20 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
+	#define         MR_MSG_GIF             21 /*   - " -  */
+	#define         MR_MSG_AUDIO           40 /* m_param may contain MRP_FILE, MRP_DURATION */
+	#define         MR_MSG_VOICE           41 /*   - " -  */
+	#define         MR_MSG_VIDEO           50 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
+	#define         MR_MSG_FILE            60 /* m_param may contain MRP_FILE  */
 
 
 	/**
-	 * Message state.
-	 *
-	 * Incoming message states:
-	 * - MR_STATE_IN_FRESH (10) - Incoming _fresh_ message. Fresh messages are not noticed nor seen and are typically shown in notifications. Use mrmailbox_get_fresh_msgs() to get all fresh messages.
-	 * - MR_STATE_IN_NOTICED (13) - Incoming _noticed_ message. Eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs. Use mrmailbox_marknoticed_chat() or mrmailbox_marknoticed_contact() to mark messages as being noticed.
-	 * - MR_STATE_IN_SEEN (16) - Incoming message, really _seen_ by the user. Marked as read on IMAP and MDN may be send. Use mrmailbox_markseen_msgs() to mark messages as being seen.
-	 *
-	 * Outgoing message states:
-	 * - MR_STATE_OUT_PENDING (20) - The user has send the "send" button but the
-	 *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
-	 * - MR_STATE_OUT_ERROR (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages)
-	 * - MR_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state MR_STATE_OUT_ERROR if we get such a hint from the server.
-	 *   If a sent message changes to this state, you'll receive the event #MR_EVENT_MSG_DELIVERED.
-	 * - MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side)
-	 *   If a sent message changes to this state, you'll receive the event #MR_EVENT_MSG_READ.
-	 *
-	 * The state of just created message objects is MR_STATE_UNDEFINED (0).
+	 * Message state. It is recommended to use mrmsg_get_state() to access this field.
 	 */
 	int             m_state;
 	#define         MR_STATE_UNDEFINED      0
@@ -135,12 +109,18 @@ typedef struct mrmsg_t
 	#define         MR_STATE_OUT_DELIVERED 26
 	#define         MR_STATE_OUT_MDN_RCVD  28
 
-	char*           m_text;                   /**< message text or NULL if unset */
-	mrparam_t*      m_param;                  /**< Additional paramter for the message. MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on #m_type. Never a NULL-pointer. */
+	/**
+	 * Message text.  NULL if unset.  It is recommended to use
+	 * mrmsg_set_text() and mrmsg_get_text() to access this field.
+	 */
+	char*           m_text;
+
+	mrparam_t*      m_param;                  /**< Additional paramter for the message. MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type. Never a NULL-pointer. */
 	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
 	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
 
 	/** @privatesection */
+
 	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */
 	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
 	char*           m_server_folder;          /**< Folder where the message was last seen on the server */
@@ -153,15 +133,19 @@ void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);
 
 void            mrmsg_set_type              (mrmsg_t*, int type);
-void            mrmsg_set_file              (mrmsg_t*, const char* file);
 void            mrmsg_set_text              (mrmsg_t*, const char* text);
+void            mrmsg_set_file              (mrmsg_t*, const char* file);
 
-mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
-char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
-int             mrmsg_show_padlock          (mrmsg_t*);
+int             mrmsg_get_type              (mrmsg_t*);
+int             mrmsg_get_state             (mrmsg_t*);
+char*           mrmsg_get_text              (mrmsg_t*);
 char*           mrmsg_get_file              (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
+int             mrmsg_get_showpadlock       (mrmsg_t*);
+mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
+char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
+
 int             mrmsg_is_increation         (mrmsg_t*);
 void            mrmsg_save_param_to_disk    (mrmsg_t*);
 

@@ -216,7 +216,7 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 					contact_name,
 					contact_id,
 					msg->m_text,
-					mrmsg_show_padlock(msg)? "\xF0\x9F\x94\x92" : "",
+					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
 					msg->m_starred? " \xE2\x98\x85" : "",
 					msg->m_from_id==1? "" : (msg->m_state==MR_STATE_IN_SEEN? "[SEEN]" : (msg->m_state==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)? "[SYSTEM]" : "",

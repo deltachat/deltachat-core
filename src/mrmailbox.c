@@ -3078,6 +3078,8 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
+ * To send messages of other types, see mrmailbox_send_msg().
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
