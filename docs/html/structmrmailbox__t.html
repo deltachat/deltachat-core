@@ -2336,6 +2336,7 @@ Public Attributes</h2></td></tr>
 
 <p>Send a simple text message to the given chat. </p>
 <p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="One or more messages changed for some reasons in the database. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>To send messages of other types, see <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
