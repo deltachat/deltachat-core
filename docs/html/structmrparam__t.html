@@ -97,7 +97,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a88397aa66e74bcdc61c8376c8e9a761b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrparam__t.html#a88397aa66e74bcdc61c8376c8e9a761b">mrparam_empty</a> (<a class="el" href="structmrparam__t.html">mrparam_t</a> *param)</td></tr>
-<tr class="memdesc:a88397aa66e74bcdc61c8376c8e9a761b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete all parameters.  <a href="#a88397aa66e74bcdc61c8376c8e9a761b">More...</a><br /></td></tr>
+<tr class="memdesc:a88397aa66e74bcdc61c8376c8e9a761b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete all parameters in the object.  <a href="#a88397aa66e74bcdc61c8376c8e9a761b">More...</a><br /></td></tr>
 <tr class="separator:a88397aa66e74bcdc61c8376c8e9a761b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0a9d3768d128dce0088b089f66fafb68"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrparam__t.html#a0a9d3768d128dce0088b089f66fafb68">mrparam_exists</a> (<a class="el" href="structmrparam__t.html">mrparam_t</a> *param, int key)</td></tr>
 <tr class="memdesc:a0a9d3768d128dce0088b089f66fafb68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a parameter exists.  <a href="#a0a9d3768d128dce0088b089f66fafb68">More...</a><br /></td></tr>
@@ -117,7 +117,14 @@ Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An object for handling key=value parameter lists. </p>
-<p>The parameter object is used eg. by <a class="el" href="structmrchat__t.html" title="An object representing a single chat in memory. ">mrchat_t</a> or <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a>. To access the single parameters use the setter and getter functions with an MRP_* constant. </p>
+<p>The parameter object is used eg. by <a class="el" href="structmrchat__t.html" title="An object representing a single chat in memory. ">mrchat_t</a> or <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a>. To access the single parameters use the setter and getter functions with an MRP_* constant, eg.</p>
+<ul>
+<li>MRP_FILE - the file associated with a message, not for text messages</li>
+<li>MRP_WIDTH - the width of an image or video</li>
+<li>MRP_HEIGHT - the height of an image or video</li>
+<li>MRP_DURATION - the duration of an video or audio</li>
+</ul>
+<p>However, for most functions, it is easier to use more conctrete functions as mrmsg_get_file(). </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a class="anchor" id="a88397aa66e74bcdc61c8376c8e9a761b"></a>
 <div class="memitem">
@@ -133,7 +140,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Delete all parameters. </p>
+<p>Delete all parameters in the object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">param</td><td>Parameter object to modify.</td></tr>
