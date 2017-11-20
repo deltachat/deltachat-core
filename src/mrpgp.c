@@ -314,7 +314,6 @@ int mrpgp_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
 	}
 
 	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
-
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
 	if( raw_key->m_type == MR_PUBLIC && public_keys->keyc >= 1 ) {
@@ -346,7 +345,6 @@ int mrpgp_calc_fingerprint(mrmailbox_t* mailbox, const mrkey_t* raw_key, uint8_t
 	}
 
 	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
-
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
 	if( raw_key->m_type != MR_PUBLIC || public_keys->keyc <= 0 ) {
@@ -452,10 +450,11 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
 	for( i = 0; i < raw_public_keys_for_encryption->m_count; i++ ) {
+		pgp_memory_clear(keysmem);
 		pgp_memory_add(keysmem, raw_public_keys_for_encryption->m_keys[i]->m_binary, raw_public_keys_for_encryption->m_keys[i]->m_bytes);
+		pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
 	}
 
-	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
 	if( public_keys->keyc <=0 || private_keys->keyc!=0 ) {
 		mrmailbox_log_warning(mailbox, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
@@ -544,10 +543,11 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
 	for( i = 0; i < raw_private_keys_for_decryption->m_count; i++ ) {
+		pgp_memory_clear(keysmem); /* a simple concatenate of private binary keys fails (works for public keys, however, we don't do it there either) */
 		pgp_memory_add(keysmem, raw_private_keys_for_decryption->m_keys[i]->m_binary, raw_private_keys_for_decryption->m_keys[i]->m_bytes);
+		pgp_filter_keys_from_mem(&s_io, dummy_keys/*should stay empty*/, private_keys, NULL, 0, keysmem);
 	}
 
-	pgp_filter_keys_from_mem(&s_io, dummy_keys/*should stay empty*/, private_keys, NULL, 0, keysmem);
 	if( private_keys->keyc<=0 ) {
 		mrmailbox_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
