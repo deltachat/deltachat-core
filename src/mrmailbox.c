@@ -3400,9 +3400,9 @@ cleanup:
  * Set group name.
  *
  * If the group is already _promoted_ (any message was sent to the group),
- * all group members are informed by a special message that is sent automatically by this function.
+ * all group members are informed by a special status message that is sent automatically by this function.
  *
- * The function usually sends out the messages #MR_EVENT_MSGS_CHANGED and/or #MR_EVENT_CHAT_MODIFIED
+ * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof mrmailbox_t
  *
@@ -3478,9 +3478,9 @@ cleanup:
  * Set group image.
  *
  * If the group is already _promoted_ (any message was sent to the group),
- * all group members are informed by a special message that is sent automatically by this function.
+ * all group members are informed by a special status message that is sent automatically by this function.
  *
- * The function usually sends out the messages #MR_EVENT_MSGS_CHANGED and/or #MR_EVENT_CHAT_MODIFIED
+ * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof mrmailbox_t
  *
@@ -3600,7 +3600,9 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
  * Add a member to a group.
  *
  * If the group is already _promoted_ (any message was sent to the group),
- * all group members are informed by a special message that is sent automatically by this function.
+ * all group members are informed by a special status message that is sent automatically by this function.
+ *
+ * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof mrmailbox_t
  *
@@ -3683,7 +3685,9 @@ cleanup:
  * Remove a member from a group.
  *
  * If the group is already _promoted_ (any message was sent to the group),
- * all group members are informed by a special message that is sent automatically by this function.
+ * all group members are informed by a special status message that is sent automatically by this function.
+ *
+ * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof mrmailbox_t
  *

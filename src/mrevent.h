@@ -77,8 +77,12 @@ extern "C" {
 
 
 /**
- * One or more messages changed for some reasons in the database. Messages may be added or
- * removed.
+ * Messages or chats changed.  One or more messages or chats changed for various
+ * reasons in the database:
+ * - Messages send, received or removed
+ * - A message could not be sent (see mrmsg_get_state()/MR_STATE_OUT_ERROR)
+ * - Chats created, deleted or archived
+ * - A draft has been set
  *
  * @param data1 chat_id for single added messages
  *
@@ -92,6 +96,8 @@ extern "C" {
 /**
  * There is a fresh message. Typically, the user will show an notification
  * when receiving this message.
+ *
+ * There is no extra #MR_EVENT_MSGS_CHANGED event send together with this event.
  *
  * @param data1 chat_id
  *
@@ -129,7 +135,9 @@ extern "C" {
 
 
 /**
- * Group name/image changed or members added/removed.
+ * Group changed.  The name or the image of a chat group was changed or members were added or removed.
+ * See mrmailbox_set_chat_name(), mrmailbox_set_chat_image(), mrmailbox_add_contact_to_chat()
+ * and mrmailbox_remove_contact_from_chat().
  *
  * @param data1 chat_id
  *
