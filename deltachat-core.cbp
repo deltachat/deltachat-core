@@ -453,6 +453,7 @@
 		<Unit filename="src/mrdehtml.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrevent.h" />
 		<Unit filename="src/mrimap.c">
 			<Option compilerVar="CC" />
 		</Unit>
