@@ -2631,6 +2631,8 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  *
  * To find out the archived state of a given chat, use mrchat_t::m_archived
  *
+ * Calling this function usually results in the event #MR_EVENT_MSGS_CHANGED
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
@@ -2654,6 +2656,8 @@ void mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 	mrsqlite3_unlock(mailbox->m_sql);
+
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 }
 
 
@@ -3398,6 +3402,8 @@ cleanup:
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special message that is sent automatically by this function.
  *
+ * The function usually sends out the messages #MR_EVENT_MSGS_CHANGED and/or #MR_EVENT_CHAT_MODIFIED
+ *
  * @memberof mrmailbox_t
  *
  * @param chat_id The chat ID to set the name for.  Must be a group chat.
@@ -3473,6 +3479,8 @@ cleanup:
  *
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special message that is sent automatically by this function.
+ *
+ * The function usually sends out the messages #MR_EVENT_MSGS_CHANGED and/or #MR_EVENT_CHAT_MODIFIED
  *
  * @memberof mrmailbox_t
  *
