@@ -290,6 +290,8 @@ cleanup:
  * Get base file name without path. The base file name includes the extension; the path
  * is not returned. To get the full path, use mrmsg_get_file().
  *
+ * @memberof mrmsg_t
+ *
  * @param msg the message object
  *
  * @return base file name plus extension without part.  If there is no file
@@ -727,10 +729,18 @@ void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 
 
 /**
- * can be used to add some additional, persistent information to a messages
- * record.
+ * Add additional, persistent information to a message record.
+ *
+ * Normally, this function is not needed; message records are created
+ * by mrmailbox_send_msg() or mrmailbox_send_text_msg() and modified by
+ * actions of the user.  However, for rare cases, it might be necessary
+ * to save an paramter later to disk.  For this purpose, use this function.
  *
  * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return None.
  */
 void mrmsg_save_param_to_disk(mrmsg_t* msg)
 {
