@@ -100,7 +100,7 @@ void mrparam_unref(mrparam_t* param)
 
 
 /**
- * Delete all parameters.
+ * Delete all parameters in the object.
  *
  * @memberof mrparam_t
  *

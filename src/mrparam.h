@@ -31,7 +31,15 @@ extern "C" {
  * An object for handling key=value parameter lists.
  * The parameter object is used eg. by mrchat_t or mrmsg_t.
  * To access the single parameters use the setter and getter functions with an
- * MRP_* constant.
+ * MRP_* constant, eg.
+ *
+ * - MRP_FILE - the file associated with a message, not for text messages
+ * - MRP_WIDTH - the width of an image or video
+ * - MRP_HEIGHT - the height of an image or video
+ * - MRP_DURATION - the duration of an video or audio
+ *
+ * However, for most functions, it is easier to use more conctrete functions
+ * as mrmsg_get_file().
  */
 typedef struct mrparam_t
 {
