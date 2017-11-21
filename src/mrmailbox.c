@@ -4257,7 +4257,7 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 		{
 			ret->m_id   = contact_id;
 			ret->m_name = mrstock_str(MR_STR_SELF);
-			ret->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+			ret->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 		}
 		else
 		{

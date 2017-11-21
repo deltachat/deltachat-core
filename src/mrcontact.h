@@ -71,7 +71,7 @@ typedef struct mrcontact_t
 	/**
 	 * The E-Mail-Address of the contact.
 	 *
-	 * May be NULL or empty.
+	 * Never NULL if the contact is returned from mrmailbox_get_contact().
 	 */
 	char*           m_addr;
 
