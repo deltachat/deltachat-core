@@ -256,6 +256,7 @@ uint32_t        mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t cont
 
 uint32_t        mrmailbox_send_text_msg     (mrmailbox_t*, uint32_t chat_id, const char* text_to_send);
 uint32_t        mrmailbox_send_msg          (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
+uint32_t        mrmailbox_send_vcard_msg    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 void            mrmailbox_set_draft         (mrmailbox_t*, uint32_t chat_id, const char*);
 
 #define         MR_GCM_ADDDAYMARKER         0x01

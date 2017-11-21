@@ -3115,6 +3115,60 @@ cleanup:
 
 
 /**
+ * Send foreign contact data to a chat.
+ *
+ * Sends the name and the email address of another contact to a chat.
+ * The contact this may or may not be a member of the chat.
+ *
+ * Typically used to share a contact to another member or to a group of members.
+ *
+ * Internally, the function just creates an appropriate text message and sends it
+ * using mrmailbox_send_text_msg().
+ *
+ * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
+ * is not related to the VCARD data format.
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @param chat_id The chat to send the message to.
+ *
+ * @param contact_id The contact whichs data should be shared to the chat.
+ *
+ * @param Returns the ID of the message sent.
+ */
+uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	uint32_t     ret = 0;
+	mrmsg_t*     msg = mrmsg_new();
+	mrcontact_t* contact = NULL;
+	char*        text_to_send = NULL;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	if( (contact=mrmailbox_get_contact(mailbox, contact_id)) == NULL ) {
+		goto cleanup;
+	}
+
+	if( contact->m_authname && contact->m_authname[0] ) {
+		text_to_send = mr_mprintf("%s: %s", contact->m_authname, contact->m_addr);
+	}
+	else {
+		text_to_send = safe_strdup(contact->m_addr);
+	}
+
+	ret = mrmailbox_send_text_msg(mailbox, chat_id, text_to_send);
+
+cleanup:
+	mrmsg_unref(msg);
+	mrcontact_unref(contact);
+	free(text_to_send);
+	return ret;
+}
+
+
+/**
  * Send a message of any type to a chat. The given message object is not unref'd
  * by the function but some fields are set up.
  *
