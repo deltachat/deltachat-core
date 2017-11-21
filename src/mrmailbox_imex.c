@@ -1052,7 +1052,7 @@ int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
 {
 	/* Check if the given password matches the configured mail_pw.
 	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.
-	When we start supporting OAuth some day, we should think this over, maybe force the user to re-authenticate hinself with the Android password. */
+	When we start supporting OAuth some day, we should think this over, maybe force the user to re-authenticate himself with the Android password. */
 	mrloginparam_t* loginparam = mrloginparam_new();
 	int             success = 0;
 
