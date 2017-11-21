@@ -684,7 +684,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "groupimage")==0 )
 	{
 		if( sel_chat ) {
-			ret = mrmailbox_set_chat_image(mailbox, sel_chat->m_id, (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = mrmailbox_set_chat_profile_image(mailbox, sel_chat->m_id, (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("No chat selected.");

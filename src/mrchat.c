@@ -107,8 +107,35 @@ void mrchat_empty(mrchat_t* chat)
 }
 
 
+/*******************************************************************************
+ * Getters
+ ******************************************************************************/
+
+
 /**
- * Get a subtitle for a chat.  The sibtitle is eg. the email-address or the
+ * Get the chat's profile image.
+ * The profile image is set using mrmailbox_set_chat_profile_image() for groups.
+ * For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Path and file if the profile image, if any.  NULL otherwise.
+ *     Must be free()'d after usage.
+ */
+char* mrchat_get_profile_image(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return NULL;
+	}
+
+	return mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
+}
+
+
+/**
+ * Get a subtitle for a chat.  The subtitle is eg. the email-address or the
  * number of group members.
  *
  * @memberof mrchat_t
@@ -175,6 +202,11 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 
 	return ret? ret : safe_strdup("Err");
 }
+
+
+/*******************************************************************************
+ * Misc.
+ ******************************************************************************/
 
 
 int mrchat_update_param__(mrchat_t* ths)

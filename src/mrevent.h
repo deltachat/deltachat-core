@@ -136,7 +136,7 @@ extern "C" {
 
 /**
  * Group changed.  The name or the image of a chat group was changed or members were added or removed.
- * See mrmailbox_set_chat_name(), mrmailbox_set_chat_image(), mrmailbox_add_contact_to_chat()
+ * See mrmailbox_set_chat_name(), mrmailbox_set_chat_profile_image(), mrmailbox_add_contact_to_chat()
  * and mrmailbox_remove_contact_from_chat().
  *
  * @param data1 chat_id

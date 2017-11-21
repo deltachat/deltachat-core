@@ -125,15 +125,9 @@ typedef struct mrchat_t
 	 */
 	int             m_archived;
 
-	/**
-	 * Additional parameters for the chat.
-	 *
-	 * To access the parameters, use mrparam_exists(), mrparam_get() for mrparam_get_int()
-	 */
-	mrparam_t*      m_param;
-
 	/** @privatesection */
-	char*           m_grpid;                      /* NULL if unset */
+	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
+	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 } mrchat_t;
 
 
@@ -141,6 +135,7 @@ mrchat_t*       mrchat_new                  (mrmailbox_t*);
 void            mrchat_empty                (mrchat_t*);
 void            mrchat_unref                (mrchat_t*);
 
+char*           mrchat_get_profile_image    (mrchat_t*);
 char*           mrchat_get_subtitle         (mrchat_t*);
 
 /* library-internal */

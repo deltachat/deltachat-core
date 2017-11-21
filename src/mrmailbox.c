@@ -3475,12 +3475,14 @@ cleanup:
 
 
 /**
- * Set group image.
+ * Set group profile image.
  *
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special status message that is sent automatically by this function.
  *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ *
+ * To find out the profile image of a chat, use mrchat_get_profile_image()
  *
  * @memberof mrmailbox_t
  *
@@ -3493,7 +3495,7 @@ cleanup:
  *
  * @return 1=success, 0=error
  */
-int mrmailbox_set_chat_image(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
+int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
 {
 	int       success = 0, locked = 0;;
 	mrchat_t* chat = mrchat_new(mailbox);
