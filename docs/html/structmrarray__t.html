@@ -117,6 +117,31 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>An object representing a simple array. </p>
 <p>This object is used in several placed where functions need to return an array. The items of the array are typically IDs. To free an array object, use <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a1400b5e42c682326e809723f02739a8e"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrarray_unref </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td>
+          <td class="paramname"><em>array</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free an array object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">array</td><td>The array object to free, created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>, <a class="el" href="structmrmailbox__t.html#ae4ccc69ba8e8851a04f9b17b37e5f86a" title="Returns known and unblocked contacts. ">mrmailbox_get_known_contacts()</a> and so on.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a73f6d954ed1b97bbceb3cf7d8e1aeec8"></a>
 <div class="memitem">
 <div class="memproto">
@@ -175,31 +200,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns the item at the given index. Returns 0 on errors or if the array is empty. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a1400b5e42c682326e809723f02739a8e"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrarray_unref </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td>
-          <td class="paramname"><em>array</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Free an array object. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">array</td><td>The array object to free, created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>, <a class="el" href="structmrmailbox__t.html#ae4ccc69ba8e8851a04f9b17b37e5f86a" title="Returns known and unblocked contacts. ">mrmailbox_get_known_contacts()</a> and so on.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
 
 </div>
 </div>

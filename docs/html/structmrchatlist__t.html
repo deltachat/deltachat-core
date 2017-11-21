@@ -124,6 +124,56 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>An object representing a single chatlist in memory. </p>
 <p>Chatlist objects contain chat IDs and, if possible, message IDs belonging to them. Chatlist objects are created eg. using <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>. The chatlist object is not updated. If you want an update, you have to recreate the object. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="ab036d6e066b5ff78779f36711c9ab2f9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrchatlist_unref </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td>
+          <td class="paramname"><em>chatlist</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free a chatlist object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chatlist</td><td>The chatlist object to free, created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>, <a class="el" href="structmrmailbox__t.html#abbb08c91369ff2fedc8575f2e1f01e56" title="Search messages containing the given query string. ">mrmailbox_search_msgs()</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="aa132119f18e40e3151ac5fe0299daab7"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t mrchatlist_get_cnt </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td>
+          <td class="paramname"><em>chatlist</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find out the number of chats in a chatlist. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chatlist</td><td>The chatlist object as created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Returns the number of items in a <a class="el" href="structmrchatlist__t.html" title="An object representing a single chatlist in memory. ">mrchatlist_t</a> object. 0 on errors or if the list is empty. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a8c8360c76b31057322199e8c51cadfa5"></a>
 <div class="memitem">
 <div class="memproto">
@@ -158,31 +208,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns the chat_id of the item at the given index. Index must be between 0 and <a class="el" href="structmrchatlist__t.html#aa132119f18e40e3151ac5fe0299daab7" title="Find out the number of chats in a chatlist. ">mrchatlist_get_cnt()</a>-1. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="aa132119f18e40e3151ac5fe0299daab7"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">size_t mrchatlist_get_cnt </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td>
-          <td class="paramname"><em>chatlist</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Find out the number of chats in a chatlist. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">chatlist</td><td>The chatlist object as created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Returns the number of items in a <a class="el" href="structmrchatlist__t.html" title="An object representing a single chatlist in memory. ">mrchatlist_t</a> object. 0 on errors or if the list is empty. </dd></dl>
 
 </div>
 </div>
@@ -271,31 +296,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The result must be freed using <a class="el" href="structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed" title="Frees a poortext object. ">mrpoortext_unref()</a>. The function never returns NULL. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="ab036d6e066b5ff78779f36711c9ab2f9"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrchatlist_unref </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td>
-          <td class="paramname"><em>chatlist</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Free a chatlist object. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">chatlist</td><td>The chatlist object to free, created eg. by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>, <a class="el" href="structmrmailbox__t.html#abbb08c91369ff2fedc8575f2e1f01e56" title="Search messages containing the given query string. ">mrmailbox_search_msgs()</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
 
 </div>
 </div>

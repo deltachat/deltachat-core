@@ -127,6 +127,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2544769c77af5447546fcf5fc95c64f7"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a2544769c77af5447546fcf5fc95c64f7">mrmsg_get_file</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a2544769c77af5447546fcf5fc95c64f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find out full path, file name and extension of the file associated with a message.  <a href="#a2544769c77af5447546fcf5fc95c64f7">More...</a><br /></td></tr>
 <tr class="separator:a2544769c77af5447546fcf5fc95c64f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ad0dcfc0a1e33d9a88b7381e368d7895a">mrmsg_get_filename</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get base file name without path.  <a href="#ad0dcfc0a1e33d9a88b7381e368d7895a">More...</a><br /></td></tr>
+<tr class="separator:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad87b7df007489b3a47c3fde79978a58a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrpoortext__t.html">mrpoortext_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ad87b7df007489b3a47c3fde79978a58a">mrmsg_get_mediainfo</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:ad87b7df007489b3a47c3fde79978a58a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get real author and title.  <a href="#ad87b7df007489b3a47c3fde79978a58a">More...</a><br /></td></tr>
 <tr class="separator:ad87b7df007489b3a47c3fde79978a58a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -142,9 +145,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a32d23bac4bf35ed5f8c2cfbb93d636f5">mrmsg_is_increation</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a message is still in creation.  <a href="#a32d23bac4bf35ed5f8c2cfbb93d636f5">More...</a><br /></td></tr>
 <tr class="separator:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0bc3ce5f2ef0065547e4aee0143d22ef"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a0bc3ce5f2ef0065547e4aee0143d22ef">mrmsg_save_param_to_disk</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
-<tr class="memdesc:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">can be used to add some additional, persistent information to a messages record. <br /></td></tr>
+<tr class="memitem:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a0bc3ce5f2ef0065547e4aee0143d22ef">mrmsg_save_param_to_disk</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add additional, persistent information to a message record.  <a href="#a0bc3ce5f2ef0065547e4aee0143d22ef">More...</a><br /></td></tr>
 <tr class="separator:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
@@ -187,6 +189,51 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>An object representing a single message in memory. </p>
 <p>The message object is not updated. If you want an update, you have to recreate the object. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a80f470eb34af414ff28e7d3b3c715b48"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> * mrmsg_new </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create new message object. </p>
+<p>Message objects are needed eg. for sending messages using <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a>. Moreover, they are returned eg. from <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>, set up with the current state of a message. The message object is not updated; to achieve this, you have to recreate it.</p>
+<dl class="section return"><dt>Returns</dt><dd>The created message object. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="aa33212e41efff643aa7290753f3d9b02"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmsg_unref </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free an <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> object created eg. </p>
+<p>by <a class="el" href="structmrmsg__t.html#a80f470eb34af414ff28e7d3b3c715b48" title="Create new message object. ">mrmsg_new()</a> or <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>. This also free()s all strings; so if you set up the object yourself, make sure to use strdup()!</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object to free.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a57d94b55fc918b27874b9194d6c35388"></a>
 <div class="memitem">
 <div class="memproto">
@@ -212,6 +259,204 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a3581e331fe9f3f38d4c5bb1b1c8c7867"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmsg_set_type </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the type of a message. </p>
+<p>See <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a> for some examples.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object to modify.</td></tr>
+    <tr><td class="paramname">type</td><td>Type to set for the message. Possible types are MR_MSG_TEXT (10), MR_MSG_IMAGE (20), MR_MSG_GIF (21), MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50) or MR_MSG_FILE (60).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ae940aa79a261e1a427b12baefbee2d23"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmsg_set_text </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>text</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the text of a message object. </p>
+<p>The text is <em>not</em> modified in the database, this function is only a helper to set up a message object to be sent afterwards. The type of the message object is not changed implicitly to MR_MSG_TEXT when using this function. Previously set texts are free()'d.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>Message to set the text for.</td></tr>
+    <tr><td class="paramname">text</td><td>Text to set. The function creates a copy of the given text so that it can be free()'d just after this function is called.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a98455bee60d64b3d59d89fbbb520ddd5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmsg_set_file </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the file belonging to a message. </p>
+<p>The file may be an image, a video, an audio file, an PDF and so on. This function is a shortcut for mrparam_set(msg-&gt;m_param, MRP_FILE, file)</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object to modify.</td></tr>
+    <tr><td class="paramname">file</td><td>Path, filename and extension to set for the given message.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a705454903b36ded8c3cd43a2044de60a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_get_type </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the type of the message. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>One of MR_MSG_TEXT (10), MR_MSG_IMAGE (20), MR_MSG_GIF (21), MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50), MR_MSG_FILE (60) or MR_MSG_UNDEFINED (0) if the type is undefined. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a1f411e4be17fb5fe408a1aa74cba90a5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_get_state </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the state of a message. </p>
+<p>Incoming message states:</p><ul>
+<li>MR_STATE_IN_FRESH (10) - Incoming <em>fresh</em> message. Fresh messages are not noticed nor seen and are typically shown in notifications. Use <a class="el" href="structmrmailbox__t.html#a65215149290bec16b173106269b08e5e" title="Returns the message IDs of all fresh messages of any chat. ">mrmailbox_get_fresh_msgs()</a> to get all fresh messages.</li>
+<li>MR_STATE_IN_NOTICED (13) - Incoming <em>noticed</em> message. Eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs. Use <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a7150c575193d43e048689aa264c74c79" title="Mark all messages send by the given contact as noticed. ">mrmailbox_marknoticed_contact()</a> to mark messages as being noticed.</li>
+<li>MR_STATE_IN_SEEN (16) - Incoming message, really <em>seen</em> by the user. Marked as read on IMAP and MDN may be send. Use <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a> to mark messages as being seen.</li>
+</ul>
+<p>Outgoing message states:</p><ul>
+<li>MR_STATE_OUT_PENDING (20) - The user has send the "send" button but the message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).</li>
+<li>MR_STATE_OUT_ERROR (24) - <em>Unrecoverable</em> error (<em>recoverable</em> errors result in pending messages)</li>
+<li>MR_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state MR_STATE_OUT_ERROR if we get such a hint from the server. If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b" title="A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVE...">MR_EVENT_MSG_DELIVERED</a>.</li>
+<li>MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side) If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58" title="A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_M...">MR_EVENT_MSG_READ</a>.</li>
+</ul>
+<p>The state of just created message objects is MR_STATE_UNDEFINED (0). The state is always set by the core-library, users of the library cannot set the state directly, but it is changed implicitly eg. when calling <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The state of the message. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ae549e58d9ae2f73ad76bd27636b43982"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrmsg_get_text </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the text of the message. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Message text. The result must be free()'d. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a2544769c77af5447546fcf5fc95c64f7"></a>
 <div class="memitem">
 <div class="memproto">
@@ -234,6 +479,32 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Full path, file name and extension of the file associated with the message. If there is no file associated with the message, an emtpy string is returned. NULL is never returned and the returned value must be free()'d. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ad0dcfc0a1e33d9a88b7381e368d7895a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrmsg_get_filename </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get base file name without path. </p>
+<p>The base file name includes the extension; the path is not returned. To get the full path, use <a class="el" href="structmrmsg__t.html#a2544769c77af5447546fcf5fc95c64f7" title="Find out full path, file name and extension of the file associated with a message. ">mrmsg_get_file()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>the message object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>base file name plus extension without part. If there is no file associated with the message, an empty string is returned. The returned value must be free()'d. </dd></dl>
 
 </div>
 </div>
@@ -288,43 +559,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>1=padlock should be shown beside message, 0=do not show a padlock beside the message. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a1f411e4be17fb5fe408a1aa74cba90a5"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int mrmsg_get_state </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get the state of a message. </p>
-<p>Incoming message states:</p><ul>
-<li>MR_STATE_IN_FRESH (10) - Incoming <em>fresh</em> message. Fresh messages are not noticed nor seen and are typically shown in notifications. Use <a class="el" href="structmrmailbox__t.html#a65215149290bec16b173106269b08e5e" title="Returns the message IDs of all fresh messages of any chat. ">mrmailbox_get_fresh_msgs()</a> to get all fresh messages.</li>
-<li>MR_STATE_IN_NOTICED (13) - Incoming <em>noticed</em> message. Eg. chat opened but message not yet read - noticed messages are not counted as unread but did not marked as read nor resulted in MDNs. Use <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a7150c575193d43e048689aa264c74c79" title="Mark all messages send by the given contact as noticed. ">mrmailbox_marknoticed_contact()</a> to mark messages as being noticed.</li>
-<li>MR_STATE_IN_SEEN (16) - Incoming message, really <em>seen</em> by the user. Marked as read on IMAP and MDN may be send. Use <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a> to mark messages as being seen.</li>
-</ul>
-<p>Outgoing message states:</p><ul>
-<li>MR_STATE_OUT_PENDING (20) - The user has send the "send" button but the message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).</li>
-<li>MR_STATE_OUT_ERROR (24) - <em>Unrecoverable</em> error (<em>recoverable</em> errors result in pending messages)</li>
-<li>MR_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state MR_STATE_OUT_ERROR if we get such a hint from the server. If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b" title="A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVE...">MR_EVENT_MSG_DELIVERED</a>.</li>
-<li>MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side) If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58" title="A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_M...">MR_EVENT_MSG_READ</a>.</li>
-</ul>
-<p>The state of just created message objects is MR_STATE_UNDEFINED (0). The state is always set by the core-library, users of the library cannot set the state directly, but it is changed implicitly eg. when calling <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The state of the message. </dd></dl>
 
 </div>
 </div>
@@ -402,56 +636,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ae549e58d9ae2f73ad76bd27636b43982"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char * mrmsg_get_text </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get the text of the message. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Message text. The result must be free()'d. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a705454903b36ded8c3cd43a2044de60a"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int mrmsg_get_type </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get the type of the message. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>One of MR_MSG_TEXT (10), MR_MSG_IMAGE (20), MR_MSG_GIF (21), MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50), MR_MSG_FILE (60) or MR_MSG_UNDEFINED (0) if the type is undefined. </dd></dl>
-
-</div>
-</div>
 <a class="anchor" id="a32d23bac4bf35ed5f8c2cfbb93d636f5"></a>
 <div class="memitem">
 <div class="memproto">
@@ -467,7 +651,8 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Check if a message is still in creation. </p>
-<p>The user can mark files as being in creation by simply creating a file <code>&lt;filename&gt;.increation</code>. If <code>&lt;filename&gt;</code> is created then, the user should just delete <code>&lt;filename&gt;.increation</code></p>
+<p>The user can mark files as being in creation by simply creating a file <code>&lt;filename&gt;.increation</code>. If <code>&lt;filename&gt;</code> is created then, the user should just delete <code>&lt;filename&gt;.increation</code>.</p>
+<p>Typically, this is used for videos that should be recoded by the user before they can be sent.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>the message object</td></tr>
@@ -478,142 +663,12 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a80f470eb34af414ff28e7d3b3c715b48"></a>
+<a class="anchor" id="a0bc3ce5f2ef0065547e4aee0143d22ef"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> * mrmsg_new </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Create new message object. </p>
-<p>Message objects are needed eg. for sending messages using <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a>. Moreover, they are returned eg. from <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>, set up with the current state of a message. The message object is not updated; to achieve this, you have to recreate it.</p>
-<dl class="section return"><dt>Returns</dt><dd>The created message object. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a98455bee60d64b3d59d89fbbb520ddd5"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_set_file </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>file</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the file belonging to a message. </p>
-<p>The file may be an image, a video, an audio file, an PDF and so on. This function is a shortcut for mrparam_set(msg-&gt;m_param, MRP_FILE, file)</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object to modify.</td></tr>
-    <tr><td class="paramname">file</td><td>Path, filename and extension to set for the given message.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="ae940aa79a261e1a427b12baefbee2d23"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_set_text </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>text</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the text of a message object. </p>
-<p>The text is <em>not</em> modified in the database, this function is only a helper to set up a message object to be sent afterwards. The type of the message object is not changed implicitly to MR_MSG_TEXT when using this function. Previously set texts are free()'d.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>Message to set the text for.</td></tr>
-    <tr><td class="paramname">text</td><td>Text to set. The function creates a copy of the given text so that it can be free()'d just after this function is called.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a3581e331fe9f3f38d4c5bb1b1c8c7867"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_set_type </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>type</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Set the type of a message. </p>
-<p>See <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a> for some examples.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object to modify.</td></tr>
-    <tr><td class="paramname">type</td><td>Type to set for the message. Possible types are MR_MSG_TEXT (10), MR_MSG_IMAGE (20), MR_MSG_GIF (21), MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50) or MR_MSG_FILE (60).</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="aa33212e41efff643aa7290753f3d9b02"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_unref </td>
+          <td class="memname">void mrmsg_save_param_to_disk </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
           <td class="paramname"><em>msg</em></td><td>)</td>
@@ -622,11 +677,11 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Free an <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> object created eg. </p>
-<p>by <a class="el" href="structmrmsg__t.html#a80f470eb34af414ff28e7d3b3c715b48" title="Create new message object. ">mrmsg_new()</a> or <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>. This also free()s all strings; so if you set up the object yourself, make sure to use strdup()!</p>
+<p>Add additional, persistent information to a message record. </p>
+<p>Normally, this function is not needed; message records are created by <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a> or <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a> and modified by actions of the user. However, for rare cases, it might be necessary to save an paramter later to disk. For this purpose, use this function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object to free.</td></tr>
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
   </table>
   </dd>
 </dl>
@@ -635,36 +690,6 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a class="anchor" id="ac19bdc40e452c8997dd58474a7be6880"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t mrmsg_t::m_chat_id</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Chat ID the message belongs to. </p>
-<p>0 if unset. See <a class="el" href="structmrchat__t.html#a1591431716413350eaffce0b588e4911" title="Chat ID under which the chat is filed in the database. ">mrchat_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a> to load details about the chat. </p>
-
-</div>
-</div>
-<a class="anchor" id="a299981cb89b25ebaaedf7a8486a86ee6"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t mrmsg_t::m_from_id</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Contact ID of the sender. </p>
-<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
-
-</div>
-</div>
 <a class="anchor" id="a793898c8da24c717dc2bb1d91faac801"></a>
 <div class="memitem">
 <div class="memproto">
@@ -685,48 +710,78 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="aa4fbc319d61c755ce929e658ad75b21e"></a>
+<a class="anchor" id="a299981cb89b25ebaaedf7a8486a86ee6"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int mrmsg_t::m_is_msgrmsg</td>
+          <td class="memname">uint32_t mrmsg_t::m_from_id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Set to 1 if the message was sent by another messenger. </p>
-<p>0 otherwise. </p>
+<p>Contact ID of the sender. </p>
+<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
 
 </div>
 </div>
-<a class="anchor" id="a2c31ec5b23e35fbe3ae3896eece09453"></a>
+<a class="anchor" id="ad549fc02587ba284fda2bbecd162b16a"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structmrparam__t.html">mrparam_t</a>* mrmsg_t::m_param</td>
+          <td class="memname">uint32_t mrmsg_t::m_to_id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Additional paramter for the message. </p>
-<p>MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type. Never a NULL-pointer. </p>
+<p>Contact ID of the recipient. </p>
+<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
 
 </div>
 </div>
-<a class="anchor" id="a0570bbfc3add48dafb0ae70390b47adb"></a>
+<a class="anchor" id="ac19bdc40e452c8997dd58474a7be6880"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int mrmsg_t::m_starred</td>
+          <td class="memname">uint32_t mrmsg_t::m_chat_id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Starred-state of the message. </p>
-<p>0=no, 1=yes. </p>
+<p>Chat ID the message belongs to. </p>
+<p>0 if unset. See <a class="el" href="structmrchat__t.html#a1591431716413350eaffce0b588e4911" title="Chat ID under which the chat is filed in the database. ">mrchat_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a> to load details about the chat. </p>
+
+</div>
+</div>
+<a class="anchor" id="aba09cb77cdabd1e2b2e6262d25388801"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">time_t mrmsg_t::m_timestamp</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Unix time the message was sended or received. </p>
+<p>0 if unset. </p>
+
+</div>
+</div>
+<a class="anchor" id="a3896e269c90cbf0f563ab0848fb44c65"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_t::m_type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Message type. </p>
+<p>It is recommended to use <a class="el" href="structmrmsg__t.html#a3581e331fe9f3f38d4c5bb1b1c8c7867" title="Set the type of a message. ">mrmsg_set_type()</a> and <a class="el" href="structmrmsg__t.html#a705454903b36ded8c3cd43a2044de60a" title="Get the type of the message. ">mrmsg_get_type()</a> to access this field. </p>
 
 </div>
 </div>
@@ -760,48 +815,48 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="aba09cb77cdabd1e2b2e6262d25388801"></a>
+<a class="anchor" id="a2c31ec5b23e35fbe3ae3896eece09453"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">time_t mrmsg_t::m_timestamp</td>
+          <td class="memname"><a class="el" href="structmrparam__t.html">mrparam_t</a>* mrmsg_t::m_param</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Unix time the message was sended or received. </p>
-<p>0 if unset. </p>
+<p>Additional paramter for the message. </p>
+<p>MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type. Never a NULL-pointer. </p>
 
 </div>
 </div>
-<a class="anchor" id="ad549fc02587ba284fda2bbecd162b16a"></a>
+<a class="anchor" id="a0570bbfc3add48dafb0ae70390b47adb"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t mrmsg_t::m_to_id</td>
+          <td class="memname">int mrmsg_t::m_starred</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Contact ID of the recipient. </p>
-<p>0 if unset. See <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a> for special IDs. Use <a class="el" href="structmrmailbox__t.html#a057660d94350ff98eca72785c6e88962" title="Get a single contact object. ">mrmailbox_get_contact()</a> to load details about this contact. </p>
+<p>Starred-state of the message. </p>
+<p>0=no, 1=yes. </p>
 
 </div>
 </div>
-<a class="anchor" id="a3896e269c90cbf0f563ab0848fb44c65"></a>
+<a class="anchor" id="aa4fbc319d61c755ce929e658ad75b21e"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int mrmsg_t::m_type</td>
+          <td class="memname">int mrmsg_t::m_is_msgrmsg</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Message type. </p>
-<p>It is recommended to use <a class="el" href="structmrmsg__t.html#a3581e331fe9f3f38d4c5bb1b1c8c7867" title="Set the type of a message. ">mrmsg_set_type()</a> and <a class="el" href="structmrmsg__t.html#a705454903b36ded8c3cd43a2044de60a" title="Get the type of the message. ">mrmsg_get_type()</a> to access this field. </p>
+<p>Set to 1 if the message was sent by another messenger. </p>
+<p>0 otherwise. </p>
 
 </div>
 </div>

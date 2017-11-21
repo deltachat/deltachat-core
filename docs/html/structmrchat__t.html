@@ -100,6 +100,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a3b1befb4542c1bad915f2175c7c2a2b9">mrchat_unref</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
 <tr class="memdesc:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a chat object.  <a href="#a3b1befb4542c1bad915f2175c7c2a2b9">More...</a><br /></td></tr>
 <tr class="separator:a3b1befb4542c1bad915f2175c7c2a2b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfe861b7cc247ebea854f4a15bcd1bef"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#abfe861b7cc247ebea854f4a15bcd1bef">mrchat_get_unpromoted</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
+<tr class="memdesc:abfe861b7cc247ebea854f4a15bcd1bef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a chat is still unpromoted.  <a href="#abfe861b7cc247ebea854f4a15bcd1bef">More...</a><br /></td></tr>
+<tr class="separator:abfe861b7cc247ebea854f4a15bcd1bef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12bad02bef1fb6c8003f41c72d94f54b"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a12bad02bef1fb6c8003f41c72d94f54b">mrchat_get_profile_image</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
+<tr class="memdesc:a12bad02bef1fb6c8003f41c72d94f54b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the chat's profile image.  <a href="#a12bad02bef1fb6c8003f41c72d94f54b">More...</a><br /></td></tr>
+<tr class="separator:a12bad02bef1fb6c8003f41c72d94f54b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#ae1e9920618c9f6cb8ad66d5bb6962a08">mrchat_get_subtitle</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
 <tr class="memdesc:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a subtitle for a chat.  <a href="#ae1e9920618c9f6cb8ad66d5bb6962a08">More...</a><br /></td></tr>
 <tr class="separator:ae1e9920618c9f6cb8ad66d5bb6962a08"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -127,40 +133,11 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a5b28b343ceb290d4a613d0e5a7d528bc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a5b28b343ceb290d4a613d0e5a7d528bc">m_archived</a></td></tr>
 <tr class="memdesc:a5b28b343ceb290d4a613d0e5a7d528bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag for the archived state.  <a href="#a5b28b343ceb290d4a613d0e5a7d528bc">More...</a><br /></td></tr>
 <tr class="separator:a5b28b343ceb290d4a613d0e5a7d528bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad2792ee7df778521de61087bc79795a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrparam__t.html">mrparam_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#ad2792ee7df778521de61087bc79795a7">m_param</a></td></tr>
-<tr class="memdesc:ad2792ee7df778521de61087bc79795a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Additional parameters for the chat.  <a href="#ad2792ee7df778521de61087bc79795a7">More...</a><br /></td></tr>
-<tr class="separator:ad2792ee7df778521de61087bc79795a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An object representing a single chat in memory. </p>
 <p>Chat objects are created using eg. <a class="el" href="structmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a> and are not updated on database changes; if you want an update, you have to recreate the object. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="ae1e9920618c9f6cb8ad66d5bb6962a08"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char * mrchat_get_subtitle </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
-          <td class="paramname"><em>chat</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get a subtitle for a chat. </p>
-<p>The sibtitle is eg. the email-address or the number of group members.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">chat</td><td>The chat object to calulate the subtitle for.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Subtitle as a string. Must be free()'d after usage. </dd></dl>
-
-</div>
-</div>
 <a class="anchor" id="a3b1befb4542c1bad915f2175c7c2a2b9"></a>
 <div class="memitem">
 <div class="memproto">
@@ -186,57 +163,86 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="abfe861b7cc247ebea854f4a15bcd1bef"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrchat_get_unpromoted </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
+          <td class="paramname"><em>chat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if a chat is still unpromoted. </p>
+<p>Chats are unpromoted until the first message is sent. With unpromoted chats, members can be sent, settings can be modified without the need of special status messages being sent.</p>
+<p>After the creation with <a class="el" href="structmrmailbox__t.html#a47156db87107ec208d6637f460d897a8" title="Create a new group chat. ">mrmailbox_create_group_chat()</a> the chat is usuall unpromoted until the first call to <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a> or <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chat</td><td>The chat object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=chat is still unpromoted, no message was ever send to the chat, 0=chat is not unpromoted, messages were send and/or received </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a12bad02bef1fb6c8003f41c72d94f54b"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrchat_get_profile_image </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
+          <td class="paramname"><em>chat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the chat's profile image. </p>
+<p>The profile image is set using <a class="el" href="structmrmailbox__t.html#a08c527170681c949ddd6931a004fdd5f" title="Set group profile image. ">mrmailbox_set_chat_profile_image()</a> for groups. For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chat</td><td>The chat object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Path and file if the profile image, if any. NULL otherwise. Must be free()'d after usage. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ae1e9920618c9f6cb8ad66d5bb6962a08"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrchat_get_subtitle </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
+          <td class="paramname"><em>chat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get a subtitle for a chat. </p>
+<p>The subtitle is eg. the email-address or the number of group members.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chat</td><td>The chat object to calulate the subtitle for.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Subtitle as a string. Must be free()'d after usage. </dd></dl>
+
+</div>
+</div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a class="anchor" id="a5b28b343ceb290d4a613d0e5a7d528bc"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int mrchat_t::m_archived</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flag for the archived state. </p>
-<p>0=normal chat, not archived, not sticky.</p>
-<p>1=chat archived</p>
-<p>2=chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)</p>
-<p>To archive or unarchive chats, use <a class="el" href="structmrmailbox__t.html#a8e04e43dacbe3128afd71e1d6c1b0911" title="Archive or unarchive a chat. ">mrmailbox_archive_chat()</a>. If chats are archived, this should be shown in the UI by a little icon or text, eg. the search will also return archived chats. </p>
-
-</div>
-</div>
-<a class="anchor" id="abe916f48ac83c2ca6476312eae084cfa"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char* mrchat_t::m_draft_text</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The draft text. </p>
-<p>The timetamp of the draft is placed in <a class="el" href="structmrchat__t.html#a565101f53278f5ab1ff58317ffc9555c" title="Timestamp of the draft. ">mrchat_t::m_draft_timestamp</a>. To save a draft for a chat, use <a class="el" href="structmrmailbox__t.html#af50446c1a5e504d27fe29de9e3b8edc3" title="Save a draft for a chat. ">mrmailbox_set_draft()</a></p>
-<p>NULL if there is no draft. </p>
-
-</div>
-</div>
-<a class="anchor" id="a565101f53278f5ab1ff58317ffc9555c"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">time_t mrchat_t::m_draft_timestamp</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Timestamp of the draft. </p>
-<p>The draft itself is placed in <a class="el" href="structmrchat__t.html#abe916f48ac83c2ca6476312eae084cfa" title="The draft text. ">mrchat_t::m_draft_text</a>. To save a draft for a chat, use <a class="el" href="structmrmailbox__t.html#af50446c1a5e504d27fe29de9e3b8edc3" title="Save a draft for a chat. ">mrmailbox_set_draft()</a></p>
-<p>0 if there is no draft. </p>
-
-</div>
-</div>
 <a class="anchor" id="a1591431716413350eaffce0b588e4911"></a>
 <div class="memitem">
 <div class="memproto">
@@ -257,18 +263,22 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="abf3e1a34f567e168bc0597f9a544a50d"></a>
+<a class="anchor" id="a568c4e6fb9633ffe9a76428db16e0201"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a>* mrchat_t::m_mailbox</td>
+          <td class="memname">int mrchat_t::m_type</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>The mailbox object the chat belongs to. </p>
-<p>Never NULL. </p>
+<p>Chat type. </p>
+<ul>
+<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a>) is not added.</li>
+<li>MR_CHAT_TYPE_GROUP (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF</li>
+</ul>
+<p>If the chat type is not set, it is MR_CHAT_TYPE_UNDEFINED (0). </p>
 
 </div>
 </div>
@@ -289,37 +299,68 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ad2792ee7df778521de61087bc79795a7"></a>
+<a class="anchor" id="a565101f53278f5ab1ff58317ffc9555c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structmrparam__t.html">mrparam_t</a>* mrchat_t::m_param</td>
+          <td class="memname">time_t mrchat_t::m_draft_timestamp</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Additional parameters for the chat. </p>
-<p>To access the parameters, use <a class="el" href="structmrparam__t.html#a0a9d3768d128dce0088b089f66fafb68" title="Check if a parameter exists. ">mrparam_exists()</a>, <a class="el" href="structmrparam__t.html#a23e24e8700e17ede6dd385fc90330f76" title="Get value of a parameter. ">mrparam_get()</a> for <a class="el" href="structmrparam__t.html#aba7d11db241c2ebbadab67895b84dae8" title="Get value of a parameter. ">mrparam_get_int()</a> </p>
+<p>Timestamp of the draft. </p>
+<p>The draft itself is placed in <a class="el" href="structmrchat__t.html#abe916f48ac83c2ca6476312eae084cfa" title="The draft text. ">mrchat_t::m_draft_text</a>. To save a draft for a chat, use <a class="el" href="structmrmailbox__t.html#af50446c1a5e504d27fe29de9e3b8edc3" title="Save a draft for a chat. ">mrmailbox_set_draft()</a></p>
+<p>0 if there is no draft. </p>
 
 </div>
 </div>
-<a class="anchor" id="a568c4e6fb9633ffe9a76428db16e0201"></a>
+<a class="anchor" id="abe916f48ac83c2ca6476312eae084cfa"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int mrchat_t::m_type</td>
+          <td class="memname">char* mrchat_t::m_draft_text</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Chat type. </p>
-<ul>
-<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a>) is not added.</li>
-<li>MR_CHAT_TYPE_GROUP (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF</li>
-</ul>
-<p>If the chat type is not set, it is MR_CHAT_TYPE_UNDEFINED (0). </p>
+<p>The draft text. </p>
+<p>The timetamp of the draft is placed in <a class="el" href="structmrchat__t.html#a565101f53278f5ab1ff58317ffc9555c" title="Timestamp of the draft. ">mrchat_t::m_draft_timestamp</a>. To save a draft for a chat, use <a class="el" href="structmrmailbox__t.html#af50446c1a5e504d27fe29de9e3b8edc3" title="Save a draft for a chat. ">mrmailbox_set_draft()</a></p>
+<p>NULL if there is no draft. </p>
+
+</div>
+</div>
+<a class="anchor" id="abf3e1a34f567e168bc0597f9a544a50d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a>* mrchat_t::m_mailbox</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The mailbox object the chat belongs to. </p>
+<p>Never NULL. </p>
+
+</div>
+</div>
+<a class="anchor" id="a5b28b343ceb290d4a613d0e5a7d528bc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrchat_t::m_archived</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Flag for the archived state. </p>
+<p>0=normal chat, not archived, not sticky.</p>
+<p>1=chat archived</p>
+<p>2=chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)</p>
+<p>To archive or unarchive chats, use <a class="el" href="structmrmailbox__t.html#a8e04e43dacbe3128afd71e1d6c1b0911" title="Archive or unarchive a chat. ">mrmailbox_archive_chat()</a>. If chats are archived, this should be shown in the UI by a little icon or text, eg. the search will also return archived chats. </p>
 
 </div>
 </div>

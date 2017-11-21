@@ -14,7 +14,7 @@ var searchData=
   ['m_5fis_5fmsgrmsg',['m_is_msgrmsg',['../structmrmsg__t.html#aa4fbc319d61c755ce929e658ad75b21e',1,'mrmsg_t']]],
   ['m_5fmailbox',['m_mailbox',['../structmrarray__t.html#abd4dde487b63dc1bd2ff00c76854af4f',1,'mrarray_t::m_mailbox()'],['../structmrchat__t.html#abf3e1a34f567e168bc0597f9a544a50d',1,'mrchat_t::m_mailbox()'],['../structmrchatlist__t.html#a025d213cde2fa547b2f3cae4e1facbf7',1,'mrchatlist_t::m_mailbox()']]],
   ['m_5fname',['m_name',['../structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140',1,'mrchat_t::m_name()'],['../structmrcontact__t.html#a48fba862b41f7da3b8c6193c0554654b',1,'mrcontact_t::m_name()']]],
-  ['m_5fparam',['m_param',['../structmrchat__t.html#ad2792ee7df778521de61087bc79795a7',1,'mrchat_t::m_param()'],['../structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453',1,'mrmsg_t::m_param()']]],
+  ['m_5fparam',['m_param',['../structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453',1,'mrmsg_t']]],
   ['m_5fstarred',['m_starred',['../structmrmsg__t.html#a0570bbfc3add48dafb0ae70390b47adb',1,'mrmsg_t']]],
   ['m_5fstate',['m_state',['../structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4',1,'mrmsg_t::m_state()'],['../structmrpoortext__t.html#afbf2ae7473784db66127e63657e04f60',1,'mrpoortext_t::m_state()']]],
   ['m_5ftext',['m_text',['../structmrmsg__t.html#ae54dcd4036371597d7f8bbd75303527a',1,'mrmsg_t']]],
