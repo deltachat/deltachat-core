@@ -104,7 +104,7 @@ void mrcontact_empty(mrcontact_t* contact)
 
 
 /**
- * Get email address.  May be an empty string.
+ * Get email address.  The email address is always set for a contact.
  *
  * @memberof mrcontact_t
  *
