@@ -98,6 +98,112 @@ void mrcontact_empty(mrcontact_t* contact)
 }
 
 
+/*******************************************************************************
+ * Getters
+ ******************************************************************************/
+
+
+/**
+ * Get email address.  May be an empty string.
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object
+ *
+ * @return String with the email address, must be free()'d. Never returns NULL.
+ */
+char* mrcontact_get_addr(mrcontact_t* contact)
+{
+	if( contact == NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	return safe_strdup(contact->m_addr);
+}
+
+
+/**
+ * Get name. This is the name as defined the the contact himself or
+ * modified by the user.  May be an empty string.
+ *
+ * This name is typically used in a form where the user can edit the name of a contact.
+ * This name must not be spreaded via mail (To:, CC: ...) as it as it may be sth. like "Daddy".
+ * To get a fine name to display in lists etc., use mrcontact_get_display_name() or mrcontact_get_name_n_addr().
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object
+ *
+ * @return String with the name to display, must be free()'d. Empty string if unset, never returns NULL.
+ */
+char* mrcontact_get_name(mrcontact_t* contact)
+{
+	if( contact == NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	return safe_strdup(contact->m_name);
+}
+
+
+/**
+ * Get display name. This is the name as defined the the contact himself,
+ * modified by the user or, if both are unset, the email address.
+ *
+ * This name is typically used in lists and must not be speaded via mail (To:, CC: ...).
+ * To get the name editable in a formular, use mrcontact_get_edit_name().
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object
+ *
+ * @return String with the name to display, must be free()'d. Never returns NULL.
+ */
+char* mrcontact_get_display_name(mrcontact_t* contact)
+{
+	if( contact == NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	if( contact->m_name && contact->m_name[0] ) {
+		return safe_strdup(contact->m_name);
+	}
+
+	return safe_strdup(contact->m_addr);
+}
+
+
+/**
+ * Get a summary of name and address.
+ *
+ * The returned string is either "Name (email@domain.com)" or just
+ * "email@domain.com" if the name is unset.
+ *
+ * The summary is typically used when asking the user something about the contact.
+ * The attached email address makes the question unique, eg. "Chat with Alan Miller (am@uniquedomain.com)?"
+ *
+ * The summary must not be spreaded via mail (To:, CC: ...) as it as it may contain sth. like "Daddy".
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object
+ *
+ * @return Summary string, must be free()'d. Never returns NULL.
+ */
+char* mrcontact_get_name_n_addr(mrcontact_t* contact)
+{
+	if( contact == NULL ) {
+		return safe_strdup(NULL);
+	}
+
+	if( contact->m_name && contact->m_name[0] ) {
+		return mr_mprintf("%s (%s)", contact->m_name, contact->m_addr);
+	}
+
+	return safe_strdup(contact->m_addr);
+}
+
+
 /**
  * Get the first name.
  *
@@ -127,12 +233,19 @@ char* mrcontact_get_first_name(const char* full_name)
 }
 
 
+/*******************************************************************************
+ * Misc.
+ ******************************************************************************/
+
+
 /**
  * Normalize a name in-place.
  *
  * - Remove quotes (come from some bad MUA implementations)
  * - Convert names as "Petersen, Björn" to "Björn Petersen"
  * - Trims the resulting string
+ *
+ * Typically, this function is not needed as it is called implicitly by mrmailbox_add_address_book()
  *
  * @memberof mrcontact_t
  *

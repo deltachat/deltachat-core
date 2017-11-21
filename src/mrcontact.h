@@ -50,28 +50,19 @@ typedef struct mrcontact_t
 	#define         MR_CONTACT_ID_LAST_SPECIAL 9
 
 	/**
-	 * Name given by the user to the contact.
-	 *
-	 * Should be used for displaying everywhere and is editable by the user but must not be
-	 * spreaded via mail (To:, CC: ...) as it as it may be sth. like "Daddy".
-	 *
-	 * May be NULL or empty, initially set to #m_authname
+	 * Contact name.  It is recommended to use mrcontact_get_name(), mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname.
 	 */
 	char*           m_name;
 
 	/**
-	 * Name authorized by the contact himself.
-	 *
-	 * May be NULL or empty, this is the name authorized by the sender,
-	 * only this name may be speaded to others, eg. in To:-lists;
-	 * for displaying in the app, use #m_name
+	 * Name authorized by the contact himself. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field.
+	 * This is the name authorized by the sender,
+	 * only this name may be speaded to others, eg. in To:-lists. May be NULL or empty.
 	 */
 	char*           m_authname;
 
 	/**
-	 * The E-Mail-Address of the contact.
-	 *
-	 * Never NULL if the contact is returned from mrmailbox_get_contact().
+	 * E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL.
 	 */
 	char*           m_addr;
 
@@ -91,6 +82,13 @@ typedef struct mrcontact_t
 mrcontact_t* mrcontact_new                    (); /* the returned pointer is ref'd and must be unref'd after usage */
 void         mrcontact_empty                  (mrcontact_t*);
 void         mrcontact_unref                  (mrcontact_t*);
+
+char*        mrcontact_get_addr               (mrcontact_t*);
+char*        mrcontact_get_name               (mrcontact_t*);
+char*        mrcontact_get_display_name       (mrcontact_t*);
+char*        mrcontact_get_name_n_addr        (mrcontact_t*);
+char*        mrcontact_get_first_name         (const char* full_name);
+void         mrcontact_normalize_name         (char* full_name);
 
 
 /* contact origins */
@@ -115,8 +113,6 @@ void         mrcontact_unref                  (mrcontact_t*);
 
 
 /* library-internal */
-char*        mrcontact_get_first_name         (const char* full_name);
-void         mrcontact_normalize_name         (char* full_name);
 int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t contact_id);
 
 
