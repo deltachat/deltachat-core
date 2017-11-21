@@ -113,6 +113,30 @@ void mrchat_empty(mrchat_t* chat)
 
 
 /**
+ * Check if a chat is still unpromoted.  Chats are unpromoted until the first
+ * message is sent.  With unpromoted chats, members can be sent, settings can be
+ * modified without the need of special status messages being sent.
+ *
+ * After the creation with mrmailbox_create_group_chat() the chat is usuall  unpromoted
+ * until the first call to mrmailbox_send_msg() or mrmailbox_send_text_msg().
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return 1=chat is still unpromoted, no message was ever send to the chat,
+ *     0=chat is not unpromoted, messages were send and/or received
+ */
+int mrchat_get_unpromoted(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
+}
+
+
+/**
  * Get the chat's profile image.
  * The profile image is set using mrmailbox_set_chat_profile_image() for groups.
  * For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).

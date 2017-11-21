@@ -3327,7 +3327,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
 /**
  * Create a new group chat.
  *
- * After creation, the groups has one member with the
+ * After creation, the group has one member with the
  * ID [MR_CONTACT_ID_SELF](@ref mrcontact_t::m_id) and is in _unpromoted_ state.  This means, you can
  * add or remove members, change the name, the group image and so on without
  * messages being send to all group members.
@@ -3335,6 +3335,8 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * This changes as soon as the first message is sent to the group members and
  * the group becomes _promoted_.  After that, all changes are synced with all
  * group members by sending status message.
+ *
+ * To check, if a chat is still unpromoted, you mrchat_get_unpromoted()
  *
  * @memberof mrmailbox_t
  *

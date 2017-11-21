@@ -135,6 +135,7 @@ mrchat_t*       mrchat_new                  (mrmailbox_t*);
 void            mrchat_empty                (mrchat_t*);
 void            mrchat_unref                (mrchat_t*);
 
+int             mrchat_get_unpromoted       (mrchat_t*);
 char*           mrchat_get_profile_image    (mrchat_t*);
 char*           mrchat_get_subtitle         (mrchat_t*);
 
