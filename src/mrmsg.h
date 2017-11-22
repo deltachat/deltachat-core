@@ -109,15 +109,9 @@ typedef struct mrmsg_t
 	#define         MR_STATE_OUT_DELIVERED 26
 	#define         MR_STATE_OUT_MDN_RCVD  28
 
-	/**
-	 * Message text.  NULL if unset.  It is recommended to use
-	 * mrmsg_set_text() and mrmsg_get_text() to access this field.
-	 */
-	char*           m_text;
-
-	mrparam_t*      m_param;                  /**< Additional paramter for the message. MRP_FILE, MRP_WIDTH, MRP_HEIGHT etc. depends on the type. Never a NULL-pointer. */
+	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use mrmsg_set_text() and mrmsg_get_text() to access this field. */
+	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
-	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
 
 	/** @privatesection */
 
@@ -125,6 +119,7 @@ typedef struct mrmsg_t
 	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
 	char*           m_server_folder;          /**< Folder where the message was last seen on the server */
 	uint32_t        m_server_uid;             /**< UID last seen on the server for this message */
+	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
 } mrmsg_t;
 
 
