@@ -1563,7 +1563,7 @@ Public Attributes</h2></td></tr>
 <p>Create a new group chat. </p>
 <p>After creation, the group has one member with the ID <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716">MR_CONTACT_ID_SELF</a> and is in <em>unpromoted</em> state. This means, you can add or remove members, change the name, the group image and so on without messages being send to all group members.</p>
 <p>This changes as soon as the first message is sent to the group members and the group becomes <em>promoted</em>. After that, all changes are synced with all group members by sending status message.</p>
-<p>To check, if a chat is still unpromoted, you <a class="el" href="structmrchat__t.html#abfe861b7cc247ebea854f4a15bcd1bef" title="Check if a chat is still unpromoted. ">mrchat_get_unpromoted()</a></p>
+<p>To check, if a chat is still unpromoted, you <a class="el" href="structmrchat__t.html#af23f2fd022f9978f7eed5ed46f3d9fbb" title="Check if a chat is still unpromoted. ">mrchat_is_unpromoted()</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>

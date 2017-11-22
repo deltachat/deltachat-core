@@ -142,6 +142,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a8c8c1f342f01439ae40c5cf37532387e"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a8c8c1f342f01439ae40c5cf37532387e">mrmsg_get_summarytext</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg, int approx_characters)</td></tr>
 <tr class="memdesc:a8c8c1f342f01439ae40c5cf37532387e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a message summary as a single line of text.  <a href="#a8c8c1f342f01439ae40c5cf37532387e">More...</a><br /></td></tr>
 <tr class="separator:a8c8c1f342f01439ae40c5cf37532387e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a752209192e3a022d087fe6c647fb3ad9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a752209192e3a022d087fe6c647fb3ad9">mrmsg_is_systemcmd</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:a752209192e3a022d087fe6c647fb3ad9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the message is a system command.  <a href="#a752209192e3a022d087fe6c647fb3ad9">More...</a><br /></td></tr>
+<tr class="separator:a752209192e3a022d087fe6c647fb3ad9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a32d23bac4bf35ed5f8c2cfbb93d636f5">mrmsg_is_increation</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a message is still in creation.  <a href="#a32d23bac4bf35ed5f8c2cfbb93d636f5">More...</a><br /></td></tr>
 <tr class="separator:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -633,6 +636,34 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A summary for the given messages. The returned string must be free()'d. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a752209192e3a022d087fe6c647fb3ad9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_is_systemcmd </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if the message is a system command. </p>
+<p>System command messages are messages not "typed" by the user but created due to other actions, eg. <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1" title="Set group name. ">mrmailbox_set_chat_name()</a>, <a class="el" href="structmrmailbox__t.html#a08c527170681c949ddd6931a004fdd5f" title="Set group profile image. ">mrmailbox_set_chat_profile_image()</a> or <a class="el" href="structmrmailbox__t.html#a96368620971935c7ac4a0bb324ece2c9" title="Add a member to a group. ">mrmailbox_add_contact_to_chat()</a>.</p>
+<p><a class="el" href="structmrmsg__t.html#ae549e58d9ae2f73ad76bd27636b43982" title="Get the text of the message. ">mrmsg_get_text()</a> returns a descriptive text about what is going on.</p>
+<p>There is no need to perfrom any action when seeing such a message - this is already done by the core. Typically, this text is displayed in another color or in another font than normal user messages.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=message is a system command, 0=normal message </dd></dl>
 
 </div>
 </div>
