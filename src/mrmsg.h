@@ -145,8 +145,9 @@ mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
 int             mrmsg_get_showpadlock       (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
 char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
-
+int             mrmsg_is_systemcmd          (mrmsg_t*);
 int             mrmsg_is_increation         (mrmsg_t*);
+
 void            mrmsg_save_param_to_disk    (mrmsg_t*);
 
 

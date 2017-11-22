@@ -468,6 +468,33 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 }
 
 
+/**
+ * Check if the message is a system command.
+ *
+ * System command messages are messages not "typed" by the user but
+ * created due to other actions, eg. mrmailbox_set_chat_name(), mrmailbox_set_chat_profile_image()
+ * or mrmailbox_add_contact_to_chat().
+ *
+ * mrmsg_get_text() returns a descriptive text about what is going on.
+ *
+ * There is no need to perfrom any action when seeing such a message - this is already done by the core.
+ * Typically, this text is displayed in another color or in another font than normal user messages.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return 1=message is a system command, 0=normal message
+ */
+int mrmsg_is_systemcmd(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)? 1 : 0;
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/
