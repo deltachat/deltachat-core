@@ -127,7 +127,7 @@ void mrchat_empty(mrchat_t* chat)
  * @return 1=chat is still unpromoted, no message was ever send to the chat,
  *     0=chat is not unpromoted, messages were send and/or received
  */
-int mrchat_get_unpromoted(mrchat_t* chat)
+int mrchat_is_unpromoted(mrchat_t* chat)
 {
 	if( chat == NULL ) {
 		return 0;

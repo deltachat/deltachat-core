@@ -3390,7 +3390,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * the group becomes _promoted_.  After that, all changes are synced with all
  * group members by sending status message.
  *
- * To check, if a chat is still unpromoted, you mrchat_get_unpromoted()
+ * To check, if a chat is still unpromoted, you mrchat_is_unpromoted()
  *
  * @memberof mrmailbox_t
  *

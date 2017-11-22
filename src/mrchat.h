@@ -135,9 +135,9 @@ mrchat_t*       mrchat_new                  (mrmailbox_t*);
 void            mrchat_empty                (mrchat_t*);
 void            mrchat_unref                (mrchat_t*);
 
-int             mrchat_get_unpromoted       (mrchat_t*);
 char*           mrchat_get_profile_image    (mrchat_t*);
 char*           mrchat_get_subtitle         (mrchat_t*);
+int             mrchat_is_unpromoted        (mrchat_t*);
 
 /* library-internal */
 int             mrchat_load_from_db__       (mrchat_t*, uint32_t id);
