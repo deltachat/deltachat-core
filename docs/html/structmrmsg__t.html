@@ -130,6 +130,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ad0dcfc0a1e33d9a88b7381e368d7895a">mrmsg_get_filename</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get base file name without path.  <a href="#ad0dcfc0a1e33d9a88b7381e368d7895a">More...</a><br /></td></tr>
 <tr class="separator:ad0dcfc0a1e33d9a88b7381e368d7895a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4afcbb38dd1f37fb5f7b2c6d1f4e9042"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a4afcbb38dd1f37fb5f7b2c6d1f4e9042">mrmsg_get_filemime</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:a4afcbb38dd1f37fb5f7b2c6d1f4e9042"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get mime type of the file.  <a href="#a4afcbb38dd1f37fb5f7b2c6d1f4e9042">More...</a><br /></td></tr>
+<tr class="separator:a4afcbb38dd1f37fb5f7b2c6d1f4e9042"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad87b7df007489b3a47c3fde79978a58a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrpoortext__t.html">mrpoortext_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#ad87b7df007489b3a47c3fde79978a58a">mrmsg_get_mediainfo</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:ad87b7df007489b3a47c3fde79978a58a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get real author and title.  <a href="#ad87b7df007489b3a47c3fde79978a58a">More...</a><br /></td></tr>
 <tr class="separator:ad87b7df007489b3a47c3fde79978a58a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -142,6 +145,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a8c8c1f342f01439ae40c5cf37532387e"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a8c8c1f342f01439ae40c5cf37532387e">mrmsg_get_summarytext</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg, int approx_characters)</td></tr>
 <tr class="memdesc:a8c8c1f342f01439ae40c5cf37532387e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a message summary as a single line of text.  <a href="#a8c8c1f342f01439ae40c5cf37532387e">More...</a><br /></td></tr>
 <tr class="separator:a8c8c1f342f01439ae40c5cf37532387e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3256ed8c6a55a6c1a30e0fce33b85421"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a3256ed8c6a55a6c1a30e0fce33b85421">mrmsg_is_forwarded</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:a3256ed8c6a55a6c1a30e0fce33b85421"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the message is a forwarded message.  <a href="#a3256ed8c6a55a6c1a30e0fce33b85421">More...</a><br /></td></tr>
+<tr class="separator:a3256ed8c6a55a6c1a30e0fce33b85421"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a752209192e3a022d087fe6c647fb3ad9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a752209192e3a022d087fe6c647fb3ad9">mrmsg_is_systemcmd</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a752209192e3a022d087fe6c647fb3ad9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the message is a system command.  <a href="#a752209192e3a022d087fe6c647fb3ad9">More...</a><br /></td></tr>
 <tr class="separator:a752209192e3a022d087fe6c647fb3ad9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -450,13 +456,14 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Get the text of the message. </p>
+<p>If there is no text associalted with the message, an empty string is returned. NULL is never returned.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Message text. The result must be free()'d. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Message text. The result must be free()'d. Never returns NULL. </dd></dl>
 
 </div>
 </div>
@@ -475,6 +482,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Find out full path, file name and extension of the file associated with a message. </p>
+<p>Typically files are associated with images, videos, audios, documents. Plain text messages do not have a file.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object.</td></tr>
@@ -503,11 +511,37 @@ Public Attributes</h2></td></tr>
 <p>The base file name includes the extension; the path is not returned. To get the full path, use <a class="el" href="structmrmsg__t.html#a2544769c77af5447546fcf5fc95c64f7" title="Find out full path, file name and extension of the file associated with a message. ">mrmsg_get_file()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">msg</td><td>the message object</td></tr>
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>base file name plus extension without part. If there is no file associated with the message, an empty string is returned. The returned value must be free()'d. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a4afcbb38dd1f37fb5f7b2c6d1f4e9042"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrmsg_get_filemime </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get mime type of the file. </p>
+<p>If there is not file, an empty string is returned. If there is no associated mime type with the file, the function guesses on; if in doubt, <code>application/octet-stream</code> is returned. NULL is never returned.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>String containing the mime type. Must be free()'d after usage. NULL is never returned. </dd></dl>
 
 </div>
 </div>
@@ -532,7 +566,7 @@ Public Attributes</h2></td></tr>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">msg</td><td>the message object</td></tr>
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
   </table>
   </dd>
 </dl>
@@ -636,6 +670,34 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A summary for the given messages. The returned string must be free()'d. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a3256ed8c6a55a6c1a30e0fce33b85421"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_is_forwarded </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if the message is a forwarded message. </p>
+<p>Forwarded messages may not be created by the contact given as "from".</p>
+<p>Typically, the UI shows a little text for a symbol above forwarded messages.</p>
+<p>For privacy reasons, we do not provide the name or the email address of the original author (in a typical GUI, you select the messages text and click on "forwared"; you won't expect other data to be send to the new recipient, esp. as the new recipient may not be in any relationship to the original author)</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=message is a forwarded message, 0=message not forwarded. </dd></dl>
 
 </div>
 </div>
