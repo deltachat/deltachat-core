@@ -297,7 +297,7 @@ cleanup:
  *
  * @memberof mrmsg_t
  *
- * @param msg the message object
+ * @param msg The message object.
  *
  * @return base file name plus extension without part.  If there is no file
  *     associated with the message, an empty string is returned.  The returned
@@ -325,6 +325,46 @@ cleanup:
 
 
 /**
+ * Get mime type of the file.  If there is not file, an empty string is returned.
+ * If there is no associated mime type with the file, the function guesses on; if
+ * in doubt, `application/octet-stream` is returned. NULL is never returned.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return String containing the mime type. Must be free()'d after usage. NULL is never returned.
+ */
+char* mrmsg_get_filemime(mrmsg_t* msg)
+{
+	char* ret = NULL;
+	char* file = NULL;
+
+	if( msg == NULL ) {
+		goto cleanup;
+	}
+
+	ret = mrparam_get(msg->m_param, MRP_MIMETYPE, NULL);
+	if( ret == NULL ) {
+		int dummy_msgtype = 0;
+		file = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		if( file == NULL ) {
+			goto cleanup;
+		}
+		mrmsg_guess_msgtype_from_suffix(file, &dummy_msgtype, &ret);
+
+		if( ret == NULL ) {
+			ret = safe_strdup("application/octet-stream");
+		}
+	}
+
+cleanup:
+	free(file);
+	return ret? ret : safe_strdup(NULL);
+}
+
+
+/**
  * Get real author and title.
  *
  * - For voice messages, the author is the sender and the trackname is the sending time.
@@ -334,7 +374,7 @@ cleanup:
  *
  * @memberof mrmsg_t
  *
- * @param msg the message object
+ * @param msg The message object.
  *
  * @return mrpoortext_t object that contains the author as mrpoortext_t::m_text1 and the title as mrpoortext_t::m_text2.
  *     Both may be NULL if unknown. The returned object must be freed using mrpoortext_unref() when no longer used.
