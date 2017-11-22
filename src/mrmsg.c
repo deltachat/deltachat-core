@@ -469,6 +469,33 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 
 
 /**
+ * Check if the message is a forwarded message.
+ *
+ * Forwarded messages may not be created by the contact given as "from".
+ *
+ * Typically, the UI shows a little text for a symbol above forwarded messages.
+ *
+ * For privacy reasons, we do not provide the name or the email address of the
+ * original author (in a typical GUI, you select the messages text and click on
+ * "forwared"; you won't expect other data to be send to the new recipient,
+ * esp. as the new recipient may not be in any relationship to the original author)
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return 1=message is a forwarded message, 0=message not forwarded.
+ */
+int mrmsg_is_forwarded(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(msg->m_param, MRP_FORWARDED, 0)? 1 : 0;
+}
+
+
+/**
  * Check if the message is a system command.
  *
  * System command messages are messages not "typed" by the user but
