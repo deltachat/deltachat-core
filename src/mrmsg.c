@@ -246,12 +246,14 @@ int mrmsg_get_state(mrmsg_t* msg)
 
 /**
  * Get the text of the message.
+ * If there is no text associalted with the message, an empty string is returned.
+ * NULL is never returned.
  *
  * @memberof mrmsg_t
  *
  * @param msg The message object.
  *
- * @return Message text. The result must be free()'d.
+ * @return Message text. The result must be free()'d. Never returns NULL.
  */
 char* mrmsg_get_text(mrmsg_t* msg)
 {
