@@ -263,6 +263,9 @@ char* mrmsg_get_text(mrmsg_t* msg)
  * Find out full path, file name and extension of the file associated with a
  * message.
  *
+ * Typically files are associated with images, videos, audios, documents.
+ * Plain text messages do not have a file.
+ *
  * @memberof mrmsg_t
  *
  * @param msg The message object.
