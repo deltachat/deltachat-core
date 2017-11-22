@@ -424,6 +424,27 @@ cleanup:
 }
 
 
+
+/**
+ * Get duration of audios or videos.  The duration is returned in milliseconds (ms).
+ * If the duration is unknown or if the associated file is no audio or video file,
+ * 0 is returned.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return Duration in milliseconds, if applicable. 0 otherwise or if unknown.
+ */
+int mrmsg_get_duration(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(msg->m_param, MRP_DURATION, 0);
+}
+
+
 /**
  * Check if a padlock should be shown beside the message.
  *
