@@ -29,14 +29,12 @@
  * @private @memberof mrarray_t
  *
  * @param mailbox The mailbox object that should be stored in the array object. May be NULL.
- *
  * @param initsize Initial maximal size of the array. If you add more items, the internal data pointer is reallocated.
  *
  * @return New array object of the requested size, the data should be set directly.
  */
 mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 {
-	#define MIN_ARRAY_SIZE 4
 	mrarray_t* array;
 
 	array = (mrarray_t*) malloc(sizeof(mrarray_t));
@@ -44,14 +42,10 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 		exit(47);
 	}
 
-	if( initsize < MIN_ARRAY_SIZE ) {
-		initsize = MIN_ARRAY_SIZE;
-	}
-
-	array->m_mailbox = mailbox;
-	array->m_len = 0;
-	array->m_max = initsize;
-	array->m_array = malloc(sizeof(uintptr_t) * initsize);
+	array->m_mailbox   = mailbox;
+	array->m_count     = 0;
+	array->m_allocated = initsize < 1? 1 : initsize;
+	array->m_array     = malloc(array->m_allocated * sizeof(uintptr_t));
 	if( array->m_array==NULL ) {
 		exit(48);
 	}
@@ -96,35 +90,7 @@ void mrarray_empty(mrarray_t* array)
 		return;
 	}
 
-	array->m_len = 0;
-}
-
-
-/*
- * Set the size of the array. After calling this function, you can use the data pointer
- * up to new_size-1.  If needed, the function reallocates the memory.
- */
-static void mrarray_set_size(mrarray_t* array, size_t new_size)
-{
-	if (new_size > array->m_max)
-	{
-		unsigned int n = array->m_max * 2;
-		uintptr_t * new_arr;
-
-		while (n <= new_size) {
-			n *= 2;
-		}
-
-		new_arr = realloc(array->m_array, sizeof(uintptr_t) * n);
-		if( new_arr==NULL ) {
-			exit(49);
-		}
-
-		array->m_array = new_arr;
-		array->m_max = n;
-	}
-
-	array->m_len = new_size;
+	array->m_count = 0;
 }
 
 
@@ -145,8 +111,16 @@ void mrarray_add_id(mrarray_t* array, uint32_t item)
 		return;
 	}
 
-	mrarray_set_size(array, array->m_len+1);
-	array->m_array[array->m_len - 1] = item;
+	if( array->m_count == array->m_allocated ) {
+		int newsize = (array->m_allocated * 2) + 10;
+		if( (array->m_array=realloc(array->m_array, newsize*sizeof(uintptr_t)))==NULL ) {
+			exit(49);
+		}
+		array->m_allocated = newsize;
+	}
+
+	array->m_array[array->m_count] = item;
+	array->m_count++;
 }
 
 
@@ -165,7 +139,7 @@ size_t mrarray_get_cnt(mrarray_t* array)
 		return 0;
 	}
 
-	return array->m_len;
+	return array->m_count;
 }
 
 
@@ -175,14 +149,13 @@ size_t mrarray_get_cnt(mrarray_t* array)
  * @memberof mrarray_t
  *
  * @param array The array object.
- *
  * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
  *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
 uint32_t mrarray_get_id(mrarray_t* array, size_t index)
 {
-	if( array == NULL || index < 0 || index >= array->m_max ) {
+	if( array == NULL || index < 0 || index >= array->m_count ) {
 		return 0;
 	}
 
@@ -197,9 +170,7 @@ uint32_t mrarray_get_id(mrarray_t* array, size_t index)
  * @private @memberof mrarray_t
  *
  * @param array The array object to search in.
- *
  * @param needle The ID to search for.
- *
  * @param ret_index If set, this will receive the index. Set to NULL if you're not interested in the index.
  *
  * @return 1=ID is present in array, 0=ID not found.
@@ -211,7 +182,7 @@ int mrarray_search_id(mrarray_t* array, uint32_t needle, size_t* ret_index)
 	}
 
 	uintptr_t* data = array->m_array;
-	size_t i, cnt = array->m_len;
+	size_t i, cnt = array->m_count;
 	for( i=0; i<cnt; i++ )
 	{
 		if( data[i] == needle ) {

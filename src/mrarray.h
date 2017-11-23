@@ -41,8 +41,8 @@ typedef struct mrarray_t
 	mrmailbox_t*    m_mailbox;     /**< The mailbox the array belongs to. May be NULL when NULL is given to mrarray_new(). */
 
 	/** @privatesection */
-	size_t          m_max;         /**< The number of allocated items. Initially ~ 200. */
-	size_t          m_len;         /**< The number of used items. Initially 0. */
+	size_t          m_allocated;   /**< The number of allocated items. Initially ~ 200. */
+	size_t          m_count;       /**< The number of used items. Initially 0. */
 	uintptr_t*      m_array;       /**< The data items, can be used between m_data[0] and m_data[m_cnt-1]. Never NULL. */
 } mrarray_t;
 
