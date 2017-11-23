@@ -77,8 +77,8 @@ typedef struct mrmsg_t
 
 	/** @privatesection */
 
-	int             m_type;
-	#define         MR_MSG_UNDEFINED        0 /**< Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field. */
+	int             m_type;                   /**< Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field. */
+	#define         MR_MSG_UNDEFINED        0
 	#define         MR_MSG_TEXT            10
 	#define         MR_MSG_IMAGE           20 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
 	#define         MR_MSG_GIF             21 /*   - " -  */
