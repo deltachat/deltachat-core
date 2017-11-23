@@ -3128,13 +3128,15 @@ cleanup:
  * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
  * is not related to the VCARD data format.
  *
+ * @memberof mrmailbox_t
+ *
  * @param mailbox The mailbox object.
  *
  * @param chat_id The chat to send the message to.
  *
  * @param contact_id The contact whichs data should be shared to the chat.
  *
- * @param Returns the ID of the message sent.
+ * @return Returns the ID of the message sent.
  */
 uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {

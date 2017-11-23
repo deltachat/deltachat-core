@@ -138,6 +138,8 @@ char*           mrmsg_get_file              (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 char*           mrmsg_get_filemime          (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
+int             mrmsg_get_width             (mrmsg_t*);
+int             mrmsg_get_height            (mrmsg_t*);
 int             mrmsg_get_duration          (mrmsg_t*);
 int             mrmsg_get_showpadlock       (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);

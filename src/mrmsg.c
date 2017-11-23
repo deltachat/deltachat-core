@@ -424,11 +424,62 @@ cleanup:
 }
 
 
+/**
+ * Get width of image or video.  The width is returned in pixels.
+ * If the width is unknown or if the associated file is no image or video file,
+ * 0 is returned.
+ *
+ * Often the ascpect ratio is the more interesting thing. You can calculate
+ * this using mrmsg_get_width() / mrmsg_get_height().
+ *
+ * See also mrmsg_get_duration().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return Width in pixels, if applicable. 0 otherwise or if unknown.
+ */
+int mrmsg_get_width(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(msg->m_param, MRP_WIDTH, 0);
+}
+
 
 /**
- * Get duration of audios or videos.  The duration is returned in milliseconds (ms).
+ * Get height of image or video.  The height is returned in pixels.
+ * If the height is unknown or if the associated file is no image or video file,
+ * 0 is returned.
+ *
+ * Often the ascpect ratio is the more interesting thing. You can calculate
+ * this using mrmsg_get_width() / mrmsg_get_height().
+ *
+ * See also mrmsg_get_duration().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return Height in pixels, if applicable. 0 otherwise or if unknown.
+ */
+int mrmsg_get_height(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
+}
+
+
+/**
+ * Get duration of audio or video.  The duration is returned in milliseconds (ms).
  * If the duration is unknown or if the associated file is no audio or video file,
  * 0 is returned.
+ *
+ * See also mrmsg_get_width() and mrmsg_get_height().
  *
  * @memberof mrmsg_t
  *
