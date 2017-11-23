@@ -195,14 +195,26 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a24813f8aea38bcf5f928ea8a5fd7a3ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete a chat.  <a href="#a24813f8aea38bcf5f928ea8a5fd7a3ec">More...</a><br /></td></tr>
 <tr class="separator:a24813f8aea38bcf5f928ea8a5fd7a3ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">mrmailbox_send_text_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *text_to_send)</td></tr>
-<tr class="memdesc:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a simple text message to the given chat.  <a href="#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">More...</a><br /></td></tr>
+<tr class="memdesc:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a simple text message a given chat.  <a href="#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">More...</a><br /></td></tr>
 <tr class="separator:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2fdedd72b9f792463e4af173f21bb11c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a2fdedd72b9f792463e4af173f21bb11c">mrmailbox_send_image_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *file, const char *filemime, int width, int height)</td></tr>
+<tr class="memdesc:a2fdedd72b9f792463e4af173f21bb11c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an image to a chat.  <a href="#a2fdedd72b9f792463e4af173f21bb11c">More...</a><br /></td></tr>
+<tr class="separator:a2fdedd72b9f792463e4af173f21bb11c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8c0dc35fd9696d35f6a8301501f37c5a"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a8c0dc35fd9696d35f6a8301501f37c5a">mrmailbox_send_video_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *file, const char *filemime, int width, int height, int duration)</td></tr>
+<tr class="memdesc:a8c0dc35fd9696d35f6a8301501f37c5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an video to a chat.  <a href="#a8c0dc35fd9696d35f6a8301501f37c5a">More...</a><br /></td></tr>
+<tr class="separator:a8c0dc35fd9696d35f6a8301501f37c5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a42935531261ba3ed8afd82cf39fe928a"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a42935531261ba3ed8afd82cf39fe928a">mrmailbox_send_voice_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *file, const char *filemime, int duration)</td></tr>
+<tr class="memdesc:a42935531261ba3ed8afd82cf39fe928a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a voice message to a chat.  <a href="#a42935531261ba3ed8afd82cf39fe928a">More...</a><br /></td></tr>
+<tr class="separator:a42935531261ba3ed8afd82cf39fe928a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae24df813f179fdab160f94c583c63401"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#ae24df813f179fdab160f94c583c63401">mrmailbox_send_audio_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *file, const char *filemime, int duration, const char *author, const char *trackname)</td></tr>
+<tr class="memdesc:ae24df813f179fdab160f94c583c63401"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send an audio file to a chat.  <a href="#ae24df813f179fdab160f94c583c63401">More...</a><br /></td></tr>
+<tr class="separator:ae24df813f179fdab160f94c583c63401"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f39fa026b22360e282c9138e5af4ce9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a7f39fa026b22360e282c9138e5af4ce9">mrmailbox_send_file_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *file, const char *filemime)</td></tr>
+<tr class="memdesc:a7f39fa026b22360e282c9138e5af4ce9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a document to a chat.  <a href="#a7f39fa026b22360e282c9138e5af4ce9">More...</a><br /></td></tr>
+<tr class="separator:a7f39fa026b22360e282c9138e5af4ce9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88e7fe7faa3576c086b6d3e0ab825892"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a88e7fe7faa3576c086b6d3e0ab825892">mrmailbox_send_vcard_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, uint32_t contact_id)</td></tr>
 <tr class="memdesc:a88e7fe7faa3576c086b6d3e0ab825892"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send foreign contact data to a chat.  <a href="#a88e7fe7faa3576c086b6d3e0ab825892">More...</a><br /></td></tr>
 <tr class="separator:a88e7fe7faa3576c086b6d3e0ab825892"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a88ef3066cec30fe26f61f273b233d90c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, <a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
-<tr class="memdesc:a88ef3066cec30fe26f61f273b233d90c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message of any type to a chat.  <a href="#a88ef3066cec30fe26f61f273b233d90c">More...</a><br /></td></tr>
-<tr class="separator:a88ef3066cec30fe26f61f273b233d90c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47156db87107ec208d6637f460d897a8"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a47156db87107ec208d6637f460d897a8">mrmailbox_create_group_chat</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *chat_name)</td></tr>
 <tr class="memdesc:a47156db87107ec208d6637f460d897a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new group chat.  <a href="#a47156db87107ec208d6637f460d897a8">More...</a><br /></td></tr>
 <tr class="separator:a47156db87107ec208d6637f460d897a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -290,9 +302,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af4d9c838230758e1b0e40957447232f7"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#af4d9c838230758e1b0e40957447232f7">mrmailbox_create_setup_code</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
 <tr class="memdesc:af4d9c838230758e1b0e40957447232f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create random setup code.  <a href="#af4d9c838230758e1b0e40957447232f7">More...</a><br /></td></tr>
 <tr class="separator:af4d9c838230758e1b0e40957447232f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a9e5dc81d4e814284b465ad23abbfb6cb">mrmsg_latefiling_mediasize</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg, int width, int height, int duration)</td></tr>
-<tr class="memdesc:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Late filing information to a message.  <a href="#a9e5dc81d4e814284b465ad23abbfb6cb">More...</a><br /></td></tr>
-<tr class="separator:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -1480,14 +1489,337 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Send a simple text message to the given chat. </p>
+<p>Send a simple text message a given chat. </p>
 <p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
-<p>To send messages of other types, see <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a>.</p>
+<p>See also <a class="el" href="structmrmailbox__t.html#a2fdedd72b9f792463e4af173f21bb11c" title="Send an image to a chat. ">mrmailbox_send_image_msg()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
-    <tr><td class="paramname">chat_id</td><td>Chat ID to send the message to.</td></tr>
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the text message to. </td></tr>
     <tr><td class="paramname">text_to_send</td><td>Text to send to the chat defined by the chat ID.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a2fdedd72b9f792463e4af173f21bb11c"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_image_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filemime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>width</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>height</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an image to a chat. </p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>See also <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message a given chat. ">mrmailbox_send_text_msg()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the image to. </td></tr>
+    <tr><td class="paramname">file</td><td>Full path of the image file to send. The core may make a copy of the file. </td></tr>
+    <tr><td class="paramname">filemime</td><td>Mime type of the file to send. NULL if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">width</td><td>Width in pixel of the file. 0 if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">height</td><td>Width in pixel of the file. 0 if you don't know or don't care.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a8c0dc35fd9696d35f6a8301501f37c5a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_video_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filemime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>width</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>height</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>duration</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an video to a chat. </p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<p>See also <a class="el" href="structmrmailbox__t.html#a2fdedd72b9f792463e4af173f21bb11c" title="Send an image to a chat. ">mrmailbox_send_image_msg()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the video to. </td></tr>
+    <tr><td class="paramname">file</td><td>Full path of the video file to send. The core may make a copy of the file. </td></tr>
+    <tr><td class="paramname">filemime</td><td>Mime type of the file to send. NULL if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">width</td><td>Width in video of the file, if known. 0 if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">height</td><td>Width in video of the file, if known. 0 if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">duration</td><td>Length of the video in milliseconds. 0 if you don't know or don't care.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a42935531261ba3ed8afd82cf39fe928a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_voice_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filemime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>duration</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send a voice message to a chat. </p>
+<p>Voice messages are messages just recorded though the device microphone. For sending music or other audio data, use <a class="el" href="structmrmailbox__t.html#ae24df813f179fdab160f94c583c63401" title="Send an audio file to a chat. ">mrmailbox_send_audio_msg()</a>.</p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the voice message to. </td></tr>
+    <tr><td class="paramname">file</td><td>Full path of the file to send. The core may make a copy of the file. </td></tr>
+    <tr><td class="paramname">filemime</td><td>Mime type of the file to send. NULL if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">duration</td><td>Length of the voice message in milliseconds. 0 if you don't know or don't care.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ae24df813f179fdab160f94c583c63401"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_audio_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filemime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>duration</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>author</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>trackname</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send an audio file to a chat. </p>
+<p>Audio messages are eg. music tracks. For voice messages just recorded though the device microphone, use <a class="el" href="structmrmailbox__t.html#a42935531261ba3ed8afd82cf39fe928a" title="Send a voice message to a chat. ">mrmailbox_send_voice_msg()</a>.</p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the audio to. </td></tr>
+    <tr><td class="paramname">file</td><td>Full path of the file to send. The core may make a copy of the file. </td></tr>
+    <tr><td class="paramname">filemime</td><td>Mime type of the file to send. NULL if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">duration</td><td>Length of the audio in milliseconds. 0 if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">author</td><td>Author or artist of the file. NULL if you don't know or don't care. </td></tr>
+    <tr><td class="paramname">trackname</td><td>Trackname or title of the file. NULL if you don't know or don't care.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a7f39fa026b22360e282c9138e5af4ce9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_file_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filemime</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send a document to a chat. </p>
+<p>Use this function to send any document or file to a chat.</p>
+<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
+    <tr><td class="paramname">chat_id</td><td>Chat ID to send the document to. </td></tr>
+    <tr><td class="paramname">file</td><td>Full path of the file to send. The core may make a copy of the file. </td></tr>
+    <tr><td class="paramname">filemime</td><td>Mime type of the file to send. NULL if you don't know or don't care.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1528,7 +1860,8 @@ Public Attributes</h2></td></tr>
 <p>Send foreign contact data to a chat. </p>
 <p>Sends the name and the email address of another contact to a chat. The contact this may or may not be a member of the chat.</p>
 <p>Typically used to share a contact to another member or to a group of members.</p>
-<p>Internally, the function just creates an appropriate text message and sends it using <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a>.</p>
+<p>Internally, the function just creates an appropriate text message and sends it using <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message a given chat. ">mrmailbox_send_text_msg()</a>.</p>
+<p>Future implementations may also send the key of the user though gossip; currently, this is not done.</p>
 <p>NB: The "vcard" in the function name is just an abbreviation of "visiting card" and is not related to the VCARD data format.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -1540,53 +1873,6 @@ Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Returns the ID of the message sent. </dd></dl>
 
-</div>
-</div>
-<a class="anchor" id="a88ef3066cec30fe26f61f273b233d90c"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t mrmailbox_send_msg </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
-          <td class="paramname"><em>mailbox</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
-          <td class="paramname"><em>chat_id</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Send a message of any type to a chat. </p>
-<p>The given message object is not unref'd by the function but some fields are set up.</p>
-<p>Sends the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a> on succcess. However, this does not imply, the message really reached the recipient - sending may be delayed eg. due to network problems. However, from your view, you're done with the message. Sooner or later it will find its way.</p>
-<p>To send a simple text message, you can also use <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a> which is easier to use.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
-    <tr><td class="paramname">chat_id</td><td>Chat ID to send the message to.</td></tr>
-    <tr><td class="paramname">msg</td><td>Message object to send to the chat defined by the chat ID. The function does not take ownership of the object, so you have to free it using <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02" title="Free a message object. ">mrmsg_unref()</a> as usual.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent.</dd></dl>
-<p>Examples:</p>
-<div class="fragment"><div class="line"><a class="code" href="structmrmsg__t.html">mrmsg_t</a>* msg1 = mrmsg_new();</div><div class="line">   mrmsg_set_type(msg1, MR_MSG_TEXT);</div><div class="line">   mrmsg_set_text(msg1, <span class="stringliteral">&quot;Hi there!&quot;</span>);</div><div class="line">   <a class="code" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a>(mailbox, chat_id, msg1); <span class="comment">// send a simple text message</span></div><div class="line">mrmsg_unref(msg1);</div><div class="line"></div><div class="line"><a class="code" href="structmrmsg__t.html">mrmsg_t</a>* msg2 = mrmsg_new();</div><div class="line">   mrmsg_set_type(msg2, MR_MSG_IMAGE);</div><div class="line">   mrmsg_set_file(msg2, <span class="stringliteral">&quot;/path/to/image.jpg&quot;</span>);</div><div class="line">   <a class="code" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a>(mailbox, chat_id, msg2); <span class="comment">// send a simple text message</span></div><div class="line">mrmsg_unref(msg1);</div></div><!-- fragment --> 
 </div>
 </div>
 <a class="anchor" id="a47156db87107ec208d6637f460d897a8"></a>
@@ -1884,7 +2170,7 @@ Public Attributes</h2></td></tr>
 
 <p>Add a single contact. </p>
 <p>We assume, the contact name, if any, is entered by the user and is used "as is" therefore, <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> is <em>not</em> called for the name.</p>
-<p>To add a number of contacts, see <a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6" title="Add a number of contacts. ">mrmailbox_add_address_book()</a></p>
+<p>To add a number of contacts, see <a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6" title="Add a number of contacts. ">mrmailbox_add_address_book()</a> which is much faster for adding a bunch of addresses.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1923,7 +2209,8 @@ Public Attributes</h2></td></tr>
 
 <p>Add a number of contacts. </p>
 <p>Typically used to add the whole address book from the OS. As names here are typically not well formatted, we call <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> for each name given.</p>
-<p>To add a single contact entered by the user, you should prefer <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a></p>
+<p>To add a single contact entered by the user, you should prefer <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a>, however, for adding a bunch of addresses, this function is <em>much</em> faster.</p>
+<p>The function takes are of not overwriting names manually added or edited by <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2712,60 +2999,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a9e5dc81d4e814284b465ad23abbfb6cb"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_latefiling_mediasize </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>width</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>height</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>duration</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Late filing information to a message. </p>
-<p>Sometimes, the core cannot find out the width, the height or the duration of an image, an audio or a video.</p>
-<p>If, in these cases, the frontend can provide the information, it can save them together with the message object for later usage.</p>
-<p>This function should only be used if <a class="el" href="structmrmsg__t.html#adfe10086430b562b8df4e45668b51927" title="Get width of image or video. ">mrmsg_get_width()</a>, <a class="el" href="structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353" title="Get height of image or video. ">mrmsg_get_height()</a> or <a class="el" href="structmrmsg__t.html#aa180c0fd4c9cdd58cc47006022ebc1e0" title="Get duration of audio or video. ">mrmsg_get_duration()</a> do not provide the expected values.</p>
-<p>To get the stored values later, use <a class="el" href="structmrmsg__t.html#adfe10086430b562b8df4e45668b51927" title="Get width of image or video. ">mrmsg_get_width()</a>, <a class="el" href="structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353" title="Get height of image or video. ">mrmsg_get_height()</a> or <a class="el" href="structmrmsg__t.html#aa180c0fd4c9cdd58cc47006022ebc1e0" title="Get duration of audio or video. ">mrmsg_get_duration()</a>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
-    <tr><td class="paramname">width</td><td>The new width to store in the message object. 0 if you do not want to change it.</td></tr>
-    <tr><td class="paramname">height</td><td>The new height to store in the message object. 0 if you do not want to change it.</td></tr>
-    <tr><td class="paramname">duration</td><td>The new duration to store in the message object. 0 if you do not want to change it.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
-
-</div>
-</div>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a class="anchor" id="a6c557153209e128b69301246dbf9e230"></a>
 <div class="memitem">
@@ -2817,7 +3050,6 @@ Public Attributes</h2></td></tr>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox.c</li>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox_configure.c</li>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox_imex.c</li>
-<li>/home/bpetersen/projects/deltachat-core/src/mrmsg.c</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -141,18 +141,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140">mrchat_t</a>
 , <a class="el" href="structmrcontact__t.html#a48fba862b41f7da3b8c6193c0554654b">mrcontact_t</a>
 </li>
-<li>m_param
-: <a class="el" href="structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453">mrmsg_t</a>
-</li>
-<li>m_starred
-: <a class="el" href="structmrmsg__t.html#a0570bbfc3add48dafb0ae70390b47adb">mrmsg_t</a>
-</li>
 <li>m_state
-: <a class="el" href="structmrmsg__t.html#aca59d28054d3e15b4fe6ca74073d91f4">mrmsg_t</a>
-, <a class="el" href="structmrpoortext__t.html#afbf2ae7473784db66127e63657e04f60">mrpoortext_t</a>
-</li>
-<li>m_text
-: <a class="el" href="structmrmsg__t.html#ae54dcd4036371597d7f8bbd75303527a">mrmsg_t</a>
+: <a class="el" href="structmrpoortext__t.html#afbf2ae7473784db66127e63657e04f60">mrpoortext_t</a>
 </li>
 <li>m_text1
 : <a class="el" href="structmrpoortext__t.html#af3b56661ccf1c783f397c15c310cf36f">mrpoortext_t</a>
@@ -164,15 +154,13 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="structmrpoortext__t.html#a54e10365f38dddd070a2ab68f4177331">mrpoortext_t</a>
 </li>
 <li>m_timestamp
-: <a class="el" href="structmrmsg__t.html#aba09cb77cdabd1e2b2e6262d25388801">mrmsg_t</a>
-, <a class="el" href="structmrpoortext__t.html#a372913d9a39616e48722ea04c759f887">mrpoortext_t</a>
+: <a class="el" href="structmrpoortext__t.html#a372913d9a39616e48722ea04c759f887">mrpoortext_t</a>
 </li>
 <li>m_to_id
 : <a class="el" href="structmrmsg__t.html#ad549fc02587ba284fda2bbecd162b16a">mrmsg_t</a>
 </li>
 <li>m_type
 : <a class="el" href="structmrchat__t.html#a568c4e6fb9633ffe9a76428db16e0201">mrchat_t</a>
-, <a class="el" href="structmrmsg__t.html#a3896e269c90cbf0f563ab0848fb44c65">mrmsg_t</a>
 </li>
 <li>m_userdata
 : <a class="el" href="structmrmailbox__t.html#a6c557153209e128b69301246dbf9e230">mrmailbox_t</a>
@@ -390,14 +378,26 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>mrmailbox_search_msgs()
 : <a class="el" href="structmrmailbox__t.html#abbb08c91369ff2fedc8575f2e1f01e56">mrmailbox_t</a>
 </li>
-<li>mrmailbox_send_msg()
-: <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_t</a>
+<li>mrmailbox_send_audio_msg()
+: <a class="el" href="structmrmailbox__t.html#ae24df813f179fdab160f94c583c63401">mrmailbox_t</a>
+</li>
+<li>mrmailbox_send_file_msg()
+: <a class="el" href="structmrmailbox__t.html#a7f39fa026b22360e282c9138e5af4ce9">mrmailbox_t</a>
+</li>
+<li>mrmailbox_send_image_msg()
+: <a class="el" href="structmrmailbox__t.html#a2fdedd72b9f792463e4af173f21bb11c">mrmailbox_t</a>
 </li>
 <li>mrmailbox_send_text_msg()
 : <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">mrmailbox_t</a>
 </li>
 <li>mrmailbox_send_vcard_msg()
 : <a class="el" href="structmrmailbox__t.html#a88e7fe7faa3576c086b6d3e0ab825892">mrmailbox_t</a>
+</li>
+<li>mrmailbox_send_video_msg()
+: <a class="el" href="structmrmailbox__t.html#a8c0dc35fd9696d35f6a8301501f37c5a">mrmailbox_t</a>
+</li>
+<li>mrmailbox_send_voice_msg()
+: <a class="el" href="structmrmailbox__t.html#a42935531261ba3ed8afd82cf39fe928a">mrmailbox_t</a>
 </li>
 <li>mrmailbox_set_chat_name()
 : <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1">mrmailbox_t</a>
@@ -422,9 +422,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </li>
 <li>mrmailboxcb_t
 : <a class="el" href="structmrmailbox__t.html#a957f0bbae60f389bac40acf42b68b134">mrmailbox_t</a>
-</li>
-<li>mrmsg_empty()
-: <a class="el" href="structmrmsg__t.html#a57d94b55fc918b27874b9194d6c35388">mrmsg_t</a>
 </li>
 <li>mrmsg_get_duration()
 : <a class="el" href="structmrmsg__t.html#aa180c0fd4c9cdd58cc47006022ebc1e0">mrmsg_t</a>
@@ -462,6 +459,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>mrmsg_get_text()
 : <a class="el" href="structmrmsg__t.html#ae549e58d9ae2f73ad76bd27636b43982">mrmsg_t</a>
 </li>
+<li>mrmsg_get_timestamp()
+: <a class="el" href="structmrmsg__t.html#af5bf52ee1adbc55c9c9d4699afee87fb">mrmsg_t</a>
+</li>
 <li>mrmsg_get_type()
 : <a class="el" href="structmrmsg__t.html#a705454903b36ded8c3cd43a2044de60a">mrmsg_t</a>
 </li>
@@ -474,23 +474,14 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>mrmsg_is_increation()
 : <a class="el" href="structmrmsg__t.html#a32d23bac4bf35ed5f8c2cfbb93d636f5">mrmsg_t</a>
 </li>
+<li>mrmsg_is_starred()
+: <a class="el" href="structmrmsg__t.html#af202a7e7527df4681cd3ea24f779848f">mrmsg_t</a>
+</li>
 <li>mrmsg_is_systemcmd()
 : <a class="el" href="structmrmsg__t.html#a752209192e3a022d087fe6c647fb3ad9">mrmsg_t</a>
 </li>
 <li>mrmsg_latefiling_mediasize()
-: <a class="el" href="structmrmailbox__t.html#a9e5dc81d4e814284b465ad23abbfb6cb">mrmailbox_t</a>
-</li>
-<li>mrmsg_new()
-: <a class="el" href="structmrmsg__t.html#a80f470eb34af414ff28e7d3b3c715b48">mrmsg_t</a>
-</li>
-<li>mrmsg_set_file()
-: <a class="el" href="structmrmsg__t.html#a98455bee60d64b3d59d89fbbb520ddd5">mrmsg_t</a>
-</li>
-<li>mrmsg_set_text()
-: <a class="el" href="structmrmsg__t.html#ae940aa79a261e1a427b12baefbee2d23">mrmsg_t</a>
-</li>
-<li>mrmsg_set_type()
-: <a class="el" href="structmrmsg__t.html#a3581e331fe9f3f38d4c5bb1b1c8c7867">mrmsg_t</a>
+: <a class="el" href="structmrmsg__t.html#a9e5dc81d4e814284b465ad23abbfb6cb">mrmsg_t</a>
 </li>
 <li>mrmsg_unref()
 : <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02">mrmsg_t</a>
