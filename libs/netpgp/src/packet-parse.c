@@ -2405,6 +2405,8 @@ parse_litdata(pgp_region_t *region, pgp_stream_t *stream)
 	pgp_packet_t	 pkt;
 	uint8_t		 c = 0x0;
 
+	memset(&pkt, 0, sizeof(pgp_packet_t));
+
 	if (!limread(&c, 1, region, stream)) {
 		return 0;
 	}
@@ -2422,7 +2424,7 @@ parse_litdata(pgp_region_t *region, pgp_stream_t *stream)
 	}
 	CALLBACK(PGP_PTAG_CT_LITDATA_HEADER, &stream->cbinfo, &pkt);
 	mem = pkt.u.litdata_body.mem = pgp_memory_new();
-	pgp_memory_init(pkt.u.litdata_body.mem,
+	pgp_memory_init(mem,
 			(unsigned)((region->length * 101) / 100) + 12);
 	pkt.u.litdata_body.data = mem->buf;
 
@@ -2438,6 +2440,7 @@ parse_litdata(pgp_region_t *region, pgp_stream_t *stream)
 	}
 
 	/* XXX - get rid of mem here? */
+	pgp_memory_free(mem); // EDIT BY MR - fix memory leak
 
 	return 1;
 }
