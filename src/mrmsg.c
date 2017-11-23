@@ -912,7 +912,6 @@ int mrmsg_is_increation(mrmsg_t* msg)
 }
 
 
-/* Internal function similar to mrmsg_save_param_to_disk() but without locking. */
 void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
@@ -928,27 +927,59 @@ void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 
 
 /**
- * Add additional, persistent information to a message record.
+ * Late filing information to a message.
  *
- * Normally, this function is not needed; message records are created
- * by mrmailbox_send_msg() or mrmailbox_send_text_msg() and modified by
- * actions of the user.  However, for rare cases, it might be necessary
- * to save an paramter later to disk.  For this purpose, use this function.
+ * Sometimes, the core cannot find out the width, the height or the duration
+ * of an image, an audio or a video.
  *
- * @memberof mrmsg_t
+ * If, in these cases, the frontend can provide the information, it can save
+ * them together with the message object for later usage.
  *
- * @param msg The message object.
+ * This function should only be used if mrmsg_get_width(), mrmsg_get_height() or mrmsg_get_duration()
+ * do not provide the expected values.
+ *
+ * To get the stored values later, use mrmsg_get_width(), mrmsg_get_height() or mrmsg_get_duration().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The message object.
+ *
+ * @param width The new width to store in the message object. 0 if you do not want to change it.
+ *
+ * @param height The new height to store in the message object. 0 if you do not want to change it.
+ *
+ * @param duration The new duration to store in the message object. 0 if you do not want to change it.
  *
  * @return None.
  */
-void mrmsg_save_param_to_disk(mrmsg_t* msg)
+void mrmsg_latefiling_mediasize(mrmsg_t* msg, int width, int height, int duration)
 {
-	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
-		return;
+	int locked = 0;
+
+	if( msg == NULL ) {
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(msg->m_mailbox->m_sql);
-		mrmsg_save_param_to_disk__(msg);
-	mrsqlite3_unlock(msg->m_mailbox->m_sql);
-}
+	locked = 1;
 
+		if( width > 0 ) {
+			mrparam_set_int(msg->m_param, MRP_WIDTH, width);
+		}
+
+		if( height > 0 ) {
+			mrparam_set_int(msg->m_param, MRP_HEIGHT, height);
+		}
+
+		if( duration > 0 ) {
+			mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+		}
+
+		mrmsg_save_param_to_disk__(msg);
+
+	mrsqlite3_unlock(msg->m_mailbox->m_sql);
+	locked = 0;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(msg->m_mailbox->m_sql); }
+}
