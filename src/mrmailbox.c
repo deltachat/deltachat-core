@@ -4058,7 +4058,8 @@ cleanup:
  * We assume, the contact name, if any, is entered by the user and is used "as is" therefore,
  * mrcontact_normalize_name() is _not_ called for the name.
  *
- * To add a number of contacts, see mrmailbox_add_address_book()
+ * To add a number of contacts, see mrmailbox_add_address_book() which is much faster for adding
+ * a bunch of addresses.
  *
  * @memberof mrmailbox_t
  *
@@ -4100,7 +4101,10 @@ cleanup:
  * Typically used to add the whole address book from the OS. As names here are typically not
  * well formatted, we call mrcontact_normalize_name() for each name given.
  *
- * To add a single contact entered by the user, you should prefer mrmailbox_create_contact()
+ * To add a single contact entered by the user, you should prefer mrmailbox_create_contact(),
+ * however, for adding a bunch of addresses, this function is _much_ faster.
+ *
+ * The function takes are of not overwriting names manually added or edited by mrmailbox_create_contact().
  *
  * @memberof mrmailbox_t
  *
