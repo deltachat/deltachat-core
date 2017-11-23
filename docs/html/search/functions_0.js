@@ -106,11 +106,5 @@ var searchData=
   ['mrmsg_5fis_5fsystemcmd',['mrmsg_is_systemcmd',['../structmrmsg__t.html#a752209192e3a022d087fe6c647fb3ad9',1,'mrmsg_t']]],
   ['mrmsg_5flatefiling_5fmediasize',['mrmsg_latefiling_mediasize',['../structmrmsg__t.html#a9e5dc81d4e814284b465ad23abbfb6cb',1,'mrmsg_t']]],
   ['mrmsg_5funref',['mrmsg_unref',['../structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02',1,'mrmsg_t']]],
-  ['mrparam_5fempty',['mrparam_empty',['../structmrparam__t.html#a88397aa66e74bcdc61c8376c8e9a761b',1,'mrparam_t']]],
-  ['mrparam_5fexists',['mrparam_exists',['../structmrparam__t.html#a0a9d3768d128dce0088b089f66fafb68',1,'mrparam_t']]],
-  ['mrparam_5fget',['mrparam_get',['../structmrparam__t.html#a23e24e8700e17ede6dd385fc90330f76',1,'mrparam_t']]],
-  ['mrparam_5fget_5fint',['mrparam_get_int',['../structmrparam__t.html#aba7d11db241c2ebbadab67895b84dae8',1,'mrparam_t']]],
-  ['mrparam_5fset',['mrparam_set',['../structmrparam__t.html#a8399104724eab98103cdd2cd98b09d93',1,'mrparam_t']]],
-  ['mrparam_5fset_5fint',['mrparam_set_int',['../structmrparam__t.html#aaf8fb80838add4d4254bb9fa2c11cb0f',1,'mrparam_t']]],
   ['mrpoortext_5funref',['mrpoortext_unref',['../structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed',1,'mrpoortext_t']]]
 ];
