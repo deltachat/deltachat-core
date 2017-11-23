@@ -107,7 +107,7 @@ __RCSID("$NetBSD$");
  * \param subregion
  * \param stream	How to parse
  *
- * \return 1 on success, 0 on failure
+ * \return 1 on success, 0 on failure; if 0 is returned, data cannot be used
  */
 static int
 limread_data(pgp_data_t *data, unsigned len,
@@ -125,8 +125,15 @@ limread_data(pgp_data_t *data, unsigned len,
 		return 0;
 	}
 
-	return pgp_limited_read(stream, data->contents, data->len, subregion,
+	int read_ok = pgp_limited_read(stream, data->contents, data->len, subregion,
 			&stream->errors, &stream->readinfo, &stream->cbinfo);
+	if( !read_ok ) {
+		free(data->contents); // EDIT BY MR: fix memory leak
+		data->contents = NULL;
+		return 0;
+	}
+
+	return 1;
 }
 
 /**
