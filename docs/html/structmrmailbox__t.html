@@ -165,7 +165,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a4c69c290d57aa2b76f0260c0c2702023"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a4c69c290d57aa2b76f0260c0c2702023">More...</a><br /></td></tr>
 <tr class="separator:a4c69c290d57aa2b76f0260c0c2702023"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a90b7861302d1276a07fdcb2d9c3c73b6">mrmailbox_get_next_media</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t curr_msg_id, int dir)</td></tr>
-<tr class="memdesc:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a90b7861302d1276a07fdcb2d9c3c73b6">More...</a><br /></td></tr>
+<tr class="memdesc:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get next/previous message of the same type.  <a href="#a90b7861302d1276a07fdcb2d9c3c73b6">More...</a><br /></td></tr>
 <tr class="separator:a90b7861302d1276a07fdcb2d9c3c73b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab996f74d0e8b5c82ec7175f29da57e3d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#ab996f74d0e8b5c82ec7175f29da57e3d">mrmailbox_get_chat_contacts</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id)</td></tr>
 <tr class="memdesc:ab996f74d0e8b5c82ec7175f29da57e3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get contact IDs belonging to a chat.  <a href="#ab996f74d0e8b5c82ec7175f29da57e3d">More...</a><br /></td></tr>
@@ -290,6 +290,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af4d9c838230758e1b0e40957447232f7"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#af4d9c838230758e1b0e40957447232f7">mrmailbox_create_setup_code</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
 <tr class="memdesc:af4d9c838230758e1b0e40957447232f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create random setup code.  <a href="#af4d9c838230758e1b0e40957447232f7">More...</a><br /></td></tr>
 <tr class="separator:af4d9c838230758e1b0e40957447232f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a9e5dc81d4e814284b465ad23abbfb6cb">mrmsg_latefiling_mediasize</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg, int width, int height, int duration)</td></tr>
+<tr class="memdesc:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Late filing information to a message.  <a href="#a9e5dc81d4e814284b465ad23abbfb6cb">More...</a><br /></td></tr>
+<tr class="separator:a9e5dc81d4e814284b465ad23abbfb6cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -1064,8 +1067,8 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns all message IDs of the given types in a chat. </p>
-<p>Typically used to show a gallery. The result must be <a class="el" href="structmrarray__t.html#a1400b5e42c682326e809723f02739a8e" title="Free an array object. ">mrarray_unref()</a>'d</p>
+<p>Get next/previous message of the same type. </p>
+<p>Typically used to implement the "next" and "previous" buttons on a media player playing eg. voice messages.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1074,7 +1077,7 @@ Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Returns the message ID that should be displayed next. The returned message is in the same chat as the given one. Typically, this result is passed again to <a class="el" href="structmrmailbox__t.html#a90b7861302d1276a07fdcb2d9c3c73b6" title="Returns all message IDs of the given types in a chat. ">mrmailbox_get_next_media()</a> later on the next swipe. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Returns the message ID that should be played next. The returned message is in the same chat as the given one and has the same type. Typically, this result is passed again to <a class="el" href="structmrmailbox__t.html#a90b7861302d1276a07fdcb2d9c3c73b6" title="Get next/previous message of the same type. ">mrmailbox_get_next_media()</a> later on the next swipe. If there is not next/previous message, the function returns 0. </dd></dl>
 
 </div>
 </div>
@@ -1577,7 +1580,7 @@ Public Attributes</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
     <tr><td class="paramname">chat_id</td><td>Chat ID to send the message to.</td></tr>
-    <tr><td class="paramname">msg</td><td>Message object to send to the chat defined by the chat ID. The function does not take ownership of the object, so you have to free it using <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02" title="Free an mrmsg_t object created eg. ">mrmsg_unref()</a> as usual.</td></tr>
+    <tr><td class="paramname">msg</td><td>Message object to send to the chat defined by the chat ID. The function does not take ownership of the object, so you have to free it using <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02" title="Free a message object. ">mrmsg_unref()</a> as usual.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2243,7 +2246,7 @@ Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> message object. When done, the object must be freed using <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02" title="Free an mrmsg_t object created eg. ">mrmsg_unref()</a> </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> message object. When done, the object must be freed using <a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02" title="Free a message object. ">mrmsg_unref()</a> </dd></dl>
 
 </div>
 </div>
@@ -2709,6 +2712,60 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a9e5dc81d4e814284b465ad23abbfb6cb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void mrmsg_latefiling_mediasize </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>width</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>height</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>duration</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Late filing information to a message. </p>
+<p>Sometimes, the core cannot find out the width, the height or the duration of an image, an audio or a video.</p>
+<p>If, in these cases, the frontend can provide the information, it can save them together with the message object for later usage.</p>
+<p>This function should only be used if <a class="el" href="structmrmsg__t.html#adfe10086430b562b8df4e45668b51927" title="Get width of image or video. ">mrmsg_get_width()</a>, <a class="el" href="structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353" title="Get height of image or video. ">mrmsg_get_height()</a> or <a class="el" href="structmrmsg__t.html#aa180c0fd4c9cdd58cc47006022ebc1e0" title="Get duration of audio or video. ">mrmsg_get_duration()</a> do not provide the expected values.</p>
+<p>To get the stored values later, use <a class="el" href="structmrmsg__t.html#adfe10086430b562b8df4e45668b51927" title="Get width of image or video. ">mrmsg_get_width()</a>, <a class="el" href="structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353" title="Get height of image or video. ">mrmsg_get_height()</a> or <a class="el" href="structmrmsg__t.html#aa180c0fd4c9cdd58cc47006022ebc1e0" title="Get duration of audio or video. ">mrmsg_get_duration()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+    <tr><td class="paramname">width</td><td>The new width to store in the message object. 0 if you do not want to change it.</td></tr>
+    <tr><td class="paramname">height</td><td>The new height to store in the message object. 0 if you do not want to change it.</td></tr>
+    <tr><td class="paramname">duration</td><td>The new duration to store in the message object. 0 if you do not want to change it.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
+
+</div>
+</div>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a class="anchor" id="a6c557153209e128b69301246dbf9e230"></a>
 <div class="memitem">
@@ -2760,6 +2817,7 @@ Public Attributes</h2></td></tr>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox.c</li>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox_configure.c</li>
 <li>/home/bpetersen/projects/deltachat-core/src/mrmailbox_imex.c</li>
+<li>/home/bpetersen/projects/deltachat-core/src/mrmsg.c</li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

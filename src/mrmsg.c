@@ -942,7 +942,7 @@ void mrmsg_save_param_to_disk__(mrmsg_t* msg)
  *
  * @memberof mrmailbox_t
  *
- * @param mailbox The message object.
+ * @param msg The message object.
  *
  * @param width The new width to store in the message object. 0 if you do not want to change it.
  *

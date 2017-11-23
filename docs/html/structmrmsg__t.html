@@ -101,7 +101,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a80f470eb34af414ff28e7d3b3c715b48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create new message object.  <a href="#a80f470eb34af414ff28e7d3b3c715b48">More...</a><br /></td></tr>
 <tr class="separator:a80f470eb34af414ff28e7d3b3c715b48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa33212e41efff643aa7290753f3d9b02"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02">mrmsg_unref</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
-<tr class="memdesc:aa33212e41efff643aa7290753f3d9b02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free an <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> object created eg.  <a href="#aa33212e41efff643aa7290753f3d9b02">More...</a><br /></td></tr>
+<tr class="memdesc:aa33212e41efff643aa7290753f3d9b02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a message object.  <a href="#aa33212e41efff643aa7290753f3d9b02">More...</a><br /></td></tr>
 <tr class="separator:aa33212e41efff643aa7290753f3d9b02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a57d94b55fc918b27874b9194d6c35388"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a57d94b55fc918b27874b9194d6c35388">mrmsg_empty</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a57d94b55fc918b27874b9194d6c35388"><td class="mdescLeft">&#160;</td><td class="mdescRight">Empty a message object.  <a href="#a57d94b55fc918b27874b9194d6c35388">More...</a><br /></td></tr>
@@ -166,9 +166,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a32d23bac4bf35ed5f8c2cfbb93d636f5">mrmsg_is_increation</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a message is still in creation.  <a href="#a32d23bac4bf35ed5f8c2cfbb93d636f5">More...</a><br /></td></tr>
 <tr class="separator:a32d23bac4bf35ed5f8c2cfbb93d636f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a0bc3ce5f2ef0065547e4aee0143d22ef">mrmsg_save_param_to_disk</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
-<tr class="memdesc:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add additional, persistent information to a message record.  <a href="#a0bc3ce5f2ef0065547e4aee0143d22ef">More...</a><br /></td></tr>
-<tr class="separator:a0bc3ce5f2ef0065547e4aee0143d22ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -240,8 +237,8 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Free an <a class="el" href="structmrmsg__t.html" title="An object representing a single message in memory. ">mrmsg_t</a> object created eg. </p>
-<p>by <a class="el" href="structmrmsg__t.html#a80f470eb34af414ff28e7d3b3c715b48" title="Create new message object. ">mrmsg_new()</a> or <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>. This also free()s all strings; so if you set up the object yourself, make sure to use strdup()!</p>
+<p>Free a message object. </p>
+<p>Message objects are created eg. by <a class="el" href="structmrmailbox__t.html#a9ef144244e7d86ba82ce3257abf14f13" title="Get a single message object of the type mrmsg_t. ">mrmailbox_get_msg()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object to free.</td></tr>
@@ -872,32 +869,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>1=message is still in creation (<code>&lt;filename&gt;.increation</code> exists), 0=message no longer in creation </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a0bc3ce5f2ef0065547e4aee0143d22ef"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void mrmsg_save_param_to_disk </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
-          <td class="paramname"><em>msg</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Add additional, persistent information to a message record. </p>
-<p>Normally, this function is not needed; message records are created by <a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c" title="Send a message of any type to a chat. ">mrmailbox_send_msg()</a> or <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a> and modified by actions of the user. However, for rare cases, it might be necessary to save an paramter later to disk. For this purpose, use this function.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>None. </dd></dl>
 
 </div>
 </div>
