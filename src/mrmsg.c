@@ -34,7 +34,7 @@
  * set up with the current state of a message. The message object is not updated;
  * to achieve this, you have to recreate it.
  *
- * @memberof mrmsg_t
+ * @private @memberof mrmsg_t
  *
  * @return The created message object.
  */
@@ -78,7 +78,7 @@ void mrmsg_unref(mrmsg_t* msg)
 /**
  * Empty a message object.
  *
- * @memberof mrmsg_t
+ * @private @memberof mrmsg_t
  *
  * @param msg The message object to empty.
  *
@@ -102,82 +102,6 @@ void mrmsg_empty(mrmsg_t* msg)
 	mrparam_set_packed(msg->m_param, NULL);
 
 	msg->m_mailbox = NULL;
-}
-
-
-
-/**
- * Set the type of a message.
- *
- * See mrmailbox_send_msg() for some examples.
- *
- * @memberof mrmsg_t
- *
- * @param msg The message object to modify.
- *
- * @param type Type to set for the message.
- *     Possible types are MR_MSG_TEXT (10), MR_MSG_IMAGE (20), MR_MSG_GIF (21),
- *     MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50) or MR_MSG_FILE (60).
- *
- * @return None.
- */
-void mrmsg_set_type(mrmsg_t* msg, int type)
-{
-	if( msg == NULL ) {
-		return;
-	}
-
-	msg->m_type = type;
-}
-
-
-/**
- * Set the text of a message object.
- *
- * The text is _not_ modified in the database, this function is only a helper to
- * set up a message object to be sent afterwards. The type of the message object
- * is not changed implicitly to MR_MSG_TEXT when using this function. Previously
- * set texts are free()'d.
- *
- * @memberof mrmsg_t
- *
- * @param msg Message to set the text for.
- *
- * @param text Text to set.  The function creates a copy of the given text so
- *     that it can be free()'d just after this function is called.
- *
- * @return None.
- */
-void mrmsg_set_text(mrmsg_t* msg, const char* text)
-{
-	if( msg==NULL || text==NULL ) {
-		return;
-	}
-
-	free(msg->m_text);
-	msg->m_text = safe_strdup(text);
-}
-
-
-/**
- * Set the file belonging to a message.
- * The file may be an image, a video, an audio file, an PDF and so on.
- * This function is a shortcut for mrparam_set(msg->m_param, MRP_FILE, file)
- *
- * @memberof mrmsg_t
- *
- * @param msg The message object to modify.
- *
- * @param file Path, filename and extension to set for the given message.
- *
- * @return None.
- */
-void mrmsg_set_file(mrmsg_t* msg, const char* file)
-{
-	if( msg == NULL ) {
-		return;
-	}
-	mrparam_set(msg->m_param, MRP_FILE, file);
 }
 
 
@@ -239,6 +163,24 @@ int mrmsg_get_state(mrmsg_t* msg)
 		return MR_STATE_UNDEFINED;
 	}
 	return msg->m_state;
+}
+
+
+/**
+ * Get message time. Unix time the message was sended or received.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return The time of the message.
+ */
+time_t mrmsg_get_timestamp(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return msg->m_timestamp;
 }
 
 
@@ -614,6 +556,30 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 
 
 /**
+ * Check if a message is starred.  Starred messages are "favorites" marked by the user
+ * with a "star" or something like that.  Starred messages can typically be shown
+ * easily and are not deleted automatically.
+ *
+ * To star one or more messages, use mrmailbox_star_msgs(), to get a list of starred messages,
+ * use mrmailbox_get_chat_msgs() using MR_CHAT_ID_STARRED as the chat_id.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return 1=message is starred, 0=message not starred.
+ */
+int mrmsg_is_starred(mrmsg_t* msg)
+{
+	if( msg == NULL ) {
+		return 0;
+	}
+	return msg->m_starred? 1 : 0;
+}
+
+
+
+/**
  * Check if the message is a forwarded message.
  *
  * Forwarded messages may not be created by the contact given as "from".
@@ -940,7 +906,7 @@ void mrmsg_save_param_to_disk__(mrmsg_t* msg)
  *
  * To get the stored values later, use mrmsg_get_width(), mrmsg_get_height() or mrmsg_get_duration().
  *
- * @memberof mrmailbox_t
+ * @memberof mrmsg_t
  *
  * @param msg The message object.
  *

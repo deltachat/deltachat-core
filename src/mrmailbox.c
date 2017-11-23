@@ -2800,7 +2800,7 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
-		mrmailbox_send_msg(mailbox, chat->m_id, msg);
+		mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
 	}
 	else
 	#endif
@@ -2979,7 +2979,7 @@ cleanup:
 }
 
 
-uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, const mrmsg_t* msg, time_t timestamp)
+static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, const mrmsg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
 	sqlite3_stmt* stmt;
@@ -3076,102 +3076,6 @@ cleanup:
 
 
 /**
- * Send a simple text message to the given chat.
- *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
- * However, this does not imply, the message really reached the recipient -
- * sending may be delayed eg. due to network problems. However, from your
- * view, you're done with the message. Sooner or later it will find its way.
- *
- * To send messages of other types, see mrmailbox_send_msg().
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
- *
- * @param chat_id Chat ID to send the message to.
- *
- * @param text_to_send Text to send to the chat defined by the chat ID.
- *
- * @return The ID of the message that is about being sent.
- */
-uint32_t mrmailbox_send_text_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text_to_send)
-{
-	mrmsg_t* msg = mrmsg_new();
-	uint32_t ret = 0;
-
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
-		goto cleanup;
-	}
-
-	msg->m_type = MR_MSG_TEXT;
-	mrmsg_set_text(msg, text_to_send);
-
-	ret = mrmailbox_send_msg(mailbox, chat_id, msg);
-
-cleanup:
-	mrmsg_unref(msg);
-	return ret;
-}
-
-
-/**
- * Send foreign contact data to a chat.
- *
- * Sends the name and the email address of another contact to a chat.
- * The contact this may or may not be a member of the chat.
- *
- * Typically used to share a contact to another member or to a group of members.
- *
- * Internally, the function just creates an appropriate text message and sends it
- * using mrmailbox_send_text_msg().
- *
- * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
- * is not related to the VCARD data format.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object.
- *
- * @param chat_id The chat to send the message to.
- *
- * @param contact_id The contact whichs data should be shared to the chat.
- *
- * @return Returns the ID of the message sent.
- */
-uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
-{
-	uint32_t     ret = 0;
-	mrmsg_t*     msg = mrmsg_new();
-	mrcontact_t* contact = NULL;
-	char*        text_to_send = NULL;
-
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
-		goto cleanup;
-	}
-
-	if( (contact=mrmailbox_get_contact(mailbox, contact_id)) == NULL ) {
-		goto cleanup;
-	}
-
-	if( contact->m_authname && contact->m_authname[0] ) {
-		text_to_send = mr_mprintf("%s: %s", contact->m_authname, contact->m_addr);
-	}
-	else {
-		text_to_send = safe_strdup(contact->m_addr);
-	}
-
-	ret = mrmailbox_send_text_msg(mailbox, chat_id, text_to_send);
-
-cleanup:
-	mrmsg_unref(msg);
-	mrcontact_unref(contact);
-	free(text_to_send);
-	return ret;
-}
-
-
-/**
  * Send a message of any type to a chat. The given message object is not unref'd
  * by the function but some fields are set up.
  *
@@ -3183,7 +3087,7 @@ cleanup:
  * To send a simple text message, you can also use mrmailbox_send_text_msg()
  * which is easier to use.
  *
- * @memberof mrmailbox_t
+ * @private @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
  *
@@ -3211,7 +3115,7 @@ cleanup:
  * mrmsg_unref(msg1);
  * ```
  */
-uint32_t mrmailbox_send_msg(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
+uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
 {
 	char* pathNfilename = NULL;
 
@@ -3319,6 +3223,319 @@ uint32_t mrmailbox_send_msg(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg
 cleanup:
 	free(pathNfilename);
 	return msg->m_id;
+}
+
+
+/**
+ * Send a simple text message a given chat.
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * See also mrmailbox_send_image_msg().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the text message to.
+ * @param text_to_send Text to send to the chat defined by the chat ID.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_text_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text_to_send)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_TEXT;
+	msg->m_text = safe_strdup(text_to_send);
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+}
+
+
+/**
+ * Send an image to a chat.
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * See also mrmailbox_send_text_msg().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the image to.
+ * @param file Full path of the image file to send. The core may make a copy of the file.
+ * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
+ * @param width Width in pixel of the file. 0 if you don't know or don't care.
+ * @param height Width in pixel of the file. 0 if you don't know or don't care.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_image_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_IMAGE;
+	mrparam_set    (msg->m_param, MRP_FILE,   file);
+	mrparam_set_int(msg->m_param, MRP_WIDTH,  width);  /* set in sending job, if 0 */
+	mrparam_set_int(msg->m_param, MRP_HEIGHT, height); /* set in sending job, if 0 */
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+
+}
+
+
+/**
+ * Send an video to a chat.
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * See also mrmailbox_send_image_msg().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the video to.
+ * @param file Full path of the video file to send. The core may make a copy of the file.
+ * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
+ * @param width Width in video of the file, if known. 0 if you don't know or don't care.
+ * @param height Width in video of the file, if known. 0 if you don't know or don't care.
+ * @param duration Length of the video in milliseconds. 0 if you don't know or don't care.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_video_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_VIDEO;
+	mrparam_set    (msg->m_param, MRP_FILE,     file);
+	mrparam_set    (msg->m_param, MRP_MIMETYPE, filemime);
+	mrparam_set_int(msg->m_param, MRP_WIDTH,    width);
+	mrparam_set_int(msg->m_param, MRP_HEIGHT,   height);
+	mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+
+}
+
+
+/**
+ * Send a voice message to a chat.  Voice messages are messages just recorded though the device microphone.
+ * For sending music or other audio data, use mrmailbox_send_audio_msg().
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the voice message to.
+ * @param file Full path of the file to send. The core may make a copy of the file.
+ * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
+ * @param duration Length of the voice message in milliseconds. 0 if you don't know or don't care.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_voice_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_VOICE;
+	mrparam_set    (msg->m_param, MRP_FILE,     file);
+	mrparam_set    (msg->m_param, MRP_MIMETYPE, filemime);
+	mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+}
+
+
+/**
+ * Send an audio file to a chat.  Audio messages are eg. music tracks.
+ * For voice messages just recorded though the device microphone, use mrmailbox_send_voice_msg().
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the audio to.
+ * @param file Full path of the file to send. The core may make a copy of the file.
+ * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
+ * @param duration Length of the audio in milliseconds. 0 if you don't know or don't care.
+ * @param author Author or artist of the file. NULL if you don't know or don't care.
+ * @param trackname Trackname or title of the file. NULL if you don't know or don't care.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_audio_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_AUDIO;
+	mrparam_set    (msg->m_param, MRP_FILE,       file);
+	mrparam_set    (msg->m_param, MRP_MIMETYPE,   filemime);
+	mrparam_set_int(msg->m_param, MRP_DURATION,   duration);
+	mrparam_set    (msg->m_param, MRP_AUTHORNAME, author);
+	mrparam_set    (msg->m_param, MRP_TRACKNAME,  trackname);
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+}
+
+
+/**
+ * Send a document to a chat. Use this function to send any document or file to
+ * a chat.
+ *
+ * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * However, this does not imply, the message really reached the recipient -
+ * sending may be delayed eg. due to network problems. However, from your
+ * view, you're done with the message. Sooner or later it will find its way.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param chat_id Chat ID to send the document to.
+ * @param file Full path of the file to send. The core may make a copy of the file.
+ * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
+ *
+ * @return The ID of the message that is about being sent.
+ */
+uint32_t mrmailbox_send_file_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime)
+{
+	mrmsg_t* msg = mrmsg_new();
+	uint32_t ret = 0;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_FILE;
+	mrparam_set(msg->m_param, MRP_FILE,     file);
+	mrparam_set(msg->m_param, MRP_MIMETYPE, filemime);
+
+	ret = mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+cleanup:
+	mrmsg_unref(msg);
+	return ret;
+}
+
+
+/**
+ * Send foreign contact data to a chat.
+ *
+ * Sends the name and the email address of another contact to a chat.
+ * The contact this may or may not be a member of the chat.
+ *
+ * Typically used to share a contact to another member or to a group of members.
+ *
+ * Internally, the function just creates an appropriate text message and sends it
+ * using mrmailbox_send_text_msg().
+ *
+ * Future implementations may also send the key of the user though gossip;
+ * currently, this is not done.
+ *
+ * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
+ * is not related to the VCARD data format.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @param chat_id The chat to send the message to.
+ *
+ * @param contact_id The contact whichs data should be shared to the chat.
+ *
+ * @return Returns the ID of the message sent.
+ */
+uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+{
+	uint32_t     ret = 0;
+	mrmsg_t*     msg = mrmsg_new();
+	mrcontact_t* contact = NULL;
+	char*        text_to_send = NULL;
+
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	if( (contact=mrmailbox_get_contact(mailbox, contact_id)) == NULL ) {
+		goto cleanup;
+	}
+
+	if( contact->m_authname && contact->m_authname[0] ) {
+		text_to_send = mr_mprintf("%s: %s", contact->m_authname, contact->m_addr);
+	}
+	else {
+		text_to_send = safe_strdup(contact->m_addr);
+	}
+
+	ret = mrmailbox_send_text_msg(mailbox, chat_id, text_to_send);
+
+cleanup:
+	mrmsg_unref(msg);
+	mrcontact_unref(contact);
+	free(text_to_send);
+	return ret;
 }
 
 
@@ -3517,7 +3734,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_GROUPNAME_CHANGED);
-		msg->m_id = mrmailbox_send_msg(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3592,7 +3809,7 @@ int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, con
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, new_image);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
-		msg->m_id = mrmailbox_send_msg(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3725,7 +3942,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-		msg->m_id = mrmailbox_send_msg(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3804,7 +4021,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			}
 			mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 			mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-			msg->m_id = mrmailbox_send_msg(mailbox, chat->m_id, msg);
+			msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
 	}

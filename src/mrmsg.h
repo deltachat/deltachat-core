@@ -40,14 +40,7 @@ typedef struct sqlite3_stmt sqlite3_stmt;
 typedef struct mrmsg_t
 {
 	/**
-	 * Message ID.
-	 *
-	 * Special message IDs:
-	 *
-	 * - MR_MSG_ID_MARKER1 (1) - any user-defined marker, see mrmailbox_get_chat_msgs()
-	 * - MR_MSG_ID_DAYMARKER (9) - in a list, the next message is on a new day, useful to show headlines, see mrmailbox_get_chat_msgs()
-	 *
-	 * Normal message IDs are larger than these special ones.
+	 * Message ID.  Never 0.
 	 */
 	uint32_t        m_id;
 	#define         MR_MSG_ID_MARKER1       1
@@ -56,37 +49,36 @@ typedef struct mrmsg_t
 
 
 	/**
-	 * Contact ID of the sender. 0 if unset. See mrcontact_t::m_id for special IDs.
+	 * Contact ID of the sender.  Never 0. See mrcontact_t::m_id for special IDs.
 	 * Use mrmailbox_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_from_id;
 
 
 	/**
-	 * Contact ID of the recipient. 0 if unset. See mrcontact_t::m_id for special IDs.
+	 * Contact ID of the recipient. Never 0. See mrcontact_t::m_id for special IDs.
 	 * Use mrmailbox_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_to_id;
 
 
 	/**
-	 * Chat ID the message belongs to. 0 if unset. See mrchat_t::m_id  for special IDs.
+	 * Chat ID the message belongs to. Never 0. See mrchat_t::m_id for special IDs.
 	 * Use mrmailbox_get_chat() to load details about the chat.
 	 */
 	uint32_t        m_chat_id;
 
 
-	/**
-	 * Unix time the message was sended or received. 0 if unset.
+	/*
+	 * The mailbox object the chat belongs to. Never NULL.
 	 */
-	time_t          m_timestamp;
+	//mrmailbox_t*    m_mailbox;
 
 
-	/**
-	 * Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field.
-	 */
+	/** @privatesection */
+
 	int             m_type;
-	#define         MR_MSG_UNDEFINED        0
+	#define         MR_MSG_UNDEFINED        0 /**< Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field. */
 	#define         MR_MSG_TEXT            10
 	#define         MR_MSG_IMAGE           20 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
 	#define         MR_MSG_GIF             21 /*   - " -  */
@@ -95,11 +87,7 @@ typedef struct mrmsg_t
 	#define         MR_MSG_VIDEO           50 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
 	#define         MR_MSG_FILE            60 /* m_param may contain MRP_FILE  */
 
-
-	/**
-	 * Message state. It is recommended to use mrmsg_get_state() to access this field.
-	 */
-	int             m_state;
+	int             m_state;                  /**< Message state. It is recommended to use mrmsg_get_state() to access this field. */
 	#define         MR_STATE_UNDEFINED      0
 	#define         MR_STATE_IN_FRESH      10
 	#define         MR_STATE_IN_NOTICED    13
@@ -109,17 +97,16 @@ typedef struct mrmsg_t
 	#define         MR_STATE_OUT_DELIVERED 26
 	#define         MR_STATE_OUT_MDN_RCVD  28
 
+	time_t          m_timestamp;              /**< Unix time the message was sended or received. 0 if unset. */
 	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use mrmsg_set_text() and mrmsg_get_text() to access this field. */
-	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
-	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
-
-	/** @privatesection */
 
 	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */
 	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
 	char*           m_server_folder;          /**< Folder where the message was last seen on the server */
 	uint32_t        m_server_uid;             /**< UID last seen on the server for this message */
 	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
+	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
+	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 } mrmsg_t;
 
 
@@ -127,12 +114,9 @@ mrmsg_t*        mrmsg_new                   ();
 void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);
 
-void            mrmsg_set_type              (mrmsg_t*, int type);
-void            mrmsg_set_text              (mrmsg_t*, const char* text);
-void            mrmsg_set_file              (mrmsg_t*, const char* file);
-
 int             mrmsg_get_type              (mrmsg_t*);
 int             mrmsg_get_state             (mrmsg_t*);
+time_t          mrmsg_get_timestamp         (mrmsg_t*);
 char*           mrmsg_get_text              (mrmsg_t*);
 char*           mrmsg_get_file              (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
@@ -145,6 +129,7 @@ int             mrmsg_get_duration          (mrmsg_t*);
 int             mrmsg_get_showpadlock       (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
 char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
+int             mrmsg_is_starred            (mrmsg_t*);
 int             mrmsg_is_forwarded          (mrmsg_t*);
 int             mrmsg_is_systemcmd          (mrmsg_t*);
 int             mrmsg_is_increation         (mrmsg_t*);

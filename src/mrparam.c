@@ -245,7 +245,7 @@ int32_t mrparam_get_int(mrparam_t* param, int key, int32_t def)
  *
  * @param key Key of the parameter to modify, one of the MRP_* constants.
  *
- * @param value Value to store for key.
+ * @param value Value to store for key. NULL to clear the value.
  *
  * @return None.
  */

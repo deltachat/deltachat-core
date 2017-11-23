@@ -255,7 +255,11 @@ uint32_t        mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t cont
 uint32_t        mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id);
 
 uint32_t        mrmailbox_send_text_msg     (mrmailbox_t*, uint32_t chat_id, const char* text_to_send);
-uint32_t        mrmailbox_send_msg          (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
+uint32_t        mrmailbox_send_image_msg    (mrmailbox_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height);
+uint32_t        mrmailbox_send_video_msg    (mrmailbox_t*, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration);
+uint32_t        mrmailbox_send_voice_msg    (mrmailbox_t*, uint32_t chat_id, const char* file, const char* filemime, int duration);
+uint32_t        mrmailbox_send_audio_msg    (mrmailbox_t*, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname);
+uint32_t        mrmailbox_send_file_msg     (mrmailbox_t*, uint32_t chat_id, const char* file, const char* filemime);
 uint32_t        mrmailbox_send_vcard_msg    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 void            mrmailbox_set_draft         (mrmailbox_t*, uint32_t chat_id, const char*);
 
@@ -343,7 +347,7 @@ int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* d
 
 
 /* library-internal */
-uint32_t        mrmailbox_send_msg_i__                            (mrmailbox_t*, mrchat_t*, const mrmsg_t*, time_t);
+uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
 void            mrmailbox_connect_to_imap                         (mrmailbox_t*, mrjob_t*);
 void            mrmailbox_wake_lock                               (mrmailbox_t*);
 void            mrmailbox_wake_unlock                             (mrmailbox_t*);
