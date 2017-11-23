@@ -55,9 +55,7 @@ mrmsg_t* mrmsg_new()
 
 
 /**
- * Free an mrmsg_t object created eg. by mrmsg_new() or mrmailbox_get_msg().
- * This also free()s all strings; so if you set up the object yourself, make sure
- * to use strdup()!
+ * Free a message object. Message objects are created eg. by mrmailbox_get_msg().
  *
  * @memberof mrmsg_t
  *
