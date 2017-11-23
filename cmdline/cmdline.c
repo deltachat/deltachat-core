@@ -741,23 +741,38 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("No chat selected.");
 		}
 	}
-	else if( strcmp(cmd, "sendimage")==0 || strcmp(cmd, "sendfile")==0 )
+	else if( strcmp(cmd, "sendimage")==0 )
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				mrmsg_t* msg = mrmsg_new();
-					msg->m_type = strcmp(cmd, "sendimage")==0? MR_MSG_IMAGE : MR_MSG_FILE;
-					mrparam_set(msg->m_param, MRP_FILE, arg1);
-					if( mrmailbox_send_msg(mailbox, sel_chat->m_id, msg) ) {
-						ret = safe_strdup("File sent.");
-					}
-					else {
-						ret = safe_strdup("ERROR: Sending failed.");
-					}
-				mrmsg_unref(msg);
+				if( mrmailbox_send_image_msg(mailbox, sel_chat->m_id, arg1, NULL, 0, 0) ) {
+					ret = safe_strdup("Image sent.");
+				}
+				else {
+					ret = safe_strdup("ERROR: Sending image failed.");
+				}
 			}
 			else {
-				ret = safe_strdup("ERROR: No message text given.");
+				ret = safe_strdup("ERROR: No image given.");
+			}
+		}
+		else {
+			ret = safe_strdup("No chat selected.");
+		}
+	}
+	else if( strcmp(cmd, "sendfile")==0 )
+	{
+		if( sel_chat ) {
+			if( arg1 && arg1[0] ) {
+				if( mrmailbox_send_file_msg(mailbox, sel_chat->m_id, arg1, NULL) ) {
+					ret = safe_strdup("File sent.");
+				}
+				else {
+					ret = safe_strdup("ERROR: Sending file failed.");
+				}
+			}
+			else {
+				ret = safe_strdup("ERROR: No file given.");
 			}
 		}
 		else {
