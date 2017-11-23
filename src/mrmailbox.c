@@ -1896,8 +1896,9 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
 
 
 /**
- * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be mrarray_unref()'d
+ * Get next/previous message of the same type.
+ * Typically used to implement the "next" and "previous" buttons on a media
+ * player playing eg. voice messages.
  *
  * @memberof mrmailbox_t
  *
@@ -1907,10 +1908,10 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
  *
  * @param dir 1=get the next (image) message, -1=get the previous one.
  *
- * @return Returns the message ID that should be displayed next. The
- *     returned message is in the same chat as the given one.
+ * @return Returns the message ID that should be played next. The
+ *     returned message is in the same chat as the given one and has the same type.
  *     Typically, this result is passed again to mrmailbox_get_next_media()
- *     later on the next swipe.
+ *     later on the next swipe. If there is not next/previous message, the function returns 0.
  */
 uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, int dir)
 {
