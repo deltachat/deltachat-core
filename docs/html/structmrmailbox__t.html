@@ -197,6 +197,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">mrmailbox_send_text_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, const char *text_to_send)</td></tr>
 <tr class="memdesc:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a simple text message to the given chat.  <a href="#a3f9ac5fb9ff2dcbaafdddb5d955ac39b">More...</a><br /></td></tr>
 <tr class="separator:a3f9ac5fb9ff2dcbaafdddb5d955ac39b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88e7fe7faa3576c086b6d3e0ab825892"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a88e7fe7faa3576c086b6d3e0ab825892">mrmailbox_send_vcard_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, uint32_t contact_id)</td></tr>
+<tr class="memdesc:a88e7fe7faa3576c086b6d3e0ab825892"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send foreign contact data to a chat.  <a href="#a88e7fe7faa3576c086b6d3e0ab825892">More...</a><br /></td></tr>
+<tr class="separator:a88e7fe7faa3576c086b6d3e0ab825892"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88ef3066cec30fe26f61f273b233d90c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a88ef3066cec30fe26f61f273b233d90c">mrmailbox_send_msg</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, <a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:a88ef3066cec30fe26f61f273b233d90c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message of any type to a chat.  <a href="#a88ef3066cec30fe26f61f273b233d90c">More...</a><br /></td></tr>
 <tr class="separator:a88ef3066cec30fe26f61f273b233d90c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1486,6 +1489,53 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ID of the message that is about being sent. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a88e7fe7faa3576c086b6d3e0ab825892"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_send_vcard_msg </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>chat_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>contact_id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send foreign contact data to a chat. </p>
+<p>Sends the name and the email address of another contact to a chat. The contact this may or may not be a member of the chat.</p>
+<p>Typically used to share a contact to another member or to a group of members.</p>
+<p>Internally, the function just creates an appropriate text message and sends it using <a class="el" href="structmrmailbox__t.html#a3f9ac5fb9ff2dcbaafdddb5d955ac39b" title="Send a simple text message to the given chat. ">mrmailbox_send_text_msg()</a>.</p>
+<p>NB: The "vcard" in the function name is just an abbreviation of "visiting card" and is not related to the VCARD data format.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object.</td></tr>
+    <tr><td class="paramname">chat_id</td><td>The chat to send the message to.</td></tr>
+    <tr><td class="paramname">contact_id</td><td>The contact whichs data should be shared to the chat.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Returns the ID of the message sent. </dd></dl>
 
 </div>
 </div>

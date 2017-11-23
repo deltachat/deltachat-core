@@ -11,7 +11,6 @@ var searchData=
   ['m_5fdraft_5ftimestamp',['m_draft_timestamp',['../structmrchat__t.html#a565101f53278f5ab1ff58317ffc9555c',1,'mrchat_t']]],
   ['m_5ffrom_5fid',['m_from_id',['../structmrmsg__t.html#a299981cb89b25ebaaedf7a8486a86ee6',1,'mrmsg_t']]],
   ['m_5fid',['m_id',['../structmrchat__t.html#a1591431716413350eaffce0b588e4911',1,'mrchat_t::m_id()'],['../structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716',1,'mrcontact_t::m_id()'],['../structmrmsg__t.html#a793898c8da24c717dc2bb1d91faac801',1,'mrmsg_t::m_id()']]],
-  ['m_5fis_5fmsgrmsg',['m_is_msgrmsg',['../structmrmsg__t.html#aa4fbc319d61c755ce929e658ad75b21e',1,'mrmsg_t']]],
   ['m_5fmailbox',['m_mailbox',['../structmrarray__t.html#abd4dde487b63dc1bd2ff00c76854af4f',1,'mrarray_t::m_mailbox()'],['../structmrchat__t.html#abf3e1a34f567e168bc0597f9a544a50d',1,'mrchat_t::m_mailbox()'],['../structmrchatlist__t.html#a025d213cde2fa547b2f3cae4e1facbf7',1,'mrchatlist_t::m_mailbox()']]],
   ['m_5fname',['m_name',['../structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140',1,'mrchat_t::m_name()'],['../structmrcontact__t.html#a48fba862b41f7da3b8c6193c0554654b',1,'mrcontact_t::m_name()']]],
   ['m_5fparam',['m_param',['../structmrmsg__t.html#a2c31ec5b23e35fbe3ae3896eece09453',1,'mrmsg_t']]],
