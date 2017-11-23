@@ -4913,7 +4913,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	/* add file info */
 	char* file = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	if( file ) {
-		p = mr_mprintf("File: %s, %i bytes\n", file, mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
+		p = mr_mprintf("File: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
 	}
 
 	if( msg->m_type != MR_MSG_TEXT ) {

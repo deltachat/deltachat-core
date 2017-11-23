@@ -137,6 +137,7 @@ char*           mrmsg_get_text              (mrmsg_t*);
 char*           mrmsg_get_file              (mrmsg_t*);
 char*           mrmsg_get_filename          (mrmsg_t*);
 char*           mrmsg_get_filemime          (mrmsg_t*);
+uint64_t        mrmsg_get_filebytes         (mrmsg_t*);
 mrpoortext_t*   mrmsg_get_mediainfo         (mrmsg_t*);
 int             mrmsg_get_width             (mrmsg_t*);
 int             mrmsg_get_height            (mrmsg_t*);

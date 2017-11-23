@@ -299,7 +299,7 @@ cleanup:
  *
  * @param msg The message object.
  *
- * @return base file name plus extension without part.  If there is no file
+ * @return Base file name plus extension without part.  If there is no file
  *     associated with the message, an empty string is returned.  The returned
  *     value must be free()'d.
  */
@@ -361,6 +361,36 @@ char* mrmsg_get_filemime(mrmsg_t* msg)
 cleanup:
 	free(file);
 	return ret? ret : safe_strdup(NULL);
+}
+
+
+/**
+ * Get the size of the file.  Returns the size of the file associated with a
+ * message, if applicable.
+ *
+ * Typically, this is used to show the size of document messages, eg. a PDF.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return File size in bytes, 0 if not applicable or on errors.
+ */
+uint64_t mrmsg_get_filebytes(mrmsg_t* msg)
+{
+	uint64_t ret = 0;
+	char*    file = NULL;
+
+	file = mrparam_get(msg->m_param, MRP_FILE, NULL);
+	if( file == NULL ) {
+		goto cleanup;
+	}
+
+	ret = mr_get_filebytes(file);
+
+cleanup:
+	free(file);
+	return ret;
 }
 
 

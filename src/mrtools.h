@@ -102,18 +102,18 @@ char* mr_extract_grpid_from_rfc724_mid_list(const clist* rfc724_mid_list);
 
 
 /* file tools */
-int     mr_file_exist              (const char* pathNfilename);
-size_t  mr_get_filebytes           (const char* pathNfilename);
-char*   mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
-int     mr_delete_file             (const char* pathNFilename, mrmailbox_t* log);
-int     mr_copy_file               (const char* src_pathNFilename, const char* dest_pathNFilename, mrmailbox_t* log);
-int     mr_create_folder           (const char* pathNfilename, mrmailbox_t* log);
-int     mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log);
-int     mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log);
-char*   mr_get_filesuffix_lc       (const char* pathNfilename); /* the returned suffix is lower-case */
-void    mr_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); /* the case of the suffix is preserved! */
-int     mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
-char*   mr_get_fine_pathNfilename  (const char* folder, const char* desired_name);
+int      mr_file_exist              (const char* pathNfilename);
+uint64_t mr_get_filebytes           (const char* pathNfilename);
+char*    mr_get_filename            (const char* pathNfilename); /* the return value must be free()'d */
+int      mr_delete_file             (const char* pathNFilename, mrmailbox_t* log);
+int      mr_copy_file               (const char* src_pathNFilename, const char* dest_pathNFilename, mrmailbox_t* log);
+int      mr_create_folder           (const char* pathNfilename, mrmailbox_t* log);
+int      mr_write_file              (const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log);
+int      mr_read_file               (const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log);
+char*    mr_get_filesuffix_lc       (const char* pathNfilename); /* the returned suffix is lower-case */
+void     mr_split_filename          (const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot); /* the case of the suffix is preserved! */
+int      mr_get_filemeta            (const void* buf, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height);
+char*    mr_get_fine_pathNfilename  (const char* folder, const char* desired_name);
 
 /* macros */
 #define MR_QUOTEHELPER(name) #name

@@ -1516,11 +1516,11 @@ int mr_file_exist(const char* pathNfilename)
 }
 
 
-size_t mr_get_filebytes(const char* pathNfilename)
+uint64_t mr_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;
 	if( stat(pathNfilename, &st) == 0 ) {
-		return (size_t)st.st_size;
+		return (uint64_t)st.st_size;
 	}
 	else {
 		return 0;
