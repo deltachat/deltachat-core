@@ -109,9 +109,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a69b67135eeadbdbe9b4a60e645ef22b0"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchatlist__t.html#a69b67135eeadbdbe9b4a60e645ef22b0">mrchatlist_get_msg_id</a> (<a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *chatlist, size_t index)</td></tr>
 <tr class="memdesc:a69b67135eeadbdbe9b4a60e645ef22b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a single message ID of a chatlist.  <a href="#a69b67135eeadbdbe9b4a60e645ef22b0">More...</a><br /></td></tr>
 <tr class="separator:a69b67135eeadbdbe9b4a60e645ef22b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae7670d62ab7fc83aff18f299f26853d8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrpoortext__t.html">mrpoortext_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8">mrchatlist_get_summary</a> (<a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *chatlist, size_t index, <a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
-<tr class="memdesc:ae7670d62ab7fc83aff18f299f26853d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a summary for a chatlist index.  <a href="#ae7670d62ab7fc83aff18f299f26853d8">More...</a><br /></td></tr>
-<tr class="separator:ae7670d62ab7fc83aff18f299f26853d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bb0e80673ca253c7cb71ae6b9d4fa97"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structmrlot__t.html">mrlot_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchatlist__t.html#a7bb0e80673ca253c7cb71ae6b9d4fa97">mrchatlist_get_summary</a> (<a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *chatlist, size_t index, <a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
+<tr class="memdesc:a7bb0e80673ca253c7cb71ae6b9d4fa97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a summary for a chatlist index.  <a href="#a7bb0e80673ca253c7cb71ae6b9d4fa97">More...</a><br /></td></tr>
+<tr class="separator:a7bb0e80673ca253c7cb71ae6b9d4fa97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -248,12 +248,12 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="ae7670d62ab7fc83aff18f299f26853d8"></a>
+<a class="anchor" id="a7bb0e80673ca253c7cb71ae6b9d4fa97"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structmrpoortext__t.html">mrpoortext_t</a> * mrchatlist_get_summary </td>
+          <td class="memname"><a class="el" href="structmrlot__t.html">mrlot_t</a> * mrchatlist_get_summary </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrchatlist__t.html">mrchatlist_t</a> *&#160;</td>
           <td class="paramname"><em>chatlist</em>, </td>
@@ -279,23 +279,23 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Get a summary for a chatlist index. </p>
-<p>The summary is returned by a <a class="el" href="structmrpoortext__t.html" title="An object representing text with some attributes. ">mrpoortext_t</a> object with the following fields:</p>
+<p>The summary is returned by a <a class="el" href="structmrlot__t.html" title="An object containing a set of values. ">mrlot_t</a> object with the following fields:</p>
 <ul>
-<li>m_text1: contains the username or the strings "Me", "Draft" and so on. The string may be colored by having a look at m_text1_meaning. If there is no such name, the element is NULL (eg. for "No messages")</li>
-<li>m_text1_meaning: one of the MR_TEXT1_* constants</li>
-<li>m_text2: contains an excerpt of the message text or strings as "No messages". may be NULL of there is no such text (eg. for the archive)</li>
-<li>m_timestamp: the timestamp of the message. May be 0 if there is no message</li>
-<li>m_state: the state of the message as one of the MR_STATE_* identifiers. 0 if there is no message.</li>
+<li><a class="el" href="structmrlot__t.html#afa71b7a11147bc6e73313986a08fdcd7" title="The meaning of this string is defined by the creator of the object. ">mrlot_t::m_text1</a>: contains the username or the strings "Me", "Draft" and so on. The string may be colored by having a look at m_text1_meaning. If there is no such name or it should not be displayed, the element is NULL.</li>
+<li><a class="el" href="structmrlot__t.html#a38067382d835f912ad1d4f7350306dc0" title="The meaning of this value is defined by the creator of the object. ">mrlot_t::m_text1_meaning</a>: one of MR_TEXT1_USERNAME, MR_TEXT1_SELF or MR_TEXT1_DRAFT. Typically used to show <a class="el" href="structmrlot__t.html#afa71b7a11147bc6e73313986a08fdcd7" title="The meaning of this string is defined by the creator of the object. ">mrlot_t::m_text1</a> with different colors. 0 if not applicable.</li>
+<li><a class="el" href="structmrlot__t.html#ad894f96fe9a1672808944fdb0ba04628" title="The meaning of this string is defined by the creator of the object. ">mrlot_t::m_text2</a>: contains an excerpt of the message text or strings as "No messages". May be NULL of there is no such text (eg. for the archive link)</li>
+<li><a class="el" href="structmrlot__t.html#af71c6758491ef50b7c25a11c0d9fee17" title="The meaning of this value is defined by the creator of the object. ">mrlot_t::m_timestamp</a>: the timestamp of the message. 0 if not applicable.</li>
+<li><a class="el" href="structmrlot__t.html#acc3e27731b8dbe46733cab6001032f9a" title="The meaning of this value is defined by the creator of the object. ">mrlot_t::m_state</a>: The state of the message as one of the MR_STATE_* constants (see <a class="el" href="structmrmsg__t.html#a1f411e4be17fb5fe408a1aa74cba90a5" title="Get the state of a message. ">mrmsg_get_state()</a>). 0 if not applicable.</li>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">chatlist</td><td>The chatlist to query as returned eg. from <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>.</td></tr>
-    <tr><td class="paramname">index</td><td>The index to query in the chatlist.</td></tr>
-    <tr><td class="paramname">chat</td><td>Giving the correct chat object here, this this will speed up things a little. If the chat object is not available by you, it is faster to pass NULL here.</td></tr>
+    <tr><td class="paramname">chatlist</td><td>The chatlist to query as returned eg. from <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>. </td></tr>
+    <tr><td class="paramname">index</td><td>The index to query in the chatlist. </td></tr>
+    <tr><td class="paramname">chat</td><td>To speed up things, pass an already available chat object here. If the chat object is not yet available, it is faster to pass NULL.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The result must be freed using <a class="el" href="structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed" title="Frees a poortext object. ">mrpoortext_unref()</a>. The function never returns NULL. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The summary as an <a class="el" href="structmrlot__t.html" title="An object containing a set of values. ">mrlot_t</a> object. Must be freed using <a class="el" href="structmrlot__t.html#a813e4d0c2f135e962cc4d5ac0753c592" title="Frees an object containing a set of parameters. ">mrlot_unref()</a>. NULL is never returned. </dd></dl>
 
 </div>
 </div>

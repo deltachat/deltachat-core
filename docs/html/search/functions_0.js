@@ -10,7 +10,7 @@ var searchData=
   ['mrchatlist_5fget_5fchat_5fid',['mrchatlist_get_chat_id',['../structmrchatlist__t.html#a8c8360c76b31057322199e8c51cadfa5',1,'mrchatlist_t']]],
   ['mrchatlist_5fget_5fcnt',['mrchatlist_get_cnt',['../structmrchatlist__t.html#aa132119f18e40e3151ac5fe0299daab7',1,'mrchatlist_t']]],
   ['mrchatlist_5fget_5fmsg_5fid',['mrchatlist_get_msg_id',['../structmrchatlist__t.html#a69b67135eeadbdbe9b4a60e645ef22b0',1,'mrchatlist_t']]],
-  ['mrchatlist_5fget_5fsummary',['mrchatlist_get_summary',['../structmrchatlist__t.html#ae7670d62ab7fc83aff18f299f26853d8',1,'mrchatlist_t']]],
+  ['mrchatlist_5fget_5fsummary',['mrchatlist_get_summary',['../structmrchatlist__t.html#a7bb0e80673ca253c7cb71ae6b9d4fa97',1,'mrchatlist_t']]],
   ['mrchatlist_5funref',['mrchatlist_unref',['../structmrchatlist__t.html#ab036d6e066b5ff78779f36711c9ab2f9',1,'mrchatlist_t']]],
   ['mrcontact_5fget_5faddr',['mrcontact_get_addr',['../structmrcontact__t.html#abfe19c7f41061c1946d00556f3e4a971',1,'mrcontact_t']]],
   ['mrcontact_5fget_5fdisplay_5fname',['mrcontact_get_display_name',['../structmrcontact__t.html#a29a93300d97183f795fc711c93fac689',1,'mrcontact_t']]],
@@ -19,6 +19,7 @@ var searchData=
   ['mrcontact_5fget_5fname_5fn_5faddr',['mrcontact_get_name_n_addr',['../structmrcontact__t.html#a2658329d9e3c74f93943dfd8c25554b2',1,'mrcontact_t']]],
   ['mrcontact_5fnormalize_5fname',['mrcontact_normalize_name',['../structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf',1,'mrcontact_t']]],
   ['mrcontact_5funref',['mrcontact_unref',['../structmrcontact__t.html#a38e17e55cd66f5e86a1dcb8d1f67797a',1,'mrcontact_t']]],
+  ['mrlot_5funref',['mrlot_unref',['../structmrlot__t.html#a813e4d0c2f135e962cc4d5ac0753c592',1,'mrlot_t']]],
   ['mrmailbox_5fadd_5faddress_5fbook',['mrmailbox_add_address_book',['../structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6',1,'mrmailbox_t']]],
   ['mrmailbox_5fadd_5fcontact_5fto_5fchat',['mrmailbox_add_contact_to_chat',['../structmrmailbox__t.html#a96368620971935c7ac4a0bb324ece2c9',1,'mrmailbox_t']]],
   ['mrmailbox_5farchive_5fchat',['mrmailbox_archive_chat',['../structmrmailbox__t.html#a8e04e43dacbe3128afd71e1d6c1b0911',1,'mrmailbox_t']]],
@@ -91,10 +92,10 @@ var searchData=
   ['mrmsg_5fget_5ffilemime',['mrmsg_get_filemime',['../structmrmsg__t.html#a4afcbb38dd1f37fb5f7b2c6d1f4e9042',1,'mrmsg_t']]],
   ['mrmsg_5fget_5ffilename',['mrmsg_get_filename',['../structmrmsg__t.html#ad0dcfc0a1e33d9a88b7381e368d7895a',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fheight',['mrmsg_get_height',['../structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353',1,'mrmsg_t']]],
-  ['mrmsg_5fget_5fmediainfo',['mrmsg_get_mediainfo',['../structmrmsg__t.html#ad87b7df007489b3a47c3fde79978a58a',1,'mrmsg_t']]],
+  ['mrmsg_5fget_5fmediainfo',['mrmsg_get_mediainfo',['../structmrmsg__t.html#a1c6dfee4004fe0e9b9f90720bad73ecb',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fshowpadlock',['mrmsg_get_showpadlock',['../structmrmsg__t.html#a7f1bd3d845bbc5face7636aed8f8afd4',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fstate',['mrmsg_get_state',['../structmrmsg__t.html#a1f411e4be17fb5fe408a1aa74cba90a5',1,'mrmsg_t']]],
-  ['mrmsg_5fget_5fsummary',['mrmsg_get_summary',['../structmrmsg__t.html#afc3d94448ada0ad7142cf168cab1462e',1,'mrmsg_t']]],
+  ['mrmsg_5fget_5fsummary',['mrmsg_get_summary',['../structmrmsg__t.html#a3c14a8dbd6cc7f90c642223a873312e3',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fsummarytext',['mrmsg_get_summarytext',['../structmrmsg__t.html#a8c8c1f342f01439ae40c5cf37532387e',1,'mrmsg_t']]],
   ['mrmsg_5fget_5ftext',['mrmsg_get_text',['../structmrmsg__t.html#ae549e58d9ae2f73ad76bd27636b43982',1,'mrmsg_t']]],
   ['mrmsg_5fget_5ftimestamp',['mrmsg_get_timestamp',['../structmrmsg__t.html#af5bf52ee1adbc55c9c9d4699afee87fb',1,'mrmsg_t']]],
@@ -105,6 +106,5 @@ var searchData=
   ['mrmsg_5fis_5fstarred',['mrmsg_is_starred',['../structmrmsg__t.html#af202a7e7527df4681cd3ea24f779848f',1,'mrmsg_t']]],
   ['mrmsg_5fis_5fsystemcmd',['mrmsg_is_systemcmd',['../structmrmsg__t.html#a752209192e3a022d087fe6c647fb3ad9',1,'mrmsg_t']]],
   ['mrmsg_5flatefiling_5fmediasize',['mrmsg_latefiling_mediasize',['../structmrmsg__t.html#a9e5dc81d4e814284b465ad23abbfb6cb',1,'mrmsg_t']]],
-  ['mrmsg_5funref',['mrmsg_unref',['../structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02',1,'mrmsg_t']]],
-  ['mrpoortext_5funref',['mrpoortext_unref',['../structmrpoortext__t.html#a89c28735bfd718051ffc6b742f9c10ed',1,'mrpoortext_t']]]
+  ['mrmsg_5funref',['mrmsg_unref',['../structmrmsg__t.html#aa33212e41efff643aa7290753f3d9b02',1,'mrmsg_t']]]
 ];
