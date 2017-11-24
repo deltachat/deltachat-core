@@ -106,11 +106,6 @@ typedef struct mrchat_t
 	char*           m_draft_text;
 
 	/**
-	 * The mailbox object the chat belongs to. Never NULL.
-	 */
-	mrmailbox_t*    m_mailbox;
-
-	/**
 	 * Flag for the archived state.
 	 *
 	 * 0=normal chat, not archived, not sticky.
@@ -126,6 +121,7 @@ typedef struct mrchat_t
 	int             m_archived;
 
 	/** @privatesection */
+	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 } mrchat_t;

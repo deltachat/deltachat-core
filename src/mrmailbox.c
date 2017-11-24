@@ -4273,7 +4273,7 @@ cleanup:
  * Add a single contact.
  *
  * We assume, the contact name, if any, is entered by the user and is used "as is" therefore,
- * mrcontact_normalize_name() is _not_ called for the name.
+ * mr_normalize_name() is _not_ called for the name.
  *
  * To add a number of contacts, see mrmailbox_add_address_book() which is much faster for adding
  * a bunch of addresses.
@@ -4316,7 +4316,7 @@ cleanup:
  * Add a number of contacts.
  *
  * Typically used to add the whole address book from the OS. As names here are typically not
- * well formatted, we call mrcontact_normalize_name() for each name given.
+ * well formatted, we call mr_normalize_name() for each name given.
  *
  * To add a single contact entered by the user, you should prefer mrmailbox_create_contact(),
  * however, for adding a bunch of addresses, this function is _much_ faster.
@@ -4356,7 +4356,7 @@ int mrmailbox_add_address_book(mrmailbox_t* mailbox, const char* adr_book) /* fo
 		for( i = 0; i+1 < iCnt; i += 2 ) {
 			char* name = (char*)carray_get(lines, i);
 			char* addr = (char*)carray_get(lines, i+1);
-			mrcontact_normalize_name(name);
+			mr_normalize_name(name);
 			mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_ADRESS_BOOK, &sth_modified);
 			if( sth_modified ) {
 				modify_cnt++;

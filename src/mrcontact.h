@@ -49,32 +49,13 @@ typedef struct mrcontact_t
 	#define         MR_CONTACT_ID_SELF         1
 	#define         MR_CONTACT_ID_LAST_SPECIAL 9
 
-	/**
-	 * Contact name.  It is recommended to use mrcontact_get_name(), mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname.
-	 */
-	char*           m_name;
-
-	/**
-	 * Name authorized by the contact himself. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field.
-	 * This is the name authorized by the sender,
-	 * only this name may be speaded to others, eg. in To:-lists. May be NULL or empty.
-	 */
-	char*           m_authname;
-
-	/**
-	 * E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL.
-	 */
-	char*           m_addr;
-
-	/**
-	 * Blocked state.
-	 *
-	 * 1=contact is blocked, 0=contact is not blocked.
-	 * To block or unblock a contact, use mrmailbox_block_contact().
-	 */
-	int             m_blocked;
 
 	/** @privatesection */
+
+	char*           m_name;     /**< Contact name.  It is recommended to use mrcontact_get_name(), mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname. */
+	char*           m_authname; /**< Name authorized by the contact himself. Only this name may be speaded to others, eg. in To:-lists. May be NULL or empty. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. */
+	char*           m_addr;     /**< E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL. */
+	int             m_blocked;  /**< Blocked state. Use mrcontact_is_blocked() to access this field. */
 	int             m_origin;   /**< The original of the contact. One of the MR_ORIGIN_* constants. */
 } mrcontact_t;
 
@@ -87,11 +68,10 @@ char*        mrcontact_get_addr               (mrcontact_t*);
 char*        mrcontact_get_name               (mrcontact_t*);
 char*        mrcontact_get_display_name       (mrcontact_t*);
 char*        mrcontact_get_name_n_addr        (mrcontact_t*);
-char*        mrcontact_get_first_name         (const char* full_name);
-void         mrcontact_normalize_name         (char* full_name);
+char*        mrcontact_is_blocked             (mrcontact_t*);
 
 
-/* contact origins */
+/* library-internal */
 #define MR_ORIGIN_UNSET                         0
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
@@ -111,9 +91,9 @@ void         mrcontact_normalize_name         (char* full_name);
 #define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
 #define MR_ORIGIN_MIN_START_NEW_NCHAT (0x7FFFFFFF)                  /* contacts with at least this origin value start a new "normal" chat, defaults to off */
 
-
-/* library-internal */
 int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t contact_id);
+void         mr_normalize_name                (char* full_name);
+char*        mr_get_first_name                (const char* full_name);
 
 
 #ifdef __cplusplus

@@ -184,10 +184,11 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 typedef struct mrmailbox_t
 {
 	void*            m_userdata;              /**< Use data, may be used for any purpose. The same pointer as given to mrmailbox_new(), may be used by the caller for any purpose. */
+
+	/** @privatesection */
 	char*            m_dbfile;                /**< The database file. This is the file given to mrmailbox_new(). */
 	char*            m_blobdir;               /**< Full path of the blob directory. This is the directory given to mrmailbox_new() or a directory in the same directory as mrmailbox_t::m_dbfile. */
 
-	/** @privatesection */
 	mrsqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
 	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */

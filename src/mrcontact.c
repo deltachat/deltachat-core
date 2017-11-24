@@ -108,7 +108,7 @@ void mrcontact_empty(mrcontact_t* contact)
  *
  * @memberof mrcontact_t
  *
- * @param contact The contact object
+ * @param contact The contact object.
  *
  * @return String with the email address, must be free()'d. Never returns NULL.
  */
@@ -132,7 +132,7 @@ char* mrcontact_get_addr(mrcontact_t* contact)
  *
  * @memberof mrcontact_t
  *
- * @param contact The contact object
+ * @param contact The contact object.
  *
  * @return String with the name to display, must be free()'d. Empty string if unset, never returns NULL.
  */
@@ -155,7 +155,7 @@ char* mrcontact_get_name(mrcontact_t* contact)
  *
  * @memberof mrcontact_t
  *
- * @param contact The contact object
+ * @param contact The contact object.
  *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
@@ -186,7 +186,7 @@ char* mrcontact_get_display_name(mrcontact_t* contact)
  *
  * @memberof mrcontact_t
  *
- * @param contact The contact object
+ * @param contact The contact object.
  *
  * @return Summary string, must be free()'d. Never returns NULL.
  */
@@ -205,18 +205,38 @@ char* mrcontact_get_name_n_addr(mrcontact_t* contact)
 
 
 /**
+ * Check if a contact is blocked.
+ *
+ * To block or unblock a contact, use mrmailbox_block_contact().
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object.
+ *
+ * @return 1=contact is blocked, 0=contact is not blocked.
+ */
+char* mrcontact_is_blocked(mrcontact_t* contact)
+{
+	if( contact == NULL ) {
+		return 0;
+	}
+	return contact->m_blocked;
+}
+
+
+/**
  * Get the first name.
  *
  * In a string, get the part before the first space.
  * If there is no space in the string, the whole string is returned.
  *
- * @memberof mrcontact_t
+ * @private @memberof mrcontact_t
  *
- * @param full_name Full name of the contct.
+ * @param full_name Full name of the contact.
  *
  * @return String with the first name, must be free()'d after usage.
  */
-char* mrcontact_get_first_name(const char* full_name)
+char* mr_get_first_name(const char* full_name)
 {
 	char* first_name = safe_strdup(full_name);
 	char* p1 = strchr(first_name, ' ');
@@ -247,14 +267,14 @@ char* mrcontact_get_first_name(const char* full_name)
  *
  * Typically, this function is not needed as it is called implicitly by mrmailbox_add_address_book()
  *
- * @memberof mrcontact_t
+ * @private @memberof mrcontact_t
  *
  * @param full_name Buffer with the name, is modified during processing; the
  *     resulting string may be shorter but never longer.
  *
  * @return None. But the given buffer may be modified.
  */
-void mrcontact_normalize_name(char* full_name)
+void mr_normalize_name(char* full_name)
 {
 	if( full_name == NULL ) {
 		return; /* error, however, this can be treated as documented behaviour */
