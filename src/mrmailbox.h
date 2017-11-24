@@ -144,7 +144,7 @@ extern "C" {
 #include "mrchat.h"
 #include "mrmsg.h"
 #include "mrcontact.h"
-#include "mrpoortext.h"
+#include "mrlot.h"
 #include "mrparam.h"
 #include "mrevent.h"
 
@@ -344,6 +344,8 @@ int             mrmailbox_get_thread_index  (void);
 
 /* deprecated functions */
 int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* deprecated - use mrmailbox_set_draft() instead */
+#define         mrpoortext_t                mrlot_t
+#define         mrpoortext_unref            mrlot_unref
 
 
 /* library-internal */

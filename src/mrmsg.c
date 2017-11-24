@@ -337,22 +337,27 @@ cleanup:
 /**
  * Get real author and title.
  *
- * - For voice messages, the author is the sender and the trackname is the sending time.
- * - For music messages and videos, we read the information from the filename
- *   (we do not read ID3 and such at this stage, the needed libraries are too complicated and oversized.
- *   However, this is no big problem, as the sender usually sets the filename in a way we expect it)
+ * The information is returned by a mrlot_t object with the following fields:
+ *
+ * - mrlot_t::m_text1: Author of the media.  For voice messages, this is the sender.
+ *   For music messages, the information are read from the filename. NULL if unknown.
+ *
+ * - mrlot_t::m_text2: Title of the media.  For voice messages, this is the date.
+ *   For music messages, the information are read from the filename. NULL if unknown.
+ *
+ * Currently, we do not read ID3 and such at this stage, the needed libraries are too complicated and oversized.
+ * However, this is no big problem, as the sender usually sets the filename in a way we expect it.
  *
  * @memberof mrmsg_t
  *
  * @param msg The message object.
  *
- * @return mrpoortext_t object that contains the author as mrpoortext_t::m_text1 and the title as mrpoortext_t::m_text2.
- *     Both may be NULL if unknown. The returned object must be freed using mrpoortext_unref() when no longer used.
+ * @return Media information as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
  */
-mrpoortext_t* mrmsg_get_mediainfo(mrmsg_t* msg)
+mrlot_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 {
-	mrpoortext_t* ret = mrpoortext_new();
-	char *pathNfilename = NULL;
+	mrlot_t*   ret = mrlot_new();
+	char*        pathNfilename = NULL;
 	mrcontact_t* contact = NULL;
 
 	if( msg == NULL || msg->m_mailbox == NULL ) {
@@ -491,7 +496,23 @@ int mrmsg_get_showpadlock(mrmsg_t* msg)
 
 /**
  * Get a summary for a message.
- * Typically used to display a search result.
+ *
+ * The summary is returned by a mrlot_t object with the following fields:
+ *
+ * - mrlot_t::m_text1: contains the username or the string "Me".
+ *   The string may be colored by having a look at m_text1_meaning.
+ *   If the name should not be displayed, the element is NULL.
+ *
+ * - mrlot_t::m_text1_meaning: one of MR_TEXT1_USERNAME or MR_TEXT1_SELF.
+ *   Typically used to show mrlot_t::m_text1 with different colors. 0 if not applicable.
+ *
+ * - mrlot_t::m_text2: contains an excerpt of the message text.
+ *
+ * - mrlot_t::m_timestamp: the timestamp of the message.
+ *
+ * - mrlot_t::m_state: The state of the message as one of the MR_STATE_* constants (see #mrmsg_get_state()).
+ *
+ * Typically used to display a search result. See also mrchatlist_get_summary() to display a list of chats.
  *
  * @memberof mrmsg_t
  *
@@ -500,12 +521,11 @@ int mrmsg_get_showpadlock(mrmsg_t* msg)
  * @param chat To speed up things, pass an already available chat object here.
  *     If the chat object is not yet available, it is faster to pass NULL.
  *
- * @return  The returned summary is similar to mrchatlist_get_summary(), however, without
- *     "draft", "no messages" and so on. The result must be freed using mrpoortext_unref().
+ * @return The summary as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
  */
-mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
+mrlot_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 {
-	mrpoortext_t* ret = mrpoortext_new();
+	mrlot_t*    ret = mrlot_new();
 	mrcontact_t*  contact = NULL;
 	mrchat_t*     chat_to_delete = NULL;
 
@@ -524,7 +544,7 @@ mrpoortext_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 		contact = mrmailbox_get_contact(chat->m_mailbox, msg->m_from_id);
 	}
 
-	mrpoortext_fill(ret, msg, chat, contact);
+	mrlot_fill(ret, msg, chat, contact);
 
 cleanup:
 	mrcontact_unref(contact);

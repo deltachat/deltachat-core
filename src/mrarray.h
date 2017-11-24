@@ -31,7 +31,7 @@ typedef struct mrmailbox_t  mrmailbox_t;
 
 
 /**
- * An object representing a simple array.
+ * An object containing a simple array.
  * This object is used in several placed where functions need to return an array.
  * The items of the array are typically IDs.
  * To free an array object, use mrarray_unref().

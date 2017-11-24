@@ -28,7 +28,7 @@ extern "C" {
 
 
 typedef struct mrmailbox_t  mrmailbox_t;
-typedef struct mrpoortext_t mrpoortext_t;
+typedef struct mrlot_t    mrlot_t;
 typedef struct mrchat_t     mrchat_t;
 typedef struct mrarray_t    mrarray_t;
 
@@ -57,7 +57,7 @@ void            mrchatlist_unref            (mrchatlist_t*);
 size_t          mrchatlist_get_cnt          (mrchatlist_t*);
 uint32_t        mrchatlist_get_chat_id      (mrchatlist_t*, size_t index);
 uint32_t        mrchatlist_get_msg_id       (mrchatlist_t*, size_t index);
-mrpoortext_t*   mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
+mrlot_t*        mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
 
 /* library-internal */
 int             mrchatlist_load_from_db__   (mrchatlist_t*, int listflags, const char* query);

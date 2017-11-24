@@ -469,6 +469,9 @@
 		<Unit filename="src/mrloginparam.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrlot.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrmailbox.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -505,9 +508,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrpgp.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/mrpoortext.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrsaxparser.c">

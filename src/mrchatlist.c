@@ -159,34 +159,32 @@ uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
 /**
  * Get a summary for a chatlist index.
  *
- * The summary is returned by a mrpoortext_t object with the following fields:
+ * The summary is returned by a mrlot_t object with the following fields:
  *
- * - m_text1: contains the username or the strings "Me", "Draft" and so on.
+ * - mrlot_t::m_text1: contains the username or the strings "Me", "Draft" and so on.
  *   The string may be colored by having a look at m_text1_meaning.
- *   If there is no such name, the element is NULL (eg. for "No messages")
+ *   If there is no such name or it should not be displayed, the element is NULL.
  *
- * - m_text1_meaning: one of the MR_TEXT1_* constants
+ * - mrlot_t::m_text1_meaning: one of MR_TEXT1_USERNAME, MR_TEXT1_SELF or MR_TEXT1_DRAFT.
+ *   Typically used to show mrlot_t::m_text1 with different colors. 0 if not applicable.
  *
- * - m_text2: contains an excerpt of the message text or strings as
- *   "No messages".  may be NULL of there is no such text (eg. for the archive)
+ * - mrlot_t::m_text2: contains an excerpt of the message text or strings as
+ *   "No messages".  May be NULL of there is no such text (eg. for the archive link)
  *
- * - m_timestamp: the timestamp of the message.  May be 0 if there is no message
+ * - mrlot_t::m_timestamp: the timestamp of the message.  0 if not applicable.
  *
- * - m_state: the state of the message as one of the MR_STATE_* identifiers.  0 if there is no message.
+ * - mrlot_t::m_state: The state of the message as one of the MR_STATE_* constants (see #mrmsg_get_state()).  0 if not applicable.
  *
  * @memberof mrchatlist_t
  *
  * @param chatlist The chatlist to query as returned eg. from mrmailbox_get_chatlist().
- *
  * @param index The index to query in the chatlist.
+ * @param chat To speed up things, pass an already available chat object here.
+ *     If the chat object is not yet available, it is faster to pass NULL.
  *
- * @param chat  Giving the correct chat object here, this this will speed up
- *     things a little.  If the chat object is not available by you, it is faster to pass
- *     NULL here.
- *
- * @return The result must be freed using mrpoortext_unref().  The function never returns NULL.
+ * @return The summary as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
  */
-mrpoortext_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrchat_t* chat /*may be NULL*/)
+mrlot_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrchat_t* chat /*may be NULL*/)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as
@@ -194,7 +192,7 @@ mrpoortext_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrcha
 	Also, sth. as "No messages" would not work if the summary comes from a
 	message. */
 
-	mrpoortext_t* ret = mrpoortext_new(); /* the function never returns NULL */
+	mrlot_t*    ret = mrlot_new(); /* the function never returns NULL */
 	int           locked = 0;
 	uint32_t      lastmsg_id = 0;
 	mrmsg_t*      lastmsg = NULL;
@@ -263,7 +261,7 @@ mrpoortext_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrcha
 	else
 	{
 		/* show the last message */
-		mrpoortext_fill(ret, lastmsg, chat, lastcontact);
+		mrlot_fill(ret, lastmsg, chat, lastcontact);
 	}
 
 cleanup:
