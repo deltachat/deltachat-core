@@ -308,12 +308,6 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a6c557153209e128b69301246dbf9e230"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a6c557153209e128b69301246dbf9e230">m_userdata</a></td></tr>
 <tr class="memdesc:a6c557153209e128b69301246dbf9e230"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use data, may be used for any purpose.  <a href="#a6c557153209e128b69301246dbf9e230">More...</a><br /></td></tr>
 <tr class="separator:a6c557153209e128b69301246dbf9e230"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab18660500768b611373190720439956"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956">m_dbfile</a></td></tr>
-<tr class="memdesc:aab18660500768b611373190720439956"><td class="mdescLeft">&#160;</td><td class="mdescRight">The database file.  <a href="#aab18660500768b611373190720439956">More...</a><br /></td></tr>
-<tr class="separator:aab18660500768b611373190720439956"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0ea304d47a08116f6eda8f1c80e5a930"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a0ea304d47a08116f6eda8f1c80e5a930">m_blobdir</a></td></tr>
-<tr class="memdesc:a0ea304d47a08116f6eda8f1c80e5a930"><td class="mdescLeft">&#160;</td><td class="mdescRight">Full path of the blob directory.  <a href="#a0ea304d47a08116f6eda8f1c80e5a930">More...</a><br /></td></tr>
-<tr class="separator:a0ea304d47a08116f6eda8f1c80e5a930"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An object representing a single mailbox. </p>
@@ -455,8 +449,8 @@ Public Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by mrmailbox_new</td></tr>
-    <tr><td class="paramname">dbfile</td><td>the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths. You can find the file path later in <a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956" title="The database file. ">mrmailbox_t::m_dbfile</a></td></tr>
-    <tr><td class="paramname">blobdir</td><td>a directory to store the blobs in, the trailing slash is added by us, so if you want to avoid double slashes, do not add one. If you give NULL as blobdir, <code>dbfile-blobs</code> is used in the same directory as <em>dbfile</em> will be created in. You can find the path to the blob direcrory later in <a class="el" href="structmrmailbox__t.html#a0ea304d47a08116f6eda8f1c80e5a930" title="Full path of the blob directory. ">mrmailbox_t::m_blobdir</a></td></tr>
+    <tr><td class="paramname">dbfile</td><td>the file to use to store the database, sth. like "~/file" won't work on all systems, if in doubt, use absolute paths. You can find the file path later in mrmailbox_t::m_dbfile</td></tr>
+    <tr><td class="paramname">blobdir</td><td>a directory to store the blobs in, the trailing slash is added by us, so if you want to avoid double slashes, do not add one. If you give NULL as blobdir, <code>dbfile-blobs</code> is used in the same directory as <em>dbfile</em> will be created in. You can find the path to the blob direcrory later in mrmailbox_t::m_blobdir</td></tr>
   </table>
   </dd>
 </dl>
@@ -2169,7 +2163,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Add a single contact. </p>
-<p>We assume, the contact name, if any, is entered by the user and is used "as is" therefore, <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> is <em>not</em> called for the name.</p>
+<p>We assume, the contact name, if any, is entered by the user and is used "as is" therefore, mr_normalize_name() is <em>not</em> called for the name.</p>
 <p>To add a number of contacts, see <a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6" title="Add a number of contacts. ">mrmailbox_add_address_book()</a> which is much faster for adding a bunch of addresses.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -2208,7 +2202,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Add a number of contacts. </p>
-<p>Typically used to add the whole address book from the OS. As names here are typically not well formatted, we call <a class="el" href="structmrcontact__t.html#ad906207191f0cfd62e408dbc82a156cf" title="Normalize a name in-place. ">mrcontact_normalize_name()</a> for each name given.</p>
+<p>Typically used to add the whole address book from the OS. As names here are typically not well formatted, we call mr_normalize_name() for each name given.</p>
 <p>To add a single contact entered by the user, you should prefer <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a>, however, for adding a bunch of addresses, this function is <em>much</em> faster.</p>
 <p>The function takes are of not overwriting names manually added or edited by <a class="el" href="structmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824" title="Add a single contact. ">mrmailbox_create_contact()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -3012,36 +3006,6 @@ Public Attributes</h2></td></tr>
 
 <p>Use data, may be used for any purpose. </p>
 <p>The same pointer as given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>, may be used by the caller for any purpose. </p>
-
-</div>
-</div>
-<a class="anchor" id="aab18660500768b611373190720439956"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char* mrmailbox_t::m_dbfile</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The database file. </p>
-<p>This is the file given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </p>
-
-</div>
-</div>
-<a class="anchor" id="a0ea304d47a08116f6eda8f1c80e5a930"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char* mrmailbox_t::m_blobdir</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Full path of the blob directory. </p>
-<p>This is the directory given to <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a> or a directory in the same directory as <a class="el" href="structmrmailbox__t.html#aab18660500768b611373190720439956" title="The database file. ">mrmailbox_t::m_dbfile</a>. </p>
 
 </div>
 </div>
