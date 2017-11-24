@@ -215,7 +215,7 @@ char* mrcontact_get_name_n_addr(mrcontact_t* contact)
  *
  * @return 1=contact is blocked, 0=contact is not blocked.
  */
-char* mrcontact_is_blocked(mrcontact_t* contact)
+int mrcontact_is_blocked(mrcontact_t* contact)
 {
 	if( contact == NULL ) {
 		return 0;
