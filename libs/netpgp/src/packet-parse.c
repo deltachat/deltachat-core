@@ -2302,6 +2302,7 @@ parse_hash_init(pgp_stream_t *stream, pgp_hash_alg_t type,
 		(void) fprintf(stderr, "parse_hash_init: bad alloc 0\n");
 		/* just continue and die here */
 		/* XXX - agc - no way to return failure */
+		exit(70); // EDIT BY MR - cannot allocate a few bytes? if this happends, we cannot do anything about it
 	} else {
 		stream->hashes = hash;
 	}

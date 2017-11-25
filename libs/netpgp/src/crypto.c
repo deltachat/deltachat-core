@@ -756,7 +756,7 @@ pgp_decrypt_and_validate_buf(pgp_io_t *io,
     pgp_writer_close(stream->cbinfo.output);
     pgp_output_delete(stream->cbinfo.output);
 
-	pgp_teardown_memory_read(stream, inmem);
+	pgp_teardown_memory_read(stream, inmem); /* calls pgp_stream_delete() and pgp_memory_free() */
 	pgp_memory_free(validation.mem);
 
 	return outmem;
