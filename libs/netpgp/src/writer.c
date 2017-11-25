@@ -1116,13 +1116,13 @@ encrypt_se_ip_writer(const uint8_t *src,
 {
 	const unsigned	 bufsz = 128;
 	encrypt_se_ip_t	*se_ip = pgp_writer_get_arg(writer);
-	pgp_output_t	*litoutput;
-	pgp_output_t	*zoutput;
-	pgp_output_t	*output;
-	pgp_memory_t	*litmem;
-	pgp_memory_t	*zmem;
-	pgp_memory_t	*localmem;
-	unsigned	 ret = 1;
+	pgp_output_t	*litoutput = NULL; // EDIT BY MR: init the pointer just to be prepared if we cleanup before we call pgp_setup_memory_write()
+	pgp_output_t	*zoutput = NULL;
+	pgp_output_t	*output = NULL;
+	pgp_memory_t	*litmem = NULL;
+	pgp_memory_t	*zmem = NULL;
+	pgp_memory_t	*localmem = NULL;
+	unsigned	    ret = 0; // EDIT BY MR: default to failure, this makes cleaning easier
 
     const uint8_t *zsrc;
     unsigned zsrclen;
@@ -1136,7 +1136,7 @@ encrypt_se_ip_writer(const uint8_t *src,
         pgp_write_litdata(litoutput, src, (const int)len, PGP_LDT_BINARY);
         if (pgp_mem_len(litmem) <= len) {
             (void) fprintf(stderr, "encrypt_se_ip_writer: bad len\n");
-            return 0;
+            goto cleanup; // EDIT BY MR - fix memory leak
         }
         zsrc = pgp_mem_data(litmem);
         zsrclen = (unsigned)pgp_mem_len(litmem);
@@ -1155,16 +1155,21 @@ encrypt_se_ip_writer(const uint8_t *src,
 	if (pgp_mem_len(localmem) <= pgp_mem_len(zmem)) {
 		(void) fprintf(stderr,
 				"encrypt_se_ip_writer: bad comp len\n");
-		return 0;
+		goto cleanup; // EDIT BY MR - fix memory leak
 	}
 
 	/* now write memory to next writer */
 	ret = stacked_write(writer, pgp_mem_data(localmem),
 				(unsigned)pgp_mem_len(localmem), errors);
 
-	pgp_memory_free(localmem);
-	pgp_memory_free(zmem);
-	pgp_memory_free(litmem);
+cleanup:
+	if( localmem )  { pgp_memory_free(localmem); }
+	if( zmem )      { pgp_memory_free(zmem); }
+	if( litmem )    { pgp_memory_free(litmem); }
+
+	if( output )    { pgp_output_delete(output); } // EDIT BY MR - fix memory leak
+	if( zoutput )   { pgp_output_delete(zoutput); } // EDIT BY MR - fix memory leak
+	if( litoutput ) { pgp_output_delete(litoutput); } // EDIT BY MR - fix memory leak
 
 	return ret;
 }
