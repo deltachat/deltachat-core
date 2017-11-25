@@ -2317,6 +2317,22 @@ parse_hash_init(pgp_stream_t *stream, pgp_hash_alg_t type,
 	(void) memcpy(hash->keyid, keyid, sizeof(hash->keyid));
 }
 
+
+// EDIT BY MR: this function was declared but not implemented; but is needed in some way to free memory
+// not sure if we can call it simply from pgp_stream_delete()
+// as some hashes are returned by parse_hash_find()
+void parse_hash_finish(pgp_stream_t* stream)
+{
+	if( stream->hashes ) {
+		uint8_t		hashbuf[NETPGP_BUFSIZ];
+		for (int i = 0; i<stream->hashc; i++) {
+			stream->hashes[i].hash.finish(&stream->hashes[i].hash, hashbuf);
+		}
+		free(stream->hashes);
+		stream->hashes = NULL;
+	}
+}
+
 /**
    \ingroup Core_ReadPackets
    \brief Parse a One Pass Signature packet
@@ -3576,6 +3592,8 @@ pgp_stream_delete(pgp_stream_t *stream)
 	pgp_cbdata_t	*cbinfo;
 	pgp_cbdata_t	*next;
     pgp_cryptinfo_t *cryptinfo = &stream->cbinfo.cryptinfo;
+
+	//parse_hash_finish();
 
 	for (cbinfo = stream->cbinfo.next; cbinfo; cbinfo = next) {
 		next = cbinfo->next;
