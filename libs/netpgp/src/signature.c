@@ -1312,6 +1312,7 @@ pgp_sign_buf(pgp_io_t *io,
 
 		/* tidy up */
 		pgp_writer_close(output);
+		pgp_output_delete(output); // EDIT BY MR: fix memory leak
 		pgp_create_sig_delete(sig);
 	}
 	return mem;
