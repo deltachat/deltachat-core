@@ -1552,7 +1552,7 @@ unsigned pgp_update_userid(
 		uidsigp->uid = uididx;
 
         /* store sig info and packet */
-        copy_sig_info(&uidsigp->siginfo, siginfo);
+        copy_sig_info(&uidsigp->siginfo /*dst*/, siginfo /*src*/);
         pgp_copy_packet(&uidsigp->packet, sigpkt);
 
         return 0;
