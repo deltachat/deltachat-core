@@ -1090,6 +1090,9 @@ pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, pgp_pk_sesskey_t *
 	sesskey->symm_alg = cipher;
     if(initial_sesskey){
         if(initial_sesskey->symm_alg != cipher){
+            free(unencoded_m_buf); // EDIT BY MR: fix potential memory leak
+            free(encoded_m_buf);   //   - " -
+            free(sesskey);         //   - " -
             return NULL;
         }
         memcpy(sesskey->key, initial_sesskey->key, cipherinfo.keysize);
