@@ -810,11 +810,14 @@ parse_headers(pgp_stream_t *stream, dearmour_t *dearmour, pgp_error_t **errors,
 		} else {
 			if (size <= nbuf + 1) {
 				size += size + 80;
-				buf = realloc(buf, size);
-				if (buf == NULL) {
+				char* new_buf = realloc(buf, size); // EDIT BY MR: do not overwrite buf when realloc() returns NULL, fix memory leak
+				if (new_buf == NULL) {
 					(void) fprintf(stderr, "bad alloc\n");
 					ret = -1;
 					goto end;
+				}
+				else {
+					buf = new_buf;
 				}
 			}
 			buf[nbuf++] = c;
