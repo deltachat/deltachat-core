@@ -1507,7 +1507,7 @@ unsigned pgp_update_userid(
         pgp_key_t *key,
         const uint8_t *userid,
         const pgp_subpacket_t *sigpkt,
-        pgp_sig_info_t *siginfo)
+        const pgp_sig_info_t *siginfo)
 {
 	    unsigned    	 	 uididx = 0;
         unsigned    	 	 uidsigidx = 0;
