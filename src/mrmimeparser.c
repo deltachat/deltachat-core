@@ -784,7 +784,7 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 int mr_mime_transfer_decode(struct mailmime* mime, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref)
 {
 	int                   mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
-	struct mailmime_data* mime_data = mime->mm_data.mm_single;
+	struct mailmime_data* mime_data = NULL;
 	const char*           decoded_data = NULL; /* must not be free()'d */
 	size_t                decoded_data_bytes = 0;
 	char*                 transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
@@ -793,6 +793,8 @@ int mr_mime_transfer_decode(struct mailmime* mime, const char** ret_decoded_data
 	 || *ret_decoded_data != NULL || *ret_decoded_data_bytes != 0 || *ret_to_mmap_string_unref != NULL ) {
 		return 0;
 	}
+
+	mime_data = mime->mm_data.mm_single;
 
 	if( mime->mm_mime_fields != NULL ) {
 		clistiter* cur;
