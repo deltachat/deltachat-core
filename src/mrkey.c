@@ -416,6 +416,31 @@ cleanup:
 }
 
 
+int mrkey_render_asc_to_file(const mrkey_t* key, const char* file, mrmailbox_t* mailbox /* for logging only */)
+{
+	int   success = 0;
+	char* file_content = NULL;
+
+	if( key == NULL || file == NULL || mailbox == NULL ) {
+		goto cleanup;
+	}
+
+	file_content = mrkey_render_asc(key, NULL);
+	if( file_content == NULL ) {
+		goto cleanup;
+	}
+
+	if( !mr_write_file(file, file_content, strlen(file_content), mailbox) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file);
+		goto cleanup;
+	}
+
+cleanup:
+	free(file_content);
+	return success;
+}
+
+
 char* mr_render_fingerprint(const uint8_t* data, size_t bytes)
 {
 	int i;

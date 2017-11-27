@@ -158,7 +158,6 @@ cleanup:
 
 static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
 {
-	char* file_content = mrkey_render_asc(key, NULL);
 	char* file_name;
 	if( is_default ) {
 		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
@@ -168,13 +167,10 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 	}
 	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
 	mr_delete_file(file_name, mailbox);
-	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
+	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
 		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
 	}
-	else {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-	}
-	free(file_content);
 	free(file_name);
 }
 
