@@ -113,8 +113,10 @@ void pgp_fast_create_rsa_seckey(pgp_seckey_t *, time_t, BIGNUM *,
 				BIGNUM *, BIGNUM *);
 unsigned encode_m_buf(const uint8_t *, size_t, const pgp_pubkey_t *,
 				uint8_t *);
+#if 0 //////
 unsigned pgp_fileread_litdata(const char *, const pgp_litdata_enum,
 				pgp_output_t *);
+#endif //////
 unsigned pgp_write_symm_enc_data(const uint8_t *, const int, pgp_symm_alg_t, const uint8_t* key,
 				pgp_output_t *);
 

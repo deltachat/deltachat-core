@@ -1247,6 +1247,7 @@ pgp_write_litdata(pgp_output_t *output,
 \return 1 if OK; else 0
 */
 
+#if 0 //////
 unsigned
 pgp_fileread_litdata(const char *filename,
 				 const pgp_litdata_enum type,
@@ -1266,6 +1267,7 @@ pgp_fileread_litdata(const char *filename,
 	pgp_memory_free(mem);
 	return ret;
 }
+#endif //////
 
 /**
    \ingroup HighLevel_General
