@@ -1929,7 +1929,7 @@ pgp_teardown_memory_write(pgp_output_t *output, pgp_memory_t *mem)
 void
 pgp_setup_memory_read(pgp_io_t *io,
 			pgp_stream_t **stream,
-			pgp_memory_t *mem,
+			const pgp_memory_t *mem,
 			void *vp,
 			pgp_cb_ret_t callback(const pgp_packet_t *,
 						pgp_cbdata_t *),

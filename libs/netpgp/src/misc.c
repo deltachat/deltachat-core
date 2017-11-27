@@ -930,7 +930,7 @@ pgp_mem_len(const pgp_memory_t *mem)
    \return Pointer to data
 */
 void *
-pgp_mem_data(pgp_memory_t *mem)
+pgp_mem_data(const pgp_memory_t *mem)
 {
 	return mem->buf;
 }

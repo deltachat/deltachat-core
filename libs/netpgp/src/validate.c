@@ -915,7 +915,7 @@ pgp_filter_keys_from_mem(
             pgp_keyring_t *destsecring,
             pgp_keyring_t *certring,
             const unsigned armour,
-            pgp_memory_t *mem)
+            const pgp_memory_t *mem)
 {
 	pgp_stream_t *stream;
 	validate_key_cb_t vdata;
