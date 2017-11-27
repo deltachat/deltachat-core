@@ -93,11 +93,11 @@ unsigned pgp_write_one_pass_sig(pgp_output_t *,
 				const pgp_seckey_t *,
 				const pgp_hash_alg_t,
 				const pgp_sig_type_t);
-unsigned pgp_write_litdata(pgp_output_t *, 
+unsigned pgp_write_litdata(pgp_output_t *,
 				const uint8_t *,
 				const int,
 				const pgp_litdata_enum);
-pgp_pk_sesskey_t *pgp_create_pk_sesskey(pgp_key_t *, const char *, pgp_pk_sesskey_t *);
+pgp_pk_sesskey_t *pgp_create_pk_sesskey(pgp_key_t *, const char *, const pgp_pk_sesskey_t *);
 unsigned pgp_write_pk_sesskey(pgp_output_t *, pgp_pk_sesskey_t *);
 unsigned pgp_write_xfer_key(pgp_output_t *output,
             const pgp_key_t *key,

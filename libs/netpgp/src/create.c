@@ -1000,7 +1000,7 @@ encode_m_buf(const uint8_t *M, size_t mLen, const pgp_pubkey_t * pubkey,
 \note Currently hard-coded to use RSA
 */
 pgp_pk_sesskey_t *
-pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, pgp_pk_sesskey_t *initial_sesskey)
+pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, const pgp_pk_sesskey_t *initial_sesskey)
 {
 	/*
          * Creates a random session key and encrypts it for the given key
