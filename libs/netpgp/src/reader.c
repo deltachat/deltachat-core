@@ -1720,7 +1720,7 @@ pgp_reader_push_se_ip_data(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 	} else {
 		se_ip->region = region;
 		se_ip->decrypt = decrypt;
-		pgp_reader_push(stream, se_ip_data_reader, se_ip_data_destroyer,
+		pgp_reader_push(stream, se_ip_data_reader, NULL /*giving se_ip_data_destroyer() does not work for additional pushed readers currenty; so we call se_ip_data_destroyer() below directly*/,
 				se_ip);
 	}
 }
@@ -1731,9 +1731,8 @@ pgp_reader_push_se_ip_data(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 void
 pgp_reader_pop_se_ip_data(pgp_stream_t *stream)
 {
-	decrypt_se_ip_t *se_ip=pgp_reader_get_arg(pgp_readinfo(stream));
+	se_ip_data_destroyer(pgp_readinfo(stream));
 	pgp_reader_pop(stream);
-	free(se_ip);
 }
 
 /**************************************************************************/
