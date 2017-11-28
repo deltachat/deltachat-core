@@ -1731,12 +1731,9 @@ pgp_reader_push_se_ip_data(pgp_stream_t *stream, pgp_crypt_t *decrypt,
 void
 pgp_reader_pop_se_ip_data(pgp_stream_t *stream)
 {
-	/*
-	 * decrypt_se_ip_t
-	 * *se_ip=pgp_reader_get_arg(pgp_readinfo(stream));
-	 */
-	/* free(se_ip); */
+	decrypt_se_ip_t *se_ip=pgp_reader_get_arg(pgp_readinfo(stream));
 	pgp_reader_pop(stream);
+	free(se_ip);
 }
 
 /**************************************************************************/
