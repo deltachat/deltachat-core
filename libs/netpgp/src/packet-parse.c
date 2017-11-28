@@ -1550,6 +1550,7 @@ parse_userid(pgp_region_t *region, pgp_stream_t *stream)
 	return 1;
 }
 
+#if 0 // EDIT BY MR - sighash not needed
 static pgp_hash_t     *
 parse_hash_find(pgp_stream_t *stream, const uint8_t *keyid)
 {
@@ -1563,6 +1564,7 @@ parse_hash_find(pgp_stream_t *stream, const uint8_t *keyid)
 	}
 	return NULL;
 }
+#endif
 
 /**
  * \ingroup Core_Parse
@@ -1670,10 +1672,14 @@ parse_v3_sig(pgp_region_t *region,
 			region->length - region->readc);
 		return 0;
 	}
+
+	#if 0 // EDIT BY MR - sighash not needed
 	if (pkt.u.sig.info.signer_id_set) {
 		pkt.u.sig.hash = parse_hash_find(stream,
 				pkt.u.sig.info.signer_id);
 	}
+	#endif
+
 	CALLBACK(PGP_PTAG_CT_SIGNATURE, &stream->cbinfo, &pkt);
 	return 1;
 }
@@ -2318,9 +2324,7 @@ parse_hash_init(pgp_stream_t *stream, pgp_hash_alg_t type,
 }
 
 
-// EDIT BY MR: this function was declared but not implemented; but is needed in some way to free memory
-// not sure if we can call it simply from pgp_stream_delete()
-// as some hashes are returned by parse_hash_find()
+// EDIT BY MR: this function was declared but not implemented
 void parse_hash_finish(pgp_stream_t* stream)
 {
 	if( stream->hashes ) {
@@ -3593,7 +3597,7 @@ pgp_stream_delete(pgp_stream_t *stream)
 	pgp_cbdata_t	*next;
     pgp_cryptinfo_t *cryptinfo = &stream->cbinfo.cryptinfo;
 
-	//parse_hash_finish();
+	parse_hash_finish(stream); // EDIT BY MR: fix memory leak
 
 	for (cbinfo = stream->cbinfo.next; cbinfo; cbinfo = next) {
 		next = cbinfo->next;
