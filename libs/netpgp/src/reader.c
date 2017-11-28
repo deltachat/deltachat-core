@@ -1593,19 +1593,21 @@ se_ip_data_reader(pgp_stream_t *stream, void *dest_,
 		uint8_t		*plaintext;
 		uint8_t		*mdc;
 		uint8_t		*mdc_hash;
-		pgp_hash_t	hash;
+		//pgp_hash_t	hash; // EDIT BY MR - unused variable
 		size_t		b;
 		size_t          sz_preamble;
 		size_t          sz_mdc_hash;
 		size_t          sz_mdc;
 		size_t          sz_plaintext;
 
+		/* EDIT BY MR - fix memory leak done with unused variable
 		pgp_hash_any(&hash, PGP_HASH_SHA1);
 		if (!hash.init(&hash)) {
 			(void) fprintf(stderr,
 				"se_ip_data_reader: can't init hash\n");
 			return -1;
 		}
+		*/
 
 		pgp_init_subregion(&decrypted_region, NULL);
 		decrypted_region.length =
