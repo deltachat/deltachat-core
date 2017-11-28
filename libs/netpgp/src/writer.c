@@ -1183,9 +1183,11 @@ encrypt_se_ip_destroyer(pgp_writer_t *writer)
 
 	se_ip = pgp_writer_get_arg(writer);
 
-	se_ip->crypt->decrypt_finish(se_ip->crypt); // EDIT BY MR - fix memory leak
+	if( se_ip->crypt ) {
+		se_ip->crypt->decrypt_finish(se_ip->crypt); // EDIT BY MR - fix memory leak
+		free(se_ip->crypt);
+	}
 
-	free(se_ip->crypt);
 	free(se_ip);
 }
 
