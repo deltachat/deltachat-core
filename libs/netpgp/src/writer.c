@@ -1069,6 +1069,7 @@ pgp_push_enc_se_ip(pgp_output_t *output, const pgp_keyring_t *pubkeys, const cha
 	    pgp_write_pk_sesskey(output, encrypted_pk_sesskey);
 
         if(encrypted_pk_sesskey != initial_sesskey){
+			pgp_pk_sesskey_free(encrypted_pk_sesskey); // EDIT BY MR: fix memory leak
     	    free(encrypted_pk_sesskey);
         }
     }
@@ -1103,6 +1104,7 @@ pgp_push_enc_se_ip(pgp_output_t *output, const pgp_keyring_t *pubkeys, const cha
 	pgp_writer_push(output, encrypt_se_ip_writer, NULL,
 			encrypt_se_ip_destroyer, se_ip);
 	/* tidy up */
+	pgp_pk_sesskey_free(initial_sesskey); // EDIT BY MR: fix memory leak
 	free(initial_sesskey);
 	free(iv);
 	return 1;
