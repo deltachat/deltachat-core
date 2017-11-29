@@ -137,6 +137,11 @@ cast5_init(pgp_crypt_t *crypt)
 		return 0;
 	}
 	CAST_set_key(crypt->encrypt_key, (int)crypt->keysize, crypt->key);
+
+
+	if (crypt->decrypt_key) {
+		free(crypt->decrypt_key);
+	}
 	if ((crypt->decrypt_key = calloc(1, sizeof(CAST_KEY))) == NULL) {
 		(void) fprintf(stderr, "cast5_init: alloc failure\n");
 		return 0;
