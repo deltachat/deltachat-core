@@ -890,9 +890,9 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  *     later in mrmailbox__t::m_userdata().
  *
  * @param os_name is only for decorative use and is shown eg. in the `X-Mailer:` header
- *     in the form _Delta Chat <version> for <os_name>_.
+ *     in the form "Delta Chat <version> for <os_name>".
  *     You can give the name of the operating system and/or the used environment here.
- *     It is okay to give NULL, in this case `X-Mailer:` header is set to _Delta Chat <version>_.
+ *     It is okay to give NULL, in this case `X-Mailer:` header is set to "Delta Chat <version>".
  *
  * @return a mailbox object with some public members the object must be passed to the other mailbox functions
  *     and the object must be freed using mrmailbox_unref() after usage.

@@ -58,69 +58,16 @@ typedef struct mrchat_t
 	#define         MR_CHAT_ID_LAST_SPECIAL     9 /* larger chat IDs are "real" chats, their messages are "real" messages. */
 
 
-	/**
-	 * Chat type.
-	 *
-	 * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is not added.
-	 * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF
-	 *
-	 * If the chat type is not set, it is MR_CHAT_TYPE_UNDEFINED (0).
-	 */
-	int             m_type;
+	/** @privatesection */
+	int             m_type;             /**< Chat type. Use mrchat_get_type() to access this field. */
 	#define         MR_CHAT_TYPE_UNDEFINED      0
 	#define         MR_CHAT_TYPE_NORMAL       100
 	#define         MR_CHAT_TYPE_GROUP        120
 
-
-	/**
-	 * Name of the chat.
-	 *
-	 * For one-to-one chats, this is the name of the contact.
-	 * For group chats, this is the name given eg. to mrmailbox_create_group_chat() or
-	 * received by a group-creation message.
-	 *
-	 * To change the name, use mrmailbox_set_chat_name()
-	 *
-	 * NULL if unset.
-	 */
-	char*           m_name;
-
-	/**
-	 * Timestamp of the draft.
-	 *
-	 * The draft itself is placed in mrchat_t::m_draft_text.
-	 * To save a draft for a chat, use mrmailbox_set_draft()
-	 *
-	 * 0 if there is no draft.
-	 */
-	time_t          m_draft_timestamp;
-
-	/**
-	 * The draft text.
-	 *
-	 * The timetamp of the draft is placed in mrchat_t::m_draft_timestamp.
-	 * To save a draft for a chat, use mrmailbox_set_draft()
-	 *
-	 * NULL if there is no draft.
-	 */
-	char*           m_draft_text;
-
-	/**
-	 * Flag for the archived state.
-	 *
-	 * 0=normal chat, not archived, not sticky.
-	 *
-	 * 1=chat archived
-	 *
-	 * 2=chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)
-	 *
-	 * To archive or unarchive chats, use mrmailbox_archive_chat().
-	 * If chats are archived, this should be shown in the UI by a little icon or text,
-	 * eg. the search will also return archived chats.
-	 */
-	int             m_archived;
-
-	/** @privatesection */
+	char*           m_name;             /**< Name of the chat. Use mrchat_get_name() to access this field. NULL if unset. */
+	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
+	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
+	int             m_archived;         /**< Archived state. Better use mrchat_get_archived() to access this object. */
 	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
@@ -131,8 +78,12 @@ mrchat_t*       mrchat_new                  (mrmailbox_t*);
 void            mrchat_empty                (mrchat_t*);
 void            mrchat_unref                (mrchat_t*);
 
-char*           mrchat_get_profile_image    (mrchat_t*);
+int             mrchat_get_type             (mrchat_t*);
+char*           mrchat_get_name             (mrchat_t*);
 char*           mrchat_get_subtitle         (mrchat_t*);
+char*           mrchat_get_profile_image    (mrchat_t*);
+char*           mrchat_get_draft            (mrchat_t*);
+int             mrchat_get_archived         (mrchat_t*);
 int             mrchat_is_unpromoted        (mrchat_t*);
 
 /* library-internal */

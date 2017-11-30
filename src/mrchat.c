@@ -113,48 +113,50 @@ void mrchat_empty(mrchat_t* chat)
 
 
 /**
- * Check if a chat is still unpromoted.  Chats are unpromoted until the first
- * message is sent.  With unpromoted chats, members can be sent, settings can be
- * modified without the need of special status messages being sent.
+ * Get chat type.
  *
- * After the creation with mrmailbox_create_group_chat() the chat is usuall  unpromoted
- * until the first call to mrmailbox_send_msg() or mrmailbox_send_text_msg().
+ * Currently, there are two chat types:
+ *
+ * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is not added.
+ * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF
  *
  * @memberof mrchat_t
  *
  * @param chat The chat object.
  *
- * @return 1=chat is still unpromoted, no message was ever send to the chat,
- *     0=chat is not unpromoted, messages were send and/or received
+ * @return Chat type.
  */
-int mrchat_is_unpromoted(mrchat_t* chat)
+int mrchat_get_type(mrchat_t* chat)
 {
 	if( chat == NULL ) {
-		return 0;
+		return MR_CHAT_TYPE_NORMAL;
 	}
-	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
+	return chat->m_type;
 }
 
 
 /**
- * Get the chat's profile image.
- * The profile image is set using mrmailbox_set_chat_profile_image() for groups.
- * For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).
+ * Get name of a chat. For one-to-one chats, this is the name of the contact.
+ * For group chats, this is the name given eg. to mrmailbox_create_group_chat() or
+ * received by a group-creation message.
+ *
+ * To change the name, use mrmailbox_set_chat_name()
+ *
+ * See also: mrchat_get_subtitle()
  *
  * @memberof mrchat_t
  *
  * @param chat The chat object.
  *
- * @return Path and file if the profile image, if any.  NULL otherwise.
- *     Must be free()'d after usage.
+ * @return Chat name as a string. Must be free()'d after usage. Never NULL.
  */
-char* mrchat_get_profile_image(mrchat_t* chat)
+char* mrchat_get_name(mrchat_t* chat)
 {
 	if( chat == NULL ) {
-		return NULL;
+		return safe_strdup("Err");
 	}
 
-	return mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
+	return safe_strdup(chat->m_name);
 }
 
 
@@ -162,11 +164,13 @@ char* mrchat_get_profile_image(mrchat_t* chat)
  * Get a subtitle for a chat.  The subtitle is eg. the email-address or the
  * number of group members.
  *
+ * See also: mrchat_get_name()
+ *
  * @memberof mrchat_t
  *
  * @param chat The chat object to calulate the subtitle for.
  *
- * @return Subtitle as a string. Must be free()'d after usage.
+ * @return Subtitle as a string. Must be free()'d after usage. Never NULL.
  */
 char* mrchat_get_subtitle(mrchat_t* chat)
 {
@@ -225,6 +229,100 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 	}
 
 	return ret? ret : safe_strdup("Err");
+}
+
+
+/**
+ * Get the chat's profile image.
+ * The profile image is set using mrmailbox_set_chat_profile_image() for groups.
+ * For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Path and file if the profile image, if any.  NULL otherwise.
+ *     Must be free()'d after usage.
+ */
+char* mrchat_get_profile_image(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return NULL;
+	}
+
+	return mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
+}
+
+
+/**
+ * Get draft for the chat, if any. A draft is a message that the user started to
+ * compose but that is not send yet. You can save a draft for a chat using mrmailbox_set_draft().
+ *
+ * Drafts are considered when sorting messages and are also returned eg.
+ * by mrchatlist_get_summary().
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Draft text, must be free()'d. Returns NULL if there is no draft.
+ */
+char* mrchat_get_draft(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return NULL;
+	}
+	return strdup_keep_null(chat->m_draft_text); /* may be NULL */
+}
+
+
+/**
+ * Get archived state.
+ *
+ * - 0 = normal chat, not archived, not sticky.
+ * - 1 = chat archived
+ * - 2 = chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)
+ *
+ * To archive or unarchive chats, use mrmailbox_archive_chat().
+ * If chats are archived, this should be shown in the UI by a little icon or text,
+ * eg. the search will also return archived chats.
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Archived state.
+ */
+int mrchat_get_archived(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return 0;
+	}
+	return chat->m_archived;
+}
+
+
+/**
+ * Check if a chat is still unpromoted.  Chats are unpromoted until the first
+ * message is sent.  With unpromoted chats, members can be sent, settings can be
+ * modified without the need of special status messages being sent.
+ *
+ * After the creation with mrmailbox_create_group_chat() the chat is usuall  unpromoted
+ * until the first call to mrmailbox_send_msg() or mrmailbox_send_text_msg().
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return 1=chat is still unpromoted, no message was ever send to the chat,
+ *     0=chat is not unpromoted, messages were send and/or received
+ */
+int mrchat_is_unpromoted(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return 0;
+	}
+	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
 }
 
 
