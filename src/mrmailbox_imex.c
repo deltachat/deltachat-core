@@ -677,74 +677,6 @@ cleanup:
  ******************************************************************************/
 
 
-/**
- * Check if there is a backup file.
- *
- * May only be used on fresh installations (mrmailbox_is_configured() returns 0).
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox Mailbox object as created by mrmailbox_new().
- *
- * @param dir_name Directory to search backups in.
- *
- * @return String with the backup file or NULL; returned strings must be free()'d.
- */
-char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
-{
-	char*          ret = NULL;
-	time_t         ret_backup_time = 0;
-	DIR*           dir_handle = NULL;
-	struct dirent* dir_entry;
-	int            prefix_len = strlen(MR_BAK_PREFIX);
-	int            suffix_len = strlen(MR_BAK_SUFFIX);
-	char*          curr_pathNfilename = NULL;
-	mrsqlite3_t*   test_sql = NULL;
-
-	if( mailbox == NULL ) {
-		return NULL;
-	}
-
-	if( (dir_handle=opendir(dir_name))==NULL ) {
-		mrmailbox_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
-		goto cleanup;
-	}
-
-	while( (dir_entry=readdir(dir_handle))!=NULL ) {
-		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
-		int name_len = strlen(name);
-		if( name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0
-		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0 )
-		{
-			free(curr_pathNfilename);
-			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);
-
-			mrsqlite3_unref(test_sql);
-			if( (test_sql=mrsqlite3_new(mailbox/*for logging only*/))!=NULL
-			 && mrsqlite3_open__(test_sql, curr_pathNfilename, MR_OPEN_READONLY) )
-			{
-				time_t curr_backup_time = mrsqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
-				if( curr_backup_time > 0
-				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
-				{
-					/* set return value to the tested database name */
-					free(ret);
-					ret = curr_pathNfilename;
-					ret_backup_time = curr_backup_time;
-					curr_pathNfilename = NULL;
-				}
-			}
-		}
-	}
-
-cleanup:
-	if( dir_handle ) { closedir(dir_handle); }
-	free(curr_pathNfilename);
-	mrsqlite3_unref(test_sql);
-	return ret;
-}
-
-
 static void ensure_no_slash(char* path)
 {
 	int path_len = strlen(path);
@@ -974,20 +906,43 @@ cleanup:
 /**
  * Import/export things.
  *
- * mrmailbox_imex() imports and exports export keys, backup etc.
- * Function, sends MR_EVENT_IMEX_* events.
- * To avoid double slashes, the given directory should not end with a slash.
- * _what_ to export is defined by a MR_IMEX_* constant.
+ * What to do is defined by the _what_ parameter which may be one of the following:
+ *
+ * - **MR_IMEX_EXPORT_BACKUP** (11) - Export a backup to the directory given as `param1`.
+ *   The backup contains all contacts, chats, images and other data and device independent settings.
+ *   The backup does not contain device dependent settings as ringtones or LED notification settings.
+ *   The name of the backup is typically `delta-chat.<day>.bak`, if more than one backup is create on a day,
+ *   the format is `delta-chat.<day>-<number>.bak`
+ *
+ * - **MR_IMEX_IMPORT_BACKUP** (12) - `param1` is the file (not: directory) to import. The file is normally
+ *   created by MR_IMEX_EXPORT_BACKUP and detected by mrmailbox_imex_has_backup(). Importing a backup
+ *   is only possible as long as the mailbox is not configured or used in another way.
+ *
+ * - **MR_IMEX_EXPORT_SELF_KEYS** (1) - Export all private keys and all public keys of the user to the
+ *   directory given as `param1`.  The default key is written to the files `public-key-default.asc`
+ *   and `private-key-default.asc`, if there are more keys, they are written to files as
+ *   `public-key-<id>.asc` and `private-key-<id>.asc`
+ *
+ * - **MR_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
+ *   The last imported key is made the default keys unless its name contains the string `legacy`.  Public keys are not imported.
+ *
+ * - **MR_IMEX_CANCEL** (0) - Cancel any pending import or export.
+ *
+ * The function may take a long time until it finishes, so it might be a good idea to start it in a
+ * separate thread. During its execution, the function sends out some events:
+ *
+ * - The function sends out a number of #MR_EVENT_IMEX_PROGRESS events that may be used to create
+ *   a progress bar or stuff like that.
+ *
+ * - For each file written on export, the function sends #MR_EVENT_IMEX_FILE_WRITTEN
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
- *
  * @param what One of the MR_IMEX_* constants.
- *
- * @param param1 Meaning depends on the MR_IMEX_* constants.
- *
- * @param setup_code Setup-code to encrypt/decrypt data.
+ * @param param1 Meaning depends on the MR_IMEX_* constants. If this parameter is a directory, it should not end with
+ *     a slash (otherwise you'll get double slashes when receiving #MR_EVENT_IMEX_FILE_WRITTEN).
+ * @param setup_code Optional setup-code to encrypt/decrypt data.
  *
  * @return None.
  */
@@ -1029,6 +984,111 @@ void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const ch
 	thread_param->m_param1     = safe_strdup(param1);
 	thread_param->m_setup_code = safe_strdup(setup_code);
 	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
+}
+
+
+/**
+ * Check if there is a backup file.
+ *
+ * May only be used on fresh installations (eg. mrmailbox_is_configured() returns 0).
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param dir_name Directory to search backups in.
+ *
+ * @return String with the backup file, typically given to mrmailbox_imex(), returned strings must be free()'d.
+ *     The function returns NULL if no backup was found.
+ *
+ * Example:
+ * ```
+ * char dir[] = "/dir/to/search/backups/in";
+ *
+ * void ask_user_for_credentials()
+ * {
+ *     // - ask the user for email and password
+ *     // - save them using mrmailbox_set_config()
+ * }
+ *
+ * int ask_user_whether_to_import()
+ * {
+ *     // - inform the user that we've found a backup
+ *     // - ask if he want to import it
+ *     // - return 1 to import, 0 to skip
+ *     return 1;
+ * }
+ *
+ * if( !mrmailbox_is_configured(mailbox) )
+ * {
+ *     char* file = NULL;
+ *     if( (file=mrmailbox_imex_has_backup(mailbox, dir))!=NULL && ask_user_whether_to_import() )
+ *     {
+ *         mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, file, NULL);
+ *         mrmailbox_connect(mailbox);
+ *     }
+ *     else
+ *     {
+ *         do {
+ *             ask_user_for_credentials();
+ *         }
+ *         while( !mrmailbox_configure_and_connect(mailbox) )
+ *     }
+ *     free(file);
+ * }
+ * ```
+ */
+char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
+{
+	char*          ret = NULL;
+	time_t         ret_backup_time = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry;
+	int            prefix_len = strlen(MR_BAK_PREFIX);
+	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	char*          curr_pathNfilename = NULL;
+	mrsqlite3_t*   test_sql = NULL;
+
+	if( mailbox == NULL ) {
+		return NULL;
+	}
+
+	if( (dir_handle=opendir(dir_name))==NULL ) {
+		mrmailbox_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
+		goto cleanup;
+	}
+
+	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
+		int name_len = strlen(name);
+		if( name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0
+		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0 )
+		{
+			free(curr_pathNfilename);
+			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);
+
+			mrsqlite3_unref(test_sql);
+			if( (test_sql=mrsqlite3_new(mailbox/*for logging only*/))!=NULL
+			 && mrsqlite3_open__(test_sql, curr_pathNfilename, MR_OPEN_READONLY) )
+			{
+				time_t curr_backup_time = mrsqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
+				if( curr_backup_time > 0
+				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
+				{
+					/* set return value to the tested database name */
+					free(ret);
+					ret = curr_pathNfilename;
+					ret_backup_time = curr_backup_time;
+					curr_pathNfilename = NULL;
+				}
+			}
+		}
+	}
+
+cleanup:
+	if( dir_handle ) { closedir(dir_handle); }
+	free(curr_pathNfilename);
+	mrsqlite3_unref(test_sql);
+	return ret;
 }
 
 
