@@ -86,9 +86,14 @@ extern "C" {
  * {
  *     uint32_t msg_id = mrarray_get_id(msglist, i);
  *     mrmsg_t* msg    = mrmailbox_get_msg(mailbox, msg_id);
+ *     char*    text   = mrmsg_get_text(msg);
  *
- *     printf("message %i: %s\n", i+1, msg->m_text);
+ *     printf("message %i: %s\n", i+1, text);
+ *
+ *     free(text);
+ *     mrmsg_unref(msg);
  * }
+ * mrarray_unref(msglist);
  * ```
  *
  * This will output the following two lines:
@@ -201,7 +206,7 @@ typedef struct mrmailbox_t
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 
-	char*            m_os_name;               /**< Internal */
+	char*            m_os_name;               /**< Internal, may be NULL */
 
 	uint32_t         m_cmdline_sel_chat_id;   /**< Internal */
 

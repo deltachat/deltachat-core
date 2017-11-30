@@ -470,8 +470,13 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			references_list /* references */,
 			NULL /* subject set later */);
 
+		/* Add a X-Mailer header. This is only informational for debugging and may be removed in the release.
+		We do not rely on this header as it may be removed by MTAs. */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"),
-			mr_mprintf("Delta Chat %i.%i.%i for %s", MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION, factory->m_mailbox->m_os_name))); /* only informational, for debugging, may be removed in the release. Also do not rely on this as it may be removed by MTAs. */
+			mr_mprintf("Delta Chat %i.%i.%i%s%s",
+			MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION,
+			factory->m_mailbox->m_os_name? " for " : "",
+			factory->m_mailbox->m_os_name? factory->m_mailbox->m_os_name : "")));
 
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( factory->m_predecessor ) {
