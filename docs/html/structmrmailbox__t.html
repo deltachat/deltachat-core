@@ -380,7 +380,7 @@ Public Attributes</h2></td></tr>
 </ul>
 </td></tr>
     <tr><td class="paramname">userdata</td><td>can be used by the client for any purpuse. He finds it later in mrmailbox__t::m_userdata().</td></tr>
-    <tr><td class="paramname">os_name</td><td>is only for decorative use and is shown eg. in the X-Mailer header in the form "Delta Chat &lt;version&gt; for &lt;osName&gt;"</td></tr>
+    <tr><td class="paramname">os_name</td><td>is only for decorative use and is shown eg. in the <code>X-Mailer:</code> header in the form "Delta Chat &lt;version&gt; for &lt;os_name&gt;". You can give the name of the operating system and/or the used environment here. It is okay to give NULL, in this case <code>X-Mailer:</code> header is set to "Delta Chat &lt;version&gt;".</td></tr>
   </table>
   </dd>
 </dl>
@@ -1277,7 +1277,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Save a draft for a chat. </p>
-<p>To get the draft for a given chat ID, use <a class="el" href="structmrchat__t.html#abe916f48ac83c2ca6476312eae084cfa" title="The draft text. ">mrchat_t::m_draft_text</a></p>
+<p>To get the draft for a given chat ID, use mrchat_t::m_draft_text</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1396,7 +1396,7 @@ Public Attributes</h2></td></tr>
 <p>Archive or unarchive a chat. </p>
 <p>Archived chats are not included in the default chatlist returned by <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a>. Instead, if there are <em>any</em> archived chats, the pseudo-chat with the chat_id MR_CHAT_ID_ARCHIVED_LINK will be added the the end of the chatlist.</p>
 <p>To get a list of archived chats, use <a class="el" href="structmrmailbox__t.html#a4da10c87eb65bbf6c504979d75ec3b19" title="Get a list of chats. ">mrmailbox_get_chatlist()</a> with the flag MR_GCL_ARCHIVED_ONLY.</p>
-<p>To find out the archived state of a given chat, use <a class="el" href="structmrchat__t.html#a5b28b343ceb290d4a613d0e5a7d528bc" title="Flag for the archived state. ">mrchat_t::m_archived</a></p>
+<p>To find out the archived state of a given chat, use mrchat_t::m_archived</p>
 <p>Calling this function usually results in the event <a class="el" href="mrevent_8h.html#a17eaeb107cbab46c0d9271d0b5560fc8" title="Messages or chats changed. ">MR_EVENT_MSGS_CHANGED</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -1900,7 +1900,7 @@ Public Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
-    <tr><td class="paramname">chat_name</td><td>The name of the group chat to create. The name may be changed later using <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1" title="Set group name. ">mrmailbox_set_chat_name()</a>. To find out the name of a group later, see <a class="el" href="structmrchat__t.html#abbd344d8d361a1a4d14bfc9b5dc57140" title="Name of the chat. ">mrchat_t::m_name</a></td></tr>
+    <tr><td class="paramname">chat_name</td><td>The name of the group chat to create. The name may be changed later using <a class="el" href="structmrmailbox__t.html#a8772e9bb55b02299f65ebd8bcc682bb1" title="Set group name. ">mrmailbox_set_chat_name()</a>. To find out the name of a group later, see mrchat_t::m_name</td></tr>
   </table>
   </dd>
 </dl>
