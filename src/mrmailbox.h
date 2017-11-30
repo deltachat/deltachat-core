@@ -319,7 +319,6 @@ mrcontact_t*    mrmailbox_get_contact       (mrmailbox_t*, uint32_t contact_id);
 
 
 /* Import/export and Tools */
-#define         MR_IMEX_CANCEL                0
 #define         MR_IMEX_EXPORT_SELF_KEYS      1 /* param1 is a directory where the keys are written to */
 #define         MR_IMEX_IMPORT_SELF_KEYS      2 /* param1 is a directory where the keys are searched in and read from */
 #define         MR_IMEX_EXPORT_BACKUP        11 /* param1 is a directory where the backup is written to */
@@ -327,7 +326,8 @@ mrcontact_t*    mrmailbox_get_contact       (mrmailbox_t*, uint32_t contact_id);
 #define         MR_IMEX_EXPORT_SETUP_MESSAGE 20 /* param1 is a directory where the setup file is written to */
 #define         MR_BAK_PREFIX                "delta-chat"
 #define         MR_BAK_SUFFIX                "bak"
-void            mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* setup_code);
+int             mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* param2);
+void            mrmailbox_imex_cancel       (mrmailbox_t*);
 char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
 char*           mrmailbox_create_setup_code (mrmailbox_t*);

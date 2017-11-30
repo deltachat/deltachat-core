@@ -691,7 +691,7 @@ cleanup:
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 
-	s_configure_do_exit = 1; /* set this before sending terminating, avoids mrmailbox_configure_cancel() to stop the thread */
+	s_configure_do_exit = 1; /* avoids mrmailbox_configure_cancel() to stop the thread */
 	s_configure_running = 0;
 	return success;
 }

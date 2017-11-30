@@ -437,23 +437,19 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			if( arg2 ) { *arg2 = 0; arg2++; }
 
 			if( strcmp(arg1, "export-keys")==0 && arg2==NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
-				ret = COMMAND_SUCCEEDED;
+				ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else if( strcmp(arg1, "import-keys")==0 ) {
-				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
-				ret = COMMAND_SUCCEEDED;
+				ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else if( strcmp(arg1, "export-backup")==0 && arg2==NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
-				ret = COMMAND_SUCCEEDED;
+				ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else if( strcmp(arg1, "import-backup")==0 && arg2!=NULL ) {
-				mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL);
-				ret = COMMAND_SUCCEEDED;
+				ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else if( strcmp(arg1, "cancel")==0 ) {
-				mrmailbox_imex(mailbox, 0, NULL, NULL);
+				mrmailbox_imex_cancel(mailbox);
 				ret = COMMAND_SUCCEEDED;
 			}
 			else {

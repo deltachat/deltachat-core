@@ -33,7 +33,8 @@
 #include "mrapeerstate.h"
 #include "mrpgp.h"
 
-static int s_imex_do_exit = 1; /* the value 1 avoids MR_IMEX_CANCEL from stopping already stopped threads */
+static int s_imex_running = 0;
+static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() from stopping already stopped threads */
 
 
 /*******************************************************************************
@@ -818,91 +819,6 @@ cleanup:
  ******************************************************************************/
 
 
-typedef struct mrimexthreadparam_t
-{
-	mrmailbox_t* m_mailbox;
-	int          m_what;
-	char*        m_param1; /* meaning depends on m_what */
-	char*        m_setup_code;
-} mrimexthreadparam_t;
-
-
-static pthread_t s_imex_thread;
-static int       s_imex_thread_created = 0;
-
-
-static void* imex_thread_entry_point(void* entry_arg)
-{
-	int                  success = 0;
-	mrimexthreadparam_t* thread_param = (mrimexthreadparam_t*)entry_arg;
-	mrmailbox_t*         mailbox = thread_param->m_mailbox; /*keep a local pointer as we free thread_param sooner or later */
-
-	mrosnative_setup_thread(mailbox); /* must be first */
-	mrmailbox_log_info(mailbox, 0, "Import/export thread started.");
-
-	if( !mrsqlite3_is_open(thread_param->m_mailbox->m_sql) ) {
-        mrmailbox_log_error(mailbox, 0, "Import/export: Database not opened.");
-		goto cleanup;
-	}
-
-	if( thread_param->m_what==MR_IMEX_EXPORT_SELF_KEYS || thread_param->m_what==MR_IMEX_EXPORT_BACKUP ) {
-		/* before we export anything, make sure the private key exists */
-		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
-			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
-			goto cleanup;
-		}
-		/* also make sure, the directory for exporting exists */
-		mr_create_folder(thread_param->m_param1, mailbox);
-	}
-
-	switch( thread_param->m_what )
-	{
-		case MR_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys(mailbox, thread_param->m_param1) ) {
-				goto cleanup;
-			}
-			break;
-
-		case MR_IMEX_IMPORT_SELF_KEYS:
-			if( !import_self_keys(mailbox, thread_param->m_param1) ) {
-				goto cleanup;
-			}
-			break;
-
-		case MR_IMEX_EXPORT_BACKUP:
-			if( !export_backup(mailbox, thread_param->m_param1) ) {
-				goto cleanup;
-			}
-			break;
-
-		case MR_IMEX_IMPORT_BACKUP:
-			if( !import_backup(mailbox, thread_param->m_param1) ) {
-				goto cleanup;
-			}
-			break;
-
-		case MR_IMEX_EXPORT_SETUP_MESSAGE:
-			if( !export_setup_file(mailbox, thread_param->m_param1, thread_param->m_setup_code) ) {
-				goto cleanup;
-			}
-			break;
-	}
-
-	success = 1;
-
-cleanup:
-	mrmailbox_log_info(mailbox, 0, "Import/export thread ended.");
-	s_imex_do_exit = 1; /* set this before sending MR_EVENT_EXPORT_ENDED, avoids MR_IMEX_CANCEL to stop the thread */
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_ENDED, success, 0);
-	s_imex_thread_created = 0;
-	free(thread_param->m_param1);
-	free(thread_param->m_setup_code);
-	free(thread_param);
-	mrosnative_unsetup_thread(mailbox); /* must be very last (here we really new the local copy of the pointer) */
-	return NULL;
-}
-
-
 /**
  * Import/export things.
  *
@@ -926,64 +842,146 @@ cleanup:
  * - **MR_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
  *   The last imported key is made the default keys unless its name contains the string `legacy`.  Public keys are not imported.
  *
- * - **MR_IMEX_CANCEL** (0) - Cancel any pending import or export.
- *
  * The function may take a long time until it finishes, so it might be a good idea to start it in a
  * separate thread. During its execution, the function sends out some events:
  *
- * - The function sends out a number of #MR_EVENT_IMEX_PROGRESS events that may be used to create
+ * - A number of #MR_EVENT_IMEX_PROGRESS events are sent and may be used to create
  *   a progress bar or stuff like that.
  *
  * - For each file written on export, the function sends #MR_EVENT_IMEX_FILE_WRITTEN
+ *
+ * Only one import-/export-progress can run at the same time.
+ * To cancel an import-/export-progress, use mrmailbox_imex_cancel().
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
  * @param what One of the MR_IMEX_* constants.
  * @param param1 Meaning depends on the MR_IMEX_* constants. If this parameter is a directory, it should not end with
- *     a slash (otherwise you'll get double slashes when receiving #MR_EVENT_IMEX_FILE_WRITTEN).
- * @param setup_code Optional setup-code to encrypt/decrypt data.
+ *     a slash (otherwise you'll get double slashes when receiving #MR_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
+ * @param param2 Meaning depends on the MR_IMEX_* constants. Set to NULL if not used.
  *
- * @return None.
+ * @return 1=success, 0=error or progress canceled.
  */
-void mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const char* setup_code)
+int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const char* param2)
 {
-	mrimexthreadparam_t* thread_param;
+	int success = 0;
 
 	if( mailbox==NULL || mailbox->m_sql==NULL ) {
-		return;
-	}
-
-	if( what == MR_IMEX_CANCEL ) {
-		/* cancel an running export */
-		if( s_imex_thread_created && s_imex_do_exit==0 ) {
-			mrmailbox_log_info(mailbox, 0, "Stopping import/export thread...");
-				s_imex_do_exit = 1;
-				pthread_join(s_imex_thread, NULL);
-			mrmailbox_log_info(mailbox, 0, "Import/export thread stopped.");
-		}
-		return;
+		return 0;
 	}
 
 	if( param1 == NULL ) {
 		mrmailbox_log_error(mailbox, 0, "No Import/export dir/file given.");
-		return;
+		return 0;
 	}
 
-	if( s_imex_thread_created || s_imex_do_exit==0 ) {
+	if( s_imex_running || s_imex_do_exit==0 ) {
 		mrmailbox_log_warning(mailbox, 0, "Already importing/exporting.");
-		return;
+		return 0;
 	}
-	s_imex_thread_created = 1;
+
+	s_imex_running = 1;
 	s_imex_do_exit = 0;
 
-	memset(&s_imex_thread, 0, sizeof(pthread_t));
-	thread_param = calloc(1, sizeof(mrimexthreadparam_t));
-	thread_param->m_mailbox    = mailbox;
-	thread_param->m_what       = what;
-	thread_param->m_param1     = safe_strdup(param1);
-	thread_param->m_setup_code = safe_strdup(setup_code);
-	pthread_create(&s_imex_thread, NULL, imex_thread_entry_point, thread_param);
+	mrmailbox_log_info(mailbox, 0, "Import/export process started.");
+
+	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
+		mrmailbox_log_error(mailbox, 0, "Import/export: Database not opened.");
+		goto cleanup;
+	}
+
+	if( what==MR_IMEX_EXPORT_SELF_KEYS || what==MR_IMEX_EXPORT_BACKUP ) {
+		/* before we export anything, make sure the private key exists */
+		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
+			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
+			goto cleanup;
+		}
+		/* also make sure, the directory for exporting exists */
+		mr_create_folder(param1, mailbox);
+	}
+
+	switch( what )
+	{
+		case MR_IMEX_EXPORT_SELF_KEYS:
+			if( !export_self_keys(mailbox, param1) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_IMPORT_SELF_KEYS:
+			if( !import_self_keys(mailbox, param1) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_EXPORT_BACKUP:
+			if( !export_backup(mailbox, param1) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_IMPORT_BACKUP:
+			if( !import_backup(mailbox, param1) ) {
+				goto cleanup;
+			}
+			break;
+
+		case MR_IMEX_EXPORT_SETUP_MESSAGE:
+			if( !export_setup_file(mailbox, param1, param2) ) {
+				goto cleanup;
+			}
+			break;
+
+		default:
+			goto cleanup;
+	}
+
+	success = 1;
+
+cleanup:
+	mrmailbox_log_info(mailbox, 0, "Import/export process ended.");
+	s_imex_do_exit = 1; /* avoids mrmailbox_imex_cancel() to stop the thread */
+	s_imex_running = 0;
+	return success;
+}
+
+
+/**
+ * Signal the import-/export-process to stop.
+ *
+ * After that, mrmailbox_imex_cancel() returns _without_ waiting
+ * for mrmailbox_imex() to return.
+ *
+ * mrmailbox_imex() will return ASAP then, however, it may
+ * still take a moment.  If in doubt, the caller may also decide the kill the
+ * thread after a few seconds; eg. the process may hang in a
+ * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
+ * reason for mrmailbox_imex_cancel() not to wait is that otherwise it
+ * would be GUI-blocking and should be started in another thread then; this
+ * would make things even more complicated.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return None
+ */
+void mrmailbox_imex_cancel(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL ) {
+		return;
+	}
+
+	if( s_imex_running && s_imex_do_exit==0 )
+	{
+		mrmailbox_log_info(mailbox, 0, "Signaling the import-/export-process to stop ASAP.");
+		s_imex_do_exit = 1;
+	}
+	else
+	{
+		mrmailbox_log_info(mailbox, 0, "No import-/export-process to stop.");
+	}
 }
 
 

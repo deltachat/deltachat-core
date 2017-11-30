@@ -173,19 +173,6 @@ extern "C" {
 
 
 /**
- * Import/export done. You'll get this event from a call to mrmailbox_imex().
- * As we want to get rid of the threads in the core, this event may be deleted.
- *
- * @param data1 0:failed, 1=success
- *
- * @param data2 0
- *
- * @return 0
- */
-#define MR_EVENT_IMEX_ENDED               2050
-
-
-/**
  * Inform about the import/export progress started by mrmailbox_imex().
  *
  * @param data1 Permille
@@ -199,8 +186,7 @@ extern "C" {
 
 /**
  * A file has been exported. A file has been written by mrmailbox_imex().
- * This event may be send multiple times by a single call to mrmailbox_imex();
- * if the export is done, #MR_EVENT_IMEX_ENDED is sent.
+ * This event may be send multiple times by a single call to mrmailbox_imex().
  *
  * A typical purpose for a handler of this event may be to make the file public to some system
  * services.
