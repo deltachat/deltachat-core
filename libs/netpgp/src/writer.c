@@ -1490,6 +1490,7 @@ pgp_pop_sum16_writer(pgp_output_t *output)
 
 /**************************************************************************/
 
+#if 0 //////
 #define MAX_PARTIAL_DATA_LENGTH 1073741824
 
 typedef struct {
@@ -1501,7 +1502,7 @@ typedef struct {
 	pgp_output_t	*se_ip_out;
 	pgp_hash_t	 hash;
 } str_enc_se_ip_t;
-
+#endif //////
 
 #if 0 //////
 static unsigned

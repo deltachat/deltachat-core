@@ -720,6 +720,7 @@ pgp_decrypt_se(pgp_crypt_t *decrypt, void *outvoid, const void *invoid,
 	return (size_t)saved;
 }
 
+#if 0 //////
 size_t
 pgp_encrypt_se(pgp_crypt_t *encrypt, void *outvoid, const void *invoid,
 	       size_t count)
@@ -747,6 +748,7 @@ pgp_encrypt_se(pgp_crypt_t *encrypt, void *outvoid, const void *invoid,
 
 	return (size_t)saved;
 }
+#endif //////
 
 /**
 \ingroup HighLevel_Supported
@@ -778,6 +780,7 @@ pgp_is_sa_supported(pgp_symm_alg_t alg)
 	}
 }
 
+#if 0 //////
 size_t
 pgp_encrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,
 		  size_t count)
@@ -791,6 +794,7 @@ pgp_encrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,
 	/* \todo test this number was encrypted */
 	return count;
 }
+#endif //////
 
 size_t
 pgp_decrypt_se_ip(pgp_crypt_t *crypt, void *out, const void *in,

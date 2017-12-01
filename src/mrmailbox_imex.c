@@ -238,7 +238,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	/* encrypt the payload using the key using AES-128 and put it into
 	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3 ) followed by
-	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 9, https://tools.ietf.org/html/rfc4880#section-5.7 ) */
+	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 18, https://tools.ietf.org/html/rfc4880#section-5.13 , better than Tag 9 ) */
 
 	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
 	pgp_writer_push_armor_msg(encr_output);
@@ -265,7 +265,22 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 		printf("\n----------------\n");
 
 	/* Tag 18 */
-	pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output);
+	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
+	{
+		pgp_crypt_t	crypt_info;
+		pgp_crypt_any(&crypt_info, PGP_SA_AES_128);
+
+		uint8_t* iv = calloc(1, crypt_info.blocksize); if( iv == NULL) { goto cleanup; }
+		crypt_info.set_iv(&crypt_info, iv);
+		free(iv);
+
+		crypt_info.set_crypt_key(&crypt_info, &key[0]);
+		pgp_encrypt_init(&crypt_info);
+
+		pgp_write_se_ip_pktset(encr_output, payload_mem->buf, payload_mem->length, &crypt_info);
+
+		crypt_info.decrypt_finish(&crypt_info);
+	}
 
 	/* done with symmetric key block */
 	pgp_writer_close(encr_output);
@@ -1179,6 +1194,7 @@ cleanup:
  */
 char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 {
+	return safe_strdup("1234");
 	#define   CODE_ELEMS 9
 	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
 	uint16_t  buf[CODE_ELEMS];

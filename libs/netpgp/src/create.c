@@ -1319,6 +1319,7 @@ pgp_filewrite(const char *filename, const char *buf,
 \return 1 if OK; else 0
 \note Hard-coded to use AES256
 */
+#if 0 //////
 unsigned
 pgp_write_symm_enc_data(const uint8_t *data,
 				       const int len,
@@ -1356,6 +1357,7 @@ pgp_write_symm_enc_data(const uint8_t *data,
 		pgp_write_length(output, (unsigned)(encrypted_sz)) &&
 		pgp_write(output, encrypted, (unsigned)encrypted_sz); // EDIT BY MR: originally the input data was written to output
 }
+#endif //////
 
 /**
 \ingroup Core_WritePackets
