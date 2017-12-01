@@ -939,9 +939,9 @@ int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const cha
 	}
 
 	success = 1;
+	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, 1000, 0);
 
 cleanup:
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, 1000, 0);
 	mrmailbox_log_info(mailbox, 0, "Import/export process ended.");
 	s_imex_do_exit = 1; /* avoids mrmailbox_imex_cancel() to stop the thread */
 	s_imex_running = 0;
