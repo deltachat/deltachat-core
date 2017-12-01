@@ -33,184 +33,9 @@
 #include "mrapeerstate.h"
 #include "mrpgp.h"
 
+
 static int s_imex_running = 0;
 static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() from stopping already stopped threads */
-
-
-/*******************************************************************************
- * Import
- ******************************************************************************/
-
-
-static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
-{
-	/* hint: even if we switch to import Autocrypt Setup files, we should leave the possibility to import
-	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
-	Importing ASC keys is useful to use keys in Delta Chat used by any other non-Autocrypt-PGP implementation.
-
-	Maybe we should make the "default" key handlong also a little bit smarter
-	(currently, the last imported key is the standard key unless it contains the string "legacy" in its name) */
-
-	int            imported_count = 0, locked = 0;
-	DIR*           dir_handle = NULL;
-	struct dirent* dir_entry = NULL;
-	char*          suffix = NULL;
-	char*          path_plus_name = NULL;
-	mrkey_t*       private_key = mrkey_new();
-	mrkey_t*       public_key = mrkey_new();
-	sqlite3_stmt*  stmt = NULL;
-	char*          self_addr = NULL;
-	int            set_default = 0;
-
-	if( mailbox==NULL || dir_name==NULL ) {
-		goto cleanup;
-	}
-
-	if( (dir_handle=opendir(dir_name))==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
-		goto cleanup;
-	}
-
-	while( (dir_entry=readdir(dir_handle))!=NULL )
-	{
-		free(suffix);
-		suffix = mr_get_filesuffix_lc(dir_entry->d_name);
-		if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
-			continue;
-		}
-
-		free(path_plus_name);
-		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
-		mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
-		if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
-			continue;
-		}
-
-		if( private_key->m_type!=MR_PRIVATE ) {
-			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
-		}
-
-		if( !mrpgp_is_valid_key(mailbox, private_key) ) {
-			mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
-			continue;
-		}
-
-		if( !mrpgp_split_key(mailbox, private_key, public_key) ) {
-			mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
-			continue;
-		}
-
-		set_default = 1;
-		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
-			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
-		}
-
-		/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
-
-			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-			sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-			sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-			stmt = NULL;
-
-			if( set_default ) {
-				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
-			}
-
-			free(self_addr);
-			self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
-				mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
-				goto cleanup;
-			}
-
-			imported_count++;
-
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
-	}
-
-	if( imported_count == 0 ) {
-		mrmailbox_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
-		goto cleanup;
-	}
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( dir_handle ) { closedir(dir_handle); }
-	free(suffix);
-	free(path_plus_name);
-	mrkey_unref(private_key);
-	mrkey_unref(public_key);
-	if( stmt ) { sqlite3_finalize(stmt); }
-	free(self_addr);
-	return imported_count;
-}
-
-
-/*******************************************************************************
- * Export keys
- ******************************************************************************/
-
-
-static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
-{
-	char* file_name;
-	if( is_default ) {
-		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
-	}
-	else {
-		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
-	}
-	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
-	mr_delete_file(file_name, mailbox);
-	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
-	}
-	free(file_name);
-}
-
-
-static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
-{
-	int           success = 0;
-	sqlite3_stmt* stmt = NULL;
-	int           id = 0, is_default = 0;
-	mrkey_t*      public_key = mrkey_new();
-	mrkey_t*      private_key = mrkey_new();
-	int           locked = 0;
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
-			goto cleanup;
-		}
-
-		while( sqlite3_step(stmt)==SQLITE_ROW ) {
-			id = sqlite3_column_int(         stmt, 0  );
-			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
-			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
-			is_default = sqlite3_column_int( stmt, 3  );
-			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
-			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
-		}
-
-		success = 1;
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt ) { sqlite3_finalize(stmt); }
-	mrkey_unref(public_key);
-	mrkey_unref(private_key);
-	return success;
-}
-
 
 
 /*******************************************************************************
@@ -510,6 +335,180 @@ cleanup:
 	return success;
 }
 
+
+/*******************************************************************************
+ * Import keys
+ ******************************************************************************/
+
+
+static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
+{
+	/* hint: even if we switch to import Autocrypt Setup files, we should leave the possibility to import
+	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
+	Importing ASC keys is useful to use keys in Delta Chat used by any other non-Autocrypt-PGP implementation.
+
+	Maybe we should make the "default" key handlong also a little bit smarter
+	(currently, the last imported key is the standard key unless it contains the string "legacy" in its name) */
+
+	int            imported_count = 0, locked = 0;
+	DIR*           dir_handle = NULL;
+	struct dirent* dir_entry = NULL;
+	char*          suffix = NULL;
+	char*          path_plus_name = NULL;
+	mrkey_t*       private_key = mrkey_new();
+	mrkey_t*       public_key = mrkey_new();
+	sqlite3_stmt*  stmt = NULL;
+	char*          self_addr = NULL;
+	int            set_default = 0;
+
+	if( mailbox==NULL || dir_name==NULL ) {
+		goto cleanup;
+	}
+
+	if( (dir_handle=opendir(dir_name))==NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
+		goto cleanup;
+	}
+
+	while( (dir_entry=readdir(dir_handle))!=NULL )
+	{
+		free(suffix);
+		suffix = mr_get_filesuffix_lc(dir_entry->d_name);
+		if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
+			continue;
+		}
+
+		free(path_plus_name);
+		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
+		mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+		if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
+			continue;
+		}
+
+		if( private_key->m_type!=MR_PRIVATE ) {
+			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
+		}
+
+		if( !mrpgp_is_valid_key(mailbox, private_key) ) {
+			mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
+			continue;
+		}
+
+		if( !mrpgp_split_key(mailbox, private_key, public_key) ) {
+			mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
+			continue;
+		}
+
+		set_default = 1;
+		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
+			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
+		}
+
+		/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+
+			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+			sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+			sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
+			stmt = NULL;
+
+			if( set_default ) {
+				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+			}
+
+			free(self_addr);
+			self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
+				mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
+				goto cleanup;
+			}
+
+			imported_count++;
+
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+	}
+
+	if( imported_count == 0 ) {
+		mrmailbox_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
+		goto cleanup;
+	}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( dir_handle ) { closedir(dir_handle); }
+	free(suffix);
+	free(path_plus_name);
+	mrkey_unref(private_key);
+	mrkey_unref(public_key);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(self_addr);
+	return imported_count;
+}
+
+
+/*******************************************************************************
+ * Export keys
+ ******************************************************************************/
+
+
+static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
+{
+	char* file_name;
+	if( is_default ) {
+		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
+	}
+	else {
+		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+	}
+	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	mr_delete_file(file_name, mailbox);
+	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
+	}
+	free(file_name);
+}
+
+
+static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
+{
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
+	int           id = 0, is_default = 0;
+	mrkey_t*      public_key = mrkey_new();
+	mrkey_t*      private_key = mrkey_new();
+	int           locked = 0;
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+			goto cleanup;
+		}
+
+		while( sqlite3_step(stmt)==SQLITE_ROW ) {
+			id = sqlite3_column_int(         stmt, 0  );
+			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
+			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
+			is_default = sqlite3_column_int( stmt, 3  );
+			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
+			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( stmt ) { sqlite3_finalize(stmt); }
+	mrkey_unref(public_key);
+	mrkey_unref(private_key);
+	return success;
+}
 
 
 /*******************************************************************************
@@ -1001,6 +1000,7 @@ void mrmailbox_imex_cancel(mrmailbox_t* mailbox)
  *     The function returns NULL if no backup was found.
  *
  * Example:
+ *
  * ```
  * char dir[] = "/dir/to/search/backups/in";
  *
@@ -1099,7 +1099,6 @@ cleanup:
  * @memberof mrmailbox_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
- *
  * @param test_pw Password to check.
  *
  * @return 1=user is authorized, 0=user is not authorized.
