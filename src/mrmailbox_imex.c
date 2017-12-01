@@ -43,53 +43,67 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  ******************************************************************************/
 
 
-/* a complete Autocrypt Setup Message looks like the following
-
-To: me@mydomain.com
-From: me@mydomain.com
-Autocrypt-Setup-Message: v1
-Content-type: multipart/mixed; boundary="==break1=="
-
-	--==break1==
-	Content-Type: text/plain
-
-	This is the Autocrypt setup message.
-
-	--==break1==
-	Content-Type: application/autocrypt-key-backup
-	Content-Disposition: attachment; filename="autocrypt-key-backup.html"
-
-	<html>
-	<body>
-	<p>
-		This is the Autocrypt setup file used to transfer keys between clients.
-	</p>
-	<pre>
-	-----BEGIN PGP MESSAGE-----
-	Version: BCPG v1.53
-	Passphrase-Format: numeric9x4
-	Passphrase-Begin: 12
-
-	hQIMAxC7JraDy7DVAQ//SK1NltM+r6uRf2BJEg+rnpmiwfAEIiopU0LeOQ6ysmZ0
-	CLlfUKAcryaxndj4sBsxLllXWzlNiFDHWw4OOUEZAZd8YRbOPfVq2I8+W4jO3Moe
-	-----END PGP MESSAGE-----
-	</pre>
-	</body>
-	</html>
-	--==break1==--
-
-The encrypted message part contains:
-
-	-----BEGIN PGP PRIVATE KEY BLOCK-----
-	Autocrypt-Prefer-Encrypt: mutual
-
-	xcLYBFke7/8BCAD0TTmX9WJm9elc7/xrT4/lyzUDMLbuAuUqRINtCoUQPT2P3Snfx/jou1YcmjDgwT
-	Ny9ddjyLcdSKL/aR6qQ1UBvlC5xtriU/7hZV6OZEmW2ckF7UgGd6ajE+UEjUwJg2+eKxGWFGuZ1P7a
-	4Av1NXLayZDsYa91RC5hCsj+umLN2s+68ps5pzLP3NoK2zIFGoCRncgGI/pTAVmYDirhVoKh14hCh5
-	.....
-	-----END PGP PRIVATE KEY BLOCK-----
-
-mrmailbox_render_keys_to_html() renders the part after the second `-==break1==` part in this example. */
+/**
+ * Create an Autocrypt Setup Message. A complete Autocrypt Setup Message looks
+ * like the following:
+ *
+ *     To: me@mydomain.com
+ *     From: me@mydomain.com
+ *     Autocrypt-Setup-Message: v1
+ *     Content-type: multipart/mixed; boundary="==break1=="
+ *
+ *     --==break1==
+ *     Content-Type: text/plain
+ *
+ *     This is the Autocrypt setup message.
+ *
+ *     --==break1==
+ *     Content-Type: application/autocrypt-key-backup
+ *     Content-Disposition: attachment; filename="autocrypt-key-backup.html"
+ *
+ *     <html>
+ *     <body>
+ *     <p>
+ *     	This is the Autocrypt setup file used to transfer keys between clients.
+ *     </p>
+ *     <pre>
+ *     -----BEGIN PGP MESSAGE-----
+ *     Version: BCPG v1.53
+ *     Passphrase-Format: numeric9x4
+ *     Passphrase-Begin: 12
+ *
+ *     hQIMAxC7JraDy7DVAQ//SK1NltM+r6uRf2BJEg+rnpmiwfAEIiopU0LeOQ6ysmZ0
+ *     CLlfUKAcryaxndj4sBsxLllXWzlNiFDHWw4OOUEZAZd8YRbOPfVq2I8+W4jO3Moe
+ *     -----END PGP MESSAGE-----
+ *     </pre>
+ *     </body>
+ *     </html>
+ *     --==break1==--
+ *
+ * The encrypted message part contains:
+ *
+ *     -----BEGIN PGP PRIVATE KEY BLOCK-----
+ *     Autocrypt-Prefer-Encrypt: mutual
+ *
+ *     xcLYBFke7/8BCAD0TTmX9WJm9elc7/xrT4/lyzUDMLbuAuUqRINtCoUQPT2P3Snfx/jou1YcmjDgwT
+ *     Ny9ddjyLcdSKL/aR6qQ1UBvlC5xtriU/7hZV6OZEmW2ckF7UgGd6ajE+UEjUwJg2+eKxGWFGuZ1P7a
+ *     4Av1NXLayZDsYa91RC5hCsj+umLN2s+68ps5pzLP3NoK2zIFGoCRncgGI/pTAVmYDirhVoKh14hCh5
+ *     .....
+ *     -----END PGP PRIVATE KEY BLOCK-----
+ *
+ * mrmailbox_render_keys_to_html() renders the part after the second
+ * `-==break1==` part in this example.
+ *
+ * @private @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object
+ * @param passphrase The setup code that shall be used to encrypt the message.
+ *     Typically created by mrmailbox_create_setup_code().
+ * @param ret_msg Pointer to a character pointer that will be set to the HTML-code of the message on success.
+ *    The character pointer must be free()'d on success and must be NULL when the function is called.
+ *
+ * @return 1=success, 0=error
+ */
 int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
 {
 	int                    success = 0, locked = 0;
@@ -313,13 +327,14 @@ static int export_setup_file(mrmailbox_t* mailbox, const char* dir, const char* 
 {
 	int           success = 0;
 	char*         file_content = NULL;
-	char*         file_name = mr_mprintf("%s/autocrypt-key-backup.html", dir);
+	char*         file_name = NULL;
 
-	if( !mrmailbox_render_keys_to_html(mailbox, setup_code, &file_content) || file_content==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot generate Autocrypt setup file in %s", file_name);
+	if( !mrmailbox_render_keys_to_html(mailbox, setup_code, &file_content) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot generate Autocrypt setup file,");
 		goto cleanup;
 	}
 
+	file_name = mr_mprintf("%s/autocrypt-key-backup.html", dir);
 	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot write keys to %s", file_name);
 	}
