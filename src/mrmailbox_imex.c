@@ -317,6 +317,8 @@ cleanup:
 
 	if( encr_output ) { pgp_output_delete(encr_output); }
 	if( encr_mem ) { pgp_memory_free(encr_mem); }
+
+	mrkey_unref(curr_private_key);
 	free(encr_string);
 	free(self_addr);
 	return success;
