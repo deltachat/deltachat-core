@@ -307,66 +307,75 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	/* execute command */
 	if( strcmp(cmd, "help")==0 || strcmp(cmd, "?")==0 )
 	{
-		ret = safe_strdup(
-			"Database commands:\n"
-			"info\n"
-			"open <file to open or create>\n"
-			"close\n"
-			"reset <flags>\n"
-			"imex export-keys|import-keys|export-backup|import-backup|cancel\n"
-			"export-setup\n"
-			"hasbackup\n"
-			"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
-			"set <configuration-key> [<value>]\n"
-			"get <configuration-key>\n"
-			"configure\n"
-			"configurecancel\n"
-			"connect\n"
-			"disconnect\n"
-			"restore <days>\n"
-
-			"\nChat commands:\n"
-			"listchats [<query>]\n"
-			"listarchived\n"
-			"chat [<chat-id>|0]\n"
-			"createchat <contact-id>\n"
-			"creategroup <name>\n"
-			"addmember <contact-id>\n"
-			"removemember <contact-id>\n"
-			"groupname <name>\n"
-			"groupimage [<file>]\n"
-			"chatinfo\n"
-			"send <text>\n"
-			"sendimage <file>\n"
-			"sendfile <file>\n"
-			"draft [<text>]\n"
-			"listmedia\n"
-			"archive <chat-id>\n"
-			"unarchive <chat-id>\n"
-			"delchat <chat-id>\n"
-
-			"\nMessage commands:\n"
-			"listmsgs <query>\n"
-			"msginfo <msg-id>\n"
-			"listfresh\n"
-			"forward <msg-id> <chat-id>\n"
-			"markseen <msg-id>\n"
-			"star <msg-id>\n"
-			"unstar <msg-id>\n"
-			"delmsg <msg-id>\n"
-
-			"\nContact commands:\n"
-			"listcontacts [<query>]\n"
-			"addcontact <name> <addr>\n"
-			"contactinfo <contact-id>\n"
-
-			"\nMisc.:\n"
-			"event <event-id to test>\n"
-			"fileinfo <file>\n"
-			"heartbeat\n"
-			"clear -- clear screen\n" /* must be implemented by  the caller */
-			"exit" /* must be implemented by  the caller */
-		);
+		if( arg1 && strcmp(arg1, "imex")==0 )
+		{
+			ret = safe_strdup(
+				"====================Import-/export-commands==\n"
+				"has-backup\n"
+				"export-backup\n"
+				"import-backup <backup-file>\n"
+				"export-keys\n"
+				"import-keys\n"
+				"export-setup\n"
+				"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
+				"reset <flags>\n"
+				"============================================="
+			);
+		}
+		else
+		{
+			ret = safe_strdup(
+				"==========================Database commands==\n"
+				"info\n"
+				"open <file to open or create>\n"
+				"close\n"
+				"set <configuration-key> [<value>]\n"
+				"get <configuration-key>\n"
+				"configure\n"
+				"connect\n"
+				"disconnect\n"
+				"help imex\n"
+				"==============================Chat commands==\n"
+				"listchats [<query>]\n"
+				"listarchived\n"
+				"chat [<chat-id>|0]\n"
+				"createchat <contact-id>\n"
+				"creategroup <name>\n"
+				"addmember <contact-id>\n"
+				"removemember <contact-id>\n"
+				"groupname <name>\n"
+				"groupimage [<file>]\n"
+				"chatinfo\n"
+				"send <text>\n"
+				"sendimage <file>\n"
+				"sendfile <file>\n"
+				"draft [<text>]\n"
+				"listmedia\n"
+				"archive <chat-id>\n"
+				"unarchive <chat-id>\n"
+				"delchat <chat-id>\n"
+				"===========================Message commands==\n"
+				"listmsgs <query>\n"
+				"msginfo <msg-id>\n"
+				"listfresh\n"
+				"forward <msg-id> <chat-id>\n"
+				"markseen <msg-id>\n"
+				"star <msg-id>\n"
+				"unstar <msg-id>\n"
+				"delmsg <msg-id>\n"
+				"===========================Contact commands==\n"
+				"listcontacts [<query>]\n"
+				"addcontact <name> <addr>\n"
+				"contactinfo <contact-id>\n"
+				"======================================Misc.==\n"
+				"event <event-id to test>\n"
+				"fileinfo <file>\n"
+				"heartbeat\n"
+				"clear -- clear screen\n" /* must be implemented by  the caller */
+				"exit\n" /* must be implemented by  the caller */
+				"============================================="
+			);
+		}
 	}
 	else if( !s_is_auth )
 	{
@@ -409,19 +418,33 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		mrmailbox_close(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
-	else if( strcmp(cmd, "reset")==0 )
+	else if( strcmp(cmd, "has-backup")==0 )
 	{
-		if( arg1 ) {
-			int bits = atoi(arg1);
-			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-		}
-		else {
-			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
+		ret = mrmailbox_imex_has_backup(mailbox, mailbox->m_blobdir);
+		if( ret == NULL ) {
+			ret = safe_strdup("No backup found.");
 		}
 	}
-	else if( strcmp(cmd, "poke")==0 )
+	else if( strcmp(cmd, "export-backup")==0 )
 	{
-		ret = poke_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "import-backup")==0 )
+	{
+		if( arg1 ) {
+			ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <backup-file> missing.");
+		}
+	}
+	else if( strcmp(cmd, "export-keys")==0 )
+	{
+		ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "import-keys")==0 )
+	{
+		ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
@@ -430,41 +453,18 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SETUP_MESSAGE, mailbox->m_blobdir, setup_code);
 		free(setup_code);
 	}
-	else if( strcmp(cmd, "imex")==0 )
+	else if( strcmp(cmd, "poke")==0 )
+	{
+		ret = poke_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+	}
+	else if( strcmp(cmd, "reset")==0 )
 	{
 		if( arg1 ) {
-			char* arg2 = strchr(arg1, ' ');
-			if( arg2 ) { *arg2 = 0; arg2++; }
-
-			if( strcmp(arg1, "export-keys")==0 && arg2==NULL ) {
-				ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-			}
-			else if( strcmp(arg1, "import-keys")==0 ) {
-				ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-			}
-			else if( strcmp(arg1, "export-backup")==0 && arg2==NULL ) {
-				ret = mrmailbox_imex(mailbox, MR_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-			}
-			else if( strcmp(arg1, "import-backup")==0 && arg2!=NULL ) {
-				ret = mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, arg2, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-			}
-			else if( strcmp(arg1, "cancel")==0 ) {
-				mrmailbox_imex_cancel(mailbox);
-				ret = COMMAND_SUCCEEDED;
-			}
-			else {
-				ret = COMMAND_FAILED;
-			}
+			int bits = atoi(arg1);
+			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <what> missing.");
-		}
-	}
-	else if( strcmp(cmd, "hasbackup")==0 )
-	{
-		ret = mrmailbox_imex_has_backup(mailbox, mailbox->m_blobdir);
-		if( ret == NULL ) {
-			ret = safe_strdup("No backup found.");
+			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
 		}
 	}
 	else if( strcmp(cmd, "set")==0 )
@@ -500,11 +500,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "configure")==0 )
 	{
 		mrmailbox_configure_and_connect(mailbox);
-		ret = COMMAND_SUCCEEDED;
-	}
-	else if( strcmp(cmd, "configurecancel")==0 )
-	{
-		mrmailbox_configure_cancel(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "connect")==0 )
