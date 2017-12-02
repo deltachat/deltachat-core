@@ -91,8 +91,8 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  *     .....
  *     -----END PGP PRIVATE KEY BLOCK-----
  *
- * mrmailbox_render_keys_to_html() renders the part after the second
- * `-==break1==` part in this example.
+ * mrmailbox_render_keys_to_html() renders the body after the second
+ * `-==break1==` in this example.
  *
  * @private @memberof mrmailbox_t
  *
@@ -259,10 +259,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	  pgp_write_scalar (encr_output, s2k_iter_id, 1);  // 1 octets
 	}
 
-	for(int j=0; j<AES_KEY_LENGTH; j++) {
-		printf("%02x", key[j]);
-	}
-		printf("\n----------------\n");
+	// for(int j=0; j<AES_KEY_LENGTH; j++) { printf("%02x", key[j]); } printf("\n----------------\n");
 
 	/* Tag 18 */
 	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
