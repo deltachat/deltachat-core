@@ -168,24 +168,24 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	/* S2K */
 
-	int s2k_spec = PGP_S2KS_SIMPLE; // 0=simple, 1=salted, 3=salted+iterated
+	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 0; // ~1000 iterations
 
 	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
 	(from netpgp/create.c) */
 
 	{
-		unsigned	done = 0;
-		unsigned	i = 0;
+		unsigned    done = 0;
+		unsigned    i = 0;
 		int         passphrase_len = strlen(passphrase);
-		pgp_hash_t    hash;
+		pgp_hash_t  hash;
 		for (done = 0, i = 0; done < AES_KEY_LENGTH; i++) {
-			unsigned 	hashsize;
-			unsigned 	j;
-			unsigned	needed;
-			unsigned	size;
-			uint8_t		zero = 0;
-			uint8_t		*hashed;
+			unsigned    hashsize;
+			unsigned    j;
+			unsigned    needed;
+			unsigned    size;
+			uint8_t     zero = 0;
+			uint8_t     *hashed;
 
 			/* Hard-coded SHA1 for session key */
 			pgp_hash_any(&hash, PGP_HASH_SHA1);
@@ -245,18 +245,23 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	/* Tag 3 */
 	pgp_write_ptag     (encr_output, PGP_PTAG_CT_SK_SESSION_KEY);
-	pgp_write_length   (encr_output, 1/*version*/ + 1/*algo*/ + /*S2K*/1+1+((s2k_spec&PGP_S2KS_SALTED)?PGP_SALT_SIZE:0)+((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)?1:0) );
+	pgp_write_length   (encr_output, 1/*version*/
+	                               + 1/*symm. algo*/
+	                               + 1/*s2k_spec*/
+	                               + 1/*S2 hash algo*/
+	                               + ((s2k_spec&PGP_S2KS_SALTED)? PGP_SALT_SIZE : 0)/*the salt*/
+	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/ );
 
 	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
 	pgp_write_scalar   (encr_output, PGP_SA_AES_128, 1);     // 1 octet: symm. algo
 
-	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet
+	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
 	pgp_write_scalar   (encr_output, PGP_HASH_SHA1, 1);      // 1 octet: S2 hash algo
 	if( s2k_spec&PGP_S2KS_SALTED ) {
-	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: salt
+	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: the salt
 	}
 	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
-	  pgp_write_scalar (encr_output, s2k_iter_id, 1);  // 1 octets
+	  pgp_write_scalar (encr_output, s2k_iter_id, 1);        // 1 octet: number of iterations
 	}
 
 	// for(int j=0; j<AES_KEY_LENGTH; j++) { printf("%02x", key[j]); } printf("\n----------------\n");
