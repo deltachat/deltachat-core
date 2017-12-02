@@ -168,8 +168,10 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	/* S2K */
 
-	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
-	int s2k_iter_id = 0; // ~1000 iterations
+	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
+	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations
+	#define EXPBIAS 6
+	int s2k_iter_count = (16 + (s2k_iter_id & 15)) << ((s2k_iter_id >> 4) + EXPBIAS);
 
 	#define HASH_ALG PGP_HASH_SHA256
 
@@ -214,11 +216,34 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 				hash.add(&hash, &zero, 1);
 			}
 
-			if (s2k_spec & PGP_S2KS_SALTED) {
-				hash.add(&hash, salt, PGP_SALT_SIZE);
+			if (s2k_spec == PGP_S2KS_ITERATED_AND_SALTED )
+			{
+				int remaining_octets = s2k_iter_count;
+				while( 1 )
+				{
+					int hash_now = MR_MIN(PGP_SALT_SIZE, remaining_octets);
+					hash.add(&hash, salt, hash_now);
+					remaining_octets -= hash_now;
+					if( remaining_octets<=0 ) {
+						break;
+					}
+
+					hash_now = MR_MIN(passphrase_len, remaining_octets);
+					hash.add(&hash, (uint8_t*)passphrase, hash_now);
+					remaining_octets -= hash_now;
+					if( remaining_octets<=0 ) {
+						break;
+					}
+				}
+			}
+			else
+			{
+				if (s2k_spec == PGP_S2KS_SALTED) {
+					hash.add(&hash, salt, PGP_SALT_SIZE);
+				}
+				hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
 			}
 
-			hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
 			hash.finish(&hash, hashed);
 
 			/*
@@ -247,7 +272,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	                               + 1/*symm. algo*/
 	                               + 1/*s2k_spec*/
 	                               + 1/*S2 hash algo*/
-	                               + ((s2k_spec&PGP_S2KS_SALTED)? PGP_SALT_SIZE : 0)/*the salt*/
+	                               + ((s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? PGP_SALT_SIZE : 0)/*the salt*/
 	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/ );
 
 	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
@@ -255,7 +280,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 
 	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
 	pgp_write_scalar   (encr_output, HASH_ALG, 1);           // 1 octet: S2 hash algo
-	if( s2k_spec&PGP_S2KS_SALTED ) {
+	if( s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
 	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: the salt
 	}
 	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
