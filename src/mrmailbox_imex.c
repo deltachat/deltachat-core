@@ -195,13 +195,11 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			needed = AES_KEY_LENGTH - done;
 			size = MR_MIN(needed, hashsize);
 			if ((hashed = calloc(1, hashsize)) == NULL) {
-				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
-				return 0;
+				goto cleanup;
 			}
 			if (!hash.init(&hash)) {
-				(void) fprintf(stderr, "write_seckey_body: bad alloc\n");
 				free(hashed);
-				return 0;
+				goto cleanup;
 			}
 
 			/* preload if iterating  */
@@ -231,9 +229,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			done += (unsigned)size;
 			free(hashed);
 			if (done > AES_KEY_LENGTH) {
-				(void) fprintf(stderr,
-					"write_seckey_body: short add\n");
-				return 0;
+				goto cleanup;
 			}
 		}
 	}
