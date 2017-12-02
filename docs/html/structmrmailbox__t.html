@@ -302,9 +302,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3b55fcb1a91c616f032e160914406ed2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a3b55fcb1a91c616f032e160914406ed2">mrmailbox_check_password</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *test_pw)</td></tr>
 <tr class="memdesc:a3b55fcb1a91c616f032e160914406ed2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the user is authorized by the given password in some way.  <a href="#a3b55fcb1a91c616f032e160914406ed2">More...</a><br /></td></tr>
 <tr class="separator:a3b55fcb1a91c616f032e160914406ed2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af4d9c838230758e1b0e40957447232f7"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#af4d9c838230758e1b0e40957447232f7">mrmailbox_create_setup_code</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
-<tr class="memdesc:af4d9c838230758e1b0e40957447232f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create random setup code.  <a href="#af4d9c838230758e1b0e40957447232f7">More...</a><br /></td></tr>
-<tr class="separator:af4d9c838230758e1b0e40957447232f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8662e21a209936e2070f6a59479bfef4"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4">mrmailbox_initiate_key_transfer</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
+<tr class="memdesc:a8662e21a209936e2070f6a59479bfef4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiate Autocrypt key transfer.  <a href="#a8662e21a209936e2070f6a59479bfef4">More...</a><br /></td></tr>
+<tr class="separator:a8662e21a209936e2070f6a59479bfef4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -2968,7 +2968,8 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>String with the backup file, typically given to <a class="el" href="structmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f" title="Import/export things. ">mrmailbox_imex()</a>, returned strings must be free()'d. The function returns NULL if no backup was found.</dd></dl>
-<p>Example: </p><div class="fragment"><div class="line"><span class="keywordtype">char</span> dir[] = <span class="stringliteral">&quot;/dir/to/search/backups/in&quot;</span>;</div><div class="line"></div><div class="line"><span class="keywordtype">void</span> ask_user_for_credentials()</div><div class="line">{</div><div class="line">    <span class="comment">// - ask the user for email and password</span></div><div class="line">    <span class="comment">// - save them using mrmailbox_set_config()</span></div><div class="line">}</div><div class="line"></div><div class="line"><span class="keywordtype">int</span> ask_user_whether_to_import()</div><div class="line">{</div><div class="line">    <span class="comment">// - inform the user that we&#39;ve found a backup</span></div><div class="line">    <span class="comment">// - ask if he want to import it</span></div><div class="line">    <span class="comment">// - return 1 to import, 0 to skip</span></div><div class="line">    <span class="keywordflow">return</span> 1;</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keywordflow">if</span>( !<a class="code" href="structmrmailbox__t.html#aa6e325e49ecccfc96276db6c327dba94">mrmailbox_is_configured</a>(mailbox) )</div><div class="line">{</div><div class="line">    <span class="keywordtype">char</span>* file = NULL;</div><div class="line">    <span class="keywordflow">if</span>( (file=<a class="code" href="structmrmailbox__t.html#abcb59b494a430c2d3d6e77cf433f5755">mrmailbox_imex_has_backup</a>(mailbox, dir))!=NULL &amp;&amp; ask_user_whether_to_import() )</div><div class="line">    {</div><div class="line">        <a class="code" href="structmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f">mrmailbox_imex</a>(mailbox, MR_IMEX_IMPORT_BACKUP, file, NULL);</div><div class="line">        <a class="code" href="structmrmailbox__t.html#a67eef5ffc3369b8ad09326471b0a266f">mrmailbox_connect</a>(mailbox);</div><div class="line">    }</div><div class="line">    <span class="keywordflow">else</span></div><div class="line">    {</div><div class="line">        <span class="keywordflow">do</span> {</div><div class="line">            ask_user_for_credentials();</div><div class="line">        }</div><div class="line">        <span class="keywordflow">while</span>( !<a class="code" href="structmrmailbox__t.html#a42ca741cc08785585f1dc74d515be5ef">mrmailbox_configure_and_connect</a>(mailbox) )</div><div class="line">    }</div><div class="line">    free(file);</div><div class="line">}</div></div><!-- fragment --> 
+<p>Example:</p>
+<div class="fragment"><div class="line"><span class="keywordtype">char</span> dir[] = <span class="stringliteral">&quot;/dir/to/search/backups/in&quot;</span>;</div><div class="line"></div><div class="line"><span class="keywordtype">void</span> ask_user_for_credentials()</div><div class="line">{</div><div class="line">    <span class="comment">// - ask the user for email and password</span></div><div class="line">    <span class="comment">// - save them using mrmailbox_set_config()</span></div><div class="line">}</div><div class="line"></div><div class="line"><span class="keywordtype">int</span> ask_user_whether_to_import()</div><div class="line">{</div><div class="line">    <span class="comment">// - inform the user that we&#39;ve found a backup</span></div><div class="line">    <span class="comment">// - ask if he want to import it</span></div><div class="line">    <span class="comment">// - return 1 to import, 0 to skip</span></div><div class="line">    <span class="keywordflow">return</span> 1;</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keywordflow">if</span>( !<a class="code" href="structmrmailbox__t.html#aa6e325e49ecccfc96276db6c327dba94">mrmailbox_is_configured</a>(mailbox) )</div><div class="line">{</div><div class="line">    <span class="keywordtype">char</span>* file = NULL;</div><div class="line">    <span class="keywordflow">if</span>( (file=<a class="code" href="structmrmailbox__t.html#abcb59b494a430c2d3d6e77cf433f5755">mrmailbox_imex_has_backup</a>(mailbox, dir))!=NULL &amp;&amp; ask_user_whether_to_import() )</div><div class="line">    {</div><div class="line">        <a class="code" href="structmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f">mrmailbox_imex</a>(mailbox, MR_IMEX_IMPORT_BACKUP, file, NULL);</div><div class="line">        <a class="code" href="structmrmailbox__t.html#a67eef5ffc3369b8ad09326471b0a266f">mrmailbox_connect</a>(mailbox);</div><div class="line">    }</div><div class="line">    <span class="keywordflow">else</span></div><div class="line">    {</div><div class="line">        <span class="keywordflow">do</span> {</div><div class="line">            ask_user_for_credentials();</div><div class="line">        }</div><div class="line">        <span class="keywordflow">while</span>( !<a class="code" href="structmrmailbox__t.html#a42ca741cc08785585f1dc74d515be5ef">mrmailbox_configure_and_connect</a>(mailbox) )</div><div class="line">    }</div><div class="line">    free(file);</div><div class="line">}</div></div><!-- fragment --> 
 </div>
 </div>
 <a class="anchor" id="a3b55fcb1a91c616f032e160914406ed2"></a>
@@ -2999,7 +3000,7 @@ Public Attributes</h2></td></tr>
 <p>This is to promt for the password eg. before exporting keys/backup.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
+    <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>. </td></tr>
     <tr><td class="paramname">test_pw</td><td>Password to check.</td></tr>
   </table>
   </dd>
@@ -3008,12 +3009,12 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="af4d9c838230758e1b0e40957447232f7"></a>
+<a class="anchor" id="a8662e21a209936e2070f6a59479bfef4"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">char * mrmailbox_create_setup_code </td>
+          <td class="memname">char * mrmailbox_initiate_key_transfer </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
           <td class="paramname"><em>mailbox</em></td><td>)</td>
@@ -3022,16 +3023,18 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Create random setup code. </p>
-<p>The created "Autocrypt Level 1" setup code has the following form:</p>
-<div class="fragment"><div class="line">1234-1234-1234-</div><div class="line">1234-1234-1234-</div><div class="line">1234-1234-1234</div></div><!-- fragment --><p>Linebreaks and spaces are not added to the setup code, but the "-" are. Should be given to <a class="el" href="structmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f" title="Import/export things. ">mrmailbox_imex()</a> for encryption, should be wiped and free()'d after usage.</p>
+<p>Initiate Autocrypt key transfer. </p>
+<p>Before starting the key transfer with this function, the user should be asked:</p>
+<div class="fragment"><div class="line"><span class="stringliteral">&quot;The &#39;Autocrypt key transfer&#39; requires that the mail client on the other device is Autocrypt-compliant.</span></div><div class="line"><span class="stringliteral">We will then send the key to yourself. The key will be encrypted by a setup code which is displayed herer and must be typed on the other device.&quot;</span></div></div><!-- fragment --><p>After that, this function should be called to send the Autocrypt setup message. The required setup code is then returned by this function, does not contain linebreaks or spaces and has the follwing format:</p>
+<div class="fragment"><div class="line">1234-1234-1234-1234-1234-1234-1234-1234-1234</div></div><!-- fragment --><p>The setup code should be shown to the user then:</p>
+<div class="fragment"><div class="line"><span class="stringliteral">&quot;The setup message has been sent to yourself.</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">Please switch to the other device now and open the setup message.</span></div><div class="line"><span class="stringliteral">You should be promptet for a setup code.</span></div><div class="line"><span class="stringliteral">Please type the following digits into the prompt:</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">1234-1234-1234-</span></div><div class="line"><span class="stringliteral">1234-1234-1234-</span></div><div class="line"><span class="stringliteral">1234-1234-1234</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">Once you&#39;re done, your other device will be ready to use Autocrypt.&quot;</span></div></div><!-- fragment --><p>For more details about the Autocrypt setup process, please refer to <a href="https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message">https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">mailbox</td><td>Mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
+    <tr><td class="paramname">mailbox</td><td>The mailbox object.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Setup code, must be free()'d after usage. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The setup code. Must be free()'d after usage. On errors, eg. if the message could not be sent, NULL is returned. </dd></dl>
 
 </div>
 </div>
