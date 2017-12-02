@@ -1219,7 +1219,6 @@ cleanup:
  */
 char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 {
-	return safe_strdup("1234");
 	#define   CODE_ELEMS 9
 	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
 	uint16_t  buf[CODE_ELEMS];
