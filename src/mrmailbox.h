@@ -323,14 +323,13 @@ mrcontact_t*    mrmailbox_get_contact       (mrmailbox_t*, uint32_t contact_id);
 #define         MR_IMEX_IMPORT_SELF_KEYS      2 /* param1 is a directory where the keys are searched in and read from */
 #define         MR_IMEX_EXPORT_BACKUP        11 /* param1 is a directory where the backup is written to */
 #define         MR_IMEX_IMPORT_BACKUP        12 /* param1 is the file with the backup to import */
-#define         MR_IMEX_EXPORT_SETUP_MESSAGE 20 /* param1 is a directory where the setup file is written to */
 #define         MR_BAK_PREFIX                "delta-chat"
 #define         MR_BAK_SUFFIX                "bak"
 int             mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* param2);
 void            mrmailbox_imex_cancel       (mrmailbox_t*);
 char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
-char*           mrmailbox_create_setup_code (mrmailbox_t*);
+char*           mrmailbox_initiate_key_transfer(mrmailbox_t*);
 void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
@@ -415,7 +414,8 @@ void            mrmailbox_e2ee_encrypt      (mrmailbox_t*, const clist* recipien
 int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors); /* returns 1 if sth. was decrypted, 0 in other cases */
 void            mrmailbox_e2ee_thanks       (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
 int             mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
-
+char*           mrmailbox_create_setup_code (mrmailbox_t*);
+int             mrmailbox_render_setup_file (mrmailbox_t* mailbox, const char* passphrase, char** ret_msg);
 
 #ifdef __cplusplus
 } /* /extern "C" */

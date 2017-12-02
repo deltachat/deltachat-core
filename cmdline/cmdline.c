@@ -317,6 +317,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"export-keys\n"
 				"import-keys\n"
 				"export-setup\n"
+				"transfer-key\n"
 				"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 				"reset <flags>\n"
 				"============================================="
@@ -449,8 +450,23 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
 		char* setup_code = mrmailbox_create_setup_code(mailbox);
-			ret = mr_mprintf("Setup code for the exported setup: %s", setup_code);
-			mrmailbox_imex(mailbox, MR_IMEX_EXPORT_SETUP_MESSAGE, mailbox->m_blobdir, setup_code);
+		char* file_name = mr_mprintf("%s/autocrypt-key-backup.html", mailbox->m_blobdir);
+		char* file_content = NULL;
+			if( mrmailbox_render_setup_file(mailbox, setup_code, &file_content)
+			 && mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
+				ret = mr_mprintf("Setup message written to: %s\nSetup code: %s", file_name, setup_code);
+			}
+			else {
+				ret = COMMAND_FAILED;
+			}
+		free(file_content);
+		free(file_name);
+		free(setup_code);
+	}
+	else if( strcmp(cmd, "transfer-key")==0 )
+	{
+		char* setup_code = mrmailbox_initiate_key_transfer(mailbox);
+			ret = mr_mprintf("Setup code for the transferred setup message: %s", setup_code);
 		free(setup_code);
 	}
 	else if( strcmp(cmd, "poke")==0 )

@@ -91,7 +91,7 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  *     .....
  *     -----END PGP PRIVATE KEY BLOCK-----
  *
- * mrmailbox_render_keys_to_html() renders the body after the second
+ * mrmailbox_render_setup_file() renders the body after the second
  * `-==break1==` in this example.
  *
  * @private @memberof mrmailbox_t
@@ -104,7 +104,7 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  *
  * @return 1=success, 0=error
  */
-int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
+int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
 {
 	int                    success = 0, locked = 0;
 	sqlite3_stmt*          stmt = NULL;
@@ -361,34 +361,6 @@ cleanup:
 	mrkey_unref(curr_private_key);
 	free(encr_string);
 	free(self_addr);
-	return success;
-}
-
-
-static int export_setup_file(mrmailbox_t* mailbox, const char* dir, const char* setup_code)
-{
-	int           success = 0;
-	char*         file_content = NULL;
-	char*         file_name = NULL;
-
-	if( !mrmailbox_render_keys_to_html(mailbox, setup_code, &file_content) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot generate Autocrypt setup file,");
-		goto cleanup;
-	}
-
-	file_name = mr_mprintf("%s/autocrypt-key-backup.html", dir);
-	if( !mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot write keys to %s", file_name);
-	}
-	else {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-	}
-
-	success = 1;
-
-cleanup:
-	free(file_content);
-	free(file_name);
 	return success;
 }
 
@@ -984,12 +956,6 @@ int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const cha
 			}
 			break;
 
-		case MR_IMEX_EXPORT_SETUP_MESSAGE:
-			if( !export_setup_file(mailbox, param1, param2) ) {
-				goto cleanup;
-			}
-			break;
-
 		default:
 			goto cleanup;
 	}
@@ -1211,7 +1177,7 @@ cleanup:
  * Linebreaks and spaces are not added to the setup code, but the "-" are.
  * Should be given to  mrmailbox_imex() for encryption, should be wiped and free()'d after usage.
  *
- * @memberof mrmailbox_t
+ * @private @memberof mrmailbox_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
  *
@@ -1239,4 +1205,63 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 		(int)buf[0], (int)buf[1], (int)buf[2],
 		(int)buf[3], (int)buf[4], (int)buf[5],
 		(int)buf[6], (int)buf[7], (int)buf[8]);
+}
+
+
+/**
+ * Initiate Autocrypt key transfer.
+ *
+ * Before starting the key transfer with this function, the user should be asked:
+ *
+ * ```
+ * "The 'Autocrypt key transfer' requires that the mail client on the other device is Autocrypt-compliant.
+ * We will then send the key to yourself. The key will be encrypted by a setup code which is displayed herer and must be typed on the other device."
+ * ```
+ *
+ * After that, this function should be called to send the Autocrypt setup message.
+ * The required setup code is then returned by this function, does not contain
+ * linebreaks or spaces and has the follwing format:
+ *
+ * ```
+ * 1234-1234-1234-1234-1234-1234-1234-1234-1234
+ * ```
+ *
+ * The setup code should be shown to the user then:
+ *
+ * ```
+ * "The setup message has been sent to yourself.
+ *
+ * Please switch to the other device now and open the setup message.
+ * You should be promptet for a setup code.
+ * Please type the following digits into the prompt:
+ *
+ * 1234-1234-1234-
+ * 1234-1234-1234-
+ * 1234-1234-1234
+ *
+ * Once you're done, your other device will be ready to use Autocrypt."
+ * ```
+ *
+ * For more details about the Autocrypt setup process, please refer to
+ * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return The setup code. Must be free()'d after usage.
+ *     On errors, eg. if the message could not be sent, NULL is returned.
+ */
+char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
+{
+	char* setup_code = NULL;
+
+	if( (setup_code=mrmailbox_create_setup_code(mailbox)) ) {
+		goto cleanup;
+	}
+
+	// TODO: send message ...
+
+cleanup:
+	return setup_code;
 }
