@@ -171,6 +171,8 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	int s2k_spec = PGP_S2KS_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 0; // ~1000 iterations
 
+	#define HASH_ALG PGP_HASH_SHA256
+
 	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
 	(from netpgp/create.c) */
 
@@ -188,8 +190,8 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 			uint8_t     *hashed;
 
 			/* Hard-coded SHA1 for session key */
-			pgp_hash_any(&hash, PGP_HASH_SHA1);
-			hashsize = pgp_hash_size(PGP_HASH_SHA1);
+			pgp_hash_any(&hash, HASH_ALG);
+			hashsize = pgp_hash_size(HASH_ALG);
 			needed = AES_KEY_LENGTH - done;
 			size = MR_MIN(needed, hashsize);
 			if ((hashed = calloc(1, hashsize)) == NULL) {
@@ -256,7 +258,7 @@ int mrmailbox_render_keys_to_html(mrmailbox_t* mailbox, const char* passphrase, 
 	pgp_write_scalar   (encr_output, PGP_SA_AES_128, 1);     // 1 octet: symm. algo
 
 	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
-	pgp_write_scalar   (encr_output, PGP_HASH_SHA1, 1);      // 1 octet: S2 hash algo
+	pgp_write_scalar   (encr_output, HASH_ALG, 1);           // 1 octet: S2 hash algo
 	if( s2k_spec&PGP_S2KS_SALTED ) {
 	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: the salt
 	}
