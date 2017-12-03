@@ -3022,7 +3022,9 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int can_guarantee_e2ee = 0;
-	if( mailbox->m_e2ee_enabled ) {
+	int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
+	if( mailbox->m_e2ee_enabled && system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+	{
 		can_guarantee_e2ee = 1;
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
 			"SELECT ps.prefer_encrypted "

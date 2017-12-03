@@ -402,7 +402,11 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
-	if( chat->m_type==MR_CHAT_TYPE_GROUP )
+	if( mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0) == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+	{
+		ret = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE); /* do not add the "Chat:" prefix for setup messages */
+	}
+	else if( chat->m_type==MR_CHAT_TYPE_GROUP )
 	{
 		ret = mr_mprintf(MR_CHAT_PREFIX " %s: %s%s", chat->m_name, fwd, raw_subject);
 	}
@@ -433,7 +437,6 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	int                          parts = 0;
 	mrmailbox_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
-	int                          system_command = 0;
 	int                          force_unencrypted = 0;
 	char*                        grpimage = NULL;
 
@@ -501,14 +504,15 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		mrmsg_t*  msg  = factory->m_msg;
 
 		struct mailmime* meta_part = NULL;
+		char* placeholdertext = NULL;
 
 		/* build header etc. */
+		int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 		if( chat->m_type==MR_CHAT_TYPE_GROUP )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
 
-			system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
 				char* email_to_remove = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_remove ) {
@@ -531,6 +535,12 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), safe_strdup("0")));
 				}
 			}
+		}
+
+		if( system_command == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
+			placeholdertext = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
+			force_unencrypted = 1;
 		}
 
 		if( grpimage )
@@ -567,16 +577,19 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			fwdhint = safe_strdup("---------- Forwarded message ----------" LINEEND "From: Delta Chat" LINEEND LINEEND); /* do not chage this! expected this way in the simplifier to detect forwarding! */
 		}
 
-		int write_m_text = 0;
+		const char* final_text = NULL;
 		if( msg->m_type==MR_MSG_TEXT && msg->m_text && msg->m_text[0] ) { /* m_text may also contain data otherwise, eg. the filename of attachments */
-			write_m_text = 1;
+			final_text = msg->m_text;
+		}
+		else if( placeholdertext ) {
+			final_text = placeholdertext;
 		}
 
 		char* footer = factory->m_selfstatus;
 		message_text = mr_mprintf("%s%s%s%s%s",
 			fwdhint? fwdhint : "",
-			write_m_text? msg->m_text : "",
-			(write_m_text&&footer&&footer[0])? (LINEEND LINEEND) : "",
+			final_text? final_text : "",
+			(final_text&&footer&&footer[0])? (LINEEND LINEEND) : "",
 			(footer&&footer[0])? ("-- " LINEEND)  : "",
 			(footer&&footer[0])? footer       : "");
 		struct mailmime* text_part = build_body_text(message_text);
@@ -584,6 +597,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		parts++;
 
 		free(fwdhint);
+		free(placeholdertext);
 
 		/* add attachment part */
 		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {

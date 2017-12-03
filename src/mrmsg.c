@@ -824,10 +824,15 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_FILE:
-			pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
-			value = mr_get_filename(pathNfilename);
-			label = mrstock_str(MR_STR_FILE);
-			ret = mr_mprintf("%s: %s", label, value);
+			if( mrparam_get_int(param, MRP_SYSTEM_CMD, 0)==MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
+				ret = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE);
+			}
+			else {
+				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
+				value = mr_get_filename(pathNfilename);
+				label = mrstock_str(MR_STR_FILE);
+				ret = mr_mprintf("%s: %s", label, value);
+			}
 			break;
 
 		default:

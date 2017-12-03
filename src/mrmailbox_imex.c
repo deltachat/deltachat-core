@@ -32,6 +32,7 @@
 #include "mraheader.h"
 #include "mrapeerstate.h"
 #include "mrpgp.h"
+#include "mrmimefactory.h"
 
 
 static int s_imex_running = 0;
@@ -454,15 +455,53 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  */
 char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 {
-	char* setup_code = NULL;
+	int      success = 0;
+	char*    setup_code = NULL;
+	char*    setup_file_content = NULL;
+	char*    setup_file_name = NULL;
+	char*    self_name = NULL;
+	char*    self_addr = NULL;
+	uint32_t contact_id = 0;
+	uint32_t chat_id = 0;
+	mrmsg_t* msg = mrmsg_new();
 
-	if( (setup_code=mrmailbox_create_setup_code(mailbox)) ) {
+	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL
+	 || !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) {
 		goto cleanup;
 	}
 
-	// TODO: send message ...
+	if( (setup_file_name=mr_get_fine_pathNfilename(mailbox->m_blobdir, "autocrypt-setup-message.html")) == NULL
+	 || !mr_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), mailbox) ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "addr", "");
+		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
+	mrsqlite3_unlock(mailbox->m_sql);
+
+	if( (contact_id=mrmailbox_create_contact(mailbox, self_name, self_addr))==0
+	 || (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, contact_id))==0 ) {
+		goto cleanup;
+	}
+
+	msg->m_type = MR_MSG_FILE;
+	mrparam_set    (msg->m_param, MRP_FILE,       setup_file_name);
+	mrparam_set    (msg->m_param, MRP_MIMETYPE,   "application/autocrypt-setup");
+	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE);
+	if( mrmailbox_send_msg_object(mailbox, chat_id, msg) == 0 ) {
+		goto cleanup;
+	}
+
+	success = 1;
 
 cleanup:
+	if( !success ) { free(setup_code); setup_code = NULL; }
+	free(setup_file_name);
+	free(setup_file_content);
+	mrmsg_unref(msg);
+	free(self_name);
+	free(self_addr);
 	return setup_code;
 }
 

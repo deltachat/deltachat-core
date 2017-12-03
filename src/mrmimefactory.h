@@ -38,6 +38,7 @@ typedef struct mrmailbox_t mrmailbox_t;
 #define MR_SYSTEM_GROUPIMAGE_CHANGED          3
 #define MR_SYSTEM_MEMBER_ADDED_TO_GROUP       4
 #define MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP   5
+#define MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE     6
 
 
 typedef enum {
