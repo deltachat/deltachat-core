@@ -2955,7 +2955,9 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 			char* emlname = mr_mprintf("%s/to-smtp-%i.eml", mailbox->m_blobdir, (int)mimefactory.m_msg->m_id);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {
-				fwrite(mimefactory.m_out->str, 1, mimefactory.m_out->len, emlfileob);
+				if( mimefactory.m_out ) {
+					fwrite(mimefactory.m_out->str, 1, mimefactory.m_out->len, emlfileob);
+				}
 				fclose(emlfileob);
 			}
 			free(emlname);
