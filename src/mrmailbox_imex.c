@@ -64,7 +64,7 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  *     <html>
  *     <body>
  *     <p>
- *     	This is the Autocrypt setup file used to transfer keys between clients.
+ *     	This is the Autocrypt Setup File used to transfer keys between clients.
  *     </p>
  *     <pre>
  *     -----BEGIN PGP MESSAGE-----
@@ -122,6 +122,9 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 	pgp_output_t*          encr_output = NULL;
 	pgp_memory_t*          encr_mem = NULL;
 	char*                  encr_string = NULL;
+
+	char*                  setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE);
+	char*                  setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
 
 
 	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
@@ -331,19 +334,19 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 		"<!DOCTYPE html>" LINEEND
 		"<html>" LINEEND
 			"<head>" LINEEND
-				"<title>Autocrypt setup file</title>" LINEEND
+				"<title>%s</title>" LINEEND
 			"</head>" LINEEND
 			"<body>" LINEEND
-				"<h1>Autocrypt setup file</h1>" LINEEND
-				"<p>This is the <a href=\"https://autocrypt.org\">Autocrypt</a> setup file used to transfer your secret key between clients.</p>" LINEEND
-                "<p>You can decrypt it using the setup code presented on your old device. Hint: The setup code starts with: <em>%s</em></p>" LINEEND
-				"<h2>Encrypted key</h2>" LINEEND
+				"<h1>%s</h1>" LINEEND
+				"<p>%s</p>" LINEEND
 				"<pre>" LINEEND
 				"%s" LINEEND
 				"</pre>" LINEEND
 			"</body>" LINEEND
 		"</html>" LINEEND,
-		passphrase_begin,
+		setup_message_title,
+		setup_message_title,
+		setup_message_body,
 		encr_string);
 
 	success = 1;
@@ -361,6 +364,9 @@ cleanup:
 	mrkey_unref(curr_private_key);
 	free(encr_string);
 	free(self_addr);
+
+	free(setup_message_title);
+	free(setup_message_body);
 	return success;
 }
 
@@ -528,7 +534,7 @@ cleanup:
 
 static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 {
-	/* hint: even if we switch to import Autocrypt Setup files, we should leave the possibility to import
+	/* hint: even if we switch to import Autocrypt Setup Files, we should leave the possibility to import
 	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
 	Importing ASC keys is useful to use keys in Delta Chat used by any other non-Autocrypt-PGP implementation.
 

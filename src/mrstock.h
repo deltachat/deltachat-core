@@ -70,6 +70,8 @@ extern "C" {
 #define MR_STR_E2E_DIS_BY_RCPT            37
 #define MR_STR_ARCHIVEDCHATS              40
 #define MR_STR_STARREDMSGS                41
+#define MR_STR_AC_SETUP_MSG_TITLE         42
+#define MR_STR_AC_SETUP_MSG_BODY          43
 
 
 /* should be set up by mrmailbox_new() */
