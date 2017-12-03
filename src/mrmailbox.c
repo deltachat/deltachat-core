@@ -2802,7 +2802,7 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
-		mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
+		mrmailbox_send_msg_object(mailbox, chat_id, msg);
 	}
 	else
 	#endif
@@ -3121,7 +3121,7 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 {
 	char* pathNfilename = NULL;
 
-	if( mailbox == NULL || msg == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || msg == NULL ) { /* we do not check for "chat_id <= MR_CHAT_ID_LAST_SPECIAL" as special chats may be needed eg. for the setup message */
 		return 0;
 	}
 
@@ -3700,7 +3700,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	mrmsg_t*  msg = mrmsg_new();
 	char*     q3 = NULL;
 
-	if( mailbox==NULL || new_name==NULL || new_name[0]==0 ) {
+	if( mailbox==NULL || new_name==NULL || new_name[0]==0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3736,7 +3736,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_GROUPNAME_CHANGED);
-		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3779,7 +3779,7 @@ int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, con
 	mrchat_t* chat = mrchat_new(mailbox);
 	mrmsg_t*  msg = mrmsg_new();
 
-	if( mailbox==NULL ) {
+	if( mailbox==NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3811,7 +3811,7 @@ int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, con
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, new_image);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
-		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3902,7 +3902,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	mrmsg_t*     msg = mrmsg_new();
 	char*        self_addr = NULL;
 
-	if( mailbox == NULL || contact == NULL ) {
+	if( mailbox == NULL || contact == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3944,7 +3944,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-		msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
+		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -3987,7 +3987,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 	mrmsg_t*     msg = mrmsg_new();
 	char*        q3 = NULL;
 
-	if( mailbox == NULL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
+	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
 	}                 /* this allows to delete pending references to deleted contacts.  Of course, this should _not_ happen. */
 
@@ -4023,7 +4023,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			}
 			mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
 			mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-			msg->m_id = mrmailbox_send_msg_object(mailbox, chat->m_id, msg);
+			msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
 	}
