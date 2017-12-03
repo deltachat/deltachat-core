@@ -39,7 +39,7 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
 
 
 /*******************************************************************************
- * Export setup file
+ * Autocrypt key transfer
  ******************************************************************************/
 
 
@@ -365,8 +365,166 @@ cleanup:
 }
 
 
+/**
+ * Create random setup code.
+ *
+ * The created "Autocrypt Level 1" setup code has the form `1234-1234-1234-1234-1234-1234-1234-1234-1234`.
+ * Linebreaks and spaces are not added to the setup code, but the `-` are.
+ * The setup code is typically given to mrmailbox_render_setup_file().
+ *
+ * A higher-level function to initiate the key transfer is mrmailbox_initiate_key_transfer().
+ *
+ * @private @memberof mrmailbox_t
+ *
+ * @param mailbox Mailbox object as created by mrmailbox_new().
+ *
+ * @return Setup code, must be free()'d after usage. NULL on errors.
+ */
+char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
+{
+	#define   CODE_ELEMS 9
+	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
+	uint16_t  buf[CODE_ELEMS];
+	int       i;
+
+	if( !RAND_bytes((unsigned char*)buf, BUF_BYTES) ) {
+		mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
+		RAND_pseudo_bytes((unsigned char*)buf, BUF_BYTES);
+	}
+
+	for( i = 0; i < CODE_ELEMS; i++ ) {
+		buf[i] = buf[i] % 10000; /* force all blocks into the range 0..9999 */
+	}
+
+	return mr_mprintf("%04i-%04i-%04i-"
+	                  "%04i-%04i-%04i-"
+	                  "%04i-%04i-%04i",
+		(int)buf[0], (int)buf[1], (int)buf[2],
+		(int)buf[3], (int)buf[4], (int)buf[5],
+		(int)buf[6], (int)buf[7], (int)buf[8]);
+}
+
+
+/**
+ * Initiate Autocrypt key transfer.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return The setup code. Must be free()'d after usage.
+ *     On errors, eg. if the message could not be sent, NULL is returned.
+ *
+ * Before starting the key transfer with this function, the user should be asked:
+ *
+ * ```
+ * "The 'Autocrypt key transfer' requires that the mail client on the other device is Autocrypt-compliant.
+ * We will then send the key to yourself. The key will be encrypted by a setup code which is displayed here and must be typed on the other device."
+ * ```
+ *
+ * After that, this function should be called to send the Autocrypt setup message.
+ * The required setup code is then returned in the following format:
+ *
+ * ```
+ * 1234-1234-1234-1234-1234-1234-1234-1234-1234
+ * ```
+ *
+ * The setup code should be shown to the user then:
+ *
+ * ```
+ * "The setup message has been sent to yourself.
+ *
+ * Please switch to the other device now and open the setup message.
+ * You should be promptet for a setup code.
+ * Please type the following digits into the prompt:
+ *
+ * 1234 - 1234 - 1234 -
+ * 1234 - 1234 - 1234 -
+ * 1234 - 1234 - 1234
+ *
+ * Once you're done, your other device will be ready to use Autocrypt."
+ * ```
+ *
+ * For more details about the Autocrypt setup process, please refer to
+ * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
+ */
+char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
+{
+	char* setup_code = NULL;
+
+	if( (setup_code=mrmailbox_create_setup_code(mailbox)) ) {
+		goto cleanup;
+	}
+
+	// TODO: send message ...
+
+cleanup:
+	return setup_code;
+}
+
+
 /*******************************************************************************
- * Import keys
+ * Classic key export
+ ******************************************************************************/
+
+
+static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
+{
+	char* file_name;
+	if( is_default ) {
+		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
+	}
+	else {
+		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+	}
+	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	mr_delete_file(file_name, mailbox);
+	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
+		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
+	}
+	free(file_name);
+}
+
+
+static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
+{
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
+	int           id = 0, is_default = 0;
+	mrkey_t*      public_key = mrkey_new();
+	mrkey_t*      private_key = mrkey_new();
+	int           locked = 0;
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+			goto cleanup;
+		}
+
+		while( sqlite3_step(stmt)==SQLITE_ROW ) {
+			id = sqlite3_column_int(         stmt, 0  );
+			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
+			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
+			is_default = sqlite3_column_int( stmt, 3  );
+			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
+			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
+		}
+
+		success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( stmt ) { sqlite3_finalize(stmt); }
+	mrkey_unref(public_key);
+	mrkey_unref(private_key);
+	return success;
+}
+
+
+/*******************************************************************************
+ * Classic key import
  ******************************************************************************/
 
 
@@ -477,66 +635,6 @@ cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	free(self_addr);
 	return imported_count;
-}
-
-
-/*******************************************************************************
- * Export keys
- ******************************************************************************/
-
-
-static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const mrkey_t* key, int is_default)
-{
-	char* file_name;
-	if( is_default ) {
-		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
-	}
-	else {
-		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
-	}
-	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
-	mr_delete_file(file_name, mailbox);
-	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
-	}
-	free(file_name);
-}
-
-
-static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
-{
-	int           success = 0;
-	sqlite3_stmt* stmt = NULL;
-	int           id = 0, is_default = 0;
-	mrkey_t*      public_key = mrkey_new();
-	mrkey_t*      private_key = mrkey_new();
-	int           locked = 0;
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( (stmt=mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
-			goto cleanup;
-		}
-
-		while( sqlite3_step(stmt)==SQLITE_ROW ) {
-			id = sqlite3_column_int(         stmt, 0  );
-			mrkey_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
-			mrkey_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
-			is_default = sqlite3_column_int( stmt, 3  );
-			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
-			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
-		}
-
-		success = 1;
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt ) { sqlite3_finalize(stmt); }
-	mrkey_unref(public_key);
-	mrkey_unref(private_key);
-	return success;
 }
 
 
@@ -1160,108 +1258,4 @@ int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
 cleanup:
 	mrloginparam_unref(loginparam);
 	return success;
-}
-
-
-/**
- * Create random setup code.
- *
- * The created "Autocrypt Level 1" setup code has the following form:
- *
- * ```
- * 1234-1234-1234-
- * 1234-1234-1234-
- * 1234-1234-1234
- * ```
- *
- * Linebreaks and spaces are not added to the setup code, but the "-" are.
- * Should be given to  mrmailbox_imex() for encryption, should be wiped and free()'d after usage.
- *
- * @private @memberof mrmailbox_t
- *
- * @param mailbox Mailbox object as created by mrmailbox_new().
- *
- * @return Setup code, must be free()'d after usage.
- */
-char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
-{
-	#define   CODE_ELEMS 9
-	#define   BUF_BYTES  (CODE_ELEMS*sizeof(uint16_t))
-	uint16_t  buf[CODE_ELEMS];
-	int       i;
-
-	if( !RAND_bytes((unsigned char*)buf, BUF_BYTES) ) {
-		mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
-		RAND_pseudo_bytes((unsigned char*)buf, BUF_BYTES);
-	}
-
-	for( i = 0; i < CODE_ELEMS; i++ ) {
-		buf[i] = buf[i] % 10000; /* force all blocks into the range 0..9999 */
-	}
-
-	return mr_mprintf("%04i-%04i-%04i-"
-	                  "%04i-%04i-%04i-"
-	                  "%04i-%04i-%04i",
-		(int)buf[0], (int)buf[1], (int)buf[2],
-		(int)buf[3], (int)buf[4], (int)buf[5],
-		(int)buf[6], (int)buf[7], (int)buf[8]);
-}
-
-
-/**
- * Initiate Autocrypt key transfer.
- *
- * Before starting the key transfer with this function, the user should be asked:
- *
- * ```
- * "The 'Autocrypt key transfer' requires that the mail client on the other device is Autocrypt-compliant.
- * We will then send the key to yourself. The key will be encrypted by a setup code which is displayed herer and must be typed on the other device."
- * ```
- *
- * After that, this function should be called to send the Autocrypt setup message.
- * The required setup code is then returned by this function, does not contain
- * linebreaks or spaces and has the follwing format:
- *
- * ```
- * 1234-1234-1234-1234-1234-1234-1234-1234-1234
- * ```
- *
- * The setup code should be shown to the user then:
- *
- * ```
- * "The setup message has been sent to yourself.
- *
- * Please switch to the other device now and open the setup message.
- * You should be promptet for a setup code.
- * Please type the following digits into the prompt:
- *
- * 1234-1234-1234-
- * 1234-1234-1234-
- * 1234-1234-1234
- *
- * Once you're done, your other device will be ready to use Autocrypt."
- * ```
- *
- * For more details about the Autocrypt setup process, please refer to
- * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object.
- *
- * @return The setup code. Must be free()'d after usage.
- *     On errors, eg. if the message could not be sent, NULL is returned.
- */
-char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
-{
-	char* setup_code = NULL;
-
-	if( (setup_code=mrmailbox_create_setup_code(mailbox)) ) {
-		goto cleanup;
-	}
-
-	// TODO: send message ...
-
-cleanup:
-	return setup_code;
 }
