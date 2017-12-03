@@ -419,7 +419,7 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  *
  * ```
  * "The 'Autocrypt key transfer' requires that the mail client on the other device is Autocrypt-compliant.
- * We will then send the key to yourself. The key will be encrypted by a setup code which is displayed here and must be typed on the other device."
+ * You can then send the key to yourself. The key will be encrypted by a setup code which is displayed here and must be typed on the other device."
  * ```
  *
  * After that, this function should be called to send the Autocrypt setup message.
@@ -432,11 +432,9 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  * The setup code should be shown to the user then:
  *
  * ```
- * "The setup message has been sent to yourself.
- *
- * Please switch to the other device now and open the setup message.
- * You should be promptet for a setup code.
- * Please type the following digits into the prompt:
+ * "The key has been sent to yourself. Switch to the other device and
+ * open the setup message. You should be prompted for a setup code. Type
+ * the following digits into the prompt:
  *
  * 1234 - 1234 - 1234 -
  * 1234 - 1234 - 1234 -
