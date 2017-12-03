@@ -58,8 +58,8 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
  *     This is the Autocrypt setup message.
  *
  *     --==break1==
- *     Content-Type: application/autocrypt-key-backup
- *     Content-Disposition: attachment; filename="autocrypt-key-backup.html"
+ *     Content-Type: application/autocrypt-setup
+ *     Content-Disposition: attachment; filename="autocrypt-setup-message.html"
  *
  *     <html>
  *     <body>
@@ -336,7 +336,7 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 			"<body>" LINEEND
 				"<h1>Autocrypt setup file</h1>" LINEEND
 				"<p>This is the <a href=\"https://autocrypt.org\">Autocrypt</a> setup file used to transfer your secret key between clients.</p>" LINEEND
-                "<p>To decrypt the key, you need the setup code that was shown to you when this file was created. Hint: The setup code starts with: <em>%s</em></p>" LINEEND
+                "<p>You can decrypt it using the setup code presented on your old device. Hint: The setup code starts with: <em>%s</em></p>" LINEEND
 				"<h2>Encrypted key</h2>" LINEEND
 				"<pre>" LINEEND
 				"%s" LINEEND

@@ -450,7 +450,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
 		char* setup_code = mrmailbox_create_setup_code(mailbox);
-		char* file_name = mr_mprintf("%s/autocrypt-key-backup.html", mailbox->m_blobdir);
+		char* file_name = mr_mprintf("%s/autocrypt-setup-message.html", mailbox->m_blobdir);
 		char* file_content = NULL;
 			if( mrmailbox_render_setup_file(mailbox, setup_code, &file_content)
 			 && mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
