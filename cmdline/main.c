@@ -86,6 +86,10 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 				return (uintptr_t)ret;
 			}
 
+		case MR_EVENT_MSGS_CHANGED:
+			printf("{{Received MR_EVENT_MSGS_CHANGED(%i, %i)}}\n", (int)data1, (int)data2);
+			break;
+
 		case MR_EVENT_IMEX_PROGRESS:
 			printf("{{Received MR_EVENT_IMEX_PROGRESS(%i ‰)}}\n", (int)data1);
 			break;

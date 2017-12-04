@@ -517,6 +517,7 @@ cleanup:
 	return setup_code;
 }
 
+
 /**
  * Continue the Autocrypt Key Transfer on another device.
  *

@@ -246,6 +246,7 @@ int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 	locked = 1;
 
 		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
+			mrmailbox_log_warning(mailbox, 0, "Cannot ensure secret key if mailbox is not configured.");
 			goto cleanup;
 		}
 
