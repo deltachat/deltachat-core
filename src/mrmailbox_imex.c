@@ -134,6 +134,10 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 
 	/* create the payload */
 
+	if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
+		goto cleanup;
+	}
+
 	{
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
