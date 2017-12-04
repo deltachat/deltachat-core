@@ -290,6 +290,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aa6e325e49ecccfc96276db6c327dba94"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#aa6e325e49ecccfc96276db6c327dba94">mrmailbox_is_configured</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
 <tr class="memdesc:aa6e325e49ecccfc96276db6c327dba94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the mailbox is already configured.  <a href="#aa6e325e49ecccfc96276db6c327dba94">More...</a><br /></td></tr>
 <tr class="separator:aa6e325e49ecccfc96276db6c327dba94"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8662e21a209936e2070f6a59479bfef4"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4">mrmailbox_initiate_key_transfer</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
+<tr class="memdesc:a8662e21a209936e2070f6a59479bfef4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiate Autocrypt key transfer.  <a href="#a8662e21a209936e2070f6a59479bfef4">More...</a><br /></td></tr>
+<tr class="separator:a8662e21a209936e2070f6a59479bfef4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13fde8828b56c0fe94227d0b105c5708"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a13fde8828b56c0fe94227d0b105c5708">mrmailbox_continue_key_transfer</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t msg_id, const char *setup_code)</td></tr>
+<tr class="memdesc:a13fde8828b56c0fe94227d0b105c5708"><td class="mdescLeft">&#160;</td><td class="mdescRight">Continue the key transfer on another device.  <a href="#a13fde8828b56c0fe94227d0b105c5708">More...</a><br /></td></tr>
+<tr class="separator:a13fde8828b56c0fe94227d0b105c5708"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7db60273eae74ebbc74231f4c6d7204f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f">mrmailbox_imex</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, int what, const char *param1, const char *param2)</td></tr>
 <tr class="memdesc:a7db60273eae74ebbc74231f4c6d7204f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Import/export things.  <a href="#a7db60273eae74ebbc74231f4c6d7204f">More...</a><br /></td></tr>
 <tr class="separator:a7db60273eae74ebbc74231f4c6d7204f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -302,9 +308,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3b55fcb1a91c616f032e160914406ed2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a3b55fcb1a91c616f032e160914406ed2">mrmailbox_check_password</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox, const char *test_pw)</td></tr>
 <tr class="memdesc:a3b55fcb1a91c616f032e160914406ed2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the user is authorized by the given password in some way.  <a href="#a3b55fcb1a91c616f032e160914406ed2">More...</a><br /></td></tr>
 <tr class="separator:a3b55fcb1a91c616f032e160914406ed2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8662e21a209936e2070f6a59479bfef4"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4">mrmailbox_initiate_key_transfer</a> (<a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *mailbox)</td></tr>
-<tr class="memdesc:a8662e21a209936e2070f6a59479bfef4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiate Autocrypt key transfer.  <a href="#a8662e21a209936e2070f6a59479bfef4">More...</a><br /></td></tr>
-<tr class="separator:a8662e21a209936e2070f6a59479bfef4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -2844,6 +2847,80 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a8662e21a209936e2070f6a59479bfef4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char * mrmailbox_initiate_key_transfer </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initiate Autocrypt key transfer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The setup code. Must be free()'d after usage. On errors, eg. if the message could not be sent, NULL is returned.</dd></dl>
+<p>Before starting the key transfer with this function, the user should be asked:</p>
+<div class="fragment"><div class="line"><span class="stringliteral">&quot;The &#39;Autocrypt key transfer&#39; requires that the mail client on the other device is Autocrypt-compliant.</span></div><div class="line"><span class="stringliteral">You can then send the key to yourself. The key will be encrypted by a setup code which is displayed here and must be typed on the other device.&quot;</span></div></div><!-- fragment --><p>After that, this function should be called to send the Autocrypt setup message. The required setup code is then returned in the following format:</p>
+<div class="fragment"><div class="line">1234-1234-1234-1234-1234-1234-1234-1234-1234</div></div><!-- fragment --><p>The setup code should be shown to the user then:</p>
+<div class="fragment"><div class="line"><span class="stringliteral">&quot;The key has been sent to yourself. Switch to the other device and</span></div><div class="line"><span class="stringliteral">open the setup message. You should be prompted for a setup code. Type</span></div><div class="line"><span class="stringliteral">the following digits into the prompt:</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">1234 - 1234 - 1234 -</span></div><div class="line"><span class="stringliteral">1234 - 1234 - 1234 -</span></div><div class="line"><span class="stringliteral">1234 - 1234 - 1234</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">Once you&#39;re done, your other device will be ready to use Autocrypt.&quot;</span></div></div><!-- fragment --><p>On the <em>other device</em> you will call <a class="el" href="structmrmailbox__t.html#a13fde8828b56c0fe94227d0b105c5708" title="Continue the key transfer on another device. ">mrmailbox_continue_key_transfer()</a> then for setup messages identified by <a class="el" href="structmrmsg__t.html#ab669ae58ca580d2694c6df3c95ddb89a" title="Check if the message is an Autocrypt Setup Message. ">mrmsg_is_setupmessage()</a>.</p>
+<p>For more details about the Autocrypt setup process, please refer to <a href="https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message">https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message</a> </p>
+
+</div>
+</div>
+<a class="anchor" id="a13fde8828b56c0fe94227d0b105c5708"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmailbox_continue_key_transfer </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>msg_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>setup_code</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Continue the key transfer on another device. </p>
+<p>If you have started the key transfer on another device using <a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4" title="Initiate Autocrypt key transfer. ">mrmailbox_initiate_key_transfer()</a> and you've detected a setup message with <a class="el" href="structmrmsg__t.html#ab669ae58ca580d2694c6df3c95ddb89a" title="Check if the message is an Autocrypt Setup Message. ">mrmsg_is_setupmessage()</a>, you should prompt the user for the setup code and call this function then.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object. </td></tr>
+    <tr><td class="paramname">msg_id</td><td>ID of the setup message to decrypt. </td></tr>
+    <tr><td class="paramname">setup_code</td><td>Setup code entered by the user. This is the same setup code as returned from <a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4" title="Initiate Autocrypt key transfer. ">mrmailbox_initiate_key_transfer()</a> on the other device. There is no need to format the string correctly, the function will remove all spaces and other characters and insert the <code>-</code> characters at the correct places.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=key successfully decrypted and imported; both devices will use the same key now; 0=key transfer failed eg. due to a bad setup code. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="a7db60273eae74ebbc74231f4c6d7204f"></a>
 <div class="memitem">
 <div class="memproto">
@@ -3006,35 +3083,6 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>1=user is authorized, 0=user is not authorized. </dd></dl>
-
-</div>
-</div>
-<a class="anchor" id="a8662e21a209936e2070f6a59479bfef4"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char * mrmailbox_initiate_key_transfer </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="structmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
-          <td class="paramname"><em>mailbox</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Initiate Autocrypt key transfer. </p>
-<p>Before starting the key transfer with this function, the user should be asked:</p>
-<div class="fragment"><div class="line"><span class="stringliteral">&quot;The &#39;Autocrypt key transfer&#39; requires that the mail client on the other device is Autocrypt-compliant.</span></div><div class="line"><span class="stringliteral">We will then send the key to yourself. The key will be encrypted by a setup code which is displayed herer and must be typed on the other device.&quot;</span></div></div><!-- fragment --><p>After that, this function should be called to send the Autocrypt setup message. The required setup code is then returned by this function, does not contain linebreaks or spaces and has the follwing format:</p>
-<div class="fragment"><div class="line">1234-1234-1234-1234-1234-1234-1234-1234-1234</div></div><!-- fragment --><p>The setup code should be shown to the user then:</p>
-<div class="fragment"><div class="line"><span class="stringliteral">&quot;The setup message has been sent to yourself.</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">Please switch to the other device now and open the setup message.</span></div><div class="line"><span class="stringliteral">You should be promptet for a setup code.</span></div><div class="line"><span class="stringliteral">Please type the following digits into the prompt:</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">1234-1234-1234-</span></div><div class="line"><span class="stringliteral">1234-1234-1234-</span></div><div class="line"><span class="stringliteral">1234-1234-1234</span></div><div class="line"><span class="stringliteral"></span></div><div class="line"><span class="stringliteral">Once you&#39;re done, your other device will be ready to use Autocrypt.&quot;</span></div></div><!-- fragment --><p>For more details about the Autocrypt setup process, please refer to <a href="https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message">https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message</a></p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">mailbox</td><td>The mailbox object.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The setup code. Must be free()'d after usage. On errors, eg. if the message could not be sent, NULL is returned. </dd></dl>
 
 </div>
 </div>
