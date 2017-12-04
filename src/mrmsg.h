@@ -134,6 +134,8 @@ int             mrmsg_is_forwarded          (mrmsg_t*);
 int             mrmsg_is_systemcmd          (mrmsg_t*);
 int             mrmsg_is_increation         (mrmsg_t*);
 
+int             mrmsg_is_setupmessage       (mrmsg_t*);
+
 void            mrmsg_latefiling_mediasize  (mrmsg_t*, int width, int height, int duration);
 
 

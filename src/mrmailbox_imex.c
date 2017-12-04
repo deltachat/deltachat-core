@@ -459,6 +459,9 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  * Once you're done, your other device will be ready to use Autocrypt."
  * ```
  *
+ * On the _other device_ you will call mrmailbox_continue_key_transfer() then
+ * for setup messages identified by mrmsg_is_setupmessage().
+ *
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
  */
@@ -512,6 +515,30 @@ cleanup:
 	free(self_name);
 	free(self_addr);
 	return setup_code;
+}
+
+/**
+ * Continue the key transfer on another device.
+ *
+ * If you have started the key transfer on another device using mrmailbox_initiate_key_transfer()
+ * and you've detected a setup message with mrmsg_is_setupmessage(), you should prompt the
+ * user for the setup code and call this function then.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ * @param msg_id ID of the setup message to decrypt.
+ * @param setup_code Setup code entered by the user. This is the same setup code as returned from
+ *     mrmailbox_initiate_key_transfer() on the other device.
+ *     There is no need to format the string correctly, the function will remove all spaces and other characters and
+ *     insert the `-` characters at the correct places.
+ *
+ * @return 1=key successfully decrypted and imported; both devices will use the same key now;
+ *     0=key transfer failed eg. due to a bad setup code.
+ */
+int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const char* setup_code)
+{
+	return 0;
 }
 
 

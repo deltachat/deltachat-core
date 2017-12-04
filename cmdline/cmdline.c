@@ -311,13 +311,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		{
 			ret = safe_strdup(
 				"====================Import-/export-commands==\n"
+				"initiate-key-transfer\n"
+				"continue-key-transfer <msg-id> <setup-code>\n"
 				"has-backup\n"
 				"export-backup\n"
 				"import-backup <backup-file>\n"
 				"export-keys\n"
 				"import-keys\n"
 				"export-setup\n"
-				"transfer-key\n"
 				"poke [<eml-file>|<folder>|<addr> <key-file>]\n"
 				"reset <flags>\n"
 				"============================================="
@@ -419,6 +420,24 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		mrmailbox_close(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
+	else if( strcmp(cmd, "initiate-key-transfer")==0 )
+	{
+		char* setup_code = mrmailbox_initiate_key_transfer(mailbox);
+			ret = mr_mprintf("Setup code for the transferred setup message: %s", setup_code);
+		free(setup_code);
+	}
+	else if( strcmp(cmd, "continue-key-transfer")==0 )
+	{
+		char* arg2 = NULL;
+		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
+		if( arg1 && arg2 ) {
+			*arg2 = 0; arg2++;
+			ret = mrmailbox_continue_key_transfer(mailbox, atoi(arg1), arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Arguments <msg-id> <setup-code> expected.");
+		}
+	}
 	else if( strcmp(cmd, "has-backup")==0 )
 	{
 		ret = mrmailbox_imex_has_backup(mailbox, mailbox->m_blobdir);
@@ -461,12 +480,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			}
 		free(file_content);
 		free(file_name);
-		free(setup_code);
-	}
-	else if( strcmp(cmd, "transfer-key")==0 )
-	{
-		char* setup_code = mrmailbox_initiate_key_transfer(mailbox);
-			ret = mr_mprintf("Setup code for the transferred setup message: %s", setup_code);
 		free(setup_code);
 	}
 	else if( strcmp(cmd, "poke")==0 )
