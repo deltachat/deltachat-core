@@ -332,7 +332,7 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 	/* wrap HTML-commands with instructions around the encrypted payload */
 
 	{
-		char* setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE);
+		char* setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
 		char* setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
 
 		mr_str_replace(&setup_message_body, "\r", NULL);

@@ -404,7 +404,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 
 	if( mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0) == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
 	{
-		ret = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE); /* do not add the "Chat:" prefix for setup messages */
+		ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
 	else if( chat->m_type==MR_CHAT_TYPE_GROUP )
 	{
