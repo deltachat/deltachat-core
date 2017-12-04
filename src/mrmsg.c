@@ -672,6 +672,10 @@ int mrmsg_is_systemcmd(mrmsg_t* msg)
  */
 int mrmsg_is_setupmessage(mrmsg_t* msg)
 {
+	if( msg == NULL ) {
+		return 0;
+	}
+
 	return mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)==MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
 }
 

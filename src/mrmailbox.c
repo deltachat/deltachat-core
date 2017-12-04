@@ -3125,7 +3125,7 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 {
 	char* pathNfilename = NULL;
 
-	if( mailbox == NULL || msg == NULL ) { /* we do not check for "chat_id <= MR_CHAT_ID_LAST_SPECIAL" as special chats may be needed eg. for the setup message */
+	if( mailbox == NULL || msg == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
 
