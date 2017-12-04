@@ -144,6 +144,9 @@ char* mr_strlower(const char* in) /* the result must be free()'d */
 }
 
 
+/*
+ * haystack may be realloc()'d, returns the number of replacements.
+ */
 int mr_str_replace(char** haystack, const char* needle, const char* replacement)
 {
 	int replacements = 0, start_search_pos = 0, needle_len, replacement_len;

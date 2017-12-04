@@ -76,7 +76,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_ARCHIVEDCHATS:     return safe_strdup("Archived chats");
 		case MR_STR_STARREDMSGS:       return safe_strdup("Starred messages");
 		case MR_STR_AC_SETUP_MSG_TITLE:return safe_strdup("Autocrypt Setup Message");
-		case MR_STR_AC_SETUP_MSG_BODY: return safe_strdup("This is the Autocrypt Setup Message used to transfer your secret key between clients. You can decrypt it using the setup code presented on your old device.");
+		case MR_STR_AC_SETUP_MSG_BODY: return safe_strdup("This is the Autocrypt Setup Message used to transfer your secret key between clients.\n\nYou can decrypt it using the setup code presented on your old device.");
 	}
 	return safe_strdup("ErrStr");
 }

@@ -124,10 +124,6 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 	pgp_memory_t*          encr_mem = NULL;
 	char*                  encr_string = NULL;
 
-	char*                  setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE);
-	char*                  setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
-
-
 	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
 	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL ) {
 		goto cleanup;
@@ -331,24 +327,35 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 
 	/* wrap HTML-commands with instructions around the encrypted payload */
 
-	*ret_msg = mr_mprintf(
-		"<!DOCTYPE html>" LINEEND
-		"<html>" LINEEND
-			"<head>" LINEEND
-				"<title>%s</title>" LINEEND
-			"</head>" LINEEND
-			"<body>" LINEEND
-				"<h1>%s</h1>" LINEEND
-				"<p>%s</p>" LINEEND
-				"<pre>" LINEEND
-				"%s" LINEEND
-				"</pre>" LINEEND
-			"</body>" LINEEND
-		"</html>" LINEEND,
-		setup_message_title,
-		setup_message_title,
-		setup_message_body,
-		encr_string);
+	{
+		char* setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_TITLE);
+		char* setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
+
+		mr_str_replace(&setup_message_body, "\r", NULL);
+		mr_str_replace(&setup_message_body, "\n", "<br>");
+
+		*ret_msg = mr_mprintf(
+			"<!DOCTYPE html>" LINEEND
+			"<html>" LINEEND
+				"<head>" LINEEND
+					"<title>%s</title>" LINEEND
+				"</head>" LINEEND
+				"<body>" LINEEND
+					"<h1>%s</h1>" LINEEND
+					"<p>%s</p>" LINEEND
+					"<pre>" LINEEND
+					"%s" LINEEND
+					"</pre>" LINEEND
+				"</body>" LINEEND
+			"</html>" LINEEND,
+			setup_message_title,
+			setup_message_title,
+			setup_message_body,
+			encr_string);
+
+		free(setup_message_title);
+		free(setup_message_body);
+	}
 
 	success = 1;
 
@@ -366,8 +373,6 @@ cleanup:
 	free(encr_string);
 	free(self_addr);
 
-	free(setup_message_title);
-	free(setup_message_body);
 	return success;
 }
 
