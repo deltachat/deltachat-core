@@ -1200,6 +1200,9 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 							if( strcasecmp(optional_field->fld_name, "X-MrMsg")==0 || strcasecmp(optional_field->fld_name, "Chat-Version")==0 ) {
 								ths->m_is_send_by_messenger = 1;
 							}
+							else if( strcasecmp(optional_field->fld_name, "Autocrypt-Setup-Message")==0 ) {
+								ths->m_is_system_message = MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE;
+							}
 						}
 					}
 				}

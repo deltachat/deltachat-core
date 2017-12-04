@@ -386,6 +386,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			incoming = 1;
 		}
 
+		if( mime_parser->m_is_system_message == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
+			incoming = 1;
+		}
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
@@ -399,9 +402,12 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
-					incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
-					              for these messages, the `Return-Path:` is set although we're the sender.  To correct these cases, we add an
-					              additional From: check - which, however, will not work for older From:-addresses used on the mailbox. */
+					if( mime_parser->m_is_system_message != MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+					{
+						incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
+									  for these messages, the `Return-Path:` is set although we're the sender.  To correct these cases, we add an
+									  additional From: check - which, however, will not work for older From:-addresses used on the mailbox. */
+					}
 				}
 				else
 				{
@@ -664,6 +670,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
 			}
 
+			mrmailbox_log_info(ths, 0, "Message has %i parts and is moved to chat #%i.", icnt, chat_id);
+
 			/* check event to send */
 			if( chat_id == MR_CHAT_ID_TRASH )
 			{
@@ -684,7 +692,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					create_event_to_send = MR_EVENT_INCOMING_MSG;
 				}
 			}
-
 		}
 
 

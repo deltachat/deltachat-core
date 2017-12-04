@@ -420,13 +420,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		mrmailbox_close(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
-	else if( strcmp(cmd, "initiate-key-transfer")==0 || strcmp(cmd, "ikt")==0 )
+	else if( strcmp(cmd, "initiate-key-transfer")==0 )
 	{
 		char* setup_code = mrmailbox_initiate_key_transfer(mailbox);
 			ret = setup_code? mr_mprintf("Setup code for the transferred setup message: %s", setup_code) : COMMAND_FAILED;
 		free(setup_code);
 	}
-	else if( strcmp(cmd, "continue-key-transfer")==0 || strcmp(cmd, "ckt")==0 )
+	else if( strcmp(cmd, "continue-key-transfer")==0 )
 	{
 		char* arg2 = NULL;
 		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
