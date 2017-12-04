@@ -40,7 +40,7 @@ static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() fro
 
 
 /*******************************************************************************
- * Autocrypt key transfer
+ * Autocrypt Key Transfer
  ******************************************************************************/
 
 
@@ -422,7 +422,7 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 
 
 /**
- * Initiate Autocrypt key transfer.
+ * Initiate Autocrypt Key Transfer.
  *
  * @memberof mrmailbox_t
  *
@@ -434,7 +434,7 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  * Before starting the key transfer with this function, the user should be asked:
  *
  * ```
- * "The 'Autocrypt key transfer' requires that the mail client on the other device is Autocrypt-compliant.
+ * "The 'Autocrypt Key Transfer' requires that the mail client on the other device is Autocrypt-compliant.
  * You can then send the key to yourself. The key will be encrypted by a setup code which is displayed here and must be typed on the other device."
  * ```
  *
@@ -518,7 +518,7 @@ cleanup:
 }
 
 /**
- * Continue the key transfer on another device.
+ * Continue the Autocrypt Key Transfer on another device.
  *
  * If you have started the key transfer on another device using mrmailbox_initiate_key_transfer()
  * and you've detected a setup message with mrmsg_is_setupmessage(), you should prompt the
