@@ -145,6 +145,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a8c8c1f342f01439ae40c5cf37532387e"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a8c8c1f342f01439ae40c5cf37532387e">mrmsg_get_summarytext</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg, int approx_characters)</td></tr>
 <tr class="memdesc:a8c8c1f342f01439ae40c5cf37532387e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a message summary as a single line of text.  <a href="#a8c8c1f342f01439ae40c5cf37532387e">More...</a><br /></td></tr>
 <tr class="separator:a8c8c1f342f01439ae40c5cf37532387e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7714f0f25b2e933dae0898965373b27d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#a7714f0f25b2e933dae0898965373b27d">mrmsg_is_sent</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
+<tr class="memdesc:a7714f0f25b2e933dae0898965373b27d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a message was sent successfully.  <a href="#a7714f0f25b2e933dae0898965373b27d">More...</a><br /></td></tr>
+<tr class="separator:a7714f0f25b2e933dae0898965373b27d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af202a7e7527df4681cd3ea24f779848f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrmsg__t.html#af202a7e7527df4681cd3ea24f779848f">mrmsg_is_starred</a> (<a class="el" href="structmrmsg__t.html">mrmsg_t</a> *msg)</td></tr>
 <tr class="memdesc:af202a7e7527df4681cd3ea24f779848f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a message is starred.  <a href="#af202a7e7527df4681cd3ea24f779848f">More...</a><br /></td></tr>
 <tr class="separator:af202a7e7527df4681cd3ea24f779848f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -260,6 +263,7 @@ Public Attributes</h2></td></tr>
 <li>MR_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state MR_STATE_OUT_ERROR if we get such a hint from the server. If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a10c4a8b6fa9014e5725e3a1daadf301b" title="A single message is send successfully (state changed from MR_STATE_OUT_PENDING to MR_STATE_OUT_DELIVE...">MR_EVENT_MSG_DELIVERED</a>.</li>
 <li>MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side) If a sent message changes to this state, you'll receive the event <a class="el" href="mrevent_8h.html#a080965cf1f3dd138999c56ec30580b58" title="A single message is read by the receiver (state changed from MR_STATE_OUT_DELIVERED to MR_STATE_OUT_M...">MR_EVENT_MSG_READ</a>.</li>
 </ul>
+<p>If you just want to check if a message is sent or not, please use <a class="el" href="structmrmsg__t.html#a7714f0f25b2e933dae0898965373b27d" title="Check if a message was sent successfully. ">mrmsg_is_sent()</a> which regards all states accordingly.</p>
 <p>The state of just created message objects is MR_STATE_UNDEFINED (0). The state is always set by the core-library, users of the library cannot set the state directly, but it is changed implicitly eg. when calling <a class="el" href="structmrmailbox__t.html#a07cc8fe0cfd900a9449bffc4ca5a7a95" title="Mark all message in a chat as noticed. ">mrmailbox_marknoticed_chat()</a> or <a class="el" href="structmrmailbox__t.html#a67281e50b568dc18df710275e0e13f5b" title="Mark a message as seen, updates the IMAP state and sends MDNs. ">mrmailbox_markseen_msgs()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -649,6 +653,32 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a7714f0f25b2e933dae0898965373b27d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrmsg_is_sent </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrmsg__t.html">mrmsg_t</a> *&#160;</td>
+          <td class="paramname"><em>msg</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if a message was sent successfully. </p>
+<p>Currently, "sent" messages are messages that are in the state "delivered" or "mdn received", see <a class="el" href="structmrmsg__t.html#a1f411e4be17fb5fe408a1aa74cba90a5" title="Get the state of a message. ">mrmsg_get_state()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">msg</td><td>The message object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=message sent successfully, 0=message not yet sent or message is an incoming message. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="af202a7e7527df4681cd3ea24f779848f"></a>
 <div class="memitem">
 <div class="memproto">
@@ -747,8 +777,8 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Check if the message is an Autocrypt Setup Message. </p>
-<p>Setup messages should be shown in an unique way eg. using a different text color. On a click or another action, the user should be prompted for the setup code which is forwarded to <a class="el" href="structmrmailbox__t.html#a13fde8828b56c0fe94227d0b105c5708" title="Continue the key transfer on another device. ">mrmailbox_continue_key_transfer()</a> then.</p>
-<p>Setup message are typically generated by <a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4" title="Initiate Autocrypt key transfer. ">mrmailbox_initiate_key_transfer()</a> on another device.</p>
+<p>Setup messages should be shown in an unique way eg. using a different text color. On a click or another action, the user should be prompted for the setup code which is forwarded to <a class="el" href="structmrmailbox__t.html#a13fde8828b56c0fe94227d0b105c5708" title="Continue the Autocrypt Key Transfer on another device. ">mrmailbox_continue_key_transfer()</a> then.</p>
+<p>Setup message are typically generated by <a class="el" href="structmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4" title="Initiate Autocrypt Key Transfer. ">mrmailbox_initiate_key_transfer()</a> on another device.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object.</td></tr>
