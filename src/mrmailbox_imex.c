@@ -22,6 +22,7 @@
 
 #include <assert.h>
 #include <dirent.h>
+#include <unistd.h> /* for sleep() */
 #include <openssl/rand.h>
 #include <libetpan/mmapstring.h>
 #include <netpgp-extra.h>
@@ -476,6 +477,7 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 	uint32_t contact_id = 0;
 	uint32_t chat_id = 0;
 	mrmsg_t* msg = NULL;
+	uint32_t msg_id = 0;
 
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
 		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
@@ -517,9 +519,31 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 
 	CHECK_EXIT
 
-	if( mrmailbox_send_msg_object(mailbox, chat_id, msg) == 0 ) {
+	if( (msg_id = mrmailbox_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
 		goto cleanup;
 	}
+
+	mrmsg_unref(msg);
+	msg = NULL;
+
+	/* wait until the message is really sent */
+	mrmailbox_log_info(mailbox, 0, "Wait for setup message being sent ...");
+
+	while( 1 )
+	{
+		CHECK_EXIT
+
+		sleep(1);
+
+		msg = mrmailbox_get_msg(mailbox, msg_id);
+		if( mrmsg_is_sent(msg) ) {
+			break;
+		}
+		mrmsg_unref(msg);
+		msg = NULL;
+	}
+
+	mrmailbox_log_info(mailbox, 0, "... setup message sent.");
 
 	success = 1;
 

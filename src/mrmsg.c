@@ -147,6 +147,8 @@ int mrmsg_get_type(mrmsg_t* msg)
  * - MR_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side)
  *   If a sent message changes to this state, you'll receive the event #MR_EVENT_MSG_READ.
  *
+ * If you just want to check if a message is sent or not, please use mrmsg_is_sent() which regards all states accordingly.
+ *
  * The state of just created message objects is MR_STATE_UNDEFINED (0).
  * The state is always set by the core-library, users of the library cannot set the state directly, but it is changed implicitly eg.
  * when calling  mrmailbox_marknoticed_chat() or mrmailbox_markseen_msgs().
@@ -572,6 +574,27 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 	}
 
 	return mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
+}
+
+
+/**
+ * Check if a message was sent successfully.
+ *
+ * Currently, "sent" messages are messages that are in the state "delivered" or "mdn received",
+ * see mrmsg_get_state().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return 1=message sent successfully, 0=message not yet sent or message is an incoming message.
+ */
+int mrmsg_is_sent(mrmsg_t* msg)
+{
+	if( msg == 0 ) {
+		return 0;
+	}
+	return (msg->m_state >= MR_STATE_OUT_DELIVERED)? 1 : 0;
 }
 
 

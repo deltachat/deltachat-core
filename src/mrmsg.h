@@ -94,7 +94,7 @@ typedef struct mrmsg_t
 	#define         MR_STATE_IN_SEEN       16
 	#define         MR_STATE_OUT_PENDING   20
 	#define         MR_STATE_OUT_ERROR     24
-	#define         MR_STATE_OUT_DELIVERED 26
+	#define         MR_STATE_OUT_DELIVERED 26 /* to check if a mail was sent, use mrmsg_is_sent() */
 	#define         MR_STATE_OUT_MDN_RCVD  28
 
 	time_t          m_timestamp;              /**< Unix time the message was sended or received. 0 if unset. */
@@ -129,6 +129,7 @@ int             mrmsg_get_duration          (mrmsg_t*);
 int             mrmsg_get_showpadlock       (mrmsg_t*);
 mrlot_t*        mrmsg_get_summary           (mrmsg_t*, mrchat_t*);
 char*           mrmsg_get_summarytext       (mrmsg_t*, int approx_characters);
+int             mrmsg_is_sent               (mrmsg_t*);
 int             mrmsg_is_starred            (mrmsg_t*);
 int             mrmsg_is_forwarded          (mrmsg_t*);
 int             mrmsg_is_systemcmd          (mrmsg_t*);
