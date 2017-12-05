@@ -436,7 +436,12 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  * ```
  *
  * After that, this function should be called to send the Autocrypt setup message.
- * The required setup code is then returned in the following format:
+ * The function creates the setup message and waits until it is really sent.
+ * As this may take a while, it is recommended to start the function in a separate thread;
+ * to interrupt it, you can use mrmailbox_stop_ongoing_process().
+ *
+ *
+ * After everything succeeded, the required setup code is returned in the following format:
  *
  * ```
  * 1234-1234-1234-1234-1234-1234-1234-1234-1234
@@ -461,10 +466,6 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  *
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
- *
- * NB: If the user has never sent a message before, this function requires a key to be created.
- * In this case, the function may take some seconds to finish and it might be a good idea
- * to start it in a separate thread. If so, it can be interrupted using mrmailbox_stop_ongoing_process().
  */
 char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 {
@@ -484,13 +485,13 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 	}
 	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
 
-	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL ) {
+	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) {
+	if( !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) { /* encrypting may also take a while ... */
 		goto cleanup;
 	}
 
