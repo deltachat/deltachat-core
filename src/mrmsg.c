@@ -703,6 +703,28 @@ int mrmsg_is_setupmessage(mrmsg_t* msg)
 }
 
 
+/**
+ * Get the first characters of the setup code.
+ *
+ * Typically, this is used to pre-fill the first entry field of the setup code.
+ * If the user has several setup messages, he can be sure typing in the correct digits.
+ *
+ * To check, if a message is a setup message, use mrmsg_is_setupmessage().
+ * To decrypt a secret key from a setup message, use mrmailbox_continue_key_transfer().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return Typically, the first two digits of the setup code or an empty string if unknown.
+ *     NULL is never returned. Must be free()'d when done.
+ */
+char* mrmsg_get_setupcodebegin(mrmsg_t* msg)
+{
+	return safe_strdup(NULL);
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/

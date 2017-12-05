@@ -567,6 +567,9 @@ cleanup:
  * and you've detected a setup message with mrmsg_is_setupmessage(), you should prompt the
  * user for the setup code and call this function then.
  *
+ * You can use mrmsg_get_setupcodebegin() to give the user a hint about the code (useful if the user
+ * has created several messages and should not enter the wrong code).
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
