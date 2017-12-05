@@ -765,7 +765,7 @@ void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
  * for the ongoing process to return.
  *
  * The ongoing process will return ASAP then, however, it may
- * still take a moment.  If in doubt, the caller may also decide the kill the
+ * still take a moment.  If in doubt, the caller may also decide to kill the
  * thread after a few seconds; eg. the process may hang in a
  * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
  * reason for mrmailbox_stop_ongoing_process() not to wait is that otherwise it
