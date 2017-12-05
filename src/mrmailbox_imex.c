@@ -35,10 +35,6 @@
 #include "mrmimefactory.h"
 
 
-static int s_imex_running = 0;
-static int s_imex_do_exit = 1; /* the value 1 avoids mrmailbox_imex_cancel() from stopping already stopped threads */
-
-
 /*******************************************************************************
  * Autocrypt Key Transfer
  ******************************************************************************/
@@ -464,6 +460,10 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
  *
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
+ *
+ * NB: If the user has never sent a message before, this function requires a key to be created.
+ * In this case, the function may take some seconds to finish and it might be a good idea
+ * to start it in a separate thread. If so, it can be interrupted using mrmailbox_stop_ongoing_process().
  */
 char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 {
@@ -475,12 +475,24 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 	char*    self_addr = NULL;
 	uint32_t contact_id = 0;
 	uint32_t chat_id = 0;
-	mrmsg_t* msg = mrmsg_new();
+	mrmsg_t* msg = NULL;
 
-	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL
-	 || !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) {
+	if( !mrmailbox_alloc_ongoing(mailbox) ) {
+		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	}
+	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
+
+	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL ) {
 		goto cleanup;
 	}
+
+	CHECK_EXIT
+
+	if( !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) {
+		goto cleanup;
+	}
+
+	CHECK_EXIT
 
 	if( (setup_file_name=mr_get_fine_pathNfilename(mailbox->m_blobdir, "autocrypt-setup-message.html")) == NULL
 	 || !mr_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), mailbox) ) {
@@ -497,10 +509,14 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
+	msg = mrmsg_new();
 	msg->m_type = MR_MSG_FILE;
 	mrparam_set    (msg->m_param, MRP_FILE,       setup_file_name);
 	mrparam_set    (msg->m_param, MRP_MIMETYPE,   "application/autocrypt-setup");
 	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE);
+
+	CHECK_EXIT
+
 	if( mrmailbox_send_msg_object(mailbox, chat_id, msg) == 0 ) {
 		goto cleanup;
 	}
@@ -514,6 +530,7 @@ cleanup:
 	mrmsg_unref(msg);
 	free(self_name);
 	free(self_addr);
+	mrmailbox_free_ongoing(mailbox);
 	return setup_code;
 }
 
@@ -817,7 +834,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		stmt = mrsqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
-			if( s_imex_do_exit ) {
+			if( mr_shall_stop_ongoing ) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -954,7 +971,7 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		if( s_imex_do_exit ) {
+		if( mr_shall_stop_ongoing ) {
 			goto cleanup;
 		}
 
@@ -1057,7 +1074,7 @@ cleanup:
  * - For each file written on export, the function sends #MR_EVENT_IMEX_FILE_WRITTEN
  *
  * Only one import-/export-progress can run at the same time.
- * To cancel an import-/export-progress, use mrmailbox_imex_cancel().
+ * To cancel an import-/export-progress, use mrmailbox_stop_ongoing_process().
  *
  * @memberof mrmailbox_t
  *
@@ -1077,18 +1094,14 @@ int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const cha
 		return 0;
 	}
 
+	if( !mrmailbox_alloc_ongoing(mailbox) ) {
+		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	}
+
 	if( param1 == NULL ) {
 		mrmailbox_log_error(mailbox, 0, "No Import/export dir/file given.");
 		return 0;
 	}
-
-	if( s_imex_running || s_imex_do_exit==0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Already importing/exporting.");
-		return 0;
-	}
-
-	s_imex_running = 1;
-	s_imex_do_exit = 0;
 
 	mrmailbox_log_info(mailbox, 0, "Import/export process started.");
 	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, 0, 0);
@@ -1143,47 +1156,8 @@ int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const cha
 
 cleanup:
 	mrmailbox_log_info(mailbox, 0, "Import/export process ended.");
-	s_imex_do_exit = 1; /* avoids mrmailbox_imex_cancel() to stop the thread */
-	s_imex_running = 0;
+	mrmailbox_free_ongoing(mailbox);
 	return success;
-}
-
-
-/**
- * Signal the import-/export-process to stop.
- *
- * After that, mrmailbox_imex_cancel() returns _without_ waiting
- * for mrmailbox_imex() to return.
- *
- * mrmailbox_imex() will return ASAP then, however, it may
- * still take a moment.  If in doubt, the caller may also decide the kill the
- * thread after a few seconds; eg. the process may hang in a
- * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
- * reason for mrmailbox_imex_cancel() not to wait is that otherwise it
- * would be GUI-blocking and should be started in another thread then; this
- * would make things even more complicated.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object.
- *
- * @return None
- */
-void mrmailbox_imex_cancel(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL ) {
-		return;
-	}
-
-	if( s_imex_running && s_imex_do_exit==0 )
-	{
-		mrmailbox_log_info(mailbox, 0, "Signaling the import-/export-process to stop ASAP.");
-		s_imex_do_exit = 1;
-	}
-	else
-	{
-		mrmailbox_log_info(mailbox, 0, "No import-/export-process to stop.");
-	}
 }
 
 

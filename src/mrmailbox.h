@@ -241,7 +241,7 @@ int32_t         mrmailbox_get_config_int    (mrmailbox_t*, const char* key, int3
 char*           mrmailbox_get_version_str   (void);
 
 int             mrmailbox_configure_and_connect(mrmailbox_t*);
-void            mrmailbox_configure_cancel  (mrmailbox_t*);
+void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_connect           (mrmailbox_t*);
@@ -326,7 +326,6 @@ mrcontact_t*    mrmailbox_get_contact       (mrmailbox_t*, uint32_t contact_id);
 #define         MR_BAK_PREFIX                "delta-chat"
 #define         MR_BAK_SUFFIX                "bak"
 int             mrmailbox_imex              (mrmailbox_t*, int what, const char* param1, const char* param2);
-void            mrmailbox_imex_cancel       (mrmailbox_t*);
 char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
 char*           mrmailbox_initiate_key_transfer(mrmailbox_t*);
@@ -352,6 +351,8 @@ int             mrmailbox_get_thread_index  (void);
 int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* deprecated - use mrmailbox_set_draft() instead */
 #define         mrpoortext_t                mrlot_t
 #define         mrpoortext_unref            mrlot_unref
+#define         mrmailbox_imex_cancel       mrmailbox_stop_ongoing_process
+#define         mrmailbox_configure_cancel  mrmailbox_stop_ongoing_process
 
 
 /* library-internal */
@@ -417,6 +418,11 @@ void            mrmailbox_e2ee_thanks       (mrmailbox_e2ee_helper_t*); /* frees
 int             mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
 char*           mrmailbox_create_setup_code (mrmailbox_t*);
 int             mrmailbox_render_setup_file (mrmailbox_t* mailbox, const char* passphrase, char** ret_msg);
+
+extern int      mr_shall_stop_ongoing;
+int             mrmailbox_alloc_ongoing     (mrmailbox_t*);
+void            mrmailbox_free_ongoing      (mrmailbox_t*);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */
