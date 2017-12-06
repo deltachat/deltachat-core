@@ -28,6 +28,11 @@
 #include "mrmimeparser.h"
 
 
+/*******************************************************************************
+ * Tools
+ ******************************************************************************/
+
+
 static struct mailmime* new_data_part(void* data, size_t data_bytes, char* default_content_type, int default_encoding)
 {
   //char basename_buf[PATH_MAX];
@@ -138,8 +143,51 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
 }
 
 
+/**
+ * Check if a MIME structure contains a multipart/report part.
+ *
+ * As reports are often unencrypted, we do not reset the Autocrypt header in
+ * this case.
+ *
+ * However, Delta Chat itself has no problem with encrypted multipart/report
+ * parts and MUAs should be encouraged to encrpyt multipart/reports as well so
+ * that we could use the normal Autocrypt processing.
+ *
+ * @private
+ *
+ * @param mime The mime struture to check
+ *
+ * @return 1=multipart/report found in MIME, 0=no multipart/report found
+ */
+static int contains_report(struct mailmime* mime)
+{
+	if( mime->mm_type == MAILMIME_MULTIPLE )
+	{
+		if( mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
+		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART
+		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0 ) {
+			return 1;
+		}
+
+		clistiter* cur;
+		for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+			if( contains_report((struct mailmime*)clist_content(cur)) ) {
+				return 1;
+			}
+		}
+	}
+	else if( mime->mm_type == MAILMIME_MESSAGE )
+	{
+		if( contains_report(mime->mm_data.mm_message.mm_msg_mime) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 /*******************************************************************************
- * Tools
+ * Generate Keypairs
  ******************************************************************************/
 
 
@@ -587,37 +635,6 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 	{
 		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_validate, ret_validation_errors) ) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
-		}
-	}
-
-	return 0;
-}
-
-
-static int contains_report(struct mailmime* mime)
-{
-	/* returns true if the mime structure contains a multipart/report
-	(as reports are often unencrypted, we do not reset the Autocrypt header in this case)
-	(however, MUA should be encouraged to encrpyt multipart/reports as well so that we can use the normal Autocrypt processing) */
-	if( mime->mm_type == MAILMIME_MULTIPLE )
-	{
-		if( mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
-		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART
-		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0 ) {
-			return 1;
-		}
-
-		clistiter* cur;
-		for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-			if( contains_report((struct mailmime*)clist_content(cur)) ) {
-				return 1;
-			}
-		}
-	}
-	else if( mime->mm_type == MAILMIME_MESSAGE )
-	{
-		if( contains_report(mime->mm_data.mm_message.mm_msg_mime) ) {
-			return 1;
 		}
 	}
 

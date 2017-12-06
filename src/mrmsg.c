@@ -721,7 +721,7 @@ int mrmsg_is_setupmessage(mrmsg_t* msg)
  */
 char* mrmsg_get_setupcodebegin(mrmsg_t* msg)
 {
-	return safe_strdup(NULL);
+	return safe_strdup("12"); // TODO
 }
 
 

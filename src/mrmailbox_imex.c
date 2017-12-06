@@ -584,6 +584,10 @@ cleanup:
  */
 int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const char* setup_code)
 {
+	if( mailbox == NULL || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+		return 0;
+	}
+
 	return 0;
 }
 
