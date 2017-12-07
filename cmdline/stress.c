@@ -69,7 +69,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrsimplify_unref(simplify);
 	}
 
-	/* test mime
+	/* test mailmime
 	**************************************************************************/
 
 	{
@@ -96,10 +96,44 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( of_b && of_b->fld_value );
 		assert( strcmp(of_b->fld_value, "ValueB")==0 );
 
-
-
-
 		mailmime_free(mime);
+	}
+
+	/* test mrmimeparser_t
+	**************************************************************************/
+
+	{
+		mrmimeparser_t* mimeparser = mrmimeparser_new(mailbox->m_blobdir, mailbox);
+
+		const char* raw =
+			"Content-Type: multipart/mixed; boundary=\"JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\"; protected-headers=\"v1\"\n"
+			"From: qm4 <user4@b44t.com>\n"
+			"To: =?UTF-8?B?QmrDtnJu?= <user@domain.com>\n"
+			"Message-ID: <f539200b-35f1-0da0-939c-26c7b21a19e1@b44t.com>\n"
+			"Subject: test1\n"
+			"\n"
+			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\n"
+			"Content-Type: text/rfc822-headers; protected-headers=\"v1\"\n"
+			"Content-Disposition: inline\n"
+			"\n"
+			"From: qm4 <user4@b44t.com>\n"
+			"To: =?UTF-8?B?QmrDtnJu?= <user@domain.com>\n"
+			"Subject: test1\n"
+			"\n"
+			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\n"
+			"Content-Type: text/plain; charset=utf-8\n"
+			"Content-Transfer-Encoding: quoted-printable\n"
+			"\n"
+			"test1\n"
+			"\n"
+			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj--\n"
+			"\n";
+
+		mrmimeparser_parse(mimeparser, raw, strlen(raw));
+
+		assert( strcmp(mimeparser->m_subject, "test1")==0 );
+
+		mrmimeparser_unref(mimeparser);
 	}
 
 	/* test some string functions

@@ -742,7 +742,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 	ths->m_reports = carray_new(16);
 
-	mrhash_init(&ths->m_header_hash, MRHASH_STRING, 1/* copy key */);
+	mrhash_init(&ths->m_header_hash, MRHASH_STRING, 0/* copy key */);
 
 	return ths;
 }
@@ -1175,28 +1175,9 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 			break;
 
 		case MAILMIME_MESSAGE:
-			if( ths->m_header_old == NULL && mime->mm_data.mm_message.mm_fields )
+			if( ths->m_header_old == NULL )
 			{
 				ths->m_header_old = mime->mm_data.mm_message.mm_fields;
-				for( cur = clist_begin(ths->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
-					struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-					if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-						if( ths->m_subject == NULL && field->fld_data.fld_subject ) {
-							ths->m_subject = mr_decode_header_string(field->fld_data.fld_subject->sbj_value);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
-						struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-						if( optional_field ) {
-							if( strcasecmp(optional_field->fld_name, "X-MrMsg")==0 || strcasecmp(optional_field->fld_name, "Chat-Version")==0 ) {
-								ths->m_is_send_by_messenger = 1;
-							}
-							else if( strcasecmp(optional_field->fld_name, "Autocrypt-Setup-Message")==0 ) {
-								ths->m_is_system_message = MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE;
-							}
-						}
-					}
-				}
 			}
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
@@ -1213,6 +1194,12 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 static struct mailimf_optional_field* mrmimeparser_find_xtra_field(mrmimeparser_t* ths, const char* wanted_fld_name)
 {
 	return mr_find_mailimf_field2(ths->m_header_old, wanted_fld_name);
+}
+
+
+static struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, const char* wanted_fld_name)
+{
+	return (struct mailimf_field*)mrhash_find(&mimeparser->m_header_hash, wanted_fld_name, strlen(wanted_fld_name));
 }
 
 
@@ -1265,8 +1252,61 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 	}
 
-	/* recursively check, whats parsed */
+	/* recursively check, whats parsed, this also sets up m_header_old */
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
+
+	/* setup header */
+	if( ths->m_header_old )
+	{
+		clistiter* cur1;
+		for( cur1 = clist_begin(ths->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+		{
+			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+			const char *key = NULL;
+			switch( field->fld_type )
+			{
+				case MAILIMF_FIELD_RETURN_PATH: key = "Return-Path"; break;
+				case MAILIMF_FIELD_ORIG_DATE:   key = "Date";        break;
+				case MAILIMF_FIELD_FROM:        key = "From";        break;
+				case MAILIMF_FIELD_SENDER:      key = "Sender";      break;
+				case MAILIMF_FIELD_REPLY_TO:    key = "Reply-To";    break;
+				case MAILIMF_FIELD_TO:          key = "To";          break;
+				case MAILIMF_FIELD_CC:          key = "Cc";          break;
+				case MAILIMF_FIELD_BCC:         key = "Bcc";         break;
+				case MAILIMF_FIELD_MESSAGE_ID:  key = "Date";        break;
+				case MAILIMF_FIELD_IN_REPLY_TO: key = "In-Reply-To"; break;
+				case MAILIMF_FIELD_REFERENCES:  key = "References";  break;
+				case MAILIMF_FIELD_SUBJECT:     key = "Subject";     break;
+				case MAILIMF_FIELD_OPTIONAL_FIELD:
+					{
+						const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+						if( optional_field ) {
+							key = optional_field->fld_name;
+						}
+					}
+					break;
+			}
+			if( key ) {
+				mrhash_insert(&ths->m_header_hash, key, strlen(key), field);
+			}
+		}
+	}
+
+	/* set some basic data */
+	{
+		struct mailimf_field* field = mrmimeparser_lookup_field(ths, "Subject");
+		if( field && field->fld_type == MAILIMF_FIELD_SUBJECT ) {
+			ths->m_subject = mr_decode_header_string(field->fld_data.fld_subject->sbj_value);
+		}
+	}
+
+	if( mrmimeparser_lookup_field(ths, "Chat-Version") || mrmimeparser_lookup_field(ths, "X-MrMsg") ) {
+		ths->m_is_send_by_messenger = 1;
+	}
+
+	if( mrmimeparser_lookup_field(ths, "Autocrypt-Setup-Message") ) {
+		ths->m_is_system_message = MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE;
+	}
 
 	/* prepend subject to message? */
 	if( ths->m_subject )
