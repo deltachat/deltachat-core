@@ -67,7 +67,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	int                   X_MrGrpNameChanged = 0;
 	int                   X_MrGrpImageChanged = 0;
 
-	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
 		field = (struct mailimf_field*)clist_content(cur);
 		if( field )
@@ -344,7 +344,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
-	if( mime_parser->m_header == NULL ) {
+	if( mime_parser->m_header_old == NULL ) {
 		mrmailbox_log_info(ths, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
@@ -362,7 +362,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
 		Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
 		However, we use `From:` as an additional hint below. */
-		for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+		for( cur1 = clist_begin(mime_parser->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			field = (struct mailimf_field*)clist_content(cur1);
 			if( field )
@@ -392,7 +392,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
-		 && (field=mr_find_mailimf_field(mime_parser->m_header,  MAILIMF_FIELD_FROM  ))!=NULL )
+		 && (field=mr_find_mailimf_field(mime_parser->m_header_old,  MAILIMF_FIELD_FROM  ))!=NULL )
 		{
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
 			if( fld_from )
@@ -422,7 +422,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		}
 
 		/* Make sure, to_ids starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
-		if( (field=mr_find_mailimf_field(mime_parser->m_header, MAILIMF_FIELD_TO))!=NULL )
+		if( (field=mr_find_mailimf_field(mime_parser->m_header_old, MAILIMF_FIELD_TO))!=NULL )
 		{
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
@@ -440,7 +440,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			 *********************************************************************/
 
 			/* collect the rest information */
-			for( cur1 = clist_begin(mime_parser->m_header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+			for( cur1 = clist_begin(mime_parser->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 			{
 				field = (struct mailimf_field*)clist_content(cur1);
 				if( field )

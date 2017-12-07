@@ -742,6 +742,8 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 	ths->m_reports = carray_new(16);
 
+	mrhash_init(&ths->m_header_hash, MRHASH_STRING, 1/* copy key */);
+
 	return ths;
 }
 
@@ -800,7 +802,9 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		carray_set_size(ths->m_parts, 0);
 	}
 
-	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	ths->m_header_old  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	mrhash_clear(&ths->m_header_hash);
+
 	ths->m_is_send_by_messenger  = 0;
 	ths->m_is_system_message = 0;
 
@@ -1171,10 +1175,10 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 			break;
 
 		case MAILMIME_MESSAGE:
-			if( ths->m_header == NULL && mime->mm_data.mm_message.mm_fields )
+			if( ths->m_header_old == NULL && mime->mm_data.mm_message.mm_fields )
 			{
-				ths->m_header = mime->mm_data.mm_message.mm_fields;
-				for( cur = clist_begin(ths->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
+				ths->m_header_old = mime->mm_data.mm_message.mm_fields;
+				for( cur = clist_begin(ths->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) ) {
 					struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 					if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
 						if( ths->m_subject == NULL && field->fld_data.fld_subject ) {
@@ -1208,7 +1212,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 static struct mailimf_optional_field* mrmimeparser_find_xtra_field(mrmimeparser_t* ths, const char* wanted_fld_name)
 {
-	return mr_find_mailimf_field2(ths->m_header, wanted_fld_name);
+	return mr_find_mailimf_field2(ths->m_header_old, wanted_fld_name);
 }
 
 
@@ -1368,7 +1372,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				char* dn_to_addr = mr_find_first_addr(mb_list);
 				if( dn_to_addr )
 				{
-					struct mailimf_field* from_field = mr_find_mailimf_field(ths->m_header, MAILIMF_FIELD_FROM); /* we need From: as this MUST match Disposition-Notification-To: */
+					struct mailimf_field* from_field = mr_find_mailimf_field(ths->m_header_old, MAILIMF_FIELD_FROM); /* we need From: as this MUST match Disposition-Notification-To: */
 					if( from_field && from_field->fld_data.fld_from )
 					{
 						char* from_addr = mr_find_first_addr(from_field->fld_data.fld_from->frm_mb_list);
@@ -1466,11 +1470,11 @@ int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 		return 0;
 	}
 
-	if( mr_find_mailimf_field2(ths->m_header, "List-Id") != NULL ) {
+	if( mr_find_mailimf_field2(ths->m_header_old, "List-Id") != NULL ) {
 		return 1; /* mailing list identified by the presence of `List-ID` from RFC 2919 */
 	}
 
-	struct mailimf_optional_field* precedence = mr_find_mailimf_field2(ths->m_header, "Precedence");
+	struct mailimf_optional_field* precedence = mr_find_mailimf_field2(ths->m_header_old, "Precedence");
 	if( precedence != NULL ) {
 		if( strcasecmp(precedence->fld_value, "list")==0
 		 || strcasecmp(precedence->fld_value, "bulk")==0 ) {

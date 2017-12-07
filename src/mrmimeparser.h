@@ -32,6 +32,9 @@ extern "C" {
 #endif
 
 
+#include "mrhash.h"
+
+
 typedef struct mrmimepart_t
 {
 	/** @privatesection */
@@ -51,7 +54,10 @@ typedef struct mrmimeparser_t
 	/* data, read-only, must not be free()'d (it is free()'d when the mrmimeparser_t object gets destructed) */
 	carray*                m_parts;             /* array of mrmimepart_t objects */
 	struct mailmime*       m_mimeroot;
-	struct mailimf_fields* m_header;            /* a pointer somewhere to the MIME data, must not be freed */
+
+	struct mailimf_fields* m_header_old;        /* a pointer somewhere to the MIME data, must not be freed */
+	mrhash_t               m_header_hash;
+
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
 	int                    m_decrypted_and_validated;

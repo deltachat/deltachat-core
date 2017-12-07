@@ -143,7 +143,7 @@ int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* 
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `X-MrPredecessor:` (Delta clients, see comment in mrchat.c) */
 	clistiter* cur;
-	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 		if( field )
@@ -231,7 +231,7 @@ int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmimeparser
 	- it is okay, if the referenced messages are moved to trash here
 	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
 	clistiter* cur;
-	for( cur = clist_begin(mime_parser->m_header->fld_list); cur!=NULL ; cur=clist_next(cur) )
+	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
 		if( field )
