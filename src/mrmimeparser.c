@@ -410,52 +410,6 @@ struct mailimf_fields* mr_find_mailimf_fields(struct mailmime* mime)
 }
 
 
-struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int wanted_fld_type)
-{
-	if( header == NULL || header->fld_list == NULL ) {
-		return NULL;
-	}
-
-	clistiter* cur1;
-	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if( field )
-		{
-			if( field->fld_type == wanted_fld_type ) {
-				return field;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-
-struct mailimf_optional_field* mr_find_mailimf_field2(struct mailimf_fields* header, const char* wanted_fld_name)
-{
-	/* Note: the function does not return fields with no value set! */
-	if( header == NULL || header->fld_list == NULL ) {
-		return NULL;
-	}
-
-	clistiter* cur1;
-	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-		{
-			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-			if( optional_field && optional_field->fld_name && optional_field->fld_value && strcasecmp(optional_field->fld_name, wanted_fld_name)==0 ) {
-				return optional_field;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-
 struct mailmime_parameter* mr_find_ct_parameter(struct mailmime* mime, const char* name)
 {
 	/* find a parameter in `Content-Type: foo/bar; name=value;` */
@@ -513,122 +467,60 @@ char* mr_find_first_addr(const struct mailimf_mailbox_list* mb_list)
 }
 
 
-/*******************************************************************************
- * a MIME part
- ******************************************************************************/
-
-
-static mrmimepart_t* mrmimepart_new(void)
+int mr_mime_transfer_decode(struct mailmime* mime, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref)
 {
-	mrmimepart_t* ths = NULL;
+	int                   mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
+	struct mailmime_data* mime_data = NULL;
+	const char*           decoded_data = NULL; /* must not be free()'d */
+	size_t                decoded_data_bytes = 0;
+	char*                 transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
 
-	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
-		exit(33);
+	if( mime == NULL || ret_decoded_data == NULL || ret_decoded_data_bytes == NULL || ret_to_mmap_string_unref == NULL
+	 || *ret_decoded_data != NULL || *ret_decoded_data_bytes != 0 || *ret_to_mmap_string_unref != NULL ) {
+		return 0;
 	}
 
-	ths->m_type    = MR_MSG_UNDEFINED;
-	ths->m_param   = mrparam_new();
+	mime_data = mime->mm_data.mm_single;
 
-	return ths;
-}
-
-
-static void mrmimepart_unref(mrmimepart_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	if( ths->m_msg ) {
-		free(ths->m_msg);
-		ths->m_msg = NULL;
-	}
-
-	if( ths->m_msg_raw ) {
-		free(ths->m_msg_raw);
-		ths->m_msg_raw = NULL;
-	}
-
-	mrparam_unref(ths->m_param);
-	free(ths);
-}
-
-
-/*******************************************************************************
- * Main interface
- ******************************************************************************/
-
-
-mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
-{
-	mrmimeparser_t* ths = NULL;
-
-	if( (ths=calloc(1, sizeof(mrmimeparser_t)))==NULL ) {
-		exit(30);
-	}
-
-	ths->m_mailbox = mailbox;
-	ths->m_parts   = carray_new(16);
-	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
-	ths->m_reports = carray_new(16);
-
-	return ths;
-}
-
-
-void mrmimeparser_unref(mrmimeparser_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	mrmimeparser_empty(ths);
-	if( ths->m_parts )   { carray_free(ths->m_parts); }
-	if( ths->m_reports ) { carray_free(ths->m_reports); }
-	free(ths);
-}
-
-
-void mrmimeparser_empty(mrmimeparser_t* ths)
-{
-	if( ths == NULL ) {
-		return;
-	}
-
-	if( ths->m_parts )
-	{
-		int i, cnt = carray_count(ths->m_parts);
-		for( i = 0; i < cnt; i++ ) {
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
-			if( part ) {
-				mrmimepart_unref(part);
+	if( mime->mm_mime_fields != NULL ) {
+		clistiter* cur;
+		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
+			if( field && field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
+				mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
+				break;
 			}
 		}
-		carray_set_size(ths->m_parts, 0);
 	}
 
-	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
-	ths->m_is_send_by_messenger  = 0;
-	ths->m_is_system_message = 0;
-
-	free(ths->m_subject);
-	ths->m_subject = NULL;
-
-	if( ths->m_mimeroot )
+	/* regard `Content-Transfer-Encoding:` */
+	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
 	{
-		mailmime_free(ths->m_mimeroot);
-		ths->m_mimeroot = NULL;
+		decoded_data       = mime_data->dt_data.dt_text.dt_data;
+		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
+		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
+			return 0; /* no error - but no data */
+		}
+	}
+	else
+	{
+		int r;
+		size_t current_index = 0;
+		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
+			&current_index, mime_transfer_encoding,
+			&transfer_decoding_buffer, &decoded_data_bytes);
+		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
+			return 0;
+		}
+		decoded_data = transfer_decoding_buffer;
 	}
 
-	ths->m_is_forwarded = 0;
-
-	if( ths->m_reports ) {
-		carray_set_size(ths->m_reports, 0);
-	}
-
-	ths->m_decrypted_and_validated = 0;
-	ths->m_decrypted_with_validation_errors = 0;
-	ths->m_decrypting_failed = 0;
+	*ret_decoded_data         = decoded_data;
+	*ret_decoded_data_bytes   = decoded_data_bytes;
+	*ret_to_mmap_string_unref = transfer_decoding_buffer;
+	return 1;
 }
 
 
@@ -781,60 +673,155 @@ static char* get_file_disposition_suffix_(struct mailmime_disposition* file_disp
 #endif
 
 
-int mr_mime_transfer_decode(struct mailmime* mime, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref)
-{
-	int                   mime_transfer_encoding = MAILMIME_MECHANISM_BINARY;
-	struct mailmime_data* mime_data = NULL;
-	const char*           decoded_data = NULL; /* must not be free()'d */
-	size_t                decoded_data_bytes = 0;
-	char*                 transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
+/*******************************************************************************
+ * a MIME part
+ ******************************************************************************/
 
-	if( mime == NULL || ret_decoded_data == NULL || ret_decoded_data_bytes == NULL || ret_to_mmap_string_unref == NULL
-	 || *ret_decoded_data != NULL || *ret_decoded_data_bytes != 0 || *ret_to_mmap_string_unref != NULL ) {
-		return 0;
+
+static mrmimepart_t* mrmimepart_new(void)
+{
+	mrmimepart_t* ths = NULL;
+
+	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
+		exit(33);
 	}
 
-	mime_data = mime->mm_data.mm_single;
+	ths->m_type    = MR_MSG_UNDEFINED;
+	ths->m_param   = mrparam_new();
 
-	if( mime->mm_mime_fields != NULL ) {
-		clistiter* cur;
-		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
-			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
-			if( field && field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
-				mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
-				break;
+	return ths;
+}
+
+
+static void mrmimepart_unref(mrmimepart_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	if( ths->m_msg ) {
+		free(ths->m_msg);
+		ths->m_msg = NULL;
+	}
+
+	if( ths->m_msg_raw ) {
+		free(ths->m_msg_raw);
+		ths->m_msg_raw = NULL;
+	}
+
+	mrparam_unref(ths->m_param);
+	free(ths);
+}
+
+
+/*******************************************************************************
+ * Main interface
+ ******************************************************************************/
+
+
+/**
+ * Create a new mime parser object.
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param blobdir Directrory to write attachments to.
+ * @param mailbox Mailbox object, used for logging only.
+ *
+ * @return The MIME-parser object.
+ */
+mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
+{
+	mrmimeparser_t* ths = NULL;
+
+	if( (ths=calloc(1, sizeof(mrmimeparser_t)))==NULL ) {
+		exit(30);
+	}
+
+	ths->m_mailbox = mailbox;
+	ths->m_parts   = carray_new(16);
+	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
+	ths->m_reports = carray_new(16);
+
+	return ths;
+}
+
+
+/**
+ * Free a MIME-parser object.
+ *
+ * Esp. all data allocated by mrmimeparser_parse() will be free()'d.
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param ths The MIME-parser object.
+ *
+ * @return None.
+ */
+void mrmimeparser_unref(mrmimeparser_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	mrmimeparser_empty(ths);
+	if( ths->m_parts )   { carray_free(ths->m_parts); }
+	if( ths->m_reports ) { carray_free(ths->m_reports); }
+	free(ths);
+}
+
+
+/**
+ * Empty all data in a MIME-parser object.
+ *
+ * This function is called implicitly by mrmimeparser_parse() to free
+ * previously allocated data.
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param ths The MIME-parser object.
+ *
+ * @return None.
+ */
+void mrmimeparser_empty(mrmimeparser_t* ths)
+{
+	if( ths == NULL ) {
+		return;
+	}
+
+	if( ths->m_parts )
+	{
+		int i, cnt = carray_count(ths->m_parts);
+		for( i = 0; i < cnt; i++ ) {
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			if( part ) {
+				mrmimepart_unref(part);
 			}
 		}
+		carray_set_size(ths->m_parts, 0);
 	}
 
-	/* regard `Content-Transfer-Encoding:` */
-	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
+	ths->m_header  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	ths->m_is_send_by_messenger  = 0;
+	ths->m_is_system_message = 0;
+
+	free(ths->m_subject);
+	ths->m_subject = NULL;
+
+	if( ths->m_mimeroot )
 	{
-		decoded_data       = mime_data->dt_data.dt_text.dt_data;
-		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
-		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
-			return 0; /* no error - but no data */
-		}
-	}
-	else
-	{
-		int r;
-		size_t current_index = 0;
-		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
-			&current_index, mime_transfer_encoding,
-			&transfer_decoding_buffer, &decoded_data_bytes);
-		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
-			return 0;
-		}
-		decoded_data = transfer_decoding_buffer;
+		mailmime_free(ths->m_mimeroot);
+		ths->m_mimeroot = NULL;
 	}
 
-	*ret_decoded_data         = decoded_data;
-	*ret_decoded_data_bytes   = decoded_data_bytes;
-	*ret_to_mmap_string_unref = transfer_decoding_buffer;
-	return 1;
+	ths->m_is_forwarded = 0;
+
+	if( ths->m_reports ) {
+		carray_set_size(ths->m_reports, 0);
+	}
+
+	ths->m_decrypted_and_validated = 0;
+	ths->m_decrypted_with_validation_errors = 0;
+	ths->m_decrypting_failed = 0;
 }
 
 
@@ -1225,6 +1212,24 @@ static struct mailimf_optional_field* mrmimeparser_find_xtra_field(mrmimeparser_
 }
 
 
+/**
+ * Parse raw MIME-data into a MIME-object.
+ *
+ * You may call this function several times on the same object; old data are cleared using
+ * mrmimeparser_empty() before parsing is started.
+ *
+ * After mrmimeparser_parse() is called successfully, all the functions to get information about the
+ * MIME-structure will work.
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param ths The MIME-parser object.
+ * @param body_not_terminated Plain text, no need to be null-terminated.
+ * @param body_bytes The number of bytes to read from body_not_terminated.
+ *     body_not_terminated is null-terminated, use strlen(body_not_terminated) here.
+ *
+ * @return None.
+ */
 void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
@@ -1400,6 +1405,19 @@ cleanup:
 }
 
 
+/**
+ * Gets the _last_ part _not_ flagged with m_is_meta.
+ *
+ * If you just want to check if there is a non-meta part preset, you can also
+ * use the macro mrmimeparser_has_nonmeta().
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param ths The MIME-parser object.
+ *
+ * @return The last part that is not flagged with m_is_meta. The returned value
+ *     must not be freed.  If there is no such part, NULL is returned.
+ */
 mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
 {
 	if( ths && ths->m_parts ) {
@@ -1415,27 +1433,35 @@ mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
 }
 
 
+/**
+ * Checks, if the header of the mail looks as if it is a message from a mailing list.
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param ths The MIME-parser object.
+ *
+ * @return 1=the message is probably from a mailing list,
+ *     0=the message is a normal messsage
+ *
+ * Some statistics:
+ *
+ * **Sorted out** by `List-ID`-header:
+ * - Mailman mailing list messages      - OK, mass messages
+ * - Xing forum/event notifications     - OK, mass messages
+ * - Xing welcome-back, contact-request - Hm, but it _has_ the List-ID header
+ *
+ * **Sorted out** by `Precedence`-header:
+ * - Majordomo mailing list messages    - OK, mass messages
+ *
+ * **Not** sorted out:
+ * - Pingdom notifications              - OK, individual message
+ * - Paypal notifications               - OK, individual message
+ * - Linked in visits, do-you-know      - OK, individual message
+ * - Share-It notifications             - OK, individual message
+ * - Transifex, Github notifications    - OK, individual message
+ */
 int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 {
-	/* the function checks if the header of the mail looks as if it is a message from a mailing list
-
-	Some statistics:
-	=> sorted out by `List-ID`-header:
-	   - Mailman mailing list messages     - OK, mass messages
-	   - Xing forum/event notifications    - OK, mass messages
-	   - Xing welcome-back, contact-reqest - Hm, but it _has_ the List-ID header
-
-	=> sorted out by `Precedence`-header:
-	   - Majordomo mailing list messages   - OK, mass messages
-
-	=> NOT sorted out:
-	   - Pingdom notifications             - OK, individual message
-	   - Paypal notifications              - OK, individual message
-	   - Linked in visits, do-you-know     - OK, individual message
-	   - Share-It notifications            - OK, individual message
-	   - Transifex, Github notifications   - OK, individual message
-	*/
-
 	if( ths == NULL ) {
 		return 0;
 	}
@@ -1455,3 +1481,48 @@ int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 	return 0;
 }
 
+
+struct mailimf_field* mr_find_mailimf_field(struct mailimf_fields* header, int wanted_fld_type)
+{
+	if( header == NULL || header->fld_list == NULL ) {
+		return NULL;
+	}
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field )
+		{
+			if( field->fld_type == wanted_fld_type ) {
+				return field;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
+struct mailimf_optional_field* mr_find_mailimf_field2(struct mailimf_fields* header, const char* wanted_fld_name)
+{
+	/* Note: the function does not return fields with no value set! */
+	if( header == NULL || header->fld_list == NULL ) {
+		return NULL;
+	}
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(header->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		{
+			struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+			if( optional_field && optional_field->fld_name && optional_field->fld_value && strcasecmp(optional_field->fld_name, wanted_fld_name)==0 ) {
+				return optional_field;
+			}
+		}
+	}
+
+	return NULL;
+}
