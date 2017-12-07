@@ -436,7 +436,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
 	(the Autocrypt:-header in the IMAP copy is needed to detect the presence of the first Autocrypt:-client if the user tries to enable multiple device
 	(we show a warning then to avoid the generation of a second keypair and to allow the user to import the first key)) */
-	if( (imffields=mr_find_mailimf_fields(in_out_message))==NULL ) {
+	if( (imffields=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
 		goto cleanup;
 	}
 
@@ -577,7 +577,7 @@ static int decrypt_part(mrmailbox_t*       mailbox,
 			goto cleanup;
 		}
 
-		//mr_print_mime(new_mime);
+		//mailmime_print(new_mime);
 
 		*ret_decrypted_mime = decrypted_mime;
 		sth_decrypted = 1;
@@ -646,7 +646,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
-	struct mailimf_fields* imffields = mr_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
+	struct mailimf_fields* imffields = mailmime_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*           autocryptheader = NULL;
 	time_t                 message_time = 0;
 	mrapeerstate_t*        peerstate = mrapeerstate_new();
@@ -666,12 +666,12 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	- Do not abort on errors - we should try at last the decyption below */
 	if( imffields )
 	{
-		struct mailimf_field* field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_FROM);
+		struct mailimf_field* field = mailimf_find_field(imffields, MAILIMF_FIELD_FROM);
 		if( field && field->fld_data.fld_from ) {
-			from = mr_find_first_addr(field->fld_data.fld_from->frm_mb_list);
+			from = mailimf_find_first_addr(field->fld_data.fld_from->frm_mb_list);
 		}
 
-		field = mr_find_mailimf_field(imffields, MAILIMF_FIELD_ORIG_DATE);
+		field = mailimf_find_field(imffields, MAILIMF_FIELD_ORIG_DATE);
 		if( field && field->fld_data.fld_orig_date ) {
 			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 			if( orig_date ) {
@@ -752,7 +752,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		}
 	}
 
-	//mr_print_mime(in_out_message);
+	//mailmime_print(in_out_message);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }

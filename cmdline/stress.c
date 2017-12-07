@@ -79,20 +79,20 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( mailmime_parse(txt, strlen(txt), &dummy, &mime) == MAIL_NO_ERROR );
 		assert( mime != NULL );
 
-		struct mailimf_fields* fields = mr_find_mailimf_fields(mime);
+		struct mailimf_fields* fields = mailmime_find_mailimf_fields(mime);
 		assert( fields != NULL );
 
-		struct mailimf_optional_field* of_a = mr_find_mailimf_field2(fields, "fielda");
+		struct mailimf_optional_field* of_a = mailimf_find_optional_field(fields, "fielda");
 		assert( of_a && of_a->fld_value );
 		assert( strcmp(of_a->fld_name, "FieldA")==0 );
 		assert( strcmp(of_a->fld_value, "ValueA")==0 );
 
-		of_a = mr_find_mailimf_field2(fields, "FIELDA");
+		of_a = mailimf_find_optional_field(fields, "FIELDA");
 		assert( of_a && of_a->fld_value );
 		assert( strcmp(of_a->fld_name, "FieldA")==0 );
 		assert( strcmp(of_a->fld_value, "ValueA")==0 );
 
-		struct mailimf_optional_field* of_b = mr_find_mailimf_field2(fields, "FieldB");
+		struct mailimf_optional_field* of_b = mailimf_find_optional_field(fields, "FieldB");
 		assert( of_b && of_b->fld_value );
 		assert( strcmp(of_b->fld_value, "ValueB")==0 );
 

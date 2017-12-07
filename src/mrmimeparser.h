@@ -84,22 +84,24 @@ void             mrmimeparser_parse                  (mrmimeparser_t*, const cha
 
 
 /* the following functions can be used only after a call to mrmimeparser_parse() */
-mrmimepart_t*    mrmimeparser_get_last_nonmeta       (mrmimeparser_t*);
-#define          mrmimeparser_has_nonmeta(a)         (mrmimeparser_get_last_nonmeta((a))!=NULL)
-int              mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
+struct mailimf_field*          mrmimeparser_lookup_field           (mrmimeparser_t*, const char* field_name);
+struct mailimf_optional_field* mrmimeparser_lookup_optional_field  (mrmimeparser_t*, const char* field_name);
+mrmimepart_t*                  mrmimeparser_get_last_nonmeta       (mrmimeparser_t*);
+#define                        mrmimeparser_has_nonmeta(a)         (mrmimeparser_get_last_nonmeta((a))!=NULL)
+int                            mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
+
 
 
 /* low-level-tools for working with mailmime structures directly */
-char*                          mr_find_first_addr      (const struct mailimf_mailbox_list*); /*the result must be freed*/
-char*                          mr_normalize_addr       (const char*); /*the result must be freed*/
-struct mailimf_fields*         mr_find_mailimf_fields  (struct mailmime*); /*the result is a pointer to mime, must not be freed*/
-struct mailimf_field*          mr_find_mailimf_field   (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
-struct mailimf_optional_field* mr_find_mailimf_field2  (struct mailimf_fields*, const char* wanted_fld_name);
-struct mailmime_parameter*     mr_find_ct_parameter    (struct mailmime*, const char* name);
-int                            mr_mime_transfer_decode (struct mailmime*, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref);
 #ifdef MR_USE_MIME_DEBUG
-void                           mr_print_mime           (struct mailmime * mime);
+void                           mailmime_print                (struct mailmime*);
 #endif
+struct mailmime_parameter*     mailmime_find_ct_parameter    (struct mailmime*, const char* name);
+int                            mailmime_transfer_decode      (struct mailmime*, const char** ret_decoded_data, size_t* ret_decoded_data_bytes, char** ret_to_mmap_string_unref);
+struct mailimf_fields*         mailmime_find_mailimf_fields  (struct mailmime*); /*the result is a pointer to mime, must not be freed*/
+char*                          mailimf_find_first_addr       (const struct mailimf_mailbox_list*); /*the result must be freed*/
+struct mailimf_field*          mailimf_find_field            (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
+struct mailimf_optional_field* mailimf_find_optional_field   (struct mailimf_fields*, const char* wanted_fld_name);
 
 
 #ifdef __cplusplus

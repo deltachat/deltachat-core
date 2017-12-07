@@ -392,7 +392,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
-		 && (field=mr_find_mailimf_field(mime_parser->m_header_old,  MAILIMF_FIELD_FROM  ))!=NULL )
+		 && (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
+		 && field->fld_type==MAILIMF_FIELD_FROM)
 		{
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
 			if( fld_from )
@@ -422,7 +423,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		}
 
 		/* Make sure, to_ids starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
-		if( (field=mr_find_mailimf_field(mime_parser->m_header_old, MAILIMF_FIELD_TO))!=NULL )
+		if( (field=mrmimeparser_lookup_field(mime_parser, "To"))!=NULL
+		 && field->fld_type==MAILIMF_FIELD_TO )
 		{
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
@@ -707,7 +709,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			{
 				int                        mdn_consumed = 0;
 				struct mailmime*           report_root = carray_get(mime_parser->m_reports, i);
-				struct mailmime_parameter* report_type = mr_find_ct_parameter(report_root, "report-type");
+				struct mailmime_parameter* report_type = mailmime_find_ct_parameter(report_root, "report-type");
 				if( report_root==NULL || report_type==NULL || report_type->pa_value==NULL ) {
 					continue;
 				}
@@ -727,18 +729,18 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 							const char* report_body = NULL;
 							size_t      report_body_bytes = 0;
 							char*       to_mmap_string_unref = NULL;
-							if( mr_mime_transfer_decode(report_data, &report_body, &report_body_bytes, &to_mmap_string_unref) )
+							if( mailmime_transfer_decode(report_data, &report_body, &report_body_bytes, &to_mmap_string_unref) )
 							{
 								struct mailmime* report_parsed = NULL;
 								size_t dummy = 0;
 								if( mailmime_parse(report_body, report_body_bytes, &dummy, &report_parsed)==MAIL_NO_ERROR
 								 && report_parsed!=NULL )
 								{
-									struct mailimf_fields* report_fields = mr_find_mailimf_fields(report_parsed);
+									struct mailimf_fields* report_fields = mailmime_find_mailimf_fields(report_parsed);
 									if( report_fields )
 									{
-										struct mailimf_optional_field* of_disposition = mr_find_mailimf_field2(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
-										struct mailimf_optional_field* of_org_msgid   = mr_find_mailimf_field2(report_fields, "Original-Message-ID"); /* can't live without */
+										struct mailimf_optional_field* of_disposition = mailimf_find_optional_field(report_fields, "Disposition"); /* MUST be preset, _if_ preset, we assume a sort of attribution and do not go into details */
+										struct mailimf_optional_field* of_org_msgid   = mailimf_find_optional_field(report_fields, "Original-Message-ID"); /* can't live without */
 										if( of_disposition && of_disposition->fld_value && of_org_msgid && of_org_msgid->fld_value )
 										{
 											char* rfc724_mid = NULL;

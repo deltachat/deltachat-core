@@ -93,6 +93,7 @@ int          mrcontact_is_blocked             (mrcontact_t*);
 
 int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t contact_id);
 void         mr_normalize_name                (char* full_name);
+char*        mr_normalize_addr                (const char* email_addr);
 char*        mr_get_first_name                (const char* full_name);
 
 

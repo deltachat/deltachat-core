@@ -312,6 +312,35 @@ void mr_normalize_name(char* full_name)
 
 
 /**
+ * Normalize an email address.
+ *
+ * Normalization includes:
+ * - removing `mailto:` prefix
+ *
+ * Not sure if we should also unifiy international characters before the @,
+ * see also https://autocrypt.readthedocs.io/en/latest/address-canonicalization.html
+ *
+ * @private @memberof mrcontact_t
+ *
+ * @param email_addr__ The email address to normalize.
+ *
+ * @return The normalized email address, must be free()'d. NULL is never returned.
+ */
+char* mr_normalize_addr(const char* email_addr__)
+{
+	char* addr = safe_strdup(email_addr__);
+	mr_trim(addr);
+	if( strncmp(addr, "mailto:", 7)==0 ) {
+		char* old = addr;
+		addr = safe_strdup(&old[7]);
+		free(old);
+		mr_trim(addr);
+	}
+	return addr;
+}
+
+
+/**
  * Library-internal.
  *
  * Calling this function is not thread-safe, locking is up to the caller.
