@@ -1232,11 +1232,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		goto cleanup;
 	}
 
-	#if 0
-		printf("-----------------------------------------------------------------------\n");
-		mailmime_print(m_mimeroot);
-		printf("-----------------------------------------------------------------------\n");
-	#endif
+	//printf("before decryption:\n"); mailmime_print(ths->m_mimeroot);
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
@@ -1249,6 +1245,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 			ths->m_decrypted_with_validation_errors = validation_errors;
 		}
 	}
+
+	//printf("after decryption:\n"); mailmime_print(ths->m_mimeroot);
 
 	/* recursively check, whats parsed, this also sets up m_header_old */
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
