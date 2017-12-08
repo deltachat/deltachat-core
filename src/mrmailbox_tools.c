@@ -142,42 +142,35 @@ int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* 
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `X-MrPredecessor:` (Delta clients, see comment in mrchat.c) */
-	clistiter* cur;
-	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-		if( field )
-		{
-			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-			{
-				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "X-MrPredecessor")==0 || strcasecmp(optional_field->fld_name, "Chat-Predecessor")==0 ) { /* see comment in mrchat.c */
-						if( is_known_rfc724_mid__(mailbox, optional_field->fld_value) ) {
-							return 1;
-						}
-					}
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
-			{
-				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
-				if( fld_in_reply_to ) {
-					if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
-						return 1;
-					}
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
-			{
-				struct mailimf_references* fld_references = field->fld_data.fld_references;
-				if( fld_references ) {
-					if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
-						return 1;
-					}
-				}
-			}
 
+	struct mailimf_optional_field* optional_field;
+	if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
+	{
+		if( is_known_rfc724_mid__(mailbox, optional_field->fld_value) ) {
+			return 1;
+		}
+	}
+
+	struct mailimf_field* field;
+	if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
+	 && field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
+	{
+		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+		if( fld_in_reply_to ) {
+			if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
+				return 1;
+			}
+		}
+	}
+
+	if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL
+	 && field->fld_type == MAILIMF_FIELD_REFERENCES )
+	{
+		struct mailimf_references* fld_references = field->fld_data.fld_references;
+		if( fld_references ) {
+			if( is_known_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
+				return 1;
+			}
 		}
 	}
 
@@ -230,33 +223,30 @@ int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmimeparser
 	- checks also if any of the referenced IDs are send by a messenger
 	- it is okay, if the referenced messages are moved to trash here
 	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
-	clistiter* cur;
-	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
-	{
-		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-		if( field )
-		{
-			if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
-			{
-				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
-				if( fld_in_reply_to ) {
-					if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
-						return 1;
-					}
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
-			{
-				struct mailimf_references* fld_references = field->fld_data.fld_references;
-				if( fld_references ) {
-					if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
-						return 1;
-					}
-				}
-			}
 
+	struct mailimf_field* field;
+	if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
+	 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO )
+	{
+		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+		if( fld_in_reply_to ) {
+			if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_in_reply_to->mid_list) ) {
+				return 1;
+			}
 		}
 	}
+
+	if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL
+	 && field->fld_type==MAILIMF_FIELD_REFERENCES )
+	{
+		struct mailimf_references* fld_references = field->fld_data.fld_references;
+		if( fld_references ) {
+			if( is_msgrmsg_rfc724_mid_in_list__(mailbox, field->fld_data.fld_references->mid_list) ) {
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }
 

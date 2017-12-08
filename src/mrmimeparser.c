@@ -1271,7 +1271,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				case MAILIMF_FIELD_TO:          key = "To";          break;
 				case MAILIMF_FIELD_CC:          key = "Cc";          break;
 				case MAILIMF_FIELD_BCC:         key = "Bcc";         break;
-				case MAILIMF_FIELD_MESSAGE_ID:  key = "Date";        break;
+				case MAILIMF_FIELD_MESSAGE_ID:  key = "Message-ID";  break;
 				case MAILIMF_FIELD_IN_REPLY_TO: key = "In-Reply-To"; break;
 				case MAILIMF_FIELD_REFERENCES:  key = "References";  break;
 				case MAILIMF_FIELD_SUBJECT:     key = "Subject";     break;
@@ -1298,7 +1298,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 	}
 
-	if( mrmimeparser_lookup_field(ths, "Chat-Version") || mrmimeparser_lookup_field(ths, "X-MrMsg") ) {
+	if( mrmimeparser_lookup_optional_field2(ths, "Chat-Version", "X-MrMsg") ) {
 		ths->m_is_send_by_messenger = 1;
 	}
 
@@ -1361,7 +1361,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		and read some additional parameters */
 		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( part->m_type == MR_MSG_AUDIO ) {
-			if( mrmimeparser_lookup_field(ths, "X-MrVoiceMessage") || mrmimeparser_lookup_field(ths, "Chat-Voice-Message") ) {
+			if( mrmimeparser_lookup_optional_field2(ths, "Chat-Voice-Message", "X-MrVoiceMessage") ) {
 				free(part->m_msg);
 				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->m_type = MR_MSG_VOICE;
@@ -1371,8 +1371,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 
 		if( part->m_type == MR_MSG_AUDIO || part->m_type == MR_MSG_VOICE || part->m_type == MR_MSG_VIDEO ) {
-			const struct mailimf_optional_field* field = mrmimeparser_lookup_optional_field(ths, "X-MrDurationMs");
-			if( field==NULL ) { field = mrmimeparser_lookup_optional_field(ths, "Chat-Duration"); }
+			const struct mailimf_optional_field* field = mrmimeparser_lookup_optional_field2(ths, "Chat-Duration", "X-MrDurationMs");
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
@@ -1488,6 +1487,17 @@ struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t
 		return field->fld_data.fld_optional_field;
 	}
 	return NULL;
+}
+
+
+/*
+ * Lookup the first name and return, if found.
+ * If not, try to lookup the second name.
+ */
+struct mailimf_optional_field* mrmimeparser_lookup_optional_field2(mrmimeparser_t* mimeparser, const char* field_name, const char* or_field_name)
+{
+	struct mailimf_optional_field* of = mrmimeparser_lookup_optional_field(mimeparser, field_name);
+	return of? of : mrmimeparser_lookup_optional_field(mimeparser, or_field_name);
 }
 
 

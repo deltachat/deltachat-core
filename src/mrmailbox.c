@@ -50,10 +50,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 {
 	/* search the grpid in the header */
 	uint32_t              chat_id = 0;
-	clistiter*            cur;
-	struct mailimf_field* field;
-	char*                 grpid1 = NULL, *grpid2 = NULL, *grpid3 = NULL, *grpid4 = NULL;
-	const char*           grpid = NULL; /* must not be freed, just one of the others */
+	char*                 grpid = NULL;
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
 	int                   i, to_ids_cnt = mrarray_get_cnt(to_ids);
@@ -67,67 +64,69 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	int                   X_MrGrpNameChanged = 0;
 	int                   X_MrGrpImageChanged = 0;
 
-	for( cur = clist_begin(mime_parser->m_header_old->fld_list); cur!=NULL ; cur=clist_next(cur) )
 	{
-		field = (struct mailimf_field*)clist_content(cur);
-		if( field )
+		struct mailimf_field*          field = NULL;
+		struct mailimf_optional_field* optional_field = NULL;
+
+		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-ID", "X-MrGrpId"))!=NULL ) {
+			grpid = safe_strdup(optional_field->fld_value);
+		}
+
+		if( grpid == NULL )
 		{
-			if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-			{
-				struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-				if( optional_field && optional_field->fld_name ) {
-					if( strcasecmp(optional_field->fld_name, "X-MrGrpId")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-ID")==0 ) {
-						grpid1 = safe_strdup(optional_field->fld_value);
-					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrGrpName")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name")==0 ) {
-						grpname = mr_decode_header_string(optional_field->fld_value); /* this is no changed groupname message */
-					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrRemoveFromGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Removed")==0 ) {
-						X_MrRemoveFromGrp = optional_field->fld_value;
-						mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP;
-					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrAddToGrp")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Member-Added")==0 ) {
-						X_MrAddToGrp = optional_field->fld_value;
-						mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_ADDED_TO_GROUP;
-					}
-					else if( strcasecmp(optional_field->fld_name, "X-MrGrpNameChanged")==0 || strcasecmp(optional_field->fld_name, "Chat-Group-Name-Changed")==0 ) {
-						X_MrGrpNameChanged = 1;
-						mime_parser->m_is_system_message = MR_SYSTEM_GROUPNAME_CHANGED;
-					}
-					else if( strcasecmp(optional_field->fld_name, "Chat-Group-Image")==0 ) {
-						X_MrGrpImageChanged = 1;
-						mime_parser->m_is_system_message = MR_SYSTEM_GROUPIMAGE_CHANGED;
-					}
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
-			{
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 				if( fld_message_id ) {
-					grpid2 = mr_extract_grpid_from_rfc724_mid(fld_message_id->mid_value);
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
-			{
-				struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
-				if( fld_in_reply_to ) {
-					grpid3 = mr_extract_grpid_from_rfc724_mid_list(fld_in_reply_to->mid_list);
-				}
-			}
-			else if( field->fld_type == MAILIMF_FIELD_REFERENCES )
-			{
-				struct mailimf_references* fld_references = field->fld_data.fld_references;
-				if( fld_references ) {
-					grpid4 = mr_extract_grpid_from_rfc724_mid_list(fld_references->mid_list);
+					grpid = mr_extract_grpid_from_rfc724_mid(fld_message_id->mid_value);
 				}
 			}
 
+			if( grpid == NULL )
+			{
+				if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO ) {
+					struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
+					if( fld_in_reply_to ) {
+						grpid = mr_extract_grpid_from_rfc724_mid_list(fld_in_reply_to->mid_list);
+					}
+				}
+
+				if( grpid == NULL )
+				{
+					if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL && field->fld_type==MAILIMF_FIELD_REFERENCES ) {
+						struct mailimf_references* fld_references = field->fld_data.fld_references;
+						if( fld_references ) {
+							grpid = mr_extract_grpid_from_rfc724_mid_list(fld_references->mid_list);
+						}
+					}
+
+					if( grpid == NULL )
+					{
+						goto cleanup;
+					}
+				}
+			}
 		}
-	}
 
-	grpid = grpid1? grpid1 : (grpid2? grpid2 : (grpid3? grpid3 : grpid4));
-	if( grpid == NULL ) {
-		goto cleanup;
+		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL ) {
+			grpname = mr_decode_header_string(optional_field->fld_value); /* this is no changed groupname message */
+		}
+
+		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
+			X_MrRemoveFromGrp = optional_field->fld_value;
+			mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP;
+		}
+		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL ) {
+			X_MrAddToGrp = optional_field->fld_value;
+			mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_ADDED_TO_GROUP;
+		}
+		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL ) {
+			X_MrGrpNameChanged = 1;
+			mime_parser->m_is_system_message = MR_SYSTEM_GROUPNAME_CHANGED;
+		}
+		else if( (optional_field=mrmimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL ) {
+			X_MrGrpImageChanged = 1;
+			mime_parser->m_is_system_message = MR_SYSTEM_GROUPIMAGE_CHANGED;
+		}
 	}
 
 	/* check, if we have a chat with this group ID */
@@ -273,10 +272,7 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	}
 
 cleanup:
-	free(grpid1);
-	free(grpid2);
-	free(grpid3);
-	free(grpid4);
+	free(grpid);
 	free(grpname);
 	free(self_addr);
 	return chat_id;
@@ -312,7 +308,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	mrmimeparser_t*  mime_parser = mrmimeparser_new(ths->m_blobdir, ths);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
-	clistiter*       cur1;
 	const struct mailimf_field* field;
 
 	carray*          created_db_entries = carray_new(16);
@@ -344,7 +339,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
-	if( mime_parser->m_header_old == NULL ) {
+	if( mrhash_count(&mime_parser->m_header_hash)==0 ) {
 		mrmailbox_log_info(ths, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
@@ -362,24 +357,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
 		Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
 		However, we use `From:` as an additional hint below. */
-		for( cur1 = clist_begin(mime_parser->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-		{
-			field = (struct mailimf_field*)clist_content(cur1);
-			if( field )
-			{
-				if( field->fld_type == MAILIMF_FIELD_RETURN_PATH )
-				{
-					has_return_path = 1;
-				}
-				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
-				{
-					struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-					if( optional_field && strcasecmp(optional_field->fld_name, "Return-Path")==0 )
-					{
-						has_return_path = 1; /* "MAILIMF_FIELD_OPTIONAL_FIELD.Return-Path" should be "MAILIMF_FIELD_RETURN_PATH", however, this is not always the case */
-					}
-				}
-			}
+		if( mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
+			has_return_path = 1;
 		}
 
 		if( has_return_path ) {
@@ -442,45 +421,23 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			 *********************************************************************/
 
 			/* collect the rest information */
-			for( cur1 = clist_begin(mime_parser->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Cc"))!=NULL && field->fld_type==MAILIMF_FIELD_CC )
 			{
-				field = (struct mailimf_field*)clist_content(cur1);
-				if( field )
-				{
-					if( field->fld_type == MAILIMF_FIELD_MESSAGE_ID )
-					{
-						struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
-						if( fld_message_id ) {
-							rfc724_mid = safe_strdup(fld_message_id->mid_value);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_CC )
-					{
-						struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
-						if( fld_cc ) {
-							mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
-								outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_BCC )
-					{
-						struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
-						if( outgoing && fld_bcc ) {
-							mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
-								MR_ORIGIN_OUTGOING_BCC, to_ids, NULL);
-						}
-					}
-					else if( field->fld_type == MAILIMF_FIELD_ORIG_DATE )
-					{
-						struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-						if( orig_date ) {
-							message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-						}
-					}
+				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
+				if( fld_cc ) {
+					mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_cc->cc_addr_list,
+						outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
 				}
+			}
 
-			} /* for */
-
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Bcc"))!=NULL && field->fld_type==MAILIMF_FIELD_BCC )
+			{
+				struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
+				if( outgoing && fld_bcc ) {
+					mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_bcc->bcc_addr_list,
+						MR_ORIGIN_OUTGOING_BCC, to_ids, NULL);
+				}
+			}
 
 			/* check if the message introduces a new chat:
 			- outgoing messages introduce a chat with the first to: address if they are send by a messenger
@@ -570,6 +527,12 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
+				struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+				if( orig_date ) {
+					message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+				}
+			}
 			message_timestamp = mrmailbox_correct_bad_timestamp__(ths, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
 
 			/* unarchive chat */
@@ -577,6 +540,13 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 			/* check, if the mail is already in our database - if so, there's nothing more to do
 			(we may get a mail twice eg. it it is moved between folders) */
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
+				if( fld_message_id ) {
+					rfc724_mid = safe_strdup(fld_message_id->mid_value);
+				}
+			}
+
 			if( rfc724_mid == NULL ) {
 				/* header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail client
 				the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)

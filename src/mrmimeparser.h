@@ -86,6 +86,7 @@ void             mrmimeparser_parse                  (mrmimeparser_t*, const cha
 /* the following functions can be used only after a call to mrmimeparser_parse() */
 struct mailimf_field*          mrmimeparser_lookup_field           (mrmimeparser_t*, const char* field_name);
 struct mailimf_optional_field* mrmimeparser_lookup_optional_field  (mrmimeparser_t*, const char* field_name);
+struct mailimf_optional_field* mrmimeparser_lookup_optional_field2 (mrmimeparser_t*, const char* field_name, const char* or_field_name);
 mrmimepart_t*                  mrmimeparser_get_last_nonmeta       (mrmimeparser_t*);
 #define                        mrmimeparser_has_nonmeta(a)         (mrmimeparser_get_last_nonmeta((a))!=NULL)
 int                            mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
