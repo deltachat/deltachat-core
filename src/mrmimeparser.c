@@ -752,7 +752,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 	ths->m_reports = carray_new(16);
 
-	mrhash_init(&ths->m_header_hash, MRHASH_STRING, 0/* copy key */);
+	mrhash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
 
 	return ths;
 }
@@ -812,8 +812,8 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		carray_set_size(ths->m_parts, 0);
 	}
 
-	ths->m_header_old  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
-	mrhash_clear(&ths->m_header_hash);
+	ths->m_header_root  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	mrhash_clear(&ths->m_header);
 
 	ths->m_is_send_by_messenger  = 0;
 	ths->m_is_system_message = 0;
@@ -1185,9 +1185,9 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 			break;
 
 		case MAILMIME_MESSAGE:
-			if( ths->m_header_old == NULL )
+			if( ths->m_header_root == NULL )
 			{
-				ths->m_header_old = mime->mm_data.mm_message.mm_fields;
+				ths->m_header_root = mime->mm_data.mm_message.mm_fields;
 			}
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
@@ -1254,10 +1254,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
 
 	/* setup header */
-	if( ths->m_header_old )
+	if( ths->m_header_root )
 	{
 		clistiter* cur1;
-		for( cur1 = clist_begin(ths->m_header_old->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+		for( cur1 = clist_begin(ths->m_header_root->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 		{
 			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
 			const char *key = NULL;
@@ -1285,7 +1285,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 					break;
 			}
 			if( key ) {
-				mrhash_insert(&ths->m_header_hash, key, strlen(key), field);
+				mrhash_insert(&ths->m_header, key, strlen(key), field);
 			}
 		}
 	}
@@ -1462,7 +1462,7 @@ cleanup:
  */
 struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	return (struct mailimf_field*)mrhash_find(&mimeparser->m_header_hash, field_name, strlen(field_name));
+	return (struct mailimf_field*)mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
 }
 
 
@@ -1482,7 +1482,7 @@ struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, cons
  */
 struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	struct mailimf_field* field = mrhash_find(&mimeparser->m_header_hash, field_name, strlen(field_name));
+	struct mailimf_field* field = mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
 	if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 		return field->fld_data.fld_optional_field;
 	}

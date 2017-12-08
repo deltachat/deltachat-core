@@ -339,7 +339,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
-	if( mrhash_count(&mime_parser->m_header_hash)==0 ) {
+	if( mrhash_count(&mime_parser->m_header)==0 ) {
 		mrmailbox_log_info(ths, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
