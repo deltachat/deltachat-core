@@ -1387,8 +1387,8 @@ char* mr_create_id(void)
 	- unique as two IDs generated on two devices should not be the same. However, collisions are not world-wide but only by the few contacts.
 
 	Additional information:
-	- for OUTGOING messages this ID is written to the header as `X-MrGrpId:` and is added to the message ID as Gr.<grpid>.<random>@<random>
-	- for INCOMING messages, the ID is taken from the X-MrGrpId-header or from the Message-ID in the In-Reply-To: or References:-Header
+	- for OUTGOING messages this ID is written to the header as `Chat-Group-ID:` and is added to the message ID as Gr.<grpid>.<random>@<random>
+	- for INCOMING messages, the ID is taken from the Chat-Group-ID-header or from the Message-ID in the In-Reply-To: or References:-Header
 	- the group ID should be a string with the characters [a-zA-Z0-9\-_] */
 	uint32_t now = time(NULL);
 	uint32_t pid = getpid();

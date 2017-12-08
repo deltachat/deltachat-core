@@ -166,7 +166,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			Our first idea was to write the predecessor to the `In-Reply-To:` header, however, this results
 			in infinite depth thread views eg. in thunderbird.  Maybe we can work around this issue by using only one
-			predecessor anchor a day, however, for the moment, we just use the `X-MrPredecessor` header that does not
+			predecessor anchor a day, however, for the moment, we just use the `Chat-Predecessor` header that does not
 			disturb other mailers.
 
 			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
@@ -481,9 +481,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			factory->m_mailbox->m_os_name? " for " : "",
 			factory->m_mailbox->m_os_name? factory->m_mailbox->m_os_name : "")));
 
-		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrMsg"), strdup("1.0"))); /* mark message as being sent by a messenger */
+		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Version"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( factory->m_predecessor ) {
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrPredecessor"), strdup(factory->m_predecessor)));
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Predecessor"), strdup(factory->m_predecessor)));
 		}
 
 		if( factory->m_req_mdn ) {
@@ -510,24 +510,24 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 		if( chat->m_type==MR_CHAT_TYPE_GROUP )
 		{
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpId"), safe_strdup(chat->m_grpid)));
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpName"), mr_encode_header_string(chat->m_name)));
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));
 
 			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
 				char* email_to_remove = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_remove ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrRemoveFromGrp"), email_to_remove));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Removed"), email_to_remove));
 				}
 			}
 			else if( system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP ) {
 				char* email_to_add = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
 				if( email_to_add ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrAddToGrp"), email_to_add));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Added"), email_to_add));
 					grpimage = mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
 				}
 			}
 			else if( system_command == MR_SYSTEM_GROUPNAME_CHANGED ) {
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrGrpNameChanged"), strdup("1")));
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
 			}
 			else if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
 				grpimage = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
@@ -558,12 +558,12 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
 		{
 			if( msg->m_type == MR_MSG_VOICE ) {
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrVoiceMessage"), strdup("1")));
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Voice-Message"), strdup("1")));
 			}
 
 			int duration_ms = mrparam_get_int(msg->m_param, MRP_DURATION, 0);
 			if( duration_ms > 0 ) {
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-MrDurationMs"), mr_mprintf("%i", (int)duration_ms)));
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Duration"), mr_mprintf("%i", (int)duration_ms)));
 			}
 		}
 

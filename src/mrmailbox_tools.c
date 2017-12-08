@@ -141,7 +141,7 @@ static int is_known_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_
 int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
-	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `X-MrPredecessor:` (Delta clients, see comment in mrchat.c) */
+	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in mrchat.c) */
 
 	struct mailimf_optional_field* optional_field;
 	if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
