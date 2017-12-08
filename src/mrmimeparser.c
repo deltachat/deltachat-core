@@ -1078,6 +1078,9 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 				mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be used.");
 			}
 		}
+		else {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
+		}
 	}
 
 	switch( mime->mm_type )
