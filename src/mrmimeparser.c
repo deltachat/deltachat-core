@@ -812,8 +812,13 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		carray_set_size(ths->m_parts, 0);
 	}
 
-	ths->m_header_root  = NULL; /* a pointer somewhere to the MIME data, must not be freed */
+	ths->m_header_root  = NULL; /* a pointer somewhere to the MIME data, must NOT be freed */
 	mrhash_clear(&ths->m_header);
+
+	if( ths->m_header_protected ) {
+		mailimf_fields_free(ths->m_header_protected); /* allocated as needed, MUST be freed */
+		ths->m_header_protected = NULL;
+	}
 
 	ths->m_is_send_by_messenger  = 0;
 	ths->m_is_system_message = 0;
@@ -1055,6 +1060,27 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 		return 0;
 	}
 
+	if( mailmime_find_ct_parameter(mime, "protected-headers") )
+	{
+		if( mime->mm_type==MAILMIME_SINGLE
+		 && mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_DISCRETE_TYPE
+		 && mime->mm_content_type->ct_type->tp_data.tp_discrete_type->dt_type==MAILMIME_DISCRETE_TYPE_TEXT
+		 && mime->mm_content_type->ct_subtype
+		 && strcmp(mime->mm_content_type->ct_subtype, "rfc822-headers")==0 ) {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
+			return 0;
+		}
+
+		size_t dummy = 0;
+		struct mailimf_fields* temp_fields = NULL;
+		if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &temp_fields)==MAILIMF_NO_ERROR // what is the difference between mailimf_envelope_and_optional_fields_parse() mailimf_fields_parse()
+		 && temp_fields!=NULL ) {
+			if( ths->m_header_protected ) { mailimf_fields_free(ths->m_header_protected); } /* use the most inner protected header */
+			ths->m_header_protected = temp_fields; /* freed later using mailimf_fields_free() */
+			mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be used.");
+		}
+	}
+
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
@@ -1201,6 +1227,65 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 }
 
 
+static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbox_t* mailbox)
+{
+	if( in == NULL ) {
+		return;
+	}
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(in->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		const char *key = NULL;
+		switch( field->fld_type )
+		{
+			case MAILIMF_FIELD_RETURN_PATH: key = "Return-Path"; break;
+			case MAILIMF_FIELD_ORIG_DATE:   key = "Date";        break;
+			case MAILIMF_FIELD_FROM:        key = "From";        break;
+			case MAILIMF_FIELD_SENDER:      key = "Sender";      break;
+			case MAILIMF_FIELD_REPLY_TO:    key = "Reply-To";    break;
+			case MAILIMF_FIELD_TO:          key = "To";          break;
+			case MAILIMF_FIELD_CC:          key = "Cc";          break;
+			case MAILIMF_FIELD_BCC:         key = "Bcc";         break;
+			case MAILIMF_FIELD_MESSAGE_ID:  key = "Message-ID";  break;
+			case MAILIMF_FIELD_IN_REPLY_TO: key = "In-Reply-To"; break;
+			case MAILIMF_FIELD_REFERENCES:  key = "References";  break;
+			case MAILIMF_FIELD_SUBJECT:     key = "Subject";     break;
+			case MAILIMF_FIELD_OPTIONAL_FIELD:
+				{
+					const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+					if( optional_field ) {
+						key = optional_field->fld_name;
+					}
+				}
+				break;
+		}
+
+		if( key )
+		{
+			int key_len = strlen(key);
+
+			if( mrhash_find(out, key, key_len) )
+			{
+				/* key already in hash, do only overwrite known types */
+				if( field->fld_type!=MAILIMF_FIELD_OPTIONAL_FIELD
+				 || (key_len>5 && strncasecmp(key, "Chat-", 5)==0) )
+				{
+					mrmailbox_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
+					mrhash_insert(out, key, key_len, field);
+				}
+			}
+			else
+			{
+				/* key not hashed before */
+				mrhash_insert(out, key, key_len, field);
+			}
+		}
+	}
+}
+
+
 /**
  * Parse raw MIME-data into a MIME-object.
  *
@@ -1252,41 +1337,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
 
 	/* setup header */
-	if( ths->m_header_root )
-	{
-		clistiter* cur1;
-		for( cur1 = clist_begin(ths->m_header_root->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
-		{
-			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-			const char *key = NULL;
-			switch( field->fld_type )
-			{
-				case MAILIMF_FIELD_RETURN_PATH: key = "Return-Path"; break;
-				case MAILIMF_FIELD_ORIG_DATE:   key = "Date";        break;
-				case MAILIMF_FIELD_FROM:        key = "From";        break;
-				case MAILIMF_FIELD_SENDER:      key = "Sender";      break;
-				case MAILIMF_FIELD_REPLY_TO:    key = "Reply-To";    break;
-				case MAILIMF_FIELD_TO:          key = "To";          break;
-				case MAILIMF_FIELD_CC:          key = "Cc";          break;
-				case MAILIMF_FIELD_BCC:         key = "Bcc";         break;
-				case MAILIMF_FIELD_MESSAGE_ID:  key = "Message-ID";  break;
-				case MAILIMF_FIELD_IN_REPLY_TO: key = "In-Reply-To"; break;
-				case MAILIMF_FIELD_REFERENCES:  key = "References";  break;
-				case MAILIMF_FIELD_SUBJECT:     key = "Subject";     break;
-				case MAILIMF_FIELD_OPTIONAL_FIELD:
-					{
-						const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-						if( optional_field ) {
-							key = optional_field->fld_name;
-						}
-					}
-					break;
-			}
-			if( key ) {
-				mrhash_insert(&ths->m_header, key, strlen(key), field);
-			}
-		}
-	}
+	hash_header(&ths->m_header, ths->m_header_root, ths->m_mailbox);
+	hash_header(&ths->m_header, ths->m_header_protected, ths->m_mailbox); /* overwrite the original header with the protected one */
 
 	/* set some basic data */
 	{

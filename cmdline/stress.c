@@ -106,32 +106,38 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrmimeparser_t* mimeparser = mrmimeparser_new(mailbox->m_blobdir, mailbox);
 
 		const char* raw =
-			"Content-Type: multipart/mixed; boundary=\"JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\"; protected-headers=\"v1\"\n"
-			"From: qm4 <user4@b44t.com>\n"
-			"To: =?UTF-8?B?QmrDtnJu?= <user@domain.com>\n"
-			"Message-ID: <f539200b-35f1-0da0-939c-26c7b21a19e1@b44t.com>\n"
-			"Subject: test1\n"
+			"Content-Type: multipart/mixed; boundary=\"==break==\";\n"
+			"Subject: outer-subject\n"
+			"X-Special-A: special-a\n"
+			"Foo: Bar\n"
+			"Chat-Version: 0.0\n"
 			"\n"
-			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\n"
-			"Content-Type: text/rfc822-headers; protected-headers=\"v1\"\n"
-			"Content-Disposition: inline\n"
-			"\n"
-			"From: qm4 <user4@b44t.com>\n"
-			"To: =?UTF-8?B?QmrDtnJu?= <user@domain.com>\n"
-			"Subject: test1\n"
-			"\n"
-			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj\n"
-			"Content-Type: text/plain; charset=utf-8\n"
-			"Content-Transfer-Encoding: quoted-printable\n"
+			"--==break==\n"
+			"Content-Type: text/plain; protected-headers=\"v1\";\n"
+			"Subject: inner-subject\n"
+			"X-Special-B: special-b\n"
+			"Foo: Xy\n"
+			"Chat-Version: 1.0\n"
 			"\n"
 			"test1\n"
 			"\n"
-			"--JoqEHZIyZ4BKBT56msbYSSWPeG0mEPTNj--\n"
+			"--==break==--\n"
 			"\n";
 
 		mrmimeparser_parse(mimeparser, raw, strlen(raw));
 
-		assert( strcmp(mimeparser->m_subject, "test1")==0 );
+		assert( strcmp(mimeparser->m_subject, "inner-subject")==0 );
+
+		struct mailimf_optional_field* of = mrmimeparser_lookup_optional_field(mimeparser, "X-Special-A");
+		assert( strcmp(of->fld_value, "special-a")==0 );
+
+		of = mrmimeparser_lookup_optional_field(mimeparser, "Foo");
+		assert( strcmp(of->fld_value, "Bar")==0 ); /* completely unknown values are not overwritten */
+
+		of = mrmimeparser_lookup_optional_field(mimeparser, "Chat-Version");
+		assert( strcmp(of->fld_value, "1.0")==0 );
+
+		assert( carray_count(mimeparser->m_parts) == 1 );
 
 		mrmimeparser_unref(mimeparser);
 	}

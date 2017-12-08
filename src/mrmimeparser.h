@@ -56,7 +56,8 @@ typedef struct mrmimeparser_t
 	struct mailmime*       m_mimeroot;
 
 	mrhash_t               m_header;            /* memoryhole-compliant header */
-	struct mailimf_fields* m_header_root;       /* do not use for query, header of MIME-root, a pointer somewhere to the MIME data, must not be freed*/
+	struct mailimf_fields* m_header_root;       /* must NOT be freed, do not use for query, merged into m_header, a pointer somewhere to the MIME data*/
+	struct mailimf_fields* m_header_protected;  /* MUST be freed, do not use for query, merged into m_header  */
 
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
