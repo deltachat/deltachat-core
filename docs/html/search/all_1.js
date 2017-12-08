@@ -132,6 +132,7 @@ var searchData=
   ['mrmsg_5fget_5ffilename',['mrmsg_get_filename',['../structmrmsg__t.html#ad0dcfc0a1e33d9a88b7381e368d7895a',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fheight',['mrmsg_get_height',['../structmrmsg__t.html#a8600ed157b44b1089783e66ce7b33353',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fmediainfo',['mrmsg_get_mediainfo',['../structmrmsg__t.html#a1c6dfee4004fe0e9b9f90720bad73ecb',1,'mrmsg_t']]],
+  ['mrmsg_5fget_5fsetupcodebegin',['mrmsg_get_setupcodebegin',['../structmrmsg__t.html#a7ef8629603b2462f890dfbbe304c8f7d',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fshowpadlock',['mrmsg_get_showpadlock',['../structmrmsg__t.html#a7f1bd3d845bbc5face7636aed8f8afd4',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fstate',['mrmsg_get_state',['../structmrmsg__t.html#a1f411e4be17fb5fe408a1aa74cba90a5',1,'mrmsg_t']]],
   ['mrmsg_5fget_5fsummary',['mrmsg_get_summary',['../structmrmsg__t.html#a3c14a8dbd6cc7f90c642223a873312e3',1,'mrmsg_t']]],
