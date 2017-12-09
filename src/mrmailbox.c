@@ -391,7 +391,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 				else
 				{
-					if( mrarray_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine.  These messages are very rare, however, we have to add the to the database (they to to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
+					if( mrarray_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = mrarray_get_id(from_list, 0);
 						incoming_origin = mrmailbox_get_contact_origin__(ths, from_id, &from_id_blocked);
