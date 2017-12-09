@@ -52,7 +52,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_AUDIO:                 return safe_strdup("Audio");
 		case MR_STR_FILE:                  return safe_strdup("File");
 		case MR_STR_ENCRYPTEDMSG:          return safe_strdup("Encrypted message");
-		case MR_STR_STATUSLINE:            return safe_strdup("Sent with my Delta Chat Messenger");
+		case MR_STR_STATUSLINE:            return safe_strdup("Sent with my Delta Chat Messenger: https://delta.chat");
 		case MR_STR_NEWGROUPDRAFT:         return safe_strdup("Hello, I've just created the group \"%1$s\" for us.");
 		case MR_STR_MSGGRPNAME:            return safe_strdup("Group name changed from \"%1$s\" to \"%2$s\".");
 		case MR_STR_MSGGRPIMGCHANGED:      return safe_strdup("Group image changed.");
