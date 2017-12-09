@@ -310,7 +310,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( arg1 && strcmp(arg1, "imex")==0 )
 		{
 			ret = safe_strdup(
-				"====================Import-/export-commands==\n"
+				"====================Import/Export commands==\n"
 				"initiate-key-transfer\n"
 				"continue-key-transfer <msg-id> <setup-code>\n"
 				"has-backup\n"
@@ -336,7 +336,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"configure\n"
 				"connect\n"
 				"disconnect\n"
-				"help imex\n"
+				"help imex (Import/Export)\n"
 				"==============================Chat commands==\n"
 				"listchats [<query>]\n"
 				"listarchived\n"
@@ -367,7 +367,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delmsg <msg-id>\n"
 				"===========================Contact commands==\n"
 				"listcontacts [<query>]\n"
-				"addcontact <name> <addr>\n"
+				"addcontact <addr> [<name>]\n"
 				"contactinfo <contact-id>\n"
 				"======================================Misc.==\n"
 				"event <event-id to test>\n"
@@ -977,7 +977,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_create_contact(mailbox, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Arguments <name> <addr> expected.");
+			ret = safe_strdup("ERROR: Arguments <addr> [<name>] expected.");
 		}
 	}
 	else if( strcmp(cmd, "contactinfo")==0 )
