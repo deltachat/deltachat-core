@@ -686,7 +686,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 	if( !force_unencrypted ) {
 		if( encrypt_to_self==0 || e2ee_guaranteed ) {
-			/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before */
+			/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before - otherwise we can save some bytes in not-sending the Autocrypt-header to ourself */
 			mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, e2ee_guaranteed, encrypt_to_self, message, &e2ee_helper);
 		}
 	}
