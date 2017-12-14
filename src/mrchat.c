@@ -330,6 +330,25 @@ int mrchat_is_unpromoted(mrchat_t* chat)
 }
 
 
+/**
+ * Check if a chat is a self talk.  Self talks are normal chats with
+ * the only contact MR_CONTACT_ID_SELF.
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return 1=chat is self talk, 0=chat is no self talk
+ */
+int mrchat_is_self_talk(mrchat_t* chat)
+{
+	if( chat == NULL ) {
+		return 0;
+	}
+	return mrparam_exists(chat->m_param, MRP_SELFTALK);
+}
+
+
 /*******************************************************************************
  * Misc.
  ******************************************************************************/

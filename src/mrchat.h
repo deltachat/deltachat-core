@@ -85,6 +85,7 @@ char*           mrchat_get_profile_image    (mrchat_t*);
 char*           mrchat_get_draft            (mrchat_t*);
 int             mrchat_get_archived         (mrchat_t*);
 int             mrchat_is_unpromoted        (mrchat_t*);
+int             mrchat_is_self_talk         (mrchat_t*);
 
 /* library-internal */
 int             mrchat_load_from_db__       (mrchat_t*, uint32_t id);
