@@ -175,6 +175,25 @@ int mr_str_replace(char** haystack, const char* needle, const char* replacement)
 }
 
 
+int mr_str_contains(const char* haystack, const const char* needle)
+{
+	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
+	if( strstr(haystack, needle)!=NULL ) {
+		return 1;
+	}
+
+	char* haystack_lower = mr_strlower(haystack);
+	char* needle_lower = mr_strlower(needle);
+
+		int ret = strstr(haystack_lower, needle_lower)? 1 : 0;
+
+	free(haystack_lower);
+	free(needle_lower);
+
+	return ret;
+}
+
+
 char* mr_null_terminate(const char* in, int bytes) /* the result must be free()'d */
 {
 	char* out = malloc(bytes+1);

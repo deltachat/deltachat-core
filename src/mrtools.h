@@ -46,6 +46,7 @@ void    mr_trim                    (char*);
 char*   mr_strlower                (const char*); /* the result must be free()'d */
 void    mr_strlower_in_place       (char*);
 int     mr_str_replace             (char** haystack, const char* needle, const char* replacement);
+int     mr_str_contains            (const char* haystack, const char* needle);
 char*   mr_null_terminate          (const char*, int bytes); /* the result must be free()'d */
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
