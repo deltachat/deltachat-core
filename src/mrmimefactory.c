@@ -122,37 +122,45 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 		if( mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
 		 && mrchat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
 		{
-			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
-				"SELECT c.authname, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
-			sqlite3_bind_int(stmt, 1, factory->m_msg->m_chat_id);
-			sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
-			while( sqlite3_step(stmt) == SQLITE_ROW )
-			{
-				const char* authname = (const char*)sqlite3_column_text(stmt, 0);
-				const char* addr = (const char*)sqlite3_column_text(stmt, 1);
-				if( clist_search_string_nocase(factory->m_recipients_addr, addr)==0 )
-				{
-					clist_append(factory->m_recipients_names, (void*)((authname&&authname[0])? safe_strdup(authname) : NULL));
-					clist_append(factory->m_recipients_addr,  (void*)safe_strdup(addr));
-				}
-			}
+			load_from__(factory);
 
-			int system_command = mrparam_get_int(factory->m_msg->m_param, MRP_SYSTEM_CMD, 0);
-			if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
-				char* email_to_remove = mrparam_get(factory->m_msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
-				char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
-				if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
+			if( mrchat_is_self_talk(factory->m_chat) )
+			{
+				clist_append(factory->m_recipients_names, (void*)strdup_keep_null(factory->m_from_displayname));
+				clist_append(factory->m_recipients_addr,  (void*)safe_strdup(factory->m_from_addr));
+			}
+			else
+			{
+				sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
+					"SELECT c.authname, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
+				sqlite3_bind_int(stmt, 1, factory->m_msg->m_chat_id);
+				sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
+				while( sqlite3_step(stmt) == SQLITE_ROW )
 				{
-					if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
+					const char* authname = (const char*)sqlite3_column_text(stmt, 0);
+					const char* addr = (const char*)sqlite3_column_text(stmt, 1);
+					if( clist_search_string_nocase(factory->m_recipients_addr, addr)==0 )
 					{
-						clist_append(factory->m_recipients_names, NULL);
-						clist_append(factory->m_recipients_addr,  (void*)email_to_remove);
+						clist_append(factory->m_recipients_names, (void*)((authname&&authname[0])? safe_strdup(authname) : NULL));
+						clist_append(factory->m_recipients_addr,  (void*)safe_strdup(addr));
 					}
 				}
-				free(self_addr);
-			}
 
-			load_from__(factory);
+				int system_command = mrparam_get_int(factory->m_msg->m_param, MRP_SYSTEM_CMD, 0);
+				if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
+					char* email_to_remove = mrparam_get(factory->m_msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+					char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
+					{
+						if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
+						{
+							clist_append(factory->m_recipients_names, NULL);
+							clist_append(factory->m_recipients_addr,  (void*)email_to_remove);
+						}
+					}
+					free(self_addr);
+				}
+			}
 
 			factory->m_req_mdn = 0;
 			if( mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
@@ -171,7 +179,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
 			or after the sender has changes its email address. */
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
 				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
 			sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
