@@ -236,39 +236,40 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 {
 	int             i, cnt = mrarray_get_cnt(contacts);
-	mrcontact_t*    contact = mrcontact_new();
+	mrcontact_t*    contact = NULL;
 	mrapeerstate_t* peerstate = mrapeerstate_new();
 
-	mrsqlite3_lock(mailbox->m_sql);
-		for( i = 0; i < cnt; i++ ) {
-			uint32_t contact_id = mrarray_get_id(contacts, i);
-			char* line = NULL;
-			char* line2 = NULL;
-			if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
-				line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
-				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr) ) {
-					char* pe = NULL;
-					switch( peerstate->m_prefer_encrypt ) {
-						case MRA_PE_MUTUAL:       pe = safe_strdup("mutual");                                         break;
-						case MRA_PE_NOPREFERENCE: pe = safe_strdup("no-preference");                                  break;
-						case MRA_PE_RESET:        pe = safe_strdup("reset");                                          break;
-						default:                  pe = mr_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
-					}
-					line2 = mr_mprintf(", prefer-encrypt=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
-					free(pe);
+	for( i = 0; i < cnt; i++ ) {
+		uint32_t contact_id = mrarray_get_id(contacts, i);
+		char* line = NULL;
+		char* line2 = NULL;
+		if( (contact=mrmailbox_get_contact(mailbox, contact_id))!=NULL ) {
+			line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+			mrsqlite3_lock(mailbox->m_sql);
+				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
+			mrsqlite3_unlock(mailbox->m_sql);
+			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
+				char* pe = NULL;
+				switch( peerstate->m_prefer_encrypt ) {
+					case MRA_PE_MUTUAL:       pe = safe_strdup("mutual");                                         break;
+					case MRA_PE_NOPREFERENCE: pe = safe_strdup("no-preference");                                  break;
+					case MRA_PE_RESET:        pe = safe_strdup("reset");                                          break;
+					default:                  pe = mr_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
 				}
+				line2 = mr_mprintf(", prefer-encrypt=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
+				free(pe);
 			}
-			else {
-				line = safe_strdup("Read error.");
-			}
-			mrmailbox_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
-			free(line);
-			free(line2);
+			mrcontact_unref(contact);
 		}
-	mrsqlite3_unlock(mailbox->m_sql);
+		else {
+			line = safe_strdup("Read error.");
+		}
+		mrmailbox_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
+		free(line);
+		free(line2);
+	}
 
 	mrapeerstate_unref(peerstate);
-	mrcontact_unref(contact);
 }
 
 
