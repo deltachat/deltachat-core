@@ -117,7 +117,7 @@ void mrchat_empty(mrchat_t* chat)
  *
  * Currently, there are two chat types:
  *
- * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is not added.
+ * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is added _only_ for a self talk.
  * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF
  *
  * @memberof mrchat_t
@@ -182,7 +182,11 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 		return safe_strdup("Err");
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_NORMAL )
+	if( chat->m_type == MR_CHAT_TYPE_NORMAL && mrparam_exists(chat->m_param, MRP_SELFTALK) )
+	{
+		ret = mrstock_str(MR_STR_SELFTALK_SUBTITLE);
+	}
+	else if( chat->m_type == MR_CHAT_TYPE_NORMAL )
 	{
 		int r;
 		mrsqlite3_lock(chat->m_mailbox->m_sql);
@@ -387,6 +391,10 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
 		free(ths->m_name);
 		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
+	}
+	else if( mrparam_exists(ths->m_param, MRP_SELFTALK) ) {
+		free(ths->m_name);
+		ths->m_name = mrstock_str(MR_STR_SELF);
 	}
 
 	return row_offset; /* success, return the next row offset */

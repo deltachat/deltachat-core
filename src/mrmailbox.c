@@ -24,6 +24,7 @@
 #include <sys/types.h> /* for getpid() */
 #include <unistd.h>    /* for getpid() */
 #include <openssl/opensslv.h>
+#include <assert.h>
 #include "mrmailbox_internal.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
@@ -1800,7 +1801,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 			goto cleanup;
 		}
 
-        if( 0==mrmailbox_real_contact_exists__(mailbox, contact_id) ) {
+        if( 0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF ) {
 			mrmailbox_log_warning(mailbox, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
 			goto cleanup;
         }
@@ -2424,8 +2425,9 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 }
 
 
-uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id) /* checks for "real" chats (non-trash, non-unknown) */
+uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id /* may be MR_CONTACT_ID_SELF */)
 {
+	/* checks for "real" chats (non-trash, non-unknown) */
 	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
 
@@ -2450,7 +2452,7 @@ uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint3
 }
 
 
-uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id)
+uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	uint32_t      chat_id = 0;
 	mrcontact_t*  contact = NULL;
@@ -2479,7 +2481,9 @@ uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, 
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
 	/* create chat record */
-	q = sqlite3_mprintf("INSERT INTO chats (type, name) VALUES(%i, %Q)", MR_CHAT_TYPE_NORMAL, chat_name);
+	q = sqlite3_mprintf("INSERT INTO chats (type, name, param) VALUES(%i, %Q, %Q)", MR_CHAT_TYPE_NORMAL, chat_name,
+		contact_id==MR_CONTACT_ID_SELF? "K=1" : "");
+	assert( MRP_SELFTALK == 'K' );
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 	if( stmt == NULL) {
 		goto cleanup;
@@ -3880,7 +3884,7 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	int          success = 0, locked = 0;
-	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id); /* mrcontact_load_from_db__() does not load SELF fields */
+	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id);
 	mrchat_t*    chat = mrchat_new(mailbox);
 	mrmsg_t*     msg = mrmsg_new();
 	char*        self_addr = NULL;
@@ -3965,7 +3969,7 @@ cleanup:
 int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	int          success = 0, locked = 0;
-	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id); /* mrcontact_load_from_db__() does not load SELF fields */
+	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id);
 	mrchat_t*    chat = mrchat_new(mailbox);
 	mrmsg_t*     msg = mrmsg_new();
 	char*        q3 = NULL;
@@ -4377,6 +4381,10 @@ cleanup:
 mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 {
 	int           locked = 0;
+	char*         self_addr = NULL;
+	char*         self_name = NULL;
+	char*         self_name2 = NULL;
+	int           add_self = 0;
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         s3strLikeCmd = NULL;
 	sqlite3_stmt* stmt;
@@ -4388,26 +4396,36 @@ mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( query ) {
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", ""); /* we add MR_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
+
+		if( query )
+		{
 			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query))==NULL ) {
 				goto cleanup;
 			}
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
 				"SELECT id FROM contacts"
-					" WHERE id>? AND origin>=? AND blocked=0 AND (name LIKE ? OR addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
+					" WHERE addr!=? AND id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0 AND (name LIKE ? OR addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
 					" ORDER BY LOWER(name||addr),id;");
-			sqlite3_bind_int (stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-			sqlite3_bind_int (stmt, 2, MR_ORIGIN_MIN_CONTACT_LIST);
+			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
+			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 4, s3strLikeCmd, -1, SQLITE_STATIC);
+
+			self_name  = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
+			self_name2 = mrstock_str(MR_STR_SELF);
+			if( mr_str_contains(self_addr, query) || mr_str_contains(self_name, query) || mr_str_contains(self_name2, query) ) {
+				add_self = 1;
+			}
 		}
-		else {
+		else
+		{
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_ORDER_BY,
 				"SELECT id FROM contacts"
-					" WHERE id>? AND origin>=? AND blocked=0"
+					" WHERE addr!=? AND id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
 					" ORDER BY LOWER(name||addr),id;");
-			sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
-			sqlite3_bind_int(stmt, 2, MR_ORIGIN_MIN_CONTACT_LIST);
+			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
+
+			add_self = 1;
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -4417,6 +4435,11 @@ mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	/* to the end of the list, add self - this is to be in sync with member lists and to allow the user to start a self talk */
+	if( add_self ) {
+		mrarray_add_id(ret, MR_CONTACT_ID_SELF);
+	}
+
 cleanup:
 	if( locked ) {
 		mrsqlite3_unlock(mailbox->m_sql);
@@ -4424,6 +4447,9 @@ cleanup:
 	if( s3strLikeCmd ) {
 		sqlite3_free(s3strLikeCmd);
 	}
+	free(self_addr);
+	free(self_name);
+	free(self_name2);
 	return ret;
 }
 
@@ -4505,6 +4531,10 @@ cleanup:
 /**
  * Get a single contact object.  For a list, see eg. mrmailbox_get_known_contacts().
  *
+ * For contact MR_CONTACT_ID_SELF (1), the function returns the name
+ * MR_STR_SELF (typically "Me" in the selected language) and the email address
+ * defined by mrmailbox_set_config().
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
@@ -4520,18 +4550,9 @@ mrcontact_t* mrmailbox_get_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		if( contact_id == MR_CONTACT_ID_SELF )
-		{
-			ret->m_id   = contact_id;
-			ret->m_name = mrstock_str(MR_STR_SELF);
-			ret->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
-		}
-		else
-		{
-			if( !mrcontact_load_from_db__(ret, mailbox->m_sql, contact_id) ) {
-				mrcontact_unref(ret);
-				ret = NULL;
-			}
+		if( !mrcontact_load_from_db__(ret, mailbox->m_sql, contact_id) ) {
+			mrcontact_unref(ret);
+			ret = NULL;
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -4594,8 +4615,8 @@ void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_
 	mrcontact_t*  contact = mrcontact_new();
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
-		return;
+	if( mailbox == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);

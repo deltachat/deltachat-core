@@ -72,6 +72,7 @@ extern "C" {
 #define MR_STR_STARREDMSGS                41
 #define MR_STR_AC_SETUP_MSG_SUBJECT       42
 #define MR_STR_AC_SETUP_MSG_BODY          43
+#define MR_STR_SELFTALK_SUBTITLE          50
 
 
 /* should be set up by mrmailbox_new() */

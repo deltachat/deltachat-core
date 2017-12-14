@@ -473,9 +473,6 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 	char*    setup_code = NULL;
 	char*    setup_file_content = NULL;
 	char*    setup_file_name = NULL;
-	char*    self_name = NULL;
-	char*    self_addr = NULL;
-	uint32_t contact_id = 0;
 	uint32_t chat_id = 0;
 	mrmsg_t* msg = NULL;
 	uint32_t msg_id = 0;
@@ -502,13 +499,7 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
-		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "addr", "");
-		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
-	mrsqlite3_unlock(mailbox->m_sql);
-
-	if( (contact_id=mrmailbox_create_contact(mailbox, self_name, self_addr))==0
-	 || (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, contact_id))==0 ) {
+	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, MR_CONTACT_ID_SELF))==0 ) {
 		goto cleanup;
 	}
 
@@ -553,8 +544,6 @@ cleanup:
 	free(setup_file_name);
 	free(setup_file_content);
 	mrmsg_unref(msg);
-	free(self_name);
-	free(self_addr);
 	mrmailbox_free_ongoing(mailbox);
 	return setup_code;
 }

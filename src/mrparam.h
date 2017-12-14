@@ -71,6 +71,7 @@ typedef struct mrparam_t
 #define MRP_UNPROMOTED        'U'  /* for groups */
 #define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
 #define MRP_DEL_AFTER_SEND    'P'  /* for groups and msgs: physically delete group after message sending if msg-value matches group-value */
+#define MRP_SELFTALK          'K'  /* for chats */
 
 
 /* user functions */
