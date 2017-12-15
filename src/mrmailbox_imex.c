@@ -707,6 +707,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 
 		set_default = 1;
 		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
+			mrmailbox_log_info(mailbox, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
