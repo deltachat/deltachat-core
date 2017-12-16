@@ -294,6 +294,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	#define          outgoing (!incoming)
 
 	mrarray_t*       to_ids = NULL;
+	int              to_self = 0;
 
 	uint32_t         from_id = 0;
 	int              from_id_blocked = 0;
@@ -410,7 +411,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			if( fld_to )
 			{
 				mrmailbox_add_or_lookup_contacts_by_address_list__(ths, fld_to->to_addr_list /*!= NULL*/,
-					outgoing? MR_ORIGIN_OUTGOING_TO : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_TO : MR_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, NULL);
+					outgoing? MR_ORIGIN_OUTGOING_TO : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_TO : MR_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, &to_self);
 			}
 		}
 
@@ -518,6 +519,13 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
 							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
 						}
+					}
+				}
+
+				if( chat_id == 0 ) {
+					if( mrarray_get_cnt(to_ids) == 0 && to_self ) {
+						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
+						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, MR_CONTACT_ID_SELF);
 					}
 				}
 
