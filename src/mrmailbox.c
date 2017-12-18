@@ -4275,6 +4275,8 @@ cleanup:
  * To add a number of contacts, see mrmailbox_add_address_book() which is much faster for adding
  * a bunch of addresses.
  *
+ * May result in a #MR_EVENT_CONTACTS_CHANGED event.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
@@ -4827,6 +4829,8 @@ cleanup:
 /**
  * Delete a contact.  The contact is deleted from the local device.  It may happen that this is not
  * possible as the contact is in used.  In this case, the contact can be blocked.
+ *
+ * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof mrmailbox_t
  *

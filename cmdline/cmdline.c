@@ -370,6 +370,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"listcontacts [<query>]\n"
 				"addcontact <addr> [<name>]\n"
 				"contactinfo <contact-id>\n"
+				"delcontact <contact-id>\n"
 				"======================================Misc.==\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
@@ -986,6 +987,15 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
 			ret = mrmailbox_get_contact_encrinfo(mailbox, contact_id);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+		}
+	}
+	else if( strcmp(cmd, "delcontact")==0 )
+	{
+		if( arg1 ) {
+			ret = mrmailbox_delete_contact(mailbox, atoi(arg1))? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
