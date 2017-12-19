@@ -899,6 +899,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 
 	pthread_mutex_init(&ths->m_wake_lock_critical, NULL);
 
+	ths->m_magic    = MR_MAILBOX_MAGIC;
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userdata = userdata;
@@ -944,7 +945,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
  */
 void mrmailbox_unref(mrmailbox_t* mailbox)
 {
-	if( mailbox==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1008,7 +1009,7 @@ int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir
 	int success = 0;
 	int db_locked = 0;
 
-	if( mailbox == NULL || dbfile == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dbfile == NULL ) {
 		goto cleanup;
 	}
 
@@ -1070,7 +1071,7 @@ cleanup:
  */
 void mrmailbox_close(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1119,7 +1120,7 @@ int mrmailbox_poke_eml_file(mrmailbox_t* ths, const char* filename)
 	char*   data = NULL;
 	size_t  data_bytes;
 
-	if( ths == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -1173,7 +1174,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 {
 	int ret;
 
-	if( ths == NULL || key == NULL ) { /* "value" may be NULL */
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC || key == NULL ) { /* "value" may be NULL */
 		return 0;
 	}
 
@@ -1204,7 +1205,7 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 {
 	char* ret;
 
-	if( ths == NULL || key == NULL ) { /* "def" may be NULL */
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC || key == NULL ) { /* "def" may be NULL */
 		return strdup_keep_null(def);
 	}
 
@@ -1226,7 +1227,7 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 {
 	int ret;
 
-	if( ths == NULL || key == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC || key == NULL ) {
 		return 0;
 	}
 
@@ -1248,7 +1249,7 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
 
-	if( ths == NULL || key == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC || key == NULL ) {
 		return def;
 	}
 
@@ -1281,7 +1282,7 @@ char* mrmailbox_get_info(mrmailbox_t* mailbox)
 	mrstrbuilder_t  ret;
 	mrstrbuilder_init(&ret);
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return safe_strdup("ErrBadPtr");
 	}
 
@@ -1422,6 +1423,10 @@ int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
 
 int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
 	mrmailbox_log_info(ths, 0, "Resetting tables (%i)...", bits);
 
 	mrsqlite3_lock(ths->m_sql);
@@ -1476,7 +1481,7 @@ char* mrmailbox_get_version_str(void)
 
 void mrmailbox_wake_lock(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
@@ -1490,7 +1495,7 @@ void mrmailbox_wake_lock(mrmailbox_t* mailbox)
 
 void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
@@ -1511,6 +1516,10 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 {
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
+
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
 
 	if( mrimap_is_connected(ths->m_imap) ) {
 		mrmailbox_log_info(ths, 0, "Already connected or trying to connect.");
@@ -1558,7 +1567,7 @@ cleanup:
  */
 void mrmailbox_connect(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1585,7 +1594,7 @@ void mrmailbox_connect(mrmailbox_t* mailbox)
  */
 void mrmailbox_disconnect(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1610,7 +1619,7 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  */
 void mrmailbox_heartbeat(mrmailbox_t* ths)
 {
-	if( ths == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1645,6 +1654,10 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 	int success = 0;
 	int db_locked = 0;
 	mrchatlist_t* obj = mrchatlist_new(mailbox);
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
@@ -1689,6 +1702,10 @@ mrchat_t* mrmailbox_get_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	int success = 0;
 	int db_locked = 0;
 	mrchat_t* obj = mrchat_new(mailbox);
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
@@ -1736,7 +1753,7 @@ void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	"noticed" messages are not counted as being unread but are still waiting for being marked as "seen" using mrmailbox_markseen_msgs() */
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -1768,6 +1785,10 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 {
 	uint32_t chat_id = 0;
 
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
 	mrsqlite3_lock(mailbox->m_sql);
 
 		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id);
@@ -1796,7 +1817,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 	uint32_t      chat_id = 0;
 	int           send_event = 0, locked = 0;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -1875,11 +1896,13 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
 {
 	mrarray_t* ret = NULL;
 
-	if( mailbox ) {
-		mrsqlite3_lock(mailbox->m_sql);
-			ret = mrmailbox_get_chat_media__(mailbox, chat_id, msg_type, or_msg_type);
-		mrsqlite3_unlock(mailbox->m_sql);
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return NULL;
 	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+		ret = mrmailbox_get_chat_media__(mailbox, chat_id, msg_type, or_msg_type);
+	mrsqlite3_unlock(mailbox->m_sql);
 
 	return ret;
 }
@@ -1911,7 +1934,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 	mrarray_t* list = NULL;
 	int      i, cnt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -1986,7 +2009,7 @@ mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -2034,7 +2057,7 @@ mrarray_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 	mrarray_t*    ret = mrarray_new(mailbox, 128);
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox==NULL || ret == NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || ret == NULL ) {
 		goto cleanup;
 	}
 
@@ -2108,7 +2131,7 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 	long          cnv_to_local = mr_gm2local_offset();
 	#define       SECONDS_PER_DAY 86400
 
-	if( mailbox==NULL || ret == NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || ret == NULL ) {
 		goto cleanup;
 	}
 
@@ -2207,7 +2230,7 @@ mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const c
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox==NULL || ret == NULL || query == NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || ret == NULL || query == NULL ) {
 		goto cleanup;
 	}
 
@@ -2285,7 +2308,7 @@ static void set_draft_int(mrmailbox_t* mailbox, mrchat_t* chat, uint32_t chat_id
 	sqlite3_stmt* stmt;
 	mrchat_t*     chat_to_delete = NULL;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -2418,7 +2441,7 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
@@ -2439,7 +2462,7 @@ uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint3
 	sqlite3_stmt* stmt;
 	uint32_t chat_id = 0;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
@@ -2468,7 +2491,7 @@ uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, 
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0; /* database not opened - error */
 	}
 
@@ -2573,7 +2596,7 @@ int mrmailbox_get_total_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -2601,7 +2624,7 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -2639,7 +2662,7 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  */
 void mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
 {
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (archive!=0 && archive!=1) ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (archive!=0 && archive!=1) ) {
 		return;
 	}
 
@@ -2764,7 +2787,7 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	mrcontact_t* contact = NULL;
 	mrmsg_t*     msg = mrmsg_new();
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || chat == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || chat == NULL ) {
 		goto cleanup;
 	}
 
@@ -3116,7 +3139,7 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 {
 	char* pathNfilename = NULL;
 
-	if( mailbox == NULL || msg == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
 
@@ -3246,7 +3269,7 @@ uint32_t mrmailbox_send_text_msg(mrmailbox_t* mailbox, uint32_t chat_id, const c
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
 		goto cleanup;
 	}
 
@@ -3287,7 +3310,7 @@ uint32_t mrmailbox_send_image_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
 	}
 
@@ -3332,7 +3355,7 @@ uint32_t mrmailbox_send_video_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
 	}
 
@@ -3376,7 +3399,7 @@ uint32_t mrmailbox_send_voice_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
 	}
 
@@ -3419,7 +3442,7 @@ uint32_t mrmailbox_send_audio_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
 	}
 
@@ -3461,7 +3484,7 @@ uint32_t mrmailbox_send_file_msg(mrmailbox_t* mailbox, uint32_t chat_id, const c
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
 	}
 
@@ -3511,7 +3534,7 @@ uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	mrcontact_t* contact = NULL;
 	char*        text_to_send = NULL;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3566,7 +3589,7 @@ static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 	sqlite3_stmt* stmt;
 	int           ret = 0;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL
 	 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
@@ -3626,7 +3649,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name
 	char*         draft_txt = NULL, *grpid = NULL;
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || chat_name==NULL || chat_name[0]==0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_name==NULL || chat_name[0]==0 ) {
 		return 0;
 	}
 
@@ -3695,7 +3718,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	mrmsg_t*  msg = mrmsg_new();
 	char*     q3 = NULL;
 
-	if( mailbox==NULL || new_name==NULL || new_name[0]==0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || new_name==NULL || new_name[0]==0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3774,7 +3797,7 @@ int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, con
 	mrchat_t* chat = mrchat_new(mailbox);
 	mrmsg_t*  msg = mrmsg_new();
 
-	if( mailbox==NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3862,11 +3885,15 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 	/* this function works for group and for normal chats, however, it is more useful for group chats.
 	MR_CONTACT_ID_SELF may be used to check, if the user itself is in a group chat (MR_CONTACT_ID_SELF is not added to normal chats) */
 	int ret = 0;
-	if( mailbox ) {
-		mrsqlite3_lock(mailbox->m_sql);
-			ret = mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id);
-		mrsqlite3_unlock(mailbox->m_sql);
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
 	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+		ret = mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id);
+	mrsqlite3_unlock(mailbox->m_sql);
+
 	return ret;
 }
 
@@ -3897,7 +3924,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	mrmsg_t*     msg = mrmsg_new();
 	char*        self_addr = NULL;
 
-	if( mailbox == NULL || contact == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -3982,7 +4009,7 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 	mrmsg_t*     msg = mrmsg_new();
 	char*        q3 = NULL;
 
-	if( mailbox == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (contact_id<=MR_CONTACT_ID_LAST_SPECIAL && contact_id!=MR_CONTACT_ID_SELF) ) {
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
 	}                 /* this allows to delete pending references to deleted contacts.  Of course, this should _not_ happen. */
 
@@ -4059,7 +4086,7 @@ int mrmailbox_real_contact_exists__(mrmailbox_t* mailbox, uint32_t contact_id)
 	sqlite3_stmt* stmt;
 	int           ret = 0;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL
 	 || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		return 0;
 	}
@@ -4080,7 +4107,7 @@ size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
@@ -4111,7 +4138,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	*sth_modified = 0;
 
-	if( mailbox == NULL || addr__ == NULL || origin <= 0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr__ == NULL || origin <= 0 ) {
 		return 0;
 	}
 
@@ -4212,7 +4239,7 @@ cleanup:
 
 void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int origin)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -4294,7 +4321,7 @@ uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const 
 {
 	uint32_t contact_id = 0;
 
-	if( mailbox == NULL || addr == NULL || addr[0]==0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr == NULL || addr[0]==0 ) {
 		goto cleanup;
 	}
 
@@ -4339,7 +4366,7 @@ int mrmailbox_add_address_book(mrmailbox_t* mailbox, const char* adr_book) /* fo
 	size_t  i, iCnt;
 	int     sth_modified, modify_cnt = 0;
 
-	if( mailbox == NULL || adr_book == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || adr_book == NULL ) {
 		goto cleanup;
 	}
 
@@ -4399,7 +4426,7 @@ mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 	char*         s3strLikeCmd = NULL;
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -4479,7 +4506,7 @@ mrarray_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -4513,7 +4540,7 @@ int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
 	int           ret = 0, locked = 0;
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -4595,7 +4622,7 @@ static void marknoticed_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
  */
 void mrmailbox_marknoticed_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 {
-    if( mailbox == NULL ) {
+    if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
     }
     mrsqlite3_lock(mailbox->m_sql);
@@ -4625,7 +4652,7 @@ void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_
 	mrcontact_t*  contact = mrcontact_new();
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -4723,6 +4750,10 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	char*           fingerprint_str_self = NULL;
 	char*           fingerprint_str_other = NULL;
 	char*           p;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
 
 	mrstrbuilder_t  ret;
 	mrstrbuilder_init(&ret);
@@ -4845,7 +4876,7 @@ int mrmailbox_delete_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 	int           locked = 0, success = 0;
 	sqlite3_stmt* stmt;
 
-	if( mailbox == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -4956,7 +4987,7 @@ size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 
 size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
 {
-	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
@@ -4973,7 +5004,7 @@ size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
 
 int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
-	if( mailbox==NULL || mailbox->m_sql->m_cobj==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
 	}
 
@@ -5038,6 +5069,10 @@ mrmsg_t* mrmailbox_get_msg(mrmailbox_t* mailbox, uint32_t msg_id)
 	int db_locked = 0;
 	mrmsg_t* obj = mrmsg_new();
 
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
+
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
@@ -5084,7 +5119,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 
 	mrstrbuilder_init(&ret);
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -5210,7 +5245,7 @@ void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 	sqlite3_stmt* stmt = NULL;
 	time_t        curr_timestamp;
 
-	if( mailbox == NULL || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_ids==NULL || msg_cnt <= 0 || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -5289,7 +5324,7 @@ void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_
 {
 	int i;
 
-	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 || (star!=0 && star!=1) ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_ids == NULL || msg_cnt <= 0 || (star!=0 && star!=1) ) {
 		return;
 	}
 
@@ -5431,7 +5466,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 {
 	int i;
 
-	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
 		return;
 	}
 
@@ -5572,7 +5607,7 @@ void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int 
 {
 	int i, send_event = 0;
 
-	if( mailbox == NULL || msg_ids == NULL || msg_cnt <= 0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
 		return;
 	}
 
@@ -5620,7 +5655,7 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
                                      uint32_t* ret_chat_id,
                                      uint32_t* ret_msg_id)
 {
-	if( mailbox == NULL || from_id <= MR_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || from_id <= MR_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL
 	 || *ret_chat_id != 0 || *ret_msg_id != 0 ) {
 		return 0;
 	}
@@ -5701,7 +5736,7 @@ void mrmailbox_send_mdn(mrmailbox_t* mailbox, mrjob_t* job)
 	mrmimefactory_t mimefactory;
 	mrmimefactory_init(&mimefactory, mailbox);
 
-	if( mailbox == NULL || job == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || job == NULL ) {
 		return;
 	}
 

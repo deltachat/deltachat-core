@@ -22,6 +22,8 @@
 
 #include "mrmailbox_internal.h"
 
+#define MR_LOT_MAGIC 0x00107107
+
 
 mrlot_t* mrlot_new()
 {
@@ -31,6 +33,7 @@ mrlot_t* mrlot_new()
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	ths->m_magic = MR_LOT_MAGIC;
 	ths->m_text1_meaning  = 0;
 
     return ths;
@@ -51,7 +54,7 @@ mrlot_t* mrlot_new()
  */
 void mrlot_unref(mrlot_t* set)
 {
-	if( set==NULL ) {
+	if( set==NULL || set->m_magic != MR_LOT_MAGIC ) {
 		return;
 	}
 
@@ -62,7 +65,7 @@ void mrlot_unref(mrlot_t* set)
 
 void mrlot_empty(mrlot_t* ths)
 {
-	if( ths == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC ) {
 		return;
 	}
 
@@ -80,7 +83,7 @@ void mrlot_empty(mrlot_t* ths)
 
 void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mrcontact_t* contact)
 {
-	if( ths == NULL || msg == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC || msg == NULL ) {
 		return;
 	}
 

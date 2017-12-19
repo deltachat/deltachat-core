@@ -198,7 +198,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( mailbox == NULL || public_key == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || public_key == NULL ) {
 		goto cleanup;
 	}
 
@@ -286,7 +286,7 @@ int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 	mrkey_t* public_key = mrkey_new();
 	char*    self_addr = NULL;
 
-	if( mailbox==NULL || public_key==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
 
@@ -332,7 +332,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
-	if( mailbox == NULL || recipients_addr == NULL || in_out_message == NULL
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
 	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
@@ -655,7 +655,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	mrkeyring_t*           private_keyring = mrkeyring_new();
 	int                    sth_decrypted = 0;
 
-	if( mailbox==NULL || in_out_message==NULL || ret_validation_errors==NULL
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL || ret_validation_errors==NULL
 	 || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}

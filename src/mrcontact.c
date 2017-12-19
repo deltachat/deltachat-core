@@ -23,6 +23,8 @@
 #include "mrmailbox_internal.h"
 #include "mrcontact.h"
 
+#define MR_CONTACT_MAGIC 0x0c047ac7
+
 
 /**
  * Create a new contact object in memory.
@@ -41,6 +43,8 @@ mrcontact_t* mrcontact_new()
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	ths->m_magic = MR_CONTACT_MAGIC;
+
 	return ths;
 }
 
@@ -56,7 +60,7 @@ mrcontact_t* mrcontact_new()
  */
 void mrcontact_unref(mrcontact_t* contact)
 {
-	if( contact==NULL ) {
+	if( contact==NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return;
 	}
 
@@ -78,7 +82,7 @@ void mrcontact_unref(mrcontact_t* contact)
  */
 void mrcontact_empty(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return;
 	}
 
@@ -114,7 +118,7 @@ void mrcontact_empty(mrcontact_t* contact)
  */
 char* mrcontact_get_addr(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
@@ -138,7 +142,7 @@ char* mrcontact_get_addr(mrcontact_t* contact)
  */
 char* mrcontact_get_name(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
@@ -161,7 +165,7 @@ char* mrcontact_get_name(mrcontact_t* contact)
  */
 char* mrcontact_get_display_name(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
@@ -192,7 +196,7 @@ char* mrcontact_get_display_name(mrcontact_t* contact)
  */
 char* mrcontact_get_name_n_addr(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
@@ -217,7 +221,7 @@ char* mrcontact_get_name_n_addr(mrcontact_t* contact)
  */
 int mrcontact_is_blocked(mrcontact_t* contact)
 {
-	if( contact == NULL ) {
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
 	}
 	return contact->m_blocked;
@@ -352,7 +356,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths == NULL || sql == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_CONTACT_MAGIC || sql == NULL ) {
 		return 0;
 	}
 

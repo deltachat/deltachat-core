@@ -37,6 +37,8 @@ typedef struct mrsqlite3_t mrsqlite3_t;
  */
 typedef struct mrcontact_t
 {
+	uint32_t        m_magic; /**< @private */
+
 	/**
 	 * The contact ID.
 	 *

@@ -35,6 +35,7 @@ extern "C" {
  */
 typedef struct mrlot_t
 {
+	uint32_t        m_magic;           /** @private */
 	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
 	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
 	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */

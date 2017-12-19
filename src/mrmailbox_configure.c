@@ -400,7 +400,7 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 	char*           param_addr_urlencoded = NULL;
 	mrloginparam_t* param_autoconfig = NULL;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -706,7 +706,7 @@ int mrmailbox_is_configured(mrmailbox_t* mailbox)
 {
 	int is_configured;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -732,7 +732,7 @@ static int s_ongoing_running = 0;
 int        mr_shall_stop_ongoing = 1; /* the value 1 avoids mrmailbox_stop_ongoing_process() from stopping already stopped threads */
 int mrmailbox_alloc_ongoing(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
 	}
 
@@ -753,6 +753,10 @@ int mrmailbox_alloc_ongoing(mrmailbox_t* mailbox)
  */
 void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
 {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+
 	s_ongoing_running     = 0;
 	mr_shall_stop_ongoing = 1; /* avoids mrmailbox_stop_ongoing_process() to stop the thread */
 }
@@ -784,7 +788,7 @@ void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
  */
 void mrmailbox_stop_ongoing_process(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 

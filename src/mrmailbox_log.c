@@ -79,7 +79,7 @@ void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, const char
 {
 	char* msg = NULL;
 
-	if( mailbox==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
@@ -163,7 +163,7 @@ void mrmailbox_log_error(mrmailbox_t* mailbox, int code, const char* msg, ...)
 
 void mrmailbox_log_error_if(int* condition, mrmailbox_t* mailbox, int code, const char* msg, ...)
 {
-	if( condition == NULL || mailbox==NULL ) {
+	if( condition == NULL || mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 

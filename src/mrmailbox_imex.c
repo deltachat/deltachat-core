@@ -121,7 +121,7 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 	pgp_memory_t*          encr_mem = NULL;
 	char*                  encr_string = NULL;
 
-	if( mailbox==NULL || passphrase==NULL || ret_msg==NULL
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || passphrase==NULL || ret_msg==NULL
 	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL ) {
 		goto cleanup;
 	}
@@ -573,7 +573,7 @@ cleanup:
  */
 int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const char* setup_code)
 {
-	if( mailbox == NULL || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
 		return 0;
 	}
 
@@ -666,7 +666,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	char*          self_addr = NULL;
 	int            set_default = 0;
 
-	if( mailbox==NULL || dir_name==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dir_name==NULL ) {
 		goto cleanup;
 	}
 
@@ -1112,7 +1112,7 @@ int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const cha
 {
 	int success = 0;
 
-	if( mailbox==NULL || mailbox->m_sql==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql==NULL ) {
 		return 0;
 	}
 
@@ -1245,7 +1245,7 @@ char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
 	char*          curr_pathNfilename = NULL;
 	mrsqlite3_t*   test_sql = NULL;
 
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return NULL;
 	}
 
@@ -1308,7 +1308,7 @@ int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
 	mrloginparam_t* loginparam = mrloginparam_new();
 	int             success = 0;
 
-	if( mailbox==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 

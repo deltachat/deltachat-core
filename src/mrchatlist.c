@@ -22,6 +22,8 @@
 
 #include "mrmailbox_internal.h"
 
+#define MR_CHATLIST_MAGIC 0xc4a71157
+
 
 /**
  * Create a chatlist object in memory.
@@ -40,6 +42,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 		exit(20);
 	}
 
+	ths->m_magic   = MR_CHATLIST_MAGIC;
 	ths->m_mailbox = mailbox;
 	if( (ths->m_chatNlastmsg_ids=mrarray_new(mailbox, 128))==NULL ) {
 		exit(32);
@@ -61,7 +64,7 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
  */
 void mrchatlist_unref(mrchatlist_t* chatlist)
 {
-	if( chatlist==NULL ) {
+	if( chatlist==NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return;
 	}
 
@@ -82,10 +85,12 @@ void mrchatlist_unref(mrchatlist_t* chatlist)
  */
 void mrchatlist_empty(mrchatlist_t* chatlist)
 {
-	if( chatlist  ) {
-		chatlist->m_cnt = 0;
-		mrarray_empty(chatlist->m_chatNlastmsg_ids);
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+		return;
 	}
+
+	chatlist->m_cnt = 0;
+	mrarray_empty(chatlist->m_chatNlastmsg_ids);
 }
 
 
@@ -100,7 +105,7 @@ void mrchatlist_empty(mrchatlist_t* chatlist)
  */
 size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
 {
-	if( chatlist == NULL ) {
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return 0;
 	}
 
@@ -124,7 +129,7 @@ size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
  */
 uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
@@ -148,7 +153,7 @@ uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
  */
 uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
@@ -192,14 +197,14 @@ mrlot_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrchat_t* 
 	Also, sth. as "No messages" would not work if the summary comes from a
 	message. */
 
-	mrlot_t*    ret = mrlot_new(); /* the function never returns NULL */
+	mrlot_t*      ret = mrlot_new(); /* the function never returns NULL */
 	int           locked = 0;
 	uint32_t      lastmsg_id = 0;
 	mrmsg_t*      lastmsg = NULL;
 	mrcontact_t*  lastcontact = NULL;
 	mrchat_t*     chat_to_delete = NULL;
 
-	if( chatlist == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
 		ret->m_text2 = safe_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
@@ -287,7 +292,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 	sqlite3_stmt* stmt = NULL;
 	char*         strLikeCmd = NULL, *query = NULL;
 
-	if( ths == NULL || ths->m_mailbox == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_CHATLIST_MAGIC || ths->m_mailbox == NULL ) {
 		goto cleanup;
 	}
 

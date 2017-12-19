@@ -43,6 +43,7 @@ typedef struct mrarray_t    mrarray_t;
 typedef struct mrchatlist_t
 {
 	/** @privatesection */
+	uint32_t        m_magic;
 	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
 	#define         MR_CHATLIST_IDS_PER_RESULT 2
 	size_t          m_cnt;

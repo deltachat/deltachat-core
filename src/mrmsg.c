@@ -27,6 +27,8 @@
 #include "mrpgp.h"
 #include "mrmimefactory.h"
 
+#define MR_MSG_MAGIC 0x11561156
+
 
 /**
  * Create new message object. Message objects are needed eg. for sending messages using
@@ -46,6 +48,7 @@ mrmsg_t* mrmsg_new()
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	ths->m_magic     = MR_MSG_MAGIC;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
 	ths->m_param     = mrparam_new();
@@ -65,7 +68,7 @@ mrmsg_t* mrmsg_new()
  */
 void mrmsg_unref(mrmsg_t* msg)
 {
-	if( msg==NULL ) {
+	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return;
 	}
 
@@ -86,7 +89,7 @@ void mrmsg_unref(mrmsg_t* msg)
  */
 void mrmsg_empty(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return;
 	}
 
@@ -123,7 +126,7 @@ void mrmsg_empty(mrmsg_t* msg)
  */
 int mrmsg_get_type(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return MR_MSG_UNDEFINED;
 	}
 	return msg->m_type;
@@ -161,7 +164,7 @@ int mrmsg_get_type(mrmsg_t* msg)
  */
 int mrmsg_get_state(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return MR_STATE_UNDEFINED;
 	}
 	return msg->m_state;
@@ -179,7 +182,7 @@ int mrmsg_get_state(mrmsg_t* msg)
  */
 time_t mrmsg_get_timestamp(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return msg->m_timestamp;
@@ -199,7 +202,11 @@ time_t mrmsg_get_timestamp(mrmsg_t* msg)
  */
 char* mrmsg_get_text(mrmsg_t* msg)
 {
-	return safe_strdup(msg? msg->m_text : NULL);
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return safe_strdup(NULL);
+	}
+
+	return safe_strdup(msg->m_text);
 }
 
 
@@ -222,7 +229,7 @@ char* mrmsg_get_file(mrmsg_t* msg)
 {
 	char* ret = NULL;
 
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -249,7 +256,7 @@ char* mrmsg_get_filename(mrmsg_t* msg)
 {
 	char* ret = NULL, *pathNfilename = NULL;
 
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -282,7 +289,7 @@ char* mrmsg_get_filemime(mrmsg_t* msg)
 	char* ret = NULL;
 	char* file = NULL;
 
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -323,6 +330,10 @@ uint64_t mrmsg_get_filebytes(mrmsg_t* msg)
 	uint64_t ret = 0;
 	char*    file = NULL;
 
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		goto cleanup;
+	}
+
 	file = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	if( file == NULL ) {
 		goto cleanup;
@@ -362,7 +373,7 @@ mrlot_t* mrmsg_get_mediainfo(mrmsg_t* msg)
 	char*        pathNfilename = NULL;
 	mrcontact_t* contact = NULL;
 
-	if( msg == NULL || msg->m_mailbox == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL ) {
 		goto cleanup;
 	}
 
@@ -419,7 +430,7 @@ cleanup:
  */
 int mrmsg_get_width(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(msg->m_param, MRP_WIDTH, 0);
@@ -444,7 +455,7 @@ int mrmsg_get_width(mrmsg_t* msg)
  */
 int mrmsg_get_height(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
@@ -466,7 +477,7 @@ int mrmsg_get_height(mrmsg_t* msg)
  */
 int mrmsg_get_duration(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(msg->m_param, MRP_DURATION, 0);
@@ -485,13 +496,16 @@ int mrmsg_get_duration(mrmsg_t* msg)
 int mrmsg_get_showpadlock(mrmsg_t* msg)
 {
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
-	if( msg != NULL ) {
-		if( msg->m_mailbox && msg->m_mailbox->m_e2ee_enabled ) {
-			if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) != 0 ) {
-				return 1;
-			}
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return 0;
+	}
+
+	if( msg->m_mailbox && msg->m_mailbox->m_e2ee_enabled ) {
+		if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) != 0 ) {
+			return 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -531,7 +545,7 @@ mrlot_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 	mrcontact_t*  contact = NULL;
 	mrchat_t*     chat_to_delete = NULL;
 
-	if( msg==NULL ) {
+	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -569,7 +583,7 @@ cleanup:
  */
 char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 {
-	if( msg==NULL ) {
+	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
@@ -591,7 +605,7 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
  */
 int mrmsg_is_sent(mrmsg_t* msg)
 {
-	if( msg == 0 ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return (msg->m_state >= MR_STATE_OUT_DELIVERED)? 1 : 0;
@@ -614,7 +628,7 @@ int mrmsg_is_sent(mrmsg_t* msg)
  */
 int mrmsg_is_starred(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return msg->m_starred? 1 : 0;
@@ -642,7 +656,7 @@ int mrmsg_is_starred(mrmsg_t* msg)
  */
 int mrmsg_is_forwarded(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(msg->m_param, MRP_FORWARDED, 0)? 1 : 0;
@@ -669,7 +683,7 @@ int mrmsg_is_forwarded(mrmsg_t* msg)
  */
 int mrmsg_is_systemcmd(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)? 1 : 0;
@@ -695,7 +709,7 @@ int mrmsg_is_systemcmd(mrmsg_t* msg)
  */
 int mrmsg_is_setupmessage(mrmsg_t* msg)
 {
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 
@@ -771,7 +785,7 @@ int mrmsg_load_from_db__(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || mailbox==NULL || mailbox->m_sql==NULL ) {
+	if( ths==NULL || ths->m_magic != MR_MSG_MAGIC || mailbox==NULL || mailbox->m_sql==NULL ) {
 		return 0;
 	}
 
@@ -964,8 +978,12 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
 int mrmsg_is_increation(mrmsg_t* msg)
 {
 	/* surrounds mrmsg_is_increation__() with locking and error checking */
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return 0;
+	}
+
 	int is_increation = 0;
-	if( msg && msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
+	if( msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
 	{
 		mrsqlite3_lock(msg->m_mailbox->m_sql);
 			is_increation = mrmsg_is_increation__(msg);
@@ -977,7 +995,7 @@ int mrmsg_is_increation(mrmsg_t* msg)
 
 void mrmsg_save_param_to_disk__(mrmsg_t* msg)
 {
-	if( msg == NULL || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
 		return;
 	}
 
@@ -1019,7 +1037,7 @@ void mrmsg_latefiling_mediasize(mrmsg_t* msg, int width, int height, int duratio
 {
 	int locked = 0;
 
-	if( msg == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
 	}
 

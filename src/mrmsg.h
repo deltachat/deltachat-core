@@ -39,6 +39,8 @@ typedef struct sqlite3_stmt sqlite3_stmt;
  */
 typedef struct mrmsg_t
 {
+	uint32_t        m_magic;
+
 	/**
 	 * Message ID.  Never 0.
 	 */

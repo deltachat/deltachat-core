@@ -27,6 +27,8 @@
 #include "mrimap.h"
 #include "mrmimefactory.h"
 
+#define MR_CHAT_MAGIC 0xc4a7c4a7
+
 
 /**
  * Create a chat object in memory.
@@ -45,6 +47,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	ths->m_magic    = MR_CHAT_MAGIC;
 	ths->m_mailbox  = mailbox;
 	ths->m_type     = MR_CHAT_TYPE_UNDEFINED;
 	ths->m_param    = mrparam_new();
@@ -64,7 +67,7 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
  */
 void mrchat_unref(mrchat_t* chat)
 {
-	if( chat==NULL ) {
+	if( chat==NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return;
 	}
 
@@ -85,7 +88,7 @@ void mrchat_unref(mrchat_t* chat)
  */
 void mrchat_empty(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return;
 	}
 
@@ -128,7 +131,7 @@ void mrchat_empty(mrchat_t* chat)
  */
 int mrchat_get_type(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return MR_CHAT_TYPE_NORMAL;
 	}
 	return chat->m_type;
@@ -152,7 +155,7 @@ int mrchat_get_type(mrchat_t* chat)
  */
 char* mrchat_get_name(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return safe_strdup("Err");
 	}
 
@@ -178,7 +181,7 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 	char* ret = NULL;
 	sqlite3_stmt* stmt;
 
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return safe_strdup("Err");
 	}
 
@@ -250,7 +253,7 @@ char* mrchat_get_subtitle(mrchat_t* chat)
  */
 char* mrchat_get_profile_image(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return NULL;
 	}
 
@@ -273,7 +276,7 @@ char* mrchat_get_profile_image(mrchat_t* chat)
  */
 char* mrchat_get_draft(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return NULL;
 	}
 	return strdup_keep_null(chat->m_draft_text); /* may be NULL */
@@ -299,7 +302,7 @@ char* mrchat_get_draft(mrchat_t* chat)
  */
 int mrchat_get_archived(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
 	return chat->m_archived;
@@ -323,7 +326,7 @@ int mrchat_get_archived(mrchat_t* chat)
  */
 int mrchat_is_unpromoted(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
 	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
@@ -342,7 +345,7 @@ int mrchat_is_unpromoted(mrchat_t* chat)
  */
 int mrchat_is_self_talk(mrchat_t* chat)
 {
-	if( chat == NULL ) {
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
 	return mrparam_exists(chat->m_param, MRP_SELFTALK);
@@ -371,7 +374,7 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 	int row_offset = 0;
 	const char* draft_text;
 
-	if( ths == NULL || row == NULL ) {
+	if( ths == NULL || ths->m_magic != MR_CHAT_MAGIC || row == NULL ) {
 		return 0;
 	}
 
@@ -438,7 +441,7 @@ int mrchat_load_from_db__(mrchat_t* chat, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt;
 
-	if( chat==NULL ) {
+	if( chat==NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
 

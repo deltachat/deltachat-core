@@ -22,6 +22,8 @@
 
 #include "mrmailbox_internal.h"
 
+#define MR_ARRAY_MAGIC 0x000a11aa
+
 
 /**
  * Create an array object in memory.
@@ -42,6 +44,7 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 		exit(47);
 	}
 
+	array->m_magic     = MR_ARRAY_MAGIC;
 	array->m_mailbox   = mailbox;
 	array->m_count     = 0;
 	array->m_allocated = initsize < 1? 1 : initsize;
@@ -66,7 +69,7 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
  */
 void mrarray_unref(mrarray_t* array)
 {
-	if( array==NULL ) {
+	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -86,7 +89,7 @@ void mrarray_unref(mrarray_t* array)
  */
 void mrarray_empty(mrarray_t* array)
 {
-	if( array == NULL ) {
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -107,7 +110,7 @@ void mrarray_empty(mrarray_t* array)
  */
 void mrarray_add_id(mrarray_t* array, uint32_t item)
 {
-	if( array == NULL ) {
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -135,7 +138,7 @@ void mrarray_add_id(mrarray_t* array, uint32_t item)
  */
 size_t mrarray_get_cnt(mrarray_t* array)
 {
-	if( array == NULL ) {
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return 0;
 	}
 
@@ -155,7 +158,7 @@ size_t mrarray_get_cnt(mrarray_t* array)
  */
 uint32_t mrarray_get_id(mrarray_t* array, size_t index)
 {
-	if( array == NULL || index < 0 || index >= array->m_count ) {
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
 	}
 
@@ -177,7 +180,7 @@ uint32_t mrarray_get_id(mrarray_t* array, size_t index)
  */
 int mrarray_search_id(mrarray_t* array, uint32_t needle, size_t* ret_index)
 {
-	if( array == NULL ) {
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return 0;
 	}
 

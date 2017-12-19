@@ -188,6 +188,9 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
  */
 typedef struct mrmailbox_t
 {
+	#define          MR_MAILBOX_MAGIC         0x11a11807
+	uint32_t         m_magic;                 /**< @private */
+
 	void*            m_userdata;              /**< Use data, may be used for any purpose. The same pointer as given to mrmailbox_new(), may be used by the caller for any purpose. */
 
 	/** @privatesection */

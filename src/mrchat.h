@@ -38,6 +38,8 @@ typedef struct mrparam_t   mrparam_t;
  */
 typedef struct mrchat_t
 {
+	uint32_t        m_magic;            /**< @private */
+
 	/**
 	 * Chat ID under which the chat is filed in the database.
 	 *
