@@ -106,6 +106,11 @@ extern "C" {
  * I think, you got the idea.  For further reading, please dive into the mrmailbox_t class.
  *
  *
+ * ## Class reference
+ *
+ * For a class reference, see the "Classes" link atop.
+ *
+ *
  * ## Further hints
  *
  * Here are some additional, unsorted hints that may be useful.
