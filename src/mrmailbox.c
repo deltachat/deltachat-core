@@ -1502,7 +1502,10 @@ void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
 		if( mailbox->m_wake_lock == 1 ) {
 			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 0, 0);
 		}
-		mailbox->m_wake_lock--;
+
+		if( mailbox->m_wake_lock > 0 ) {
+			mailbox->m_wake_lock--;
+		}
 	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
 }
 
