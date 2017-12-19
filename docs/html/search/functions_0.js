@@ -9,6 +9,7 @@ var searchData=
   ['mrchat_5fget_5fprofile_5fimage',['mrchat_get_profile_image',['../structmrchat__t.html#a12bad02bef1fb6c8003f41c72d94f54b',1,'mrchat_t']]],
   ['mrchat_5fget_5fsubtitle',['mrchat_get_subtitle',['../structmrchat__t.html#ae1e9920618c9f6cb8ad66d5bb6962a08',1,'mrchat_t']]],
   ['mrchat_5fget_5ftype',['mrchat_get_type',['../structmrchat__t.html#a187ab591ec058f4e43c1ba205bbd7503',1,'mrchat_t']]],
+  ['mrchat_5fis_5fself_5ftalk',['mrchat_is_self_talk',['../structmrchat__t.html#a293685c189ab86d230dfe27a5a28c1ca',1,'mrchat_t']]],
   ['mrchat_5fis_5funpromoted',['mrchat_is_unpromoted',['../structmrchat__t.html#af23f2fd022f9978f7eed5ed46f3d9fbb',1,'mrchat_t']]],
   ['mrchat_5funref',['mrchat_unref',['../structmrchat__t.html#a3b1befb4542c1bad915f2175c7c2a2b9',1,'mrchat_t']]],
   ['mrchatlist_5fget_5fchat_5fid',['mrchatlist_get_chat_id',['../structmrchatlist__t.html#a8c8360c76b31057322199e8c51cadfa5',1,'mrchatlist_t']]],

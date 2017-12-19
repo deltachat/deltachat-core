@@ -2168,6 +2168,7 @@ Public Attributes</h2></td></tr>
 <p>Add a single contact. </p>
 <p>We assume, the contact name, if any, is entered by the user and is used "as is" therefore, mr_normalize_name() is <em>not</em> called for the name.</p>
 <p>To add a number of contacts, see <a class="el" href="structmrmailbox__t.html#a25720ea41355cc32cc93aa45709937d6" title="Add a number of contacts. ">mrmailbox_add_address_book()</a> which is much faster for adding a bunch of addresses.</p>
+<p>May result in a <a class="el" href="mrevent_8h.html#ad50b3a76349834631dc26b6c9557be8f" title="Contact(s) created, renamed, blocked or deleted. ">MR_EVENT_CONTACTS_CHANGED</a> event.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2331,6 +2332,7 @@ Public Attributes</h2></td></tr>
 
 <p>Get a single contact object. </p>
 <p>For a list, see eg. <a class="el" href="structmrmailbox__t.html#ae4ccc69ba8e8851a04f9b17b37e5f86a" title="Returns known and unblocked contacts. ">mrmailbox_get_known_contacts()</a>.</p>
+<p>For contact MR_CONTACT_ID_SELF (1), the function returns the name MR_STR_SELF (typically "Me" in the selected language) and the email address defined by <a class="el" href="structmrmailbox__t.html#a19b3e9f5209bc326fc77f3944522e8ad" title="Configure the mailbox. ">mrmailbox_set_config()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2486,6 +2488,7 @@ Public Attributes</h2></td></tr>
 
 <p>Delete a contact. </p>
 <p>The contact is deleted from the local device. It may happen that this is not possible as the contact is in used. In this case, the contact can be blocked.</p>
+<p>May result in a <a class="el" href="mrevent_8h.html#ad50b3a76349834631dc26b6c9557be8f" title="Contact(s) created, renamed, blocked or deleted. ">MR_EVENT_CONTACTS_CHANGED</a> event.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as created by <a class="el" href="structmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>

@@ -121,6 +121,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af23f2fd022f9978f7eed5ed46f3d9fbb"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#af23f2fd022f9978f7eed5ed46f3d9fbb">mrchat_is_unpromoted</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
 <tr class="memdesc:af23f2fd022f9978f7eed5ed46f3d9fbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a chat is still unpromoted.  <a href="#af23f2fd022f9978f7eed5ed46f3d9fbb">More...</a><br /></td></tr>
 <tr class="separator:af23f2fd022f9978f7eed5ed46f3d9fbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a293685c189ab86d230dfe27a5a28c1ca"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structmrchat__t.html#a293685c189ab86d230dfe27a5a28c1ca">mrchat_is_self_talk</a> (<a class="el" href="structmrchat__t.html">mrchat_t</a> *chat)</td></tr>
+<tr class="memdesc:a293685c189ab86d230dfe27a5a28c1ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a chat is a self talk.  <a href="#a293685c189ab86d230dfe27a5a28c1ca">More...</a><br /></td></tr>
+<tr class="separator:a293685c189ab86d230dfe27a5a28c1ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -174,7 +177,7 @@ Public Attributes</h2></td></tr>
 <p>Get chat type. </p>
 <p>Currently, there are two chat types:</p>
 <ul>
-<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a>) is not added.</li>
+<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see <a class="el" href="structmrcontact__t.html#ab2ee31297c327e04ed14673adbd49716" title="The contact ID. ">mrcontact_t::m_id</a>) is added <em>only</em> for a self talk.</li>
 <li>MR_CHAT_TYPE_GROUP (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF</li>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -350,6 +353,32 @@ Public Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>1=chat is still unpromoted, no message was ever send to the chat, 0=chat is not unpromoted, messages were send and/or received </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="a293685c189ab86d230dfe27a5a28c1ca"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int mrchat_is_self_talk </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structmrchat__t.html">mrchat_t</a> *&#160;</td>
+          <td class="paramname"><em>chat</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if a chat is a self talk. </p>
+<p>Self talks are normal chats with the only contact MR_CONTACT_ID_SELF.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">chat</td><td>The chat object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>1=chat is self talk, 0=chat is no self talk </dd></dl>
 
 </div>
 </div>
