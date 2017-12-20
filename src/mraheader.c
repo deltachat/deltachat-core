@@ -28,7 +28,13 @@
 
 
 /**
+ * Empty an Autocrypt-header object and free all data associated with it.
+ *
  * @private @memberof mraheader_t
+ *
+ * @param ths The Autocrypt-header object. If you pass NULL here, the function does nothing.
+ *
+ * @return None
  */
 void mraheader_empty(mraheader_t* ths)
 {
@@ -167,11 +173,12 @@ int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 	int     success = 0;
 
 	mraheader_empty(ths);
-	ths->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
 
 	if( ths == NULL || header_str__ == NULL ) {
 		goto cleanup;
 	}
+
+	ths->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
 
 	header_str = safe_strdup(header_str__);
 	p = header_str;
