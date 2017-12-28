@@ -8,8 +8,9 @@ plugin, that is completely **compatible** to the existing email infrastructure.
 
 Using this library in your app, you get the **ease** of well-known messengers
 with the **reach** of e-mail. Moreover, you're **independent** from other companies or
-services - as your data is not relayed to Delta Chat, you won't even add new
-dependencies here.
+services as your data is not relayed through Delta Chat, only your email
+provider. That means that there are no Delta Chat servers, only clients that
+are compatible via Delta Chat Core.
 
 The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android)
 or in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios) but can also be used for
