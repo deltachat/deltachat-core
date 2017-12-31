@@ -116,6 +116,32 @@ void mrchat_empty(mrchat_t* chat)
 
 
 /**
+ * Get chat ID. The chat ID is the ID under which the chat is filed in the database.
+ *
+ * Special IDs:
+ * - MR_CHAT_ID_DEADDROP         (1) - Messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally.
+ * - MR_CHAT_ID_STARRED          (5) - Virtual chat containing all starred messages-
+ * - MR_CHAT_ID_ARCHIVED_LINK    (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-
+ *
+ * "Normal" chat IDs are larger than these special IDs (larger than MR_CHAT_ID_LAST_SPECIAL).
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Chat ID. 0 on errors.
+ */
+uint32_t mrchat_get_id(mrchat_t* chat)
+{
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
+		return 0;
+	}
+
+	return chat->m_id;
+}
+
+
+/**
  * Get chat type.
  *
  * Currently, there are two chat types:
@@ -280,6 +306,27 @@ char* mrchat_get_draft(mrchat_t* chat)
 		return NULL;
 	}
 	return strdup_keep_null(chat->m_draft_text); /* may be NULL */
+}
+
+
+
+/**
+ * Get timestamp of the draft.
+ *
+ * The draft itself can be get using mrchat_get_draft().
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return Timestamp of the draft. 0 if there is no draft.
+ */
+time_t mrchat_get_draft_timestamp(mrchat_t* chat)
+{
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
+		return NULL;
+	}
+	return chat->m_draft_timestamp;
 }
 
 

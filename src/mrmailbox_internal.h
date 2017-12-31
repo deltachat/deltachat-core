@@ -34,6 +34,7 @@ extern "C" {
 #include "mrsqlite3.h"
 #include "mrtools.h"
 #include "mrstock.h"
+#include "mrchat-internal.h"
 
 
 #ifdef __cplusplus
