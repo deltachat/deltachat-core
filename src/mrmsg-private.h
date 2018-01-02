@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRMSG_INTERNAL_H__
-#define __MRMSG_INTERNAL_H__
+#ifndef __MRMSG_PRIVATE_H__
+#define __MRMSG_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -87,4 +87,4 @@ struct _mrmsg
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMSG_INTERNAL_H__ */
+#endif /* __MRMSG_PRIVATE_H__ */

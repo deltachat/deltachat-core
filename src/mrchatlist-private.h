@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRCHATLIST_INTERNAL_H__
-#define __MRCHATLIST_INTERNAL_H__
+#ifndef __MRCHATLIST_PRIVATE_H__
+#define __MRCHATLIST_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,4 +42,4 @@ struct _mrchatlist
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHATLIST_INTERNAL_H__ */
+#endif /* __MRCHATLIST_PRIVATE_H__ */

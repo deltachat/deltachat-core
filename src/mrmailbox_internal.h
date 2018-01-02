@@ -34,11 +34,11 @@ extern "C" {
 #include "mrsqlite3.h"
 #include "mrtools.h"
 #include "mrstock.h"
-#include "mrchat-internal.h"
-#include "mrchatlist-internal.h"
-#include "mrlot-internal.h"
-#include "mrmsg-internal.h"
-#include "mrcontact-internal.h"
+#include "mrchat-private.h"
+#include "mrchatlist-private.h"
+#include "mrlot-private.h"
+#include "mrmsg-private.h"
+#include "mrcontact-private.h"
 
 
 #ifdef __cplusplus

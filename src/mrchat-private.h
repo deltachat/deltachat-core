@@ -20,27 +20,32 @@
  ******************************************************************************/
 
 
-#ifndef __MRLOT_INTERNAL_H__
-#define __MRLOT_INTERNAL_H__
+#ifndef __MRCHAT_PRIVATE_H__
+#define __MRCHAT_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-struct _mrlot
+
+/** the structure behind mrchat_t */
+struct _mrchat
 {
 	/** @privatesection */
-	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
-	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
-	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
-	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	uint32_t        m_magic;
+	uint32_t        m_id;
+	int             m_type;             /**< Chat type. Use mrchat_get_type() to access this field. */
+	char*           m_name;             /**< Name of the chat. Use mrchat_get_name() to access this field. NULL if unset. */
+	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
+	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
+	int             m_archived;         /**< Archived state. Better use mrchat_get_archived() to access this object. */
+	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
+	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
+	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 };
-
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRLOT_INTERNAL_H__ */
+#endif /* __MRCHAT_PRIVATE_H__ */

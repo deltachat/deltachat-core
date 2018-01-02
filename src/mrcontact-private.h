@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRCONTACT_INTERNAL_H__
-#define __MRCONTACT_INTERNAL_H__
+#ifndef __MRCONTACT_PRIVATE_H__
+#define __MRCONTACT_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,4 +54,4 @@ struct _mrcontact
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCONTACT_INTERNAL_H__ */
+#endif /* __MRCONTACT_PRIVATE_H__ */
