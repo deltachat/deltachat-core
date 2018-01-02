@@ -1,9 +1,14 @@
 project('netpgp', 'c')
 
+# pkg-config dependencies
 zlib = dependency('zlib')
-bzip2 = declare_dependency(link_args: '-lbz2')
 openssl = dependency('openssl')
 pthreads = dependency('threads')
+
+# Dependencies without pkg-config, just try linking against them
+compiler = meson.get_compiler('c')
+bzip2 = compiler.find_library('bz2')
+
 
 src = [
   'src/compress.c',
