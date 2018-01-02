@@ -34,21 +34,15 @@ typedef struct mrarray_t    mrarray_t;
 
 
 /**
+ * @class mrchatlist_t
+ *
  * An object representing a single chatlist in memory.
  * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
  * Chatlist objects are created eg. using mrmailbox_get_chatlist().
  * The chatlist object is not updated.  If you want an update, you have to recreate
  * the object.
  */
-typedef struct mrchatlist_t
-{
-	/** @privatesection */
-	uint32_t        m_magic;
-	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
-	#define         MR_CHATLIST_IDS_PER_RESULT 2
-	size_t          m_cnt;
-	mrarray_t*      m_chatNlastmsg_ids;
-} mrchatlist_t;
+typedef struct _mrchatlist mrchatlist_t;
 
 
 mrchatlist_t*   mrchatlist_new              (mrmailbox_t*);

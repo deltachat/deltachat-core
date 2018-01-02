@@ -20,27 +20,26 @@
  ******************************************************************************/
 
 
-#ifndef __MRMAILBOX_INTERNAL_H__
-#define __MRMAILBOX_INTERNAL_H__
+#ifndef __MRCHATLIST_INTERNAL_H__
+#define __MRCHATLIST_INTERNAL_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/* Includes that are used frequently.  This file may also be used to create predefined headers. */
-#include "mrmailbox.h"
-#include <stdlib.h>
-#include <string.h>
-#include "mrsqlite3.h"
-#include "mrtools.h"
-#include "mrstock.h"
-#include "mrchat-internal.h"
-#include "mrchatlist-internal.h"
-#include "mrlot-internal.h"
+/** the structure behind mrchatlist_t */
+struct _mrchatlist
+{
+	/** @privatesection */
+	uint32_t        m_magic;
+	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
+	#define         MR_CHATLIST_IDS_PER_RESULT 2
+	size_t          m_cnt;
+	mrarray_t*      m_chatNlastmsg_ids;
+};
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMAILBOX_INTERNAL_H__ */
-
+#endif /* __MRCHATLIST_INTERNAL_H__ */
