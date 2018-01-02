@@ -31,41 +31,23 @@ typedef struct mrsqlite3_t mrsqlite3_t;
 
 
 /**
+ * @class mrcontact_t
+ *
  * An object representing a single contact in memory.
  * The contact object is not updated.  If you want an update, you have to recreate
  * the object.
  */
-typedef struct mrcontact_t
-{
-	uint32_t        m_magic; /**< @private */
+typedef struct _mrcontact mrcontact_t;
 
-	/**
-	 * The contact ID.
-	 *
-	 * Special message IDs:
-	 * - MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by mrmailbox_set_config() using "addr".
-	 *
-	 * Normal contact IDs are larger than these special ones (larger than MR_CONTACT_ID_LAST_SPECIAL).
-	 */
-	uint32_t        m_id;
-	#define         MR_CONTACT_ID_SELF         1
-	#define         MR_CONTACT_ID_LAST_SPECIAL 9
-
-
-	/** @privatesection */
-
-	char*           m_name;     /**< Contact name.  It is recommended to use mrcontact_get_name(), mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname. */
-	char*           m_authname; /**< Name authorized by the contact himself. Only this name may be speaded to others, eg. in To:-lists. May be NULL or empty. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. */
-	char*           m_addr;     /**< E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL. */
-	int             m_blocked;  /**< Blocked state. Use mrcontact_is_blocked() to access this field. */
-	int             m_origin;   /**< The original of the contact. One of the MR_ORIGIN_* constants. */
-} mrcontact_t;
+#define         MR_CONTACT_ID_SELF         1
+#define         MR_CONTACT_ID_LAST_SPECIAL 9
 
 
 mrcontact_t* mrcontact_new                    (); /* the returned pointer is ref'd and must be unref'd after usage */
 void         mrcontact_empty                  (mrcontact_t*);
 void         mrcontact_unref                  (mrcontact_t*);
 
+uint32_t     mrcontact_get_id                 (mrcontact_t*);
 char*        mrcontact_get_addr               (mrcontact_t*);
 char*        mrcontact_get_name               (mrcontact_t*);
 char*        mrcontact_get_display_name       (mrcontact_t*);

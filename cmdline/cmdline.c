@@ -199,8 +199,8 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 
 			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
 			mrcontact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
-			const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
-			int contact_id = contact? contact->m_id : 0;
+			char* contact_name = mrcontact_get_name(contact);
+			int contact_id = mrcontact_get_id(contact);
 
 			const char* statestr = "";
 			switch( mrmsg_get_state(msg) ) {
@@ -225,6 +225,7 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 					temp2);
 			free(msgtext);
 			free(temp2);
+			free(contact_name);
 
 			mrcontact_unref(contact);
 			mrmsg_unref(msg);
@@ -246,9 +247,11 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 		char* line = NULL;
 		char* line2 = NULL;
 		if( (contact=mrmailbox_get_contact(mailbox, contact_id))!=NULL ) {
-			line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+			char* name = mrcontact_get_name(contact);
+			char* addr = mrcontact_get_addr(contact);
+			line = mr_mprintf("%s, %s", (name&&name[0])? name : "<name unset>", (addr&&addr[0])? addr : "<addr unset>");
 			mrsqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
+				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr);
 			mrsqlite3_unlock(mailbox->m_sql);
 			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
 				char* pe = NULL;
@@ -262,6 +265,8 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 				free(pe);
 			}
 			mrcontact_unref(contact);
+			free(name);
+			free(addr);
 		}
 		else {
 			line = safe_strdup("Read error.");

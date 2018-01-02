@@ -38,6 +38,7 @@ extern "C" {
 #include "mrchatlist-internal.h"
 #include "mrlot-internal.h"
 #include "mrmsg-internal.h"
+#include "mrcontact-internal.h"
 
 
 #ifdef __cplusplus
