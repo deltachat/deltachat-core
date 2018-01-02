@@ -33,89 +33,43 @@ typedef struct sqlite3_stmt sqlite3_stmt;
 
 
 /**
+ * @class mrmsg_t
+ *
  * An object representing a single message in memory.  The message
  * object is not updated.  If you want an update, you have to recreate the
  * object.
  */
-typedef struct mrmsg_t
-{
-	uint32_t        m_magic; /**< @private */
+typedef struct _mrmsg mrmsg_t;
 
-	/**
-	 * Message ID.  Never 0.
-	 */
-	uint32_t        m_id;
-	#define         MR_MSG_ID_MARKER1       1
-	#define         MR_MSG_ID_DAYMARKER     9
-	#define         MR_MSG_ID_LAST_SPECIAL  9
+#define         MR_MSG_ID_MARKER1       1
+#define         MR_MSG_ID_DAYMARKER     9
+#define         MR_MSG_ID_LAST_SPECIAL  9
 
+#define         MR_MSG_UNDEFINED        0
+#define         MR_MSG_TEXT            10
+#define         MR_MSG_IMAGE           20 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
+#define         MR_MSG_GIF             21 /*   - " -  */
+#define         MR_MSG_AUDIO           40 /* m_param may contain MRP_FILE, MRP_DURATION */
+#define         MR_MSG_VOICE           41 /*   - " -  */
+#define         MR_MSG_VIDEO           50 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
+#define         MR_MSG_FILE            60 /* m_param may contain MRP_FILE  */
 
-	/**
-	 * Contact ID of the sender.  Never 0. See mrcontact_t::m_id for special IDs.
-	 * Use mrmailbox_get_contact() to load details about this contact.
-	 */
-	uint32_t        m_from_id;
-
-
-	/**
-	 * Contact ID of the recipient. Never 0. See mrcontact_t::m_id for special IDs.
-	 * Use mrmailbox_get_contact() to load details about this contact.
-	 */
-	uint32_t        m_to_id;
-
-
-	/**
-	 * Chat ID the message belongs to. Never 0. See mrchat_t::m_id for special IDs.
-	 * Use mrmailbox_get_chat() to load details about the chat.
-	 */
-	uint32_t        m_chat_id;
-
-
-	/*
-	 * The mailbox object the chat belongs to. Never NULL.
-	 */
-	//mrmailbox_t*    m_mailbox;
-
-
-	/** @privatesection */
-
-	int             m_type;                   /**< Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field. */
-	#define         MR_MSG_UNDEFINED        0
-	#define         MR_MSG_TEXT            10
-	#define         MR_MSG_IMAGE           20 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT */
-	#define         MR_MSG_GIF             21 /*   - " -  */
-	#define         MR_MSG_AUDIO           40 /* m_param may contain MRP_FILE, MRP_DURATION */
-	#define         MR_MSG_VOICE           41 /*   - " -  */
-	#define         MR_MSG_VIDEO           50 /* m_param may contain MRP_FILE, MRP_WIDTH, MRP_HEIGHT, MRP_DURATION */
-	#define         MR_MSG_FILE            60 /* m_param may contain MRP_FILE  */
-
-	int             m_state;                  /**< Message state. It is recommended to use mrmsg_get_state() to access this field. */
-	#define         MR_STATE_UNDEFINED      0
-	#define         MR_STATE_IN_FRESH      10
-	#define         MR_STATE_IN_NOTICED    13
-	#define         MR_STATE_IN_SEEN       16
-	#define         MR_STATE_OUT_PENDING   20
-	#define         MR_STATE_OUT_ERROR     24
-	#define         MR_STATE_OUT_DELIVERED 26 /* to check if a mail was sent, use mrmsg_is_sent() */
-	#define         MR_STATE_OUT_MDN_RCVD  28
-
-	time_t          m_timestamp;              /**< Unix time the message was sended or received. 0 if unset. */
-	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use mrmsg_set_text() and mrmsg_get_text() to access this field. */
-
-	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */
-	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
-	char*           m_server_folder;          /**< Folder where the message was last seen on the server */
-	uint32_t        m_server_uid;             /**< UID last seen on the server for this message */
-	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
-	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
-	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
-} mrmsg_t;
+#define         MR_STATE_UNDEFINED      0
+#define         MR_STATE_IN_FRESH      10
+#define         MR_STATE_IN_NOTICED    13
+#define         MR_STATE_IN_SEEN       16
+#define         MR_STATE_OUT_PENDING   20
+#define         MR_STATE_OUT_ERROR     24
+#define         MR_STATE_OUT_DELIVERED 26 /* to check if a mail was sent, use mrmsg_is_sent() */
+#define         MR_STATE_OUT_MDN_RCVD  28
 
 
 mrmsg_t*        mrmsg_new                   ();
 void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);
 
+uint32_t        mrmsg_get_id                (mrmsg_t*);
+uint32_t        mrmsg_get_from_id           (mrmsg_t*);
 int             mrmsg_get_type              (mrmsg_t*);
 int             mrmsg_get_state             (mrmsg_t*);
 time_t          mrmsg_get_timestamp         (mrmsg_t*);

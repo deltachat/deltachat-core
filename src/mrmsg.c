@@ -114,6 +114,43 @@ void mrmsg_empty(mrmsg_t* msg)
 
 
 /**
+ * Get the ID of the message.
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return the ID of the message, 0 on errors.
+ */
+uint32_t mrmsg_get_id(mrmsg_t* msg)
+{
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return 0;
+	}
+	return msg->m_id;
+}
+
+
+/**
+ * Get the ID of contact who wrote the message.
+ * To get details about the contact, pass the returned ID to mrmailbox_get_contact().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return the ID of the contact who wrote the message, MR_CONTACT_ID_SELF (1) if this is an outgoing message, 0 on errors.
+ */
+uint32_t mrmsg_get_from_id(mrmsg_t* msg)
+{
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return 0;
+	}
+	return msg->m_from_id;
+}
+
+
+/**
  * Get the type of the message.
  *
  * @memberof mrmsg_t

@@ -198,30 +198,32 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 			if( lines_out==0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
 			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
-			mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
+			mrcontact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
 			const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
 			int contact_id = contact? contact->m_id : 0;
 
 			const char* statestr = "";
-			switch( msg->m_state ) {
+			switch( mrmsg_get_state(msg) ) {
 				case MR_STATE_OUT_PENDING:   statestr = " o";   break;
 				case MR_STATE_OUT_DELIVERED: statestr = " √";   break;
 				case MR_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
 				case MR_STATE_OUT_ERROR:     statestr = " ERR"; break;
 			}
 
-			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
+			char* temp2 = mr_timestamp_to_str(mrmsg_get_timestamp(msg));
+			char* msgtext = mrmsg_get_text(msg);
 				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s%s [%s]",
-					(int)msg->m_id,
+					(int)mrmsg_get_id(msg),
 					contact_name,
 					contact_id,
-					msg->m_text,
+					msgtext,
 					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
-					msg->m_starred? " \xE2\x98\x85" : "",
-					msg->m_from_id==1? "" : (msg->m_state==MR_STATE_IN_SEEN? "[SEEN]" : (msg->m_state==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
+					mrmsg_is_starred(msg)? " \xE2\x98\x85" : "",
+					mrmsg_get_from_id(msg)==1? "" : (mrmsg_get_state(msg)==MR_STATE_IN_SEEN? "[SEEN]" : (mrmsg_get_state(msg)==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					mrmsg_is_systemcmd(msg)? "[SYSTEM]" : "",
 					statestr,
 					temp2);
+			free(msgtext);
 			free(temp2);
 
 			mrcontact_unref(contact);
