@@ -875,7 +875,7 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  *     - If not mentioned otherweise, the callback should return 0.
  *
  * @param userdata can be used by the client for any purpuse.  He finds it
- *     later in mrmailbox__t::m_userdata().
+ *     later in mrmailbox_get_userdata().
  *
  * @param os_name is only for decorative use and is shown eg. in the `X-Mailer:` header
  *     in the form "Delta Chat <version> for <os_name>".
@@ -973,6 +973,24 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	if( s_localize_mb_obj==mailbox ) {
 		s_localize_mb_obj = NULL;
 	}
+}
+
+
+/**
+ * Get user data associated with a mailbox object.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new().
+ *
+ * @return User data, this is the second parameter given to mrmailbox_new().
+ */
+void* mrmailbox_get_userdata(mrmailbox_t* mailbox)
+{
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return NULL;
+	}
+	return mailbox->m_userdata;
 }
 
 
@@ -3625,7 +3643,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * Create a new group chat.
  *
  * After creation, the group has one member with the
- * ID [MR_CONTACT_ID_SELF](@ref mrcontact_t::m_id) and is in _unpromoted_ state.  This means, you can
+ * ID MR_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
  * add or remove members, change the name, the group image and so on without
  * messages being send to all group members.
  *

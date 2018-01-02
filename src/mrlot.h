@@ -28,20 +28,14 @@ extern "C" {
 
 
 /**
+ * @class mrlot_t
+ *
  * An object containing a set of values.  The meaning of the values is defined by the function returning the set object.
  * Set objects are created eg. by mrchatlist_get_summary(), mrmsg_get_summary() or by mrmsg_get_mediainfo().
  *
  * NB: _Lot_ is used in the meaning _heap_ here.
  */
-typedef struct mrlot_t
-{
-	uint32_t        m_magic;           /**< @private */
-	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
-	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
-	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-} mrlot_t;
+typedef struct _mrlot mrlot_t;
 
 
 #define         MR_TEXT1_DRAFT     1
@@ -49,9 +43,14 @@ typedef struct mrlot_t
 #define         MR_TEXT1_SELF      3
 
 
-mrlot_t*        mrlot_new     ();
-void            mrlot_empty   (mrlot_t*);
-void            mrlot_unref   (mrlot_t*);
+mrlot_t*        mrlot_new               ();
+void            mrlot_empty             (mrlot_t*);
+void            mrlot_unref             (mrlot_t*);
+char*           mrlot_get_text1         (mrlot_t*);
+char*           mrlot_get_text2         (mrlot_t*);
+int             mrlot_get_text1_meaning (mrlot_t*);
+int             mrlot_get_state         (mrlot_t*);
+time_t          mrlot_get_timestamp     (mrlot_t*);
 
 
 /* library-internal */

@@ -20,40 +20,29 @@
  ******************************************************************************/
 
 
-#ifndef __MRCHATLIST_H__
-#define __MRCHATLIST_H__
+#ifndef __MRCHATLIST_PRIVATE_H__
+#define __MRCHATLIST_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct _mrmailbox   mrmailbox_t;
-typedef struct _mrlot       mrlot_t;
-typedef struct _mrchat      mrchat_t;
+/** the structure behind mrchatlist_t */
+struct _mrchatlist
+{
+	/** @privatesection */
+	uint32_t        m_magic;
+	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
+	#define         MR_CHATLIST_IDS_PER_RESULT 2
+	size_t          m_cnt;
+	mrarray_t*      m_chatNlastmsg_ids;
+};
 
 
-/**
- * @class mrchatlist_t
- *
- * An object representing a single chatlist in memory.
- * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
- * Chatlist objects are created eg. using mrmailbox_get_chatlist().
- * The chatlist object is not updated.  If you want an update, you have to recreate
- * the object.
- */
-typedef struct _mrchatlist mrchatlist_t;
-
-
-mrchatlist_t*   mrchatlist_new              (mrmailbox_t*);
-void            mrchatlist_empty            (mrchatlist_t*);
-void            mrchatlist_unref            (mrchatlist_t*);
-size_t          mrchatlist_get_cnt          (mrchatlist_t*);
-uint32_t        mrchatlist_get_chat_id      (mrchatlist_t*, size_t index);
-uint32_t        mrchatlist_get_msg_id       (mrchatlist_t*, size_t index);
-mrlot_t*        mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
+int             mrchatlist_load_from_db__   (mrchatlist_t*, int listflags, const char* query);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHATLIST_H__ */
+#endif /* __MRCHATLIST_PRIVATE_H__ */

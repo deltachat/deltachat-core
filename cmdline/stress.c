@@ -246,7 +246,6 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrarray_add_id(arr, i+1*2);
 		}
 		assert( mrarray_get_cnt(arr) == TEST_CNT );
-		assert( arr->m_allocated >= arr->m_count );
 
 		for( i = 0; i< TEST_CNT; i++ ) {
 			assert( mrarray_get_id(arr, i) == i+1*2 );

@@ -108,6 +108,24 @@ void mrcontact_empty(mrcontact_t* contact)
 
 
 /**
+ * Get the ID of the contact.
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object.
+ *
+ * @return the ID of the contact, 0 on errors.
+ */
+uint32_t mrcontact_get_id(mrcontact_t* contact)
+{
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+		return 0;
+	}
+	return contact->m_id;
+}
+
+
+/**
  * Get email address.  The email address is always set for a contact.
  *
  * @memberof mrcontact_t

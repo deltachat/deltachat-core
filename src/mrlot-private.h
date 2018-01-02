@@ -20,40 +20,28 @@
  ******************************************************************************/
 
 
-#ifndef __MRCHATLIST_H__
-#define __MRCHATLIST_H__
+#ifndef __MRLOT_PRIVATE_H__
+#define __MRLOT_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct _mrmailbox   mrmailbox_t;
-typedef struct _mrlot       mrlot_t;
-typedef struct _mrchat      mrchat_t;
+/** Structure behind mrlot_t */
+struct _mrlot
+{
+	/** @privatesection */
+	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
+	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
+	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
+	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+};
 
-
-/**
- * @class mrchatlist_t
- *
- * An object representing a single chatlist in memory.
- * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
- * Chatlist objects are created eg. using mrmailbox_get_chatlist().
- * The chatlist object is not updated.  If you want an update, you have to recreate
- * the object.
- */
-typedef struct _mrchatlist mrchatlist_t;
-
-
-mrchatlist_t*   mrchatlist_new              (mrmailbox_t*);
-void            mrchatlist_empty            (mrchatlist_t*);
-void            mrchatlist_unref            (mrchatlist_t*);
-size_t          mrchatlist_get_cnt          (mrchatlist_t*);
-uint32_t        mrchatlist_get_chat_id      (mrchatlist_t*, size_t index);
-uint32_t        mrchatlist_get_msg_id       (mrchatlist_t*, size_t index);
-mrlot_t*        mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHATLIST_H__ */
+#endif /* __MRLOT_PRIVATE_H__ */

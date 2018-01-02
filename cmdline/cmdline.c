@@ -198,31 +198,34 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 			if( lines_out==0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
 			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
-			mrcontact_t* contact = mrmailbox_get_contact(mailbox, msg->m_from_id);
-			const char* contact_name = (contact && contact->m_name)? contact->m_name : "ErrName";
-			int contact_id = contact? contact->m_id : 0;
+			mrcontact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
+			char* contact_name = mrcontact_get_name(contact);
+			int contact_id = mrcontact_get_id(contact);
 
 			const char* statestr = "";
-			switch( msg->m_state ) {
+			switch( mrmsg_get_state(msg) ) {
 				case MR_STATE_OUT_PENDING:   statestr = " o";   break;
 				case MR_STATE_OUT_DELIVERED: statestr = " √";   break;
 				case MR_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
 				case MR_STATE_OUT_ERROR:     statestr = " ERR"; break;
 			}
 
-			char* temp2 = mr_timestamp_to_str(msg->m_timestamp);
+			char* temp2 = mr_timestamp_to_str(mrmsg_get_timestamp(msg));
+			char* msgtext = mrmsg_get_text(msg);
 				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s%s [%s]",
-					(int)msg->m_id,
+					(int)mrmsg_get_id(msg),
 					contact_name,
 					contact_id,
-					msg->m_text,
+					msgtext,
 					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
-					msg->m_starred? " \xE2\x98\x85" : "",
-					msg->m_from_id==1? "" : (msg->m_state==MR_STATE_IN_SEEN? "[SEEN]" : (msg->m_state==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
+					mrmsg_is_starred(msg)? " \xE2\x98\x85" : "",
+					mrmsg_get_from_id(msg)==1? "" : (mrmsg_get_state(msg)==MR_STATE_IN_SEEN? "[SEEN]" : (mrmsg_get_state(msg)==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					mrmsg_is_systemcmd(msg)? "[SYSTEM]" : "",
 					statestr,
 					temp2);
+			free(msgtext);
 			free(temp2);
+			free(contact_name);
 
 			mrcontact_unref(contact);
 			mrmsg_unref(msg);
@@ -244,9 +247,11 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 		char* line = NULL;
 		char* line2 = NULL;
 		if( (contact=mrmailbox_get_contact(mailbox, contact_id))!=NULL ) {
-			line = mr_mprintf("%s, %s", (contact->m_name&&contact->m_name[0])? contact->m_name : "<name unset>", (contact->m_addr&&contact->m_addr[0])? contact->m_addr : "<addr unset>");
+			char* name = mrcontact_get_name(contact);
+			char* addr = mrcontact_get_addr(contact);
+			line = mr_mprintf("%s, %s", (name&&name[0])? name : "<name unset>", (addr&&addr[0])? addr : "<addr unset>");
 			mrsqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
+				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr);
 			mrsqlite3_unlock(mailbox->m_sql);
 			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
 				char* pe = NULL;
@@ -260,6 +265,8 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 				free(pe);
 			}
 			mrcontact_unref(contact);
+			free(name);
+			free(addr);
 		}
 		else {
 			line = safe_strdup("Read error.");
@@ -566,33 +573,38 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				for( i = cnt-1; i >= 0; i-- )
 				{
 					mrchat_t* chat = mrmailbox_get_chat(mailbox, mrchatlist_get_chat_id(chatlist, i));
-					char *temp;
 
-					temp = mrchat_get_subtitle(chat);
-						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", chat->m_type==MR_CHAT_TYPE_GROUP? "Groupchat" : "Chat",
-							(int)chat->m_id, chat->m_name, temp, (int)mrmailbox_get_fresh_msg_count(mailbox, chat->m_id));
-					free(temp);
+					char* temp_subtitle = mrchat_get_subtitle(chat);
+					char* temp_name = mrchat_get_name(chat);
+						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", mrchat_get_type(chat)==MR_CHAT_TYPE_GROUP? "Groupchat" : "Chat",
+							(int)mrchat_get_id(chat), temp_name, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
+					free(temp_subtitle);
+					free(temp_name);
 
 					mrpoortext_t* poortext = mrchatlist_get_summary(chatlist, i, chat);
 
 						const char* statestr = "";
-						if( chat->m_archived ) {
+						if( mrchat_get_archived(chat) ) {
 							statestr = " [Archived]";
 						}
-						else switch( poortext->m_state ) {
+						else switch( mrlot_get_state(poortext) ) {
 							case MR_STATE_OUT_PENDING:   statestr = " o";   break;
 							case MR_STATE_OUT_DELIVERED: statestr = " √";   break;
 							case MR_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
 							case MR_STATE_OUT_ERROR:     statestr = " ERR"; break;
 						}
 
-						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
+						char* timestr = mr_timestamp_to_str(mrlot_get_timestamp(poortext));
+						char* text1 = mrlot_get_text1(poortext);
+						char* text2 = mrlot_get_text2(poortext);
 							mrmailbox_log_info(mailbox, 0, "%s%s%s%s [%s]",
-								poortext->m_text1? poortext->m_text1 : "",
-								poortext->m_text1? ": " : "",
-								poortext->m_text2? poortext->m_text2 : NULL,
+								text1? text1 : "",
+								text1? ": " : "",
+								text2? text2 : "",
 								statestr, timestr
 								);
+						free(text1);
+						free(text2);
 						free(timestr);
 
 					mrpoortext_unref(poortext);
@@ -623,21 +635,25 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 		/* show chat */
 		if( sel_chat ) {
-			mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, sel_chat->m_id, MR_GCM_ADDDAYMARKER, 0);
+			mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, mrchat_get_id(sel_chat), MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
-				mrmailbox_log_info(mailbox, 0, "Chat#%i: %s [%s]", sel_chat->m_id, sel_chat->m_name, temp2);
+			char* temp_name = mrchat_get_name(sel_chat);
+				mrmailbox_log_info(mailbox, 0, "Chat#%i: %s [%s]", mrchat_get_id(sel_chat), temp_name, temp2);
+			free(temp_name);
 			free(temp2);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
 				mrarray_unref(msglist);
 			}
-			if( sel_chat->m_draft_timestamp ) {
-				char* timestr = mr_timestamp_to_str(sel_chat->m_draft_timestamp);
-					mrmailbox_log_info(mailbox, 0, "Draft: %s [%s]", sel_chat->m_draft_text, timestr);
+			if( mrchat_get_draft_timestamp(sel_chat) ) {
+				char* timestr = mr_timestamp_to_str(mrchat_get_draft_timestamp(sel_chat));
+				char* drafttext = mrchat_get_draft(sel_chat);
+					mrmailbox_log_info(mailbox, 0, "Draft: %s [%s]", drafttext, timestr);
+				free(drafttext);
 				free(timestr);
 			}
-			ret = mr_mprintf("%i messages.", mrmailbox_get_total_msg_count(mailbox, sel_chat->m_id));
-			mrmailbox_marknoticed_chat(mailbox, sel_chat->m_id);
+			ret = mr_mprintf("%i messages.", mrmailbox_get_total_msg_count(mailbox, mrchat_get_id(sel_chat)));
+			mrmailbox_marknoticed_chat(mailbox, mrchat_get_id(sel_chat));
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
@@ -669,7 +685,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
-				if( mrmailbox_add_contact_to_chat(mailbox, sel_chat->m_id, contact_id) ) {
+				if( mrmailbox_add_contact_to_chat(mailbox, mrchat_get_id(sel_chat), contact_id) ) {
 					ret = safe_strdup("Contact added to chat.");
 				}
 				else {
@@ -689,7 +705,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
-				if( mrmailbox_remove_contact_from_chat(mailbox, sel_chat->m_id, contact_id) ) {
+				if( mrmailbox_remove_contact_from_chat(mailbox, mrchat_get_id(sel_chat), contact_id) ) {
 					ret = safe_strdup("Contact added to chat.");
 				}
 				else {
@@ -708,7 +724,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				ret = mrmailbox_set_chat_name(mailbox, sel_chat->m_id, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+				ret = mrmailbox_set_chat_name(mailbox, mrchat_get_id(sel_chat), arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else {
 				ret = safe_strdup("ERROR: Argument <name> missing.");
@@ -721,7 +737,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "groupimage")==0 )
 	{
 		if( sel_chat ) {
-			ret = mrmailbox_set_chat_profile_image(mailbox, sel_chat->m_id, (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = mrmailbox_set_chat_profile_image(mailbox, mrchat_get_id(sel_chat), (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("No chat selected.");
@@ -730,7 +746,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "chatinfo")==0 )
 	{
 		if( sel_chat ) {
-			mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, sel_chat->m_id);
+			mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, mrchat_get_id(sel_chat));
 			if( contacts ) {
 				mrmailbox_log_info(mailbox, 0, "Memberlist:");
 				log_contactlist(mailbox, contacts);
@@ -748,7 +764,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( mrmailbox_send_text_msg(mailbox, sel_chat->m_id, arg1) ) {
+				if( mrmailbox_send_text_msg(mailbox, mrchat_get_id(sel_chat), arg1) ) {
 					ret = safe_strdup("Message sent.");
 				}
 				else {
@@ -767,7 +783,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( mrmailbox_send_image_msg(mailbox, sel_chat->m_id, arg1, NULL, 0, 0) ) {
+				if( mrmailbox_send_image_msg(mailbox, mrchat_get_id(sel_chat), arg1, NULL, 0, 0) ) {
 					ret = safe_strdup("Image sent.");
 				}
 				else {
@@ -786,7 +802,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( mrmailbox_send_file_msg(mailbox, sel_chat->m_id, arg1, NULL) ) {
+				if( mrmailbox_send_file_msg(mailbox, mrchat_get_id(sel_chat), arg1, NULL) ) {
 					ret = safe_strdup("File sent.");
 				}
 				else {
@@ -804,7 +820,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmsgs")==0 )
 	{
 		if( arg1 ) {
-			mrarray_t* msglist = mrmailbox_search_msgs(mailbox, sel_chat? sel_chat->m_id : 0, arg1);
+			mrarray_t* msglist = mrmailbox_search_msgs(mailbox, sel_chat? mrchat_get_id(sel_chat) : 0, arg1);
 			if( msglist ) {
 				log_msglist(mailbox, msglist);
 				ret = mr_mprintf("%i messages.", (int)mrarray_get_cnt(msglist));
@@ -819,11 +835,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				mrmailbox_set_draft(mailbox, sel_chat->m_id, arg1);
+				mrmailbox_set_draft(mailbox, mrchat_get_id(sel_chat), arg1);
 				ret = safe_strdup("Draft saved.");
 			}
 			else {
-				mrmailbox_set_draft(mailbox, sel_chat->m_id, NULL);
+				mrmailbox_set_draft(mailbox, mrchat_get_id(sel_chat), NULL);
 				ret = safe_strdup("Draft deleted.");
 			}
 		}
@@ -834,7 +850,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmedia")==0 )
 	{
 		if( sel_chat ) {
-			mrarray_t* images = mrmailbox_get_chat_media(mailbox, sel_chat->m_id, MR_MSG_IMAGE, MR_MSG_VIDEO);
+			mrarray_t* images = mrmailbox_get_chat_media(mailbox, mrchat_get_id(sel_chat), MR_MSG_IMAGE, MR_MSG_VIDEO);
 			int i, icnt = mrarray_get_cnt(images);
 			ret = mr_mprintf("%i images or videos: ", icnt);
 			for( i = 0; i < icnt; i++ ) {

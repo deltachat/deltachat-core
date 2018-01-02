@@ -29,9 +29,9 @@ extern "C" {
 
 
 
-typedef struct mrmsg_t mrmsg_t;
-typedef struct mrchat_t mrchat_t;
-typedef struct mrmailbox_t mrmailbox_t;
+typedef struct _mrmsg mrmsg_t;
+typedef struct _mrchat mrchat_t;
+typedef struct _mrmailbox mrmailbox_t;
 
 
 #define MR_SYSTEM_GROUPNAME_CHANGED           2

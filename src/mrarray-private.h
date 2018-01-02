@@ -20,40 +20,28 @@
  ******************************************************************************/
 
 
-#ifndef __MRCHATLIST_H__
-#define __MRCHATLIST_H__
+#ifndef __MRARRAY_PRIVATE_H__
+#define __MRARRAY_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct _mrmailbox   mrmailbox_t;
-typedef struct _mrlot       mrlot_t;
-typedef struct _mrchat      mrchat_t;
+/** the structure behind mrarray_t */
+struct _mrarray
+{
+	/** @privatesection */
 
-
-/**
- * @class mrchatlist_t
- *
- * An object representing a single chatlist in memory.
- * Chatlist objects contain chat IDs and, if possible, message IDs belonging to them.
- * Chatlist objects are created eg. using mrmailbox_get_chatlist().
- * The chatlist object is not updated.  If you want an update, you have to recreate
- * the object.
- */
-typedef struct _mrchatlist mrchatlist_t;
-
-
-mrchatlist_t*   mrchatlist_new              (mrmailbox_t*);
-void            mrchatlist_empty            (mrchatlist_t*);
-void            mrchatlist_unref            (mrchatlist_t*);
-size_t          mrchatlist_get_cnt          (mrchatlist_t*);
-uint32_t        mrchatlist_get_chat_id      (mrchatlist_t*, size_t index);
-uint32_t        mrchatlist_get_msg_id       (mrchatlist_t*, size_t index);
-mrlot_t*        mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
+	uint32_t        m_magic;
+	mrmailbox_t*    m_mailbox;     /**< The mailbox the array belongs to. May be NULL when NULL is given to mrarray_new(). */
+	size_t          m_allocated;   /**< The number of allocated items. Initially ~ 200. */
+	size_t          m_count;       /**< The number of used items. Initially 0. */
+	uintptr_t*      m_array;       /**< The data items, can be used between m_data[0] and m_data[m_cnt-1]. Never NULL. */
+};
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHATLIST_H__ */
+#endif /* __MRARRAY_PRIVATE_H__ */
+

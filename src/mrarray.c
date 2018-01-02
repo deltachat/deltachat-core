@@ -21,6 +21,7 @@
 
 
 #include "mrmailbox_internal.h"
+#include "mrarray-private.h"
 
 #define MR_ARRAY_MAGIC 0x000a11aa
 
