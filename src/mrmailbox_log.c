@@ -75,7 +75,7 @@ int mrmailbox_get_thread_index(void)
  ******************************************************************************/
 
 
-void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* msg_format, va_list va)
+static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
 

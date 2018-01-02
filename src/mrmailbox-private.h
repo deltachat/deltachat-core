@@ -123,6 +123,7 @@ int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*,
 void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
 void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
+int             mrmailbox_get_thread_index                        (void);
 
 
 /* library private: end-to-end-encryption */

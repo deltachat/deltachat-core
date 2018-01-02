@@ -303,8 +303,6 @@ void            mrmailbox_log_error         (mrmailbox_t*, int code, const char*
 void            mrmailbox_log_error_if      (int* condition, mrmailbox_t*, int code, const char* msg, ...);
 void            mrmailbox_log_warning       (mrmailbox_t*, int code, const char* msg, ...);
 void            mrmailbox_log_info          (mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_vprintf       (mrmailbox_t*, int event, int code, const char* msg, va_list);
-int             mrmailbox_get_thread_index  (void);
 
 
 /* error codes */
