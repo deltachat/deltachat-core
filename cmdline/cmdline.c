@@ -580,20 +580,24 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 						if( mrchat_get_archived(chat) ) {
 							statestr = " [Archived]";
 						}
-						else switch( poortext->m_state ) {
+						else switch( mrlot_get_state(poortext) ) {
 							case MR_STATE_OUT_PENDING:   statestr = " o";   break;
 							case MR_STATE_OUT_DELIVERED: statestr = " √";   break;
 							case MR_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
 							case MR_STATE_OUT_ERROR:     statestr = " ERR"; break;
 						}
 
-						char* timestr = mr_timestamp_to_str(poortext->m_timestamp);
+						char* timestr = mr_timestamp_to_str(mrlot_get_timestamp(poortext));
+						char* text1 = mrlot_get_text1(poortext);
+						char* text2 = mrlot_get_text2(poortext);
 							mrmailbox_log_info(mailbox, 0, "%s%s%s%s [%s]",
-								poortext->m_text1? poortext->m_text1 : "",
-								poortext->m_text1? ": " : "",
-								poortext->m_text2? poortext->m_text2 : NULL,
+								text1? text1 : "",
+								text1? ": " : "",
+								text2? text2 : "",
 								statestr, timestr
 								);
+						free(text1);
+						free(text2);
 						free(timestr);
 
 					mrpoortext_unref(poortext);

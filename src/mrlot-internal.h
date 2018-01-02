@@ -20,26 +20,27 @@
  ******************************************************************************/
 
 
-#ifndef __MRMAILBOX_INTERNAL_H__
-#define __MRMAILBOX_INTERNAL_H__
+#ifndef __MRLOT_INTERNAL_H__
+#define __MRLOT_INTERNAL_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/* Includes that are used frequently.  This file may also be used to create predefined headers. */
-#include "mrmailbox.h"
-#include <stdlib.h>
-#include <string.h>
-#include "mrsqlite3.h"
-#include "mrtools.h"
-#include "mrstock.h"
-#include "mrchat-internal.h"
-#include "mrlot-internal.h"
+struct _mrlot
+{
+	/** @privatesection */
+	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
+	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
+	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
+	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+};
+
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMAILBOX_INTERNAL_H__ */
-
+#endif /* __MRLOT_INTERNAL_H__ */
