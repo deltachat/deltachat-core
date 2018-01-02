@@ -27,8 +27,7 @@ extern "C" {
 #endif
 
 
-typedef struct mrmailbox_t mrmailbox_t;
-typedef struct mrparam_t   mrparam_t;
+typedef struct _mrmailbox mrmailbox_t;
 
 
 #define         MR_CHAT_ID_DEADDROP         1
@@ -67,13 +66,6 @@ time_t          mrchat_get_draft_timestamp  (mrchat_t*);
 int             mrchat_get_archived         (mrchat_t*);
 int             mrchat_is_unpromoted        (mrchat_t*);
 int             mrchat_is_self_talk         (mrchat_t*);
-
-/* library-internal */
-int             mrchat_load_from_db__       (mrchat_t*, uint32_t id);
-int             mrchat_update_param__       (mrchat_t*);
-
-#define         MR_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
-#define         MR_CHATS_FOLDER             "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */
 
 
 #ifdef __cplusplus

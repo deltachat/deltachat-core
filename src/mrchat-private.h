@@ -45,6 +45,14 @@ struct _mrchat
 };
 
 
+int             mrchat_load_from_db__       (mrchat_t*, uint32_t id);
+int             mrchat_update_param__       (mrchat_t*);
+
+
+#define         MR_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
+#define         MR_CHATS_FOLDER             "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

@@ -39,6 +39,9 @@ struct _mrchatlist
 };
 
 
+int             mrchatlist_load_from_db__   (mrchatlist_t*, int listflags, const char* query);
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif

@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 
-typedef struct mrmailbox_t  mrmailbox_t;
+typedef struct _mrmailbox mrmailbox_t;
 
 
 /**
@@ -50,6 +50,7 @@ void            mrarray_add_id              (mrarray_t*, uint32_t id);
 size_t          mrarray_get_cnt             (mrarray_t*);
 uint32_t        mrarray_get_id              (mrarray_t*, size_t index);
 int             mrarray_search_id           (mrarray_t*, uint32_t needle, size_t* indx);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

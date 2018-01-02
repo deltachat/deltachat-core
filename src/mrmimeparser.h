@@ -33,6 +33,7 @@ extern "C" {
 
 
 #include "mrhash.h"
+#include "mrparam.h"
 
 
 typedef struct mrmimepart_t

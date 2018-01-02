@@ -27,6 +27,9 @@ extern "C" {
 #endif
 
 
+typedef struct mrsqlite3_t mrsqlite3_t;
+
+
 /** the structure behind mrcontact_t */
 struct _mrcontact
 {
@@ -49,6 +52,32 @@ struct _mrcontact
 	int             m_blocked;  /**< Blocked state. Use mrcontact_is_blocked() to access this field. */
 	int             m_origin;   /**< The original of the contact. One of the MR_ORIGIN_* constants. */
 };
+
+
+/* library-internal */
+#define MR_ORIGIN_UNSET                         0
+#define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
+#define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
+#define MR_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
+#define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender */
+#define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
+#define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
+#define MR_ORIGIN_CREATE_CHAT               0x800 /* a chat was manually created for this user, but no message yet sent */
+#define MR_ORIGIN_OUTGOING_BCC             0x1000 /* message send by us */
+#define MR_ORIGIN_OUTGOING_CC              0x2000 /* message send by us */
+#define MR_ORIGIN_OUTGOING_TO              0x4000 /* message send by us */
+#define MR_ORIGIN_INTERNAL                0x40000 /* internal use */
+#define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
+#define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
+
+#define MR_ORIGIN_MIN_CONTACT_LIST    (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are shown in the contact list */
+#define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
+#define MR_ORIGIN_MIN_START_NEW_NCHAT (0x7FFFFFFF)                  /* contacts with at least this origin value start a new "normal" chat, defaults to off */
+
+int          mrcontact_load_from_db__         (mrcontact_t*, mrsqlite3_t*, uint32_t contact_id);
+void         mr_normalize_name                (char* full_name);
+char*        mr_normalize_addr                (const char* email_addr);
+char*        mr_get_first_name                (const char* full_name);
 
 
 #ifdef __cplusplus

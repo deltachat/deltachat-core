@@ -27,6 +27,10 @@ extern "C" {
 #endif
 
 
+typedef struct mrparam_t   mrparam_t;
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
 /** the structure behind mrmsg_t */
 struct _mrmsg
 {
@@ -82,6 +86,26 @@ struct _mrmsg
 	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
 	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 };
+
+
+#define         MR_MSG_FIELDS                        " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.starred "
+int             mrmsg_set_from_stmt__                (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
+int             mrmsg_load_from_db__                 (mrmsg_t*, mrmailbox_t*, uint32_t id);
+int             mrmsg_is_increation__                (const mrmsg_t*);
+char*           mrmsg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
+void            mrmsg_save_param_to_disk__           (mrmsg_t*);
+void            mrmsg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
+void            mrmsg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);
+
+#define MR_MSG_NEEDS_ATTACHMENT(a)         ((a)==MR_MSG_IMAGE || (a)==MR_MSG_GIF || (a)==MR_MSG_AUDIO || (a)==MR_MSG_VOICE || (a)==MR_MSG_VIDEO || (a)==MR_MSG_FILE)
+#define MR_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==MR_MSG_AUDIO || (a)==MR_MSG_FILE || (a)==MR_MSG_VIDEO ) /* add filename.ext (without path) to m_text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
+#define MR_MSG_MAKE_SUFFIX_SEARCHABLE(a)   ((a)==MR_MSG_IMAGE || (a)==MR_MSG_GIF || (a)==MR_MSG_VOICE)
+
+#define APPROX_SUBJECT_CHARS 32  /* as we do not cut inside words, this results in about 32-42 characters.
+								 Do not use too long subjects - we add a tag after the subject which gets truncated by the clients otherwise.
+								 It should also be very clear, the subject is _not_ the whole message.
+								 The value is also used for CC:-summaries */
+
 
 
 #ifdef __cplusplus
