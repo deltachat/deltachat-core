@@ -30,7 +30,7 @@ extern "C" {
 
 
 typedef struct mrmsg_t mrmsg_t;
-typedef struct mrchat_t mrchat_t;
+typedef struct _mrchat mrchat_t;
 typedef struct mrmailbox_t mrmailbox_t;
 
 

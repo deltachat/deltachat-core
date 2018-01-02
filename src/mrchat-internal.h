@@ -27,12 +27,9 @@ extern "C" {
 #endif
 
 
-/**
- * An object representing a single chat in memory. Chat objects are created using eg. mrmailbox_get_chat() and
- * are not updated on database changes;  if you want an update, you have to recreate the
- * object.
- */
-typedef struct mrchat_t
+
+/** the structure behind mrchat_t */
+struct _mrchat
 {
 	/** @privatesection */
 	uint32_t        m_magic;
@@ -45,7 +42,7 @@ typedef struct mrchat_t
 	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
-} mrchat_t;
+};
 
 
 #ifdef __cplusplus

@@ -324,7 +324,7 @@ char* mrchat_get_draft(mrchat_t* chat)
 time_t mrchat_get_draft_timestamp(mrchat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return NULL;
+		return 0;
 	}
 	return chat->m_draft_timestamp;
 }

@@ -43,7 +43,14 @@ typedef struct mrparam_t   mrparam_t;
 #define         MR_CHAT_TYPE_GROUP        120
 
 
-typedef struct mrchat_t mrchat_t;
+/**
+ * @class mrchat_t
+ *
+ * An object representing a single chat in memory. Chat objects are created using eg. mrmailbox_get_chat() and
+ * are not updated on database changes;  if you want an update, you have to recreate the
+ * object.
+ */
+typedef struct _mrchat mrchat_t;
 
 
 mrchat_t*       mrchat_new                  (mrmailbox_t*);
