@@ -34,6 +34,7 @@ typedef struct mrjob_t        mrjob_t;
 typedef struct mrmimeparser_t mrmimeparser_t;
 
 
+/** Structure behind mrmailbox_t */
 struct _mrmailbox
 {
 	/** @privatesection */

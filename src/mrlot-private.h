@@ -27,6 +27,7 @@ extern "C" {
 #endif
 
 
+/** Structure behind mrlot_t */
 struct _mrlot
 {
 	/** @privatesection */

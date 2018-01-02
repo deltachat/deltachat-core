@@ -193,6 +193,7 @@ typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, ui
 /* create/open/connect */
 mrmailbox_t*    mrmailbox_new               (mrmailboxcb_t, void* userdata, const char* os_name);
 void            mrmailbox_unref             (mrmailbox_t*);
+void*           mrmailbox_get_userdata      (mrmailbox_t*);
 
 int             mrmailbox_open              (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void            mrmailbox_close             (mrmailbox_t*);

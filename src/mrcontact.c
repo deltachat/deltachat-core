@@ -112,7 +112,7 @@ void mrcontact_empty(mrcontact_t* contact)
  *
  * @memberof mrcontact_t
  *
- * @param msg The contact object.
+ * @param contact The contact object.
  *
  * @return the ID of the contact, 0 on errors.
  */

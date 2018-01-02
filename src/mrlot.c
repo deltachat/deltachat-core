@@ -84,6 +84,8 @@ void mrlot_empty(mrlot_t* ths)
 /**
  * Get first string. The meaning of the string is defined by the creator or the object any may be roughly described by mrlot_get_text1_meaning().
  *
+ * @memberof mrlot_t
+ *
  * @param lot The lot object.
  *
  * @return A string, the string may be empty and the returned value must be free()'d. NULL if there is no such string.
@@ -99,6 +101,8 @@ char* mrlot_get_text1(mrlot_t* lot)
 
 /**
  * Get second string. The meaning of the string is defined by the creator or the object.
+ *
+ * @memberof mrlot_t
  *
  * @param lot The lot object.
  *
@@ -117,6 +121,8 @@ char* mrlot_get_text2(mrlot_t* lot)
  * Get the meaning of the first string.  Posssible meanings of the string are defined by the creator or the object and may be returned eg.
  * as MR_TEXT1_DRAFT, MR_TEXT1_USERNAME or MR_TEXT1_SELF.
  *
+ * @memberof mrlot_t
+ *
  * @param lot The lot object.
  *
  * @return Returns the meaning of the first string, possible meanings are defined by the creator of the object.
@@ -134,6 +140,8 @@ int mrlot_get_text1_meaning(mrlot_t* lot)
 /**
  * Get the associated state. The meaning of the state is defined by the creator or the object.
  *
+ * @memberof mrlot_t
+ *
  * @param lot The lot object.
  *
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
@@ -149,6 +157,8 @@ int mrlot_get_state(mrlot_t* lot)
 
 /**
  * Get the associated timestamp. The meaning of the timestamp is defined by the creator or the object.
+ *
+ * @memberof mrlot_t
  *
  * @param lot The lot object.
  *
