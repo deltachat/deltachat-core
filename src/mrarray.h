@@ -41,15 +41,16 @@ typedef struct _mrmailbox mrmailbox_t;
 typedef struct _mrarray mrarray_t;
 
 
-mrarray_t*      mrarray_new                 (mrmailbox_t*, size_t initsize);
-void            mrarray_empty               (mrarray_t*);
-void            mrarray_unref               (mrarray_t*);
+mrarray_t*       mrarray_new                 (mrmailbox_t*, size_t initsize);
+void             mrarray_empty               (mrarray_t*);
+void             mrarray_unref               (mrarray_t*);
 
-void            mrarray_add_id              (mrarray_t*, uint32_t id);
+void             mrarray_add_id              (mrarray_t*, uint32_t id);
 
-size_t          mrarray_get_cnt             (mrarray_t*);
-uint32_t        mrarray_get_id              (mrarray_t*, size_t index);
-int             mrarray_search_id           (mrarray_t*, uint32_t needle, size_t* indx);
+size_t           mrarray_get_cnt             (mrarray_t*);
+uint32_t         mrarray_get_id              (mrarray_t*, size_t index);
+int              mrarray_search_id           (mrarray_t*, uint32_t needle, size_t* indx);
+const uintptr_t* mrarray_get_uintptr         (mrarray_t*);
 
 
 #ifdef __cplusplus

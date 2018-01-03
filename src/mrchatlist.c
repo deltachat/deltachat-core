@@ -279,6 +279,24 @@ cleanup:
 
 
 /**
+ * Helper function to get the associated mailbox object.
+ *
+ * @memberof mrchatlist_t
+ *
+ * @param chatlist The chatlist object to empty.
+ *
+ * @return Mailbox object associated with the chatlist. NULL if none or on errors.
+ */
+mrmailbox_t* mrchatlist_get_mailbox(mrchatlist_t* chatlist)
+{
+	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+		return NULL;
+	}
+	return chatlist->m_mailbox;
+}
+
+
+/**
  * Library-internal.
  *
  * Calling this function is not thread-safe, locking is up to the caller.

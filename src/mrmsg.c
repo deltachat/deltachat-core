@@ -151,6 +151,25 @@ uint32_t mrmsg_get_from_id(mrmsg_t* msg)
 
 
 /**
+ * Get the ID of chat the message belongs to.
+ * To get details about the chat, pass the returned ID to mrmailbox_get_chat().
+ *
+ * @memberof mrmsg_t
+ *
+ * @param msg The message object.
+ *
+ * @return the ID of the chat the message belongs to, 0 on errors.
+ */
+uint32_t mrmsg_get_chat_id(mrmsg_t* msg)
+{
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+		return 0;
+	}
+	return msg->m_chat_id;
+}
+
+
+/**
  * Get the type of the message.
  *
  * @memberof mrmsg_t

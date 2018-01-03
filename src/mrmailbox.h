@@ -198,6 +198,7 @@ void*           mrmailbox_get_userdata      (mrmailbox_t*);
 int             mrmailbox_open              (mrmailbox_t*, const char* dbfile, const char* blobdir);
 void            mrmailbox_close             (mrmailbox_t*);
 int             mrmailbox_is_open           (const mrmailbox_t*);
+char*           mrmailbox_get_blobdir       (mrmailbox_t*);
 
 int             mrmailbox_set_config        (mrmailbox_t*, const char* key, const char* value);
 char*           mrmailbox_get_config        (mrmailbox_t*, const char* key, const char* def);

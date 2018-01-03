@@ -68,6 +68,7 @@ void            mrmsg_empty                 (mrmsg_t*);
 
 uint32_t        mrmsg_get_id                (mrmsg_t*);
 uint32_t        mrmsg_get_from_id           (mrmsg_t*);
+uint32_t        mrmsg_get_chat_id           (mrmsg_t*);
 int             mrmsg_get_type              (mrmsg_t*);
 int             mrmsg_get_state             (mrmsg_t*);
 time_t          mrmsg_get_timestamp         (mrmsg_t*);

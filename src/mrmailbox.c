@@ -1131,6 +1131,25 @@ int mrmailbox_is_open(const mrmailbox_t* mailbox)
 }
 
 
+/**
+ * Get the blob directory.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new().
+ *
+ * @return Blob directory associated with the mailbox object, empty string if unset or on errors. NULL is never returned.
+ *     The returned string must be free()'d.
+ */
+char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return safe_strdup(NULL);
+	}
+	return safe_strdup(mailbox->m_blobdir);
+}
+
+
 int mrmailbox_poke_eml_file(mrmailbox_t* ths, const char* filename)
 {
 	/* mainly for testing, may be called by mrmailbox_import_spec() */

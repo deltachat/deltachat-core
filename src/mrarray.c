@@ -200,3 +200,22 @@ int mrarray_search_id(mrarray_t* array, uint32_t needle, size_t* ret_index)
 	return 0;
 }
 
+
+/**
+ * Get raw pointer to the data.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return Raw pointer to the array. You MUST NOT free the data. You MUST NOT access the data beyond the current item count.
+ *     It is not possible to enlarge the array this way.  Calling any other mrarray-function may discard the returned pointer.
+ */
+const uintptr_t* mrarray_get_uintptr(mrarray_t* array)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return NULL;
+	}
+	return array->m_array;
+}
+

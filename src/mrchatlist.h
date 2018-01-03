@@ -51,6 +51,7 @@ size_t          mrchatlist_get_cnt          (mrchatlist_t*);
 uint32_t        mrchatlist_get_chat_id      (mrchatlist_t*, size_t index);
 uint32_t        mrchatlist_get_msg_id       (mrchatlist_t*, size_t index);
 mrlot_t*        mrchatlist_get_summary      (mrchatlist_t*, size_t index, mrchat_t*);
+mrmailbox_t*    mrchatlist_get_mailbox      (mrchatlist_t*);
 
 
 #ifdef __cplusplus
