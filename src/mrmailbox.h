@@ -150,18 +150,15 @@ extern "C" {
 #ifndef PY_CFFI
 #include <pthread.h>
 #include <libetpan/libetpan.h> /* defines uint16_t */
+#endif
+
 #include "mrarray.h"
-#endif
 #include "mrchatlist.h"
-#ifndef PY_CFFI
 #include "mrchat.h"
-#endif
 #include "mrmsg.h"
 #include "mrcontact.h"
-#ifndef PY_CFFI
 #include "mrlot.h"
 #include "mrevent.h"
-#endif
 
 
 /**

@@ -26,10 +26,6 @@
 extern "C" {
 #endif
 
-#ifdef PY_CFFI
-typedef int... time_t;
-#endif
-
 
 typedef struct _mrmailbox mrmailbox_t;
 
