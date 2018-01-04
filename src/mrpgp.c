@@ -476,7 +476,8 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 			}
 
 			pgp_key_t* sk0 = &private_keys->keys[0];
-			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/, "sha1", 0/*armored*/, 0/*cleartext*/);
+			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
+				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
 			if( signedmem == NULL ) {
 				mrmailbox_log_warning(mailbox, 0, "Signing failed.");
 				goto cleanup;
