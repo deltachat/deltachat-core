@@ -50,7 +50,7 @@ extern "C" {
 
 
 /**
- * The user should write an warning string to the log.
+ * The user should write a warning string to the log.
  * Passed to the callback given to mrmailbox_new().
  * This event should not be reported using a popup or something like that.
  *
@@ -79,7 +79,7 @@ extern "C" {
 /**
  * Messages or chats changed.  One or more messages or chats changed for various
  * reasons in the database:
- * - Messages send, received or removed
+ * - Messages sent, received or removed
  * - A message could not be sent (see mrmsg_get_state()/MR_STATE_OUT_ERROR)
  * - Chats created, deleted or archived
  * - A draft has been set
@@ -109,7 +109,7 @@ extern "C" {
 
 
 /**
- * A single message is send successfully (state changed from  MR_STATE_OUT_PENDING to
+ * A single message is sent successfully (state changed from  MR_STATE_OUT_PENDING to
  * MR_STATE_OUT_DELIVERED, see mrmsg_t::m_state).
  *
  * @param data1 chat_id
@@ -186,7 +186,7 @@ extern "C" {
 
 /**
  * A file has been exported. A file has been written by mrmailbox_imex().
- * This event may be send multiple times by a single call to mrmailbox_imex().
+ * This event may be sent multiple times by a single call to mrmailbox_imex().
  *
  * A typical purpose for a handler of this event may be to make the file public to some system
  * services.
@@ -240,7 +240,7 @@ extern "C" {
  *
  * @param data1 ID of the string to request, one of the MR_STR_* constants as defined in mrstock.h
  *
- * @param data2 The count. The frontend may retrurn different strings on this value and normally also includes
+ * @param data2 The count. The frontend may return different strings on this value and normally also includes
  *     the value itself to the string.
  *
  * @return Null-terminated UTF-8 string.  CAVE: The string will be free()'d by the core, so make
@@ -266,7 +266,7 @@ extern "C" {
 /**
  * Acquire or release a wakelock.
  *
- * The core surrounds critcal functions that should not be killed by the operating system with wakelocks.
+ * The core surrounds critical functions that should not be killed by the operating system with wakelocks.
  * Before a critical function _MR_EVENT_WAKE_LOCK with data1=1_ is called, it it finishes, _MR_EVENT_WAKE_LOCK with data1=0_ is called.
  * If you do not need this functionality, just ignore this event.
  *

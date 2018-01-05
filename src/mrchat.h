@@ -31,9 +31,9 @@ typedef struct _mrmailbox mrmailbox_t;
 
 
 #define         MR_CHAT_ID_DEADDROP         1
-#define         MR_CHAT_ID_TO_DEADDROP      2 /* messages send from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the email-program) */
+#define         MR_CHAT_ID_TO_DEADDROP      2 /* messages sent from us to unknown/unwanted users (this may happen when deleting chats or when using CC: in the email-program) */
 #define         MR_CHAT_ID_TRASH            3 /* messages that should be deleted get this chat_id; the messages are deleted from the working thread later then. This is also needed as rfc724_mid should be preset as long as the message is not deleted on the server (otherwise it is downloaded again) */
-#define         MR_CHAT_ID_MSGS_IN_CREATION 4 /* a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be send and shown) */
+#define         MR_CHAT_ID_MSGS_IN_CREATION 4 /* a message is just in creation but not yet assigned to a chat (eg. we may need the message ID to set up blobs; this avoids unready message to be sent and shown) */
 #define         MR_CHAT_ID_STARRED          5
 #define         MR_CHAT_ID_ARCHIVED_LINK    6
 #define         MR_CHAT_ID_LAST_SPECIAL     9 /* larger chat IDs are "real" chats, their messages are "real" messages. */

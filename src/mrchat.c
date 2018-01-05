@@ -119,7 +119,7 @@ void mrchat_empty(mrchat_t* chat)
  * Get chat ID. The chat ID is the ID under which the chat is filed in the database.
  *
  * Special IDs:
- * - MR_CHAT_ID_DEADDROP         (1) - Messages send from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally.
+ * - MR_CHAT_ID_DEADDROP         (1) - Messages sent from unknown/unwanted users to us, chats_contacts is not set up. This group may be shown normally.
  * - MR_CHAT_ID_STARRED          (5) - Virtual chat containing all starred messages-
  * - MR_CHAT_ID_ARCHIVED_LINK    (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-
  *
@@ -289,7 +289,7 @@ char* mrchat_get_profile_image(mrchat_t* chat)
 
 /**
  * Get draft for the chat, if any. A draft is a message that the user started to
- * compose but that is not send yet. You can save a draft for a chat using mrmailbox_set_draft().
+ * compose but that is not sent yet. You can save a draft for a chat using mrmailbox_set_draft().
  *
  * Drafts are considered when sorting messages and are also returned eg.
  * by mrchatlist_get_summary().
