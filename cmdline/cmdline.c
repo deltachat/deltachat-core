@@ -375,7 +375,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delmsg <msg-id>\n"
 				"===========================Contact commands==\n"
 				"listcontacts [<query>]\n"
-				"addcontact <addr> [<name>]\n"
+				"addcontact [<name>] <addr>\n"
 				"contactinfo <contact-id>\n"
 				"delcontact <contact-id>\n"
 				"======================================Misc.==\n"
@@ -995,7 +995,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = mrmailbox_create_contact(mailbox, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Arguments <addr> [<name>] expected.");
+			ret = safe_strdup("ERROR: Arguments [<name>] <addr> expected.");
 		}
 	}
 	else if( strcmp(cmd, "contactinfo")==0 )
