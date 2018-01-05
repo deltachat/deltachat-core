@@ -47,10 +47,10 @@ struct _mrcontact
 	 */
 	uint32_t        m_id;
 	char*           m_name;     /**< Contact name.  It is recommended to use mrcontact_get_name(), mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname. */
-	char*           m_authname; /**< Name authorized by the contact himself. Only this name may be speaded to others, eg. in To:-lists. May be NULL or empty. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. */
+	char*           m_authname; /**< Name authorized by the contact himself. Only this name may be spread to others, e.g. in To:-lists. May be NULL or empty. It is recommended to use mrcontact_get_name(),  mrcontact_get_display_name() or mrcontact_get_name_n_addr() to access this field. */
 	char*           m_addr;     /**< E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL. */
 	int             m_blocked;  /**< Blocked state. Use mrcontact_is_blocked() to access this field. */
-	int             m_origin;   /**< The original of the contact. One of the MR_ORIGIN_* constants. */
+	int             m_origin;   /**< The origin/source of the contact. One of the MR_ORIGIN_* constants. */
 };
 
 
@@ -63,9 +63,9 @@ struct _mrcontact
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
 #define MR_ORIGIN_CREATE_CHAT               0x800 /* a chat was manually created for this user, but no message yet sent */
-#define MR_ORIGIN_OUTGOING_BCC             0x1000 /* message send by us */
-#define MR_ORIGIN_OUTGOING_CC              0x2000 /* message send by us */
-#define MR_ORIGIN_OUTGOING_TO              0x4000 /* message send by us */
+#define MR_ORIGIN_OUTGOING_BCC             0x1000 /* message sent by us */
+#define MR_ORIGIN_OUTGOING_CC              0x2000 /* message sent by us */
+#define MR_ORIGIN_OUTGOING_TO              0x4000 /* message sent by us */
 #define MR_ORIGIN_INTERNAL                0x40000 /* internal use */
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
