@@ -16,6 +16,7 @@ def ffibuilder():
     )
     builder.cdef("""
         typedef int... time_t;
+        void free(void *ptr);
     """)
     cc = distutils.ccompiler.new_compiler(force=True)
     distutils.sysconfig.customize_compiler(cc)
