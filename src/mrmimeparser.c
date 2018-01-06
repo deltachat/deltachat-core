@@ -76,14 +76,19 @@ static void display_mime_disposition(struct mailmime_disposition * disposition)
 static void display_mime_field(struct mailmime_field * field)
 {
 	switch (field->fld_type) {
+		case MAILMIME_FIELD_VERSION:
+			printf("MIME-Version: ...\n");
+			break;
+
 		case MAILMIME_FIELD_TYPE:
-		printf("content-type: ");
-		display_mime_content(field->fld_data.fld_content);
-	  printf("\n");
-		break;
+			printf("content-type: ");
+			display_mime_content(field->fld_data.fld_content);
+			printf("\n");
+			break;
+
 		case MAILMIME_FIELD_DISPOSITION:
-		display_mime_disposition(field->fld_data.fld_disposition);
-		break;
+			display_mime_disposition(field->fld_data.fld_disposition);
+			break;
 	}
 }
 
@@ -202,35 +207,54 @@ static void display_subject(struct mailimf_subject * subject)
 
 static void display_field(struct mailimf_field * field)
 {
-  switch (field->fld_type) {
-  case MAILIMF_FIELD_ORIG_DATE:
-    printf("Date: ");
-    display_orig_date(field->fld_data.fld_orig_date);
-		printf("\n");
-    break;
-  case MAILIMF_FIELD_FROM:
-    printf("From: ");
-    display_from(field->fld_data.fld_from);
-		printf("\n");
-    break;
-  case MAILIMF_FIELD_TO:
-    printf("To: ");
-    display_to(field->fld_data.fld_to);
-		printf("\n");
-    break;
-  case MAILIMF_FIELD_CC:
-    printf("Cc: ");
-    display_cc(field->fld_data.fld_cc);
-		printf("\n");
-    break;
-  case MAILIMF_FIELD_SUBJECT:
-    printf("Subject: ");
-    display_subject(field->fld_data.fld_subject);
-		printf("\n");
-    break;
-  case MAILIMF_FIELD_MESSAGE_ID:
-    printf("Message-ID: %s\n", field->fld_data.fld_message_id->mid_value);
-    break;
+  switch (field->fld_type)
+  {
+		case MAILIMF_FIELD_ORIG_DATE:
+			printf("Date: ");
+			display_orig_date(field->fld_data.fld_orig_date);
+			printf("\n");
+			break;
+
+		case MAILIMF_FIELD_FROM:
+			printf("From: ");
+			display_from(field->fld_data.fld_from);
+			printf("\n");
+			break;
+
+		case MAILIMF_FIELD_TO:
+			printf("To: ");
+			display_to(field->fld_data.fld_to);
+			printf("\n");
+			break;
+
+		case MAILIMF_FIELD_CC:
+			printf("Cc: ");
+			display_cc(field->fld_data.fld_cc);
+			printf("\n");
+			break;
+
+		case MAILIMF_FIELD_SUBJECT:
+			printf("Subject: ");
+			display_subject(field->fld_data.fld_subject);
+			printf("\n");
+			break;
+
+		case MAILIMF_FIELD_MESSAGE_ID:
+			printf("Message-ID: %s\n", field->fld_data.fld_message_id->mid_value);
+			break;
+
+		case MAILIMF_FIELD_OPTIONAL_FIELD:
+			{
+				struct mailimf_optional_field* of = field->fld_data.fld_optional_field;
+				if( of ) {
+					printf("%s: %s\n", of->fld_name? of->fld_name : "?", of->fld_value? of->fld_value : "?");
+				}
+			}
+			break;
+
+		default:
+			printf("MAILIMF_FIELD_%i\n", (int)field->fld_type);
+			break;
   }
 }
 
