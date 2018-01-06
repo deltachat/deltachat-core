@@ -323,7 +323,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mraheader_t*           autocryptheader = mraheader_new();
-	struct mailimf_fields* imffields = NULL; /*just a pointer into mailmime structure, must not be freed*/
+	struct mailimf_fields* imffields_unprotected = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mrkeyring_t*           keyring = mrkeyring_new();
 	mrkey_t*               sign_key = mrkey_new();
 	MMAPString*            plain = mmap_string_new("");
@@ -436,7 +436,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
 	(the Autocrypt:-header in the IMAP copy is needed to detect the presence of the first Autocrypt:-client if the user tries to enable multiple device
 	(we show a warning then to avoid the generation of a second keypair and to allow the user to import the first key)) */
-	if( (imffields=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
+	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
 		goto cleanup;
 	}
 
@@ -444,7 +444,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	if( p == NULL ) {
 		goto cleanup;
 	}
-	mailimf_fields_add(imffields, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
+	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
