@@ -396,9 +396,13 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		mailprivacy_prepare_mime(in_out_message); /* encode quoted printable all text parts */
 
 		struct mailmime* part_to_encrypt = in_out_message->mm_data.mm_message.mm_msg_mime;
+		part_to_encrypt->mm_parent = NULL;
+		struct mailimf_fields* imffields_encrypted = mailimf_fields_new_empty();
+		struct mailmime* message_to_encrypt = mailmime_new(MAILMIME_MESSAGE, NULL, 0, mailmime_fields_new_empty(), /* mailmime_new_message_data() calls mailmime_fields_new_with_version() which would add the unwanted MIME-Version:-header */
+			mailmime_get_content_message(), NULL, NULL, NULL, NULL, imffields_encrypted, part_to_encrypt);
 
 		/* convert part to encrypt to plain text */
-		mailmime_write_mem(plain, &col, part_to_encrypt);
+		mailmime_write_mem(plain, &col, message_to_encrypt);
 		if( plain->str == NULL || plain->len<=0 ) {
 			goto cleanup;
 		}
@@ -426,8 +430,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		/* replace the original MIME-structure by the encrypted MIME-structure */
 		in_out_message->mm_data.mm_message.mm_msg_mime = encrypted_part;
 		encrypted_part->mm_parent = in_out_message;
-		part_to_encrypt->mm_parent = NULL;
-		mailmime_free(part_to_encrypt);
+		mailmime_free(message_to_encrypt);
 		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
 
 		helper->m_encryption_successfull = 1;
