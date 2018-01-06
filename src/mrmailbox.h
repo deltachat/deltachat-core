@@ -147,8 +147,11 @@ extern "C" {
  */
 
 
+#ifndef PY_CFFI
 #include <pthread.h>
 #include <libetpan/libetpan.h> /* defines uint16_t */
+#endif
+
 #include "mrarray.h"
 #include "mrchatlist.h"
 #include "mrchat.h"
