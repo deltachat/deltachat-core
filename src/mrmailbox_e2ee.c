@@ -329,6 +329,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	MMAPString*            plain = mmap_string_new("");
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
+	mrarray_t*             peerstates = mrarray_new(NULL, 10);
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
@@ -360,23 +361,24 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		if( autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed )
 		{
 			do_encrypt = 1;
-			mrapeerstate_t* peerstate = mrapeerstate_new();
 			clistiter*      iter1;
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
 				const char* recipient_addr = clist_content(iter1);
+				mrapeerstate_t* peerstate = mrapeerstate_new();
 				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
 				 && peerstate->m_public_key->m_binary!=NULL
 				 && peerstate->m_public_key->m_bytes>0
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					mrkeyring_add(keyring, peerstate->m_public_key); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
+					mrarray_add_ptr(peerstates, peerstate);
 				}
 				else {
+					mrapeerstate_unref(peerstate);
 					do_encrypt = 0;
 					break; /* if we cannot encrypt to a single recipient, we cannot encrypt the message at all */
 				}
 			}
-			mrapeerstate_unref(peerstate);
 		}
 
 		if( do_encrypt ) {
@@ -400,6 +402,17 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		struct mailimf_fields* imffields_encrypted = mailimf_fields_new_empty();
 		struct mailmime* message_to_encrypt = mailmime_new(MAILMIME_MESSAGE, NULL, 0, mailmime_fields_new_empty(), /* mailmime_new_message_data() calls mailmime_fields_new_with_version() which would add the unwanted MIME-Version:-header */
 			mailmime_get_content_message(), NULL, NULL, NULL, NULL, imffields_encrypted, part_to_encrypt);
+
+		/* gossip keys */
+		int iCnt = mrarray_get_cnt(peerstates);
+		if( iCnt > 1 ) {
+			for( int i = 0; i < iCnt; i++ ) {
+				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)mrarray_get_ptr(peerstates, i));
+				if( p ) {
+					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
+				}
+			}
+		}
 
 		/* convert part to encrypt to plain text */
 		mailmime_write_mem(plain, &col, message_to_encrypt);
@@ -455,6 +468,9 @@ cleanup:
 	mrkeyring_unref(keyring);
 	mrkey_unref(sign_key);
 	if( plain ) { mmap_string_free(plain); }
+
+	for( int i=mrarray_get_cnt(peerstates)-1; i>=0; i-- ) { mrapeerstate_unref((mrapeerstate_t*)mrarray_get_ptr(peerstates, i)); }
+	mrarray_unref(peerstates);
 }
 
 
