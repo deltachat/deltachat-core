@@ -28,8 +28,8 @@ extern "C" {
 
 
 #define MR_VERSION_MAJOR    0
-#define MR_VERSION_MINOR    11
-#define MR_VERSION_REVISION 1
+#define MR_VERSION_MINOR    12
+#define MR_VERSION_REVISION 0
 
 
 /**
