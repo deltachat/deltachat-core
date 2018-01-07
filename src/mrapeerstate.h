@@ -64,6 +64,8 @@ int             mrapeerstate_init_from_header  (mrapeerstate_t*, const mraheader
 int             mrapeerstate_degrade_encryption(mrapeerstate_t*, time_t message_time);
 int             mrapeerstate_apply_header      (mrapeerstate_t*, const mraheader_t*, time_t message_time); /*returns 1 on changes*/
 
+char*           mrapeerstate_render_gossip_header(mrapeerstate_t*);
+
 int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
 int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*, int create);
 

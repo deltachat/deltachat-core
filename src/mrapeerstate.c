@@ -160,6 +160,22 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
 }
 
 
+char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
+{
+	char*        ret = NULL;
+	mraheader_t* autocryptheader = mraheader_new();
+
+	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
+	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
+	autocryptheader->m_public_key     = mrkey_ref(peerstate->m_public_key);
+
+	ret = mraheader_render(autocryptheader);
+
+	mraheader_unref(autocryptheader);
+	return ret;
+}
+
+
 /*******************************************************************************
  * Change state
  ******************************************************************************/
