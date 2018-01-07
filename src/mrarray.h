@@ -49,8 +49,9 @@ void             mrarray_add_id              (mrarray_t*, uint32_t id);
 
 size_t           mrarray_get_cnt             (mrarray_t*);
 uint32_t         mrarray_get_id              (mrarray_t*, size_t index);
+uintptr_t        mrarray_get_uint            (mrarray_t*, size_t index);
 int              mrarray_search_id           (mrarray_t*, uint32_t needle, size_t* indx);
-const uintptr_t* mrarray_get_uintptr         (mrarray_t*);
+const uintptr_t* mrarray_get_raw             (mrarray_t*);
 
 
 #ifdef __cplusplus

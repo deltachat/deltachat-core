@@ -167,6 +167,26 @@ uint32_t mrarray_get_id(mrarray_t* array, size_t index)
 }
 
 
+/**
+ * Get the item at the given index as an unsigned integer.
+ * The size of the integer is always larget enough to hold a pointer.
+ *
+ * @memberof mrarray_t
+ *
+ * @param array The array object.
+ * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ *
+ * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
+ */
+uintptr_t mrarray_get_uint(mrarray_t* array, size_t index)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+		return 0;
+	}
+
+	return array->m_array[index];
+}
+
 
 /**
  * Check if a given ID is present in an array.
@@ -211,7 +231,7 @@ int mrarray_search_id(mrarray_t* array, uint32_t needle, size_t* ret_index)
  * @return Raw pointer to the array. You MUST NOT free the data. You MUST NOT access the data beyond the current item count.
  *     It is not possible to enlarge the array this way.  Calling any other mrarray-function may discard the returned pointer.
  */
-const uintptr_t* mrarray_get_uintptr(mrarray_t* array)
+const uintptr_t* mrarray_get_raw(mrarray_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return NULL;
