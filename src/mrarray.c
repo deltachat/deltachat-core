@@ -99,7 +99,7 @@ void mrarray_empty(mrarray_t* array)
 
 
 /**
- * Add an ID-item to the array.
+ * Add an unsigned integer to the array.
  * After calling this function the size of the array grows by one.
  * It is okay to add the ID 0, event in this case, the array grows by one.
  *
@@ -109,7 +109,7 @@ void mrarray_empty(mrarray_t* array)
  *
  * @return None.
  */
-void mrarray_add_id(mrarray_t* array, uint32_t item)
+void mrarray_add_uint(mrarray_t* array, uintptr_t item)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
@@ -125,6 +125,40 @@ void mrarray_add_id(mrarray_t* array, uint32_t item)
 
 	array->m_array[array->m_count] = item;
 	array->m_count++;
+}
+
+
+/**
+ * Add an ID to the array.
+ * After calling this function the size of the array grows by one.
+ * It is okay to add the ID 0, event in this case, the array grows by one.
+ *
+ * @param array The array to add the item to.
+ *
+ * @param item The item to add.
+ *
+ * @return None.
+ */
+void mrarray_add_id(mrarray_t* array, uint32_t item)
+{
+	mrarray_add_uint(array, item);
+}
+
+
+/**
+ * Add an pointer to the array.
+ * After calling this function the size of the array grows by one.
+ * It is okay to add the ID 0, event in this case, the array grows by one.
+ *
+ * @param array The array to add the item to.
+ *
+ * @param item The item to add.
+ *
+ * @return None.
+ */
+void mrarray_add_ptr(mrarray_t* array, void* item)
+{
+	mrarray_add_uint(array, (uintptr_t)item);
 }
 
 
@@ -148,26 +182,6 @@ size_t mrarray_get_cnt(mrarray_t* array)
 
 
 /**
- * Get the item at the given index as an ID.
- *
- * @memberof mrarray_t
- *
- * @param array The array object.
- * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
- *
- * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
- */
-uint32_t mrarray_get_id(mrarray_t* array, size_t index)
-{
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
-		return 0;
-	}
-
-	return array->m_array[index];
-}
-
-
-/**
  * Get the item at the given index as an unsigned integer.
  * The size of the integer is always larget enough to hold a pointer.
  *
@@ -185,6 +199,46 @@ uintptr_t mrarray_get_uint(mrarray_t* array, size_t index)
 	}
 
 	return array->m_array[index];
+}
+
+
+/**
+ * Get the item at the given index as an ID.
+ *
+ * @memberof mrarray_t
+ *
+ * @param array The array object.
+ * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ *
+ * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
+ */
+uint32_t mrarray_get_id(mrarray_t* array, size_t index)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+		return 0;
+	}
+
+	return (uint32_t)array->m_array[index];
+}
+
+
+/**
+ * Get the item at the given index as an ID.
+ *
+ * @memberof mrarray_t
+ *
+ * @param array The array object.
+ * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ *
+ * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
+ */
+void* mrarray_get_ptr(mrarray_t* array, size_t index)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+		return 0;
+	}
+
+	return (void*)array->m_array[index];
 }
 
 
