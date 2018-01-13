@@ -3079,7 +3079,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 	if( mailbox->m_e2ee_enabled && system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
 	{
-		can_guarantee_e2ee = 1;
+		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
 			"SELECT ps.prefer_encrypted "
 			 " FROM chats_contacts cc "
@@ -3090,10 +3090,22 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 		sqlite3_bind_int(stmt, 1, chat->m_id);
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{
-			int prefer_encrypted = sqlite3_column_type(stmt, 0)==SQLITE_NULL? MRA_PE_NOPREFERENCE : sqlite3_column_int(stmt, 0);
-			if( prefer_encrypted != MRA_PE_MUTUAL ) { /* when gossip becomes available, gossip keys should be used only in groups */
-				can_guarantee_e2ee = 0;
-				break;
+			if( sqlite3_column_type(stmt, 0)==SQLITE_NULL ) {
+				can_encrypt = 0;
+				all_mutual = 0;
+			}
+			else {
+				int prefer_encrypted = sqlite3_column_int(stmt, 0);
+				if( prefer_encrypted != MRA_PE_MUTUAL ) {
+					all_mutual = 0;
+				}
+			}
+		}
+
+		if( can_encrypt )
+		{
+			if( all_mutual ) {
+				can_guarantee_e2ee = 1;
 			}
 		}
 	}
