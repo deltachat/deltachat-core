@@ -3085,9 +3085,9 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 			 " FROM chats_contacts cc "
 			 " LEFT JOIN contacts c ON cc.contact_id=c.id "
 			 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
-			 " WHERE cc.chat_id=? AND cc.contact_id>?;");
+			 " WHERE cc.chat_id=? "                                               /* take care that this statement returns NULL rows if there is no peerstates for a chat member! */
+			 " AND cc.contact_id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* for MRP_SELFTALK this statement does not return any row */
 		sqlite3_bind_int(stmt, 1, chat->m_id);
-		sqlite3_bind_int(stmt, 2, MR_CONTACT_ID_LAST_SPECIAL);
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{
 			int prefer_encrypted = sqlite3_column_type(stmt, 0)==SQLITE_NULL? MRA_PE_NOPREFERENCE : sqlite3_column_int(stmt, 0);
