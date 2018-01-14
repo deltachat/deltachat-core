@@ -146,8 +146,13 @@ uint32_t mrchat_get_id(mrchat_t* chat)
  *
  * Currently, there are two chat types:
  *
- * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is added _only_ for a self talk.
- * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF
+ * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact,
+ *   chats_contacts contains one record for the user.  MR_CONTACT_ID_SELF
+ *   (see mrcontact_t::m_id) is added _only_ for a self talk; in addition to
+ *   this, for self talks also the flag MRP_SELFTALK is set.
+ *
+ * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
+ *   members, incl. MR_CONTACT_ID_SELF
  *
  * @memberof mrchat_t
  *
