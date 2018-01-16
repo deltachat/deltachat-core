@@ -43,7 +43,7 @@ GPL-compatible licence.  For details, please have a look at the [LICENSE file](h
 Build
 --------------------------------------------------------------------------------
 
-Deta Chat Core can be built as a library using the
+Delta Chat Core can be built as a library using the
 [meson](http://mesonbuild.com) build system. It depends on a number
 of external libraries, most of which are detected using
 [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/).
@@ -75,7 +75,7 @@ On Debian stretch you can install all these using: `apt install
 libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev
 zlib1g-dev meson ninja-build`.
 
-Onece all dependencies are installed creating a build is as follows,
+Once all dependencies are installed, creating a build is as follows,
 starting from the project's root directory:
 
 ```
@@ -90,7 +90,7 @@ sudo ninja install
 sudo ldconfig
 ```
 
-The install keeps a log of which files where installed. Uninstalling
+The install keeps a log of which files were installed. Uninstalling
 is thus also supported:
 ```
 ninja uninstall
