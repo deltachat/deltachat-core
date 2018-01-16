@@ -2,27 +2,26 @@ Delta Chat Core Library
 ================================================================================
 
 You can use the _Delta Chat Core Library_ to build **your own messenger** or
-plugin, that is completely **compatible** to the existing email infrastructure.
+plugin that is completely **compatible** with the existing email infrastructure.
 
 ![Logo](https://delta.chat/assets/features/start-img4.png)
 
 Using this library in your app, you get the **ease** of well-known messengers
-with the **reach** of e-mail. Moreover, you're **independent** from other companies or
+with the **reach** of email. Moreover, you're **independent** from other companies or
 services as your data is not relayed through Delta Chat, only your email
-provider. That means that there are no Delta Chat servers, only clients that
-are compatible via Delta Chat Core.
+provider. That means that there are no Delta Chat servers, only clients made compatible via Delta Chat Core.
 
 The library is used eg. in the [Delta Chat Android Frontend](https://github.com/deltachat/deltachat-android)
-or in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios) but can also be used for
+and in the [Delta Chat iOS Frontend](https://github.com/deltachat/deltachat-ios), but can also be used for
 completely different messenger projects.
 
-Some features at a glance
+Some features at a glance:
 
 - **Secure** with automatic end-to-end-encryption, supporting the new
   [Autocrypt](https://autocrypt.readthedocs.io/en/latest/) standard
 - **Fast** by the use of Push-IMAP
 - **Read receipts**
-- **Largest userbase** - receivers _not_ using Delta Chat can be reached as well
+- **Largest userbase** - recipients _not_ using Delta Chat can be reached as well
 - **Compatible** - not only to itself
 - **Elegant** and **simple** user interface
 - **Distributed** system
@@ -45,25 +44,25 @@ Build
 --------------------------------------------------------------------------------
 
 Deta Chat Core can be built as a library using the
-[meson](http://mesonbuild.com) build system.  It depends on a number
+[meson](http://mesonbuild.com) build system. It depends on a number
 of external libraries, most of which are detected using
 [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/).
-Usually this just works automatically when the depending libraries are
+Usually this just works automatically, provided the depending libraries are
 installed correctly.
 
-It is easiest to install all of these using your system libraries.
+Installing all of these using your system libraries is the easiest route.
 Please note that you may need "development" packages installed for
 these to work.
 
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); this does not
-  use `pkg-config`, instead ships with a `libetpan-config` binary
+  use `pkg-config`, instead it ships with a `libetpan-config` binary
   which must be in the PATH to be picked up by the build system.
 
 - [OpenSSL](https://www.openssl.org/)
 
-- [SQLite](http://sqlite.org/)
+- [SQLite](https://sqlite.org/)
 
-- [zlib](http://zlib.net)
+- [zlib](https://zlib.net)
 
 - libsasl
 
@@ -91,8 +90,8 @@ sudo ninja install
 sudo ldconfig
 ```
 
-The install keeps a log of which files where installed.  Uninstalling
-is thus supported too:
+The install keeps a log of which files where installed. Uninstalling
+is thus also supported:
 ```
 ninja uninstall
 ```
@@ -103,4 +102,4 @@ standard.
 
 ---
 
-Copyright © 2017 Delta Chat contributors
+Copyright © 2018 Delta Chat contributors
