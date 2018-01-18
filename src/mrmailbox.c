@@ -3122,7 +3122,6 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 				}
 			}
 		}
-		all_mutual = 0;
 
 		if( can_encrypt )
 		{
