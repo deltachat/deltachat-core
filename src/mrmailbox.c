@@ -3037,6 +3037,27 @@ cleanup:
 }
 
 
+static int last_msg_in_chat_encrypted(mrsqlite3_t* sql, uint32_t chat_id)
+{
+	int last_is_encrypted = 0;
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(sql, SELECT_param_FROM_msgs,
+		"SELECT param "
+		" FROM msgs "
+		" WHERE timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=?) "
+		" ORDER BY id DESC;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	if( sqlite3_step(stmt) == SQLITE_ROW ) {
+		mrparam_t* msg_param = mrparam_new();
+		mrparam_set_packed(msg_param, (char*)sqlite3_column_text(stmt, 0));
+		if( mrparam_exists(msg_param, MRP_GUARANTEE_E2EE) ) {
+			last_is_encrypted = 1;
+		}
+		mrparam_unref(msg_param);
+	}
+	return last_is_encrypted;
+}
+
+
 static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, const mrmsg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
@@ -3101,11 +3122,17 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 				}
 			}
 		}
+		all_mutual = 0;
 
 		if( can_encrypt )
 		{
 			if( all_mutual ) {
 				can_guarantee_e2ee = 1;
+			}
+			else {
+				if( last_msg_in_chat_encrypted(mailbox->m_sql, chat->m_id) ) {
+					can_guarantee_e2ee = 1;
+				}
 			}
 		}
 	}
@@ -5206,9 +5233,6 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
 			p = safe_strdup("End-to-end, unknown signature");
-		}
-		else if( e2ee_errors&MR_VALIDATE_NOT_MUTUAL ) {
-			p = safe_strdup("End-to-end, not mutual");
 		}
 		else {
 			p = safe_strdup("End-to-end, no signature");

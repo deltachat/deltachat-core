@@ -37,7 +37,6 @@ typedef struct mrkeyring_t mrkeyring_t;
 #define MR_VALIDATE_NO_SIGNATURE      0x01
 #define MR_VALIDATE_UNKNOWN_SIGNATURE 0x02
 #define MR_VALIDATE_BAD_SIGNATURE     0x04
-#define MR_VALIDATE_NOT_MUTUAL        0x08
 
 /* misc. */
 void mrpgp_init             (mrmailbox_t*);

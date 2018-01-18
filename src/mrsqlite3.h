@@ -74,6 +74,7 @@ enum
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,SELECT_id_FROM_CHATS_WHERE_grpid
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
+	,SELECT_param_FROM_msgs
 	,SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724
 	,SELECT_MAX_timestamp_FROM_msgs
 	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
