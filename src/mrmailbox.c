@@ -3096,7 +3096,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	}
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
-	int can_guarantee_e2ee = 0;
+	int do_guarantee_e2ee = 0;
 	int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
 	if( mailbox->m_e2ee_enabled && system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
 	{
@@ -3126,17 +3126,17 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 		if( can_encrypt )
 		{
 			if( all_mutual ) {
-				can_guarantee_e2ee = 1;
+				do_guarantee_e2ee = 1;
 			}
 			else {
 				if( last_msg_in_chat_encrypted(mailbox->m_sql, chat->m_id) ) {
-					can_guarantee_e2ee = 1;
+					do_guarantee_e2ee = 1;
 				}
 			}
 		}
 	}
 
-	if( can_guarantee_e2ee ) {
+	if( do_guarantee_e2ee ) {
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
 	else {
