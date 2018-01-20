@@ -71,9 +71,9 @@ these to work.
 To build you need to have [meson](http://mesonbuild.com) and
 [ninja](https://ninja-build.org) installed as well.
 
-On Debian stretch you can install all these using: `apt install
-libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev
-zlib1g-dev meson ninja-build`.
+On Linux (e.g. Debian Stretch) you can install all these using: 
+
+`sudo apt install libetpan-dev libssl-dev libsqlite3-dev libsasl2-dev libbz2-dev zlib1g-dev meson ninja-build`.
 
 Once all dependencies are installed, creating a build is as follows,
 starting from the project's root directory:
@@ -83,7 +83,7 @@ mkdir builddir
 cd builddir
 meson
 # optionally configure some parameters
-# run `meson configure` to see the options, e.g.
+# run `meson configure` to see the options, e.g. 
 meson config -Dlibdir=lib
 ninja
 sudo ninja install
@@ -93,7 +93,7 @@ sudo ldconfig
 The install keeps a log of which files were installed. Uninstalling
 is thus also supported:
 ```
-ninja uninstall
+sudo ninja uninstall
 ```
 
 Note that the above assumes `/usr/local/lib` is configured somewhere
