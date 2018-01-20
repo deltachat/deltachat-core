@@ -437,7 +437,7 @@ void mr_free_splitted_lines(carray* lines)
 char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
 {
 	/* insert a space every n characters, the return must be free()'d.
-	this is useful for allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
+	this is useful to allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
 
 	if( in == NULL || break_every <= 0 || break_chars == NULL ) {
 		return safe_strdup(in);
@@ -1616,7 +1616,7 @@ int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NUL
 		close(fd_src);
 		fd_src = -1;
 		if( mr_get_filebytes(src)!=0 ) {
-			mrmailbox_log_error(log, 0, "Different size informatio for \"%s\".", bytes_read, dest);
+			mrmailbox_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
 			goto cleanup;
 		}
     }
@@ -1658,10 +1658,10 @@ char* mr_get_filesuffix_lc(const char* pathNfilename)
 
 void mr_split_filename(const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot)
 {
-	/* splits a filename into basename and all suffixes, eg. "/path/foo.tar.gz" is splitted into "foo.tar" and ".gz",
+	/* splits a filename into basename and all suffixes, eg. "/path/foo.tar.gz" is split into "foo.tar" and ".gz",
 	(we use the _last_ dot which allows the usage inside the filename which are very usual;
 	maybe the detection could be more intelligent, however, for the moment, it is just file)
-	- if there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is splitted into "foobar" and ""
+	- if there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is split into "foobar" and ""
 	- the case of the returned suffix is preserved; this is to allow reconstruction of (similar) names */
 	char* basename = mr_get_filename(pathNfilename), *suffix;
 	char* p1 = strrchr(basename, '.');
