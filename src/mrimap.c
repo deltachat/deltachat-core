@@ -571,7 +571,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	LOCK_HANDLE
 
 		if( ths->m_hEtpan==NULL ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Cannot fetch from \"%s\" - no connected.", folder);
+			mrmailbox_log_info(ths->m_mailbox, 0, "Cannot fetch from \"%s\" - not connected.", folder);
 			goto cleanup;
 		}
 
@@ -605,7 +605,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			}
 
 			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
-				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
+				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UIDs are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
 			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
 
 			mrmailbox_log_info(ths->m_mailbox, 0, "%s=%lu (validity read from folder)", lastuid_config_key, (unsigned long)lastuid);
@@ -771,9 +771,9 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
-	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* let the job thread a little bit time before we IDLE again, otherweise there will be many idle-interrupt sequences */
+	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* give the job thread a little time before we IDLE again, otherwise there will be many idle-interrupt sequences */
 	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
-	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minute (typically together the IDLE delay break) */
+	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minutes (typically together with the IDLE delay break) */
 
 	time_t          last_fullread_time = 0;
 
@@ -1090,7 +1090,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 
 	ths->m_hEtpan = mailimap_new(0, NULL);
 
-	mailimap_set_timeout(ths->m_hEtpan, 30); /* 30 second until actions are aborted, this is also used in mailcore2 */
+	mailimap_set_timeout(ths->m_hEtpan, 30); /* 30 seconds until actions are aborted, this is also used in mailcore2 */
 
 	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
 	{
@@ -1106,7 +1106,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to IMAP-STARTTLS.", ths->m_imap_server, (int)ths->m_imap_port);
 			r = mailimap_socket_starttls(ths->m_hEtpan);
 			if( is_error(ths, r) ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 				goto cleanup;
 			}
 		}
@@ -1615,7 +1615,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 					}
 					mailimap_fetch_list_free(fetch_result);
 				}
-				mrmailbox_log_info(ths->m_mailbox, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be send." : "$MDNSent already set and MDN already send.");
+				mrmailbox_log_info(ths->m_mailbox, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
 			}
 			else
 			{
@@ -1694,14 +1694,14 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 
 		INTERRUPT_IDLE
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Deleting message \"%s\", server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
+		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message \"%s\" for deletion, server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
 
 		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_deleted())==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot delete message."); /* maybe the message is already deleted */
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Message deleted.");
+		mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as \"Deleted\".");
 
 		success = 1;
 
