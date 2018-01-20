@@ -353,9 +353,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	transaction_pending = 1;
 
 
-		/* Check, if the mail comes from extern, resp. is not send by us.  This is a _really_ important step
-		as messages send by us are used to validate other mail senders and receivers.
-		For this purpose, we assume, the `Return-Path:`-header is never present if the message is send by us.
+		/* Check, if the mail comes from extern, resp. is not sent by us.  This is a _really_ important step
+		as messages sent by us are used to validate other mail senders and receivers.
+		For this purpose, we assume, the `Return-Path:`-header is never present if the message is sent by us.
 		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
 		Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
 		However, we use `From:` as an additional hint below. */
@@ -442,8 +442,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 
 			/* check if the message introduces a new chat:
-			- outgoing messages introduce a chat with the first to: address if they are send by a messenger
-			- incoming messages introduce a chat only for known contacts if they are send by a messenger
+			- outgoing messages introduce a chat with the first to: address if they are sent by a messenger
+			- incoming messages introduce a chat only for known contacts if they are sent by a messenger
 			(of course, the user can add other chats manually later) */
 			if( incoming )
 			{
@@ -584,7 +584,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				}
 			}
 
-			/* if the message is not send by a messenger, check if it sent at least a reply to a messenger message
+			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
 			(later, we move these replies to the Chats-folder) */
 			int msgrmsg = mime_parser->m_is_send_by_messenger; /* 1 or 0 for yes/no */
 			if( msgrmsg )
@@ -601,8 +601,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
-			and add them to the database (mails send by other messenger clients should result
-			into only one message; mails send by other clients may result in several messages (eg. one per attachment)) */
+			and add them to the database (mails sent by other messenger clients should result
+			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
 			icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
 			for( i = 0; i < icnt; i++ )
 			{
@@ -1774,7 +1774,7 @@ cleanup:
 
 
 /**
- * Mark all message in a chat as _noticed_.
+ * Mark all messages in a chat as _noticed_.
  * _Noticed_ messages are no longer _fresh_ and do not count as being unseen.
  * IMAP/MDNs is not done for noticed messages.  See also mrmailbox_marknoticed_contact()
  * and mrmailbox_markseen_msgs()
@@ -2730,9 +2730,9 @@ To make things even more complicated, there may be other chat messages waiting t
 We used the following approach:
 1. If we do not need to send a message, we delete the chat directly
 2. If we need to send a message, we set chats.blocked=1 and add the parameter
-   MRP_DEL_AFTER_SEND with a random value to both, the last message to be send and to the
+   MRP_DEL_AFTER_SEND with a random value to both, the last message to be sent and to the
    chat (we would use msg_id, however, we may not get this in time)
-3. When the messag with the MRP_DEL_AFTER_SEND-value of the chat was send to IMAP, we physically
+3. When the message with the MRP_DEL_AFTER_SEND-value of the chat was sent to IMAP, we physically
    delete the chat.
 
 However, from 2017-11-02, we do not implicitly leave the group as this results in different behaviours to normal
@@ -2836,8 +2836,8 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	 && mrmailbox_is_contact_in_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)
 	 && DO_SEND_STATUS_MAILS )
 	{
-		/* _first_ mark chat to being delete and _then_ send the message to inform others that we've quit the group
-		(the order is important - otherwise the message may be send asynchronous before we update the group. */
+		/* _first_ mark chat to being deleted and _then_ send the message to inform others that we've quit the group
+		(the order is important - otherwise the message may be sent asynchronous before we update the group. */
 		int link_msg_to_chat_deletion = (int)time(NULL);
 
 		mrparam_set_int(chat->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
@@ -2900,11 +2900,11 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	/* create message */
 	if( mrmimefactory_load_msg(&mimefactory, job->m_foreign_id)==0
 	 || mimefactory.m_from_addr == NULL ) {
-		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
+		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
 	if( !mrmimefactory_render(&mimefactory, 1/*encrypt to self*/) ) {
-		goto cleanup; /* should not happen as we've send the message to the SMTP server before */
+		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
 	if( !mrimap_append_msg(mailbox->m_imap, mimefactory.m_msg->m_timestamp, mimefactory.m_out->str, mimefactory.m_out->len, &server_folder, &server_uid) ) {
@@ -2986,7 +2986,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
-		/* have we guaranteed encryption but cannot fullfill it for any reason? Do not send the message then.*/
+		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if( mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0) && !mimefactory.m_out_encrypted ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
 			mrmailbox_log_error(mailbox, 0, "End-to-end-encryption unavailable unexpectedly.");
@@ -3407,7 +3407,7 @@ cleanup:
 
 
 /**
- * Send an video to a chat.
+ * Send a video to a chat.
  *
  * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
@@ -3702,7 +3702,7 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * After creation, the group has one member with the
  * ID MR_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
  * add or remove members, change the name, the group image and so on without
- * messages being send to all group members.
+ * messages being sent to all group members.
  *
  * This changes as soon as the first message is sent to the group members and
  * the group becomes _promoted_.  After that, all changes are synced with all
@@ -4686,7 +4686,7 @@ static void marknoticed_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 
 
 /**
- * Mark all messages send by the given contact
+ * Mark all messages sent by the given contact
  * as _noticed_.  See also mrmailbox_marknoticed_chat() and
  * mrmailbox_markseen_msgs()
  *
@@ -5099,7 +5099,7 @@ int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 
 
 /* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
-so, we should even keep unuseful messages in the database (we can leave the other fields empty to safe space) */
+so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
 int mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
@@ -5120,7 +5120,7 @@ int mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, 
 void mrmailbox_update_server_uid__(mrmailbox_t* mailbox, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_ss_WHERE_rfc724_mid,
-		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead "id" as there may be several db-entries refering to the same "rfc724_mid" */
+		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead of "id" as there may be several db-entries refering to the same "rfc724_mid" */
 	sqlite3_bind_text(stmt, 1, server_folder, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, server_uid);
 	sqlite3_bind_text(stmt, 3, rfc724_mid, -1, SQLITE_STATIC);
@@ -5379,7 +5379,7 @@ cleanup:
 
 
 /**
- * Star/unstar messages by setting the last parameter to 0 (unstar) or 1(star).
+ * Star/unstar messages by setting the last parameter to 0 (unstar) or 1 (star).
  * Starred messages are collected in a virtual chat that can be shown using
  * mrmailbox_get_chat_msgs() using the chat_id MR_CHAT_ID_STARRED.
  *
@@ -5439,7 +5439,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 
 		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
-			mrmailbox_log_info(mailbox, 0, "The message is deleted from the server when all message are deleted.");
+			mrmailbox_log_info(mailbox, 0, "The message is deleted from the server when all parts are deleted.");
 			delete_from_server = 0;
 		}
 
@@ -5466,7 +5466,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* we delete the database entry ...
 	- if the message is successfully removed from the server
-	- or if there are other parts of the messages in the database (in this case we have not deleted if from the server)
+	- or if there are other parts of the message in the database (in this case we have not deleted if from the server)
 	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
