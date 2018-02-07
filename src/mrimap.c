@@ -675,7 +675,11 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = peek_uid(msg_att);
-		if( cur_uid && (lastuid==0 || cur_uid>lastuid) ) /* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs under some curcumstances. Mailcore2 does the same check, see see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp */
+		if( cur_uid /*&& (lastuid==0 || cur_uid>lastuid)*/ )
+				/* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs
+				under some circumstances. Mailcore2 does the same check, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp
+				however, more worse, _if_ we have this check, for servers which _do_ emit smaller UIDs, this avoids getting new messages.
+				all in all, this seems to require more research. */
 		{
 			read_cnt++;
 			if( fetch_single_msg(ths, folder, cur_uid, 0) == 0 ) {
