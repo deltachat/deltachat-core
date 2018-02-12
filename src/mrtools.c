@@ -1458,7 +1458,7 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 		return NULL;
 	}
 
-	/* find out the largets receiver ID (we could also take the smallest, but it should be unique) */
+	/* find out the largest receiver ID (we could also take the smallest, but it should be unique) */
 	size_t   i, icnt = mrarray_get_cnt(contact_ids_to);
 	uint32_t largest_id_to = 0;
 	for( i = 0; i < icnt; i++ ) {
