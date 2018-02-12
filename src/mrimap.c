@@ -74,6 +74,44 @@ static int is_error(mrimap_t* ths, int code)
 }
 
 
+static void get_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t* uidvalidity, uint32_t* lastseenuid)
+{
+	*uidvalidity = 0;
+	*lastseenuid = 0;
+
+	char* key = mr_mprintf("imap.mailbox.%s", folder);
+	char* val1 = imap->m_get_config(imap, key, NULL), *val2 = NULL, *val3 = NULL;
+	if( val1 )
+	{
+		/* the entry has the format `imap.mailbox.<folder>=<uidvalidity>:<lastseenuid>` */
+		val2 = strchr(val1, ':');
+		if( val2 )
+		{
+			*val2 = 0;
+			val2++;
+
+			val3 = strchr(val2, ':');
+			if( val3 ) { *val3 = 0; /* ignore everything bethind an optional second colon to allow future enhancements */ }
+
+			*uidvalidity = atol(val1);
+			*lastseenuid = atol(val2);
+		}
+	}
+	free(val1); /* val2 and val3 are only pointers inside val1 and MUST NOT be free()'d */
+	free(key);
+}
+
+
+static void set_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t uidvalidity, uint32_t lastseenuid)
+{
+	char* key = mr_mprintf("imap.mailbox.%s", folder);
+	char* val = mr_mprintf("%lu:%lu", uidvalidity, lastseenuid);
+	imap->m_set_config(imap, key, val);
+	free(val);
+	free(key);
+}
+
+
 /*******************************************************************************
  * Handle folders
  ******************************************************************************/
@@ -305,9 +343,9 @@ static int init_chat_folders__(mrimap_t* ths)
 
 	/* Subscribe to the created folder.  Otherwise, although a top-level folder, if clients use LSUB for listing, the created folder may be hidden.
 	(we could also do this directly after creation, however, we forgot this in versions <v0.1.19 */
-	if( chats_folder && ths->m_get_config_int(ths, "imap.subscribedToChats", 0)==0 ) {
+	if( chats_folder && ths->m_get_config(ths, "imap.subscribedToChats", NULL)==NULL ) {
 		mailimap_subscribe(ths->m_hEtpan, chats_folder);
-		ths->m_set_config_int(ths, "imap.subscribedToChats", 1);
+		ths->m_set_config(ths, "imap.subscribedToChats", "1");
 	}
 
 	if( chats_folder ) {
@@ -553,16 +591,15 @@ cleanup:
 }
 
 
-static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t uidvalidity)
+static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 {
-	int        r, handle_locked = 0, log_summary = 1;
-	clist*     fetch_result = NULL;
-	uint32_t   out_largetst_uid = 0;
-	size_t     read_cnt = 0, read_errors = 0;
-	clistiter* cur;
-
-	uint32_t   lastuid = 0; /* The last uid fetched, we fetch from lastuid+1. If 0, we get some of the newest ones. */
-	char*      lastuid_config_key = NULL;
+	int                  r, handle_locked = 0;
+	uint32_t             uidvalidity = 0;
+	uint32_t             lastseenuid = 0, new_lastseenuid = 0;
+	clist*               fetch_result = NULL;
+	size_t               read_cnt = 0, read_errors = 0;
+	clistiter*           cur;
+	struct mailimap_set* set;
 
 	if( ths==NULL ) {
 		goto cleanup;
@@ -575,86 +612,67 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			goto cleanup;
 		}
 
-		if( uidvalidity )
-		{
-			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
-				(unsigned long)uidvalidity, folder); /* RFC3501: UID are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
-			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
-
-			if( lastuid > 0 ) {
-				struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
-					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
-				mailimap_set_free(set);
-			}
-			else {
-				/* fall back to init behaviour below */
-				free(lastuid_config_key);
-				lastuid_config_key = NULL;
-				lastuid = 0;
-			}
-
-			mrmailbox_log_info(ths->m_mailbox, 0, "%s=%lu", lastuid_config_key, (unsigned long)lastuid);
+		if( select_folder__(ths, folder)==0 ) {
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
+			goto cleanup;
 		}
 
-		if( lastuid == 0 )
+		/* compare last seen UIDVALIDITY against the current one */
+		get_config_lastseenuid(ths, folder, &uidvalidity, &lastseenuid);
+		if( uidvalidity != ths->m_hEtpan->imap_selection_info->sel_uidvalidity )
 		{
-			if( select_folder__(ths, folder)==0 ) {
-				mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
-				log_summary = 0;
+			/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
+			mrmailbox_log_info(ths->m_mailbox, 0, "Init lastseenuid and attach it to UIDVALIDITY for folder \"%s\".", folder);
+			if( ths->m_hEtpan->imap_selection_info->sel_uidvalidity <= 0 ) {
+				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
 				goto cleanup;
 			}
 
-			lastuid_config_key = mr_mprintf("imap.lastuid.%lu.%s",
-				(unsigned long)ths->m_hEtpan->imap_selection_info->sel_uidvalidity, folder); /* RFC3501: UIDs are unique and should grow only, for mailbox recreation etc. UIDVALIDITY changes. */
-			lastuid = ths->m_get_config_int(ths, lastuid_config_key, 0);
-
-			mrmailbox_log_info(ths->m_mailbox, 0, "%s=%lu (validity read from folder)", lastuid_config_key, (unsigned long)lastuid);
-
-			if( lastuid == 0 ) {
-				if( ths->m_hEtpan->imap_selection_info->sel_uidnext != 0 ) {
-					lastuid = ths->m_hEtpan->imap_selection_info->sel_uidnext - 1; /* this is not always exact, however, as we only use this as "range start", this is no real problem */
-					ths->m_set_config_int(ths, lastuid_config_key, lastuid);  /* write back the UID as otherwise we'll never receive new messages as UIDNEXT grows as messages come in */
-				}
-			}
-
-			if( lastuid > 0 )
-			{
-				/* Get messages with an ID larger than the one we got last time */
-
-				/* check if the predicted "next uid on insert" is equal to the one we start for fetching
-				-> no new messages (this check only works for the folder with the last message, however, most times this is INBOX - and the check is cheap)
-				--> unfortunately, this check does not work with our cached select!
-				if( ths->m_hEtpan->imap_selection_info->sel_uidnext == lastuid+1 ) {
+			if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
+				if( ths->m_hEtpan->imap_selection_info->sel_exists <= 0 ) {
+					mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" is empty.", folder);
 					goto cleanup;
 				}
-				*/
-
-				struct mailimap_set* set = mailimap_set_new_interval(lastuid+1, 0);
-					r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute UID FETCH from:to command, result includes the given UIDs */
-				mailimap_set_free(set);
+				/* `FETCH <message sequence number> (UID)` */
+				set = mailimap_set_new_single(ths->m_hEtpan->imap_selection_info->sel_exists);
 			}
-			else
-			{
-				/* fetch the newest message to get the UID */
-				struct mailimap_set* set = mailimap_set_new_single(0); // 0=*=the _largest_ index (results in `FETCH * (UID)` to get the latest message)
-					r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
-				mailimap_set_free(set);
-
-				#if 0
-					/* fetch the last 200 messages by one-based-index.
-					This implementation seems to make problems if we cannot get the count for any reasons ... see mailbox.org ... */
-					int32_t i_first = 1, i_last = 200; /* if we cannot get the count, we start with the oldest messages; normally, this should not happen */
-					if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
-						i_last  = ths->m_hEtpan->imap_selection_info->sel_exists;
-						i_first = MR_MAX(i_last-200, 1);
-					}
-
-					struct mailimap_set* set = mailimap_set_new_interval(i_first, i_last);
-						r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result); /* execute FETCH from:to command, result includes the given index */
-					mailimap_set_free(set);
-				#endif
+			else {
+				/* `FETCH * (UID)` - according to RFC 3501, `*` represents the largest message sequence number; if the mailbox is empty,
+				an error resp. an empty list is returned. */
+                mrmailbox_log_info(ths->m_mailbox, 0, "EXISTS is missing for folder \"%s\", using fallback.", folder);
+				set = mailimap_set_new_single(0);
 			}
+			r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
+			mailimap_set_free(set);
+
+			if( is_error(ths, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL ) {
+				mrmailbox_log_info(ths->m_mailbox, 0, "Empty result returned for folder \"%s\".", folder);
+				goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
+			}
+
+			struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
+			lastseenuid = peek_uid(msg_att);
+			mailimap_fetch_list_free(fetch_result);
+			fetch_result = NULL;
+			if( lastseenuid <= 0 ) {
+				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get largest UID for folder \"%s\"", folder);
+				goto cleanup;
+			}
+
+			/* if the UIDVALIDITY has _changed_, decrease lastseenuid by one to avoid gaps (well add 1 below) */
+			if( uidvalidity > 0 && lastseenuid > 1 ) {
+				lastseenuid -= 1;
+			}
+
+			/* store calculated uidvalidity/lastseenuid */
+			uidvalidity = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
+			set_config_lastseenuid(ths, folder, uidvalidity, lastseenuid);
 		}
+
+		/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
+		set = mailimap_set_new_interval(lastseenuid+1, 0);
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
+		mailimap_set_free(set);
 
 	UNLOCK_HANDLE
 
@@ -666,7 +684,6 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 			goto cleanup; /* the folder is simply empty, this is no error */
 		}
 		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot fetch message list from folder \"%s\".", folder);
-		log_summary = 0;
 		goto cleanup;
 	}
 
@@ -675,31 +692,28 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder, uint32_t 
 	{
 		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur); /* mailimap_msg_att is a list of attributes: list is a list of message attributes */
 		uint32_t cur_uid = peek_uid(msg_att);
-		if( cur_uid /*&& (lastuid==0 || cur_uid>lastuid)*/ )
-				/* normally, the "cur_uid>lastuid" is not needed, however, some server return some smaller IDs
-				under some circumstances. Mailcore2 does the same check, see "if (uid < fromUID) {..}"@IMAPSession::fetchMessageNumberUIDMapping()@MCIMAPSession.cpp
-				however, more worse, _if_ we have this check, for servers which _do_ emit smaller UIDs, this avoids getting new messages.
-				all in all, this seems to require more research. */
+		if( cur_uid > 0
+		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*" == lastseenuid */ )
 		{
 			read_cnt++;
-			if( fetch_single_msg(ths, folder, cur_uid, 0) == 0 ) {
+			if( fetch_single_msg(ths, folder, cur_uid, 0) == 0/* 0=try again later*/ ) {
 				read_errors++;
 			}
-			else if( cur_uid > out_largetst_uid ) {
-				out_largetst_uid = cur_uid;
+			else if( cur_uid > new_lastseenuid ) {
+				new_lastseenuid = cur_uid;
 			}
+
 		}
 	}
 
-	if( !read_errors && out_largetst_uid > 0 ) {
-		ths->m_set_config_int(ths, lastuid_config_key, out_largetst_uid);
+	if( !read_errors && new_lastseenuid > 0 ) {
+		set_config_lastseenuid(ths, folder, uidvalidity, new_lastseenuid);
 	}
 
 	/* done */
 cleanup:
 	UNLOCK_HANDLE
 
-	if( log_summary )
 	{
 		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
 		if( read_errors ) {
@@ -713,10 +727,6 @@ cleanup:
 
 	if( fetch_result ) {
 		mailimap_fetch_list_free(fetch_result);
-	}
-
-	if( lastuid_config_key ) {
-		free(lastuid_config_key);
 	}
 
 	return read_cnt;
@@ -742,7 +752,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	{
 		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
 		if( folder->m_meaning == MEANING_INBOX ) {
-			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select, 0);
+			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select);
 		}
 	}
 
@@ -753,7 +763,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 			mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" ignored.", folder->m_name_utf8);
 		}
 		else if( folder->m_meaning != MEANING_INBOX ) {
-			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select, 0);
+			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select);
 		}
 	}
 
@@ -789,7 +799,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 		 **********************************************************************/
 
 		int      r, r2;
-		uint32_t uidvalidity;
 
 		fetch_from_all_folders(ths); /* the initial fetch from all folders is needed as this will init the folder UIDs (see fetch_from_single_folder() if lastuid is unset) */
 		last_fullread_time = time(NULL);
@@ -805,7 +814,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 				do_fetch = 0;
 				force_sleep = SLEEP_ON_ERROR_SECONDS;
-				uidvalidity = 0;
 
 				setup_handle_if_needed__(ths);
 				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
@@ -824,7 +832,6 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 				if( select_folder__(ths, "INBOX") )
 				{
-					uidvalidity = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
 					r = mailimap_idle(ths->m_hEtpan);
 					if( !is_error(ths, r) )
 					{
@@ -885,7 +892,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 			}
 
 			if( do_fetch == 1 ) {
-				fetch_from_single_folder(ths, "INBOX", uidvalidity);
+				fetch_from_single_folder(ths, "INBOX");
 			}
 			else if( do_fetch == 2 ) {
 				fetch_from_all_folders(ths);
@@ -919,7 +926,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 			UNLOCK_HANDLE
 
 			if( do_fetch == 1 ) {
-				if( fetch_from_single_folder(ths, "INBOX", 0) > 0 ) {
+				if( fetch_from_single_folder(ths, "INBOX") > 0 ) {
 					last_message_time = now;
 				}
 			}
@@ -1342,7 +1349,7 @@ int mrimap_is_connected(mrimap_t* ths)
  ******************************************************************************/
 
 
-mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set_config_int, mr_receive_imf_t receive_imf, void* userData, mrmailbox_t* mailbox)
+mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_receive_imf_t receive_imf, void* userData, mrmailbox_t* mailbox)
 {
 	mrimap_t* ths = NULL;
 
@@ -1353,8 +1360,8 @@ mrimap_t* mrimap_new(mr_get_config_int_t get_config_int, mr_set_config_int_t set
 	ths->m_log_connect_errors = 1;
 
 	ths->m_mailbox        = mailbox;
-	ths->m_get_config_int = get_config_int;
-	ths->m_set_config_int = set_config_int;
+	ths->m_get_config     = get_config;
+	ths->m_set_config     = set_config;
 	ths->m_receive_imf    = receive_imf;
 	ths->m_userData       = userData;
 

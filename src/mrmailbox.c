@@ -834,19 +834,19 @@ static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uint
 {
 	return 0;
 }
-static int32_t cb_get_config_int(mrimap_t* imap, const char* key, int32_t value)
+static char* cb_get_config(mrimap_t* imap, const char* key, const char* def)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
-		int32_t ret = mrsqlite3_get_config_int__(mailbox->m_sql, key, value);
+		char* ret = mrsqlite3_get_config__(mailbox->m_sql, key, def);
 	mrsqlite3_unlock(mailbox->m_sql);
 	return ret;
 }
-static void cb_set_config_int(mrimap_t* imap, const char* key, int32_t def)
+static void cb_set_config(mrimap_t* imap, const char* key, const char* value)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
-		mrsqlite3_set_config_int__(mailbox->m_sql, key, def);
+		mrsqlite3_set_config__(mailbox->m_sql, key, value);
 	mrsqlite3_unlock(mailbox->m_sql);
 }
 static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
@@ -903,7 +903,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userdata = userdata;
-	ths->m_imap     = mrimap_new(cb_get_config_int, cb_set_config_int, cb_receive_imf, (void*)ths, ths);
+	ths->m_imap     = mrimap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
 	ths->m_smtp     = mrsmtp_new(ths);
 	ths->m_os_name  = strdup_keep_null(os_name);
 
