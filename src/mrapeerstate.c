@@ -179,10 +179,26 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
 }
 
 
+/**
+ * Render an Autocrypt-Gossip header value.  The contained key is either
+ * m_public_key or m_gossip_key if m_public_key is NULL.
+ *
+ * @memberof mrpeerstate_t
+ *
+ * @param peerstate The peerstate object.
+ *
+ * @return String that can be be used directly in an `Autocrypt-Gossip:` statement,
+ *     `Autocrypt-Gossip:` is _not_ included in the returned string. If there
+ *     is not key for the peer that can be gossiped, NULL is returned.
+ */
 char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
 {
 	char*        ret = NULL;
 	mraheader_t* autocryptheader = mraheader_new();
+
+	if( peerstate == NULL || peerstate->m_addr == NULL ) {
+		goto cleanup;
+	}
 
 	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
@@ -190,6 +206,7 @@ char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
 
 	ret = mraheader_render(autocryptheader);
 
+cleanup:
 	mraheader_unref(autocryptheader);
 	return ret;
 }
