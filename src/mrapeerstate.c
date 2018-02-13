@@ -44,9 +44,16 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 	free(ths->m_addr);
 	ths->m_addr = NULL;
 
-	if( ths->m_public_key->m_binary ) {
+	if( ths->m_public_key ) {
 		mrkey_unref(ths->m_public_key);
-		ths->m_public_key = mrkey_new();
+		ths->m_public_key = NULL;
+	}
+
+	ths->m_gossip_timestamp = 0;
+
+	if( ths->m_gossip_key ) {
+		mrkey_unref(ths->m_gossip_key);
+		ths->m_gossip_key = NULL;
 	}
 }
 
@@ -63,7 +70,7 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	mrapeerstate_empty(ths);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_aclpp_FROM_acpeerstates_WHERE_a,
-		"SELECT addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key FROM acpeerstates WHERE addr=? COLLATE NOCASE;");
+		"SELECT addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key FROM acpeerstates WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
@@ -72,7 +79,19 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	ths->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
 	ths->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
 	ths->m_prefer_encrypt      =                    sqlite3_column_int   (stmt, 3);
-	mrkey_set_from_stmt        (ths->m_public_key,                        stmt, 4, MR_PUBLIC);
+	#define PUBLIC_KEY_COL                                                      4
+	ths->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
+	#define GOSSIP_KEY_COL                                                      6
+
+	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
+		ths->m_public_key = mrkey_new();
+		mrkey_set_from_stmt(ths->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
+	}
+
+	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
+		ths->m_gossip_key = mrkey_new();
+		mrkey_set_from_stmt(ths->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+	}
 
 	success = 1;
 
@@ -86,8 +105,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || sql==NULL
-	 || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_bytes<=0 ) {
+	if( ths==NULL || sql==NULL || ths->m_addr==NULL ) {
 		return 0;
 	}
 
@@ -100,12 +118,14 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	if( (ths->m_to_save&MRA_SAVE_ALL) || create )
 	{
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
-			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, public_key=? WHERE addr=?;");
+			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, public_key=?, gossip_timestamp=?, gossip_key=? WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
 		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypt);
-		sqlite3_bind_blob (stmt, 4, ths->m_public_key->m_binary, ths->m_public_key->m_bytes, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 5, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_blob (stmt, 4, ths->m_public_key? ths->m_public_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_public_key? ths->m_public_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 5, ths->m_gossip_timestamp);
+		sqlite3_bind_blob (stmt, 6, ths->m_gossip_key? ths->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_gossip_key? ths->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 7, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -142,8 +162,6 @@ mrapeerstate_t* mrapeerstate_new()
 		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_public_key = mrkey_new();
-
 	return ths;
 }
 
@@ -156,6 +174,7 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
 
 	free(ths->m_addr);
 	mrkey_unref(ths->m_public_key);
+	mrkey_unref(ths->m_gossip_key);
 	free(ths);
 }
 
@@ -167,7 +186,7 @@ char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
 
 	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
-	autocryptheader->m_public_key     = mrkey_ref(peerstate->m_public_key);
+	autocryptheader->m_public_key     = mrkey_ref(peerstate->m_public_key? peerstate->m_public_key : peerstate->m_gossip_key); /* may be NULL */
 
 	ret = mraheader_render(autocryptheader);
 
@@ -193,7 +212,10 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 	ths->m_last_seen_autocrypt = message_time;
 	ths->m_to_save             = MRA_SAVE_ALL;
 	ths->m_prefer_encrypt      = header->m_prefer_encrypt;
+
+	ths->m_public_key = mrkey_new();
 	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
+
 	return 1;
 }
 
@@ -231,6 +253,10 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 		{
 			ths->m_prefer_encrypt = header->m_prefer_encrypt;
 			ths->m_to_save |= MRA_SAVE_ALL;
+		}
+
+		if( ths->m_public_key == NULL ) {
+			ths->m_public_key = mrkey_new();
 		}
 
 		if( !mrkey_equals(ths->m_public_key, header->m_public_key) )

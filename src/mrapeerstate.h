@@ -47,9 +47,13 @@ typedef struct mrapeerstate_t
 	/** @privatesection */
 	char*          m_addr;
 	time_t         m_last_seen;
+
 	time_t         m_last_seen_autocrypt;
-	mrkey_t*       m_public_key; /*!=NULL*/
+	mrkey_t*       m_public_key; /* may be NULL */
 	int            m_prefer_encrypt;
+
+	time_t         m_gossip_timestamp;
+	mrkey_t*       m_gossip_key; /* may be NULL */
 
 	#define        MRA_SAVE_LAST_SEEN 0x01
 	#define        MRA_SAVE_ALL       0x02

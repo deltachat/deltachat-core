@@ -4855,7 +4855,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	if( e2ee_enabled
 	 && peerstate_ok
 	 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
-	 && peerstate->m_public_key->m_binary!=NULL )
+	 && peerstate->m_public_key!=NULL )
 	{
 		/* e2e fine and used */
 		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
@@ -4875,7 +4875,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		}
 
 		/* ... and then explain why we cannot use e2e */
-		if( peerstate_ok && peerstate->m_public_key->m_binary!=NULL && peerstate->m_prefer_encrypt!=MRA_PE_MUTUAL ) {
+		if( peerstate_ok && peerstate->m_public_key && peerstate->m_prefer_encrypt!=MRA_PE_MUTUAL ) {
 			explain_id = MR_STR_E2E_DIS_BY_RCPT;
 		}
 		else if( !e2ee_enabled ) {
@@ -4888,7 +4888,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
 	if( peerstate_ok
-	 && peerstate->m_public_key->m_binary!=NULL )
+	 && peerstate->m_public_key )
 	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);

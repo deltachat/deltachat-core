@@ -261,7 +261,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 					case MRA_PE_RESET:        pe = safe_strdup("reset");                                          break;
 					default:                  pe = mr_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
 				}
-				line2 = mr_mprintf(", prefer-encrypt=%s, key-bytes=%i", pe, peerstate->m_public_key->m_bytes);
+				line2 = mr_mprintf(", prefer-encrypt=%s", pe);
 				free(pe);
 			}
 			mrcontact_unref(contact);

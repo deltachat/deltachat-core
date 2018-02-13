@@ -366,6 +366,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				mrapeerstate_t* peerstate = mrapeerstate_new();
 				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
+				 && peerstate->m_public_key
 				 && peerstate->m_public_key->m_binary!=NULL
 				 && peerstate->m_public_key->m_bytes>0
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
@@ -747,7 +748,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		}
 
 		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-		if( peerstate->m_public_key->m_bytes <= 0 ) {
+		if( peerstate->m_last_seen == 0 ) {
 			mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from);
 		}
 
@@ -758,7 +759,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	*ret_validation_errors = 0;
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
-		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key->m_bytes>0? peerstate->m_public_key : NULL, ret_validation_errors) ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key, ret_validation_errors) ) {
 			break;
 		}
 		sth_decrypted = 1;
