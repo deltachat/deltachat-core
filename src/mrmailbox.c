@@ -4873,11 +4873,11 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		}
 
 		/* ... and then explain why we cannot use e2e */
-		if( peerstate_ok && peerstate->m_public_key && peerstate->m_prefer_encrypt!=MRA_PE_MUTUAL ) {
-			explain_id = MR_STR_E2E_DIS_BY_RCPT;
-		}
-		else if( !e2ee_enabled ) {
+		if( !e2ee_enabled ) {
 			explain_id = MR_STR_E2E_DIS_BY_YOU;
+		}
+		else if( peerstate_ok && mrapeerstate_peek_key(peerstate) ) {
+			explain_id = MR_STR_E2E_DIS_BY_RCPT; /* this includes the situation where we have only a gossip_key and no direct contact to the recipient */
 		}
 		else {
 			explain_id = MR_STR_E2E_NO_AUTOCRYPT;
@@ -4886,7 +4886,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
 	if( peerstate_ok
-	 && peerstate->m_public_key )
+	 && mrapeerstate_peek_key(peerstate) )
 	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -4903,7 +4903,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrstrbuilder_cat(&ret, ":\n\n");
 
 		fingerprint_str_self = mrkey_render_fingerprint(self_key, mailbox);
-		fingerprint_str_other = mrkey_render_fingerprint(peerstate->m_public_key, mailbox);
+		fingerprint_str_other = mrkey_render_fingerprint(mrapeerstate_peek_key(peerstate), mailbox);
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);

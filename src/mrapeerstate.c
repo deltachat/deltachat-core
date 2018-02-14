@@ -203,13 +203,52 @@ char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
 
 	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
-	autocryptheader->m_public_key     = mrkey_ref(peerstate->m_public_key? peerstate->m_public_key : peerstate->m_gossip_key); /* may be NULL */
+	autocryptheader->m_public_key     = mrkey_ref(mrapeerstate_peek_key(peerstate)); /* may be NULL */
 
 	ret = mraheader_render(autocryptheader);
 
 cleanup:
 	mraheader_unref(autocryptheader);
 	return ret;
+}
+
+
+/**
+ * Return either m_public_key or m_gossip_key if m_public_key is null.
+ * The function does not check if the keys are valid but the caller can assume
+ * the returned key has data.
+ *
+ * This function does not do the Autocrypt encryption recommendation; it just
+ * returns a key that can be used.
+ *
+ * @memberof mrpeerstate_t
+ *
+ * @param peerstate The peerstate object.
+ *
+ * @return m_public_key or m_gossip_key, NULL if nothing is available.
+ *     the returned pointer MUST NOT be unref()'d.
+ */
+mrkey_t* mrapeerstate_peek_key(mrapeerstate_t* peerstate)
+{
+	if( peerstate == NULL ) {
+		return NULL; /* error */
+	}
+
+	if( peerstate->m_public_key ) {
+		if( peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0 ) {
+			return NULL; /* error */
+		}
+		return peerstate->m_public_key; /* use this key */
+	}
+
+	if( peerstate->m_gossip_key ) {
+		if( peerstate->m_gossip_key->m_binary==NULL || peerstate->m_gossip_key->m_bytes<=0 ) {
+			return NULL; /* error */
+		}
+		return peerstate->m_gossip_key; /* use this key */
+	}
+
+	return NULL; /* no key available */
 }
 
 

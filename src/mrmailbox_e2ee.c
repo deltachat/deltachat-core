@@ -366,12 +366,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				mrapeerstate_t* peerstate = mrapeerstate_new();
 				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
-				 && peerstate->m_public_key
-				 && peerstate->m_public_key->m_binary!=NULL
-				 && peerstate->m_public_key->m_bytes>0
+				 && mrapeerstate_peek_key(peerstate)
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
-					mrkeyring_add(keyring, peerstate->m_public_key); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
+					mrkeyring_add(keyring, mrapeerstate_peek_key(peerstate)); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					mrarray_add_ptr(peerstates, peerstate);
 				}
 				else {
