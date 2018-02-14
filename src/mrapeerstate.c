@@ -184,7 +184,7 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
  * Render an Autocrypt-Gossip header value.  The contained key is either
  * m_public_key or m_gossip_key if m_public_key is NULL.
  *
- * @memberof mrpeerstate_t
+ * @memberof mrapeerstate_t
  *
  * @param peerstate The peerstate object.
  *
@@ -221,7 +221,7 @@ cleanup:
  * This function does not do the Autocrypt encryption recommendation; it just
  * returns a key that can be used.
  *
- * @memberof mrpeerstate_t
+ * @memberof mrapeerstate_t
  *
  * @param peerstate The peerstate object.
  *
