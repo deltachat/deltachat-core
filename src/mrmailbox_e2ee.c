@@ -827,7 +827,9 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	*ret_validation_errors = 0;
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
-		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key, ret_validation_errors, &gossip_headers) ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
+		        peerstate->m_public_key, /* never use gossip_key for validation - if we get a mail to validate from the user, we normally also have the public_key */
+		        ret_validation_errors, &gossip_headers) ) {
 			break;
 		}
 		sth_decrypted = 1;
