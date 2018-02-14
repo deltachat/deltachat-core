@@ -35,7 +35,6 @@ typedef struct mraheader_t mraheader_t;
 
 #define MRA_PE_NOPREFERENCE   0 /* prefer-encrypt states */
 #define MRA_PE_MUTUAL         1
-#define MRA_PE_GOSSIP         2
 #define MRA_PE_RESET         20
 
 
@@ -46,7 +45,7 @@ typedef struct mrapeerstate_t
 {
 	/** @privatesection */
 	char*          m_addr;
-	time_t         m_last_seen;
+	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
 
 	time_t         m_last_seen_autocrypt;
 	mrkey_t*       m_public_key; /* may be NULL */
@@ -65,8 +64,12 @@ mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'
 void            mrapeerstate_unref           (mrapeerstate_t*);
 
 int             mrapeerstate_init_from_header  (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+int             mrapeerstate_init_from_gossip  (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+
 int             mrapeerstate_degrade_encryption(mrapeerstate_t*, time_t message_time);
-int             mrapeerstate_apply_header      (mrapeerstate_t*, const mraheader_t*, time_t message_time); /*returns 1 on changes*/
+
+void            mrapeerstate_apply_header      (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+void            mrapeerstate_apply_gossip      (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 
 char*           mrapeerstate_render_gossip_header(mrapeerstate_t*);
 

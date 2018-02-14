@@ -614,11 +614,12 @@ cleanup:
 }
 
 
-static int decrypt_recursive(mrmailbox_t*       mailbox,
-                             struct mailmime*   mime,
-                             const mrkeyring_t* private_keyring,
-                             const mrkey_t*     public_key_for_validate,
-                             int*               ret_validation_errors)
+static int decrypt_recursive(mrmailbox_t*            mailbox,
+                             struct mailmime*        mime,
+                             const mrkeyring_t*      private_keyring,
+                             const mrkey_t*          public_key_for_validate,
+                             int*                    ret_validation_errors,
+                             struct mailimf_fields** ret_gossip_headers )
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
@@ -637,6 +638,19 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 				struct mailmime* decrypted_mime = NULL;
 				if( decrypt_part(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_validation_errors, &decrypted_mime) )
 				{
+					/* remember the header containing potentially Autocrypt-Gossip */
+					if( *ret_gossip_headers == NULL /* use the outermost decrypted part */
+					 && (*ret_validation_errors) == 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */ )
+					{
+						size_t dummy = 0;
+						struct mailimf_fields* test = NULL;
+						if( mailimf_envelope_and_optional_fields_parse(decrypted_mime->mm_mime_start, decrypted_mime->mm_length, &dummy, &test)==MAILIMF_NO_ERROR
+						 && test ) {
+							*ret_gossip_headers = test;
+						}
+					}
+
+					/* replace encrypted mime structure by decrypted one */
 					mailmime_substitute(mime, decrypted_mime);
 					mailmime_free(mime);
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
@@ -645,7 +659,7 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_validation_errors) ) {
+				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_key_for_validate, ret_validation_errors, ret_gossip_headers) ) {
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
@@ -653,12 +667,47 @@ static int decrypt_recursive(mrmailbox_t*       mailbox,
 	}
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
-		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_validate, ret_validation_errors) ) {
+		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_key_for_validate, ret_validation_errors, ret_gossip_headers) ) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
 	}
 
 	return 0;
+}
+
+
+static void update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
+{
+	clistiter* cur1;
+
+	for( cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
+		if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		{
+			const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
+			if( optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt-Gossip")==0 )
+			{
+				mraheader_t* gossip_header = mraheader_new();
+				if( mraheader_set_from_string(gossip_header, optional_field->fld_value)
+				 && mrpgp_is_valid_key(mailbox, gossip_header->m_public_key) )
+				{
+					/* valid recipient: update peerstate - TODO: do this only if addr matches To/Cc */
+					mrapeerstate_t* peerstate = mrapeerstate_new();
+					if( !mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
+						mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+					}
+					else {
+						mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
+						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
+					}
+					mrapeerstate_unref(peerstate);
+				}
+				mraheader_unref(gossip_header);
+			}
+		}
+	}
 }
 
 
@@ -674,6 +723,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	char*                  from = NULL, *self_addr = NULL;
 	mrkeyring_t*           private_keyring = mrkeyring_new();
 	int                    sth_decrypted = 0;
+	struct mailimf_fields* gossip_headers = NULL;
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL || ret_validation_errors==NULL
 	 || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
@@ -759,17 +809,23 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	*ret_validation_errors = 0;
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
-		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key, ret_validation_errors) ) {
+		if( !decrypt_recursive(mailbox, in_out_message, private_keyring, peerstate->m_public_key, ret_validation_errors, &gossip_headers) ) {
 			break;
 		}
 		sth_decrypted = 1;
 		avoid_deadlock--;
 	}
 
+	/* check for Autocrypt-Gossip (NB: maybe we should use this header also for mrmimeparser_t::m_header_protected)  */
+	if( gossip_headers ) {
+		update_gossip_peerstates(mailbox, message_time, imffields, gossip_headers);
+	}
+
 	//mailmime_print(in_out_message);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
 	mraheader_unref(autocryptheader);
 	mrapeerstate_unref(peerstate);
 	mrkeyring_unref(private_keyring);

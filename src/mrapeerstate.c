@@ -133,10 +133,11 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	else if( ths->m_to_save&MRA_SAVE_LAST_SEEN )
 	{
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
-			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=? WHERE addr=?;");
+			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
-		sqlite3_bind_text (stmt, 3, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 3, ths->m_gossip_timestamp);
+		sqlite3_bind_text (stmt, 4, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -237,6 +238,24 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 }
 
 
+int mrapeerstate_init_from_gossip(mrapeerstate_t* peerstate, const mraheader_t* gossip_header, time_t message_time)
+{
+	if( peerstate == NULL || gossip_header == NULL ) {
+		return 0;
+	}
+
+	mrapeerstate_empty(peerstate);
+	peerstate->m_addr                = safe_strdup(gossip_header->m_addr);
+	peerstate->m_gossip_timestamp    = message_time;
+	peerstate->m_to_save             = MRA_SAVE_ALL;
+
+	peerstate->m_gossip_key = mrkey_new();
+	mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+
+	return 1;
+}
+
+
 int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 {
 	if( ths==NULL ) {
@@ -250,13 +269,13 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 }
 
 
-int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
+void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
 {
 	if( ths==NULL || header==NULL
 	 || ths->m_addr==NULL
 	 || header->m_addr==NULL || header->m_public_key->m_binary==NULL
 	 || strcasecmp(ths->m_addr, header->m_addr)!=0 ) {
-		return 0;
+		return;
 	}
 
 	if( message_time > ths->m_last_seen_autocrypt )
@@ -282,7 +301,31 @@ int mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, ti
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}
-
-	return ths->m_to_save? 1 : 0;
 }
 
+
+void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gossip_header, time_t message_time)
+{
+	if( peerstate==NULL || gossip_header==NULL
+	 || peerstate->m_addr==NULL
+	 || gossip_header->m_addr==NULL || gossip_header->m_public_key->m_binary==NULL
+	 || strcasecmp(peerstate->m_addr, gossip_header->m_addr)!=0 ) {
+		return;
+	}
+
+	if( message_time > peerstate->m_gossip_timestamp )
+	{
+		peerstate->m_gossip_timestamp    = message_time;
+		peerstate->m_to_save             |= MRA_SAVE_LAST_SEEN;
+
+		if( peerstate->m_gossip_key == NULL ) {
+			peerstate->m_gossip_key = mrkey_new();
+		}
+
+		if( !mrkey_equals(peerstate->m_gossip_key, gossip_header->m_public_key) )
+		{
+			mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+			peerstate->m_to_save |= MRA_SAVE_ALL;
+		}
+	}
+}
