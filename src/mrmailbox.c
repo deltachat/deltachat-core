@@ -3116,6 +3116,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 				all_mutual = 0;
 			}
 			else {
+				/* the peerstate exist, so we have either public_key or gossip_key and can encrypt potentially */
 				int prefer_encrypted = sqlite3_column_int(stmt, 0);
 				if( prefer_encrypted != MRA_PE_MUTUAL ) {
 					all_mutual = 0;
@@ -3588,9 +3589,6 @@ cleanup:
  *
  * Internally, the function just creates an appropriate text message and sends it
  * using mrmailbox_send_text_msg().
- *
- * Future implementations may also send the key of the user though gossip;
- * currently, this is not done.
  *
  * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
  * is not related to the VCARD data format.

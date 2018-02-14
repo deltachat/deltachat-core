@@ -48,7 +48,7 @@ typedef struct mrapeerstate_t
 	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
 
 	time_t         m_last_seen_autocrypt;
-	mrkey_t*       m_public_key; /* may be NULL */
+	mrkey_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
 	int            m_prefer_encrypt;
 
 	time_t         m_gossip_timestamp;
