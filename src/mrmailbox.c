@@ -1459,12 +1459,12 @@ int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
 
 
 /**
-+ * Reset database tables. This function is called from Core cmdline.
-+ *
-+ * Argument is a bitmask, executing single or multiple actions in one call.
-+ *
-+ * e.g. bitmask 7 triggers actions definded with bits 1, 2 and 4.
-+ */
+ * Reset database tables. This function is called from Core cmdline.
+ *
+ * Argument is a bitmask, executing single or multiple actions in one call.
+ *
+ * e.g. bitmask 7 triggers actions definded with bits 1, 2 and 4.
+ */
 int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
 	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1505,6 +1505,34 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 	mrsqlite3_unlock(ths->m_sql);
 
 	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
+
+	return 1;
+}
+
+/**
+ * Clean up the contacts table. This function is called from Core cmdline.
+ *
+ * All contacts not involved in a chat, not blocked and not being a deaddrop
+ * are removed.
+ *
+ * Deleted contacts from the OS address book normally stay in the contacts
+ * database. With this cleanup, they are also removed, as well as all
+ * auto-added contacts, unless they are used in a chat or for blocking purpose.
+ *
+ */
+int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
+{
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
+	mrmailbox_log_info(ths, 0, "Cleaning up contacts ...");
+
+	mrsqlite3_lock(ths->m_sql);
+
+	mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
+
+	mrsqlite3_unlock(ths->m_sql);
 
 	return 1;
 }

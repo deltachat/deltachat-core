@@ -378,6 +378,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"addcontact [<name>] <addr>\n"
 				"contactinfo <contact-id>\n"
 				"delcontact <contact-id>\n"
+				"cleanupcontacts\n"
 				"======================================Misc.==\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
@@ -1021,6 +1022,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 		}
+	}
+	else if( strcmp(cmd, "cleanupcontacts")==0 )
+	{
+		ret = mrmailbox_cleanup_contacts(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 
 	/*******************************************************************************
