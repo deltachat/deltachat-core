@@ -461,7 +461,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					{
 						chat_id = MR_CHAT_ID_TRASH;
 						mrmailbox_log_info(ths, 0, "Message belongs to a mailing list and is ignored.");
-						/* currently we do not show mailing list messages as the would result in lots of unwanted mesages:
+						/* currently we do not show mailing list messages as they would result in lots of unwanted messages:
 						(NB: typical mailing list header: `From: sender@gmx.net To: list@address.net)
 
 						- even if we know the sender, it does not make sense, to extract an mailing list message from the context and
@@ -507,7 +507,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			}
 			else /* outgoing */
 			{
-				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also deliverd.  We cannot recreate other states (read, error). */
+				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also delivered.  We cannot recreate other states (read, error). */
 				from_id = MR_CONTACT_ID_SELF;
 				if( mrarray_get_cnt(to_ids) >= 1 ) {
 					to_id   = mrarray_get_id(to_ids, 0);
@@ -548,7 +548,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			mrmailbox_unarchive_chat__(ths, chat_id);
 
 			/* check, if the mail is already in our database - if so, there's nothing more to do
-			(we may get a mail twice eg. it it is moved between folders) */
+			(we may get a mail twice eg. if it is moved between folders) */
 			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 				if( fld_message_id ) {
@@ -1458,6 +1458,13 @@ int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
 }
 
 
+/**
++ * Reset database tables. This function is called from Core cmdline.
++ *
++ * Argument is a bitmask, executing single or multiple actions in one call.
++ *
++ * e.g. bitmask 7 triggers actions definded with bits 1, 2 and 4.
++ */
 int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
 	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1470,17 +1477,17 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 
 		if( bits & 1 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
-			mrmailbox_log_info(ths, 0, "Job resetted.");
+			mrmailbox_log_info(ths, 0, "(1) Jobs reset.");
 		}
 
 		if( bits & 2 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
-			mrmailbox_log_info(ths, 0, "Peerstates resetted.");
+			mrmailbox_log_info(ths, 0, "(2) Peerstates reset.");
 		}
 
 		if( bits & 4 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
-			mrmailbox_log_info(ths, 0, "Private keypairs resetted.");
+			mrmailbox_log_info(ths, 0, "(4) Private keypairs reset.");
 		}
 
 		if( bits & 8 ) {
@@ -1490,7 +1497,7 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
-			mrmailbox_log_info(ths, 0, "Rest but server config resetted.");
+			mrmailbox_log_info(ths, 0, "(8) Rest but server config reset.");
 		}
 
 		update_config_cache__(ths, NULL);
@@ -4935,7 +4942,7 @@ cleanup:
 
 /**
  * Delete a contact.  The contact is deleted from the local device.  It may happen that this is not
- * possible as the contact is in used.  In this case, the contact can be blocked.
+ * possible as the contact is in use.  In this case, the contact can be blocked.
  *
  * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
@@ -5717,7 +5724,7 @@ void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int 
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	/* the event us needed eg. to remove the deaddrop from the chatlist */
+	/* the event is needed eg. to remove the deaddrop from the chatlist */
 	if( send_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}

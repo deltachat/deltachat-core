@@ -499,7 +499,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int bits = atoi(arg1);
-			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			if( bits > 15 ) {
+				ret = safe_strdup("ERROR: <bits> must be lower than 16.");
+			}
+			else {
+				ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			}
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
