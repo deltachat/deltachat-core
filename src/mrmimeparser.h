@@ -105,6 +105,7 @@ struct mailimf_fields*         mailmime_find_mailimf_fields  (struct mailmime*);
 char*                          mailimf_find_first_addr       (const struct mailimf_mailbox_list*); /*the result must be freed*/
 struct mailimf_field*          mailimf_find_field            (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
 struct mailimf_optional_field* mailimf_find_optional_field   (struct mailimf_fields*, const char* wanted_fld_name);
+mrhash_t*                      mailimf_get_recipients        (struct mailimf_fields*);
 
 
 #ifdef __cplusplus

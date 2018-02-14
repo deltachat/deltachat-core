@@ -405,6 +405,67 @@ void mailmime_print(struct mailmime* mime)
 
 
 /*******************************************************************************
+ * low-level-tools for getting a list of all recipients
+ ******************************************************************************/
+
+
+static void mailimf_get_recipients__add_addr(mrhash_t* recipients, struct mailimf_mailbox* mb)
+{
+	/* only used internally by mailimf_get_recipients() */
+	if( mb )  {
+		char* addr_norm = mr_normalize_addr(mb->mb_addr_spec);
+		mrhash_insert(recipients, addr_norm, strlen(addr_norm), (void*)1);
+		free(addr_norm);
+	}
+}
+
+
+mrhash_t* mailimf_get_recipients(struct mailimf_fields* imffields)
+{
+	/* the returned value must be mrhash_clear()'d and free()'d. returned addresses are normalized. */
+	mrhash_t* recipients = malloc(sizeof(mrhash_t));
+	mrhash_init(recipients, MRHASH_STRING, 1/*copy key*/);
+
+	clistiter* cur1;
+	for( cur1 = clist_begin(imffields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	{
+		struct mailimf_field*        fld = (struct mailimf_field*)clist_content(cur1);
+		struct mailimf_to*           fld_to;
+		struct mailimf_cc*           fld_cc;
+		struct mailimf_address_list* addr_list = NULL;
+		switch( fld->fld_type )
+		{
+			case MAILIMF_FIELD_TO: fld_to = fld->fld_data.fld_to; if( fld_to ) { addr_list = fld_to->to_addr_list; } break;
+			case MAILIMF_FIELD_CC: fld_cc = fld->fld_data.fld_cc; if( fld_cc ) { addr_list = fld_cc->cc_addr_list; } break;
+		}
+
+		if( addr_list ) {
+			clistiter* cur2;
+			for( cur2 = clist_begin(addr_list->ad_list); cur2!=NULL ; cur2=clist_next(cur2) ) {
+				struct mailimf_address* adr = (struct mailimf_address*)clist_content(cur2);
+				if( adr ) {
+					if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
+						mailimf_get_recipients__add_addr(recipients, adr->ad_data.ad_mailbox);
+					}
+					else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
+						struct mailimf_group* group = adr->ad_data.ad_group;
+						if( group && group->grp_mb_list ) {
+							clistiter* cur3;
+							for( cur3 = clist_begin(group->grp_mb_list->mb_list); cur3!=NULL ; cur3=clist_next(cur3) ) {
+								mailimf_get_recipients__add_addr(recipients, (struct mailimf_mailbox*)clist_content(cur3));
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return recipients;
+}
+
+
+/*******************************************************************************
  * low-level-tools for working with mailmime structures directly
  ******************************************************************************/
 

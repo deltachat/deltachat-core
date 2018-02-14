@@ -679,6 +679,7 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 static void update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
 {
 	clistiter* cur1;
+	mrhash_t*  recipients = NULL;
 
 	for( cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 	{
@@ -692,21 +693,38 @@ static void update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, 
 				if( mraheader_set_from_string(gossip_header, optional_field->fld_value)
 				 && mrpgp_is_valid_key(mailbox, gossip_header->m_public_key) )
 				{
-					/* valid recipient: update peerstate - TODO: do this only if addr matches To/Cc */
-					mrapeerstate_t* peerstate = mrapeerstate_new();
-					if( !mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
-						mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
+					if( recipients == NULL ) {
+						recipients = mailimf_get_recipients(imffields);
 					}
-					else {
-						mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
-						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
+
+					if( mrhash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
+					{
+						/* valid recipient: update peerstate */
+						mrapeerstate_t* peerstate = mrapeerstate_new();
+						if( !mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
+							mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+						}
+						else {
+							mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
+							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
+						}
+						mrapeerstate_unref(peerstate);
 					}
-					mrapeerstate_unref(peerstate);
+					else
+					{
+						mrmailbox_log_info(mailbox, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->m_addr);
+					}
 				}
 				mraheader_unref(gossip_header);
 			}
 		}
+	}
+
+	if( recipients ) {
+		mrhash_clear(recipients);
+		free(recipients);
 	}
 }
 
