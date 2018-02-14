@@ -378,6 +378,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"addcontact [<name>] <addr>\n"
 				"contactinfo <contact-id>\n"
 				"delcontact <contact-id>\n"
+				"cleanupcontacts\n"
 				"======================================Misc.==\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
@@ -499,7 +500,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int bits = atoi(arg1);
-			ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			if( bits > 15 ) {
+				ret = safe_strdup("ERROR: <bits> must be lower than 16.");
+			}
+			else {
+				ret = mrmailbox_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			}
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
@@ -1016,6 +1022,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
 		}
+	}
+	else if( strcmp(cmd, "cleanupcontacts")==0 )
+	{
+		ret = mrmailbox_cleanup_contacts(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 
 	/*******************************************************************************
