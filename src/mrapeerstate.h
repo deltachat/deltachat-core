@@ -54,8 +54,8 @@ typedef struct mrapeerstate_t
 	time_t         m_gossip_timestamp;
 	mrkey_t*       m_gossip_key; /* may be NULL */
 
-	#define        MRA_SAVE_LAST_SEEN 0x01
-	#define        MRA_SAVE_ALL       0x02
+	#define        MRA_SAVE_TIMESTAMPS 0x01
+	#define        MRA_SAVE_ALL        0x02
 	int            m_to_save;
 } mrapeerstate_t;
 

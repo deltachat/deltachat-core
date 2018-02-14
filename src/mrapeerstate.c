@@ -130,7 +130,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 			goto cleanup;
 		}
 	}
-	else if( ths->m_to_save&MRA_SAVE_LAST_SEEN )
+	else if( ths->m_to_save&MRA_SAVE_TIMESTAMPS )
 	{
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
 			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
@@ -282,7 +282,7 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 	{
 		ths->m_last_seen           = message_time;
 		ths->m_last_seen_autocrypt = message_time;
-		ths->m_to_save             |= MRA_SAVE_LAST_SEEN;
+		ths->m_to_save             |= MRA_SAVE_TIMESTAMPS;
 
 		if( (header->m_prefer_encrypt==MRA_PE_MUTUAL || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE) /*this also switches from MRA_PE_RESET to MRA_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
 		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
@@ -316,7 +316,7 @@ void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gos
 	if( message_time > peerstate->m_gossip_timestamp )
 	{
 		peerstate->m_gossip_timestamp    = message_time;
-		peerstate->m_to_save             |= MRA_SAVE_LAST_SEEN;
+		peerstate->m_to_save             |= MRA_SAVE_TIMESTAMPS;
 
 		if( peerstate->m_gossip_key == NULL ) {
 			peerstate->m_gossip_key = mrkey_new();
