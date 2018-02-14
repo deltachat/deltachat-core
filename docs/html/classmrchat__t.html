@@ -208,7 +208,7 @@ Public Member Functions</h2></td></tr>
 <p>Get chat type. </p>
 <p>Currently, there are two chat types:</p>
 <ul>
-<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user, MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is added <em>only</em> for a self talk.</li>
+<li>MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact, chats_contacts contains one record for the user. MR_CONTACT_ID_SELF (see mrcontact_t::m_id) is added <em>only</em> for a self talk; in addition to this, for self talks also the flag MRP_SELFTALK is set.</li>
 <li>MR_CHAT_TYPE_GROUP (120) - a group chat, chats_contacts conain all group members, incl. MR_CONTACT_ID_SELF</li>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
