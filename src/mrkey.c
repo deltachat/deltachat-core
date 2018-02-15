@@ -201,7 +201,7 @@ int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* ma
 	}
 
 	/* base64 starts after first empty line, if any */
-	p2 = strstr(p1, "\n\n"); /* `\r*  is already removed above */
+	p2 = strstr(p1, "\n\n"); /* \r  is already removed above */
 	if( p2 ) {
 		p1 = p2;
 	}
