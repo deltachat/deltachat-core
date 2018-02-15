@@ -636,6 +636,7 @@ cleanup:
  * @param approx_characters Rough length of the expected string.
  *
  * @return A summary for the given messages. The returned string must be free()'d.
+ *     Returns an empty string on errors, never returns NULL.
  */
 char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
 {
@@ -936,6 +937,7 @@ void mrmsg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_
 
 char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
 {
+	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
 	char* pathNfilename = NULL, *label = NULL, *value = NULL;
 
