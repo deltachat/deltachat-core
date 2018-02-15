@@ -98,7 +98,7 @@
  * @param passphrase The setup code that shall be used to encrypt the message.
  *     Typically created by mrmailbox_create_setup_code().
  * @param ret_msg Pointer to a character pointer that will be set to the HTML-code of the message on success.
- *    The character pointer must be free()'d on success and must be NULL when the function is called.
+ *    The character pointer must be free()'d on success and must point to NULL when the function is called.
  *
  * @return 1=success, 0=error
  */
