@@ -320,6 +320,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup(
 				"====================Import/Export commands==\n"
 				"initiate-key-transfer\n"
+				"get-setupcodebegin <msg-id>\n"
 				"continue-key-transfer <msg-id> <setup-code>\n"
 				"has-backup\n"
 				"export-backup\n"
@@ -435,6 +436,25 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		char* setup_code = mrmailbox_initiate_key_transfer(mailbox);
 			ret = setup_code? mr_mprintf("Setup code for the transferred setup message: %s", setup_code) : COMMAND_FAILED;
 		free(setup_code);
+	}
+	else if( strcmp(cmd, "get-setupcodebegin")==0 )
+	{
+		if( arg1 ) {
+			uint32_t msg_id = (uint32_t)atoi(arg1);
+			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
+			if( mrmsg_is_setupmessage(msg) ) {
+				char* setupcodebegin = mrmsg_get_setupcodebegin(msg);
+					ret = mr_mprintf("The setup code for setup message Msg#%i starts with: %s", msg_id, setupcodebegin);
+				free(setupcodebegin);
+			}
+			else {
+				ret = mr_mprintf("ERROR: Msg#%i is no setup message.", msg_id);
+			}
+			mrmsg_unref(msg);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+		}
 	}
 	else if( strcmp(cmd, "continue-key-transfer")==0 )
 	{
