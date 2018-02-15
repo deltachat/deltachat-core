@@ -766,7 +766,7 @@ int mrmsg_is_systemcmd(mrmsg_t* msg)
  */
 int mrmsg_is_setupmessage(mrmsg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_type != MR_MSG_FILE ) {
 		return 0;
 	}
 
