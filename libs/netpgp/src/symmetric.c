@@ -691,6 +691,7 @@ pgp_decrypt_init(pgp_crypt_t *decrypt)
 	decrypt->num = 0;
 }
 
+#if 0 //////
 size_t
 pgp_decrypt_se(pgp_crypt_t *decrypt, void *outvoid, const void *invoid,
 		size_t count)
@@ -719,6 +720,7 @@ pgp_decrypt_se(pgp_crypt_t *decrypt, void *outvoid, const void *invoid,
 
 	return (size_t)saved;
 }
+#endif //////
 
 #if 0 //////
 size_t

@@ -267,7 +267,7 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
 	pgp_writer_push_armor_msg(encr_output);
 
-	/* Tag 3 */
+	/* Tag 3 - PGP_PTAG_CT_SK_SESSION_KEY */
 	pgp_write_ptag     (encr_output, PGP_PTAG_CT_SK_SESSION_KEY);
 	pgp_write_length   (encr_output, 1/*version*/
 	                               + 1/*symm. algo*/
@@ -290,7 +290,7 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 
 	// for(int j=0; j<AES_KEY_LENGTH; j++) { printf("%02x", key[j]); } printf("\n----------------\n");
 
-	/* Tag 18 */
+	/* Tag 18 - PGP_PTAG_CT_SE_IP_DATA */
 	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
 	{
 		pgp_crypt_t	crypt_info;
