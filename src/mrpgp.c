@@ -160,7 +160,7 @@ int mr_split_armored_data(char* buf, char** ret_headerline, char** ret_setupcode
 	}
 
 	/* now, line points to beginning of base64 data, search end */
-	if( (p1=strstr(base64, "-----END "))==NULL
+	if( (p1=strstr(base64, "-----END "/*the trailing space makes sure, this is not a normal base64 sequence*/))==NULL
 	 || strncmp(p1+9, headerline+11, strlen(headerline+11))!=0 ) {
 		goto cleanup;
 	}
