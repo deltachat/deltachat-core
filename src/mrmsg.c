@@ -792,7 +792,36 @@ int mrmsg_is_setupmessage(mrmsg_t* msg)
  */
 char* mrmsg_get_setupcodebegin(mrmsg_t* msg)
 {
-	return safe_strdup("12"); // TODO
+	char*  filename = NULL;
+	char*  buf = NULL;
+	size_t buf_bytes = 0;
+	char*  buf_headerline = NULL; /* just a pointer inside buf, MUST NOT be free()'d */
+	char*  buf_setupcodebegin = NULL; /* just a pointer inside buf, MUST NOT be free()'d */
+	char*  ret = NULL;
+
+	if( !mrmsg_is_setupmessage(msg) ) {
+		goto cleanup;
+	}
+
+	if( (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
+		goto cleanup;
+	}
+
+	if( !mr_read_file(filename, (void**)&buf, &buf_bytes, msg->m_mailbox) || buf == NULL || buf_bytes <= 0 ) {
+		goto cleanup;
+	}
+
+	if( !mr_split_armored_data(buf, &buf_headerline, &buf_setupcodebegin, NULL)
+	 || strcmp(buf_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || buf_setupcodebegin==NULL ) {
+		goto cleanup;
+	}
+
+	ret = safe_strdup(buf_setupcodebegin); /* we need to make a copy as buf_setupcodebegin just points inside buf (which will be free()'d on cleanup) */
+
+cleanup:
+	free(filename);
+	free(buf);
+	return ret? ret : safe_strdup(NULL);
 }
 
 

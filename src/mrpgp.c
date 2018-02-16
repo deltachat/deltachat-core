@@ -84,6 +84,101 @@ void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 }
 
 
+/* Split data from PGP Armored Data as defined in https://tools.ietf.org/html/rfc4880#section-6.2.
+The given buffer is modified and the returned pointers are just point inside the modified buffer,
+no additional data to free therefore. */
+int mr_split_armored_data(char* buf, char** ret_headerline, char** ret_setupcodebegin, char** ret_base64)
+{
+	int    success = 0;
+	size_t line_chars = 0;
+	char*  line = buf;
+	char*  p1 = buf, *p2;
+	char*  headerline = NULL;
+	char*  base64 = NULL;
+	#define PGP_WS "\t\r\n "
+
+	if( ret_headerline )     { *ret_headerline = NULL; }
+	if( ret_setupcodebegin ) { *ret_setupcodebegin = NULL; }
+	if( ret_base64 )         { *ret_base64 = NULL; }
+
+	if( buf == NULL || ret_headerline == NULL ) {
+		goto cleanup;
+	}
+
+	mr_remove_cr_chars(buf);
+	while( *p1 ) {
+		if( *p1  == '\n' ) {
+			/* line found ... */
+			line[line_chars] = 0;
+			if( headerline == NULL ) {
+				/* ... headerline */
+				mr_trim(line);
+				if( strncmp(line, "-----BEGIN ", 11)==0 && strncmp(&line[strlen(line)-5], "-----", 5)==0 ) {
+					headerline = line;
+					if( ret_headerline ) {
+						*ret_headerline = headerline;
+					}
+				}
+			}
+			else if( strspn(line, PGP_WS)==strlen(line) ) {
+				/* ... empty line: base64 starts on next line */
+				base64 = p1+1;
+				break;
+			}
+			else if( (p2=strchr(line, ':'))==NULL ) {
+				/* ... non-standard-header without empty line: base64 starts with this line */
+				line[line_chars] = '\n';
+				base64 = line;
+				break;
+			}
+			else {
+				/* header line */
+				*p2 = 0;
+				mr_trim(line);
+				if( strcasecmp(line, "Passphrase-Begin")==0 ) {
+					p2++;
+					mr_trim(p2);
+					if( ret_setupcodebegin ) {
+						*ret_setupcodebegin = p2;
+					}
+				}
+			}
+
+			/* prepare for next line */
+			p1++;
+			line = p1;
+			line_chars = 0;
+		}
+		else {
+			p1++;
+			line_chars++;
+		}
+	}
+
+	if( headerline == NULL || base64 == NULL ) {
+		goto cleanup;
+	}
+
+	/* now, line points to beginning of base64 data, search end */
+	if( (p1=strstr(base64, "-----END "))==NULL
+	 || strncmp(p1+9, headerline+11, strlen(headerline+11))!=0 ) {
+		goto cleanup;
+	}
+
+	*p1 = 0;
+	mr_trim(base64);
+
+	if( ret_base64 ) {
+		*ret_base64 = base64;
+	}
+
+	success = 1;
+
+cleanup:
+	return success;
+}
+
+
 /*******************************************************************************
  * Key generatation
  ******************************************************************************/

@@ -344,6 +344,40 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(rendered);
 	}
 
+	/* test PGP armor parsing
+	 **************************************************************************/
+
+	{
+		int ok;
+		char *buf, *headerline, *setupcodebegin, *base64;
+
+		buf = strdup("-----BEGIN PGP MESSAGE-----\nNoVal:\n\ndata\n-----END PGP MESSAGE-----");
+		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, &base64);
+		assert( ok == 1 );
+		assert( base64 && strcmp(base64, "data") == 0 );
+		free(buf);
+
+		buf = strdup("foo \n -----BEGIN PGP MESSAGE----- \n base64-123 \n  -----END PGP MESSAGE-----");
+		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, &base64);
+		assert( ok == 1 );
+		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
+		assert( setupcodebegin == NULL );
+		assert( base64 && strcmp(base64, "base64-123")==0 );
+		free(buf);
+
+		buf = strdup("foo-----BEGIN PGP MESSAGE-----");
+		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, &base64);
+		assert( ok == 0 );
+		free(buf);
+
+		buf = strdup("foo \n -----BEGIN PGP MESSAGE-----\n  Passphrase-BeGIN  :  23 \n  \n base64-567 \r\n abc \n  -----END PGP MESSAGE-----\n\n\n");
+		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, &base64);
+		assert( ok == 1 );
+		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
+		assert( setupcodebegin && strcmp(setupcodebegin, "23")==0 );
+		assert( base64 && strcmp(base64, "base64-567 \n abc")==0 );
+		free(buf);
+	}
 
 	/* test end-to-end-encryption
 	 **************************************************************************/
