@@ -97,14 +97,12 @@
  * @param mailbox The mailbox object
  * @param passphrase The setup code that shall be used to encrypt the message.
  *     Typically created by mrmailbox_create_setup_code().
- * @param ret_msg Pointer to a character pointer that will be set to the HTML-code of the message on success.
- *    The character pointer must be free()'d on success and must point to NULL when the function is called.
- *
- * @return 1=success, 0=error
+ * @return String with the HTML-code of the message on success, NULL on errors.
+ *     The returned value must be free()'d
  */
-int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, char** ret_msg)
+char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 {
-	int                    success = 0, locked = 0;
+	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
 	char*                  self_addr = NULL;
 	mrkey_t*               curr_private_key = mrkey_new();
@@ -121,8 +119,10 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 	pgp_memory_t*          encr_mem = NULL;
 	char*                  encr_string = NULL;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || passphrase==NULL || ret_msg==NULL
-	 || strlen(passphrase)<2 || *ret_msg!=NULL || curr_private_key==NULL ) {
+	char*                  ret_setupfilecontent = NULL;
+
+	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || passphrase==NULL
+	 || strlen(passphrase)<2 || curr_private_key==NULL ) {
 		goto cleanup;
 	}
 
@@ -335,7 +335,7 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 		mr_str_replace(&setup_message_body, "\r", NULL);
 		mr_str_replace(&setup_message_body, "\n", "<br>");
 
-		*ret_msg = mr_mprintf(
+		ret_setupfilecontent = mr_mprintf(
 			"<!DOCTYPE html>" LINEEND
 			"<html>" LINEEND
 				"<head>" LINEEND
@@ -358,8 +358,6 @@ int mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase, ch
 		free(setup_message_body);
 	}
 
-	success = 1;
-
 cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -374,7 +372,29 @@ cleanup:
 	free(encr_string);
 	free(self_addr);
 
-	return success;
+	return ret_setupfilecontent;
+}
+
+
+/**
+ * Parse the given file content and extract the private key.
+ *
+ * @private @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object
+ * @param passphrase The setup code that shall be used to decrypt the message.
+ *     May be created by mrmailbox_create_setup_code() on another device or by
+ *     a completely different app as Thunderbird/Enigmail or K-9.
+ * @param filecontent The file content of the setup message, may be HTML.
+ *     May be created by mrmailbox_render_setup_code() on another device or by
+ *     a completely different app as Thunderbird/Enigmail or K-9.
+ * @return The decrypted private key as armored-ascii-data or NULL on errors.
+ *     Must be mrkey_unref()'d.
+ */
+char* mrmailbox_decrypt_setup_file(mrmailbox_t* mailbox, const char* passphrase, const char* filecontent)
+{
+	/* TODO */
+	return NULL;
 }
 
 
@@ -488,7 +508,7 @@ char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
 
 	CHECK_EXIT
 
-	if( !mrmailbox_render_setup_file(mailbox, setup_code, &setup_file_content) ) { /* encrypting may also take a while ... */
+	if( (setup_file_content=mrmailbox_render_setup_file(mailbox, setup_code))==NULL ) { /* encrypting may also take a while ... */
 		goto cleanup;
 	}
 
@@ -573,11 +593,41 @@ cleanup:
  */
 int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const char* setup_code)
 {
+	int      success     = 0;
+	mrmsg_t* msg         = NULL;
+	char*    filename    = NULL;
+	char*    filecontent = NULL;
+	size_t   filebytes   = 0;
+	char*    armored_key = NULL;
+
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return 0;
+	if( (msg=mrmailbox_get_msg(mailbox, msg_id))==NULL || !mrmsg_is_setupmessage(msg) ) {
+		goto cleanup;
+	}
+
+	if( (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
+		goto cleanup;
+	}
+
+	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_mailbox) || filecontent == NULL || filebytes <= 0 ) {
+		goto cleanup;
+	}
+
+	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, setup_code, filecontent)) != NULL ) {
+		goto cleanup;
+	}
+
+	/* TODO: add the key to private keychain, keep existing as legacy keys */
+
+cleanup:
+	free(armored_key);
+	free(filecontent);
+	free(filename);
+	mrmsg_unref(msg);
+	return success;
 }
 
 

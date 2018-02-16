@@ -501,7 +501,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		char* setup_code = mrmailbox_create_setup_code(mailbox);
 		char* file_name = mr_mprintf("%s/autocrypt-setup-message.html", mailbox->m_blobdir);
 		char* file_content = NULL;
-			if( mrmailbox_render_setup_file(mailbox, setup_code, &file_content)
+			if( (file_content=mrmailbox_render_setup_file(mailbox, setup_code)) != NULL
 			 && mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 				ret = mr_mprintf("Setup message written to: %s\nSetup code: %s", file_name, setup_code);
 			}

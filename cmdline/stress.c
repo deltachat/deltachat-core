@@ -389,8 +389,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strlen(setupcode) == 44 );
 		assert( setupcode[4]=='-' && setupcode[9]=='-' && setupcode[14]=='-' && setupcode[19]=='-' && setupcode[24]=='-' && setupcode[29]=='-' && setupcode[34]=='-' && setupcode[39]=='-' );
 
-		assert( mrmailbox_render_setup_file(mailbox, setupcode, &setupfile) );
-		assert( setupfile != NULL );
+		assert( (setupfile=mrmailbox_render_setup_file(mailbox, setupcode)) != NULL );
 
 		{
 			char *buf = safe_strdup(setupfile), *headerline = NULL, *setupcodebegin = NULL;
