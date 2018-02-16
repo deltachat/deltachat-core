@@ -393,8 +393,41 @@ cleanup:
  */
 char* mrmailbox_decrypt_setup_file(mrmailbox_t* mailbox, const char* passphrase, const char* filecontent)
 {
-	/* TODO */
-	return NULL;
+	char*         fc_buf = NULL, *fc_headerline = NULL, *fc_base64 = NULL;
+	char*         binary = NULL;
+	size_t        binary_bytes = 0, indx = 0;
+	pgp_io_t      io;
+	pgp_memory_t* outmem = NULL;
+	char*         payload = NULL;
+
+	/* extract base64 from filecontent */
+	fc_buf = safe_strdup(filecontent);
+	if( !mr_split_armored_data(fc_buf, &fc_headerline, NULL, &fc_base64)
+	 || fc_headerline==NULL || strcmp(fc_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || fc_base64==NULL ) {
+		goto cleanup;
+	}
+
+	/* convert base64 to binary */
+	if( mailmime_base64_body_parse(fc_base64, strlen(fc_base64), &indx, &binary/*must be freed using mmap_string_unref()*/, &binary_bytes)!=MAILIMF_NO_ERROR
+	 || binary == NULL || binary_bytes == 0 ) {
+		goto cleanup;
+	}
+
+	/* decrypt symmetrically */
+	memset(&io, 0, sizeof(pgp_io_t));
+	io.outs = stdout;
+	io.errs = stderr;
+	io.res  = stderr;
+	if( (outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase)) == NULL ) {
+		goto cleanup;
+	}
+	payload = strndup((const char*)outmem->buf, outmem->length);
+
+cleanup:
+	free(fc_buf);
+	if( binary ) { mmap_string_unref(binary); }
+	if( outmem ) { pgp_memory_free(outmem); }
+	return payload;
 }
 
 
