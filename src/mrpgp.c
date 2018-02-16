@@ -86,7 +86,8 @@ void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 
 /* Split data from PGP Armored Data as defined in https://tools.ietf.org/html/rfc4880#section-6.2.
 The given buffer is modified and the returned pointers are just point inside the modified buffer,
-no additional data to free therefore. */
+no additional data to free therefore.
+(NB: netpgp allows only parsing of Version, Comment, MessageID, Hash and Charset) */
 int mr_split_armored_data(char* buf, char** ret_headerline, char** ret_setupcodebegin, char** ret_base64)
 {
 	int    success = 0;
