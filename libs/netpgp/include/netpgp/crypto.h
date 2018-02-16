@@ -216,9 +216,10 @@ pgp_decrypt_buf(pgp_io_t *,
 			pgp_keyring_t *,
 			const unsigned,
 			const unsigned,
-			void *,
-			int,
-			pgp_cbfunc_t *);
+			// void *,  -- EDIT BY MR
+			// int,  -- EDIT BY MR
+			// pgp_cbfunc_t * -- EDIT BY MR
+			const char* symm_passphrase);
 
 pgp_memory_t *
 pgp_decrypt_and_validate_buf(pgp_io_t *io,
@@ -277,10 +278,10 @@ struct pgp_reader_t {
  Encrypt/decrypt settings
 */
 struct pgp_cryptinfo_t {
-	char			*passphrase;
+	const char			*symm_passphrase; // EDIT BY MR -- optional, if set, we try symm. decryption
 	pgp_keyring_t		*secring;
     pgp_key_t		*keydata;
-	pgp_cbfunc_t		*getpassphrase;
+	//pgp_cbfunc_t		*getpassphrase; -- EDIT BY MR
 	pgp_keyring_t		*pubring;
 	DYNARRAY(key_id_t, recipients_key_ids);
 };
@@ -293,11 +294,11 @@ struct pgp_cbdata_t {
 	pgp_cbdata_t		*next;
 	pgp_output_t		*output;	/* when writing out parsed info */
 	pgp_io_t		*io;		/* error/output messages */
-	void			*passfp;	/* fp for passphrase input */
+	// void			*passfp;	/* fp for passphrase input */ -- EDIT BY MR
 	pgp_cryptinfo_t		 cryptinfo;	/* used when decrypting */
 	pgp_printstate_t	 printstate;	/* used to keep printing state */
 	pgp_seckey_t		*sshseckey;	/* secret key for ssh */
-	int			 numtries;	/* # of passphrase attempts */
+	// int			 numtries;	/* # of passphrase attempts */ -- EDIT BY MR
 	int			 gotpass;	/* when passphrase entered */
 };
 

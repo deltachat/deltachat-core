@@ -3115,6 +3115,21 @@ parse_pk_sesskey(pgp_region_t *region,
 	return 1;
 }
 
+// EDIT BY MR - parse Symmetric-Key Encrypted Session Key Packets (Tag 3)
+static int parse_sk_sesskey(pgp_region_t *region, pgp_stream_t *stream)
+{
+	// TODO:
+	// - setup stream->decrypt so that PGP_PTAG_CT_SE_IP_DATA can decrypt the data as usual
+	// - the password is in stream->cbinfo.cryptinfo.symm_passphrase
+
+	if( region == NULL || stream == NULL || stream->cbinfo.cryptinfo.symm_passphrase == NULL ) {
+		return 0;
+	}
+
+	return 0;
+}
+// /EDIT BY MR
+
 #if 0
 static int
 decrypt_se_data(pgp_content_enum tag, pgp_region_t *region,
@@ -3432,6 +3447,10 @@ parse_packet(pgp_stream_t *stream, uint32_t *pktlen)
 
 	case PGP_PTAG_CT_PK_SESSION_KEY:
 		ret = parse_pk_sesskey(&region, stream);
+		break;
+
+	case PGP_PTAG_CT_SK_SESSION_KEY:
+		ret = parse_sk_sesskey(&region, stream);
 		break;
 
 	case PGP_PTAG_CT_SE_DATA:
