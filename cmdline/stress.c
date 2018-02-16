@@ -383,6 +383,31 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
+		char *setupcode = NULL, *setupfile = NULL;
+
+		assert( (setupcode=mrmailbox_create_setup_code(mailbox)) != NULL );
+		assert( strlen(setupcode) == 44 );
+		assert( setupcode[4]=='-' && setupcode[9]=='-' && setupcode[14]=='-' && setupcode[19]=='-' && setupcode[24]=='-' && setupcode[29]=='-' && setupcode[34]=='-' && setupcode[39]=='-' );
+
+		assert( mrmailbox_render_setup_file(mailbox, setupcode, &setupfile) );
+		assert( setupfile != NULL );
+
+		{
+			char *buf = safe_strdup(setupfile), *headerline = NULL, *setupcodebegin = NULL;
+			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL) );
+			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
+			assert( setupcodebegin && strlen(setupcodebegin)==2 && strncmp(setupcodebegin, setupcode, 2)==0 );
+			free(buf);
+		}
+
+		free(setupfile);
+		free(setupcode);
+	}
+
+	/* test end-to-end-encryption
+	 **************************************************************************/
+
+	{
 		mrkey_t *bad_key = mrkey_new();
 			#define BAD_DATA_BYTES 4096
 			unsigned char bad_data[BAD_DATA_BYTES];
