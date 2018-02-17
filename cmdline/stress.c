@@ -379,7 +379,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf);
 	}
 
-	/* test end-to-end-encryption
+	/* test Autocrypt Setup Message
 	 **************************************************************************/
 
 	{
@@ -397,6 +397,14 @@ void stress_functions(mrmailbox_t* mailbox)
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 			assert( setupcodebegin && strlen(setupcodebegin)==2 && strncmp(setupcodebegin, setupcode, 2)==0 );
 			free(buf);
+		}
+
+		{
+			char *payload = NULL, *headerline = NULL;
+			assert( (payload=mrmailbox_decrypt_setup_file(mailbox, setupcode, setupfile))!=NULL );
+			assert( mr_split_armored_data(payload, &headerline, NULL, NULL) );
+			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
+			free(payload);
 		}
 
 		free(setupfile);
