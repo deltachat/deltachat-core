@@ -319,7 +319,7 @@ char* mrmailbox_decrypt_setup_file(mrmailbox_t* mailbox, const char* passphrase,
 
 	/* extract base64 from filecontent */
 	fc_buf = safe_strdup(filecontent);
-	if( !mr_split_armored_data(fc_buf, &fc_headerline, NULL, &fc_base64)
+	if( !mr_split_armored_data(fc_buf, &fc_headerline, NULL, NULL, &fc_base64)
 	 || fc_headerline==NULL || strcmp(fc_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || fc_base64==NULL ) {
 		goto cleanup;
 	}

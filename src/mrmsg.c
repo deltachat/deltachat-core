@@ -811,7 +811,7 @@ char* mrmsg_get_setupcodebegin(mrmsg_t* msg)
 		goto cleanup;
 	}
 
-	if( !mr_split_armored_data(buf, &buf_headerline, &buf_setupcodebegin, NULL)
+	if( !mr_split_armored_data(buf, &buf_headerline, &buf_setupcodebegin, NULL, NULL)
 	 || strcmp(buf_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || buf_setupcodebegin==NULL ) {
 		goto cleanup;
 	}
