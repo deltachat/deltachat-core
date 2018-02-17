@@ -109,8 +109,8 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 
 	char                   passphrase_begin[8];
 	uint8_t                salt[PGP_SALT_SIZE];
-	#define                AES_KEY_LENGTH 16
-	uint8_t                key[AES_KEY_LENGTH];
+	pgp_crypt_t            crypt_info;
+	uint8_t*               key = NULL;
 
 	pgp_output_t*          payload_output = NULL;
 	pgp_memory_t*          payload_mem = NULL;
@@ -168,96 +168,14 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 	pgp_random(salt, PGP_SALT_SIZE);
 
 	/* S2K */
+	#define SYMM_ALGO PGP_SA_AES_128
+	pgp_crypt_any(&crypt_info, SYMM_ALGO);
 
 	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations
-	#define EXPBIAS 6
-	int s2k_iter_count = (16 + (s2k_iter_id & 15)) << ((s2k_iter_id >> 4) + EXPBIAS);
-
-	#define HASH_ALG PGP_HASH_SHA256
-
-	/* create key from setup-code using OpenPGP's salted+iterated S2K (String-to-key)
-	(from netpgp/create.c) */
-
-	{
-		unsigned    done = 0;
-		unsigned    i = 0;
-		int         passphrase_len = strlen(passphrase);
-		pgp_hash_t  hash;
-		for (done = 0, i = 0; done < AES_KEY_LENGTH; i++) {
-			unsigned    hashsize;
-			unsigned    j;
-			unsigned    needed;
-			unsigned    size;
-			uint8_t     zero = 0;
-			uint8_t     *hashed;
-
-			/* Hard-coded SHA1 for session key */
-			pgp_hash_any(&hash, HASH_ALG);
-			hashsize = pgp_hash_size(HASH_ALG);
-			needed = AES_KEY_LENGTH - done;
-			size = MR_MIN(needed, hashsize);
-			if ((hashed = calloc(1, hashsize)) == NULL) {
-				goto cleanup;
-			}
-			if (!hash.init(&hash)) {
-				free(hashed);
-				goto cleanup;
-			}
-
-			/* preload if iterating  */
-			for (j = 0; j < i; j++) {
-				/*
-				 * Coverity shows a DEADCODE error on this
-				 * line. This is expected since the hardcoded
-				 * use of SHA1 and CAST5 means that it will
-				 * not used. This will change however when
-				 * other algorithms are supported.
-				 */
-				hash.add(&hash, &zero, 1);
-			}
-
-			if (s2k_spec == PGP_S2KS_ITERATED_AND_SALTED )
-			{
-				int remaining_octets = s2k_iter_count;
-				while( 1 )
-				{
-					int hash_now = MR_MIN(PGP_SALT_SIZE, remaining_octets);
-					hash.add(&hash, salt, hash_now);
-					remaining_octets -= hash_now;
-					if( remaining_octets<=0 ) {
-						break;
-					}
-
-					hash_now = MR_MIN(passphrase_len, remaining_octets);
-					hash.add(&hash, (uint8_t*)passphrase, hash_now);
-					remaining_octets -= hash_now;
-					if( remaining_octets<=0 ) {
-						break;
-					}
-				}
-			}
-			else
-			{
-				if (s2k_spec == PGP_S2KS_SALTED) {
-					hash.add(&hash, salt, PGP_SALT_SIZE);
-				}
-				hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
-			}
-
-			hash.finish(&hash, hashed);
-
-			/*
-			 * if more in hash than is needed by session key, use
-			 * the leftmost octets
-			 */
-			(void) memcpy(&key[i * hashsize], hashed, (unsigned)size);
-			done += (unsigned)size;
-			free(hashed);
-			if (done > AES_KEY_LENGTH) {
-				goto cleanup;
-			}
-		}
+	#define HASH_ALG  PGP_HASH_SHA256
+	if( (key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id)) == NULL ) {
+		goto cleanup;
 	}
 
 	/* encrypt the payload using the key using AES-128 and put it into
@@ -277,7 +195,7 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/ );
 
 	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
-	pgp_write_scalar   (encr_output, PGP_SA_AES_128, 1);     // 1 octet: symm. algo
+	pgp_write_scalar   (encr_output, SYMM_ALGO, 1);          // 1 octet: symm. algo
 
 	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
 	pgp_write_scalar   (encr_output, HASH_ALG, 1);           // 1 octet: S2 hash algo
@@ -293,9 +211,6 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 	/* Tag 18 - PGP_PTAG_CT_SE_IP_DATA */
 	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
 	{
-		pgp_crypt_t	crypt_info;
-		pgp_crypt_any(&crypt_info, PGP_SA_AES_128);
-
 		uint8_t* iv = calloc(1, crypt_info.blocksize); if( iv == NULL) { goto cleanup; }
 		crypt_info.set_iv(&crypt_info, iv);
 		free(iv);
@@ -371,6 +286,8 @@ cleanup:
 	mrkey_unref(curr_private_key);
 	free(encr_string);
 	free(self_addr);
+
+	free(key);
 
 	return ret_setupfilecontent;
 }
