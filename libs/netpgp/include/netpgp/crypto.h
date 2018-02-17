@@ -351,4 +351,10 @@ struct pgp_stream_t {
 
 };
 
+// EDIT BY MR
+uint8_t* pgp_s2k_do(const char* passphrase,
+                    int wanted_key_len,
+                    pgp_s2k_specifier_t s2k_spec, pgp_hash_alg_t s2k_hash_algo, const uint8_t* s2k_salt, int s2k_iter_id);
+// /EDIT BY MR
+
 #endif /* CRYPTO_H_ */

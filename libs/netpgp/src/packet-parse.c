@@ -3115,18 +3115,167 @@ parse_pk_sesskey(pgp_region_t *region,
 	return 1;
 }
 
+// EDIT BY MR
+uint8_t* pgp_s2k_do(const char* passphrase,
+                    int wanted_key_len,
+                    pgp_s2k_specifier_t s2k_spec, pgp_hash_alg_t s2k_hash_algo, const uint8_t* s2k_salt, int s2k_iter_id)
+{
+	#define     S2K_MIN(X, Y) (((X) < (Y))? (X) : (Y))
+	unsigned    done = 0;
+	unsigned    i = 0;
+	int         passphrase_len = strlen(passphrase);
+	pgp_hash_t  hash;
+	#define     EXPBIAS 6
+	int         s2k_iter_count = (16 + (s2k_iter_id & 15)) << ((s2k_iter_id >> 4) + EXPBIAS);
+	uint8_t     *key = calloc(1, wanted_key_len);
+	if( key == NULL ) {
+		return NULL;
+	}
+
+	for (done = 0, i = 0; done < wanted_key_len; i++) {
+		unsigned    hashsize;
+		unsigned    j;
+		unsigned    needed;
+		unsigned    size;
+		uint8_t     zero = 0;
+		uint8_t     *hashed;
+
+		pgp_hash_any(&hash, s2k_hash_algo);
+		hashsize = pgp_hash_size(s2k_hash_algo);
+		needed = wanted_key_len - done;
+		size = S2K_MIN(needed, hashsize);
+		if ((hashed = calloc(1, hashsize)) == NULL) {
+			free(key);
+			return NULL;
+		}
+		if (!hash.init(&hash)) {
+			free(hashed);
+			free(key);
+			return NULL;
+		}
+
+		/* preload if iterating  */
+		for (j = 0; j < i; j++) {
+			/*
+			 * Coverity shows a DEADCODE error on this
+			 * line. This is expected since the hardcoded
+			 * use of SHA1 and CAST5 means that it will
+			 * not used. This will change however when
+			 * other algorithms are supported.
+			 */
+			hash.add(&hash, &zero, 1);
+		}
+
+		if (s2k_spec == PGP_S2KS_ITERATED_AND_SALTED )
+		{
+			int remaining_octets = s2k_iter_count;
+			while( 1 )
+			{
+				int hash_now = S2K_MIN(PGP_SALT_SIZE, remaining_octets);
+				hash.add(&hash, s2k_salt, hash_now);
+				remaining_octets -= hash_now;
+				if( remaining_octets<=0 ) {
+					break;
+				}
+
+				hash_now = S2K_MIN(passphrase_len, remaining_octets);
+				hash.add(&hash, (uint8_t*)passphrase, hash_now);
+				remaining_octets -= hash_now;
+				if( remaining_octets<=0 ) {
+					break;
+				}
+			}
+		}
+		else
+		{
+			if (s2k_spec == PGP_S2KS_SALTED) {
+				hash.add(&hash, s2k_salt, PGP_SALT_SIZE);
+			}
+			hash.add(&hash, (uint8_t*)passphrase, (unsigned)passphrase_len);
+		}
+
+		hash.finish(&hash, hashed);
+
+		/*
+		 * if more in hash than is needed by session key, use
+		 * the leftmost octets
+		 */
+		(void) memcpy(&key[i * hashsize], hashed, (unsigned)size);
+		done += (unsigned)size;
+		free(hashed);
+		if (done > wanted_key_len) {
+			free(key);
+			return NULL;
+		}
+	}
+	return key;
+}
+// /EDIT BY MR
+
 // EDIT BY MR - parse Symmetric-Key Encrypted Session Key Packets (Tag 3)
 static int parse_sk_sesskey(pgp_region_t *region, pgp_stream_t *stream)
 {
-	// TODO:
-	// - setup stream->decrypt so that PGP_PTAG_CT_SE_IP_DATA can decrypt the data as usual
-	// - the password is in stream->cbinfo.cryptinfo.symm_passphrase
+	uint8_t  version = 0, algo = 0;
+	uint8_t  s2k_spec = 0, s2k_hash_algo = 0, s2k_salt[PGP_SALT_SIZE], s2k_iter_id = 0;
+	uint8_t  *iv;
+	uint8_t  *key = NULL;
 
 	if( region == NULL || stream == NULL || stream->cbinfo.cryptinfo.symm_passphrase == NULL ) {
 		return 0;
 	}
 
-	return 0;
+	/* 2 bytes - version & algorithm  */
+	if( !limread(&version, 1, region, stream) || version != 4
+	 || !limread(&algo, 1, region, stream) ) {
+		return 0;
+	}
+
+	/* n bytes - s2k specifier */
+	if (!limread(&s2k_spec, 1, region, stream)
+	 || (s2k_spec!=PGP_S2KS_SIMPLE && s2k_spec!=PGP_S2KS_SALTED && s2k_spec!=PGP_S2KS_ITERATED_AND_SALTED)
+	 || !limread(&s2k_hash_algo, 1, region, stream) ) {
+		return 0;
+	}
+
+	if( s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
+		if (!limread(s2k_salt, PGP_SALT_SIZE, region, stream)) {
+			return 0;
+		}
+	}
+
+	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
+		if (!limread(&s2k_iter_id, 1, region, stream)) {
+			return 0;
+		}
+	}
+
+	/* n bytes - optional encrypted session key */
+	if( region->length > region->readc ) {
+		return 0; /* TODO: "Encrypted Session Key" in "Symmetric-Key Encrypted Session Key Packets" (Tag 3), this is used eg. by the Enigmail Setup Message */
+	}
+
+	/* calculate the key from the passphrase */
+	{
+		pgp_crypt_t	temp_crypt_info;
+		pgp_crypt_any(&temp_crypt_info, algo);
+		if( (key = pgp_s2k_do(stream->cbinfo.cryptinfo.symm_passphrase, temp_crypt_info.keysize,
+			                  s2k_spec, s2k_hash_algo, s2k_salt, s2k_iter_id)) == NULL ) {
+			return 0;
+		}
+	}
+
+	/* set up stream->decrypt so that PGP_PTAG_CT_SE_IP_DATA can decrypt the data
+	as it does for "Public-Key Encrypted Session Key Packets (Tag 1)" */
+	pgp_crypt_any(&stream->decrypt, algo);
+	iv = calloc(1, stream->decrypt.blocksize); if( iv == NULL ) { return 0; }
+	stream->decrypt.set_iv(&stream->decrypt, iv);
+	stream->decrypt.set_crypt_key(&stream->decrypt, key);
+	pgp_encrypt_init(&stream->decrypt);
+	free(iv);
+
+	stream->cbinfo.gotpass = 1;
+	free(key);
+	return 1;
 }
 // /EDIT BY MR
 
