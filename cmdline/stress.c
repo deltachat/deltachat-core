@@ -525,9 +525,15 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		char *setupcode = NULL, *setupfile = NULL;
+		char* payload = NULL, *headerline = NULL;
+		assert( (payload=mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile)) != NULL );
+		assert( mr_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
+		assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
+		free(payload);
+	}
 
-		assert( mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile) == NULL /* TOOD: change to !=NULL when implemented */ );
+	{
+		char *setupcode = NULL, *setupfile = NULL;
 
 		assert( (setupcode=mrmailbox_create_setup_code(mailbox)) != NULL );
 		assert( strlen(setupcode) == 44 );
