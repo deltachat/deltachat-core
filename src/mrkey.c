@@ -161,7 +161,7 @@ int mrkey_set_from_base64(mrkey_t* ths, const char* base64, int type)
 int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* mailbox)
 {
 	char*   buf = NULL;
-	char    *p1, *p2; /* just pointers inside buf, must not be freed */
+	char    *headerline, *base64; /* just pointers inside buf, must not be freed */
 	size_t  buf_bytes;
 	int     type = -1, success = 0;
 
@@ -176,37 +176,23 @@ int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* ma
 		goto cleanup; /* error is already loged */
 	}
 
-	mr_remove_cr_chars(buf); /* make comparison easier */
-	mr_trim(buf);
-
-	if( strncmp(buf, "-----BEGIN PGP PUBLIC KEY BLOCK-----\n", 37)==0 ) {
-		if( mr_str_replace(&buf, "-----END PGP PUBLIC KEY BLOCK-----", "")!=1 ) {
-			mrmailbox_log_warning(mailbox, 0, "Bad header for key \"%s\".", pathNfilename);
-			goto cleanup;
-		}
-		type = MR_PUBLIC;
-		p1 = buf + 37; /* must be done after buf-pointer modification in mr_str_replace() */
+	if( !mr_split_armored_data(buf, &headerline, NULL, NULL, &base64)
+	 || headerline == NULL || base64 == NULL ) {
+		goto cleanup;
 	}
-	else if( strncmp(buf, "-----BEGIN PGP PRIVATE KEY BLOCK-----\n", 38)==0 ) {
-		if( mr_str_replace(&buf, "-----END PGP PRIVATE KEY BLOCK-----", "")!=1 ) {
-			mrmailbox_log_warning(mailbox, 0, "Bad header for key \"%s\".", pathNfilename);
-			goto cleanup;
-		}
+
+	if( strcmp(headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
+		type = MR_PUBLIC;
+	}
+	else if( strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 ) {
 		type = MR_PRIVATE;
-		p1 = buf + 38; /* must be done after buf-pointer modification in mr_str_replace() */
 	}
 	else {
 		mrmailbox_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
 
-	/* base64 starts after first empty line, if any */
-	p2 = strstr(p1, "\n\n"); /* \r  is already removed above */
-	if( p2 ) {
-		p1 = p2;
-	}
-
-	if( !mrkey_set_from_base64(ths, p1, type) ) {
+	if( !mrkey_set_from_base64(ths, base64, type) ) {
 		mrmailbox_log_warning(mailbox, 0, "Bad data in key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
