@@ -521,6 +521,78 @@ cleanup:
 }
 
 
+static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_default)
+{
+	int            success      = 0;
+	int            locked       = 0;
+	char*          buf          = NULL;
+	char*          buf_headerline, *buf_preferencrypt, *buf_base64; /* pointers inside buf, MUST NOT be free()'d */
+	mrkey_t*       private_key  = mrkey_new();
+	mrkey_t*       public_key   = mrkey_new();
+	sqlite3_stmt*  stmt         = NULL;
+	char*          self_addr    = NULL;
+
+	buf = safe_strdup(armored);
+	if( !mr_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
+	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
+		mrmailbox_log_error(mailbox, 0, "File does not contain a private key.");
+		goto cleanup;
+	}
+
+	if( !mrkey_set_from_base64(private_key, buf_base64, MR_PRIVATE)
+	 || !mrpgp_is_valid_key(mailbox, private_key)
+	 || !mrpgp_split_key(mailbox, private_key, public_key) ) {
+		mrmailbox_log_error(mailbox, 0, "File does not contain a valid private key.");
+		goto cleanup;
+	}
+
+	/* add keypair; before this, delete other keypairs with the same binary key and reset defaults */
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+		sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+		sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
+
+		if( set_default ) {
+			mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+		}
+
+		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+		if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
+	if( buf_preferencrypt ) {
+		if( strcmp(buf_preferencrypt, "nopreference")==0 ) {
+			mrmailbox_set_config_int(mailbox, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
+		}
+		else if( strcmp(buf_preferencrypt, "mutual")==0 ) {
+			mrmailbox_set_config_int(mailbox, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
+		}
+	}
+
+	success = 1;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(buf);
+	free(self_addr);
+	mrkey_unref(private_key);
+	mrkey_unref(public_key);
+	return success;
+}
+
+
 /**
  * Continue the Autocrypt Key Transfer on another device.
  *
@@ -556,23 +628,27 @@ int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const
 		goto cleanup;
 	}
 
-	if( (msg=mrmailbox_get_msg(mailbox, msg_id))==NULL || !mrmsg_is_setupmessage(msg) ) {
-		goto cleanup;
-	}
-
-	if( (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
+	if( (msg=mrmailbox_get_msg(mailbox, msg_id))==NULL || !mrmsg_is_setupmessage(msg)
+	 || (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
+		mrmailbox_log_error(mailbox, 0, "Message is no Autocrypt Setup Message.");
 		goto cleanup;
 	}
 
 	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_mailbox) || filecontent == NULL || filebytes <= 0 ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
 
-	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, setup_code, filecontent)) != NULL ) {
+	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, setup_code, filecontent)) == NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot decrypt Autocrypt Setup Message.");
 		goto cleanup;
 	}
 
-	/* TODO: add the key to private keychain, keep existing as legacy keys */
+	if( !set_self_key(mailbox, armored_key, 1/*set default*/) ) {
+		goto cleanup; /* error already logged */
+	}
+
+	success = 1;
 
 cleanup:
 	free(armored_key);
@@ -657,16 +733,16 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	Maybe we should make the "default" key handlong also a little bit smarter
 	(currently, the last imported key is the standard key unless it contains the string "legacy" in its name) */
 
-	int            imported_count = 0, locked = 0;
+	int            imported_count = 0;
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry = NULL;
 	char*          suffix = NULL;
 	char*          path_plus_name = NULL;
-	mrkey_t*       private_key = mrkey_new();
-	mrkey_t*       public_key = mrkey_new();
-	sqlite3_stmt*  stmt = NULL;
-	char*          self_addr = NULL;
 	int            set_default = 0;
+	char*          buf = NULL;
+	size_t         buf_bytes = 0;
+	char*          buf2 = NULL;
+	char*          buf2_headerline; /* a pointer inside buf2, MUST NOT be free()'d */
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dir_name==NULL ) {
 		goto cleanup;
@@ -688,23 +764,19 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 		free(path_plus_name);
 		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
 		mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
-		if( !mrkey_set_from_file(private_key, path_plus_name, mailbox) ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot read key from \"%s\".", path_plus_name);
+
+		free(buf);
+		buf = NULL;
+		if( !mr_read_file(path_plus_name, (void**)&buf, &buf_bytes, mailbox)
+		 || buf_bytes < 50 ) {
 			continue;
 		}
 
-		if( private_key->m_type!=MR_PRIVATE ) {
+		free(buf2);
+		buf2 = safe_strdup(buf);
+		if( mr_split_armored_data(buf2, &buf2_headerline, NULL, NULL, NULL)
+		 && strcmp(buf2_headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
 			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
-		}
-
-		if( !mrpgp_is_valid_key(mailbox, private_key) ) {
-			mrmailbox_log_error(mailbox, 0, "\"%s\" is no valid key.", path_plus_name);
-			continue;
-		}
-
-		if( !mrpgp_split_key(mailbox, private_key, public_key) ) {
-			mrmailbox_log_error(mailbox, 0, "\"%s\" seems not to contain a private key.", path_plus_name);
-			continue;
 		}
 
 		set_default = 1;
@@ -713,32 +785,11 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
-		/* add keypair as default; before this, delete other keypairs with the same binary key and reset defaults */
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		if( !set_self_key(mailbox, buf, set_default) ) {
+			continue;
+		}
 
-			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-			sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-			sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-			stmt = NULL;
-
-			if( set_default ) {
-				mrsqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
-			}
-
-			free(self_addr);
-			self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
-				mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
-				goto cleanup;
-			}
-
-			imported_count++;
-
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		imported_count++;
 	}
 
 	if( imported_count == 0 ) {
@@ -747,14 +798,11 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( dir_handle ) { closedir(dir_handle); }
 	free(suffix);
 	free(path_plus_name);
-	mrkey_unref(private_key);
-	mrkey_unref(public_key);
-	if( stmt ) { sqlite3_finalize(stmt); }
-	free(self_addr);
+	free(buf);
+	free(buf2);
 	return imported_count;
 }
 
