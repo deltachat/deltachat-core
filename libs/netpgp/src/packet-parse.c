@@ -3293,7 +3293,7 @@ static int parse_sk_sesskey(pgp_region_t *region, pgp_stream_t *stream)
 		iv = NULL;
 		ci.set_crypt_key(&ci, key);
 		pgp_encrypt_init(&ci);
-		pgp_decrypt_se_ip(&ci, decr_session_key, encr_session_key, session_key_bytes); // TODO/TOCHECK: or pgp_decrypt_se()?
+		pgp_decrypt_se_ip(&ci, decr_session_key, encr_session_key, session_key_bytes); /* pgp_decrypt_se_ip() decrypts using CFB mode, pgp_decrypt_se() would not */
 		ci.decrypt_finish(&ci);
 
 		/* use decrypted data as key */
