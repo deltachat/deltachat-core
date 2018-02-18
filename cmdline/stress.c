@@ -542,6 +542,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf);
 	}
 
+	if( mrmailbox_is_configured(mailbox) )
 	{
 		char *setupcode = NULL, *setupfile = NULL;
 
