@@ -3215,43 +3215,39 @@ uint8_t* pgp_s2k_do(const char* passphrase,
 // EDIT BY MR - parse Symmetric-Key Encrypted Session Key Packets (Tag 3)
 static int parse_sk_sesskey(pgp_region_t *region, pgp_stream_t *stream)
 {
+	int      success = 0;
 	uint8_t  version = 0, algo = 0;
 	uint8_t  s2k_spec = 0, s2k_hash_algo = 0, s2k_salt[PGP_SALT_SIZE], s2k_iter_id = 0;
 	uint8_t  *iv;
 	uint8_t  *key = NULL;
 
 	if( region == NULL || stream == NULL || stream->cbinfo.cryptinfo.symm_passphrase == NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	/* 2 bytes - version & algorithm  */
+	/* 2 bytes - Version & algorithm  */
 	if( !limread(&version, 1, region, stream) || version != 4
 	 || !limread(&algo, 1, region, stream) ) {
-		return 0;
+		goto cleanup;
 	}
 
-	/* n bytes - s2k specifier */
+	/* n bytes - S2K specifier */
 	if (!limread(&s2k_spec, 1, region, stream)
 	 || (s2k_spec!=PGP_S2KS_SIMPLE && s2k_spec!=PGP_S2KS_SALTED && s2k_spec!=PGP_S2KS_ITERATED_AND_SALTED)
 	 || !limread(&s2k_hash_algo, 1, region, stream) ) {
-		return 0;
+		goto cleanup;
 	}
 
 	if( s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
 		if (!limread(s2k_salt, PGP_SALT_SIZE, region, stream)) {
-			return 0;
+			goto cleanup;
 		}
 	}
 
 	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
 		if (!limread(&s2k_iter_id, 1, region, stream)) {
-			return 0;
+			goto cleanup;
 		}
-	}
-
-	/* n bytes - optional encrypted session key */
-	if( region->length > region->readc ) {
-		return 0; /* TODO: "Encrypted Session Key" in "Symmetric-Key Encrypted Session Key Packets" (Tag 3), this is used eg. by the Enigmail Setup Message */
 	}
 
 	/* calculate the key from the passphrase */
@@ -3260,22 +3256,43 @@ static int parse_sk_sesskey(pgp_region_t *region, pgp_stream_t *stream)
 		pgp_crypt_any(&temp_crypt_info, algo);
 		if( (key = pgp_s2k_do(stream->cbinfo.cryptinfo.symm_passphrase, temp_crypt_info.keysize,
 			                  s2k_spec, s2k_hash_algo, s2k_salt, s2k_iter_id)) == NULL ) {
-			return 0;
+			goto cleanup;
 		}
 	}
 
 	/* set up stream->decrypt so that PGP_PTAG_CT_SE_IP_DATA can decrypt the data
 	as it does for "Public-Key Encrypted Session Key Packets (Tag 1)" */
-	pgp_crypt_any(&stream->decrypt, algo);
-	iv = calloc(1, stream->decrypt.blocksize); if( iv == NULL ) { return 0; }
-	stream->decrypt.set_iv(&stream->decrypt, iv);
-	stream->decrypt.set_crypt_key(&stream->decrypt, key);
-	pgp_encrypt_init(&stream->decrypt);
-	free(iv);
+	if( region->length > region->readc )
+	{
+		/* n bytes - Encrypted session key _is_ present. From RFC 4880:
+		"[...] The result of applying the S2K algorithm to the passphrase is
+		used to decrypt just that encrypted session key field, using CFB mode
+		with an IV of all zeros. The decryption result consists of a one-octet
+		algorithm identifier that specifies the symmetric-key encryption
+		algorithm used to encrypt the following Symmetrically Encrypted Data
+		packet, followed by the session key octets themselves. */
+		goto cleanup; // TODO
+	}
+	else
+	{
+		/* 0 bytes - Encrypted session key is _not_ present. From RFC 4880:
+		"[...] The S2K algorithm applied to the passphrase produces the session
+		key for decrypting the file, using the symmetric cipher algorithm from
+		the Symmetric-Key Encrypted Session Key packet." */
+		pgp_crypt_any(&stream->decrypt, algo);
+		iv = calloc(1, stream->decrypt.blocksize); if( iv == NULL ) { goto cleanup; }
+		stream->decrypt.set_iv(&stream->decrypt, iv);
+		stream->decrypt.set_crypt_key(&stream->decrypt, key);
+		pgp_encrypt_init(&stream->decrypt);
+		free(iv);
+	}
 
+	success = 1;
 	stream->cbinfo.gotpass = 1;
+
+cleanup:
 	free(key);
-	return 1;
+	return success;
 }
 // /EDIT BY MR
 
