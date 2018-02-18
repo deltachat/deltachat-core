@@ -2790,7 +2790,9 @@ parse_seckey(pgp_content_enum tag, pgp_region_t *region, pgp_stream_t *stream)
 
 		pgp_forget(passphrase, passlen);
 
-		pgp_crypt_any(&decrypt, pkt.u.seckey.alg);
+		if( !pgp_crypt_any(&decrypt, pkt.u.seckey.alg) ) {
+			return 0; // EDIT BY MR
+		}
 		if (pgp_get_debug_level(__FILE__)) {
 			hexdump(stderr, "input iv", pkt.u.seckey.iv, pgp_block_size(pkt.u.seckey.alg));
 			hexdump(stderr, "key", key, CAST_KEY_LENGTH);
@@ -3102,7 +3104,9 @@ parse_pk_sesskey(pgp_region_t *region,
 		(void) fprintf(stderr, "got pk session key via callback\n");
 	}
 
-	pgp_crypt_any(&stream->decrypt, pkt.u.pk_sesskey.symm_alg);
+	if( !pgp_crypt_any(&stream->decrypt, pkt.u.pk_sesskey.symm_alg) ) {
+		return 0; // EDIT BY MR
+	}
 	iv = calloc(1, stream->decrypt.blocksize);
 	if (iv == NULL) {
 		(void) fprintf(stderr, "parse_pk_sesskey: bad alloc\n");

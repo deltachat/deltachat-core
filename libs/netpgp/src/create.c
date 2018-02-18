@@ -440,7 +440,9 @@ write_seckey_body(const pgp_seckey_t *key,
 
         /* use this session key to encrypt */
 
-        pgp_crypt_any(&crypted, key->alg);
+        if( !pgp_crypt_any(&crypted, key->alg) ) {
+			return 0; // EDIT BY MR
+        }
         crypted.set_iv(&crypted, key->iv);
         crypted.set_crypt_key(&crypted, sesskey);
         pgp_encrypt_init(&crypted);
@@ -1025,8 +1027,9 @@ pgp_create_pk_sesskey(pgp_key_t *key, const char *ciphername, const pgp_pk_sessk
 
 	/* allocate unencoded_m_buf here */
 	(void) memset(&cipherinfo, 0x0, sizeof(cipherinfo));
-	pgp_crypt_any(&cipherinfo,
-		cipher = pgp_str_to_cipher((ciphername) ? ciphername : "cast5"));
+	if( !pgp_crypt_any(&cipherinfo, cipher = pgp_str_to_cipher((ciphername) ? ciphername : "cast5")) ) {
+		return NULL; // EDIT BY MR
+	}
 	unencoded_m_buf = calloc(1, cipherinfo.keysize + 1 + 2);
 	if (unencoded_m_buf == NULL) {
 		(void) fprintf(stderr,
@@ -1333,7 +1336,9 @@ pgp_write_symm_enc_data(const uint8_t *data,
 	size_t		encrypted_sz;
 	int             done = 0;
 
-	pgp_crypt_any(&crypt_info, alg);
+	if( !pgp_crypt_any(&crypt_info, alg) ) {
+		return 0; // EDIT BY MR
+	}
 
 	crypt_info.set_crypt_key(&crypt_info, key);
 

@@ -169,7 +169,9 @@ char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
 
 	/* S2K */
 	#define SYMM_ALGO PGP_SA_AES_128
-	pgp_crypt_any(&crypt_info, SYMM_ALGO);
+	if( !pgp_crypt_any(&crypt_info, SYMM_ALGO) ) {
+		goto cleanup;
+	}
 
 	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations

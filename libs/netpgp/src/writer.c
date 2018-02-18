@@ -1086,7 +1086,9 @@ pgp_push_enc_se_ip(pgp_output_t *output, const pgp_keyring_t *pubkeys, const cha
 		(void) fprintf(stderr, "pgp_push_enc_se_ip: bad alloc\n");
 		return 0;
 	}
-	pgp_crypt_any(encrypted, initial_sesskey->symm_alg);
+	if( !pgp_crypt_any(encrypted, initial_sesskey->symm_alg) ) {
+		return 0; // EDIT BY MR
+	}
 	if ((iv = calloc(1, encrypted->blocksize)) == NULL) {
 		free(se_ip);
 		free(encrypted);
@@ -1550,7 +1552,9 @@ pgp_push_stream_enc_se_ip(pgp_output_t *output, pgp_key_t *pubkey, const char *c
 			"pgp_push_stream_enc_se_ip: bad alloc\n");
 		return;
 	}
-	pgp_crypt_any(encrypted, encrypted_pk_sesskey->symm_alg);
+	if( !pgp_crypt_any(encrypted, encrypted_pk_sesskey->symm_alg) ) {
+		return; // EDIT BY MR
+	}
 	if ((iv = calloc(1, encrypted->blocksize)) == NULL) {
 		free(encrypted);
 		free(se_ip);
