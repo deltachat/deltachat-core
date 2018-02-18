@@ -98,7 +98,7 @@ void mrkey_unref(mrkey_t* ths)
 }
 
 
-int mrkey_set_from_raw(mrkey_t* ths, const void* data, int bytes, int type)
+int mrkey_set_from_binary(mrkey_t* ths, const void* data, int bytes, int type)
 {
     mrkey_empty(ths);
     if( ths==NULL || data==NULL || bytes <= 0 ) {
@@ -121,7 +121,7 @@ int mrkey_set_from_key(mrkey_t* ths, const mrkey_t* o)
 	if( ths==NULL || o==NULL ) {
 		return 0;
 	}
-	return mrkey_set_from_raw(ths, o->m_binary, o->m_bytes, o->m_type);
+	return mrkey_set_from_binary(ths, o->m_binary, o->m_bytes, o->m_type);
 }
 
 
@@ -131,7 +131,7 @@ int mrkey_set_from_stmt(mrkey_t* ths, sqlite3_stmt* stmt, int index, int type)
 	if( ths==NULL || stmt==NULL ) {
 		return 0;
 	}
-	return mrkey_set_from_raw(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
+	return mrkey_set_from_binary(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
 }
 
 
@@ -151,7 +151,7 @@ int mrkey_set_from_base64(mrkey_t* ths, const char* base64, int type)
 		return 0; /* bad key */
 	}
 
-	mrkey_set_from_raw(ths, result, result_len, type);
+	mrkey_set_from_binary(ths, result, result_len, type);
 	mmap_string_unref(result);
 
 	return 1;

@@ -582,7 +582,7 @@ void stress_functions(mrmailbox_t* mailbox)
 				bad_data[i] = (unsigned char)(i&0xFF);
 			}
 			for( int j = 0; j < BAD_DATA_BYTES/40; j++ ) {
-				mrkey_set_from_raw(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
+				mrkey_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
 				assert( !mrpgp_is_valid_key(mailbox, bad_key) );
 			}
 		mrkey_unref(bad_key);

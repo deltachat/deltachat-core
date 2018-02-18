@@ -381,8 +381,8 @@ int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_pu
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
-	mrkey_set_from_raw(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
+	mrkey_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+	mrkey_set_from_binary(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
 
 	success = 1;
 
@@ -508,7 +508,7 @@ int mrpgp_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* re
 		goto cleanup;
 	}
 
-	mrkey_set_from_raw(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+	mrkey_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
 
 	success = 1;
 
