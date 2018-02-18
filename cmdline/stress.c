@@ -525,11 +525,21 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		char* payload = NULL, *headerline = NULL;
-		assert( (payload=mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile)) != NULL );
-		assert( mr_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
-		assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
-		free(payload);
+		char* buf = NULL, *headerline = NULL, *setupcodebegin, *preferencrypt = NULL;
+
+		buf = strdup(s_em_setupfile);
+			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
+			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
+			assert( setupcodebegin && strlen(setupcodebegin)<strlen(s_em_setupcode) && strncmp(setupcodebegin, s_em_setupcode, strlen(setupcodebegin))==0 );
+			assert( preferencrypt==NULL );
+		free(buf);
+
+		assert( (buf=mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile)) != NULL );
+			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
+			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
+			assert( setupcodebegin==NULL );
+			assert( preferencrypt && strcmp(preferencrypt, "mutual")==0 );
+		free(buf);
 	}
 
 	{
