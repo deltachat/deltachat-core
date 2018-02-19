@@ -41,6 +41,7 @@ typedef struct mrmimepart_t
 	/** @privatesection */
 	int                 m_type; /*one of MR_MSG_* */
 	int                 m_is_meta; /*meta parts contain eg. profile or group images and are only present if there is at least one "normal" part*/
+	int                 m_int_mimetype;
 	char*               m_msg;
 	char*               m_msg_raw;
 	int                 m_bytes;

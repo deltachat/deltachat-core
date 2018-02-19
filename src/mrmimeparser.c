@@ -672,6 +672,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 	#define MR_MIMETYPE_AUDIO               90
 	#define MR_MIMETYPE_VIDEO              100
 	#define MR_MIMETYPE_FILE               110
+	#define MR_MIMETYPE_AC_SETUP_FILE      111
 
 	struct mailmime_content* c = mime->mm_content_type;
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
@@ -720,6 +721,10 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 
 				default:
 					*msg_type = MR_MSG_FILE;
+					if( c->ct_type->tp_data.tp_discrete_type->dt_type == MAILMIME_DISCRETE_TYPE_APPLICATION
+					 && strcmp(c->ct_subtype, "autocrypt-setup")==0 ) {
+						return MR_MIMETYPE_AC_SETUP_FILE; /* application/autocrypt-setup */
+					}
 					return MR_MIMETYPE_FILE;
 			}
 			break;
@@ -1014,6 +1019,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		case MR_MIMETYPE_AUDIO:
 		case MR_MIMETYPE_VIDEO:
 		case MR_MIMETYPE_FILE:
+		case MR_MIMETYPE_AC_SETUP_FILE:
 			{
 				/* get desired file name */
 				struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
@@ -1120,6 +1126,7 @@ cleanup:
 	free(desired_filename);
 
 	if( do_add_part ) {
+		part->m_int_mimetype = mime_type;
 		if( ths->m_decrypted_and_validated ) {
 			mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 		}
@@ -1440,7 +1447,26 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	}
 
 	if( mrmimeparser_lookup_field(ths, "Autocrypt-Setup-Message") ) {
-		ths->m_is_system_message = MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE;
+		/* Autocrypt-Setup-Message header found - check if there is an application/autocrypt-setup part */
+		int i, has_setup_file = 0;
+		for( i = 0; i < carray_count(ths->m_parts); i++ ) {
+			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			if( part->m_int_mimetype==MR_MIMETYPE_AC_SETUP_FILE ) {
+				has_setup_file = 1;
+			}
+		}
+		if( has_setup_file ) {
+			/* delete all parts but the application/autocrypt-setup part */
+			ths->m_is_system_message = MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE;
+			for( i = 0; i < carray_count(ths->m_parts); i++ ) {
+				mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+				if( part->m_int_mimetype!=MR_MIMETYPE_AC_SETUP_FILE ) {
+					mrmimepart_unref(part);
+					carray_delete_slow(ths->m_parts, i);
+					i--; /* start over with the same index */
+				}
+			}
+		}
 	}
 
 	/* prepend subject to message? */
