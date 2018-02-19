@@ -525,6 +525,16 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
+		char* norm = mrmailbox_normalize_setup_code(mailbox, "123422343234423452346234723482349234");
+		assert( norm );
+		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
+
+		norm = mrmailbox_normalize_setup_code(mailbox, "\t1 2 3422343234- foo bar-- 423-45 2 34 6234723482349234      ");
+		assert( norm );
+		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
+	}
+
+	{
 		char* buf = NULL, *headerline = NULL, *setupcodebegin, *preferencrypt = NULL;
 
 		buf = strdup(s_em_setupfile);
