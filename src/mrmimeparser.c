@@ -1741,3 +1741,67 @@ int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 }
 
 
+/**
+ * Checks, if there is only one recipient address and if the recipient address
+ * matches the sender address.  The function does _not_ check, if this address
+ * matches the address configured for a special account.
+ *
+ * The function searches in the outer MIME header, not in possibly protected
+ * memoryhole headers (if needed, we can change this; the reason for this is
+ * only that mailimf_get_recipients() was already there - and does not respect
+ * memoryhole as used on a lower level before memoryhole is calculated)
+ *
+ * @private @memberof mrmimeparser_t
+ *
+ * @param mimeparser The MIME-parser object.
+ *
+ * @return 1=Sender matches recipient
+ *     0=Sender does not match recipient or there are more than one recipients
+ */
+int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
+{
+	int                         sender_equals_recipient = 0;
+	const struct mailimf_field* fld;
+	const struct mailimf_from*  fld_from;
+	struct mailimf_mailbox*     mb;
+	char*                       from_addr_norm;
+	mrhash_t*                   recipients   = NULL;
+
+	if( mimeparser == NULL || mimeparser->m_header_root == NULL ) {
+		goto cleanup;
+	}
+
+	/* get From: and check there is exactly one sender */
+	if( (fld=mailimf_find_field(mimeparser->m_header_root, MAILIMF_FIELD_FROM)) == NULL
+	 || (fld_from=fld->fld_data.fld_from) == NULL
+	 || fld_from->frm_mb_list == NULL
+	 || fld_from->frm_mb_list->mb_list == NULL
+	 || clist_count(fld_from->frm_mb_list->mb_list) != 1 ) {
+		goto cleanup;
+	}
+
+	mb = (struct mailimf_mailbox*)clist_content(clist_begin(fld_from->frm_mb_list->mb_list));
+	if( mb == NULL ) {
+		goto cleanup;
+	}
+
+	from_addr_norm = mr_normalize_addr(mb->mb_addr_spec);
+
+	/* get To:/Cc: and check there is exactly one recipent */
+	recipients = mailimf_get_recipients(mimeparser->m_header_root);
+	if( mrhash_count(recipients) != 1 ) {
+		goto cleanup;
+	}
+
+	/* check if From: == To:/Cc: */
+	if( mrhash_find(recipients, from_addr_norm, strlen(from_addr_norm)) ) {
+		sender_equals_recipient = 1;
+	}
+
+cleanup:
+	mrhash_clear(recipients);
+	free(recipients);
+	free(from_addr_norm);
+	return sender_equals_recipient;
+}
+

@@ -93,6 +93,7 @@ struct mailimf_optional_field* mrmimeparser_lookup_optional_field2 (mrmimeparser
 mrmimepart_t*                  mrmimeparser_get_last_nonmeta       (mrmimeparser_t*);
 #define                        mrmimeparser_has_nonmeta(a)         (mrmimeparser_get_last_nonmeta((a))!=NULL)
 int                            mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
+int                            mrmimeparser_sender_equals_recipient(mrmimeparser_t*);
 
 
 
