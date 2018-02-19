@@ -390,6 +390,37 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 }
 
 
+/* Function remove all special characters from the given code and brings it to the 9x4 form */
+char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
+{
+	#define MAX_OUT_CHARS 256
+
+	if( in == NULL || strlen(in)>MAX_OUT_CHARS ) {
+		return NULL;
+	}
+
+	char* out = calloc(1, MAX_OUT_CHARS*2); /* calloc() ensures, the resulting string is always null-terminated, *2 for the minus-characters and the null-terminator */
+	int   outlen;
+
+	char*       p2 = out;
+	const char* p1 = in;
+	while( *p1 ) {
+		if( *p1 >= '0' && *p1 <= '9' ) {
+			*p2 = *p1;
+			p2++;
+			outlen = strlen(out);
+			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
+				*p2 = '-';
+				p2++;
+			}
+		}
+		p1++;
+	}
+
+	return out;
+}
+
+
 /**
  * Initiate Autocrypt Key Transfer.
  *
@@ -623,6 +654,7 @@ int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const
 	char*    filecontent = NULL;
 	size_t   filebytes   = 0;
 	char*    armored_key = NULL;
+	char*    norm_sc     = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
 		goto cleanup;
@@ -639,7 +671,12 @@ int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const
 		goto cleanup;
 	}
 
-	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, setup_code, filecontent)) == NULL ) {
+	if( (norm_sc = mrmailbox_normalize_setup_code(mailbox, setup_code))==NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot normalize Setup Code.");
+		goto cleanup;
+	}
+
+	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, norm_sc, filecontent)) == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
@@ -655,6 +692,7 @@ cleanup:
 	free(filecontent);
 	free(filename);
 	mrmsg_unref(msg);
+	free(norm_sc);
 	return success;
 }
 
