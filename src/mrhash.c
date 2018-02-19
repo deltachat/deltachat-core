@@ -135,7 +135,10 @@ void mrhash_clear(mrhash_t *pH)
 {
 	mrhashelem_t *elem;         /* For looping over all elements of the table */
 
-	assert( pH!=0 );
+	if( pH == NULL ) {
+		return;
+	}
+
 	elem = pH->first;
 	pH->first = 0;
 	if( pH->ht ) sjhashFree(pH->ht);
