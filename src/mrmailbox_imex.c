@@ -535,7 +535,7 @@ static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_defau
 	buf = safe_strdup(armored);
 	if( !mr_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
 	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "File does not contain a private key.");
+		mrmailbox_log_warning(mailbox, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
@@ -640,7 +640,7 @@ int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const
 	}
 
 	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, setup_code, filecontent)) == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot decrypt Autocrypt Setup Message.");
+		mrmailbox_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
