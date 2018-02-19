@@ -367,10 +367,6 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 			incoming = 1;
 		}
 
-		if( mime_parser->m_is_system_message == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
-			incoming = 1;
-		}
-
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
 		 && (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
@@ -384,9 +380,13 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(ths, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
-					if( mime_parser->m_is_system_message != MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+					if( mrmimeparser_sender_equals_recipient(mime_parser) )
 					{
-						incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be messages outgoing messages which we also receive -
+						from_id = MR_CONTACT_ID_SELF;
+					}
+					else
+					{
+						incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be outgoing messages which we also receive -
 									  for these messages, the `Return-Path:` is set although we're the sender.  To correct these cases, we add an
 									  additional From: check - which, however, will not work for older From:-addresses used on the mailbox. */
 					}
@@ -482,7 +482,8 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 						chat_id = test_normal_chat_id;
 						if( chat_id == 0 )
 						{
-							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ )
+							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/
+							 || from_id == to_id/*self-sent message, eg. a setup message */ )
 							{
 								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
 							}
@@ -613,9 +614,10 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				if( part->m_type == MR_MSG_TEXT ) {
 					txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
-					if( mime_parser->m_is_system_message ) {
-						mrparam_set_int(part->m_param, MRP_SYSTEM_CMD, mime_parser->m_is_system_message);
-					}
+				}
+
+				if( mime_parser->m_is_system_message ) {
+					mrparam_set_int(part->m_param, MRP_SYSTEM_CMD, mime_parser->m_is_system_message);
 				}
 
 				stmt = mrsqlite3_predefine__(ths->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
