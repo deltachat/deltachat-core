@@ -18,7 +18,7 @@ completely different messenger projects.
 Some features at a glance:
 
 - **Secure** with automatic end-to-end-encryption, supporting the new
-  [Autocrypt](https://autocrypt.readthedocs.io/en/latest/) standard
+  [Autocrypt](https://autocrypt.org/) standard
 - **Fast** by the use of Push-IMAP
 - **Read receipts**
 - **Largest userbase** - recipients _not_ using Delta Chat can be reached as well
