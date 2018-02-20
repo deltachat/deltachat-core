@@ -488,7 +488,15 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf = strdup("-----BEGIN PGP MESSAGE-----\nNoVal:\n\ndata\n-----END PGP MESSAGE-----");
 		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 1 );
+		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 		assert( base64 && strcmp(base64, "data") == 0 );
+		free(buf);
+
+		buf = strdup("-----BEGIN PGP MESSAGE-----\n\ndat1\n-----END PGP MESSAGE-----\n-----BEGIN PGP MESSAGE-----\n\ndat2\n-----END PGP MESSAGE-----");
+		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		assert( ok == 1 );
+		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
+		assert( base64 && strcmp(base64, "dat1") == 0 );
 		free(buf);
 
 		buf = strdup("foo \n -----BEGIN PGP MESSAGE----- \n base64-123 \n  -----END PGP MESSAGE-----");
