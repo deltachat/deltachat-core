@@ -73,6 +73,7 @@ void mrchat_unref(mrchat_t* chat)
 
 	mrchat_empty(chat);
 	mrparam_unref(chat->m_param);
+	chat->m_magic = 0;
 	free(chat);
 }
 

@@ -75,6 +75,7 @@ void mrarray_unref(mrarray_t* array)
 	}
 
 	free(array->m_array);
+	array->m_magic = 0;
 	free(array);
 }
 

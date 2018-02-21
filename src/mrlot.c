@@ -59,6 +59,7 @@ void mrlot_unref(mrlot_t* set)
 	}
 
 	mrlot_empty(set);
+	set->m_magic = 0;
 	free(set);
 }
 

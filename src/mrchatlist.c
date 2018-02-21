@@ -70,6 +70,7 @@ void mrchatlist_unref(mrchatlist_t* chatlist)
 
 	mrchatlist_empty(chatlist);
 	mrarray_unref(chatlist->m_chatNlastmsg_ids);
+	chatlist->m_magic = 0;
 	free(chatlist);
 }
 

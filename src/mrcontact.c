@@ -65,6 +65,7 @@ void mrcontact_unref(mrcontact_t* contact)
 	}
 
 	mrcontact_empty(contact);
+	contact->m_magic = 0;
 	free(contact);
 }
 

@@ -970,6 +970,7 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	}
 
 	free(mailbox->m_os_name);
+	mailbox->m_magic = 0;
 	free(mailbox);
 
 	if( s_localize_mb_obj==mailbox ) {

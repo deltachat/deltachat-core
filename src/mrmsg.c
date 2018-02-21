@@ -74,6 +74,7 @@ void mrmsg_unref(mrmsg_t* msg)
 
 	mrmsg_empty(msg);
 	mrparam_unref(msg->m_param);
+	msg->m_magic = 0;
 	free(msg);
 }
 
