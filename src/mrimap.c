@@ -1712,7 +1712,9 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as \"Deleted\".");
+		/* EXPUNGE the messages marked for deletion; it may be more efficient to
+		do this only after deleting a number of mails */
+		mailimap_expunge(ths->m_hEtpan);
 
 		success = 1;
 
