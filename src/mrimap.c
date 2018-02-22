@@ -1534,7 +1534,7 @@ cleanup:
 }
 
 
-static int add_flag__(mrimap_t* ths, const char* folder, uint32_t server_uid, struct mailimap_flag* flag)
+static int add_flag__(mrimap_t* ths, uint32_t server_uid, struct mailimap_flag* flag)
 {
 	int                              r;
 	struct mailimap_flag_list*       flag_list = NULL;
@@ -1542,10 +1542,6 @@ static int add_flag__(mrimap_t* ths, const char* folder, uint32_t server_uid, st
 	struct mailimap_set*             set = mailimap_set_new_single(server_uid);
 
 	if( ths==NULL || ths->m_hEtpan==NULL ) {
-		goto cleanup;
-	}
-
-	if( select_folder__(ths, folder)==0 ) {
 		goto cleanup;
 	}
 
@@ -1599,7 +1595,12 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message %s/%i as seen...", folder, (int)server_uid);
 
-		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_seen())==0 ) {
+		if( select_folder__(ths, folder)==0 ) {
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder.");
+			goto cleanup;
+		}
+
+		if( add_flag__(ths, server_uid, mailimap_flag_new_seen())==0 ) {
 			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as seen.");
 			goto cleanup;
 		}
@@ -1639,7 +1640,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 					clistiter* cur=clist_begin(fetch_result);
 					if( cur ) {
 						if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
-							add_flag__(ths, folder, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
+							add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
 							*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
 						}
 					}
@@ -1726,7 +1727,12 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message \"%s\" for deletion, server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
 
-		if( add_flag__(ths, folder, server_uid, mailimap_flag_new_deleted())==0 ) {
+		if( select_folder__(ths, folder)==0 ) {
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
+			goto cleanup;
+		}
+
+		if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
 			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
 			goto cleanup;
 		}
