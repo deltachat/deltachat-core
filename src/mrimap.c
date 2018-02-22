@@ -1406,6 +1406,17 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 	ths->m_fetch_type_uid = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch the ID */
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_uid, mailimap_fetch_att_new_uid());
 
+
+	ths->m_fetch_type_message_id = mailimap_fetch_type_new_fetch_att_list_empty();
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_message_id, mailimap_fetch_att_new_envelope());
+	clist* hdrlist = clist_new();
+	clist_append(hdrlist, strdup("Message-ID"));
+	struct mailimap_header_list* imap_hdrlist = mailimap_header_list_new(hdrlist);
+	struct mailimap_section* section = mailimap_section_new_header_fields(imap_hdrlist);
+	struct mailimap_fetch_att* fetch_att = mailimap_fetch_att_new_body_peek_section(section);
+	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_message_id, fetch_att);
+
+
 	ths->m_fetch_type_body = mailimap_fetch_type_new_fetch_att_list_empty(); /* object to fetch flags+body */
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_flags());
 	mailimap_fetch_type_new_fetch_att_list_add(ths->m_fetch_type_body, mailimap_fetch_att_new_body_peek_section(mailimap_section_new(NULL)));
@@ -1716,8 +1727,8 @@ cleanup:
 
 int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder, uint32_t server_uid)
 {
-	// when deleting using server_uid, we have to check against rfc724_mid first - the UID validity or the mailbox may have change
-	int success = 0, handle_locked = 0, idle_blocked = 0;
+	int    success = 0, handle_locked = 0, idle_blocked = 0;
+	clist* fetch_result = NULL;
 
 	if( ths==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0 || server_uid==0 ) {
 		success = 1; /* job done, do not try over */
@@ -1736,6 +1747,33 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 			goto cleanup;
 		}
 
+		/* check if Folder+UID matches the Message-ID (to detect if the messages
+		was moved around by other MUAs and in place of an UIDVALIDITY check)
+		(we also detect messages moved around when we do a fetch-all, see
+		mrmailbox_update_server_uid__() in receive_imf(), however this may take a while) */
+		{
+			int r;
+			struct mailimap_set* set = mailimap_set_new_single(server_uid);
+				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_message_id, &fetch_result);
+			mailimap_set_free(set);
+			if( is_error(ths, r) || fetch_result == NULL ) {
+				fetch_result = NULL;
+				goto cleanup;
+			}
+			clistiter* cur;
+			if( (cur=clist_begin(fetch_result)) == NULL ) {
+				goto cleanup;
+			}
+			struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
+			char*       msg_content = NULL;
+			size_t      msg_bytes = 0;
+			uint32_t    flags = 0;
+			int         deleted = 0;
+			peek_body(msg_att, &msg_content, &msg_bytes, &flags, &deleted);
+			// TODO: msg_content contains the message-id; check if this matches rfc724_mid
+		}
+
+		/* mark the message for deletion */
 		if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
 			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
 			goto cleanup;
@@ -1749,6 +1787,8 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 cleanup:
 	UNBLOCK_IDLE
 	UNLOCK_HANDLE
+
+	if( fetch_result ) { mailimap_fetch_list_free(fetch_result); }
 
 	return success? 1 : mrimap_is_connected(ths); /* only return 0 on connection problems; we should try later again in this case */
 
