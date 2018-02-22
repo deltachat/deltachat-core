@@ -60,6 +60,7 @@ typedef struct mrimap_t
 	pthread_mutex_t       m_hEtpanmutex;
 	int                   m_idle_set_up;
 	char*                 m_selected_folder;
+	int                   m_selected_folder_needs_expunge;
 	int                   m_should_reconnect;
 
 	int                   m_can_idle;

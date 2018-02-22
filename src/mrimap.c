@@ -371,32 +371,51 @@ cleanup:
 }
 
 
-static void forget_folder_selection__(mrimap_t* ths)
+static int select_folder__(mrimap_t* ths, const char* folder /*may be NULL*/)
 {
-	ths->m_selected_folder[0] = 0;
+	if( ths == NULL ) {
+		return 0;
+	}
+
+	if( ths->m_hEtpan==NULL ) {
+		ths->m_selected_folder[0] = 0;
+		ths->m_selected_folder_needs_expunge = 0;
+		return 0;
+	}
+
+	/* if there is a new folder and the new folder is equal to the selected one, there's nothing to do.
+	if there is _no_ new folder, we continue as we might want to expunge below.  */
+	if( folder && strcmp(ths->m_selected_folder, folder)==0 ) {
+		return 1;
+	}
+
+	/* deselect existing folder, if needed (it's also done implicitly by SELECT, however, without EXPUNGE then) */
+	if( ths->m_selected_folder_needs_expunge ) {
+		if( ths->m_selected_folder[0] ) {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Expunge messages in \"%s\".", ths->m_selected_folder);
+			mailimap_close(ths->m_hEtpan); /* a CLOSE-SELECT is considerably faster than an EXPUNGE-SELECT, see https://tools.ietf.org/html/rfc3501#section-6.4.2 */
+		}
+		ths->m_selected_folder_needs_expunge = 0;
+	}
+
+	/* select new folder */
+	if( folder ) {
+		int r = mailimap_select(ths->m_hEtpan, folder);
+		if( is_error(ths, r) || ths->m_hEtpan->imap_selection_info == NULL ) {
+			ths->m_selected_folder[0] = 0;
+			return 0;
+		}
+	}
+
+	free(ths->m_selected_folder);
+	ths->m_selected_folder = safe_strdup(folder);
+	return 1;
 }
 
 
-static int select_folder__(mrimap_t* ths, const char* folder)
+static void forget_folder_selection__(mrimap_t* ths)
 {
-	if( ths==NULL || ths->m_hEtpan==NULL ) {
-		return 0;
-	}
-
-	if( strcmp(ths->m_selected_folder, folder)==0 ) {
-		return 1;
-	}
-
-	int r = mailimap_select(ths->m_hEtpan, folder);
-	if( is_error(ths, r) || ths->m_hEtpan->imap_selection_info == NULL ) {
-		ths->m_selected_folder[0] = 0;
-		return 0;
-	}
-	else {
-		free(ths->m_selected_folder);
-		ths->m_selected_folder = safe_strdup(folder);
-		return 1;
-	}
+	select_folder__(ths, NULL);
 }
 
 
@@ -1712,9 +1731,8 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 			goto cleanup;
 		}
 
-		/* EXPUNGE the messages marked for deletion; it may be more efficient to
-		do this only after deleting a number of mails */
-		mailimap_expunge(ths->m_hEtpan);
+		/* force an EXPUNGE resp. CLOSE for the selected folder */
+		ths->m_selected_folder_needs_expunge = 1;
 
 		success = 1;
 
