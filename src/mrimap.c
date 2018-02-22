@@ -489,6 +489,9 @@ static int peek_flag_keyword(struct mailimap_msg_att* msg_att, const char* flag_
 
 static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_msg_bytes, uint32_t* flags, int* deleted)
 {
+	if( msg_att == NULL ) {
+		return;
+	}
 	/* search body & Co. in a list of attributes returned by a FETCH command */
 	clistiter *iter1, *iter2;
 	for( iter1=clist_begin(msg_att->att_list); iter1!=NULL; iter1=clist_next(iter1) )
@@ -537,8 +540,8 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	/* the function returns:
 	    0  the caller should try over again later
 	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
-	char*       msg_content;
-	size_t      msg_bytes;
+	char*       msg_content = NULL;
+	size_t      msg_bytes = 0;
 	int         r, retry_later = 0, deleted = 0, handle_locked = 0, idle_blocked = 0;
 	uint32_t    flags = 0;
 	clist*      fetch_result = NULL;
