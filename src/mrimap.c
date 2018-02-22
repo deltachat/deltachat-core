@@ -1717,7 +1717,8 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 	int success = 0, handle_locked = 0, idle_blocked = 0;
 
 	if( ths==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0 || server_uid==0 ) {
-		return 1; /* job done */
+		success = 1; /* job done, do not try over */
+		goto cleanup;
 	}
 
 	LOCK_HANDLE
@@ -1728,7 +1729,7 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message \"%s\" for deletion, server_folder=%s, server_uid=%i...", rfc724_mid, folder, (int)server_uid);
 
 		if( select_folder__(ths, folder)==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder); /* maybe the folder does no longer exist */
 			goto cleanup;
 		}
 
@@ -1746,6 +1747,7 @@ cleanup:
 	UNBLOCK_IDLE
 	UNLOCK_HANDLE
 
-	return success;
+	return success? 1 : mrimap_is_connected(ths); /* only return 0 on connection problems; we should try later again in this case */
+
 }
 
