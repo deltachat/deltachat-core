@@ -212,12 +212,12 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 
 			char* temp2 = mr_timestamp_to_str(mrmsg_get_timestamp(msg));
 			char* msgtext = mrmsg_get_text(msg);
-				mrmailbox_log_info(mailbox, 0, "Msg#%i: %s (Contact#%i): %s %s%s%s%s%s [%s]",
+				mrmailbox_log_info(mailbox, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 					(int)mrmsg_get_id(msg),
+					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
 					contact_name,
 					contact_id,
 					msgtext,
-					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
 					mrmsg_is_starred(msg)? " \xE2\x98\x85" : "",
 					mrmsg_get_from_id(msg)==1? "" : (mrmsg_get_state(msg)==MR_STATE_IN_SEEN? "[SEEN]" : (mrmsg_get_state(msg)==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
 					mrmsg_is_systemcmd(msg)? "[SYSTEM]" : "",
