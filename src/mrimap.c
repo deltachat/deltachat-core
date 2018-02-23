@@ -419,6 +419,45 @@ static void forget_folder_selection__(mrimap_t* ths)
 }
 
 
+static uint32_t search_uid__(mrimap_t* imap, const char* message_id)
+{
+	/* Search Message-ID in all folders.
+	On success, the folder containing the message is selected and the UID is returned.
+	On failure, 0 is returned and any or none folder is selected. */
+	clist                       *folders = list_folders__(imap), *search_result = NULL;
+	clistiter                   *cur, *cur2;
+	struct mailimap_search_key  *key = mailimap_search_key_new_header(strdup("Message-ID"), mr_mprintf("<%s>", message_id));
+	uint32_t                    uid = 0;
+	for( cur = clist_begin(folders); cur != NULL ; cur = clist_next(cur) )
+	{
+		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		if( select_folder__(imap, folder->m_name_to_select) )
+		{
+			int r = mailimap_uid_search(imap->m_hEtpan, "utf-8", key, &search_result);
+			if( !is_error(imap, r) && search_result ) {
+				if( (cur2=clist_begin(search_result)) != NULL ) {
+					uint32_t* ptr_uid = (uint32_t *)clist_content(cur2);
+					if( ptr_uid ) {
+						uid = *ptr_uid;
+					}
+				}
+				mailimap_search_result_free(search_result);
+				search_result = NULL;
+				if( uid ) {
+					goto cleanup;
+				}
+			}
+		}
+	}
+
+cleanup:
+	if( search_result ) { mailimap_search_result_free(search_result); }
+	if( key ) { mailimap_search_key_free(key); }
+	free_folders(folders);
+	return uid;
+}
+
+
 /*******************************************************************************
  * Fetch Messages
  ******************************************************************************/
@@ -1774,6 +1813,7 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 	int    success = 0, handle_locked = 0, idle_blocked = 0, r = 0;
 	clist* fetch_result = NULL;
 	char*  is_rfc724_mid = NULL;
+	char*  new_folder = NULL;
 
 	if( ths==NULL || rfc724_mid==NULL || folder==NULL || folder[0]==0 ) {
 		success = 1; /* job done, do not try over */
@@ -1814,10 +1854,15 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 			}
 		}
 
-		/* server_uid is 0 now if it was not given or if it does not match the given message id
-		(we might decide to search for the message-id in all folders then) */
+		/* server_uid is 0 now if it was not given or if it does not match the given message id;
+		try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
 		if( server_uid == 0 ) {
-			goto cleanup;
+			mrmailbox_log_info(ths->m_mailbox, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
+			if( (server_uid=search_uid__(ths, rfc724_mid))==0 ) {
+				mrmailbox_log_warning(ths->m_mailbox, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
+				goto cleanup;
+			}
+			mrmailbox_log_info(ths->m_mailbox, 0, "Message-ID \"%s\" found in %s/%i", rfc724_mid, ths->m_selected_folder, server_uid);
 		}
 
 
@@ -1838,6 +1883,7 @@ cleanup:
 
 	if( fetch_result ) { mailimap_fetch_list_free(fetch_result); }
 	free(is_rfc724_mid);
+	free(new_folder);
 
 	return success? 1 : mrimap_is_connected(ths); /* only return 0 on connection problems; we should try later again in this case */
 
