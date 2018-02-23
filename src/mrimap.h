@@ -83,6 +83,7 @@ typedef struct mrimap_t
 	pthread_mutex_t       m_heartbeat_condmutex;
 
 	struct mailimap_fetch_type* m_fetch_type_uid;
+	struct mailimap_fetch_type* m_fetch_type_message_id;
 	struct mailimap_fetch_type* m_fetch_type_body;
 	struct mailimap_fetch_type* m_fetch_type_flags;
 
