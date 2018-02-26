@@ -1467,6 +1467,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				}
 			}
 		}
+		ths->m_is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
 	}
 
 	/* prepend subject to message? */
