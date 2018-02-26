@@ -351,6 +351,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"listarchived\n"
 				"chat [<chat-id>|0]\n"
 				"createchat <contact-id>\n"
+				"createchatbymsg <msg-id>\n"
 				"creategroup <name>\n"
 				"addmember <contact-id>\n"
 				"removemember <contact-id>\n"
@@ -694,6 +695,17 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+		}
+	}
+	else if( strcmp(cmd, "createchatbymsg")==0 )
+	{
+		if( arg1 ) {
+			int msg_id = atoi(arg1);
+			int chat_id = mrmailbox_create_chat_by_msg_id(mailbox, msg_id);
+			ret = chat_id!=0? mr_mprintf("Chat#%lu created successfully.", chat_id) : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "creategroup")==0 )

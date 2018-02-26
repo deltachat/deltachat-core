@@ -226,6 +226,7 @@ mrchatlist_t*   mrmailbox_get_chatlist      (mrmailbox_t*, int flags, const char
 
 
 /* Handle chats */
+uint32_t        mrmailbox_create_chat_by_msg_id     (mrmailbox_t*, uint32_t contact_id);
 uint32_t        mrmailbox_create_chat_by_contact_id (mrmailbox_t*, uint32_t contact_id);
 uint32_t        mrmailbox_get_chat_id_by_contact_id (mrmailbox_t*, uint32_t contact_id);
 

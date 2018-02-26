@@ -1936,6 +1936,27 @@ cleanup:
 }
 
 
+/**
+ * Create a normal chat or a group chat by a messages ID that comes typically
+ * from the deaddrop, MR_CHAT_ID_DEADDROP (1).
+ *
+ * If the given message ID already belongs to a normal chat or to a group chat,
+ * the chat ID of this chat is returned.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ *
+ * @param msg_id The message ID to create the chat for.
+ *
+ * @return The created or reused chat ID on success. 0 on errors.
+ */
+uint32_t mrmailbox_create_chat_by_msg_id(mrmailbox_t* mailbox, uint32_t msg_id)
+{
+    return 0;
+}
+
+
 static mrarray_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
 	mrarray_t* ret = mrarray_new(mailbox, 100);
