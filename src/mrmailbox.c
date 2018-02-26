@@ -3061,7 +3061,8 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 			mrmsg_save_param_to_disk__(mimefactory.m_msg);
 		}
 
-		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0 ) {
+		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
+		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0 ) {
 			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL); /* send message to IMAP in another job */
 		}
 
