@@ -1719,6 +1719,27 @@ mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
  * - Linked in visits, do-you-know      - OK, individual message
  * - Share-It notifications             - OK, individual message
  * - Transifex, Github notifications    - OK, individual message
+ *
+ * Current state of mailing list handling:
+ *
+ * As we currently do not have an extra handling for mailing list messages, the
+ * best is to ignore them completely.
+ *
+ * - if we know the sender, we should show them in the normal chat of the sender as this will lose the
+ *   context of the mail
+ *
+ * - for unknown senders, mailing list messages are often replies to known messages (see is_reply_to_known_message__()) -
+ *   which gives the sender some trust. this should not happen for mailing list messages.
+ *   this may result in unwanted messages and contacts added to the address book that are not known.
+ *
+ * - of course, all this can be fixed, however, this may be a lot of work.
+ *   moreover, if we allow answering to mailing lists, it might not be easy to follow the conventions used in typical mailing list,
+ *   eg threads.
+ *
+ * "Mailing lists messages" in this sense are messages marked by List-Id or Precedence headers.
+ * For the future, we might want to show mailing lists as groups.
+ * (NB: typical mailing list header: `From: sender@gmx.net To: list@address.net)
+ *
  */
 int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
 {
