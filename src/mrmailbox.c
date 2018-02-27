@@ -451,7 +451,9 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				to_id = MR_CONTACT_ID_SELF;
 
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
-				int test_normal_chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id); /* note that the test_normal_chat_id is also used below (saves one lookup call) */
+				uint32_t test_normal_chat_id = 0;
+				int      test_normal_chat_blocked = 0;
+				mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id, &test_normal_chat_id, &test_normal_chat_blocked);
 
 				/* check for a group chat */
 				chat_id = lookup_group_by_grpid__(ths, mime_parser, (test_normal_chat_id || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CREATE_GROUP_AS_NEEDED : 0, from_id, to_ids);
@@ -501,7 +503,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					chat_id = lookup_group_by_grpid__(ths, mime_parser, MR_CREATE_GROUP_AS_NEEDED, from_id, to_ids);
 					if( chat_id == 0 )
 					{
-						chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id);
+						mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id, &chat_id, NULL);
 						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
 							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
 						}
@@ -1847,6 +1849,7 @@ void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	uint32_t chat_id = 0;
+	int      chat_id_blocked = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
@@ -1854,11 +1857,11 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id);
+		mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, &chat_id_blocked);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	return chat_id;
+	return chat_id_blocked? 0 : chat_id; /* from outside view, chats only existing in the deaddrop do not exist */
 }
 
 
@@ -1878,6 +1881,7 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
+	int           chat_blocked = 0;
 	int           send_event = 0, locked = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1887,10 +1891,12 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		chat_id = mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id);
+		mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, &chat_blocked);
 		if( chat_id ) {
-			mrmailbox_log_warning(mailbox, 0, "Chat with contact %i already exists.", (int)contact_id);
-			goto cleanup;
+			if( chat_blocked ) {
+				mrmailbox_block_chat__(mailbox, chat_id, 0); /* unblock chat (typically move it from the deaddrop to view) */
+			}
+			goto cleanup; /* success */
 		}
 
         if( 0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF ) {
@@ -2540,30 +2546,29 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 }
 
 
-uint32_t mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id /* may be MR_CONTACT_ID_SELF */)
+void mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
-	/* checks for "real" chats (non-trash, non-unknown) */
+	/* checks for "real" chats or self-chat */
 	sqlite3_stmt* stmt;
-	uint32_t chat_id = 0;
+
+	if( ret_chat_id )      { *ret_chat_id = 0;      }
+	if( ret_chat_blocked ) { *ret_chat_blocked = 0; }
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
-		return 0; /* no database, no chats - this is no error (needed eg. for information) */
+		return; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
-			"SELECT c.id"
+			"SELECT c.id, c.blocked"
 			" FROM chats c"
 			" INNER JOIN chats_contacts j ON c.id=j.chat_id"
-			" WHERE c.type=? AND c.id>? AND j.contact_id=?;");
-	sqlite3_bind_int(stmt, 1, MR_CHAT_TYPE_NORMAL);
-	sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
-	sqlite3_bind_int(stmt, 3, contact_id);
+			" WHERE c.type=" MR_STRINGIFY(MR_CHAT_TYPE_NORMAL) " AND c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		chat_id = sqlite3_column_int(stmt, 0);
+		if( ret_chat_id )      { *ret_chat_id      = sqlite3_column_int(stmt, 0); }
+		if( ret_chat_blocked ) { *ret_chat_blocked = sqlite3_column_int(stmt, 1); }
 	}
-
-	return chat_id;
 }
 
 
@@ -2583,7 +2588,8 @@ uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, 
 		return 0;
 	}
 
-	if( (chat_id=mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id)) != 0 ) {
+	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, NULL);
+	if( chat_id != 0 ) {
 		return chat_id; /* soon success */
 	}
 
@@ -4752,6 +4758,22 @@ void mrmailbox_marknoticed_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 }
 
 
+void mrmailbox_block_chat__(mrmailbox_t* mailbox, uint32_t chat_id, int new_blocking)
+{
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_blocked_WHERE_chat_id,
+		"UPDATE chats SET blocked=? WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, new_blocking);
+	sqlite3_bind_int(stmt, 2, chat_id);
+	sqlite3_step(stmt);
+}
+
+
 /**
  * Block or unblock a contact.
  *
@@ -4798,7 +4820,7 @@ void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_
 				(Maybe, beside normal chats (type=100) we should also block group chats with only this user.
 				However, I'm not sure about this point; it may be confusing if the user wants to add other people;
 				this would result in recreating the same group...) */
-				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_blocked,
+				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_blocked_WHERE_contact_id,
 					"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_int(stmt, 1, new_blocking);
 				sqlite3_bind_int(stmt, 2, MR_CHAT_TYPE_NORMAL);

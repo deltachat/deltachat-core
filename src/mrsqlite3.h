@@ -80,7 +80,8 @@ enum
 	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
 	,UPDATE_chats_SET_draft_WHERE_id
 	,UPDATE_chats_SET_n_WHERE_c
-	,UPDATE_chats_SET_blocked
+	,UPDATE_chats_SET_blocked_WHERE_chat_id
+	,UPDATE_chats_SET_blocked_WHERE_contact_id
 	,UPDATE_chats_SET_unarchived
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
