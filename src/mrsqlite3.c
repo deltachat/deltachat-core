@@ -204,7 +204,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'to_deaddrop'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'starred'), (6,120,'archivedlink'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 			#if !defined(MR_CHAT_TYPE_NORMAL) || MR_CHAT_TYPE_NORMAL!=100 || MR_CHAT_TYPE_GROUP!=120 || \
 			 MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TRASH!=3 || \
-			 MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_STARRED!=5 || MR_CHAT_ID_ARCHIVED_LINK!=6
+			 MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_STARRED!=5 || MR_CHAT_ID_ARCHIVED_LINK!=6 || \
+			 MR_CHAT_NOT_BLOCKED!=0  || MR_CHAT_MANUALLY_BLOCKED!=1 || MR_CHAT_DEADDROP_BLOCKED!=2
 				#error
 			#endif
 
@@ -337,6 +338,16 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_timestamp INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key;");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 19
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
