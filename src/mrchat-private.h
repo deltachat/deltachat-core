@@ -27,6 +27,11 @@ extern "C" {
 #endif
 
 
+/* values for the chats.blocked database field */
+#define         MR_CHAT_NOT_BLOCKED       0
+#define         MR_CHAT_MANUALLY_BLOCKED  1
+#define         MR_CHAT_DEADDROP_BLOCKED  2
+
 
 /** the structure behind mrchat_t */
 struct _mrchat
