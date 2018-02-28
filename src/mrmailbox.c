@@ -43,14 +43,19 @@
  ******************************************************************************/
 
 
-#define MR_CREATE_GROUP_AS_NEEDED  0x01
+/* the function tries extracts the group-id from the message and returns the
+corresponding chat_id.  If the chat_id is not existant, it is created.
+If the message contains groups commands (name, profile image, changed members),
+they are executed as well.
 
-
-static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_flags,
-                                        uint32_t from_id, mrarray_t* to_ids)
+So when the function returns, the caller has the group id matching the current
+state of the group. */
+static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
+                                     int32_t from_id, mrarray_t* to_ids,
+                                     uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
-	/* search the grpid in the header */
 	uint32_t              chat_id = 0;
+	int                   chat_blocked = 0;
 	char*                 grpid = NULL;
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
@@ -59,12 +64,12 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 	int                   recreate_member_list = 0;
 	int                   send_EVENT_CHAT_MODIFIED = 0;
 
-	/* special commands */
 	char*                 X_MrRemoveFromGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	char*                 X_MrAddToGrp = NULL; /* pointer somewhere into mime_parser, must not be freed */
 	int                   X_MrGrpNameChanged = 0;
 	int                   X_MrGrpImageChanged = 0;
 
+	/* search the grpid in the header */
 	{
 		struct mailimf_field*          field = NULL;
 		struct mailimf_optional_field* optional_field = NULL;
@@ -132,10 +137,11 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 	/* check, if we have a chat with this group ID */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
-		"SELECT id FROM chats WHERE grpid=?;");
+		"SELECT id, blocked FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
 		chat_id = sqlite3_column_int(stmt, 0);
+		chat_blocked = sqlite3_column_int(stmt, 1);
 	}
 
 	/* check if the sender is a member of the existing group -
@@ -150,22 +156,24 @@ static uint32_t lookup_group_by_grpid__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
-	 && (create_flags&MR_CREATE_GROUP_AS_NEEDED)
+	 && !mrmimeparser_is_mailinglist_message(mime_parser)
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
 	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
 	 )
 	{
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-			"INSERT INTO chats (type, name, grpid) VALUES(?, ?, ?);");
+			"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
 		sqlite3_bind_int (stmt, 1, MR_CHAT_TYPE_GROUP);
 		sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
 		sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 4, create_blocked);
 		if( sqlite3_step(stmt)!=SQLITE_DONE ) {
 			goto cleanup;
 		}
 		sqlite3_finalize(stmt);
 		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		chat_blocked = create_blocked;
 		recreate_member_list = 1;
 	}
 
@@ -276,7 +284,8 @@ cleanup:
 	free(grpid);
 	free(grpname);
 	free(self_addr);
-	return chat_id;
+	if( ret_chat_id )      { *ret_chat_id      = chat_id;                   }
+	if( ret_chat_blocked ) { *ret_chat_blocked = chat_id? chat_blocked : 0; }
 }
 
 
@@ -300,6 +309,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 	int              from_id_blocked = 0;
 	uint32_t         to_id   = 0;
 	uint32_t         chat_id = 0;
+	int              chat_id_blocked = 0;
 	int              state   = MR_STATE_UNDEFINED;
 
 	sqlite3_stmt*    stmt;
@@ -452,44 +462,68 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
 				uint32_t test_normal_chat_id = 0;
-				int      test_normal_chat_blocked = 0;
-				mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id, &test_normal_chat_id, &test_normal_chat_blocked);
+				int      test_normal_chat_id_blocked = 0;
+				mrmailbox_lookup_real_nchat_by_contact_id__(ths, from_id, &test_normal_chat_id, &test_normal_chat_id_blocked);
 
-				/* check for a group chat */
-				chat_id = lookup_group_by_grpid__(ths, mime_parser, (test_normal_chat_id || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CREATE_GROUP_AS_NEEDED : 0, from_id, to_ids);
+				/* get the chat_id - a chat_id here is no indicator that the chat is displayed in the normal list, it might also be
+				blocked and displayed in the deaddrop as a result */
 				if( chat_id == 0 )
 				{
-					if( mrmimeparser_is_mailinglist_message(mime_parser) )
-					{
+					/* try to create a group */
+					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==MR_CHAT_NOT_BLOCKED) || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+					create_or_lookup_group__(ths, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+					if( chat_id && chat_id_blocked && !create_blocked ) {
+						mrmailbox_unblock_chat__(ths, chat_id);
+						chat_id_blocked = 0;
+					}
+				}
+
+				if( chat_id == 0 )
+				{
+					/* check if the message belongs to a mailing list */
+					if( mrmimeparser_is_mailinglist_message(mime_parser) ) {
 						chat_id = MR_CHAT_ID_TRASH;
 						mrmailbox_log_info(ths, 0, "Message belongs to a mailing list and is ignored.");
 					}
-					else
-					{
-						chat_id = test_normal_chat_id;
-						if( chat_id == 0 )
-						{
-							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/
-							 || from_id == to_id/*self-sent message, eg. a setup message */ )
-							{
-								mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id, 0, &chat_id, NULL);
-							}
-							else if( mrmailbox_is_reply_to_known_message__(ths, mime_parser) )
-							{
-								mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO);
-								//chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id); -- we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine.
-								mrmailbox_log_info(ths, 0, "Message is a reply to a known message, mark sender as known.");
-							}
-						}
+				}
+
+				if( chat_id == 0 )
+				{
+					/* try to create a normal chat */
+					int create_blocked = (incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ || from_id==to_id)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+					if( test_normal_chat_id ) {
+						chat_id         = test_normal_chat_id;
+						chat_id_blocked = test_normal_chat_id_blocked;
+					}
+					else {
+						mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id, create_blocked, &chat_id, &chat_id_blocked);
 					}
 
-					if( chat_id == 0 ) {
-						chat_id = MR_CHAT_ID_DEADDROP;
-						if( state == MR_STATE_IN_FRESH ) {
-							if( incoming_origin<MR_ORIGIN_MIN_VERIFIED && mime_parser->m_is_send_by_messenger==0 ) {
-								state = MR_STATE_IN_NOTICED; /* degrade state for unknown senders and non-delta messages (the latter may be removed if we run into spam problems, currently this is fine) (noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
-							}
+					if( chat_id && chat_id_blocked ) {
+						if( !create_blocked ) {
+							mrmailbox_unblock_chat__(ths, chat_id);
+							chat_id_blocked = 0;
 						}
+						else if( mrmailbox_is_reply_to_known_message__(ths, mime_parser) ) {
+							mrmailbox_scaleup_contact_origin__(ths, from_id, MR_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
+							mrmailbox_log_info(ths, 0, "Message is a reply to a known message, mark sender as known.");
+							incoming_origin = MR_MAX(incoming_origin, MR_ORIGIN_INCOMING_REPLY_TO);
+						}
+					}
+				}
+
+				if( chat_id == 0 )
+				{
+					/* maybe from_id is null or sth. else is suspicious, move message to trash */
+					chat_id = MR_CHAT_ID_TRASH;
+				}
+
+				/* degrade state for unknown senders and non-delta messages
+				(the latter may be removed if we run into spam problems, currently this is fine)
+				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
+				if( chat_id_blocked && state == MR_STATE_IN_FRESH ) {
+					if( incoming_origin<MR_ORIGIN_MIN_VERIFIED && mime_parser->m_is_send_by_messenger==0 ) {
+						state = MR_STATE_IN_NOTICED;
 					}
 				}
 			}
@@ -500,12 +534,22 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				if( mrarray_get_cnt(to_ids) >= 1 ) {
 					to_id   = mrarray_get_id(to_ids, 0);
 
-					chat_id = lookup_group_by_grpid__(ths, mime_parser, MR_CREATE_GROUP_AS_NEEDED, from_id, to_ids);
 					if( chat_id == 0 )
 					{
-						mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id, &chat_id, NULL);
-						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
-							mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id, 0, &chat_id, NULL);
+						create_or_lookup_group__(ths, mime_parser, MR_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
+						if( chat_id && chat_id_blocked ) {
+							mrmailbox_unblock_chat__(ths, chat_id);
+							chat_id_blocked = 0;
+						}
+					}
+
+					if( chat_id == 0 )
+					{
+						int create_blocked = (mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id))? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+						mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id, create_blocked, &chat_id, &chat_id_blocked);
+						if( chat_id && chat_id_blocked && !create_blocked ) {
+							mrmailbox_unblock_chat__(ths, chat_id);
+							chat_id_blocked = 0;
 						}
 					}
 				}
@@ -513,12 +557,16 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				if( chat_id == 0 ) {
 					if( mrarray_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
-						mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, MR_CONTACT_ID_SELF, 0, &chat_id, NULL);
+						mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
+						if( chat_id && chat_id_blocked ) {
+							mrmailbox_unblock_chat__(ths, chat_id);
+							chat_id_blocked = 0;
+						}
 					}
 				}
 
 				if( chat_id == 0 ) {
-					chat_id = MR_CHAT_ID_TO_DEADDROP;
+					chat_id = MR_CHAT_ID_TRASH;
 				}
 			}
 
@@ -652,7 +700,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				if( from_id_blocked ) {
 					create_event_to_send = 0;
 				}
-				else if( chat_id == MR_CHAT_ID_DEADDROP ) {
+				else if( chat_id_blocked ) {
 					create_event_to_send = MR_EVENT_MSGS_CHANGED;
 					/*if( mrsqlite3_get_config_int__(ths->m_sql, "show_deaddrop", 0)!=0 ) {
 						create_event_to_send = MR_EVENT_INCOMING_MSG;
