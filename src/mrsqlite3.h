@@ -53,7 +53,6 @@ enum
 	,SELECT_id_FROM_contacts_WHERE_id
 	,SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc
 	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
-	,SELECT_id_FROM_contacts_WHERE_chat_id
 	,SELECT_id_FROM_contacts_ORDER_BY
 	,SELECT_id_FROM_contacts_WHERE_query_ORDER_BY
 	,SELECT_COUNT_FROM_contacts_WHERE_blocked

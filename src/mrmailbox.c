@@ -2096,6 +2096,7 @@ mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
+	int           locked = 0;
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
@@ -2103,31 +2104,26 @@ mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	if( chat_id == MR_CHAT_ID_DEADDROP ) {
+		goto cleanup; /* we could also create a list for all contacts in the deaddrop by searching contacts belonging to chats with chats.blocked=2, however, currently this is not needed */
+	}
 
-		if( chat_id == MR_CHAT_ID_DEADDROP )
-		{
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_chat_id,
-				"SELECT DISTINCT from_id FROM msgs WHERE chat_id=? and from_id!=0 ORDER BY id DESC;"); /* from_id in the deaddrop chat may be 0, see comment [**] */
-			sqlite3_bind_int(stmt, 1, chat_id);
-		}
-		else
-		{
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c_ORDER_BY,
-				"SELECT cc.contact_id FROM chats_contacts cc"
-					" LEFT JOIN contacts c ON c.id=cc.contact_id"
-					" WHERE cc.chat_id=?"
-					" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
-			sqlite3_bind_int(stmt, 1, chat_id);
-		}
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c_ORDER_BY,
+			"SELECT cc.contact_id FROM chats_contacts cc"
+				" LEFT JOIN contacts c ON c.id=cc.contact_id"
+				" WHERE cc.chat_id=?"
+				" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
+		sqlite3_bind_int(stmt, 1, chat_id);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
-
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return ret;
 }
 
