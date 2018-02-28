@@ -1894,7 +1894,8 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 		mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, &chat_blocked);
 		if( chat_id ) {
 			if( chat_blocked ) {
-				mrmailbox_block_chat__(mailbox, chat_id, 0); /* unblock chat (typically move it from the deaddrop to view) */
+				mrmailbox_unblock_chat__(mailbox, chat_id); /* unblock chat (typically move it from the deaddrop to view) */
+				send_event = 1;
 			}
 			goto cleanup; /* success */
 		}
@@ -1904,20 +1905,15 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 			goto cleanup;
         }
 
-		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, 0, &chat_id, NULL);
+		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_NOT_BLOCKED, &chat_id, NULL);
 		if( chat_id ) {
 			send_event = 1;
 		}
 
 		mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_CREATE_CHAT);
 
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( send_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
