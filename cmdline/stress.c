@@ -327,7 +327,6 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp("group="        MR_STRINGIFY(MR_CHAT_TYPE_GROUP),          "group=120")==0 );
 
 		assert( strcmp("deaddrop="     MR_STRINGIFY(MR_CHAT_ID_DEADDROP),         "deaddrop=1")==0 );
-		assert( strcmp("to_deaddrop="  MR_STRINGIFY(MR_CHAT_ID_TO_DEADDROP),      "to_deaddrop=2")==0 );
 		assert( strcmp("trash="        MR_STRINGIFY(MR_CHAT_ID_TRASH),            "trash=3")==0 );
 		assert( strcmp("in_creation="  MR_STRINGIFY(MR_CHAT_ID_MSGS_IN_CREATION), "in_creation=4")==0 );
 		assert( strcmp("starred="      MR_STRINGIFY(MR_CHAT_ID_STARRED),          "starred=5")==0 );
