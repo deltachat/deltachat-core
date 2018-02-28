@@ -2507,7 +2507,12 @@ uint32_t mrmailbox_get_last_deaddrop_fresh_msg__(mrmailbox_t* mailbox)
 	sqlite3_stmt* stmt = NULL;
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_fresh_AND_deaddrop,
-		"SELECT id FROM msgs WHERE state=" MR_STRINGIFY(MR_STATE_IN_FRESH) " AND chat_id=" MR_STRINGIFY(MR_CHAT_ID_DEADDROP) " ORDER BY timestamp DESC, id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+		"SELECT m.id "
+		" FROM msgs m "
+		" LEFT JOIN chats c ON c.id=m.chat_id "
+		" WHERE m.state=" MR_STRINGIFY(MR_STATE_IN_FRESH)
+		" AND c.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
+		" ORDER BY m.timestamp DESC, m.id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
@@ -5125,9 +5130,12 @@ size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 	}
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
-		"SELECT COUNT(*) FROM msgs WHERE id>? AND chat_id>?;");
-	sqlite3_bind_int(stmt, 1, MR_MSG_ID_LAST_SPECIAL);
-	sqlite3_bind_int(stmt, 2, MR_CHAT_ID_LAST_SPECIAL);
+		"SELECT COUNT(*) "
+		" FROM msgs m "
+		" LEFT JOIN chats c ON c.id=m.chat_id "
+		" WHERE m.id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL)
+		" AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+		" AND c.blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		mrsqlite3_log_error(mailbox->m_sql, "mr_get_assigned_msg_cnt_() failed.");
 		return 0;
@@ -5144,8 +5152,7 @@ size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
 	}
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
-	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_DEADDROP);
+		"SELECT COUNT(*) FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id WHERE c.blocked=2;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
