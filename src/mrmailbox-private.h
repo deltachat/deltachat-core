@@ -101,6 +101,7 @@ void            mrmailbox_scaleup_contact_origin__                (mrmailbox_t*,
 void            mrmailbox_unarchive_chat__                        (mrmailbox_t*, uint32_t chat_id);
 size_t          mrmailbox_get_chat_cnt__                          (mrmailbox_t*);
 void            mrmailbox_block_chat__                            (mrmailbox_t*, uint32_t chat_id, int new_blocking);
+void            mrmailbox_unblock_chat__                          (mrmailbox_t*, uint32_t chat_id);
 void            mrmailbox_create_or_lookup_nchat_by_contact_id__  (mrmailbox_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
 void            mrmailbox_lookup_real_nchat_by_contact_id__       (mrmailbox_t*, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked);
 int             mrmailbox_get_total_msg_count__                   (mrmailbox_t*, uint32_t chat_id);

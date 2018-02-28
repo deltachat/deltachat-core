@@ -4767,6 +4767,12 @@ void mrmailbox_block_chat__(mrmailbox_t* mailbox, uint32_t chat_id, int new_bloc
 }
 
 
+void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	mrmailbox_block_chat__(mailbox, chat_id, MR_CHAT_NOT_BLOCKED);
+}
+
+
 /**
  * Block or unblock a contact.
  *
