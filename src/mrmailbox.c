@@ -472,7 +472,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 							if( incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/
 							 || from_id == to_id/*self-sent message, eg. a setup message */ )
 							{
-								chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id);
+								mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, from_id, 0, &chat_id, NULL);
 							}
 							else if( mrmailbox_is_reply_to_known_message__(ths, mime_parser) )
 							{
@@ -505,7 +505,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 					{
 						mrmailbox_lookup_real_nchat_by_contact_id__(ths, to_id, &chat_id, NULL);
 						if( chat_id == 0 && mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(ths, to_id) ) {
-							chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id);
+							mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, to_id, 0, &chat_id, NULL);
 						}
 					}
 				}
@@ -513,7 +513,7 @@ static void receive_imf(mrmailbox_t* ths, const char* imf_raw_not_terminated, si
 				if( chat_id == 0 ) {
 					if( mrarray_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
-						chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, MR_CONTACT_ID_SELF);
+						mrmailbox_create_or_lookup_nchat_by_contact_id__(ths, MR_CONTACT_ID_SELF, 0, &chat_id, NULL);
 					}
 				}
 
@@ -1904,7 +1904,7 @@ uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 			goto cleanup;
         }
 
-		chat_id = mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id);
+		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, 0, &chat_id, NULL);
 		if( chat_id ) {
 			send_event = 1;
 		}
@@ -2572,25 +2572,31 @@ void mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t 
 }
 
 
-uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+void mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	uint32_t      chat_id = 0;
+	int           chat_blocked = 0;
 	mrcontact_t*  contact = NULL;
 	char*         chat_name;
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
 
+	if( ret_chat_id )      { *ret_chat_id = 0;      }
+	if( ret_chat_blocked ) { *ret_chat_blocked = 0; }
+
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
-		return 0; /* database not opened - error */
+		return; /* database not opened - error */
 	}
 
 	if( contact_id == 0 ) {
-		return 0;
+		return;
 	}
 
-	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, NULL);
+	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &chat_id, &chat_blocked);
 	if( chat_id != 0 ) {
-		return chat_id; /* soon success */
+		if( ret_chat_id )      { *ret_chat_id      = chat_id;      }
+		if( ret_chat_blocked ) { *ret_chat_blocked = chat_blocked; }
+		return; /* soon success */
 	}
 
 	/* get fine chat name */
@@ -2602,8 +2608,8 @@ uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, 
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
 	/* create chat record */
-	q = sqlite3_mprintf("INSERT INTO chats (type, name, param) VALUES(%i, %Q, %Q)", MR_CHAT_TYPE_NORMAL, chat_name,
-		contact_id==MR_CONTACT_ID_SELF? "K=1" : "");
+	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", MR_CHAT_TYPE_NORMAL, chat_name,
+		contact_id==MR_CONTACT_ID_SELF? "K=1" : "", create_blocked);
 	assert( MRP_SELFTALK == 'K' );
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 	if( stmt == NULL) {
@@ -2634,17 +2640,6 @@ uint32_t mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, 
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	/* add already existing messages to the chat record */
-	q = sqlite3_mprintf("UPDATE msgs SET chat_id=%i WHERE (chat_id=%i AND from_id=%i) OR (chat_id=%i AND to_id=%i);",
-		chat_id,
-		MR_CHAT_ID_DEADDROP, contact_id,
-		MR_CHAT_ID_TO_DEADDROP, contact_id);
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
-
-    if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		goto cleanup;
-    }
-
 	/* cleanup */
 cleanup:
 	if( q ) {
@@ -2658,7 +2653,9 @@ cleanup:
 	if( contact ) {
 		mrcontact_unref(contact);
 	}
-	return chat_id;
+
+	if( ret_chat_id )      { *ret_chat_id      = chat_id; }
+	if( ret_chat_blocked ) { *ret_chat_blocked = create_blocked; }
 }
 
 
