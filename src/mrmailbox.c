@@ -2546,9 +2546,8 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 		return 0; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats, "SELECT COUNT(*) FROM chats WHERE id>?;");
-	sqlite3_bind_int(stmt, 1, MR_CHAT_ID_LAST_SPECIAL);
-
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats,
+		"SELECT COUNT(*) FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
