@@ -2014,6 +2014,8 @@ uint32_t mrmailbox_create_chat_by_msg_id(mrmailbox_t* mailbox, uint32_t msg_id)
 			send_event = 1;
 		}
 
+		mrmailbox_scaleup_contact_origin__(mailbox, msg->m_from_id, MR_ORIGIN_CREATE_CHAT);
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
