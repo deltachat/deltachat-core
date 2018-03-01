@@ -84,12 +84,11 @@ struct _mrmsg
 	uint32_t        m_server_uid;             /**< UID last seen on the server for this message */
 	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
 	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
+	int             m_chat_blocked;           /**< Internal */
 	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 };
 
 
-#define         MR_MSG_FIELDS                        " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, m.param,m.starred "
-int             mrmsg_set_from_stmt__                (mrmsg_t*, sqlite3_stmt* row, int row_offset); /* row order is MR_MSG_FIELDS */
 int             mrmsg_load_from_db__                 (mrmsg_t*, mrmailbox_t*, uint32_t id);
 int             mrmsg_is_increation__                (const mrmsg_t*);
 char*           mrmsg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
