@@ -107,6 +107,8 @@ void mrchat_empty(mrchat_t* chat)
 	free(chat->m_grpid);
 	chat->m_grpid = NULL;
 
+	chat->m_blocked = 0;
+
 	mrparam_set_packed(chat->m_param, NULL);
 }
 
@@ -423,7 +425,7 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 
 	mrchat_empty(ths);
 
-	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived "
+	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
 	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
 	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
@@ -432,6 +434,7 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
 	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 	mrparam_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
+	ths->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
 	Also make sure, m_draft_text and m_draft_timestamp are set together */

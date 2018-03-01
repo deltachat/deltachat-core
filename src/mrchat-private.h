@@ -46,6 +46,7 @@ struct _mrchat
 	int             m_archived;         /**< Archived state. Better use mrchat_get_archived() to access this object. */
 	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
+	int             m_blocked;          /**< One of MR_CHAT_*_BLOCKED */
 	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 };
 

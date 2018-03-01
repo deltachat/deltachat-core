@@ -1988,7 +1988,40 @@ cleanup:
  */
 uint32_t mrmailbox_create_chat_by_msg_id(mrmailbox_t* mailbox, uint32_t msg_id)
 {
-    return 0;
+	int       locked     = 0;
+	uint32_t  chat_id    = 0;
+	int       send_event = 0;
+	mrmsg_t*  msg        = mrmsg_new();
+	mrchat_t* chat       = mrchat_new(mailbox);
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( !mrmsg_load_from_db__(msg, mailbox, msg_id)
+		 || !mrchat_load_from_db__(chat, msg->m_chat_id)
+		 || chat->m_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+			goto cleanup;
+		}
+
+		chat_id = chat->m_id;
+
+		if( chat->m_blocked ) {
+			mrmailbox_unblock_chat__(mailbox, chat->m_id);
+			send_event = 1;
+		}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrmsg_unref(msg);
+	mrchat_unref(chat);
+	if( send_event ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	}
+	return chat_id;
 }
 
 
