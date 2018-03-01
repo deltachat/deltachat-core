@@ -853,9 +853,13 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
 
+
+	/* up to 2018-02-28 we truncated messages in the deaddrop as below.
+	if we want to keep this behavior, we have to check chats.blocked now which would require an additional LEFT JOIN.
+	However, I am not sure if this is really useful at all.
 	if( ths->m_chat_id == MR_CHAT_ID_DEADDROP ) {
-		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
-	}
+		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); // 256 characters is about a half screen on a 5" smartphone display
+	}*/
 
 	return 1;
 }
