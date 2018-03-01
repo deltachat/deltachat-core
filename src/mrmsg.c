@@ -154,6 +154,8 @@ uint32_t mrmsg_get_from_id(mrmsg_t* msg)
 /**
  * Get the ID of chat the message belongs to.
  * To get details about the chat, pass the returned ID to mrmailbox_get_chat().
+ * If a message is still in the deaddrop, the ID MR_CHAT_ID_DEADDROP is returned
+ * although internally another ID is used.
  *
  * @memberof mrmsg_t
  *
@@ -166,7 +168,7 @@ uint32_t mrmsg_get_chat_id(mrmsg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_chat_id;
+	return msg->m_chat_blocked? MR_CHAT_ID_DEADDROP : msg->m_chat_id;
 }
 
 
