@@ -5809,49 +5809,64 @@ cleanup:
  */
 void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
+	int locked = 0, transaction_pending = 0;
 	int i, send_event = 0;
+	int curr_state = 0, curr_blocked = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
-		return;
+		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
+	transaction_pending = 1;
 
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_seen_WHERE_id_AND_chat_id_AND_freshORnoticed,
-				"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_SEEN)
-				" WHERE id=? AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND (state=" MR_STRINGIFY(MR_STATE_IN_FRESH) " OR state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) ");");
+			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id,
+				"SELECT m.state, c.blocked "
+				" FROM msgs m "
+				" LEFT JOIN chats c ON c.id=m.chat_id "
+				" WHERE m.id=? AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL));
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
-			sqlite3_step(stmt);
-			if( sqlite3_changes(mailbox->m_sql->m_cobj) )
+			if( sqlite3_step(stmt) != SQLITE_ROW ) {
+				goto cleanup;
+			}
+			curr_state   = sqlite3_column_int(stmt, 0);
+			curr_blocked = sqlite3_column_int(stmt, 1);
+			if( curr_blocked == 0 )
 			{
-				mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
-				mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
-				send_event = 1;
+				if( curr_state == MR_STATE_IN_FRESH || curr_state == MR_STATE_IN_NOTICED ) {
+					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_SEEN);
+					mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
+					mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+					send_event = 1;
+				}
 			}
 			else
 			{
 				/* message may be in contact requests, mark as NOTICED, this does not force IMAP updated nor send MDNs */
-				sqlite3_stmt* stmt2 = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_noticed_WHERE_id_AND_fresh,
-					"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED)
-					" WHERE id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
-				sqlite3_bind_int(stmt2, 1, msg_ids[i]);
-				sqlite3_step(stmt2);
-				if( sqlite3_changes(mailbox->m_sql->m_cobj) ) {
+				if( curr_state == MR_STATE_IN_FRESH ) {
+					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_NOTICED);
 					send_event = 1;
 				}
 			}
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
+	transaction_pending = 0;
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 	/* the event is needed eg. to remove the deaddrop from the chatlist */
 	if( send_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 	}
+
+cleanup:
+	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 }
 
 

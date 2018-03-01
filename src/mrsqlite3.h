@@ -114,8 +114,7 @@ enum
 	,INSERT_INTO_msgs_mcftttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id
-	,UPDATE_msgs_SET_seen_WHERE_id_AND_chat_id_AND_freshORnoticed
-	,UPDATE_msgs_SET_noticed_WHERE_id_AND_fresh
+	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
 	,UPDATE_msgs_SET_state_WHERE_from_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
