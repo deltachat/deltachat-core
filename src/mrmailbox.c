@@ -1978,6 +1978,16 @@ cleanup:
  * If the given message ID already belongs to a normal chat or to a group chat,
  * the chat ID of this chat is returned.
  *
+ * If the user should be start before the chat is created, he should just be
+ * asked whether he wants to chat with the _contact_ belonging to the message;
+ * the group names may be really weired when take from the subject of implicit
+ * groups and this may look confusing.
+ *
+ * Moreover, this function also scales up the origin of the contact belonging
+ * to the message and, depending on the contacts origin, messages from the
+ * same group may be shown or not - so, all in all, it is fine to show the
+ * contact name only.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
