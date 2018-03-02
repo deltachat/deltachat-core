@@ -726,7 +726,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				blocked and displayed in the deaddrop as a result */
 				if( chat_id == 0 )
 				{
-					/* try to create a group */
+					/* try to create a group
+					(groups appear automatically only if the _sender_ is known, see core issue #54) */
 					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==MR_CHAT_NOT_BLOCKED) || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
 					create_or_lookup_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 					if( chat_id && chat_id_blocked && !create_blocked ) {
