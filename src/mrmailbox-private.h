@@ -77,20 +77,12 @@ struct _mrmailbox
 
 };
 
-
+void            mrmailbox_receive_imf                             (mrmailbox_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
 void            mrmailbox_connect_to_imap                         (mrmailbox_t*, mrjob_t*);
 void            mrmailbox_wake_lock                               (mrmailbox_t*);
 void            mrmailbox_wake_unlock                             (mrmailbox_t*);
-int             mrmailbox_poke_eml_file                           (mrmailbox_t*, const char* file);
-int             mrmailbox_is_reply_to_known_message__             (mrmailbox_t*, mrmimeparser_t*);
-int             mrmailbox_is_reply_to_messenger_message__         (mrmailbox_t*, mrmimeparser_t*);
-time_t          mrmailbox_correct_bad_timestamp__                 (mrmailbox_t* ths, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg);
-void            mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* ths, struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self);
-void            mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* ths, struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
-int             mrmailbox_reset_tables                            (mrmailbox_t*, int bits); /* reset tables but leaves server configuration, 1=jobs, 2=e2ee, 8=rest but server config */
-int             mrmailbox_cleanup_contacts                        (mrmailbox_t* ths); /* remove all contacts that are not used (e.g. in a chat, or blocked */
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
 int             mrmailbox_get_contact_origin__                    (mrmailbox_t*, uint32_t id, int* ret_blocked);

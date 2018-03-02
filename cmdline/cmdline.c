@@ -32,6 +32,108 @@ your library */
 #include "../src/mrpgp.h"
 
 
+/*
+ * Reset database tables. This function is called from Core cmdline.
+ *
+ * Argument is a bitmask, executing single or multiple actions in one call.
+ *
+ * e.g. bitmask 7 triggers actions definded with bits 1, 2 and 4.
+ */
+int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
+{
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
+	mrmailbox_log_info(ths, 0, "Resetting tables (%i)...", bits);
+
+	mrsqlite3_lock(ths->m_sql);
+
+		if( bits & 1 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
+			mrmailbox_log_info(ths, 0, "(1) Jobs reset.");
+		}
+
+		if( bits & 2 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
+			mrmailbox_log_info(ths, 0, "(2) Peerstates reset.");
+		}
+
+		if( bits & 4 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
+			mrmailbox_log_info(ths, 0, "(4) Private keypairs reset.");
+		}
+
+		if( bits & 8 ) {
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
+			mrmailbox_log_info(ths, 0, "(8) Rest but server config reset.");
+		}
+
+	mrsqlite3_unlock(ths->m_sql);
+
+	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
+
+	return 1;
+}
+
+
+/*
+ * Clean up the contacts table. This function is called from Core cmdline.
+ *
+ * All contacts not involved in a chat, not blocked and not being a deaddrop
+ * are removed.
+ *
+ * Deleted contacts from the OS address book normally stay in the contacts
+ * database. With this cleanup, they are also removed, as well as all
+ * auto-added contacts, unless they are used in a chat or for blocking purpose.
+ */
+static int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
+{
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
+	mrmailbox_log_info(ths, 0, "Cleaning up contacts ...");
+
+	mrsqlite3_lock(ths->m_sql);
+
+	mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
+
+	mrsqlite3_unlock(ths->m_sql);
+
+	return 1;
+}
+
+static int mrmailbox_poke_eml_file(mrmailbox_t* ths, const char* filename)
+{
+	/* mainly for testing, may be called by mrmailbox_import_spec() */
+	int     success = 0;
+	char*   data = NULL;
+	size_t  data_bytes;
+
+	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+		return 0;
+	}
+
+	if( mr_read_file(filename, (void**)&data, &data_bytes, ths) == 0 ) {
+		goto cleanup;
+	}
+
+	mrmailbox_receive_imf(ths, data, data_bytes, "import", 0, 0); /* this static function is the reason why this function is not moved to mrmailbox_imex.c */
+	success = 1;
+
+cleanup:
+	free(data);
+
+	return success;
+}
+
+
 static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* public_key_file)
 {
 	/* mainly for testing: if the partner does not support Autocrypt,
