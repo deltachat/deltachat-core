@@ -110,10 +110,11 @@ static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
-			"SELECT id FROM msgs "
-			" WHERE rfc724_mid=? "
-			" AND chat_id!=" MR_STRINGIFY(MR_CHAT_ID_TRASH) /*eg. do not replies to our mailinglist messages as known*/
-			" AND (chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " OR from_id=" MR_STRINGIFY(MR_CONTACT_ID_SELF) ");");
+			"SELECT m.id FROM msgs m "
+			" LEFT JOIN chats c ON m.chat_id=c.id "
+			" WHERE m.rfc724_mid=? "
+			" AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+			" AND c.blocked=0;");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
 			return 1;

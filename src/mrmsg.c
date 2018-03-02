@@ -154,6 +154,8 @@ uint32_t mrmsg_get_from_id(mrmsg_t* msg)
 /**
  * Get the ID of chat the message belongs to.
  * To get details about the chat, pass the returned ID to mrmailbox_get_chat().
+ * If a message is still in the deaddrop, the ID MR_CHAT_ID_DEADDROP is returned
+ * although internally another ID is used.
  *
  * @memberof mrmsg_t
  *
@@ -166,7 +168,7 @@ uint32_t mrmsg_get_chat_id(mrmsg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_chat_id;
+	return msg->m_chat_blocked? MR_CHAT_ID_DEADDROP : msg->m_chat_id;
 }
 
 
@@ -831,7 +833,12 @@ cleanup:
  ******************************************************************************/
 
 
-int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
+#define MR_MSG_FIELDS " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, " \
+                      " m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, " \
+                      " m.param,m.starred,c.blocked "
+
+
+static int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
 {
 	mrmsg_empty(ths);
 
@@ -852,8 +859,9 @@ int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* fi
 
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
+	ths->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
-	if( ths->m_chat_id == MR_CHAT_ID_DEADDROP ) {
+	if( ths->m_chat_blocked == 2 ) {
 		mr_truncate_n_unwrap_str(ths->m_text, 256, 0); /* 256 characters is about a half screen on a 5" smartphone display */
 	}
 
@@ -877,7 +885,9 @@ int mrmsg_load_from_db__(mrmsg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 	}
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
-		"SELECT " MR_MSG_FIELDS " FROM msgs m WHERE m.id=?;");
+		"SELECT " MR_MSG_FIELDS
+		" FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id"
+		" WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
