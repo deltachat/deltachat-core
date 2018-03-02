@@ -49,13 +49,13 @@ void             mrarray_add_uint            (mrarray_t*, uintptr_t);
 void             mrarray_add_id              (mrarray_t*, uint32_t);
 void             mrarray_add_ptr             (mrarray_t*, void*);
 
-size_t           mrarray_get_cnt             (mrarray_t*);
-uintptr_t        mrarray_get_uint            (mrarray_t*, size_t index);
-uint32_t         mrarray_get_id              (mrarray_t*, size_t index);
-void*            mrarray_get_ptr             (mrarray_t*, size_t index);
+size_t           mrarray_get_cnt             (const mrarray_t*);
+uintptr_t        mrarray_get_uint            (const mrarray_t*, size_t index);
+uint32_t         mrarray_get_id              (const mrarray_t*, size_t index);
+void*            mrarray_get_ptr             (const mrarray_t*, size_t index);
 
-int              mrarray_search_id           (mrarray_t*, uint32_t needle, size_t* indx);
-const uintptr_t* mrarray_get_raw             (mrarray_t*);
+int              mrarray_search_id           (const mrarray_t*, uint32_t needle, size_t* indx);
+const uintptr_t* mrarray_get_raw             (const mrarray_t*);
 
 
 #ifdef __cplusplus
