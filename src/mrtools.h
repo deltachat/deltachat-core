@@ -55,7 +55,6 @@ void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap)
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);
 char*   mr_insert_breaks           (const char*, int break_every, const char* break_chars); /* insert a break every n characters, the return must be free()'d */
-char*   mr_arr_to_string           (const uint32_t*, int cnt);
 char*   mr_decode_header_string    (const char*); /* the result must be free()'d */
 char*   mr_encode_header_string    (const char*); /* the result must be free()'d */
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);

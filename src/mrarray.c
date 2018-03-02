@@ -326,3 +326,46 @@ const uintptr_t* mrarray_get_raw(const mrarray_t* array)
 	return array->m_array;
 }
 
+
+char* mr_arr_to_string(const uint32_t* arr, int cnt)
+{
+	/* return comma-separated value-string from integer array */
+	char* ret = NULL;
+
+	if( arr==NULL || cnt <= 0 ) {
+		return safe_strdup("");
+	}
+
+	/* use a macro to allow using integers of different bitwidths */
+	#define INT_ARR_TO_STR(a, c) { \
+		int i; \
+		ret = malloc((c)*12/*sign,10 digits,comma*/+1/*terminating zero*/); \
+		if( ret == NULL ) { exit(35); } \
+		ret[0] = 0; \
+		for( i=0; i<(c); i++ ) { \
+			if( i ) { \
+				strcat(ret, ","); \
+			} \
+			sprintf(&ret[strlen(ret)], "%lu", (unsigned long)(a)[i]); \
+		} \
+	}
+
+	INT_ARR_TO_STR(arr, cnt);
+
+	return ret;
+}
+
+
+char* mrarray_get_string(const mrarray_t* array)
+{
+	char* ret = NULL;
+
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return NULL;
+	}
+
+	INT_ARR_TO_STR(array->m_array, array->m_count);
+
+	return ret;
+}
+

@@ -466,29 +466,6 @@ char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
 }
 
 
-char* mr_arr_to_string(const uint32_t* arr, int cnt)
-{
-	/* return comma-separated value-string from integer array */
-	if( arr==NULL || cnt <= 0 ) {
-		return safe_strdup("");
-	}
-
-	char* ret = malloc(cnt*12/*sign,10 digits,comma*/+1/*terminating zero*/);
-	if( ret == NULL ) { exit(35); }
-	ret[0] = 0;
-
-	int i;
-	for( i=0; i<cnt; i++ ) {
-		if( i ) {
-			strcat(ret, ",");
-		}
-		sprintf(&ret[strlen(ret)], "%lu", (unsigned long)arr[i]);
-	}
-
-	return ret;
-}
-
-
 /*******************************************************************************
  * String tools - mrstrbuilder_t
  ******************************************************************************/
