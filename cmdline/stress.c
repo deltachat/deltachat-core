@@ -390,6 +390,14 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrarray_empty(arr);
 		assert( mrarray_get_cnt(arr) == 0 );
 
+		mrarray_add_id(arr, 13);
+		mrarray_add_id(arr, 7);
+		mrarray_add_id(arr, 666);
+		mrarray_add_id(arr, 0);
+		mrarray_add_id(arr, 5000);
+		mrarray_sort(arr);
+		assert( mrarray_get_id(arr, 0)==0 && mrarray_get_id(arr, 1)==7 && mrarray_get_id(arr, 2)==13 && mrarray_get_id(arr, 3)==666 );
+
 		mrarray_unref(arr);
 	}
 

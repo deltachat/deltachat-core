@@ -80,6 +80,38 @@ void mrarray_unref(mrarray_t* array)
 }
 
 
+mrarray_t* mrarray_duplicate(const mrarray_t* array)
+{
+	mrarray_t* ret = NULL;
+
+	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return NULL;
+	}
+
+	ret = mrarray_new(array->m_mailbox, array->m_allocated);
+	ret->m_count = array->m_count;
+	memcpy(ret->m_array, array->m_array, array->m_count * sizeof(uintptr_t));
+
+	return ret;
+}
+
+
+static int cmp_intptr_t(const void* p1, const void* p2)
+{
+	uintptr_t v1 = *(uintptr_t*)p1, v2 = *(uintptr_t*)p2;
+	return (v1<v2)? -1 : ((v1>v2)? 1 : 0); /* CAVE: do not use v1-v2 as the uintptr_t may be 64bit and the return value may be 32bit only... */
+}
+
+
+void mrarray_sort(mrarray_t* array)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+		return;
+	}
+	qsort(array->m_array, array->m_count, sizeof(uintptr_t), cmp_intptr_t);
+}
+
+
 /**
  * Empty an array object. Allocated data is not freed by this function, only the count is set to null.
  *
