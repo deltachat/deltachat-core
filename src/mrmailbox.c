@@ -1929,19 +1929,47 @@ void mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
  ******************************************************************************/
 
 
-
-
-
-
-#define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
-#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
-
-
-int mrmailbox_delete_chat_part2(mrmailbox_t* mailbox, uint32_t chat_id)
+/**
+ * Delete a chat.
+ *
+ * Messages are deleted from the device and the chat database entry is deleted.
+ * After that, the event #MR_EVENT_MSGS_CHANGED is posted.
+ *
+ * Things that are _not_ done implicitly:
+ *
+ * - Messages are **not deleted from the server**.
+ *
+ * - The chat or the contact is **not blocked**, so new messages from the user/the group may appear
+ *   and the user may create the chat again.
+ *
+ * - **Groups are not left** - this would
+ *   be unexpected as (1) deleting a normal chat also does not prevent new mails
+ *   from arriving, (2) leaving a group requires sending a message to
+ *   all group members - esp. for groups not used for a longer time, this is
+ *   really unexpected when deletion results in contacting all members again,
+ *   (3) only leaving groups is also a valid usecase.
+ *
+ * To leave a chat explicitly, use mrmailbox_remove_contact_from_chat() with
+ * chat_id=MR_CONTACT_ID_SELF)
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ *
+ * @param chat_id The ID of the chat to delete.
+ *
+ * @return None
+ */
+void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 {
-	int       success = 0, locked = 0, pending_transaction = 0;
+	/* Up to 2017-11-02 deleting a group also implied leaving it, see above why we have changed this. */
+	int       locked = 0, pending_transaction = 0;
 	mrchat_t* obj = mrchat_new(mailbox);
 	char*     q3 = NULL;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -1980,97 +2008,14 @@ int mrmailbox_delete_chat_part2(mrmailbox_t* mailbox, uint32_t chat_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	success = 1;
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
 	if( pending_transaction ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrchat_unref(obj);
 	if( q3 ) { sqlite3_free(q3); }
-	return success;
 }
-
-
-/**
- * Delete a chat.
- *
- * Messages are deleted from the device and the chat database entry is deleted.
- * After that, the event #MR_EVENT_MSGS_CHANGED is posted.
- *
- * Things that are _not_ done implicitly:
- *
- * - Messages are **not deleted from the server**.
- *
- * - The chat or the contact is **not blocked**, so new messages from the user/the group may appear
- *   and the user may create the chat again.
- *
- * - **Groups are not left** - this would
- *   be unexpected as deleting a normal chat also does not prevent new mails
- *   from arriving (another argument is, that leaving a group requires sending a message to
- *   all group members - esp. for groups not used for a longer time, this is
- *   really unexpected when deletion results in contacting all members again.
- *   To leave a chat explicitly, use mrmailbox_remove_contact_from_chat() with chat_id=MR_CONTACT_ID_SELF)
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
- *
- * @param chat_id The ID of the chat to delete.
- *
- * @return None
- */
-void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
-{
-	mrchat_t*    chat = mrmailbox_get_chat(mailbox, chat_id);
-	mrcontact_t* contact = NULL;
-	mrmsg_t*     msg = mrmsg_new();
-
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || chat == NULL ) {
-		goto cleanup;
-	}
-
-	#ifdef GROUP_DELETE_IMPLIES_LEAVING
-	if( chat->m_type == MR_CHAT_TYPE_GROUP
-	 && mrmailbox_is_contact_in_chat(mailbox, chat_id, MR_CONTACT_ID_SELF)
-	 && DO_SEND_STATUS_MAILS )
-	{
-		/* _first_ mark chat to being deleted and _then_ send the message to inform others that we've quit the group
-		(the order is important - otherwise the message may be sent asynchronous before we update the group. */
-		int link_msg_to_chat_deletion = (int)time(NULL);
-
-		mrparam_set_int(chat->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
-		mrsqlite3_lock(mailbox->m_sql);
-			sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET blocked=1, param=? WHERE id=?;");
-			sqlite3_bind_text (stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (stmt, 2, chat_id);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-			mrmailbox_set_group_explicitly_left__(mailbox, chat->m_grpid);
-		mrsqlite3_unlock(mailbox->m_sql);
-
-		contact = mrmailbox_get_contact(mailbox, MR_CONTACT_ID_SELF);
-		msg->m_type = MR_MSG_TEXT;
-		msg->m_text = mrstock_str(MR_STR_MSGGROUPLEFT);
-		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
-		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_DEL_AFTER_SEND, link_msg_to_chat_deletion);
-		mrmailbox_send_msg_object(mailbox, chat_id, msg);
-	}
-	else
-	#endif
-	{
-		/* directly delete the chat */
-		mrmailbox_delete_chat_part2(mailbox, chat_id);
-	}
-
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
-
-cleanup:
-	mrchat_unref(chat);
-	mrcontact_unref(contact);
-	mrmsg_unref(msg);
-}
-
 
 
 /*******************************************************************************
@@ -2114,14 +2059,6 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 			mrmailbox_update_server_uid__(mailbox, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
 		mrsqlite3_unlock(mailbox->m_sql);
 	}
-
-	/* check, if the chat shall be deleted pysically */
-	#ifdef GROUP_DELETE_IMPLIES_LEAVING
-	if( mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)!=0
-	 && mrparam_get_int(mimefactory.m_chat->m_param, MRP_DEL_AFTER_SEND, 0)==mrparam_get_int(mimefactory.m_msg->m_param, MRP_DEL_AFTER_SEND, 0) ) {
-		mrmailbox_delete_chat_part2(mailbox, mimefactory.m_chat->m_id);
-	}
-	#endif
 
 cleanup:
 	mrmimefactory_empty(&mimefactory);
@@ -2837,6 +2774,10 @@ cleanup:
 /*******************************************************************************
  * Handle Group Chats
  ******************************************************************************/
+
+
+#define IS_SELF_IN_GROUP__ (mrmailbox_is_contact_in_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF)==1)
+#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
 
 
 int mrmailbox_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
