@@ -300,6 +300,36 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
  ******************************************************************************/
 
 
+static void create_or_lookup_implicit_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
+                                              int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
+                                              uint32_t* ret_chat_id, int* ret_chat_blocked)
+{
+	/* if we're here, no grpid was found, check there is an existing implicit group matching the to-list or if we can create one */
+	mrarray_t* member_ids = NULL;
+
+	/* create member list */
+	if( mrarray_get_cnt(to_ids)==0 ) {
+		goto cleanup; /* althoug to_ids does not contain SELF, we won't get the desired 3 members */
+	}
+	member_ids = mrarray_duplicate(to_ids);
+	if( !mrarray_search_id(member_ids, from_id, NULL) )            { mrarray_add_id(member_ids, from_id); }
+	if( !mrarray_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { mrarray_add_id(member_ids, MR_CONTACT_ID_SELF); }
+	if( mrarray_get_cnt(member_ids) < 3 ) {
+		goto cleanup; /* no group found */
+	}
+	mrarray_sort(member_ids);
+
+	// TODO: create ad_hoc_grpid from member_ids, check if there
+	// is an chat with this ID. if not, check if the message is a reply to a known
+	// ad_hoc_grpid AND if the memberlist is the same or grown. If so, use this chat_id
+	// (which has two ad_hoc_ids then).  If any member is removed, do not reuse the chat_id
+	// but create a new one.
+
+cleanup:
+	mrarray_unref(member_ids);
+}
+
+
 /* the function tries extracts the group-id from the message and returns the
 corresponding chat_id.  If the chat_id is not existant, it is created.
 If the message contains groups commands (name, profile image, changed members),
@@ -308,7 +338,7 @@ they are executed as well.
 So when the function returns, the caller has the group id matching the current
 state of the group. */
 static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                     int32_t from_id, mrarray_t* to_ids,
+                                     int32_t from_id, const mrarray_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	uint32_t              chat_id = 0;
@@ -364,6 +394,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 					if( grpid == NULL )
 					{
+						create_or_lookup_implicit_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, ret_chat_id, ret_chat_blocked);
 						goto cleanup;
 					}
 				}
