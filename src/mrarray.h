@@ -45,9 +45,6 @@ mrarray_t*       mrarray_new                 (mrmailbox_t*, size_t initsize);
 void             mrarray_empty               (mrarray_t*);
 void             mrarray_unref               (mrarray_t*);
 
-mrarray_t*       mrarray_duplicate           (const mrarray_t*);
-void             mrarray_sort                (mrarray_t*);
-
 void             mrarray_add_uint            (mrarray_t*, uintptr_t);
 void             mrarray_add_id              (mrarray_t*, uint32_t);
 void             mrarray_add_ptr             (mrarray_t*, void*);
@@ -59,9 +56,6 @@ void*            mrarray_get_ptr             (const mrarray_t*, size_t index);
 
 int              mrarray_search_id           (const mrarray_t*, uint32_t needle, size_t* indx);
 const uintptr_t* mrarray_get_raw             (const mrarray_t*);
-char*            mrarray_get_string          (const mrarray_t*, const char* sep);
-
-char*            mr_arr_to_string            (const uint32_t* arr, int cnt);
 
 
 #ifdef __cplusplus

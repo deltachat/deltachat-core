@@ -337,6 +337,29 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 }
 
 
+static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /*including SELF*/)
+{
+	char*         ret = NULL;
+    mrarray_t*    member_addr = mrarray_new(mailbox, 23);
+	char*         member_ids_str = mrarray_get_string(member_ids, ",");
+	char*         q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
+	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	mrarray_add_ptr(member_addr, mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self"));
+	while( sqlite3_step(stmt)==SQLITE_ROW ) {
+		mrarray_add_ptr(member_addr, safe_strdup((const char*)sqlite3_column_text(stmt, 0)));
+	}
+	mrarray_sort_strings(member_addr);
+
+	/* cleanup */
+	mrarray_free_ptr(member_addr);
+	mrarray_unref(member_addr);
+	free(member_ids_str);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	if( q3 ) { sqlite3_free(q3); }
+	return ret;
+}
+
+
 /*******************************************************************************
  * Handle groups for received messages
  ******************************************************************************/
@@ -365,7 +388,6 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	if( mrarray_get_cnt(member_ids) < 3 ) {
 		goto cleanup; /* too few contacts given */
 	}
-	mrarray_sort(member_ids);
 
 	/* check if the member list matches other chats, if so, choose the one with the most recent activity */
 	chat_ids = search_chat_ids_by_contact_ids(mailbox, member_ids);

@@ -59,7 +59,7 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 
 
 /**
- * Free an array object.
+ * Free an array object. Does not free any data items.
  *
  * @memberof mrarray_t
  *
@@ -80,6 +80,43 @@ void mrarray_unref(mrarray_t* array)
 }
 
 
+/**
+ * Calls free() for each item and sets the item to 0 afterwards.
+ * The array object itself is not deleted and the size of the array stays the same.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return None.
+ *
+ */
+void mrarray_free_ptr(mrarray_t* array)
+{
+	size_t i;
+
+	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return;
+	}
+
+	for( i = 0; i < array->m_count; i++ ) {
+		free(array->m_array[i]);
+		array->m_array[i] = 0;
+	}
+}
+
+
+/**
+ * Duplicates the array, take care if the array contains pointers to objects, take care to free them only once afterwards!
+ * If the array only contains integers, you are always save.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
 mrarray_t* mrarray_duplicate(const mrarray_t* array)
 {
 	mrarray_t* ret = NULL;
@@ -103,12 +140,49 @@ static int cmp_intptr_t(const void* p1, const void* p2)
 }
 
 
-void mrarray_sort(mrarray_t* array)
+/**
+ * Sort the array, assuming it contains unsigned integers.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
+void mrarray_sort_ids(mrarray_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
 	}
 	qsort(array->m_array, array->m_count, sizeof(uintptr_t), cmp_intptr_t);
+}
+
+
+static int cmp_strings_t(const void* p1, const void* p2)
+{
+    const char* v1 = *(const char **)p1;
+    const char* v2 = *(const char **)p2;
+    return strcmp(v1, v2);
+}
+
+
+/**
+ * Sort the array, assuming it contains pointers to strings.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
+void mrarray_sort_strings(mrarray_t* array)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+		return;
+	}
+	qsort(array->m_array, array->m_count, sizeof(char*), cmp_strings_t);
 }
 
 

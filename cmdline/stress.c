@@ -395,7 +395,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrarray_add_id(arr, 666);
 		mrarray_add_id(arr, 0);
 		mrarray_add_id(arr, 5000);
-		mrarray_sort(arr);
+		mrarray_sort_ids(arr);
 		assert( mrarray_get_id(arr, 0)==0 && mrarray_get_id(arr, 1)==7 && mrarray_get_id(arr, 2)==13 && mrarray_get_id(arr, 3)==666 );
 
 		char* str = mrarray_get_string(arr, "-");
@@ -406,6 +406,17 @@ void stress_functions(mrmailbox_t* mailbox)
 		str = mr_arr_to_string(arr2, 4);
 		assert( strcmp(str, "0,12,133,1999999")==0 );
 		free(str);
+		mrarray_empty(arr);
+
+		mrarray_add_ptr(arr, "XX");
+		mrarray_add_ptr(arr, "item1");
+		mrarray_add_ptr(arr, "bbb");
+		mrarray_add_ptr(arr, "aaa");
+		mrarray_sort_strings(arr);
+		assert( strcmp("XX",    (char*)mrarray_get_ptr(arr, 0))==0 );
+		assert( strcmp("aaa",   (char*)mrarray_get_ptr(arr, 1))==0 );
+		assert( strcmp("bbb",   (char*)mrarray_get_ptr(arr, 2))==0 );
+		assert( strcmp("item1", (char*)mrarray_get_ptr(arr, 3))==0 );
 
 		mrarray_unref(arr);
 	}
