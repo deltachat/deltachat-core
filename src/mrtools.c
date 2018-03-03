@@ -1469,7 +1469,14 @@ char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 	}
 	*p1 = 0;
 
+	/* this check was used up to 2018-03-03, however, we should allow longer IDs here, eg. up to SHA256
+	#define MR_VALID_ID_LEN 11
 	if( strlen(ret)!=MR_VALID_ID_LEN ) {
+		goto cleanup;
+	}
+	*/
+
+	if( strlen(ret) > 64 ) {
 		goto cleanup;
 	}
 
