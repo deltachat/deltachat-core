@@ -300,11 +300,11 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
  ******************************************************************************/
 
 
-static void create_or_lookup_implicit_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                              int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
-                                              uint32_t* ret_chat_id, int* ret_chat_blocked)
+static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
+                                           int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
+                                           uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
-	/* if we're here, no grpid was found, check there is an existing implicit group matching the to-list or if we can create one */
+	/* if we're here, no grpid was found, check there is an existing ad-hoc group matching the to-list or if we can create one */
 	mrarray_t* member_ids = NULL;
 
 	/* create member list */
@@ -394,7 +394,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 					if( grpid == NULL )
 					{
-						create_or_lookup_implicit_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, ret_chat_id, ret_chat_blocked);
+						create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, ret_chat_id, ret_chat_blocked);
 						goto cleanup;
 					}
 				}
