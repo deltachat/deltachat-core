@@ -59,7 +59,7 @@ void*            mrarray_get_ptr             (const mrarray_t*, size_t index);
 
 int              mrarray_search_id           (const mrarray_t*, uint32_t needle, size_t* indx);
 const uintptr_t* mrarray_get_raw             (const mrarray_t*);
-char*            mrarray_get_string          (const mrarray_t*);
+char*            mrarray_get_string          (const mrarray_t*, const char* sep);
 
 char*            mr_arr_to_string            (const uint32_t* arr, int cnt);
 

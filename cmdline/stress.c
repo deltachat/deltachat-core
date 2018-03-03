@@ -398,8 +398,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrarray_sort(arr);
 		assert( mrarray_get_id(arr, 0)==0 && mrarray_get_id(arr, 1)==7 && mrarray_get_id(arr, 2)==13 && mrarray_get_id(arr, 3)==666 );
 
-		char* str = mrarray_get_string(arr);
-		assert( strcmp(str, "0,7,13,666,5000")==0 );
+		char* str = mrarray_get_string(arr, "-");
+		assert( strcmp(str, "0-7-13-666-5000")==0 );
 		free(str);
 
 		const uint32_t arr2[] = { 0, 12, 133, 1999999 };
