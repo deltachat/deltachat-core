@@ -440,7 +440,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	}
 
 	/* check if the group does not exist but should be created */
-	int group_explicitly_left = mrmailbox_group_explicitly_left__(mailbox, grpid);
+	int group_explicitly_left = mrmailbox_is_group_explicitly_left__(mailbox, grpid);
 
 	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0

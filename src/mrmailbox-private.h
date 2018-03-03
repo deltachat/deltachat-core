@@ -104,7 +104,7 @@ void            mrmailbox_send_msg_to_imap                        (mrmailbox_t*,
 int             mrmailbox_add_contact_to_chat__                   (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_is_contact_in_chat__                    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_get_chat_contact_count__                (mrmailbox_t*, uint32_t chat_id);
-int             mrmailbox_group_explicitly_left__                 (mrmailbox_t*, const char* grpid);
+int             mrmailbox_is_group_explicitly_left__              (mrmailbox_t*, const char* grpid);
 void            mrmailbox_set_group_explicitly_left__             (mrmailbox_t*, const char* grpid);
 size_t          mrmailbox_get_real_msg_cnt__                      (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t          mrmailbox_get_deaddrop_msg_cnt__                  (mrmailbox_t*);
