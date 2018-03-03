@@ -25,6 +25,7 @@
 #include "mrmimefactory.h"
 #include "mrimap.h"
 #include "mrjob.h"
+#include "mrarray-private.h"
 
 
 /*******************************************************************************
@@ -339,16 +340,32 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 
 static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /*including SELF*/)
 {
-	char*         ret = NULL;
-    mrarray_t*    member_addr = mrarray_new(mailbox, 23);
-	char*         member_ids_str = mrarray_get_string(member_ids, ",");
-	char*         q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
-	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	mrarray_t*     member_addr = mrarray_new(mailbox, 23);
+	char*          member_ids_str = mrarray_get_string(member_ids, ",");
+	mrstrbuilder_t member_cs;
+	sqlite3_stmt*  stmt = NULL;
+	char*          q3 = NULL;
+	int            i, iCnt;
+
+	mrstrbuilder_init(&member_cs);
+
+	/* collect all addresses and sort them */
+	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 	mrarray_add_ptr(member_addr, mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self"));
 	while( sqlite3_step(stmt)==SQLITE_ROW ) {
 		mrarray_add_ptr(member_addr, safe_strdup((const char*)sqlite3_column_text(stmt, 0)));
 	}
 	mrarray_sort_strings(member_addr);
+
+	/* build a single, comma-separated (cs) string from all addresses */
+	iCnt = mrarray_get_cnt(member_addr);
+	for( i = 0; i < iCnt; i++ ) {
+		if( i ) { mrstrbuilder_cat(&member_cs, ","); }
+		mrstrbuilder_cat(&member_cs, (const char*)mrarray_get_ptr(member_addr, i));
+	}
+
+	// TOOD: hash the string in a way
 
 	/* cleanup */
 	mrarray_free_ptr(member_addr);
@@ -356,7 +373,7 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 	free(member_ids_str);
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( q3 ) { sqlite3_free(q3); }
-	return ret;
+	return member_cs.m_buf;
 }
 
 
