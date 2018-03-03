@@ -295,6 +295,48 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 }
 
 
+static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* contact_ids)
+{
+	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
+	int           contact_ids_cnt = mrarray_get_cnt(contact_ids);
+	char*         contact_ids_str = NULL, *q3 = NULL;
+	sqlite3_stmt* stmt = NULL;
+	mrhash_t      possible_chats;
+	mrhashelem_t* p;
+	mrarray_t*    ret = mrarray_new(mailbox, 23);
+
+	mrhash_init(&possible_chats, MRHASH_INT, 0);
+
+	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
+	contact_ids_str = mrarray_get_string(contact_ids, ",");
+	q3 = sqlite3_mprintf("SELECT DISTINCT chat_id, contact_id "
+	                     " FROM chats_contacts "
+	                     " WHERE chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s));",
+	                     contact_ids_str);
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	while( sqlite3_step(stmt)==SQLITE_ROW ) {
+		uint32_t  key_chat_id = sqlite3_column_int(stmt, 0);
+		uintptr_t cnt = (uintptr_t)mrhash_find(&possible_chats, NULL, (int)key_chat_id);
+		mrhash_insert(&possible_chats, NULL, key_chat_id, (void*)(cnt+1));
+	}
+
+	/* go through result, remove all entries with too few or too many contacts */
+	for( p=mrhash_first(&possible_chats); p; p=mrhash_next(p)) {
+		uintptr_t cnt = (uintptr_t)mrhash_data(p);
+		if( cnt == contact_ids_cnt ) {
+			mrarray_add_id(ret, mrhash_keysize(p)/*nKey*/);
+		}
+	}
+
+	/* cleanup */
+	mrhash_clear(&possible_chats);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	free(contact_ids_str);
+	if( q3 ) { sqlite3_free(q3); }
+	return ret;
+}
+
+
 /*******************************************************************************
  * Handle groups for received messages
  ******************************************************************************/
@@ -302,31 +344,66 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 
 static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
                                            int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
-                                           uint32_t* ret_chat_id, int* ret_chat_blocked)
+                                           uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
-	/* if we're here, no grpid was found, check there is an existing ad-hoc group matching the to-list or if we can create one */
-	mrarray_t* member_ids = NULL;
+	/* if we're here, no grpid was found, check there is an existing ad-hoc
+	group matching the to-list or if we can create one */
+	mrarray_t*    member_ids      = NULL;
+	uint32_t      chat_id         = 0;
+	int           chat_id_blocked = 0;
+	mrarray_t*    chat_ids        = NULL;
+	char*         chat_ids_str    = NULL, *q3 = NULL;
+	sqlite3_stmt* stmt            = NULL;
 
-	/* create member list */
+	/* build member list from the given ids */
 	if( mrarray_get_cnt(to_ids)==0 ) {
-		goto cleanup; /* althoug to_ids does not contain SELF, we won't get the desired 3 members */
+		goto cleanup; /* we won't get the desired 3 members */
 	}
 	member_ids = mrarray_duplicate(to_ids);
 	if( !mrarray_search_id(member_ids, from_id, NULL) )            { mrarray_add_id(member_ids, from_id); }
 	if( !mrarray_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { mrarray_add_id(member_ids, MR_CONTACT_ID_SELF); }
 	if( mrarray_get_cnt(member_ids) < 3 ) {
-		goto cleanup; /* no group found */
+		goto cleanup; /* too few contacts given */
 	}
 	mrarray_sort(member_ids);
 
-	// TODO: create ad_hoc_grpid from member_ids, check if there
-	// is an chat with this ID. if not, check if the message is a reply to a known
-	// ad_hoc_grpid AND if the memberlist is the same or grown. If so, use this chat_id
-	// (which has two ad_hoc_ids then).  If any member is removed, do not reuse the chat_id
-	// but create a new one.
+	/* check if the member list matches other chats, if so, choose the one with the most recent activity */
+	chat_ids = search_chat_ids_by_contact_ids(mailbox, member_ids);
+	if( mrarray_get_cnt(chat_ids)>0 ) {
+		chat_ids_str = mrarray_get_string(chat_ids, ",");
+		q3 = sqlite3_mprintf("SELECT c.id, c.blocked "
+							 " FROM chats c "
+							 " LEFT JOIN msgs m ON m.chat_id=c.id "
+							 " WHERE c.id IN(%s) "
+							 " ORDER BY m.timestamp DESC, m.id DESC "
+							 " LIMIT 1;",
+							 chat_ids_str);
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+		if( sqlite3_step(stmt)==SQLITE_ROW ) {
+			chat_id         = sqlite3_column_int(stmt, 0);
+			chat_id_blocked = sqlite3_column_int(stmt, 1);
+			goto cleanup; /* success, chat found */
+		}
+	}
+
+	/* create a new ad-hoc group */
+
+	// TODO:
+	// - create ad_hoc_grpid from member_ids
+	// - <del>check if there is an chat with this ID</del> won't be, otherwise we would have catched it above
+	// - <del>check if the message is a reply to a known ad_hoc_grpid AND if the memberlist is the same or grown
+	//   If so, use this chat_id </del >- not sure if we should do this, this may result in chats with unclear members
+	// - create a new chat with ad_hoc_grpid, not sure if we can treat the groupchat as a completely normal group chat then.
+	//   we should flag these chats with a subtype therefore
 
 cleanup:
 	mrarray_unref(member_ids);
+	mrarray_unref(chat_ids);
+	free(chat_ids_str);
+	if( stmt ) { sqlite3_finalize(stmt); }
+	if( q3 ) { sqlite3_free(q3); }
+	if( ret_chat_id )         { *ret_chat_id         = chat_id; }
+	if( ret_chat_id_blocked ) { *ret_chat_id_blocked = chat_id_blocked; }
 }
 
 
@@ -335,14 +412,19 @@ corresponding chat_id.  If the chat_id is not existant, it is created.
 If the message contains groups commands (name, profile image, changed members),
 they are executed as well.
 
+if no group-id could be extracted from the message, create_or_lookup_adhoc_group__() is called
+which tries to create or find out the chat_id by:
+- is there a group with the same recipients? if so, use this (if there are multiple, use the most recent one)
+- create an ad-hoc group based on the recipient list
+
 So when the function returns, the caller has the group id matching the current
 state of the group. */
 static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
                                      int32_t from_id, const mrarray_t* to_ids,
-                                     uint32_t* ret_chat_id, int* ret_chat_blocked)
+                                     uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
 	uint32_t              chat_id = 0;
-	int                   chat_blocked = 0;
+	int                   chat_id_blocked = 0;
 	char*                 grpid = NULL;
 	char*                 grpname = NULL;
 	sqlite3_stmt*         stmt;
@@ -394,7 +476,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 					if( grpid == NULL )
 					{
-						create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, ret_chat_id, ret_chat_blocked);
+						create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 						goto cleanup;
 					}
 				}
@@ -429,13 +511,14 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
 		chat_id = sqlite3_column_int(stmt, 0);
-		chat_blocked = sqlite3_column_int(stmt, 1);
+		chat_id_blocked = sqlite3_column_int(stmt, 1);
 	}
 
 	/* check if the sender is a member of the existing group -
 	if not, the message does not go to the group chat but to the normal chat with the sender */
 	if( chat_id!=0 && !mrmailbox_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
 		chat_id = 0;
+		create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		goto cleanup;
 	}
 
@@ -461,7 +544,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		}
 		sqlite3_finalize(stmt);
 		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
-		chat_blocked = create_blocked;
+		chat_id_blocked = create_blocked;
 		recreate_member_list = 1;
 	}
 
@@ -470,6 +553,9 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		chat_id = 0;
 		if( group_explicitly_left ) {
 			chat_id = MR_CHAT_ID_TRASH; /* we got a message for a chat we've deleted - do not show this even as a normal chat */
+		}
+		else {
+			create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		}
 		goto cleanup;
 	}
@@ -564,6 +650,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
 		if( is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */ ) {
 			chat_id = 0;
+			create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 			goto cleanup;
 		}
 	}
@@ -572,8 +659,8 @@ cleanup:
 	free(grpid);
 	free(grpname);
 	free(self_addr);
-	if( ret_chat_id )      { *ret_chat_id      = chat_id;                   }
-	if( ret_chat_blocked ) { *ret_chat_blocked = chat_id? chat_blocked : 0; }
+	if( ret_chat_id )         { *ret_chat_id         = chat_id;                   }
+	if( ret_chat_id_blocked ) { *ret_chat_id_blocked = chat_id? chat_id_blocked : 0; }
 }
 
 
