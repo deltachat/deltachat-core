@@ -442,11 +442,12 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	group matching the to-list or if we can create one */
 	mrarray_t*    member_ids      = NULL;
 	uint32_t      chat_id         = 0;
-	int           chat_id_blocked = 0;
+	int           chat_id_blocked = 0, i;
 	mrarray_t*    chat_ids        = NULL;
 	char*         chat_ids_str    = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt            = NULL;
 	char*         grpid           = NULL;
+	char*         grpname         = NULL;
 
 	/* build member list from the given ids */
 	if( mrarray_get_cnt(to_ids)==0 ) {
@@ -483,15 +484,33 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 
 	/* create a new ad-hoc group
 	- there is no need to check if this group exists; otherwise we would have catched it above */
-	grpid = create_adhoc_grp_id__(mailbox, member_ids);
+	if( (grpid = create_adhoc_grp_id__(mailbox, member_ids)) == NULL ) {
+		goto cleanup;
+	}
 
-    // TODO!
+	/* use subject as initial chat name */
+	if( mime_parser->m_subject && mime_parser->m_subject[0] ) {
+		grpname = safe_strdup(mime_parser->m_subject);
+	}
+	else {
+		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  mrarray_get_cnt(member_ids));
+	}
+
+	/* create group record */
+	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked);
+	chat_id_blocked = create_blocked;
+	for( i = 0; i < mrarray_get_cnt(member_ids); i++ ) {
+		mrmailbox_add_contact_to_chat__(mailbox, chat_id, mrarray_get_id(member_ids, i));
+	}
+
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 cleanup:
 	mrarray_unref(member_ids);
 	mrarray_unref(chat_ids);
 	free(chat_ids_str);
 	free(grpid);
+	free(grpname);
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( q3 ) { sqlite3_free(q3); }
 	if( ret_chat_id )         { *ret_chat_id         = chat_id; }
