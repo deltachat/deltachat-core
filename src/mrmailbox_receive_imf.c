@@ -26,6 +26,7 @@
 #include "mrimap.h"
 #include "mrjob.h"
 #include "mrarray-private.h"
+#include <netpgp-extra.h>
 
 
 /*******************************************************************************
@@ -340,40 +341,68 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 
 static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /*including SELF*/)
 {
-	mrarray_t*     member_addr = mrarray_new(mailbox, 23);
+	/* algorithm:
+	- sort normalized, lowercased, e-mail addresses alphabetically
+	- put all e-mail addresses into a single string, separate the addresss by a single comma
+	- sha-256 this string (without possibly terminating null-characters)
+	- encode the first 64 bits of the sha-256 output as lowercase hex (results in 16 characters from the set [0-9a-f])
+	 */
+	mrarray_t*     member_addrs = mrarray_new(mailbox, 23);
 	char*          member_ids_str = mrarray_get_string(member_ids, ",");
 	mrstrbuilder_t member_cs;
 	sqlite3_stmt*  stmt = NULL;
-	char*          q3 = NULL;
+	char*          q3 = NULL, *addr;
 	int            i, iCnt;
+	uint8_t*       binary_hash = NULL;
+	char*          ret = NULL;
 
 	mrstrbuilder_init(&member_cs);
 
 	/* collect all addresses and sort them */
 	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
-	mrarray_add_ptr(member_addr, mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self"));
+	addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
+	mr_strlower_in_place(addr);
+	mrarray_add_ptr(member_addrs, addr);
 	while( sqlite3_step(stmt)==SQLITE_ROW ) {
-		mrarray_add_ptr(member_addr, safe_strdup((const char*)sqlite3_column_text(stmt, 0)));
+		addr = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
+		mr_strlower_in_place(addr);
+		mrarray_add_ptr(member_addrs, addr);
 	}
-	mrarray_sort_strings(member_addr);
+	mrarray_sort_strings(member_addrs);
 
 	/* build a single, comma-separated (cs) string from all addresses */
-	iCnt = mrarray_get_cnt(member_addr);
+	iCnt = mrarray_get_cnt(member_addrs);
 	for( i = 0; i < iCnt; i++ ) {
 		if( i ) { mrstrbuilder_cat(&member_cs, ","); }
-		mrstrbuilder_cat(&member_cs, (const char*)mrarray_get_ptr(member_addr, i));
+		mrstrbuilder_cat(&member_cs, (const char*)mrarray_get_ptr(member_addrs, i));
 	}
 
-	// TOOD: hash the string in a way
+	/* make sha-256 from the string */
+	{
+		pgp_hash_t hasher;
+		pgp_hash_sha256(&hasher);
+		hasher.init(&hasher);
+		hasher.add(&hasher, (const uint8_t*)member_cs.m_buf, strlen(member_cs.m_buf));
+		binary_hash = malloc(hasher.size);
+		hasher.finish(&hasher, binary_hash);
+	}
+
+	/* output the first 8 bytes as 16 hex-characters */
+	ret = calloc(1, 256);
+	for( i = 0; i < 8; i++ ) {
+		sprintf(&ret[i*2], "%02x", (int)binary_hash[i]);
+	}
 
 	/* cleanup */
-	mrarray_free_ptr(member_addr);
-	mrarray_unref(member_addr);
+	mrarray_free_ptr(member_addrs);
+	mrarray_unref(member_addrs);
 	free(member_ids_str);
+	free(binary_hash);
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( q3 ) { sqlite3_free(q3); }
-	return member_cs.m_buf;
+	free(member_cs.m_buf);
+	return ret;
 }
 
 
@@ -394,6 +423,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	mrarray_t*    chat_ids        = NULL;
 	char*         chat_ids_str    = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt            = NULL;
+	char*         grpid           = NULL;
 
 	/* build member list from the given ids */
 	if( mrarray_get_cnt(to_ids)==0 ) {
@@ -426,6 +456,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 
 	/* create a new ad-hoc group */
+	grpid = create_adhoc_grp_id__(mailbox, member_ids);
 
 	// TODO:
 	// - create ad_hoc_grpid from member_ids
@@ -439,6 +470,7 @@ cleanup:
 	mrarray_unref(member_ids);
 	mrarray_unref(chat_ids);
 	free(chat_ids_str);
+	free(grpid);
 	if( stmt ) { sqlite3_finalize(stmt); }
 	if( q3 ) { sqlite3_free(q3); }
 	if( ret_chat_id )         { *ret_chat_id         = chat_id; }
