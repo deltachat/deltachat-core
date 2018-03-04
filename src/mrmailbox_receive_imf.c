@@ -297,26 +297,43 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 }
 
 
-static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, mrarray_t* contact_ids)
+static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* unsorted_contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
-	int           contact_ids_cnt = mrarray_get_cnt(contact_ids);
+	mrarray_t*    contact_ids = mrarray_new(mailbox, 23);;
 	char*         contact_ids_str = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt = NULL;
 	mrarray_t*    ret = mrarray_new(mailbox, 23);
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_ids_cnt <= 0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC  ) {
 		goto cleanup;
 	}
 
-	mrarray_sort_ids(contact_ids);
+	/* copy array, remove duplicates and SELF, sort by ID */
+	{
+		int i, iCnt = mrarray_get_cnt(unsorted_contact_ids);
+		if( iCnt <= 0 ) {
+			goto cleanup;
+		}
+
+		for( i = 0; i < iCnt; i++ ) {
+			uint32_t curr_id = mrarray_get_id(unsorted_contact_ids, i);
+			if( curr_id != MR_CONTACT_ID_SELF && !mrarray_search_id(contact_ids, curr_id, NULL) ) {
+				mrarray_add_id(contact_ids, curr_id);
+			}
+		}
+		mrarray_sort_ids(contact_ids);
+	}
 
 	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
 	contact_ids_str = mrarray_get_string(contact_ids, ",");
-	q3 = sqlite3_mprintf("SELECT DISTINCT chat_id, contact_id "
-	                     " FROM chats_contacts "
-	                     " WHERE chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
-	                     " ORDER BY chat_id, contact_id;",
+	q3 = sqlite3_mprintf("SELECT DISTINCT cc.chat_id, cc.contact_id "
+	                     " FROM chats_contacts cc "
+	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
+	                     " WHERE cc.chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
+	                     "   AND c.type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) /* do not select normal chats which are equal to a group with a single member and without SELF */
+	                     "   AND cc.contact_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
+	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 	{
@@ -328,7 +345,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, mrarray_t
 			uint32_t contact_id = sqlite3_column_int(stmt, 1);
 
 			if( chat_id != last_chat_id ) {
-				if( matches == contact_ids_cnt ) {
+				if( matches == mrarray_get_cnt(contact_ids) ) {
 					mrarray_add_id(ret, last_chat_id);
 				}
 				last_chat_id = chat_id;
@@ -340,7 +357,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, mrarray_t
 			}
 		}
 
-		if( matches == contact_ids_cnt ) {
+		if( matches == mrarray_get_cnt(contact_ids) ) {
 			mrarray_add_id(ret, last_chat_id);
 		}
 	}
@@ -348,6 +365,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, mrarray_t
 cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	free(contact_ids_str);
+	mrarray_unref(contact_ids);
 	if( q3 ) { sqlite3_free(q3); }
 	return ret;
 }
