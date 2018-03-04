@@ -411,6 +411,29 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
  ******************************************************************************/
 
 
+static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, const char* grpname, int create_blocked)
+{
+	uint32_t      chat_id = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+		"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
+	sqlite3_bind_int (stmt, 1, MR_CHAT_TYPE_GROUP);
+	sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 4, create_blocked);
+	if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+		goto cleanup;
+	}
+	chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+
+cleanup:
+	if( stmt) { sqlite3_finalize(stmt); }
+	return chat_id;
+}
+
+
+
 static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
                                            int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)
@@ -602,17 +625,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
 	 )
 	{
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-			"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
-		sqlite3_bind_int (stmt, 1, MR_CHAT_TYPE_GROUP);
-		sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
-		sqlite3_bind_int (stmt, 4, create_blocked);
-		if( sqlite3_step(stmt)!=SQLITE_DONE ) {
-			goto cleanup;
-		}
-		sqlite3_finalize(stmt);
-		chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked);
 		chat_id_blocked = create_blocked;
 		recreate_member_list = 1;
 	}
