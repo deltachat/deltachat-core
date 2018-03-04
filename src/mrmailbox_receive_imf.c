@@ -455,16 +455,14 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 		}
 	}
 
-	/* create a new ad-hoc group */
+	/* we do not check if the message is a reply to another group, this may result in
+	chats with unclear member list. instead we create a new group in the following lines ... */
+
+	/* create a new ad-hoc group
+	- there is no need to check if this group exists; otherwise we would have catched it above */
 	grpid = create_adhoc_grp_id__(mailbox, member_ids);
 
-	// TODO:
-	// - create ad_hoc_grpid from member_ids
-	// - <del>check if there is an chat with this ID</del> won't be, otherwise we would have catched it above
-	// - <del>check if the message is a reply to a known ad_hoc_grpid AND if the memberlist is the same or grown
-	//   If so, use this chat_id </del >- not sure if we should do this, this may result in chats with unclear members
-	// - create a new chat with ad_hoc_grpid, not sure if we can treat the groupchat as a completely normal group chat then.
-	//   we should flag these chats with a subtype therefore
+    // TODO!
 
 cleanup:
 	mrarray_unref(member_ids);
