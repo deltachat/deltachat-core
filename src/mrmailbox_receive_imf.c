@@ -463,8 +463,8 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	char*         grpname         = NULL;
 
 	/* build member list from the given ids */
-	if( mrarray_get_cnt(to_ids)==0 ) {
-		goto cleanup; /* we won't get the desired 3 members */
+	if( mrarray_get_cnt(to_ids)==0 || mrmimeparser_is_mailinglist_message(mime_parser) ) {
+		goto cleanup; /* too few contacts or a mailinglist */
 	}
 	member_ids = mrarray_duplicate(to_ids);
 	if( !mrarray_search_id(member_ids, from_id, NULL) )            { mrarray_add_id(member_ids, from_id); }
