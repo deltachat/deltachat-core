@@ -447,7 +447,6 @@ cleanup:
 }
 
 
-
 static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
                                            int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)

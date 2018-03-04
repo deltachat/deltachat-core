@@ -357,7 +357,6 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 20
 			if( dbversion < NEW_DB_VERSION )
 			{
-				mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN subtype INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
 
 				dbversion = NEW_DB_VERSION;
