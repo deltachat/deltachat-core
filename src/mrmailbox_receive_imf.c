@@ -297,41 +297,55 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 }
 
 
-static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* contact_ids)
+static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, mrarray_t* contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
 	int           contact_ids_cnt = mrarray_get_cnt(contact_ids);
 	char*         contact_ids_str = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt = NULL;
-	mrhash_t      possible_chats;
-	mrhashelem_t* p;
 	mrarray_t*    ret = mrarray_new(mailbox, 23);
 
-	mrhash_init(&possible_chats, MRHASH_INT, 0);
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_ids_cnt <= 0 ) {
+		goto cleanup;
+	}
+
+	mrarray_sort_ids(contact_ids);
 
 	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
 	contact_ids_str = mrarray_get_string(contact_ids, ",");
 	q3 = sqlite3_mprintf("SELECT DISTINCT chat_id, contact_id "
 	                     " FROM chats_contacts "
-	                     " WHERE chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s));",
+	                     " WHERE chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
+	                     " ORDER BY chat_id, contact_id;",
 	                     contact_ids_str);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
-	while( sqlite3_step(stmt)==SQLITE_ROW ) {
-		uint32_t  key_chat_id = sqlite3_column_int(stmt, 0);
-		uintptr_t cnt = (uintptr_t)mrhash_find(&possible_chats, NULL, (int)key_chat_id);
-		mrhash_insert(&possible_chats, NULL, key_chat_id, (void*)(cnt+1));
-	}
+	{
+		uint32_t last_chat_id = 0, matches = 0;
 
-	/* go through result, remove all entries with too few or too many contacts */
-	for( p=mrhash_first(&possible_chats); p; p=mrhash_next(p)) {
-		uintptr_t cnt = (uintptr_t)mrhash_data(p);
-		if( cnt == contact_ids_cnt ) {
-			mrarray_add_id(ret, mrhash_keysize(p)/*nKey*/);
+		while( sqlite3_step(stmt)==SQLITE_ROW )
+		{
+			uint32_t chat_id    = sqlite3_column_int(stmt, 0);
+			uint32_t contact_id = sqlite3_column_int(stmt, 1);
+
+			if( chat_id != last_chat_id ) {
+				if( matches == contact_ids_cnt ) {
+					mrarray_add_id(ret, last_chat_id);
+				}
+				last_chat_id = chat_id;
+				matches = 0;
+			}
+
+			if( contact_id == mrarray_get_id(contact_ids, matches) ) {
+				matches++;
+			}
+		}
+
+		if( matches == contact_ids_cnt ) {
+			mrarray_add_id(ret, last_chat_id);
 		}
 	}
 
-	/* cleanup */
-	mrhash_clear(&possible_chats);
+cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	free(contact_ids_str);
 	if( q3 ) { sqlite3_free(q3); }
