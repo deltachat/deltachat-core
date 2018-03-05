@@ -953,6 +953,7 @@ void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 
 /**
  * Check, if there is a normal chat with a given contact.
+ * To get the chat messages, use mrmailbox_get_chat_msgs().
  *
  * @memberof mrmailbox_t
  *
@@ -985,7 +986,12 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 
 /**
  * Create a normal chat with a single user.  To create group chats,
- * see mrmailbox_create_group_chat()
+ * see mrmailbox_create_group_chat().
+ *
+ * If there is already an exitant chat, this ID is returned and no new chat is
+ * crated.  If there is no existant chat with the user, a new chat is created;
+ * this new chat may already contain messages, eg. from the deaddrop, to get the
+ * chat messages, use mrmailbox_get_chat_msgs().
  *
  * @memberof mrmailbox_t
  *
@@ -1046,9 +1052,12 @@ cleanup:
  * from the deaddrop, MR_CHAT_ID_DEADDROP (1).
  *
  * If the given message ID already belongs to a normal chat or to a group chat,
- * the chat ID of this chat is returned.
+ * the chat ID of this chat is returned and no new chat is created.
+ * If a new chat is created, the given message ID is moved to this chat, however,
+ * there may be more messages moved to the chat from the deaddrop. To get the
+ * chat messages, use mrmailbox_get_chat_msgs().
  *
- * If the user should be start before the chat is created, he should just be
+ * If the user should be start asked the chat is created, he should just be
  * asked whether he wants to chat with the _contact_ belonging to the message;
  * the group names may be really weired when take from the subject of implicit
  * groups and this may look confusing.
