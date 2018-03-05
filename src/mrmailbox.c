@@ -1399,7 +1399,9 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 					" FROM msgs m"
 					" LEFT JOIN chats ON m.chat_id=chats.id"
 					" LEFT JOIN contacts ON m.from_id=contacts.id"
-					" WHERE chats.blocked=2 AND contacts.blocked=0"
+					" WHERE m.from_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF)
+					"   AND chats.blocked=2 "
+					"   AND contacts.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		}
 		else if( chat_id == MR_CHAT_ID_STARRED )
@@ -2789,7 +2791,7 @@ cleanup:
 #define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
 
 
-int mrmailbox_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+int mrmailbox_is_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_FROM_leftgrps_WHERE_grpid, "SELECT id FROM leftgrps WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
@@ -2799,7 +2801,7 @@ int mrmailbox_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
 
 void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
 {
-	if( !mrmailbox_group_explicitly_left__(mailbox, grpid) )
+	if( !mrmailbox_is_group_explicitly_left__(mailbox, grpid) )
 	{
 		sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "INSERT INTO leftgrps (grpid) VALUES(?);");
 		sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);

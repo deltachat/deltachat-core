@@ -466,29 +466,6 @@ char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
 }
 
 
-char* mr_arr_to_string(const uint32_t* arr, int cnt)
-{
-	/* return comma-separated value-string from integer array */
-	if( arr==NULL || cnt <= 0 ) {
-		return safe_strdup("");
-	}
-
-	char* ret = malloc(cnt*12/*sign,10 digits,comma*/+1/*terminating zero*/);
-	if( ret == NULL ) { exit(35); }
-	ret[0] = 0;
-
-	int i;
-	for( i=0; i<cnt; i++ ) {
-		if( i ) {
-			strcat(ret, ",");
-		}
-		sprintf(&ret[strlen(ret)], "%lu", (unsigned long)arr[i]);
-	}
-
-	return ret;
-}
-
-
 /*******************************************************************************
  * String tools - mrstrbuilder_t
  ******************************************************************************/
@@ -1492,7 +1469,14 @@ char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 	}
 	*p1 = 0;
 
+	/* this check was used up to 2018-03-03, however, we should allow longer IDs here, eg. up to SHA256
+	#define MR_VALID_ID_LEN 11
 	if( strlen(ret)!=MR_VALID_ID_LEN ) {
+		goto cleanup;
+	}
+	*/
+
+	if( strlen(ret) > 64 ) {
 		goto cleanup;
 	}
 

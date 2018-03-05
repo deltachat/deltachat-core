@@ -40,8 +40,15 @@ struct _mrarray
 };
 
 
+void             mrarray_free_ptr            (mrarray_t*);
+mrarray_t*       mrarray_duplicate           (const mrarray_t*);
+void             mrarray_sort_ids            (mrarray_t*);
+void             mrarray_sort_strings        (mrarray_t*);
+char*            mrarray_get_string          (const mrarray_t*, const char* sep);
+char*            mr_arr_to_string            (const uint32_t* arr, int cnt);
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
 #endif /* __MRARRAY_PRIVATE_H__ */
-

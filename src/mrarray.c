@@ -59,7 +59,7 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 
 
 /**
- * Free an array object.
+ * Free an array object. Does not free any data items.
  *
  * @memberof mrarray_t
  *
@@ -77,6 +77,112 @@ void mrarray_unref(mrarray_t* array)
 	free(array->m_array);
 	array->m_magic = 0;
 	free(array);
+}
+
+
+/**
+ * Calls free() for each item and sets the item to 0 afterwards.
+ * The array object itself is not deleted and the size of the array stays the same.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return None.
+ *
+ */
+void mrarray_free_ptr(mrarray_t* array)
+{
+	size_t i;
+
+	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return;
+	}
+
+	for( i = 0; i < array->m_count; i++ ) {
+		free((void*)array->m_array[i]);
+		array->m_array[i] = 0;
+	}
+}
+
+
+/**
+ * Duplicates the array, take care if the array contains pointers to objects, take care to free them only once afterwards!
+ * If the array only contains integers, you are always save.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
+mrarray_t* mrarray_duplicate(const mrarray_t* array)
+{
+	mrarray_t* ret = NULL;
+
+	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+		return NULL;
+	}
+
+	ret = mrarray_new(array->m_mailbox, array->m_allocated);
+	ret->m_count = array->m_count;
+	memcpy(ret->m_array, array->m_array, array->m_count * sizeof(uintptr_t));
+
+	return ret;
+}
+
+
+static int cmp_intptr_t(const void* p1, const void* p2)
+{
+	uintptr_t v1 = *(uintptr_t*)p1, v2 = *(uintptr_t*)p2;
+	return (v1<v2)? -1 : ((v1>v2)? 1 : 0); /* CAVE: do not use v1-v2 as the uintptr_t may be 64bit and the return value may be 32bit only... */
+}
+
+
+/**
+ * Sort the array, assuming it contains unsigned integers.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
+void mrarray_sort_ids(mrarray_t* array)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+		return;
+	}
+	qsort(array->m_array, array->m_count, sizeof(uintptr_t), cmp_intptr_t);
+}
+
+
+static int cmp_strings_t(const void* p1, const void* p2)
+{
+    const char* v1 = *(const char **)p1;
+    const char* v2 = *(const char **)p2;
+    return strcmp(v1, v2);
+}
+
+
+/**
+ * Sort the array, assuming it contains pointers to strings.
+ *
+ * @private @memberof mrarray_t
+ *
+ * @param array The array object.
+ *
+ * @return The duplicated array.
+ *
+ */
+void mrarray_sort_strings(mrarray_t* array)
+{
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+		return;
+	}
+	qsort(array->m_array, array->m_count, sizeof(char*), cmp_strings_t);
 }
 
 
@@ -292,5 +398,49 @@ const uintptr_t* mrarray_get_raw(const mrarray_t* array)
 		return NULL;
 	}
 	return array->m_array;
+}
+
+
+char* mr_arr_to_string(const uint32_t* arr, int cnt)
+{
+	/* return comma-separated value-string from integer array */
+	char*       ret = NULL;
+	const char* sep = ",";
+
+	if( arr==NULL || cnt <= 0 ) {
+		return safe_strdup("");
+	}
+
+	/* use a macro to allow using integers of different bitwidths */
+	#define INT_ARR_TO_STR(a, c) { \
+		int i; \
+		ret = malloc((c)*(11+strlen(sep))/*sign,10 digits,sep*/+1/*terminating zero*/); \
+		if( ret == NULL ) { exit(35); } \
+		ret[0] = 0; \
+		for( i=0; i<(c); i++ ) { \
+			if( i ) { \
+				strcat(ret, sep); \
+			} \
+			sprintf(&ret[strlen(ret)], "%lu", (unsigned long)(a)[i]); \
+		} \
+	}
+
+	INT_ARR_TO_STR(arr, cnt);
+
+	return ret;
+}
+
+
+char* mrarray_get_string(const mrarray_t* array, const char* sep)
+{
+	char* ret = NULL;
+
+	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || sep==NULL ) {
+		return NULL;
+	}
+
+	INT_ARR_TO_STR(array->m_array, array->m_count);
+
+	return ret;
 }
 
