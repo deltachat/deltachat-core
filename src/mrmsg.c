@@ -253,6 +253,16 @@ time_t mrmsg_get_timestamp(mrmsg_t* msg)
  * If there is no text associalted with the message, an empty string is returned.
  * NULL is never returned.
  *
+ * The returned text is plain text, HTML is stripped.
+ * The returned text is truncated to a max. length of currently about 30000 characters,
+ * it does not make sense to show more text in the message list and typical controls
+ * will have problems with showing much more text.
+ * This max. length is to avoid passing _lots_ of data to the frontend which may
+ * result eg. from decoding errors (assume some bytes missing in a mime structure, forcing
+ * an attachment to be plain text).
+ *
+ * To get information about the message and more/raw text, use mrmailbox_get_msg_info().
+ *
  * @memberof mrmsg_t
  *
  * @param msg The message object.
@@ -261,11 +271,15 @@ time_t mrmsg_get_timestamp(mrmsg_t* msg)
  */
 char* mrmsg_get_text(mrmsg_t* msg)
 {
+	char* ret;
+
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return safe_strdup(NULL);
 	}
 
-	return safe_strdup(msg->m_text);
+	ret = safe_strdup(msg->m_text);
+	mr_truncate_str(ret, MR_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
+	return ret;
 }
 
 

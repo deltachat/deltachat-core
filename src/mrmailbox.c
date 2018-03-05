@@ -4352,6 +4352,9 @@ cleanup:
  * Get an informational text for a single message. the text is multiline and may
  * contain eg. the raw text of the message.
  *
+ * The max. text returned is typically longer (about 100000 characters) than the
+ * max. text returned by mrmsg_get_text() (about 30000 characters).
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
@@ -4388,6 +4391,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 
 		rawtxt = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+		mr_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;

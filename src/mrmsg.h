@@ -62,6 +62,10 @@ typedef struct _mrmsg mrmsg_t;
 #define         MR_STATE_OUT_MDN_RCVD  28
 
 
+#define         MR_MAX_GET_TEXT_LEN  30000 /* approx. max. lenght returned by mrmsg_get_text() */
+#define         MR_MAX_GET_INFO_LEN 100000 /* approx. max. lenght returned by mrmailbox_get_msg_info() */
+
+
 mrmsg_t*        mrmsg_new                   ();
 void            mrmsg_unref                 (mrmsg_t*);
 void            mrmsg_empty                 (mrmsg_t*);

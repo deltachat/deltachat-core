@@ -51,6 +51,7 @@ char*   mr_null_terminate          (const char*, int bytes); /* the result must 
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_replace_bad_utf8_chars  (char*); /* replace bad UTF-8 characters by sequences of `_` (to avoid problems in filenames, we do not use eg. `?`) the function is useful if strings are unexpectingly encoded eg. as ISO-8859-1 */
+void    mr_truncate_str            (char*, int approx_characters);
 void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap);
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);

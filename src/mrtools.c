@@ -396,6 +396,26 @@ void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 }
 
 
+void mr_truncate_str(char* buf, int approx_chars)
+{
+	#define SUFFIX_STR "..."
+	if( approx_chars > 0 && strlen(buf) > approx_chars+strlen(SUFFIX_STR) )
+	{
+		char* p = &buf[approx_chars]; /* null-terminate string at the desired length */
+		*p = 0;
+
+		if( strchr(buf, ' ')!=NULL ) {
+			while( p[-1] != ' ' && p[-1] != '\n' ) { /* rewind to the prevous space, avoid half utf-8 characters */
+				p--;
+				*p = 0;
+			}
+		}
+
+		strcat(p, SUFFIX_STR);
+	}
+}
+
+
 carray* mr_split_into_lines(const char* buf_terminated)
 {
 	carray* lines = carray_new(1024);
