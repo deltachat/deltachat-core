@@ -1390,7 +1390,9 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 					" FROM msgs m"
 					" LEFT JOIN chats ON m.chat_id=chats.id"
 					" LEFT JOIN contacts ON m.from_id=contacts.id"
-					" WHERE chats.blocked=2 AND contacts.blocked=0"
+					" WHERE m.from_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF)
+					"   AND chats.blocked=2 "
+					"   AND contacts.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		}
 		else if( chat_id == MR_CHAT_ID_STARRED )

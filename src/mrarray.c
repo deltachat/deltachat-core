@@ -100,7 +100,7 @@ void mrarray_free_ptr(mrarray_t* array)
 	}
 
 	for( i = 0; i < array->m_count; i++ ) {
-		free(array->m_array[i]);
+		free((void*)array->m_array[i]);
 		array->m_array[i] = 0;
 	}
 }
