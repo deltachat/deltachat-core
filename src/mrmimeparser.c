@@ -706,6 +706,10 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 					if( strcmp(c->ct_subtype, "gif")==0 ) {
 						*msg_type = MR_MSG_GIF;
 					}
+					else if( strcmp(c->ct_subtype, "svg+xml")==0 ) {
+						*msg_type = MR_MSG_FILE;
+						return MR_MIMETYPE_FILE;
+					}
 					else {
 						*msg_type = MR_MSG_IMAGE;
 					}
