@@ -666,8 +666,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "configure")==0 )
 	{
-		mrmailbox_configure_and_connect(mailbox);
-		ret = COMMAND_SUCCEEDED;
+		ret = mrmailbox_configure_and_connect(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "connect")==0 )
 	{
