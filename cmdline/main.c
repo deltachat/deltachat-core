@@ -51,6 +51,9 @@ static char* read_cmd(void)
 }
 
 
+static int s_do_log_info = 0;
+
+
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
 	switch( event )
@@ -61,7 +64,9 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 			break; /* do not show the event as this would fill the screen */
 
 		case MR_EVENT_INFO:
-			printf("%s\n", (char*)data2);
+			if( s_do_log_info ) {
+				printf("%s\n", (char*)data2);
+			}
 			break;
 
 		case MR_EVENT_WARNING:
@@ -138,6 +143,8 @@ int main(int argc, char ** argv)
 	}
 
 	stress_functions(mailbox);
+
+	s_do_log_info = 1;
 
 	/* wait for command */
 	while(1)
