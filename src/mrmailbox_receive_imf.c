@@ -438,11 +438,6 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 }
 
 
-/*******************************************************************************
- * Handle groups for received messages
- ******************************************************************************/
-
-
 static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, const char* grpname, int create_blocked)
 {
 	uint32_t      chat_id = 0;
@@ -463,6 +458,11 @@ cleanup:
 	if( stmt) { sqlite3_finalize(stmt); }
 	return chat_id;
 }
+
+
+/*******************************************************************************
+ * Handle groups for received messages
+ ******************************************************************************/
 
 
 static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
