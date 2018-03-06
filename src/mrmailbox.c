@@ -2218,8 +2218,11 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	{
 		char* from = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-		if( from == NULL ) { goto cleanup; }
-			rfc724_mid = mr_create_outgoing_rfc724_mid(chat->m_type==MR_CHAT_TYPE_GROUP? chat->m_grpid : NULL, from);
+		if( from == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot send message, not configured successfully.");
+			goto cleanup;
+		}
+		rfc724_mid = mr_create_outgoing_rfc724_mid(chat->m_type==MR_CHAT_TYPE_GROUP? chat->m_grpid : NULL, from);
 		free(from);
 	}
 
@@ -2229,6 +2232,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int(stmt, 1, chat->m_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot send message, contact for chat #%i not found.", chat->m_id);
 			goto cleanup;
 		}
 		to_id = sqlite3_column_int(stmt, 0);
@@ -2306,6 +2310,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	sqlite3_bind_text (stmt,  8, msg->m_text? msg->m_text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot send message, cannot insert to database.", chat->m_id);
 		goto cleanup;
 	}
 
@@ -2363,6 +2368,7 @@ cleanup:
  */
 uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
 {
+	int   locked = 0, transaction_pending = 0;
 	char* pathNfilename = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
@@ -2447,7 +2453,9 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
+	transaction_pending = 1;
 
 		mrmailbox_unarchive_chat__(mailbox, chat_id);
 
@@ -2457,16 +2465,23 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 			mrchat_t* chat = mrchat_new(mailbox);
 			if( mrchat_load_from_db__(chat, chat_id) ) {
 				msg->m_id = mrmailbox_send_msg_i__(mailbox, chat, msg, mr_create_smeared_timestamp__());
+				if( msg ->m_id == 0 ) {
+					goto cleanup; /* error already logged */
+				}
 			}
 			mrchat_unref(chat);
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
+	transaction_pending = 0;
 	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
 
 	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 
 cleanup:
+	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(pathNfilename);
 	return msg->m_id;
 }
