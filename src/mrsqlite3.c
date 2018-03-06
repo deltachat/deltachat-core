@@ -349,7 +349,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			{
 				mrsqlite3_execute__(ths, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
 				mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
-				mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN last_seen INTEGER DEFAULT 0;"); /* = MAX(msgs.timestamp) */
+				//mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN last_seen INTEGER DEFAULT 0;"); /* = MAX(msgs.timestamp) */
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
