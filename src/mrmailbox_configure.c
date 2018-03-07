@@ -53,6 +53,9 @@ static char* read_autoconf_file(mrmailbox_t* mailbox, const char* url)
  ******************************************************************************/
 
 
+/* documentation: https://developer.mozilla.org/en-US/docs/Mozilla/Thunderbird/Autoconfiguration */
+
+
 typedef struct moz_autoconfigure_t
 {
 	const mrloginparam_t* m_in;
@@ -65,7 +68,7 @@ typedef struct moz_autoconfigure_t
 	/* currently, we assume there is only one emailProvider tag in the
 	file, see example at https://wiki.mozilla.org/Thunderbird:Autoconfiguration:ConfigFileFormat
 	moreover, we assume, the returned domains match the one queried.  I've not seen another example (bp).
-	However, _if_ the assumpltions are wrong, we can add a first saxparser-pass that searches for the correct domain
+	However, _if_ the assumptions are wrong, we can add a first saxparser-pass that searches for the correct domain
 	and the second pass will look for the index found. */
 
 	#define MOZ_SERVER_IMAP 1
@@ -494,7 +497,7 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 		/* A.  Search configurations from the domain used in the email-address */
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
-				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"http":"https", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
+				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
 				param_autoconfig = moz_autoconfigure(mailbox, url, param);
 				free(url);
 				PROGRESS(300+i*50)
