@@ -223,6 +223,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 		if( success ) {
 			factory->m_increation = mrmsg_is_increation__(factory->m_msg);
 		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 

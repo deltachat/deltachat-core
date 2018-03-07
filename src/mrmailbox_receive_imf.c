@@ -863,26 +863,25 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
 
+	/* Check, if the mail comes from extern, resp. is not sent by us.  This is a _really_ important step
+	as messages sent by us are used to validate other mail senders and receivers.
+	For this purpose, we assume, the `Return-Path:`-header is never present if the message is sent by us.
+	The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
+	Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
+	However, we use `From:` as an additional hint below. */
+	if( mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
+		has_return_path = 1;
+	}
+
+	if( has_return_path ) {
+		incoming = 1;
+	}
+
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
-
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
 
-
-		/* Check, if the mail comes from extern, resp. is not sent by us.  This is a _really_ important step
-		as messages sent by us are used to validate other mail senders and receivers.
-		For this purpose, we assume, the `Return-Path:`-header is never present if the message is sent by us.
-		The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
-		Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
-		However, we use `From:` as an additional hint below. */
-		if( mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
-			has_return_path = 1;
-		}
-
-		if( has_return_path ) {
-			incoming = 1;
-		}
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
@@ -1322,31 +1321,17 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			free(emlname);
 		}
 
-	/* end sql-transaction */
+
 	mrsqlite3_commit__(mailbox->m_sql);
 	transaction_pending = 0;
 
-	/* done */
 cleanup:
-	if( transaction_pending ) {
-		mrsqlite3_rollback__(mailbox->m_sql);
-	}
+	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
+	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	if( db_locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-
-	if( mime_parser ) {
-		mrmimeparser_unref(mime_parser);
-	}
-
-	if( rfc724_mid ) {
-		free(rfc724_mid);
-	}
-
-	if( to_ids ) {
-		mrarray_unref(to_ids);
-	}
+	mrmimeparser_unref(mime_parser);
+	free(rfc724_mid);
+	mrarray_unref(to_ids);
 
 	if( created_db_entries ) {
 		if( create_event_to_send ) {

@@ -404,10 +404,8 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 		ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 4));
 	}
 
-	/* success */
 	success = 1;
 
-	/* cleanup */
 cleanup:
 	return success;
 }

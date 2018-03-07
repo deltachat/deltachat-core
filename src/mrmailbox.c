@@ -247,45 +247,40 @@ int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
-	/* Open() sets up the object and connects to the given database
-	from which all configuration is read/written to. */
+		/* Open() sets up the object and connects to the given database
+		from which all configuration is read/written to. */
 
-	/* Create/open sqlite database */
-	if( !mrsqlite3_open__(mailbox->m_sql, dbfile, 0) ) {
-		goto cleanup;
-	}
-	mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
-
-	/* backup dbfile name */
-	mailbox->m_dbfile = safe_strdup(dbfile);
-
-	/* set blob-directory
-	(to avoid double slashed, the given directory should not end with an slash) */
-	if( blobdir && blobdir[0] ) {
-		mailbox->m_blobdir = safe_strdup(blobdir);
-	}
-	else {
-		mailbox->m_blobdir = mr_mprintf("%s-blobs", dbfile);
-		mr_create_folder(mailbox->m_blobdir, mailbox);
-	}
-
-	/* cache some settings */
-	update_config_cache__(mailbox, NULL);
-
-	/* success */
-	success = 1;
-
-	/* cleanup */
-cleanup:
-	if( !success ) {
-		if( mrsqlite3_is_open(mailbox->m_sql) ) {
-			mrsqlite3_close__(mailbox->m_sql);
+		/* Create/open sqlite database */
+		if( !mrsqlite3_open__(mailbox->m_sql, dbfile, 0) ) {
+			goto cleanup;
 		}
-	}
+		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
 
-	if( db_locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+		/* backup dbfile name */
+		mailbox->m_dbfile = safe_strdup(dbfile);
+
+		/* set blob-directory
+		(to avoid double slashed, the given directory should not end with an slash) */
+		if( blobdir && blobdir[0] ) {
+			mailbox->m_blobdir = safe_strdup(blobdir);
+		}
+		else {
+			mailbox->m_blobdir = mr_mprintf("%s-blobs", dbfile);
+			mr_create_folder(mailbox->m_blobdir, mailbox);
+		}
+
+		update_config_cache__(mailbox, NULL);
+
+		success = 1;
+
+cleanup:
+		if( !success ) {
+			if( mrsqlite3_is_open(mailbox->m_sql) ) {
+				mrsqlite3_close__(mailbox->m_sql);
+			}
+		}
+
+	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	return success;
 }
@@ -404,8 +399,10 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+
 		ret = mrsqlite3_set_config__(ths->m_sql, key, value);
 		update_config_cache__(ths, key);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -435,7 +432,9 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+
 		ret = mrsqlite3_get_config__(ths->m_sql, key, def);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret; /* the returned string must be free()'d, returns NULL only if "def" is NULL and "key" is unset */
@@ -457,8 +456,10 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+
 		ret = mrsqlite3_set_config_int__(ths->m_sql, key, value);
 		update_config_cache__(ths, key);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -479,7 +480,9 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 	}
 
 	mrsqlite3_lock(ths->m_sql);
+
 		ret = mrsqlite3_get_config_int__(ths->m_sql, key, def);
+
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
@@ -728,13 +731,8 @@ void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if t
 	}
 
 cleanup:
-	if( param ) {
-		mrloginparam_unref(param);
-	}
-
-	if( is_locked ) {
-		mrsqlite3_unlock(ths->m_sql);
-	}
+	if( is_locked ) { mrsqlite3_unlock(ths->m_sql); }
+	mrloginparam_unref(param);
 }
 
 
@@ -782,7 +780,9 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+
 		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	mrimap_disconnect(mailbox->m_imap);
@@ -845,19 +845,14 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
-	if( !mrchatlist_load_from_db__(obj, listflags, query) ) {
-		goto cleanup;
-	}
+		if( !mrchatlist_load_from_db__(obj, listflags, query) ) {
+			goto cleanup;
+		}
 
-	/* success */
+		success = 1;
 
-	success = 1;
-
-	/* cleanup */
 cleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( success ) {
 		return obj;
@@ -893,18 +888,14 @@ mrchat_t* mrmailbox_get_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
-	if( !mrchat_load_from_db__(obj, chat_id) ) {
-		goto cleanup;
-	}
+		if( !mrchat_load_from_db__(obj, chat_id) ) {
+			goto cleanup;
+		}
 
-	/* success */
-	success = 1;
+		success = 1;
 
-	/* cleanup */
 cleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( success ) {
 		return obj;
@@ -1159,7 +1150,9 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+
 		ret = mrmailbox_get_chat_media__(mailbox, chat_id, msg_type, or_msg_type);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	return ret;
@@ -1233,7 +1226,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( list ) { mrarray_unref(list); }
+	mrarray_unref(list);
 	mrmsg_unref(msg);
 	return ret_msg_id;
 }
@@ -1338,9 +1331,7 @@ mrarray_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 	success = 1;
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( success ) {
 		return ret;
@@ -1452,9 +1443,7 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 	success = 1;
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( success ) {
 		return ret;
@@ -1555,9 +1544,7 @@ mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const c
 	success = 1;
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(strLikeInText);
 	free(strLikeBeg);
 	free(real_query);
@@ -3133,7 +3120,9 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
+
 		ret = mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	return ret;
@@ -3720,12 +3709,8 @@ mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
 	}
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-	if( s3strLikeCmd ) {
-		sqlite3_free(s3strLikeCmd);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( s3strLikeCmd ) { sqlite3_free(s3strLikeCmd); }
 	free(self_addr);
 	free(self_name);
 	free(self_name2);
@@ -3868,7 +3853,9 @@ void mrmailbox_marknoticed_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 		return;
     }
     mrsqlite3_lock(mailbox->m_sql);
+
 		marknoticed_contact__(mailbox, contact_id);
+
     mrsqlite3_unlock(mailbox->m_sql);
 }
 
@@ -3967,14 +3954,8 @@ void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_
 	}
 
 cleanup:
-	if( transaction_pending ) {
-		mrsqlite3_rollback__(mailbox->m_sql);
-	}
-
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-
+	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrcontact_unref(contact);
 }
 
@@ -4179,9 +4160,7 @@ int mrmailbox_delete_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 	success = 1;
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return success;
 }
 
@@ -4349,9 +4328,7 @@ mrmsg_t* mrmailbox_get_msg(mrmailbox_t* mailbox, uint32_t msg_id)
 		success = 1;
 
 cleanup:
-	if( db_locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( success ) {
 		return obj;
@@ -4708,9 +4685,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	locked = 0;
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
 }
 
@@ -4820,9 +4795,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 cleanup:
-	if( locked ) {
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
 	free(new_server_folder);
 }
@@ -5023,7 +4996,8 @@ void mrmailbox_send_mdn(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* connect to SMTP server, if not yet done */
-	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
+	if( !mrsmtp_is_connected(mailbox->m_smtp) )
+	{
 		mrloginparam_t* loginparam = mrloginparam_new();
 			mrsqlite3_lock(mailbox->m_sql);
 				mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");

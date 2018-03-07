@@ -1090,17 +1090,21 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
 int mrmsg_is_increation(mrmsg_t* msg)
 {
 	/* surrounds mrmsg_is_increation__() with locking and error checking */
+	int is_increation = 0;
+
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
 
-	int is_increation = 0;
 	if( msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
 	{
 		mrsqlite3_lock(msg->m_mailbox->m_sql);
+
 			is_increation = mrmsg_is_increation__(msg);
+
 		mrsqlite3_unlock(msg->m_mailbox->m_sql);
 	}
+
 	return is_increation;
 }
 

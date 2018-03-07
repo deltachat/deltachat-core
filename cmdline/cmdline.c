@@ -102,7 +102,7 @@ static int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
 
 	mrsqlite3_lock(ths->m_sql);
 
-	mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
+		mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
 
 	mrsqlite3_unlock(ths->m_sql);
 
@@ -273,14 +273,10 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
 
-	/* success */
 	success = 1;
 
-	/* cleanup */
 cleanup:
-	if( dir ) {
-		closedir(dir);
-	}
+	if( dir ) { closedir(dir); }
 	free(real_spec);
 	free(suffix);
 	return success;
