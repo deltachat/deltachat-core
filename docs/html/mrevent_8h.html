@@ -145,7 +145,7 @@ Macros</h2></td></tr>
 <tr class="memdesc:a465a35db3742af9f1a3e39b2ede585da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requeste a localized quantitiy string from the frontend.  <a href="#a465a35db3742af9f1a3e39b2ede585da">More...</a><br /></td></tr>
 <tr class="separator:a465a35db3742af9f1a3e39b2ede585da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba8b1a46a18cd05070b301c757a74ddc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#aba8b1a46a18cd05070b301c757a74ddc">MR_EVENT_HTTP_GET</a>&#160;&#160;&#160;2100</td></tr>
-<tr class="memdesc:aba8b1a46a18cd05070b301c757a74ddc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Request a HTTP-file from the frontend.  <a href="#aba8b1a46a18cd05070b301c757a74ddc">More...</a><br /></td></tr>
+<tr class="memdesc:aba8b1a46a18cd05070b301c757a74ddc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Request a HTTP-file or HTTPS-file from the frontend.  <a href="#aba8b1a46a18cd05070b301c757a74ddc">More...</a><br /></td></tr>
 <tr class="separator:aba8b1a46a18cd05070b301c757a74ddc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8312b0e8f1e7422300a5502d86e0db01"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mrevent_8h.html#a8312b0e8f1e7422300a5502d86e0db01">MR_EVENT_WAKE_LOCK</a>&#160;&#160;&#160;2110</td></tr>
 <tr class="memdesc:a8312b0e8f1e7422300a5502d86e0db01"><td class="mdescLeft">&#160;</td><td class="mdescRight">Acquire or release a wakelock.  <a href="#a8312b0e8f1e7422300a5502d86e0db01">More...</a><br /></td></tr>
@@ -511,15 +511,15 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Request a HTTP-file from the frontend. </p>
+<p>Request a HTTP-file or HTTPS-file from the frontend. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">data1</td><td>URL</td></tr>
+    <tr><td class="paramname">data1</td><td>Null-terminated UTF-8 string containing the URL. The string starts with <a href="https://">https://</a> or <a href="http://">http://</a>. Must not be free()'d or modified by the frontend.</td></tr>
     <tr><td class="paramname">data2</td><td>0</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The content of the requested file as a null-terminated UTF-8 string. CAVE: The string will be free()'d by the core, so make sure it is allocated using malloc() or a compatible function. If you cannot provide the content, just return 0. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The content of the requested file as a null-terminated UTF-8 string; Response headers, encodings etc. must be stripped, only the raw file, which may be binary, should be returned. CAVE: The string will be free()'d by the core, so make sure it is allocated using malloc() or a compatible function. If you cannot provide the content, just return 0. </dd></dl>
 
 </div>
 </div>
@@ -534,7 +534,7 @@ Macros</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Acquire or release a wakelock. </p>
-<p>The core surrounds critical functions that should not be killed by the operating system with wakelocks. Before a critical function <em>MR_EVENT_WAKE_LOCK with data1=1</em> is called, it it finishes, <em>MR_EVENT_WAKE_LOCK with data1=0</em> is called. If you do not need this functionality, just ignore this event.</p>
+<p>The core surrounds critical functions that should not be killed by the operating system with wakelocks. Before a critical function <em>MR_EVENT_WAKE_LOCK with data1=1</em> is called, when it finishes, <em>MR_EVENT_WAKE_LOCK with data1=0</em> is called. If you do not need this functionality, just ignore this event.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">data1</td><td>1=acquire wakelock, 0=release wakelock, the core does not make nested or unsynchronized calls</td></tr>

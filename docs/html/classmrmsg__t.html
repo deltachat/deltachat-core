@@ -274,7 +274,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Get the ID of chat the message belongs to. </p>
-<p>To get details about the chat, pass the returned ID to <a class="el" href="classmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a>.</p>
+<p>To get details about the chat, pass the returned ID to <a class="el" href="classmrmailbox__t.html#ad106b9c23b3a559b524a37bb5504e096" title="Get chat object by a chat ID. ">mrmailbox_get_chat()</a>. If a message is still in the deaddrop, the ID MR_CHAT_ID_DEADDROP is returned although internally another ID is used.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object.</td></tr>
@@ -390,6 +390,8 @@ Public Member Functions</h2></td></tr>
 
 <p>Get the text of the message. </p>
 <p>If there is no text associalted with the message, an empty string is returned. NULL is never returned.</p>
+<p>The returned text is plain text, HTML is stripped. The returned text is truncated to a max. length of currently about 30000 characters, it does not make sense to show more text in the message list and typical controls will have problems with showing much more text. This max. length is to avoid passing <em>lots</em> of data to the frontend which may result eg. from decoding errors (assume some bytes missing in a mime structure, forcing an attachment to be plain text).</p>
+<p>To get information about the message and more/raw text, use <a class="el" href="classmrmailbox__t.html#a13e05fe3f43102c3323ba4c7e2761593" title="Get an informational text for a single message. ">mrmailbox_get_msg_info()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">msg</td><td>The message object.</td></tr>

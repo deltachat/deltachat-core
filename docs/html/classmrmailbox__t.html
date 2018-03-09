@@ -166,6 +166,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1386ec2c091b936b65b25b50a302173d"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classmrmailbox__t.html#a1386ec2c091b936b65b25b50a302173d">mrmailbox_create_chat_by_contact_id</a> (<a class="el" href="classmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t contact_id)</td></tr>
 <tr class="memdesc:a1386ec2c091b936b65b25b50a302173d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a normal chat with a single user.  <a href="#a1386ec2c091b936b65b25b50a302173d">More...</a><br /></td></tr>
 <tr class="separator:a1386ec2c091b936b65b25b50a302173d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab35eb555a8aaae2565975eb09f9a5894"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classmrmailbox__t.html#ab35eb555a8aaae2565975eb09f9a5894">mrmailbox_create_chat_by_msg_id</a> (<a class="el" href="classmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t msg_id)</td></tr>
+<tr class="memdesc:ab35eb555a8aaae2565975eb09f9a5894"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a normal chat or a group chat by a messages ID that comes typically from the deaddrop, MR_CHAT_ID_DEADDROP (1).  <a href="#ab35eb555a8aaae2565975eb09f9a5894">More...</a><br /></td></tr>
+<tr class="separator:ab35eb555a8aaae2565975eb09f9a5894"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c69c290d57aa2b76f0260c0c2702023"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classmrarray__t.html">mrarray_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classmrmailbox__t.html#a4c69c290d57aa2b76f0260c0c2702023">mrmailbox_get_chat_media</a> (<a class="el" href="classmrmailbox__t.html">mrmailbox_t</a> *mailbox, uint32_t chat_id, int msg_type, int or_msg_type)</td></tr>
 <tr class="memdesc:a4c69c290d57aa2b76f0260c0c2702023"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all message IDs of the given types in a chat.  <a href="#a4c69c290d57aa2b76f0260c0c2702023">More...</a><br /></td></tr>
 <tr class="separator:a4c69c290d57aa2b76f0260c0c2702023"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -993,6 +996,7 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Check, if there is a normal chat with a given contact. </p>
+<p>To get the chat messages, use <a class="el" href="classmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="classmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -1029,11 +1033,51 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a normal chat with a single user. </p>
-<p>To create group chats, see <a class="el" href="classmrmailbox__t.html#a47156db87107ec208d6637f460d897a8" title="Create a new group chat. ">mrmailbox_create_group_chat()</a></p>
+<p>To create group chats, see <a class="el" href="classmrmailbox__t.html#a47156db87107ec208d6637f460d897a8" title="Create a new group chat. ">mrmailbox_create_group_chat()</a>.</p>
+<p>If there is already an exitant chat, this ID is returned and no new chat is crated. If there is no existant chat with the user, a new chat is created; this new chat may already contain messages, eg. from the deaddrop, to get the chat messages, use <a class="el" href="classmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="classmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
     <tr><td class="paramname">contact_id</td><td>The contact ID to create the chat for. If there is already a chat with this contact, the already existing ID is returned.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The created or reused chat ID on success. 0 on errors. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ab35eb555a8aaae2565975eb09f9a5894"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t mrmailbox_create_chat_by_msg_id </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classmrmailbox__t.html">mrmailbox_t</a> *&#160;</td>
+          <td class="paramname"><em>mailbox</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>msg_id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a normal chat or a group chat by a messages ID that comes typically from the deaddrop, MR_CHAT_ID_DEADDROP (1). </p>
+<p>If the given message ID already belongs to a normal chat or to a group chat, the chat ID of this chat is returned and no new chat is created. If a new chat is created, the given message ID is moved to this chat, however, there may be more messages moved to the chat from the deaddrop. To get the chat messages, use <a class="el" href="classmrmailbox__t.html#af5ac7f527aef58f8e834f3bd740acd46" title="Get all message IDs belonging to a chat. ">mrmailbox_get_chat_msgs()</a>.</p>
+<p>If the user should be start asked the chat is created, he should just be asked whether he wants to chat with the <em>contact</em> belonging to the message; the group names may be really weired when take from the subject of implicit groups and this may look confusing.</p>
+<p>Moreover, this function also scales up the origin of the contact belonging to the message and, depending on the contacts origin, messages from the same group may be shown or not - so, all in all, it is fine to show the contact name only.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="classmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
+    <tr><td class="paramname">msg_id</td><td>The message ID to create the chat for.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1492,8 +1536,9 @@ Public Member Functions</h2></td></tr>
 <ul>
 <li>Messages are <b>not deleted from the server</b>.</li>
 <li>The chat or the contact is <b>not blocked</b>, so new messages from the user/the group may appear and the user may create the chat again.</li>
-<li><b>Groups are not left</b> - this would be unexpected as deleting a normal chat also does not prevent new mails from arriving (another argument is, that leaving a group requires sending a message to all group members - esp. for groups not used for a longer time, this is really unexpected when deletion results in contacting all members again. To leave a chat explicitly, use <a class="el" href="classmrmailbox__t.html#a40226d401548b002a62648ea054ac635" title="Remove a member from a group. ">mrmailbox_remove_contact_from_chat()</a> with chat_id=MR_CONTACT_ID_SELF)</li>
+<li><b>Groups are not left</b> - this would be unexpected as (1) deleting a normal chat also does not prevent new mails from arriving, (2) leaving a group requires sending a message to all group members - esp. for groups not used for a longer time, this is really unexpected when deletion results in contacting all members again, (3) only leaving groups is also a valid usecase.</li>
 </ul>
+<p>To leave a chat explicitly, use <a class="el" href="classmrmailbox__t.html#a40226d401548b002a62648ea054ac635" title="Remove a member from a group. ">mrmailbox_remove_contact_from_chat()</a> with chat_id=MR_CONTACT_ID_SELF)</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>The mailbox object as returned from <a class="el" href="classmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2611,6 +2656,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Get an informational text for a single message. </p>
 <p>the text is multiline and may contain eg. the raw text of the message.</p>
+<p>The max. text returned is typically longer (about 100000 characters) than the max. text returned by <a class="el" href="classmrmsg__t.html#ae549e58d9ae2f73ad76bd27636b43982" title="Get the text of the message. ">mrmsg_get_text()</a> (about 30000 characters).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">mailbox</td><td>the mailbox object as created by <a class="el" href="classmrmailbox__t.html#a32825e3e0a1b16679580704a4b43db1a" title="Create a new mailbox object. ">mrmailbox_new()</a>.</td></tr>
@@ -2884,7 +2930,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Signal an ongoing process to stop. </p>
 <p>After that, <a class="el" href="classmrmailbox__t.html#ad42351c0369ed1b60f23ee0d6e96bc44" title="Signal an ongoing process to stop. ">mrmailbox_stop_ongoing_process()</a> returns <em>without</em> waiting for the ongoing process to return.</p>
-<p>The ongoing process will return ASAP then, however, it may still take a moment. If in doubt, the caller may also decide to kill the thread after a few seconds; eg. the process may hang in a function not under the control of the core (eg. <a class="el" href="mrevent_8h.html#aba8b1a46a18cd05070b301c757a74ddc" title="Request a HTTP-file from the frontend. ">MR_EVENT_HTTP_GET</a>). Another reason for <a class="el" href="classmrmailbox__t.html#ad42351c0369ed1b60f23ee0d6e96bc44" title="Signal an ongoing process to stop. ">mrmailbox_stop_ongoing_process()</a> not to wait is that otherwise it would be GUI-blocking and should be started in another thread then; this would make things even more complicated.</p>
+<p>The ongoing process will return ASAP then, however, it may still take a moment. If in doubt, the caller may also decide to kill the thread after a few seconds; eg. the process may hang in a function not under the control of the core (eg. <a class="el" href="mrevent_8h.html#aba8b1a46a18cd05070b301c757a74ddc" title="Request a HTTP-file or HTTPS-file from the frontend. ">MR_EVENT_HTTP_GET</a>). Another reason for <a class="el" href="classmrmailbox__t.html#ad42351c0369ed1b60f23ee0d6e96bc44" title="Signal an ongoing process to stop. ">mrmailbox_stop_ongoing_process()</a> not to wait is that otherwise it would be GUI-blocking and should be started in another thread then; this would make things even more complicated.</p>
 <p>Typical ongoing processes are started by <a class="el" href="classmrmailbox__t.html#a42ca741cc08785585f1dc74d515be5ef" title="Configure and connect a mailbox. ">mrmailbox_configure_and_connect()</a>, <a class="el" href="classmrmailbox__t.html#a8662e21a209936e2070f6a59479bfef4" title="Initiate Autocrypt Key Transfer. ">mrmailbox_initiate_key_transfer()</a> or <a class="el" href="classmrmailbox__t.html#a7db60273eae74ebbc74231f4c6d7204f" title="Import/export things. ">mrmailbox_imex()</a>. As there is always at most only one onging process at the same time, there is no need to define <em>which</em> process to exit.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">

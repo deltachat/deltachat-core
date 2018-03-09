@@ -1,9 +1,9 @@
 var searchData=
 [
-  ['mrarray_5fget_5fcnt',['mrarray_get_cnt',['../classmrarray__t.html#a73f6d954ed1b97bbceb3cf7d8e1aeec8',1,'mrarray_t']]],
-  ['mrarray_5fget_5fid',['mrarray_get_id',['../classmrarray__t.html#a40b1e875ba256b6ccbbe65f58bbc01ec',1,'mrarray_t']]],
-  ['mrarray_5fget_5fptr',['mrarray_get_ptr',['../classmrarray__t.html#a24637c94b99b8aaa0b7608dca9e4996b',1,'mrarray_t']]],
-  ['mrarray_5fget_5fuint',['mrarray_get_uint',['../classmrarray__t.html#a32e441acbb4de2f4afba7bc2712293e0',1,'mrarray_t']]],
+  ['mrarray_5fget_5fcnt',['mrarray_get_cnt',['../classmrarray__t.html#a10bc991cd119dc319ed664e763a1f592',1,'mrarray_t']]],
+  ['mrarray_5fget_5fid',['mrarray_get_id',['../classmrarray__t.html#a971d42a99c60d56ec7912fb7a11c8949',1,'mrarray_t']]],
+  ['mrarray_5fget_5fptr',['mrarray_get_ptr',['../classmrarray__t.html#aebc6dad4a17a1bacd3a27fac7c11eba7',1,'mrarray_t']]],
+  ['mrarray_5fget_5fuint',['mrarray_get_uint',['../classmrarray__t.html#ae4769207fdd2a9c2604efc8db8797b51',1,'mrarray_t']]],
   ['mrarray_5funref',['mrarray_unref',['../classmrarray__t.html#a1400b5e42c682326e809723f02739a8e',1,'mrarray_t']]],
   ['mrchat_5fget_5farchived',['mrchat_get_archived',['../classmrchat__t.html#acc61e5404ffdc000b79e333b7cd8480a',1,'mrchat_t']]],
   ['mrchat_5fget_5fdraft',['mrchat_get_draft',['../classmrchat__t.html#a432be926badecf1d50bafa06da988d6e',1,'mrchat_t']]],
@@ -45,6 +45,7 @@ var searchData=
   ['mrmailbox_5fconnect',['mrmailbox_connect',['../classmrmailbox__t.html#a67eef5ffc3369b8ad09326471b0a266f',1,'mrmailbox_t']]],
   ['mrmailbox_5fcontinue_5fkey_5ftransfer',['mrmailbox_continue_key_transfer',['../classmrmailbox__t.html#a13fde8828b56c0fe94227d0b105c5708',1,'mrmailbox_t']]],
   ['mrmailbox_5fcreate_5fchat_5fby_5fcontact_5fid',['mrmailbox_create_chat_by_contact_id',['../classmrmailbox__t.html#a1386ec2c091b936b65b25b50a302173d',1,'mrmailbox_t']]],
+  ['mrmailbox_5fcreate_5fchat_5fby_5fmsg_5fid',['mrmailbox_create_chat_by_msg_id',['../classmrmailbox__t.html#ab35eb555a8aaae2565975eb09f9a5894',1,'mrmailbox_t']]],
   ['mrmailbox_5fcreate_5fcontact',['mrmailbox_create_contact',['../classmrmailbox__t.html#aa089e97e7ca1add16c10d5cc0e902824',1,'mrmailbox_t']]],
   ['mrmailbox_5fcreate_5fgroup_5fchat',['mrmailbox_create_group_chat',['../classmrmailbox__t.html#a47156db87107ec208d6637f460d897a8',1,'mrmailbox_t']]],
   ['mrmailbox_5fdelete_5fchat',['mrmailbox_delete_chat',['../classmrmailbox__t.html#a24813f8aea38bcf5f928ea8a5fd7a3ec',1,'mrmailbox_t']]],
