@@ -1353,7 +1353,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		if( ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability ) {
 			/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
 			mrstrbuilder_t capinfostr;
-			mrstrbuilder_init(&capinfostr);
+			mrstrbuilder_init(&capinfostr, 0);
 			clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
 			if( list ) {
 				clistiter* cur;

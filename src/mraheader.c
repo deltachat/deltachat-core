@@ -67,7 +67,7 @@ char* mraheader_render(const mraheader_t* ths)
 	int            success = 0;
 	char*          keybase64_wrapped = NULL;
 	mrstrbuilder_t ret;
-	mrstrbuilder_init(&ret);
+	mrstrbuilder_init(&ret, 0);
 
 	if( ths==NULL || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=MR_PUBLIC ) {
 		goto cleanup;

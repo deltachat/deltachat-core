@@ -388,7 +388,7 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 	uint8_t*       binary_hash = NULL;
 	char*          ret = NULL;
 
-	mrstrbuilder_init(&member_cs);
+	mrstrbuilder_init(&member_cs, 0);
 
 	/* collect all addresses and sort them */
 	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);

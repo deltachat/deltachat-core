@@ -508,7 +508,7 @@ char* mrmailbox_get_info(mrmailbox_t* mailbox)
 	mrkey_t* self_public = mrkey_new();
 
 	mrstrbuilder_t  ret;
-	mrstrbuilder_init(&ret);
+	mrstrbuilder_init(&ret, 0);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return safe_strdup("ErrBadPtr");
@@ -4001,7 +4001,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	}
 
 	mrstrbuilder_t  ret;
-	mrstrbuilder_init(&ret);
+	mrstrbuilder_init(&ret, 0);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -4363,7 +4363,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	mrmsg_t*       msg = mrmsg_new();
 	char           *rawtxt = NULL, *p;
 
-	mrstrbuilder_init(&ret);
+	mrstrbuilder_init(&ret, 0);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;

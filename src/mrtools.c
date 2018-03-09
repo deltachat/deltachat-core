@@ -491,13 +491,13 @@ char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
  ******************************************************************************/
 
 
-void mrstrbuilder_init(mrstrbuilder_t* ths)
+void mrstrbuilder_init(mrstrbuilder_t* ths, int init_bytes)
 {
 	if( ths==NULL ) {
 		return;
 	}
 
-	ths->m_allocated    = 128; /* do not get too large here, esp. if use _many_ of these objects at the same time (currently, this is not the case) */
+	ths->m_allocated    = MR_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
     ths->m_buf          = malloc(ths->m_allocated); if( ths->m_buf==NULL ) { exit(38); }
     ths->m_buf[0]       = 0;
 	ths->m_free         = ths->m_allocated - 1 /*the nullbyte! */;
