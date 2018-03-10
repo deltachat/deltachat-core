@@ -4453,7 +4453,11 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	if( rawtxt && rawtxt[0] ) {
 		mrstrbuilder_cat(&ret, "\n");
 		mrstrbuilder_cat(&ret, rawtxt);
+		mrstrbuilder_cat(&ret, "\n");
 	}
+
+	/* add Message-ID, Server-Folder and Server-UID; the database ID is normally only of interest if you have access to sqlite; if so you can easily get it from the "msgs" table. */
+	p = mr_mprintf("\nMessage-ID: %s\nLast seen as: %s/%i", msg->m_rfc724_mid, msg->m_server_folder, (int)msg->m_server_uid); mrstrbuilder_cat(&ret, p); free(p);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
