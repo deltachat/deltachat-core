@@ -837,7 +837,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	int              has_return_path = 0;
 	char*            txt_raw = NULL;
 
-	mrmailbox_log_info(mailbox, 0, "Receive message #%lu from %s.", server_uid, server_folder? server_folder:"?");
+	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
 	to_ids = mrarray_new(mailbox, 16);
 	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
