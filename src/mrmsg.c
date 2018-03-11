@@ -123,7 +123,7 @@ void mrmsg_empty(mrmsg_t* msg)
  *
  * @return the ID of the message, 0 on errors.
  */
-uint32_t mrmsg_get_id(mrmsg_t* msg)
+uint32_t mrmsg_get_id(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -142,7 +142,7 @@ uint32_t mrmsg_get_id(mrmsg_t* msg)
  *
  * @return the ID of the contact who wrote the message, MR_CONTACT_ID_SELF (1) if this is an outgoing message, 0 on errors.
  */
-uint32_t mrmsg_get_from_id(mrmsg_t* msg)
+uint32_t mrmsg_get_from_id(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -163,7 +163,7 @@ uint32_t mrmsg_get_from_id(mrmsg_t* msg)
  *
  * @return the ID of the chat the message belongs to, 0 on errors.
  */
-uint32_t mrmsg_get_chat_id(mrmsg_t* msg)
+uint32_t mrmsg_get_chat_id(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -183,7 +183,7 @@ uint32_t mrmsg_get_chat_id(mrmsg_t* msg)
  *     MR_MSG_AUDIO (40), MR_MSG_VOICE (41), MR_MSG_VIDEO (50), MR_MSG_FILE (60)
  *     or MR_MSG_UNDEFINED (0) if the type is undefined.
  */
-int mrmsg_get_type(mrmsg_t* msg)
+int mrmsg_get_type(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return MR_MSG_UNDEFINED;
@@ -221,7 +221,7 @@ int mrmsg_get_type(mrmsg_t* msg)
  *
  * @return The state of the message.
  */
-int mrmsg_get_state(mrmsg_t* msg)
+int mrmsg_get_state(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return MR_STATE_UNDEFINED;
@@ -242,7 +242,7 @@ int mrmsg_get_state(mrmsg_t* msg)
  *
  * @return The time of the message.
  */
-time_t mrmsg_get_timestamp(mrmsg_t* msg)
+time_t mrmsg_get_timestamp(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -273,7 +273,7 @@ time_t mrmsg_get_timestamp(mrmsg_t* msg)
  *
  * @return Message text. The result must be free()'d. Never returns NULL.
  */
-char* mrmsg_get_text(mrmsg_t* msg)
+char* mrmsg_get_text(const mrmsg_t* msg)
 {
 	char* ret;
 
@@ -302,7 +302,7 @@ char* mrmsg_get_text(mrmsg_t* msg)
  *     message.  If there is no file associated with the message, an emtpy
  *     string is returned.  NULL is never returned and the returned value must be free()'d.
  */
-char* mrmsg_get_file(mrmsg_t* msg)
+char* mrmsg_get_file(const mrmsg_t* msg)
 {
 	char* ret = NULL;
 
@@ -329,7 +329,7 @@ cleanup:
  *     associated with the message, an empty string is returned.  The returned
  *     value must be free()'d.
  */
-char* mrmsg_get_filename(mrmsg_t* msg)
+char* mrmsg_get_filename(const mrmsg_t* msg)
 {
 	char* ret = NULL, *pathNfilename = NULL;
 
@@ -361,7 +361,7 @@ cleanup:
  *
  * @return String containing the mime type. Must be free()'d after usage. NULL is never returned.
  */
-char* mrmsg_get_filemime(mrmsg_t* msg)
+char* mrmsg_get_filemime(const mrmsg_t* msg)
 {
 	char* ret = NULL;
 	char* file = NULL;
@@ -402,7 +402,7 @@ cleanup:
  *
  * @return File size in bytes, 0 if not applicable or on errors.
  */
-uint64_t mrmsg_get_filebytes(mrmsg_t* msg)
+uint64_t mrmsg_get_filebytes(const mrmsg_t* msg)
 {
 	uint64_t ret = 0;
 	char*    file = NULL;
@@ -444,7 +444,7 @@ cleanup:
  *
  * @return Media information as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
  */
-mrlot_t* mrmsg_get_mediainfo(mrmsg_t* msg)
+mrlot_t* mrmsg_get_mediainfo(const mrmsg_t* msg)
 {
 	mrlot_t*   ret = mrlot_new();
 	char*        pathNfilename = NULL;
@@ -505,7 +505,7 @@ cleanup:
  *
  * @return Width in pixels, if applicable. 0 otherwise or if unknown.
  */
-int mrmsg_get_width(mrmsg_t* msg)
+int mrmsg_get_width(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -530,7 +530,7 @@ int mrmsg_get_width(mrmsg_t* msg)
  *
  * @return Height in pixels, if applicable. 0 otherwise or if unknown.
  */
-int mrmsg_get_height(mrmsg_t* msg)
+int mrmsg_get_height(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -552,7 +552,7 @@ int mrmsg_get_height(mrmsg_t* msg)
  *
  * @return Duration in milliseconds, if applicable. 0 otherwise or if unknown.
  */
-int mrmsg_get_duration(mrmsg_t* msg)
+int mrmsg_get_duration(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -570,7 +570,7 @@ int mrmsg_get_duration(mrmsg_t* msg)
  *
  * @return 1=padlock should be shown beside message, 0=do not show a padlock beside the message.
  */
-int mrmsg_get_showpadlock(mrmsg_t* msg)
+int mrmsg_get_showpadlock(const mrmsg_t* msg)
 {
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
@@ -616,9 +616,9 @@ int mrmsg_get_showpadlock(mrmsg_t* msg)
  *
  * @return The summary as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
  */
-mrlot_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
+mrlot_t* mrmsg_get_summary(const mrmsg_t* msg, const mrchat_t* chat)
 {
-	mrlot_t*    ret = mrlot_new();
+	mrlot_t*      ret = mrlot_new();
 	mrcontact_t*  contact = NULL;
 	mrchat_t*     chat_to_delete = NULL;
 
@@ -627,10 +627,10 @@ mrlot_t* mrmsg_get_summary(mrmsg_t* msg, mrchat_t* chat)
 	}
 
 	if( chat == NULL ) {
-		if( (chat=mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id)) == NULL ) {
+		if( (chat_to_delete=mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id)) == NULL ) {
 			goto cleanup;
 		}
-		chat_to_delete = chat;
+		chat = chat_to_delete;
 	}
 
 	if( msg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_TYPE_GROUP ) {
@@ -659,7 +659,7 @@ cleanup:
  * @return A summary for the given messages. The returned string must be free()'d.
  *     Returns an empty string on errors, never returns NULL.
  */
-char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
+char* mrmsg_get_summarytext(const mrmsg_t* msg, int approx_characters)
 {
 	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return safe_strdup(NULL);
@@ -681,7 +681,7 @@ char* mrmsg_get_summarytext(mrmsg_t* msg, int approx_characters)
  *
  * @return 1=message sent successfully, 0=message not yet sent or message is an incoming message.
  */
-int mrmsg_is_sent(mrmsg_t* msg)
+int mrmsg_is_sent(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -704,7 +704,7 @@ int mrmsg_is_sent(mrmsg_t* msg)
  *
  * @return 1=message is starred, 0=message not starred.
  */
-int mrmsg_is_starred(mrmsg_t* msg)
+int mrmsg_is_starred(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -732,7 +732,7 @@ int mrmsg_is_starred(mrmsg_t* msg)
  *
  * @return 1=message is a forwarded message, 0=message not forwarded.
  */
-int mrmsg_is_forwarded(mrmsg_t* msg)
+int mrmsg_is_forwarded(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -759,7 +759,7 @@ int mrmsg_is_forwarded(mrmsg_t* msg)
  *
  * @return 1=message is a system command, 0=normal message
  */
-int mrmsg_is_systemcmd(mrmsg_t* msg)
+int mrmsg_is_systemcmd(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
@@ -785,7 +785,7 @@ int mrmsg_is_systemcmd(mrmsg_t* msg)
  *     For setup messages, mrmsg_is_systemcmd() returns 1 and
  *     mrmsg_get_type() returns MR_MSG_FILE.
  */
-int mrmsg_is_setupmessage(mrmsg_t* msg)
+int mrmsg_is_setupmessage(const mrmsg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_type != MR_MSG_FILE ) {
 		return 0;
@@ -811,7 +811,7 @@ int mrmsg_is_setupmessage(mrmsg_t* msg)
  * @return Typically, the first two digits of the setup code or an empty string if unknown.
  *     NULL is never returned. Must be free()'d when done.
  */
-char* mrmsg_get_setupcodebegin(mrmsg_t* msg)
+char* mrmsg_get_setupcodebegin(const mrmsg_t* msg)
 {
 	char*  filename = NULL;
 	char*  buf = NULL;
@@ -1093,7 +1093,7 @@ int mrmsg_is_increation__(const mrmsg_t* msg)
  * @return 1=message is still in creation (`<filename>.increation` exists),
  *     0=message no longer in creation
  */
-int mrmsg_is_increation(mrmsg_t* msg)
+int mrmsg_is_increation(const mrmsg_t* msg)
 {
 	/* surrounds mrmsg_is_increation__() with locking and error checking */
 	int is_increation = 0;
