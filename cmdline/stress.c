@@ -286,9 +286,9 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( replacements == 3 );
 		free(str);
 
-		str = strdup("this is a little test");
+		str = strdup("this is a little test string");
 			mr_truncate_str(str, 16);
-			assert( strcmp(str, "this is a ...")==0 );
+			assert( strcmp(str, "this is a " MR_ELLIPSE_STR)==0 );
 		free(str);
 
 		str = strdup("1234");
@@ -296,14 +296,14 @@ void stress_functions(mrmailbox_t* mailbox)
 			assert( strcmp(str, "1234")==0 );
 		free(str);
 
-		str = strdup("12345");
+		str = strdup("1234567");
 			mr_truncate_str(str, 1);
-			assert( strcmp(str, "1...")==0 );
+			assert( strcmp(str, "1[...]")==0 );
 		free(str);
 
-		str = strdup("1234");
+		str = strdup("123456");
 			mr_truncate_str(str, 4);
-			assert( strcmp(str, "1234")==0 );
+			assert( strcmp(str, "123456")==0 );
 		free(str);
 
 		str = mr_insert_breaks("just1234test", 4, " ");

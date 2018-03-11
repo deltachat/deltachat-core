@@ -255,7 +255,7 @@ mrlot_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrchat_t* 
 		ret->m_text1_meaning = MR_TEXT1_DRAFT;
 
 		ret->m_text2 = safe_strdup(chat->m_draft_text);
-		mr_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1);
+		mr_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1/*unwrap*/);
 
 		ret->m_timestamp = chat->m_draft_timestamp;
 	}
