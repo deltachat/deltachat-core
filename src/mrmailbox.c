@@ -2375,8 +2375,8 @@ uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg
 		if( pathNfilename )
 		{
 			/* Got an attachment. Take care, the file may not be ready in this moment!
-			This is useful eg. if a video should be sended and already shown as "being processed" in the chat.
-			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sended.
+			This is useful eg. if a video should be sent and already shown as "being processed" in the chat.
+			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sent.
 			(we do not use a state in the database as this would make eg. forwarding such messages much more complicated) */
 
 			if( msg->m_type == MR_MSG_FILE || msg->m_type == MR_MSG_IMAGE )

@@ -312,7 +312,7 @@ static struct mailmime* build_body_text(char* text)
 }
 
 
-static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_name, char** ret_file_name_as_sended)
+static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_name, char** ret_file_name_as_sent)
 {
 	struct mailmime_fields*  mime_fields;
 	struct mailmime*         mime_sub = NULL;
@@ -387,8 +387,8 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_nam
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
 		safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
 
-	if( ret_file_name_as_sended ) {
-		*ret_file_name_as_sended = safe_strdup(filename_to_send);
+	if( ret_file_name_as_sent ) {
+		*ret_file_name_as_sent = safe_strdup(filename_to_send);
 	}
 
 	content = mailmime_content_new_with_str(mimetype);
@@ -557,9 +557,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			mrmsg_t* meta = mrmsg_new();
 			meta->m_type = MR_MSG_IMAGE;
 			mrparam_set(meta->m_param, MRP_FILE, grpimage);
-			char* filename_as_sended = NULL;
-			if( (meta_part=build_body_file(meta, "group-image", &filename_as_sended))!=NULL ) {
-				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sended/*takes ownership*/));
+			char* filename_as_sent = NULL;
+			if( (meta_part=build_body_file(meta, "group-image", &filename_as_sent))!=NULL ) {
+				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sent/*takes ownership*/));
 			}
 			mrmsg_unref(meta);
 		}
