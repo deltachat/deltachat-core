@@ -938,10 +938,23 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 }
 
 
+static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
+{
+	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
+	if( parser->m_decrypted_and_validated ) {
+		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
+	}
+	else if( parser->m_decrypted_with_validation_errors ) {
+		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, parser->m_decrypted_with_validation_errors);
+	}
+	carray_add(parser->m_parts, (void*)part, NULL);
+}
+
+
 static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mailmime* mime)
 {
-	mrmimepart_t*                part = mrmimepart_new();
-	int                          do_add_part = 0;
+	mrmimepart_t*                part = NULL;
+	int                          old_part_count = carray_count(ths->m_parts);
 
 	int                          mime_type;
 	struct mailmime_data*        mime_data;
@@ -955,7 +968,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 	size_t                       decoded_data_bytes = 0;
 	mrsimplify_t*                simplifier = NULL;
 
-	if( mime == NULL || mime->mm_data.mm_single == NULL || part == NULL ) {
+	if( mime == NULL || mime->mm_data.mm_single == NULL ) {
 		goto cleanup;
 	}
 
@@ -1005,12 +1018,20 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					}
 				}
 
-				part->m_type = MR_MSG_TEXT;
-				part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
-				part->m_msg = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
-
-				if( part->m_msg && part->m_msg[0] ) {
-					do_add_part = 1;
+				char* simplified_txt = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+				if( simplified_txt && simplified_txt[0] )
+				{
+					part = mrmimepart_new();
+					part->m_type = MR_MSG_TEXT;
+					part->m_int_mimetype = mime_type;
+					part->m_msg = simplified_txt;
+					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+					do_add_single_part(ths, part);
+					part = NULL;
+				}
+				else
+				{
+					free(simplified_txt);
 				}
 
 				if( simplifier->m_is_forwarded ) {
@@ -1075,7 +1096,9 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					goto cleanup;
                 }
 
+				part = mrmimepart_new();
 				part->m_type  = msg_type;
+				part->m_int_mimetype = mime_type;
 				part->m_bytes = decoded_data_bytes;
 				mrparam_set(part->m_param, MRP_FILE, pathNfilename);
 				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
@@ -1103,7 +1126,8 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					free(title);
 				}
 
-				do_add_part   = 1;
+				do_add_single_part(ths, part);
+				part = NULL;
 			}
 			break;
 
@@ -1119,22 +1143,9 @@ cleanup:
 	free(pathNfilename);
 	free(file_suffix);
 	free(desired_filename);
+	mrmimepart_unref(part);
 
-	if( do_add_part ) {
-		part->m_int_mimetype = mime_type;
-		if( ths->m_decrypted_and_validated ) {
-			mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
-		}
-		else if( ths->m_decrypted_with_validation_errors ) {
-			mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, ths->m_decrypted_with_validation_errors);
-		}
-		carray_add(ths->m_parts, (void*)part, NULL);
-		return 1; /* part used */
-	}
-	else {
-		mrmimepart_unref(part);
-		return 0;
-	}
+	return carray_count(ths->m_parts)>old_part_count? 1 : 0; /* any part added? */
 }
 
 
