@@ -393,31 +393,27 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
 char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
 {
-	#define MAX_OUT_CHARS 256
-
-	if( in == NULL || strlen(in)>MAX_OUT_CHARS ) {
+	if( in == NULL ) {
 		return NULL;
 	}
 
-	char* out = calloc(1, MAX_OUT_CHARS*2); /* calloc() ensures, the resulting string is always null-terminated, *2 for the minus-characters and the null-terminator */
+	mrstrbuilder_t out;
+	mrstrbuilder_init(&out, 0);
 	int   outlen;
 
-	char*       p2 = out;
 	const char* p1 = in;
 	while( *p1 ) {
 		if( *p1 >= '0' && *p1 <= '9' ) {
-			*p2 = *p1;
-			p2++;
-			outlen = strlen(out);
+			mrstrbuilder_cat_char(&out, *p1);
+			outlen = strlen(out.m_buf);
 			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
-				*p2 = '-';
-				p2++;
+				mrstrbuilder_cat(&out, "-");
 			}
 		}
 		p1++;
 	}
 
-	return out;
+	return out.m_buf;
 }
 
 
