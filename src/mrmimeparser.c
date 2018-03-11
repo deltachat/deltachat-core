@@ -1113,18 +1113,9 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 	/* add object? (we do not add all objetcs, eg. signatures etc. are ignored) */
 cleanup:
-	if( simplifier ) {
-		mrsimplify_unref(simplifier);
-	}
-
-	if( charset_buffer ) {
-		charconv_buffer_free(charset_buffer);
-	}
-
-	if( transfer_decoding_buffer ) {
-		mmap_string_unref(transfer_decoding_buffer);
-	}
-
+	mrsimplify_unref(simplifier);
+	if( charset_buffer ) { charconv_buffer_free(charset_buffer); }
+	if( transfer_decoding_buffer ) { mmap_string_unref(transfer_decoding_buffer); }
 	free(pathNfilename);
 	free(file_suffix);
 	free(desired_filename);
