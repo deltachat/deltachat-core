@@ -75,7 +75,10 @@ struct _mrmsg
 
 	int             m_state;                  /**< Message state. It is recommended to use mrmsg_get_state() to access this field. */
 
-	time_t          m_timestamp;              /**< Unix time the message was sended or received. 0 if unset. */
+	time_t          m_timestamp;              /**< Unix time for sorting. 0 if unset. */
+	time_t          m_timestamp_sent;         /**< Unix time the message was sent. 0 if unset. */
+	time_t          m_timestamp_rcvd;         /**< Unix time the message was recveived. 0 if unset. */
+
 	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use mrmsg_set_text() and mrmsg_get_text() to access this field. */
 
 	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */

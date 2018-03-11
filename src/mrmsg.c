@@ -231,7 +231,10 @@ int mrmsg_get_state(mrmsg_t* msg)
 
 
 /**
- * Get message time. Unix time the message was sended or received.
+ * Get message sending time. The sending time is returned by a unix timestamp.
+ * Note that the message list is not sorted by the _sending_ time but by the _receiving_ time.
+ * Cave: the message list is sorted by receiving time (otherwise new messages would non pop up at the expected place),
+ * however, if a message is delayed for any reason, the correct sending time will be displayed.
  *
  * @memberof mrmsg_t
  *
@@ -244,7 +247,8 @@ time_t mrmsg_get_timestamp(mrmsg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_timestamp;
+
+	return msg->m_timestamp_sent? msg->m_timestamp_sent : msg->m_timestamp;
 }
 
 
@@ -848,7 +852,7 @@ cleanup:
 
 
 #define MR_MSG_FIELDS " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, " \
-                      " m.from_id,m.to_id,m.timestamp, m.type,m.state,m.msgrmsg,m.txt, " \
+                      " m.from_id,m.to_id,m.timestamp,m.timestamp_sent,m.timestamp_rcvd, m.type,m.state,m.msgrmsg,m.txt, " \
                       " m.param,m.starred,c.blocked "
 
 
@@ -865,6 +869,8 @@ static int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset
 	ths->m_from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
+	ths->m_timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
+	ths->m_timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
 
 	ths->m_type         =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_state        =                     sqlite3_column_int  (row, row_offset++);

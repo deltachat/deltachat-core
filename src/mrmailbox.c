@@ -4389,9 +4389,15 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	locked = 0;
 
 	/* add time */
-	mrstrbuilder_cat(&ret, "Date: ");
-	p = mr_timestamp_to_str(msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
+	mrstrbuilder_cat(&ret, "Sent: ");
+	p = mr_timestamp_to_str(mrmsg_get_timestamp(msg)); mrstrbuilder_cat(&ret, p); free(p);
 	mrstrbuilder_cat(&ret, "\n");
+
+	if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
+		mrstrbuilder_cat(&ret, "Received: ");
+		p = mr_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
+		mrstrbuilder_cat(&ret, "\n");
+	}
 
 	/* add encryption state */
 	int e2ee_errors;

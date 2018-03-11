@@ -262,10 +262,20 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmim
  ******************************************************************************/
 
 
-static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t desired_timestamp, int is_fresh_msg)
+static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
+                                        time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
-	/* used for correcting timestamps of _received_ messages.
-	use the last message from another user (including SELF) as the MINIMUM
+	*rcvd_timestamp = time(NULL);
+
+	*sent_timestamp = message_timestamp;
+	if( *sent_timestamp > *rcvd_timestamp /* no sending times in the future */ ) {
+		*sent_timestamp = *rcvd_timestamp;
+	}
+
+	*sort_timestamp = message_timestamp; /* truncatd below to smeared time (not to _now_ to keep the order) */
+
+	/* use the last message from another user (including SELF) as the MINIMUM for sort_timestamp;
+	this is to force fresh messages popping up at the end of the list.
 	(we do this check only for fresh messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
 	if( is_fresh_msg )
 	{
@@ -273,13 +283,13 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 			"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
 		sqlite3_bind_int  (stmt,  1, chat_id);
 		sqlite3_bind_int  (stmt,  2, from_id);
-		sqlite3_bind_int64(stmt,  3, desired_timestamp);
+		sqlite3_bind_int64(stmt,  3, *sort_timestamp);
 		if( sqlite3_step(stmt)==SQLITE_ROW )
 		{
 			time_t last_msg_time = sqlite3_column_int64(stmt, 0);
 			if( last_msg_time > 0 /* may happen as we do not check against sqlite3_column_type()!=SQLITE_NULL */ ) {
-				if( desired_timestamp <= last_msg_time ) {
-					desired_timestamp = last_msg_time+1; /* this may result in several incoming messages having the same
+				if( *sort_timestamp <= last_msg_time ) {
+					*sort_timestamp = last_msg_time+1; /* this may result in several incoming messages having the same
 					                                     one-second-after-the-last-other-message-timestamp.  however, this is no big deal
 					                                     as we do not try to recrete the order of bad-date-messages and as we always order by ID as second criterion */
 				}
@@ -288,12 +298,9 @@ static time_t mrmailbox_correct_bad_timestamp__(mrmailbox_t* mailbox, uint32_t c
 	}
 
 	/* use the (smeared) current time as the MAXIMUM */
-	if( desired_timestamp >= mr_smeared_time__() )
-	{
-		desired_timestamp = mr_create_smeared_timestamp__();
+	if( *sort_timestamp >= mr_smeared_time__() ) {
+		*sort_timestamp = mr_create_smeared_timestamp__();
 	}
-
-	return desired_timestamp;
 }
 
 
@@ -823,7 +830,9 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	size_t           i, icnt;
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
-	time_t           message_timestamp = MR_INVALID_TIMESTAMP;
+	time_t           sort_timestamp = MR_INVALID_TIMESTAMP;
+	time_t           sent_timestamp = MR_INVALID_TIMESTAMP;
+	time_t           rcvd_timestamp = MR_INVALID_TIMESTAMP;
 	mrmimeparser_t*  mime_parser = mrmimeparser_new(mailbox->m_blobdir, mailbox);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
@@ -1082,10 +1091,11 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
 				struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 				if( orig_date ) {
-					message_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+					sent_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
 				}
 			}
-			message_timestamp = mrmailbox_correct_bad_timestamp__(mailbox, chat_id, from_id, message_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/);
+			mrmailbox_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
+				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
 			/* unarchive chat */
 			mrmailbox_unarchive_chat__(mailbox, chat_id);
@@ -1104,7 +1114,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
 				in these cases, we build a message ID based on some useful header fields that do never change (date, to)
 				we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-				rfc724_mid = mr_create_incoming_rfc724_mid(message_timestamp, from_id, to_ids);
+				rfc724_mid = mr_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
 				if( rfc724_mid == NULL ) {
 					mrmailbox_log_info(mailbox, 0, "Cannot create Message-ID.");
 					goto cleanup;
@@ -1163,22 +1173,24 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
-					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,type, state,msgrmsg,txt,txt_raw,param,bytes)"
-					" VALUES (?,?,?,?,?, ?,?,?, ?,?,?,?,?,?);");
+					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param,bytes)"
+					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?,?);");
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, server_uid);
 				sqlite3_bind_int  (stmt,  4, chat_id);
 				sqlite3_bind_int  (stmt,  5, from_id);
 				sqlite3_bind_int  (stmt,  6, to_id);
-				sqlite3_bind_int64(stmt,  7, message_timestamp);
-				sqlite3_bind_int  (stmt,  8, part->m_type);
-				sqlite3_bind_int  (stmt,  9, state);
-				sqlite3_bind_int  (stmt, 10, msgrmsg);
-				sqlite3_bind_text (stmt, 11, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 12, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
-				sqlite3_bind_text (stmt, 13, part->m_param->m_packed, -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt, 14, part->m_bytes);
+				sqlite3_bind_int64(stmt,  7, sort_timestamp);
+				sqlite3_bind_int64(stmt,  8, sent_timestamp);
+				sqlite3_bind_int64(stmt,  9, rcvd_timestamp);
+				sqlite3_bind_int  (stmt, 10, part->m_type);
+				sqlite3_bind_int  (stmt, 11, state);
+				sqlite3_bind_int  (stmt, 12, msgrmsg);
+				sqlite3_bind_text (stmt, 13, part->m_msg? part->m_msg : "", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 14, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
+				sqlite3_bind_text (stmt, 15, part->m_param->m_packed, -1, SQLITE_STATIC);
+				sqlite3_bind_int  (stmt, 16, part->m_bytes);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					mrmailbox_log_info(mailbox, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */

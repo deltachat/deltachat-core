@@ -213,6 +213,6 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 	}
 
 	ths->m_text2     = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, MR_SUMMARY_CHARACTERS);
-	ths->m_timestamp = msg->m_timestamp;
+	ths->m_timestamp = mrmsg_get_timestamp(msg);
 	ths->m_state     = msg->m_state;
 }
