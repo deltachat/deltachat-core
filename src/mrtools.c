@@ -534,6 +534,15 @@ char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
 }
 
 
+void mrstrbuilder_cat_char(mrstrbuilder_t* strbuilder, char c)
+{
+	char buf[2];
+	buf[0] = c;
+	buf[1] = 0;
+	mrstrbuilder_cat(strbuilder, buf);
+}
+
+
 void mrstrbuilder_empty(mrstrbuilder_t* ths)
 {
 	/*  set the string to a length of 0, does not free the buffer */

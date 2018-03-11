@@ -71,9 +71,10 @@ typedef struct mrstrbuilder_t
 	int   m_free;
 	char* m_eos;
 } mrstrbuilder_t;
-void  mrstrbuilder_init (mrstrbuilder_t* ths, int init_bytes);
-char* mrstrbuilder_cat  (mrstrbuilder_t* ths, const char* text);
-void  mrstrbuilder_empty(mrstrbuilder_t* ths); /* set the string to a lenght of 0, does not free the buffer */
+void  mrstrbuilder_init    (mrstrbuilder_t* ths, int init_bytes);
+char* mrstrbuilder_cat     (mrstrbuilder_t* ths, const char* text);
+void  mrstrbuilder_cat_char(mrstrbuilder_t* ths, char);
+void  mrstrbuilder_empty   (mrstrbuilder_t* ths); /* set the string to a lenght of 0, does not free the buffer */
 
 
 /* clist tools */
