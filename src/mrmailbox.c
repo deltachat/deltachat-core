@@ -834,6 +834,8 @@ void mrmailbox_heartbeat(mrmailbox_t* ths)
  */
 mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const char* query)
 {
+	clock_t       start = clock();
+
 	int success = 0;
 	int db_locked = 0;
 	mrchatlist_t* obj = mrchatlist_new(mailbox);
@@ -853,6 +855,8 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 
 cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+
+	mrmailbox_log_info(mailbox, 0, "Chatlist created in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	if( success ) {
 		return obj;
@@ -1366,6 +1370,8 @@ cleanup:
  */
 mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
 {
+	clock_t       start = clock();
+
 	int           success = 0, locked = 0;
 	mrarray_t*    ret = mrarray_new(mailbox, 512);
 	sqlite3_stmt* stmt = NULL;
@@ -1445,6 +1451,8 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
+	mrmailbox_log_info(mailbox, 0, "Message list for chat #%i created in %.3f ms.", chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+
 	if( success ) {
 		return ret;
 	}
@@ -1480,6 +1488,8 @@ cleanup:
  */
 mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
 {
+	clock_t       start = clock();
+
 	int           success = 0, locked = 0;
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
@@ -1548,6 +1558,10 @@ cleanup:
 	free(strLikeInText);
 	free(strLikeBeg);
 	free(real_query);
+
+	mrmailbox_log_info(mailbox, 0, "Message list for search \"%s\" in chat #%i created in %.3f ms.", query, chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+
+
 	if( success ) {
 		return ret;
 	}
