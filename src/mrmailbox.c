@@ -4383,7 +4383,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 
 		rawtxt = safe_strdup((char*)sqlite3_column_text(stmt, 0));
-		mr_trim(rawtext);
+		mr_trim(rawtxt);
 		mr_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
 	mrsqlite3_unlock(mailbox->m_sql);
