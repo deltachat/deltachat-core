@@ -1436,6 +1436,10 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* recursively check, whats parsed, this also sets up m_header_old */
 	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
 
+	// TOCHECK: text parts may be moved to the beginning of the list - either here or in do_add_single_part()
+	//       usecase: eg. the Buchungsbestätigungen of Deutsch Bahn have the PDF before the explaining text.
+	//       may also be handy for extracting binaries from uuencoded text and just add the rest text after the binaries.
+
 	/* setup header */
 	hash_header(&ths->m_header, ths->m_header_root, ths->m_mailbox);
 	hash_header(&ths->m_header, ths->m_header_protected, ths->m_mailbox); /* overwrite the original header with the protected one */
