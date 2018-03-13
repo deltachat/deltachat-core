@@ -440,7 +440,7 @@ char* mr_render_fingerprint(const uint8_t* data, size_t bytes)
 	ret[0] = 0;
 
 	for( i = 0; i < bytes; i++ ) {
-		temp = mr_mprintf("%02X%s", (int)data[i], (i==6||i==13)?"\n":" ");
+		temp = mr_mprintf("%02X%s", (int)data[i], i%2==1? (i==9?"\n":" ") : "");
 		strcat(ret, temp);
 		free(temp);
 	}
