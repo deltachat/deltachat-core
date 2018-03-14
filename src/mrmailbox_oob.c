@@ -46,7 +46,7 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	qr = mr_mprintf("OPENPGP4FPR:%s#a=%s", fingerprint, self_addr);
+	qr = mr_mprintf("OPENPGP4FPR:%s#v=%s", fingerprint, self_addr);
 
 cleanup:
 	mrkey_unref(self_key);
