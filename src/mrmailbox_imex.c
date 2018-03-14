@@ -376,13 +376,15 @@ char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
 
 	for( i = 0; i < CODE_ELEMS; i++ )
 	{
-		if( !RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t)) ) {
-			mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
-			RAND_pseudo_bytes((unsigned char*)&random_val, sizeof(uint16_t));
+		do
+		{
+			if( !RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t)) ) {
+				mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
+				RAND_pseudo_bytes((unsigned char*)&random_val, sizeof(uint16_t));
+			}
 		}
-		if( random_val > 60000 ) {
-			continue; /* make sure the modulo below does not reduce entropy (range is 0..65535, a module 10000 would make appearing values <=535 one time more often than other values) */
-		}
+		while( random_val > 60000 ); /* make sure the modulo below does not reduce entropy (range is 0..65535, a module 10000 would make appearing values <=535 one time more often than other values) */
+
 		random_val = random_val % 10000; /* force all blocks into the range 0..9999 */
 
 		mrstrbuilder_catf(&ret, "%s%04i", i?"-":"", (int)random_val);
