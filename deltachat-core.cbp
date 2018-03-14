@@ -492,6 +492,9 @@
 		<Unit filename="src/mrmailbox_log.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrmailbox_oob.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrmailbox_receive_imf.c">
 			<Option compilerVar="CC" />
 		</Unit>
