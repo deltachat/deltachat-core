@@ -55,3 +55,17 @@ cleanup:
 	return qr? qr : safe_strdup(NULL);
 }
 
+
+mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
+{
+	mrlot_t* ret = mrlot_new();
+
+	if( mailbox==NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC || qr==NULL ) {
+		goto cleanup;
+	}
+
+	mrmailbox_log_info(mailbox, 0, "Scanned QR code: %s", qr);
+
+cleanup:
+	return ret;
+}

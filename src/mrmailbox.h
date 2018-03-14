@@ -305,6 +305,8 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 /* out-of-band verification */
 char*           mrmailbox_get_qr            (mrmailbox_t*);
+mrlot_t*        mrmailbox_check_scanned_qr  (mrmailbox_t*, const char* qr);
+
 
 /* logging */
 void            mrmailbox_log_error         (mrmailbox_t*, int code, const char* msg, ...);
