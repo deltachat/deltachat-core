@@ -69,8 +69,11 @@ char* mr_render_base64   (const void* buf, size_t buf_bytes, int break_every, co
 char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
 char* mrkey_render_asc   (const mrkey_t*, const char* add_header_lines); /* each header line must be terminated by \r\n, the result must be freed */
 int   mrkey_render_asc_to_file(const mrkey_t*, const char* file, mrmailbox_t* mailbox);
-char* mrkey_render_fingerprint(const mrkey_t*, mrmailbox_t* mailbox);
-char* mr_render_fingerprint(const uint8_t* data, size_t bytes);
+
+char* mr_format_fingerprint          (const char*);
+char* mrkey_get_fingerprint          (const mrkey_t*, mrmailbox_t*);
+char* mrkey_get_formatted_fingerprint(const mrkey_t*, mrmailbox_t*);
+
 void  mr_wipe_secret_mem(void* buf, size_t buf_bytes);
 
 

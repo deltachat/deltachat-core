@@ -303,6 +303,9 @@ int             mrmailbox_continue_key_transfer(mrmailbox_t*, uint32_t msg_id, c
 void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
+/* out-of-band verification */
+char*           mrmailbox_get_qr            (mrmailbox_t*);
+
 /* logging */
 void            mrmailbox_log_error         (mrmailbox_t*, int code, const char* msg, ...);
 void            mrmailbox_log_error_if      (int* condition, mrmailbox_t*, int code, const char* msg, ...);

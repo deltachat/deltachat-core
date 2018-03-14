@@ -427,34 +427,37 @@ cleanup:
 }
 
 
-char* mr_render_fingerprint(const uint8_t* data, size_t bytes)
+char* mr_format_fingerprint(const char* fingerprint)
 {
-	int i;
-	char* temp;
+	int i = 0, fingerprint_len = strlen(fingerprint);
+	mrstrbuilder_t ret;
+	mrstrbuilder_init(&ret, 0);
 
-	if( data ==NULL || bytes <= 0 ) {
-		return safe_strdup("ErrFingerprint2");
-	}
+    while( fingerprint[i] ) {
+		mrstrbuilder_cat_char(&ret, fingerprint[i]);
+		i++;
+		if( i != fingerprint_len ) {
+			if( i%20 == 0 ) {
+				mrstrbuilder_cat(&ret, "\n");
+			}
+			else if( i%4 == 0 ) {
+				mrstrbuilder_cat(&ret, " ");
+			}
+		}
+    }
 
-	char* ret = malloc(bytes*4+1); if( ret==NULL ) { exit(46); }
-	ret[0] = 0;
-
-	for( i = 0; i < bytes; i++ ) {
-		temp = mr_mprintf("%02X%s", (int)data[i], i%2==1? (i==9?"\n":" ") : "");
-		strcat(ret, temp);
-		free(temp);
-	}
-
-	return ret;
+	return ret.m_buf;
 }
 
 
-char* mrkey_render_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
+char* mrkey_get_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
 {
 	uint8_t* fingerprint_buf = NULL;
 	size_t   fingerprint_bytes = 0;
+	char*    fingerprint_hex = NULL;
+	int      i;
 
-	if( key==NULL || mailbox == NULL ) {
+	if( key == NULL || mailbox == NULL ) {
 		return safe_strdup("ErrFingerprint0");
 	}
 
@@ -462,8 +465,23 @@ char* mrkey_render_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
 		return safe_strdup("ErrFingerprint1");
 	}
 
-	char* fingerprint_str = mr_render_fingerprint(fingerprint_buf, fingerprint_bytes);
+	if( (fingerprint_hex=calloc(1, fingerprint_bytes*2+1))==NULL ) {
+		return safe_strdup("ErrFingerprint1");
+	}
+
+	for( i = 0; i < fingerprint_bytes; i++ ) {
+		snprintf(&fingerprint_hex[i*2], 3, "%02X", (int)fingerprint_buf[i]);
+	}
+
 	free(fingerprint_buf);
-	return fingerprint_str;
+	return fingerprint_hex;
 }
 
+
+char* mrkey_get_formatted_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
+{
+	char* rawhex = mrkey_get_fingerprint(key, mailbox);
+	char* formatted = mr_format_fingerprint(rawhex);
+	free(rawhex);
+	return formatted;
+}
