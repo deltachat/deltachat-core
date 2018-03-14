@@ -533,12 +533,37 @@ char* mrstrbuilder_cat(mrstrbuilder_t* ths, const char* text)
 }
 
 
-void mrstrbuilder_cat_char(mrstrbuilder_t* strbuilder, char c)
+void mrstrbuilder_catf(mrstrbuilder_t* strbuilder, const char* format, ...)
 {
-	char buf[2];
-	buf[0] = c;
-	buf[1] = 0;
+	char  testbuf[1];
+	char* buf;
+	int   char_cnt_without_zero;
+
+	va_list argp;
+	va_list argp_copy;
+	va_start(argp, format);
+	va_copy(argp_copy, argp);
+
+	char_cnt_without_zero = vsnprintf(testbuf, 0, format, argp);
+	va_end(argp);
+	if( char_cnt_without_zero < 0) {
+		va_end(argp_copy);
+		mrstrbuilder_cat(strbuilder, "ErrFmt");
+		return;
+	}
+
+	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
+	if( buf == NULL ) {
+		va_end(argp_copy);
+		mrstrbuilder_cat(strbuilder, "ErrMem");
+		return;
+	}
+
+	vsnprintf(buf, char_cnt_without_zero+1, format, argp_copy);
+	va_end(argp_copy);
+
 	mrstrbuilder_cat(strbuilder, buf);
+	free(buf);
 }
 
 

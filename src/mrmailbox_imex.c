@@ -404,7 +404,7 @@ char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
 	const char* p1 = in;
 	while( *p1 ) {
 		if( *p1 >= '0' && *p1 <= '9' ) {
-			mrstrbuilder_cat_char(&out, *p1);
+			mrstrbuilder_catf(&out, "%c", *p1);
 			outlen = strlen(out.m_buf);
 			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
 				mrstrbuilder_cat(&out, "-");

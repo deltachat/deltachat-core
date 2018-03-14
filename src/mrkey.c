@@ -434,7 +434,7 @@ char* mr_format_fingerprint(const char* fingerprint)
 	mrstrbuilder_init(&ret, 0);
 
     while( fingerprint[i] ) {
-		mrstrbuilder_cat_char(&ret, fingerprint[i]);
+		mrstrbuilder_catf(&ret, "%c", fingerprint[i]);
 		i++;
 		if( i != fingerprint_len ) {
 			if( i%20 == 0 ) {
