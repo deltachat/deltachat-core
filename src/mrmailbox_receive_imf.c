@@ -40,6 +40,10 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 	int dummy;
 	if( check_self == NULL ) { check_self = &dummy; }
 
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr_spec == NULL ) {
+		return;
+	}
+
 	*check_self = 0;
 
 	char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
@@ -74,6 +78,11 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mb_list == NULL ) {
+		return;
+	}
+
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
@@ -86,6 +95,11 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mail
 static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || adr_list == NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */ ) {
+		return;
+	}
+
 	for( cur = clist_begin(adr_list->ad_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_address* adr = (struct mailimf_address*)clist_content(cur);
 		if( adr ) {
