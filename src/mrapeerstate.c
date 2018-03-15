@@ -192,7 +192,7 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
  *     `Autocrypt-Gossip:` is _not_ included in the returned string. If there
  *     is not key for the peer that can be gossiped, NULL is returned.
  */
-char* mrapeerstate_render_gossip_header(mrapeerstate_t* peerstate)
+char* mrapeerstate_render_gossip_header(const mrapeerstate_t* peerstate)
 {
 	char*        ret = NULL;
 	mraheader_t* autocryptheader = mraheader_new();
@@ -228,7 +228,7 @@ cleanup:
  * @return m_public_key or m_gossip_key, NULL if nothing is available.
  *     the returned pointer MUST NOT be unref()'d.
  */
-mrkey_t* mrapeerstate_peek_key(mrapeerstate_t* peerstate)
+mrkey_t* mrapeerstate_peek_key(const mrapeerstate_t* peerstate)
 {
 	if( peerstate == NULL ) {
 		return NULL; /* error */
