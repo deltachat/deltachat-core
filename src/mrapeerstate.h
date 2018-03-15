@@ -54,6 +54,8 @@ typedef struct mrapeerstate_t
 	time_t         m_gossip_timestamp;
 	mrkey_t*       m_gossip_key; /* may be NULL */
 
+	char*          m_fingerprint; /* fingerprint belonging to public_key (if set) or m_gossip_key (otherwise), may be NULL */
+
 	#define        MRA_SAVE_TIMESTAMPS 0x01
 	#define        MRA_SAVE_ALL        0x02
 	int            m_to_save;
@@ -74,6 +76,8 @@ void            mrapeerstate_apply_gossip         (mrapeerstate_t*, const mrahea
 char*           mrapeerstate_render_gossip_header (const mrapeerstate_t*);
 
 mrkey_t*        mrapeerstate_peek_key             (const mrapeerstate_t*);
+
+int             mrapeerstate_recalc_fingerprint   (mrapeerstate_t*);
 
 int             mrapeerstate_load_from_db__       (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
 int             mrapeerstate_save_to_db__         (const mrapeerstate_t*, mrsqlite3_t*, int create);

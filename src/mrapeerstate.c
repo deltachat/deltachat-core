@@ -44,6 +44,9 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 	free(ths->m_addr);
 	ths->m_addr = NULL;
 
+	free(ths->m_fingerprint);
+	ths->m_fingerprint = NULL;
+
 	if( ths->m_public_key ) {
 		mrkey_unref(ths->m_public_key);
 		ths->m_public_key = NULL;
@@ -70,7 +73,9 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	mrapeerstate_empty(ths);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_aclpp_FROM_acpeerstates_WHERE_a,
-		"SELECT addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key FROM acpeerstates WHERE addr=? COLLATE NOCASE;");
+		"SELECT addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, fingerprint "
+		 " FROM acpeerstates "
+		 " WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
@@ -82,6 +87,7 @@ int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const cha
 	#define PUBLIC_KEY_COL                                                      4
 	ths->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
 	#define GOSSIP_KEY_COL                                                      6
+	ths->m_fingerprint         = safe_strdup((char*)sqlite3_column_text  (stmt, 7));
 
 	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
 		ths->m_public_key = mrkey_new();
@@ -118,14 +124,18 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 	if( (ths->m_to_save&MRA_SAVE_ALL) || create )
 	{
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
-			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, public_key=?, gossip_timestamp=?, gossip_key=? WHERE addr=?;");
+			"UPDATE acpeerstates "
+			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
+			"       public_key=?, gossip_timestamp=?, gossip_key=?, fingerprint=? "
+			" WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
 		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypt);
 		sqlite3_bind_blob (stmt, 4, ths->m_public_key? ths->m_public_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_public_key? ths->m_public_key->m_bytes : 0, SQLITE_STATIC);
 		sqlite3_bind_int64(stmt, 5, ths->m_gossip_timestamp);
 		sqlite3_bind_blob (stmt, 6, ths->m_gossip_key? ths->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_gossip_key? ths->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 7, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 7, ths->m_fingerprint, -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 8, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -272,6 +282,7 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 
 	ths->m_public_key = mrkey_new();
 	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
+	mrapeerstate_recalc_fingerprint(ths);
 
 	return 1;
 }
@@ -290,6 +301,7 @@ int mrapeerstate_init_from_gossip(mrapeerstate_t* peerstate, const mraheader_t* 
 
 	peerstate->m_gossip_key = mrkey_new();
 	mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+	mrapeerstate_recalc_fingerprint(peerstate);
 
 	return 1;
 }
@@ -337,6 +349,7 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 		if( !mrkey_equals(ths->m_public_key, header->m_public_key) )
 		{
 			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
+			mrapeerstate_recalc_fingerprint(ths);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}
@@ -364,7 +377,40 @@ void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gos
 		if( !mrkey_equals(peerstate->m_gossip_key, gossip_header->m_public_key) )
 		{
 			mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+			mrapeerstate_recalc_fingerprint(peerstate);
 			peerstate->m_to_save |= MRA_SAVE_ALL;
 		}
 	}
+}
+
+
+/*
+ * Recalculate the fingerprint for the key returned by mrapeerstate_peek_key()
+ * (public_key, if set, gossip_key otherwise)
+ *
+ * An explicit call to this function from outside this class is only needed
+ * for database updates; the mrapeerstate_init_*() and mrapeerstate_apply_*()
+ * functions update the fingerprint automatically as needed.
+ */
+int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
+{
+	int            success = 0;
+	const mrkey_t* key = NULL;
+
+	if( peerstate == NULL ) {
+		goto cleanup;
+	}
+
+	if( (key = mrapeerstate_peek_key(peerstate)) == NULL ) {
+		goto cleanup;
+	}
+
+	free(peerstate->m_fingerprint);
+	peerstate->m_fingerprint = mrkey_get_fingerprint(key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
+	peerstate->m_to_save |= MRA_SAVE_ALL;
+
+	success = 1;
+
+cleanup:
+	return success;
 }

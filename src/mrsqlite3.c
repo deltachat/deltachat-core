@@ -21,6 +21,7 @@
 
 
 #include "mrmailbox_internal.h"
+#include "mrapeerstate.h"
 
 
 /* This class wraps around SQLite.  Some hints to the underlying database:
@@ -344,23 +345,27 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 21
+		#define NEW_DB_VERSION 27
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
 				mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
-				//mrsqlite3_execute__(ths, "ALTER TABLE chats ADD COLUMN last_seen INTEGER DEFAULT 0;"); /* = MAX(msgs.timestamp) */
-
-				dbversion = NEW_DB_VERSION;
-				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
-			}
-		#undef NEW_DB_VERSION
-
-		#define NEW_DB_VERSION 22
-			if( dbversion < NEW_DB_VERSION )
-			{
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN fingerprint TEXT DEFAULT '';");
+				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index2 ON acpeerstates (fingerprint);");
+
+				/* init fingerprint column */
+				sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths, "SELECT addr FROM acpeerstates;");
+					while( sqlite3_step(stmt) == SQLITE_ROW ) {
+						mrapeerstate_t* peerstate = mrapeerstate_new();
+							if( mrapeerstate_load_from_db__(peerstate, ths, (const char*)sqlite3_column_text(stmt, 0))
+							 && mrapeerstate_recalc_fingerprint(peerstate) ) {
+								mrapeerstate_save_to_db__(peerstate, ths, 0/*don't create*/);
+							}
+						mrapeerstate_unref(peerstate);
+					}
+				sqlite3_finalize(stmt);
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
