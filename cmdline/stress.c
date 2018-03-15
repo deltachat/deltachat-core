@@ -748,4 +748,11 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrkey_unref(public_key);
 		mrkey_unref(private_key);
 	}
+
+	{
+		char* fingerprint = mr_normalize_fingerprint(" 1234  567890 \n AbcD abcdef ABCDEF ");
+		assert( fingerprint );
+		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
+	}
+
 }

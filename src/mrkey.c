@@ -20,8 +20,9 @@
  ******************************************************************************/
 
 
-#include "mrmailbox_internal.h"
+#include <ctype.h>
 #include <memory.h>
+#include "mrmailbox_internal.h"
 #include "mrkey.h"
 #include "mrpgp.h"
 #include "mrtools.h"
@@ -427,6 +428,7 @@ cleanup:
 }
 
 
+/* make a fingerprint human-readable */
 char* mr_format_fingerprint(const char* fingerprint)
 {
 	int i = 0, fingerprint_len = strlen(fingerprint);
@@ -447,6 +449,29 @@ char* mr_format_fingerprint(const char* fingerprint)
     }
 
 	return ret.m_buf;
+}
+
+
+/* bring a human-readable or otherwise formatted fingerprint back to the
+40-characters-uppercase-hex format */
+char* mr_normalize_fingerprint(const char* in)
+{
+	if( in == NULL ) {
+		return NULL;
+	}
+
+	mrstrbuilder_t out;
+	mrstrbuilder_init(&out, 0);
+
+	const char* p1 = in;
+	while( *p1 ) {
+		if( (*p1 >= '0' && *p1 <= '9') || (*p1 >= 'A' && *p1 <= 'F') || (*p1 >= 'a' && *p1 <= 'f') ) {
+			mrstrbuilder_catf(&out, "%c", toupper(*p1));
+		}
+		p1++;
+	}
+
+	return out.m_buf;
 }
 
 
