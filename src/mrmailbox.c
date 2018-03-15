@@ -549,7 +549,7 @@ char* mrmailbox_get_info(mrmailbox_t* mailbox)
 		sqlite3_finalize(stmt);
 
 		if( mrkey_load_self_public__(self_public, l2->m_addr, mailbox->m_sql) ) {
-			fingerprint_str = mrkey_get_formatted_fingerprint(self_public, mailbox);
+			fingerprint_str = mrkey_get_formatted_fingerprint(self_public);
 		}
 		else {
 			fingerprint_str = safe_strdup("<Not yet calculated>");
@@ -4091,8 +4091,8 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
 		mrstrbuilder_cat(&ret, ":\n\n");
 
-		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key, mailbox);
-		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate), mailbox);
+		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key);
+		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);

@@ -450,37 +450,38 @@ char* mr_format_fingerprint(const char* fingerprint)
 }
 
 
-char* mrkey_get_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
+char* mrkey_get_fingerprint(const mrkey_t* key)
 {
 	uint8_t* fingerprint_buf = NULL;
 	size_t   fingerprint_bytes = 0;
 	char*    fingerprint_hex = NULL;
 	int      i;
 
-	if( key == NULL || mailbox == NULL ) {
-		return safe_strdup("ErrFingerprint0");
+	if( key == NULL ) {
+		goto cleanup;
 	}
 
 	if( !mrpgp_calc_fingerprint(key, &fingerprint_buf, &fingerprint_bytes) ) {
-		return safe_strdup("ErrFingerprint1");
+		goto cleanup;
 	}
 
 	if( (fingerprint_hex=calloc(1, fingerprint_bytes*2+1))==NULL ) {
-		return safe_strdup("ErrFingerprint1");
+		goto cleanup;
 	}
 
 	for( i = 0; i < fingerprint_bytes; i++ ) {
 		snprintf(&fingerprint_hex[i*2], 3, "%02X", (int)fingerprint_buf[i]);
 	}
 
+cleanup:
 	free(fingerprint_buf);
-	return fingerprint_hex;
+	return fingerprint_hex? fingerprint_hex : safe_strdup(NULL);
 }
 
 
-char* mrkey_get_formatted_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
+char* mrkey_get_formatted_fingerprint(const mrkey_t* key)
 {
-	char* rawhex = mrkey_get_fingerprint(key, mailbox);
+	char* rawhex = mrkey_get_fingerprint(key);
 	char* formatted = mr_format_fingerprint(rawhex);
 	free(rawhex);
 	return formatted;

@@ -42,7 +42,7 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 	}
 
 	if( !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql)
-	 || (fingerprint=mrkey_get_fingerprint(self_key, mailbox)) == NULL ) {
+	 || (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
 		goto cleanup;
 	}
 

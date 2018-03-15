@@ -71,8 +71,8 @@ char* mrkey_render_asc   (const mrkey_t*, const char* add_header_lines); /* each
 int   mrkey_render_asc_to_file(const mrkey_t*, const char* file, mrmailbox_t* mailbox);
 
 char* mr_format_fingerprint          (const char*);
-char* mrkey_get_fingerprint          (const mrkey_t*, mrmailbox_t*);
-char* mrkey_get_formatted_fingerprint(const mrkey_t*, mrmailbox_t*);
+char* mrkey_get_fingerprint          (const mrkey_t*);
+char* mrkey_get_formatted_fingerprint(const mrkey_t*);
 
 void  mr_wipe_secret_mem(void* buf, size_t buf_bytes);
 
