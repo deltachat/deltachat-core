@@ -60,23 +60,23 @@ typedef struct mrapeerstate_t
 } mrapeerstate_t;
 
 
-mrapeerstate_t* mrapeerstate_new             (); /* the returned pointer is ref'd and must be unref'd after usage */
-void            mrapeerstate_unref           (mrapeerstate_t*);
+mrapeerstate_t* mrapeerstate_new                  (); /* the returned pointer is ref'd and must be unref'd after usage */
+void            mrapeerstate_unref                (mrapeerstate_t*);
 
-int             mrapeerstate_init_from_header  (mrapeerstate_t*, const mraheader_t*, time_t message_time);
-int             mrapeerstate_init_from_gossip  (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+int             mrapeerstate_init_from_header     (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+int             mrapeerstate_init_from_gossip     (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 
-int             mrapeerstate_degrade_encryption(mrapeerstate_t*, time_t message_time);
+int             mrapeerstate_degrade_encryption   (mrapeerstate_t*, time_t message_time);
 
-void            mrapeerstate_apply_header      (mrapeerstate_t*, const mraheader_t*, time_t message_time);
-void            mrapeerstate_apply_gossip      (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+void            mrapeerstate_apply_header         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+void            mrapeerstate_apply_gossip         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 
-char*           mrapeerstate_render_gossip_header(mrapeerstate_t*);
+char*           mrapeerstate_render_gossip_header (mrapeerstate_t*);
 
-mrkey_t*        mrapeerstate_peek_key        (mrapeerstate_t*);
+mrkey_t*        mrapeerstate_peek_key             (mrapeerstate_t*);
 
-int             mrapeerstate_load_from_db__  (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
-int             mrapeerstate_save_to_db__    (const mrapeerstate_t*, mrsqlite3_t*, int create);
+int             mrapeerstate_load_from_db__       (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
+int             mrapeerstate_save_to_db__         (const mrapeerstate_t*, mrsqlite3_t*, int create);
 
 
 #ifdef __cplusplus
