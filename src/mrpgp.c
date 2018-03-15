@@ -435,14 +435,14 @@ cleanup:
 }
 
 
-int mrpgp_calc_fingerprint(mrmailbox_t* mailbox, const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
+int mrpgp_calc_fingerprint(const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
-	if( mailbox==NULL || raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
+	if( raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
 	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
 		goto cleanup;

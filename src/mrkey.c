@@ -461,7 +461,7 @@ char* mrkey_get_fingerprint(const mrkey_t* key, mrmailbox_t* mailbox)
 		return safe_strdup("ErrFingerprint0");
 	}
 
-	if( !mrpgp_calc_fingerprint(mailbox, key, &fingerprint_buf, &fingerprint_bytes) ) {
+	if( !mrpgp_calc_fingerprint(key, &fingerprint_buf, &fingerprint_bytes) ) {
 		return safe_strdup("ErrFingerprint1");
 	}
 

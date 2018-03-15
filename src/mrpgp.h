@@ -47,7 +47,7 @@ int  mr_split_armored_data  (char* buf, char** ret_headerline, char** ret_setupc
 /* public key encryption */
 int  mrpgp_create_keypair   (mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);
 int  mrpgp_is_valid_key     (mrmailbox_t*, const mrkey_t*);
-int  mrpgp_calc_fingerprint (mrmailbox_t*, const mrkey_t*, uint8_t** fingerprint, size_t* fingerprint_bytes);
+int  mrpgp_calc_fingerprint (const mrkey_t*, uint8_t** fingerprint, size_t* fingerprint_bytes);
 int  mrpgp_split_key        (mrmailbox_t*, const mrkey_t* private_in, mrkey_t* public_out);
 
 int  mrpgp_pk_encrypt       (mrmailbox_t*, const void* plain, size_t plain_bytes, const mrkeyring_t*, const mrkey_t* sign_key, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
