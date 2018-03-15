@@ -798,7 +798,13 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  * force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
  * If in doubt, call this function too often, not too less :-)
  *
+ * The function MUST NOT be called from the UI thread and may take a moment to return.
+ *
  * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return None.
  */
 void mrmailbox_heartbeat(mrmailbox_t* ths)
 {
