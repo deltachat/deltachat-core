@@ -307,10 +307,10 @@ static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, 
 static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* unsorted_contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
-	mrarray_t*    contact_ids = mrarray_new(mailbox, 23);;
-	char*         contact_ids_str = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt = NULL;
-	mrarray_t*    ret = mrarray_new(mailbox, 23);
+	mrarray_t*    contact_ids = mrarray_new(mailbox, 23);
+	char*         contact_ids_str = NULL, *q3 = NULL;
+	mrarray_t*    chat_ids = mrarray_new(mailbox, 23);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC  ) {
 		goto cleanup;
@@ -329,7 +329,12 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 				mrarray_add_id(contact_ids, curr_id);
 			}
 		}
-		mrarray_sort_ids(contact_ids);
+
+		if( mrarray_get_cnt(contact_ids)==0 ) {
+			goto cleanup;
+		}
+
+		mrarray_sort_ids(contact_ids); /* for easy comparison, we also sort the sql result below */
 	}
 
 	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
@@ -344,7 +349,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 	                     contact_ids_str);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 	{
-		uint32_t last_chat_id = 0, matches = 0;
+		uint32_t last_chat_id = 0, matches = 0, mismatches = 0;
 
 		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
@@ -352,20 +357,24 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 			uint32_t contact_id = sqlite3_column_int(stmt, 1);
 
 			if( chat_id != last_chat_id ) {
-				if( matches == mrarray_get_cnt(contact_ids) ) {
-					mrarray_add_id(ret, last_chat_id);
+				if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
+					mrarray_add_id(chat_ids, last_chat_id);
 				}
 				last_chat_id = chat_id;
 				matches = 0;
+				mismatches = 0;
 			}
 
 			if( contact_id == mrarray_get_id(contact_ids, matches) ) {
 				matches++;
 			}
+			else {
+				mismatches++;
+			}
 		}
 
-		if( matches == mrarray_get_cnt(contact_ids) ) {
-			mrarray_add_id(ret, last_chat_id);
+		if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
+			mrarray_add_id(chat_ids, last_chat_id);
 		}
 	}
 
@@ -374,7 +383,7 @@ cleanup:
 	free(contact_ids_str);
 	mrarray_unref(contact_ids);
 	if( q3 ) { sqlite3_free(q3); }
-	return ret;
+	return chat_ids;
 }
 
 
