@@ -305,6 +305,12 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 /* out-of-band verification */
 char*           mrmailbox_get_qr            (mrmailbox_t*);
+
+#define         MR_QR_FINGERPRINT_NOT_FOUND  200 /* 200..299 - okay */
+#define         MR_QR_FINGERPRINT_FOUND      201
+#define         MR_QR_ADDR_FOUND             202
+#define         MR_QR_UNKNOWN                400 /* 400..499 - errors, more or less, you can display the text from m_text1 */
+#define         MR_QR_FINGERPRINT_SYNTAX_ERR 401
 mrlot_t*        mrmailbox_check_scanned_qr  (mrmailbox_t*, const char* qr);
 
 

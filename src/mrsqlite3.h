@@ -138,7 +138,8 @@ enum
 	,SELECT_FROM_leftgrps_WHERE_grpid
 
 	,INSERT_INTO_acpeerstates_a
-	,SELECT_aclpp_FROM_acpeerstates_WHERE_a
+	,SELECT_fields_FROM_acpeerstates_WHERE_addr
+	,SELECT_fields_FROM_acpeerstates_WHERE_fingerprint
 	,UPDATE_acpeerstates_SET_l_WHERE_a
 	,UPDATE_acpeerstates_SET_lcpp_WHERE_a
 
