@@ -384,6 +384,12 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf1); free(buf2);
 
 		mr_replace_bad_utf8_chars(NULL); /* should do nothing */
+
+		buf1 = mr_url_encode("Björn");
+		assert( strcmp(buf1, "Bj%C3%B6rn") == 0 );
+		buf2 = mr_url_decode(buf1);
+		assert( strcmp(buf2, "Björn") == 0 );
+		free(buf1); free(buf2);
 	}
 
 	/* test mrarray_t
