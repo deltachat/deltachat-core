@@ -148,6 +148,26 @@ void mrparam_set_packed(mrparam_t* param, const char* packed)
 
 
 /**
+ * Same as mrparam_set_packed() but uses '&' as a separator (instead '\n').
+ * Urldecoding itself is not done by this function, this is up to the caller.
+ */
+void mrparam_set_urlencoded(mrparam_t* param, const char* urlencoded)
+{
+	if( param == NULL ) {
+		return;
+	}
+
+	mrparam_empty(param);
+
+	if( urlencoded ) {
+		free(param->m_packed);
+		param->m_packed = safe_strdup(urlencoded);
+		mr_str_replace(&param->m_packed, "&", "\n");
+	}
+}
+
+
+/**
  * Check if a parameter exists.
  *
  * @memberof mrparam_t

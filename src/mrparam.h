@@ -28,18 +28,13 @@ extern "C" {
 
 
 /**
- * An object for handling key=value parameter lists.
- * The parameter object is used eg. by mrchat_t or mrmsg_t.
- * To access the single parameters use the setter and getter functions with an
- * MRP_* constant, eg.
+ * An object for handling key=value parameter lists; for the key, curently only
+ * a single character is allowed.
  *
- * - MRP_FILE - the file associated with a message, not for text messages
- * - MRP_WIDTH - the width of an image or video
- * - MRP_HEIGHT - the height of an image or video
- * - MRP_DURATION - the duration of an video or audio
+ * The object is used eg. by mrchat_t or mrmsg_t, for readable paramter names,
+ * these classes define some MRP_* constantats.
  *
- * However, for most functions, it is easier to use more conctrete functions
- * as mrmsg_get_file().
+ * Only for library-internal use.
  */
 typedef struct mrparam_t
 {
@@ -74,19 +69,18 @@ typedef struct mrparam_t
 
 
 /* user functions */
-int             mrparam_exists       (mrparam_t*, int key);
-char*           mrparam_get          (mrparam_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
-int32_t         mrparam_get_int      (mrparam_t*, int key, int32_t def);
-void            mrparam_set          (mrparam_t*, int key, const char* value);
-void            mrparam_set_int      (mrparam_t*, int key, int32_t value);
+int             mrparam_exists         (mrparam_t*, int key);
+char*           mrparam_get            (mrparam_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
+int32_t         mrparam_get_int        (mrparam_t*, int key, int32_t def);
+void            mrparam_set            (mrparam_t*, int key, const char* value);
+void            mrparam_set_int        (mrparam_t*, int key, int32_t value);
 
 /* library-private */
-mrparam_t*      mrparam_new          ();
-void            mrparam_empty        (mrparam_t*);
-void            mrparam_unref        (mrparam_t*);
-void            mrparam_set_packed   (mrparam_t*, const char*);
-
-
+mrparam_t*      mrparam_new            ();
+void            mrparam_empty          (mrparam_t*);
+void            mrparam_unref          (mrparam_t*);
+void            mrparam_set_packed     (mrparam_t*, const char*);
+void            mrparam_set_urlencoded (mrparam_t*, const char*);
 
 
 #ifdef __cplusplus
