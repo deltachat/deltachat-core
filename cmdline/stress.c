@@ -755,10 +755,26 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrkey_unref(private_key);
 	}
 
+
+	/* test out-of-band verification
+	 **************************************************************************/
+
 	{
 		char* fingerprint = mr_normalize_fingerprint(" 1234  567890 \n AbcD abcdef ABCDEF ");
 		assert( fingerprint );
 		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
 	}
 
+	if( mrmailbox_is_configured(mailbox) )
+	{
+		char* qr = mrmailbox_get_qr(mailbox);
+		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#v=", 3)==0 );
+
+		mrlot_t* res = mrmailbox_check_scanned_qr(mailbox, qr);
+		assert( res );
+		assert( res->m_state == MR_QR_FINGERPRINT_FOUND || res->m_state == MR_QR_FINGERPRINT_NOT_FOUND );
+
+		mrlot_unref(res);
+		free(qr);
+	}
 }

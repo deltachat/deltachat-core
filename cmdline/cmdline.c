@@ -480,6 +480,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delcontact <contact-id>\n"
 				"cleanupcontacts\n"
 				"======================================Misc.==\n"
+				"checkqr <qr-contenct>\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
 				"heartbeat\n"
@@ -1161,6 +1162,17 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Misc.
 	 ******************************************************************************/
 
+	else if( strcmp(cmd, "checkqr")==0 )
+	{
+		if( arg1 ) {
+			mrlot_t* res = mrmailbox_check_scanned_qr(mailbox, arg1);
+				ret = mr_mprintf("state=%i, text1=%s, text2=%s", (int)res->m_state, res->m_text1? res->m_text1:"", res->m_text2? res->m_text2:"");
+			mrlot_unref(res);
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <qr-content> missing.");
+		}
+	}
 	else if( strcmp(cmd, "event")==0 )
 	{
 		if( arg1 ) {
