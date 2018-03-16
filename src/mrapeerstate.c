@@ -61,43 +61,78 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 }
 
 
-int mrapeerstate_load_from_db__(mrapeerstate_t* ths, mrsqlite3_t* sql, const char* addr)
+static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt* stmt)
+{
+	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, fingerprint"
+	peerstate->m_addr                = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
+	peerstate->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
+	peerstate->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
+	peerstate->m_prefer_encrypt      =                    sqlite3_column_int   (stmt, 3);
+	#define PUBLIC_KEY_COL                                                      4
+	peerstate->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
+	#define GOSSIP_KEY_COL                                                      6
+	peerstate->m_fingerprint         = safe_strdup((char*)sqlite3_column_text  (stmt, 7));
+
+	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
+		peerstate->m_public_key = mrkey_new();
+		mrkey_set_from_stmt(peerstate->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
+	}
+
+	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
+		peerstate->m_gossip_key = mrkey_new();
+		mrkey_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+	}
+}
+
+
+int mrapeerstate_load_from_db__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || sql == NULL || addr == NULL ) {
+	if( peerstate==NULL || sql == NULL || addr == NULL ) {
 		return 0;
 	}
 
-	mrapeerstate_empty(ths);
+	mrapeerstate_empty(peerstate);
 
-	stmt = mrsqlite3_predefine__(sql, SELECT_aclpp_FROM_acpeerstates_WHERE_a,
-		"SELECT addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, fingerprint "
+	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_addr,
+		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
-	ths->m_addr                = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
-	ths->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
-	ths->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
-	ths->m_prefer_encrypt      =                    sqlite3_column_int   (stmt, 3);
-	#define PUBLIC_KEY_COL                                                      4
-	ths->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
-	#define GOSSIP_KEY_COL                                                      6
-	ths->m_fingerprint         = safe_strdup((char*)sqlite3_column_text  (stmt, 7));
+	mrapeerstate_set_from_stmt__(peerstate, stmt);
 
-	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
-		ths->m_public_key = mrkey_new();
-		mrkey_set_from_stmt(ths->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
+	success = 1;
+
+cleanup:
+	return success;
+}
+
+
+int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* fingerprint)
+{
+	int           success = 0;
+	sqlite3_stmt* stmt;
+
+	if( peerstate==NULL || sql == NULL || fingerprint == NULL ) {
+		return 0;
 	}
 
-	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
-		ths->m_gossip_key = mrkey_new();
-		mrkey_set_from_stmt(ths->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+	mrapeerstate_empty(peerstate);
+
+	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
+		"SELECT " PEERSTATE_FIELDS
+		 " FROM acpeerstates "
+		 " WHERE fingerprint=? COLLATE NOCASE;");
+	sqlite3_bind_text(stmt, 1, fingerprint, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
 	}
+	mrapeerstate_set_from_stmt__(peerstate, stmt);
 
 	success = 1;
 
