@@ -466,7 +466,7 @@ char* mr_normalize_fingerprint(const char* in)
 	const char* p1 = in;
 	while( *p1 ) {
 		if( (*p1 >= '0' && *p1 <= '9') || (*p1 >= 'A' && *p1 <= 'F') || (*p1 >= 'a' && *p1 <= 'f') ) {
-			mrstrbuilder_catf(&out, "%c", toupper(*p1));
+			mrstrbuilder_catf(&out, "%c", toupper(*p1)); /* make uppercase which is needed as we do not search case-insensitive, see comment in mrsqlite3.c */
 		}
 		p1++;
 	}
@@ -495,7 +495,7 @@ char* mrkey_get_fingerprint(const mrkey_t* key)
 	}
 
 	for( i = 0; i < fingerprint_bytes; i++ ) {
-		snprintf(&fingerprint_hex[i*2], 3, "%02X", (int)fingerprint_buf[i]);
+		snprintf(&fingerprint_hex[i*2], 3, "%02X", (int)fingerprint_buf[i]); /* 'X' instead of 'x' ensures the fingerprint is uppercase which is needed as we do not search case-insensitive, see comment in mrsqlite3.c */
 	}
 
 cleanup:

@@ -352,7 +352,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 				mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN fingerprint TEXT DEFAULT '';");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
 				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index2 ON acpeerstates (fingerprint);");
 
 				/* init fingerprint column */
