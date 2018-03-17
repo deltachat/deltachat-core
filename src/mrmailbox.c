@@ -3375,7 +3375,7 @@ size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
 uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
                                            const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
                                            const char*  addr__,
-                                           int          origin /*0=do not add*/,
+                                           int          origin,
                                            int*         sth_modified )
 {
 	sqlite3_stmt* stmt;
@@ -3389,8 +3389,8 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	*sth_modified = 0;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr__ == NULL || origin < 0 ) {
-		return 0;
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr__ == NULL || origin <= 0 ) {
+		goto cleanup;
 	}
 
 	/* normalize the email-address:
@@ -3438,8 +3438,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			update_addr = 1;
 		}
 
-		if( origin
-		 && (update_name || update_authname || update_addr || origin>row_origin) )
+		if( update_name || update_authname || update_addr || origin>row_origin )
 		{
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
 				"UPDATE contacts SET name=?, addr=?, origin=?, authname=? WHERE id=?;");
@@ -3465,7 +3464,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			*sth_modified = 1;
 		}
 	}
-	else if( origin )
+	else
 	{
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_contacts_neo,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
