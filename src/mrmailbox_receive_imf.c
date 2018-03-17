@@ -836,7 +836,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 {
 	/* the function returns the number of created messages in the database */
 	int              incoming = 0;
-	int              incoming_origin = MR_ORIGIN_UNSET;
+	int              incoming_origin = 0;
 	#define          outgoing (!incoming)
 
 	mrarray_t*       to_ids = NULL;

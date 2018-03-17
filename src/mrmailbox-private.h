@@ -84,7 +84,7 @@ void            mrmailbox_wake_lock                               (mrmailbox_t*)
 void            mrmailbox_wake_unlock                             (mrmailbox_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
-uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
+uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin /*0=do not add*/, int* sth_modified);
 int             mrmailbox_get_contact_origin__                    (mrmailbox_t*, uint32_t id, int* ret_blocked);
 int             mrmailbox_is_contact_blocked__                    (mrmailbox_t*, uint32_t id);
 int             mrmailbox_real_contact_exists__                   (mrmailbox_t*, uint32_t id);

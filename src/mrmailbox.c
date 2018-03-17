@@ -3375,7 +3375,7 @@ size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
 uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
                                            const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
                                            const char*  addr__,
-                                           int          origin,
+                                           int          origin /*0=do not add*/,
                                            int*         sth_modified )
 {
 	sqlite3_stmt* stmt;
@@ -3389,7 +3389,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	*sth_modified = 0;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr__ == NULL || origin <= 0 ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr__ == NULL || origin < 0 ) {
 		return 0;
 	}
 
@@ -3438,7 +3438,8 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			update_addr = 1;
 		}
 
-		if( update_name || update_authname || update_addr || origin>row_origin )
+		if( origin
+		 && (update_name || update_authname || update_addr || origin>row_origin) )
 		{
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_contacts_nao_WHERE_i,
 				"UPDATE contacts SET name=?, addr=?, origin=?, authname=? WHERE id=?;");
@@ -3452,7 +3453,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 			if( update_name )
 			{
 				/* Update the contact name also if it is used as a group name.
-				This is one of the few duplicated data, however, getting the chat list is much faster this way.*/
+				This is one of the few duplicated data, however, getting the chat list is easier this way.*/
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
 					"UPDATE chats SET name=? WHERE type=? AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
@@ -3460,11 +3461,11 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 				sqlite3_bind_int (stmt, 3, row_id);
 				sqlite3_step     (stmt);
 			}
-		}
 
-		*sth_modified = 1;
+			*sth_modified = 1;
+		}
 	}
-	else
+	else if( origin )
 	{
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_contacts_neo,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
@@ -3521,7 +3522,7 @@ int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 
 int mrmailbox_get_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int* ret_blocked)
 {
-	int          ret = MR_ORIGIN_UNSET;
+	int          ret = 0;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
 	mrcontact_t* ths = mrcontact_new();
 
