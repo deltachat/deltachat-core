@@ -28,9 +28,12 @@
 
 char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 {
+	int      locked               = 0;
 	char*    qr                   = NULL;
 	char*    self_addr            = NULL;
 	char*    self_addr_urlencoded = NULL;
+	char*    self_name            = NULL;
+	char*    self_name_urlencoded = NULL;
 	mrkey_t* self_key             = mrkey_new();
 	char*    fingerprint          = NULL;
 
@@ -38,36 +41,56 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot get QR-code for unconfigured mailbox.");
-		goto cleanup;
-	}
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
 
-	if( !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql)
-	 || (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
+		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot get QR-code for unconfigured mailbox.");
+			goto cleanup;
+		}
+
+		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
 		goto cleanup;
 	}
 
 	#define OPENPGP4FPR_SCHEME "OPENPGP4FPR:"
 	self_addr_urlencoded = mr_url_encode(self_addr);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s", fingerprint, self_addr_urlencoded);
+	self_name_urlencoded = mr_url_encode(self_name);
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded);
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrkey_unref(self_key);
 	free(self_addr_urlencoded);
 	free(self_addr);
+	free(self_name);
+	free(self_name_urlencoded);
 	free(fingerprint);
 	return qr? qr : safe_strdup(NULL);
 }
 
 
+/**
+ * Check a scanned QR code.
+ * The function should be called after a QR-code is scanned.
+ * The function takes the raw text scanned and checks what can be done with it.
+ */
 mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 {
-	char*      addr        = NULL; /* must be normalized, if set */
-	char*      fingerprint = NULL; /* must be normalized, if set */
-	mrlot_t*   ret         = mrlot_new();
+	int             locked      = 0;
+	char*           addr        = NULL; /* must be normalized, if set */
+	char*           fingerprint = NULL; /* must be normalized, if set */
+	char*           name        = NULL;
+	mrapeerstate_t* peerstate   = NULL;
+	mrlot_t*        ret         = mrlot_new();
 
-	ret->m_state = MR_QR_UNKNOWN;
+	ret->m_state = 0;
 
 	if( mailbox==NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC || qr==NULL ) {
 		goto cleanup;
@@ -78,7 +101,7 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 	/* split parameters from the qr code */
 	if( strncasecmp(qr, OPENPGP4FPR_SCHEME, strlen(OPENPGP4FPR_SCHEME)) == 0 )
 	{
-		/* scheme: OPENPGP4FPR:1234567890123456789012345678901234567890#v=mail%40domain.de */
+		/* scheme: OPENPGP4FPR:1234567890123456789012345678901234567890#v=mail%40domain.de&n=Name */
 		char* payload  = safe_strdup(&qr[strlen(OPENPGP4FPR_SCHEME)]);
 		char* fragment = strchr(payload, '#'); /* must not be freed, only a pointer inside payload */
 		if( fragment )
@@ -95,6 +118,13 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 					addr = mr_normalize_addr(addr_unnormalized);
 				free(addr_unnormalized);
 				free(addr_urlencoded);
+
+				char* name_urlencoded = mrparam_get(param, 'n', NULL);
+				if( name_urlencoded ) {
+					name = mr_url_decode(name_urlencoded);
+					mr_normalize_name(name);
+					free(name_urlencoded);
+				}
 			}
 
 			mrparam_unref(param);
@@ -104,45 +134,76 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 		free(payload);
 	}
 
+	/* check some paramters */
+	if( addr ) {
+		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Bad e-mail address.");
+			ret->m_state = MR_QR_ERROR_LOGGED;
+			goto cleanup;
+		}
+	}
+
+	if( fingerprint ) {
+		if( strlen(fingerprint) != 40 ) {
+			mrmailbox_log_error(mailbox, 0, "Bad fingerprint length in qr-code.");
+			ret->m_state = MR_QR_ERROR_LOGGED;
+			goto cleanup;
+		}
+	}
+
 	/* let's see what we can do with the parameters */
 	if( fingerprint )
 	{
-		if( strlen(fingerprint) != 40 ) {
-			ret->m_state = MR_QR_FINGERPRINT_SYNTAX_ERR;
-			goto cleanup;
-		}
+		/* fingerprint set ... */
 
-		ret->m_state = MR_QR_FINGERPRINT_NOT_FOUND;
 		ret->m_text1 = safe_strdup(fingerprint);
-		ret->m_text2 = strdup_keep_null(addr);
+		ret->m_text2 = mr_format_fingerprint(fingerprint);
 
-		mrapeerstate_t* peerstate = mrapeerstate_new();
-		if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
-			if( addr == NULL ) {
-				ret->m_state = MR_QR_FINGERPRINT_FOUND;
-			}
-			else {
-				if( strcasecmp(addr, peerstate->m_addr)==0 ) {
-					ret->m_state = MR_QR_FINGERPRINT_FOUND;
+		if( addr == NULL )
+		{
+			/* _only_ fingerprint set ... */
+			mrsqlite3_lock(mailbox->m_sql);
+			locked = 1;
+
+				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
+					ret->m_state = MR_QR_ASK_CMP_FINGERPRINT;
+					ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				}
-			}
+				else {
+					ret->m_state = MR_QR_FINGERPRINT_WITHOUT_ADDR;
+				}
+
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
 		}
-		mrapeerstate_unref(peerstate);
+		else
+		{
+			/* fingerprint and addr set ... */
+			mrsqlite3_lock(mailbox->m_sql);
+			locked = 1;
+
+				ret->m_state = MR_QR_ASK_CMP_FINGERPRINT;
+				ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+
+			mrsqlite3_unlock(mailbox->m_sql);
+			locked = 0;
+		}
 	}
 	else if( addr )
 	{
-        ret->m_state = MR_QR_ADDR_FOUND;
-		ret->m_text2 = safe_strdup(addr);
+        ret->m_state = MR_QR_ADDR;
+		ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+	}
+	else
+	{
+        ret->m_state = MR_QR_TEXT;
+		ret->m_text1 = safe_strdup(qr);
 	}
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(addr);
 	free(fingerprint);
-	if( ret->m_state >= 400 && ret->m_state <= 499 ) {
-		free(ret->m_text1);
-		free(ret->m_text2);
-		ret->m_text1 = safe_strdup(qr);
-		ret->m_text2 = NULL;
-	}
+	mrapeerstate_unref(peerstate);
 	return ret;
 }

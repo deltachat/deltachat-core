@@ -772,7 +772,7 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		mrlot_t* res = mrmailbox_check_scanned_qr(mailbox, qr);
 		assert( res );
-		assert( res->m_state == MR_QR_FINGERPRINT_FOUND || res->m_state == MR_QR_FINGERPRINT_NOT_FOUND );
+		assert( res->m_state == MR_QR_ASK_CMP_FINGERPRINT || res->m_state == MR_QR_FINGERPRINT_WITHOUT_ADDR );
 
 		mrlot_unref(res);
 		free(qr);

@@ -58,6 +58,7 @@ struct _mrcontact
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
+#define MR_ORIGIN_UNHANDLED_QR_SCAN          0x50 /* address scanned but not verified */
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
