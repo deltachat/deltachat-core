@@ -1166,7 +1166,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			mrlot_t* res = mrmailbox_check_scanned_qr(mailbox, arg1);
-				ret = mr_mprintf("state=%i, text1=%s, text2=%s", (int)res->m_state, res->m_text1? res->m_text1:"", res->m_text2? res->m_text2:"");
+				ret = mr_mprintf("state=%i, id=%i, text1=%s, text2=%s", (int)res->m_state, res->m_id, res->m_text1? res->m_text1:"", res->m_text2? res->m_text2:"");
 			mrlot_unref(res);
 		}
 		else {

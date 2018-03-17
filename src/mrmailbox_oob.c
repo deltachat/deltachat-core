@@ -87,7 +87,7 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 	char*           addr        = NULL; /* must be normalized, if set */
 	char*           fingerprint = NULL; /* must be normalized, if set */
 	char*           name        = NULL;
-	mrapeerstate_t* peerstate   = NULL;
+	mrapeerstate_t* peerstate   = mrapeerstate_new();
 	mrlot_t*        ret         = mrlot_new();
 
 	ret->m_state = 0;
@@ -137,16 +137,16 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 	/* check some paramters */
 	if( addr ) {
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Bad e-mail address.");
-			ret->m_state = MR_QR_ERROR_LOGGED;
+			ret->m_state = MR_QR_ERROR;
+			ret->m_text1 = safe_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
 	}
 
 	if( fingerprint ) {
 		if( strlen(fingerprint) != 40 ) {
-			mrmailbox_log_error(mailbox, 0, "Bad fingerprint length in qr-code.");
-			ret->m_state = MR_QR_ERROR_LOGGED;
+			ret->m_state = MR_QR_ERROR;
+			ret->m_text1 = safe_strdup("Bad fingerprint length in QR code.");
 			goto cleanup;
 		}
 	}

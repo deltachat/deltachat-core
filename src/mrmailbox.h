@@ -310,7 +310,7 @@ char*           mrmailbox_get_qr            (mrmailbox_t*);
 #define         MR_QR_FINGERPRINT_WITHOUT_ADDR 210 /* test1=fingerprint, text2=formatted fingerprint, id=0 */
 #define         MR_QR_ADDR                     220 /* id=contact */
 #define         MR_QR_TEXT                     230 /* text1=text */
-#define         MR_QR_ERROR_LOGGED             400 /* error logged, no further action required */
+#define         MR_QR_ERROR                    400 /* text1=error string */
 mrlot_t*        mrmailbox_check_scanned_qr  (mrmailbox_t*, const char* qr);
 
 
