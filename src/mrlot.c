@@ -79,11 +79,12 @@ void mrlot_empty(mrlot_t* ths)
 
 	ths->m_timestamp = 0;
 	ths->m_state = 0;
+	ths->m_id = 0;
 }
 
 
 /**
- * Get first string. The meaning of the string is defined by the creator or the object any may be roughly described by mrlot_get_text1_meaning().
+ * Get first string. The meaning of the string is defined by the creator of the object and may be roughly described by mrlot_get_text1_meaning().
  *
  * @memberof mrlot_t
  *
@@ -101,7 +102,7 @@ char* mrlot_get_text1(mrlot_t* lot)
 
 
 /**
- * Get second string. The meaning of the string is defined by the creator or the object.
+ * Get second string. The meaning of the string is defined by the creator of the object.
  *
  * @memberof mrlot_t
  *
@@ -119,7 +120,7 @@ char* mrlot_get_text2(mrlot_t* lot)
 
 
 /**
- * Get the meaning of the first string.  Posssible meanings of the string are defined by the creator or the object and may be returned eg.
+ * Get the meaning of the first string.  Posssible meanings of the string are defined by the creator of the object and may be returned eg.
  * as MR_TEXT1_DRAFT, MR_TEXT1_USERNAME or MR_TEXT1_SELF.
  *
  * @memberof mrlot_t
@@ -139,7 +140,7 @@ int mrlot_get_text1_meaning(mrlot_t* lot)
 
 
 /**
- * Get the associated state. The meaning of the state is defined by the creator or the object.
+ * Get the associated state. The meaning of the state is defined by the creator of the object.
  *
  * @memberof mrlot_t
  *
@@ -157,7 +158,25 @@ int mrlot_get_state(mrlot_t* lot)
 
 
 /**
- * Get the associated timestamp. The meaning of the timestamp is defined by the creator or the object.
+ * Get the associated ID. The meaning of the ID is defined by the creator of the object.
+ *
+ * @memberof mrlot_t
+ *
+ * @param lot The lot object.
+ *
+ * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
+ */
+uint32_t mrlot_get_id(mrlot_t* lot)
+{
+	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+		return 0;
+	}
+	return lot->m_id;
+}
+
+
+/**
+ * Get the associated timestamp. The meaning of the timestamp is defined by the creator of the object.
  *
  * @memberof mrlot_t
  *

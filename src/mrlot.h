@@ -50,6 +50,7 @@ char*           mrlot_get_text1         (mrlot_t*);
 char*           mrlot_get_text2         (mrlot_t*);
 int             mrlot_get_text1_meaning (mrlot_t*);
 int             mrlot_get_state         (mrlot_t*);
+uint32_t        mrlot_get_id            (mrlot_t*);
 time_t          mrlot_get_timestamp     (mrlot_t*);
 
 
