@@ -29,6 +29,8 @@
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
 #define MAILTO_SCHEME      "mailto:"
 #define MATMSG_SCHEME      "MATMSG:"
+#define VCARD_BEGIN        "BEGIN:VCARD"
+#define SMTP_SCHEME        "SMTP:"
 
 
 char* mrmailbox_get_qr(mrmailbox_t* mailbox)
@@ -144,6 +146,16 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 		addr = safe_strdup(payload);
 	}
+	else if( strncasecmp(qr, SMTP_SCHEME, strlen(SMTP_SCHEME)) == 0 )
+	{
+		/* scheme: `SMTP:addr...:subject...:body...` */
+		payload = safe_strdup(&qr[strlen(SMTP_SCHEME)]);
+		char* colon = strchr(payload, ':'); /* must not be freed, only a pointer inside payload */
+		if( colon ) {
+			*colon = 0;
+		}
+		addr = safe_strdup(payload);
+	}
 	else if( strncasecmp(qr, MATMSG_SCHEME, strlen(MATMSG_SCHEME)) == 0 )
 	{
 		/* scheme: `MATMSG:TO:addr...;SUB:subject...;BODY:body...;` - there may or may not be linebreaks after the fields */
@@ -158,6 +170,31 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 			ret->m_text1 = safe_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
+	}
+	else if( strncasecmp(qr, VCARD_BEGIN, strlen(VCARD_BEGIN)) == 0 )
+	{
+		/* scheme: `VCARD:BEGIN\nN:last name;first name;...;\nEMAIL:addr...;` */
+		carray* lines = mr_split_into_lines(qr);
+		for( int i = 0; i < carray_count(lines); i++ ) {
+			char* key   = (char*)carray_get(lines, i); mr_trim(key);
+			char* value = strchr(key, ':');
+			if( value ) {
+				*value = 0;
+				value++;
+				char* semicolon = strchr(key, ';'); if( semicolon ) { *semicolon = 0; } /* handle `EMAIL;type=work:` stuff */
+				if( strcasecmp(key, "EMAIL") == 0 ) {
+					semicolon = strchr(value, ';'); if( semicolon ) { *semicolon = 0; } /* use the first EMAIL */
+					addr = safe_strdup(value);
+				}
+				else if( strcasecmp(key, "N") == 0 ) {
+					semicolon = strchr(value, ';'); if( semicolon ) { semicolon = strchr(semicolon+1, ';'); if( semicolon ) { *semicolon = 0; } } /* the N format is `lastname;prename;wtf;title` - skip everything after the second semicolon */
+					name = safe_strdup(value);
+					mr_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by mr_normalize_name() */
+					mr_normalize_name(name);
+				}
+			}
+		}
+		mr_free_splitted_lines(lines);
 	}
 
 	/* check the paramters

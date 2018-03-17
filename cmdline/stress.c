@@ -776,5 +776,11 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		mrlot_unref(res);
 		free(qr);
+
+		res = mrmailbox_check_scanned_qr(mailbox, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
+		assert( res );
+		assert( res->m_state == MR_QR_ADDR );
+		assert( res->m_id != 0 );
+		mrlot_unref(res);
 	}
 }
