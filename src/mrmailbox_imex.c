@@ -877,7 +877,8 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	int            total_files_count = 0, processed_files_count = 0;
 	int            delete_dest_file = 0;
 
-	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible) */
+	/* get a fine backup file name (the name includes the date so that multiple backup instances are possible)
+	FIXME: we should write to a temporary file first and rename it on success. this would guarantee the backup is complete. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap)*/
 	{
 		struct tm* timeinfo;
 		char buffer[256];
@@ -1044,7 +1045,7 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 		goto cleanup;
 	}
 
-	/* close and delete the original file */
+	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
 	mrmailbox_disconnect(mailbox);
 
 	mrsqlite3_lock(mailbox->m_sql);
