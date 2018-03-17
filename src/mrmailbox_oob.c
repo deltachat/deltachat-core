@@ -26,6 +26,11 @@
 #include "mrapeerstate.h"
 
 
+#define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
+#define MAILTO_SCHEME      "mailto:"
+#define MATMSG_SCHEME      "MATMSG:"
+
+
 char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 {
 	int      locked               = 0;
@@ -59,7 +64,6 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	#define OPENPGP4FPR_SCHEME "OPENPGP4FPR:"
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
 	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded);
@@ -84,6 +88,7 @@ cleanup:
 mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 {
 	int             locked      = 0;
+	char*           payload     = NULL;
 	char*           addr        = NULL; /* must be normalized, if set */
 	char*           fingerprint = NULL; /* must be normalized, if set */
 	char*           name        = NULL;
@@ -98,11 +103,13 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 
 	mrmailbox_log_info(mailbox, 0, "Scanned QR code: %s", qr);
 
-	/* split parameters from the qr code */
+	/* split parameters from the qr code
+	 ------------------------------------ */
+
 	if( strncasecmp(qr, OPENPGP4FPR_SCHEME, strlen(OPENPGP4FPR_SCHEME)) == 0 )
 	{
 		/* scheme: OPENPGP4FPR:1234567890123456789012345678901234567890#v=mail%40domain.de&n=Name */
-		char* payload  = safe_strdup(&qr[strlen(OPENPGP4FPR_SCHEME)]);
+		payload  = safe_strdup(&qr[strlen(OPENPGP4FPR_SCHEME)]);
 		char* fragment = strchr(payload, '#'); /* must not be freed, only a pointer inside payload */
 		if( fragment )
 		{
@@ -112,13 +119,8 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 			mrparam_t* param = mrparam_new();
 			mrparam_set_urlencoded(param, fragment);
 
-			char* addr_urlencoded = mrparam_get(param, 'v', NULL);
-			if( addr_urlencoded ) {
-				char* addr_unnormalized = mr_url_decode(addr_urlencoded);
-					addr = mr_normalize_addr(addr_unnormalized);
-				free(addr_unnormalized);
-				free(addr_urlencoded);
-
+			addr = mrparam_get(param, 'v', NULL);
+			if( addr ) {
 				char* name_urlencoded = mrparam_get(param, 'n', NULL);
 				if( name_urlencoded ) {
 					name = mr_url_decode(name_urlencoded);
@@ -131,11 +133,40 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 
 		fingerprint = mr_normalize_fingerprint(payload);
-		free(payload);
+	}
+	else if( strncasecmp(qr, MAILTO_SCHEME, strlen(MAILTO_SCHEME)) == 0 )
+	{
+		/* scheme: mailto:addr...?subject=...&body=... */
+		payload = safe_strdup(&qr[strlen(MAILTO_SCHEME)]);
+		char* query = strchr(payload, '?'); /* must not be freed, only a pointer inside payload */
+		if( query ) {
+			*query = 0;
+		}
+		addr = safe_strdup(payload);
+	}
+	else if( strncasecmp(qr, MATMSG_SCHEME, strlen(MATMSG_SCHEME)) == 0 )
+	{
+		/* scheme: `MATMSG:TO:addr...;SUB:subject...;BODY:body...;` - there may or may not be linebreaks after the fields */
+		char* to = strstr(qr, "TO:"); /* does not work when the text `TO:` is used in subject/body _and_ TO: is not the first field. we ignore this case. */
+		if( to ) {
+			addr = safe_strdup(&to[3]);
+			char* semicolon = strchr(addr, ';');
+			if( semicolon ) { *semicolon = 0; }
+		}
+		else {
+			ret->m_state = MR_QR_ERROR;
+			ret->m_text1 = safe_strdup("Bad e-mail address.");
+			goto cleanup;
+		}
 	}
 
-	/* check some paramters */
+	/* check the paramters
+	  ---------------------- */
+
 	if( addr ) {
+		char* temp = mr_url_decode(addr);     free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
+		      temp = mr_normalize_addr(addr); free(addr); addr = temp;
+
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
 			ret->m_state = MR_QR_ERROR;
 			ret->m_text1 = safe_strdup("Bad e-mail address.");
@@ -151,7 +182,9 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 	}
 
-	/* let's see what we can do with the parameters */
+	/* let's see what we can do with the parameters
+	  ---------------------------------------------- */
+
 	if( fingerprint )
 	{
 		/* fingerprint set ... */
@@ -205,5 +238,6 @@ cleanup:
 	free(addr);
 	free(fingerprint);
 	mrapeerstate_unref(peerstate);
+	free(payload);
 	return ret;
 }
