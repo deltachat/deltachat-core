@@ -4367,6 +4367,11 @@ cleanup:
  * The max. text returned is typically longer (about 100000 characters) than the
  * max. text returned by mrmsg_get_text() (about 30000 characters).
  *
+ * If the library is compiled for andoid, some basic html-formatting for he
+ * subject and the footer is added. However we should change this function so
+ * that it returns eg. an array of pairwise key-value strings and the caller
+ * can show the whole stuff eg. in a table.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
@@ -4403,6 +4408,18 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		}
 
 		rawtxt = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+
+		#ifdef __ANDROID__
+			p = strchr(rawtxt, '\n');
+			if( p ) {
+				char* subject = rawtxt;
+				*p = 0;
+				p++;
+				rawtxt = mr_mprintf("<b>%s</b>\n%s", subject, p);
+				free(subject);
+			}
+		#endif
+
 		mr_trim(rawtxt);
 		mr_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
@@ -4484,7 +4501,13 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	}
 
 	/* add Message-ID, Server-Folder and Server-UID; the database ID is normally only of interest if you have access to sqlite; if so you can easily get it from the "msgs" table. */
-	p = mr_mprintf("\nMessage-ID: %s\nLast seen as: %s/%i", msg->m_rfc724_mid, msg->m_server_folder, (int)msg->m_server_uid); mrstrbuilder_cat(&ret, p); free(p);
+	#ifdef __ANDROID__
+		mrstrbuilder_cat(&ret, "<c#808080>");
+	#endif
+	mrstrbuilder_catf(&ret, "\nMessage-ID: %s\nLast seen as: %s/%i", msg->m_rfc724_mid, msg->m_server_folder, (int)msg->m_server_uid);
+	#ifdef __ANDROID__
+		mrstrbuilder_cat(&ret, "</c>");
+	#endif
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
