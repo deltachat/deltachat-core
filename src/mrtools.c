@@ -1518,38 +1518,35 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 
 char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 {
-	/* extract our group ID from Message-IDs as `Gr.12345678.morerandom.user@domain.de`; "12345678" is the wanted ID in this example. */
-	int success = 0;
-	char* ret = NULL, *p1;
+	/* extract our group ID from Message-IDs as `Gr.12345678901.morerandom@domain.de`; "12345678901" is the wanted ID in this example. */
+	int   success = 0;
+	char* grpid = NULL, *p1;
+	int   grpid_len;
 
-    if( mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.' ) {
+	if( mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.' ) {
 		goto cleanup;
-    }
+	}
 
-	ret = safe_strdup(&mid[3]);
+	grpid = safe_strdup(&mid[3]);
 
-	p1 = strchr(ret, '.');
+	p1 = strchr(grpid, '.');
 	if( p1 == NULL ) {
 		goto cleanup;
 	}
 	*p1 = 0;
 
-	/* this check was used up to 2018-03-03, however, we should allow longer IDs here, eg. up to SHA256
-	#define MR_VALID_ID_LEN 11
-	if( strlen(ret)!=MR_VALID_ID_LEN ) {
-		goto cleanup;
-	}
-	*/
-
-	if( strlen(ret) > 64 ) {
+	#define MR_VALID_ID_LEN       11 /* length returned by mr_create_id() */
+	#define MR_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
+	grpid_len = strlen(grpid);
+	if( grpid_len!=MR_VALID_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;
 	}
 
 	success = 1;
 
 cleanup:
-	if( success == 0 ) { free(ret); ret = NULL; }
-    return success? ret : NULL;
+	if( success == 0 ) { free(grpid); grpid = NULL; }
+	return success? grpid : NULL;
 }
 
 

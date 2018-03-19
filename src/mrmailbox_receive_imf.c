@@ -450,7 +450,7 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 		hasher.finish(&hasher, binary_hash);
 	}
 
-	/* output the first 8 bytes as 16 hex-characters */
+	/* output the first 8 bytes as 16 hex-characters - CAVE: if the lenght changes here, also adapt mr_extract_grpid_from_rfc724_mid() */
 	ret = calloc(1, 256);
 	for( i = 0; i < 8; i++ ) {
 		sprintf(&ret[i*2], "%02x", (int)binary_hash[i]);
