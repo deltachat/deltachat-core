@@ -43,6 +43,7 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 	char*    self_name_urlencoded = NULL;
 	mrkey_t* self_key             = mrkey_new();
 	char*    fingerprint          = NULL;
+	char*    tag                  = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
 		goto cleanup;
@@ -68,7 +69,8 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded);
+	tag = mr_create_id();
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&t=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, tag);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -78,6 +80,7 @@ cleanup:
 	free(self_name);
 	free(self_name_urlencoded);
 	free(fingerprint);
+	free(tag);
 	return qr? qr : safe_strdup(NULL);
 }
 
