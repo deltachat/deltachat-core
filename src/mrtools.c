@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h> /* for getpid() */
 #include <unistd.h>    /* for getpid() */
+#include <openssl/rand.h>
 #include <libetpan/libetpan.h>
 #include <libetpan/mailimap_types.h>
 #include "mrmailbox_internal.h"
@@ -1439,10 +1440,11 @@ char* mr_create_id(void)
 	- for OUTGOING messages this ID is written to the header as `Chat-Group-ID:` and is added to the message ID as Gr.<grpid>.<random>@<random>
 	- for INCOMING messages, the ID is taken from the Chat-Group-ID-header or from the Message-ID in the In-Reply-To: or References:-Header
 	- the group ID should be a string with the characters [a-zA-Z0-9\-_] */
-	uint32_t now = time(NULL);
-	uint32_t pid = getpid();
-	uint32_t rnd = random() ^ pid;
-	return encode_66bits_as_base64(now, rnd, pid/*only the lower 2 bits are taken from this value*/);
+	uint32_t buf[3];
+	if( !RAND_bytes((unsigned char*)&buf, sizeof(uint32_t)*3) ) {
+		RAND_pseudo_bytes((unsigned char*)&buf, sizeof(uint32_t)*3);
+	}
+	return encode_66bits_as_base64(buf[0], buf[1], buf[2]/*only the lower 2 bits are taken from this value*/);
 }
 
 
@@ -1462,16 +1464,26 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	- the message ID should be globally unique
 	- do not add a counter or any private data as as this may give unneeded information to the receiver	*/
 
-	char* msgid = mr_create_id(), *ret = NULL;
+	char*       rand1 = NULL;
+	char*       rand2 = mr_create_id();
+	char*       ret = NULL;
+	const char* at_hostname = strchr(from_addr, '@');
+
+	if( at_hostname == NULL ) {
+		at_hostname = "@nohost";
+	}
+
 	if( grpid ) {
-		ret = mr_mprintf("Gr.%s.%s.%s", grpid, msgid, from_addr);
+		ret = mr_mprintf("Gr.%s.%s%s", grpid, rand2, at_hostname);
 		               /* ^^^ `Gr.` must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
 	}
 	else {
-		ret = mr_mprintf("Mr.%s.%s", msgid, from_addr);
+		rand1 = mr_create_id();
+		ret = mr_mprintf("Mr.%s.%s%s", rand1, rand2, at_hostname);
 		               /* ^^^ `Mr.` is currently not used, however, this may change in future */
 	}
-	free(msgid);
+
+	free(rand2);
 	return ret;
 }
 
