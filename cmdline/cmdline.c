@@ -1162,6 +1162,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Misc.
 	 ******************************************************************************/
 
+	else if( strcmp(cmd, "getqr")==0 )
+	{
+		ret = mrmailbox_get_qr(mailbox);
+	}
 	else if( strcmp(cmd, "checkqr")==0 )
 	{
 		if( arg1 ) {
