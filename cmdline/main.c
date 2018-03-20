@@ -164,7 +164,7 @@ int main(int argc, char ** argv)
 				for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
 			}
 			printf("%s\n", qrstr);
-			char* syscmd = mr_mprintf("qrencode -t UTF8 \"%s\" -o -", qrstr);
+			char* syscmd = mr_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
 			system(syscmd);
 			free(syscmd);
 			free(qrstr);
