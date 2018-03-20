@@ -103,8 +103,6 @@ extern "C" {
  * Message 2: Got it!
  * ```
  *
- * I think, you got the idea.  For further reading, please dive into the mrmailbox_t class.
- *
  *
  * ## Class reference
  *
