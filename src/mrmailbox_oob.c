@@ -259,6 +259,7 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 				ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
 					if( strcasecmp(peerstate->m_fingerprint, fingerprint) != 0 ) {
+						mrmailbox_log_info(mailbox, 0, "Fingerprint mismatch for %s: Scanned: %s, saved: %s", addr, fingerprint, peerstate->m_fingerprint);
 						ret->m_state = MR_QR_FINGERPRINT_MISMATCH;
 					}
 				}
