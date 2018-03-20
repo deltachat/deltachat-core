@@ -157,9 +157,12 @@ int main(int argc, char ** argv)
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
 			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
-		else if( strcmp(cmd, "getqr")==0 )
+		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
 			char* qrstr  = mrmailbox_get_qr(mailbox);
+			if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
+				for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
+			}
 			printf("%s\n", qrstr);
 			char* syscmd = mr_mprintf("qrencode -t UTF8 \"%s\" -o -", qrstr);
 			system(syscmd);

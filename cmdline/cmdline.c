@@ -480,6 +480,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delcontact <contact-id>\n"
 				"cleanupcontacts\n"
 				"======================================Misc.==\n"
+				"getqr\n"
+				"getbadqr\n"
 				"checkqr <qr-contenct>\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
