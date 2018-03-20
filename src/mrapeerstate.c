@@ -85,7 +85,7 @@ static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt
 }
 
 
-int mrapeerstate_load_from_db__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
+int mrapeerstate_load_by_addr__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;

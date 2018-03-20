@@ -365,7 +365,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
 				const char* recipient_addr = clist_content(iter1);
 				mrapeerstate_t* peerstate = mrapeerstate_new();
-				if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, recipient_addr)
+				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
 				 && mrapeerstate_peek_key(peerstate)
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
@@ -700,7 +700,7 @@ static void update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, 
 					{
 						/* valid recipient: update peerstate */
 						mrapeerstate_t* peerstate = mrapeerstate_new();
-						if( !mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
+						if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
 							mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
 							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 						}
@@ -785,7 +785,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 		if( message_time > 0
 		 && from )
 		{
-			if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from) ) {
+			if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, from) ) {
 				if( autocryptheader ) {
 					mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
 					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
@@ -815,7 +815,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 
 		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
 		if( peerstate->m_last_seen == 0 ) {
-			mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, from);
+			mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, from);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);

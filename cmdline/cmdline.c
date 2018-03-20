@@ -159,7 +159,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr) ) {
+		if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
 			mrapeerstate_apply_header(peerstate, header, time(NULL));
 			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 		}
@@ -349,7 +349,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 			char* addr = mrcontact_get_addr(contact);
 			line = mr_mprintf("%s, %s", (name&&name[0])? name : "<name unset>", (addr&&addr[0])? addr : "<addr unset>");
 			mrsqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, addr);
+				int peerstate_ok = mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
 			mrsqlite3_unlock(mailbox->m_sql);
 			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
 				char* pe = NULL;

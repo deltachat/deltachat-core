@@ -4029,7 +4029,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 			goto cleanup;
 		}
-		peerstate_ok = mrapeerstate_load_from_db__(peerstate, mailbox->m_sql, contact->m_addr);
+		peerstate_ok = mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
 		e2ee_enabled = mailbox->m_e2ee_enabled;
 
