@@ -34,7 +34,7 @@ Some features at a glance:
 API Documentation
 --------------------------------------------------------------------------------
 
-The C-API is documented at <https://deltachat.github.io/api/index.html>.
+The C-API is documented at <https://deltachat.github.io/api/>.
 
 Please keep in mind, that your derived work must be released under a
 GPL-compatible licence.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
