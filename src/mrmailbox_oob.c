@@ -60,13 +60,15 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 	char*    self_name_urlencoded = NULL;
 	mrkey_t* self_key             = mrkey_new();
 	char*    fingerprint          = NULL;
-	char*    random_return_tag    = NULL;
+	char*    return_tag           = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
+
+	return_tag = mr_create_id();
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -78,6 +80,20 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
+		/* prepend return_tag to the list of all tags */
+		{
+			#define MAX_REMEMBERED_RETURN_TAGS 10
+			#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RETURN_TAGS*(MR_CREATE_ID_LEN+1))
+			char* old_return_tags = mrsqlite3_get_config__(mailbox->m_sql, "return_tags", "");
+			if( strlen(old_return_tags) > MAX_REMEMBERED_CHARS ) {
+				old_return_tags[MAX_REMEMBERED_CHARS] = 0; /* the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway */
+			}
+			char* all_return_tags = mr_mprintf("%s,%s", return_tag, old_return_tags);
+			mrsqlite3_set_config__(mailbox->m_sql, "return_tags", all_return_tags);
+			free(all_return_tags);
+			free(old_return_tags);
+		}
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
@@ -87,8 +103,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
-	random_return_tag = mr_create_id();
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, random_return_tag);
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, return_tag);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -98,7 +113,7 @@ cleanup:
 	free(self_name);
 	free(self_name_urlencoded);
 	free(fingerprint);
-	free(random_return_tag);
+	free(return_tag);
 	return qr? qr : safe_strdup(NULL);
 }
 
@@ -122,6 +137,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	char*           addr        = NULL; /* must be normalized, if set */
 	char*           fingerprint = NULL; /* must be normalized, if set */
 	char*           name        = NULL;
+	char*           return_tag  = NULL;
 	mrapeerstate_t* peerstate   = mrapeerstate_new();
 	mrlot_t*        ret         = mrlot_new();
 
@@ -157,6 +173,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 					mr_normalize_name(name);
 					free(name_urlencoded);
 				}
+				return_tag = mrparam_get(param, 'r', "");
 			}
 
 			mrparam_unref(param);
@@ -254,9 +271,6 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	{
 		/* fingerprint set ... */
 
-		ret->m_text1 = safe_strdup(fingerprint);
-		ret->m_text2 = mr_format_fingerprint(fingerprint);
-
 		if( addr == NULL )
 		{
 			/* _only_ fingerprint set ... */
@@ -288,6 +302,10 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 						mrmailbox_log_info(mailbox, 0, "Fingerprint mismatch for %s: Scanned: %s, saved: %s", addr, fingerprint, peerstate->m_fingerprint);
 						ret->m_state = MR_QR_FPR_MISMATCH;
 					}
+				}
+
+				if( ret->m_state == MR_QR_FPR_ASK_OOB ) {
+					ret->m_text2 = safe_strdup(return_tag);
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -334,17 +352,37 @@ cleanup:
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.
  */
-int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id)
+int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id, const char* return_tag)
 {
-	int success = 0;
+	int      success           = 0;
+	int      ongoing_allocated = 0;
+	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
+	uint32_t chat_id           = 0;
+	mrmsg_t* msg               = NULL;
+	uint32_t msg_id            = 0;
 
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification with contact #%i...", (int)contact_id);
 
-	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
-
-	if( !mrmailbox_alloc_ongoing(mailbox) ) {
-		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 ) {
+		goto cleanup;
 	}
+
+	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, contact_id)) == 0 ) {
+		goto cleanup;
+	}
+
+	CHECK_EXIT
+
+	msg = mrmsg_new();
+	msg->m_type = MR_MSG_TEXT;
+	msg->m_text = mr_mprintf("oobv#1 return_tag=%s", return_tag);
+
+	if( (msg_id=mrmailbox_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
+		goto cleanup;
+	}
+
+	mrmsg_unref(msg);
+	msg = NULL;
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -355,7 +393,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id)
 	success = 1;
 
 cleanup:
-	mrmailbox_free_ongoing(mailbox);
+	mrmsg_unref(msg);
+	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return success;
 }
-
