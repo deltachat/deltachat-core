@@ -21,6 +21,7 @@
 
 
 #include <stdarg.h>
+#include <unistd.h>
 #include "mrmailbox_internal.h"
 #include "mrkey.h"
 #include "mrapeerstate.h"
@@ -33,7 +34,21 @@
 #define SMTP_SCHEME        "SMTP:"
 
 
-char* mrmailbox_get_qr(mrmailbox_t* mailbox)
+/**
+ * Get QR code text that will offer an oob verification.
+ * The QR code is compatible to the OPENPGP4FPR format so that a basic
+ * fingerprint comparison also works eg. with K-9 or OpenKeychain.
+ *
+ * The scanning Delta Chat device will pass the scanned content to
+ * mrmailbox_check_qr() then; if this function reutrns
+ * MR_QR_FINGERPRINT_ASK_OOB oob-verification can be joined using
+ * mrmailbox_oob_join()
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return Text that should go to the qr code.
+ */
+char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 {
 	int      locked               = 0;
 	char*    qr                   = NULL;
@@ -49,12 +64,13 @@ char* mrmailbox_get_qr(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
+	mrmailbox_ensure_secret_key_exists(mailbox);
+
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
 		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot get QR-code for unconfigured mailbox.");
 			goto cleanup;
 		}
 
@@ -87,10 +103,16 @@ cleanup:
 
 /**
  * Check a scanned QR code.
- * The function should be called after a QR-code is scanned.
+ * The function should be called after a QR code is scanned.
  * The function takes the raw text scanned and checks what can be done with it.
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @param qr The text of the scanned QR code.
+ *
+ * @return Scanning result as an mrlot_t object.
  */
-mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
+mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 {
 	int             locked      = 0;
 	char*           payload     = NULL;
@@ -239,12 +261,12 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 			locked = 1;
 
 				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
-					ret->m_state = MR_QR_FINGERPRINT_OK;
+					ret->m_state = MR_QR_FPR_OK;
 					ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 					// TODO: add this to the security log
 				}
 				else {
-					ret->m_state = MR_QR_FINGERPRINT_WITHOUT_ADDR;
+					ret->m_state = MR_QR_FPR_WITHOUT_ADDR;
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -256,12 +278,12 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				ret->m_state = MR_QR_FINGERPRINT_ASK_OOB;
+				ret->m_state = MR_QR_FPR_ASK_OOB;
 				ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
 					if( strcasecmp(peerstate->m_fingerprint, fingerprint) != 0 ) {
 						mrmailbox_log_info(mailbox, 0, "Fingerprint mismatch for %s: Scanned: %s, saved: %s", addr, fingerprint, peerstate->m_fingerprint);
-						ret->m_state = MR_QR_FINGERPRINT_MISMATCH;
+						ret->m_state = MR_QR_FPR_MISMATCH;
 					}
 				}
 
@@ -290,8 +312,42 @@ cleanup:
 }
 
 
-void mrmailbox_join_oob(mrmailbox_t* mailbox, uint32_t contact_id)
+/**
+ * Join an OOB-verification initiated on another device with mrmailbox_oob_get_qr().
+ * This function is typically called when mrmailbox_check_qr() returns
+ * lot.m_state=MR_QR_FINGERPRINT_ASK_OOB
+ *
+ * This function takes some time and sends and receives several messages.
+ * You should call it in a separate thread; if you want to abort it, you should
+ * call mrmailbox_stop_ongoing_process().
+ *
+ * @param mailbox The mailbox object
+ *
+ * @param contact_id The ID of the contact to verify out-of-band.
+ *     Typically returned as lot.m_id from mrmailbox_check_qr()
+ */
+int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id)
 {
+	int success = 0;
+
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification with contact #%i...", (int)contact_id);
+
+	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
+
+	if( !mrmailbox_alloc_ongoing(mailbox) ) {
+		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	}
+
+	while( 1 ) {
+		CHECK_EXIT
+
+		usleep(300*1000);
+	}
+
+	success = 1;
+
+cleanup:
+	mrmailbox_free_ongoing(mailbox);
+	return success;
 }
 

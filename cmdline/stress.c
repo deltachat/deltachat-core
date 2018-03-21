@@ -767,17 +767,17 @@ void stress_functions(mrmailbox_t* mailbox)
 
 	if( mrmailbox_is_configured(mailbox) )
 	{
-		char* qr = mrmailbox_get_qr(mailbox);
+		char* qr = mrmailbox_oob_get_qr(mailbox);
 		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#v=", 3)==0 );
 
-		mrlot_t* res = mrmailbox_check_scanned_qr(mailbox, qr);
+		mrlot_t* res = mrmailbox_check_qr(mailbox, qr);
 		assert( res );
-		assert( res->m_state == MR_QR_FINGERPRINT_ASK_OOB || res->m_state == MR_QR_FINGERPRINT_MISMATCH || res->m_state == MR_QR_FINGERPRINT_WITHOUT_ADDR );
+		assert( res->m_state == MR_QR_FPR_ASK_OOB || res->m_state == MR_QR_FPR_MISMATCH || res->m_state == MR_QR_FPR_WITHOUT_ADDR );
 
 		mrlot_unref(res);
 		free(qr);
 
-		res = mrmailbox_check_scanned_qr(mailbox, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
+		res = mrmailbox_check_qr(mailbox, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
 		assert( res );
 		assert( res->m_state == MR_QR_ADDR );
 		assert( res->m_id != 0 );
