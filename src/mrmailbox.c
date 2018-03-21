@@ -806,14 +806,14 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  *
  * @return None.
  */
-void mrmailbox_heartbeat(mrmailbox_t* ths)
+void mrmailbox_heartbeat(mrmailbox_t* mailbox)
 {
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
 	//mrmailbox_log_info(ths, 0, "<3 Mailbox");
-	mrimap_heartbeat(ths->m_imap);
+	mrimap_heartbeat(mailbox->m_imap);
 }
 
 /**
@@ -3506,15 +3506,15 @@ void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_i
 int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_blocked = 0;
-	mrcontact_t* ths = mrcontact_new();
+	mrcontact_t* contact = mrcontact_new();
 
-	if( mrcontact_load_from_db__(ths, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
-		if( ths->m_blocked ) {
+	if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
+		if( contact->m_blocked ) {
 			is_blocked = 1;
 		}
 	}
 
-	mrcontact_unref(ths);
+	mrcontact_unref(contact);
 	return is_blocked;
 }
 
@@ -3523,23 +3523,23 @@ int mrmailbox_get_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, in
 {
 	int          ret = 0;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
-	mrcontact_t* ths = mrcontact_new();
+	mrcontact_t* contact = mrcontact_new();
 
 	*ret_blocked = 0;
 
-	if( !mrcontact_load_from_db__(ths, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
+	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		goto cleanup;
 	}
 
-	if( ths->m_blocked ) {
+	if( contact->m_blocked ) {
 		*ret_blocked = 1;
 		goto cleanup;
 	}
 
-	ret = ths->m_origin;
+	ret = contact->m_origin;
 
 cleanup:
-	mrcontact_unref(ths);
+	mrcontact_unref(contact);
 	return ret;
 }
 
