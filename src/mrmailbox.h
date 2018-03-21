@@ -311,7 +311,7 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 #define         MR_QR_ERROR                 400 /* text1=error string */
 mrlot_t*        mrmailbox_check_qr          (mrmailbox_t*, const char* qr);
 char*           mrmailbox_oob_get_qr        (mrmailbox_t*);
-int             mrmailbox_oob_join          (mrmailbox_t*, uint32_t contact_id, const char* return_tag);
+int             mrmailbox_oob_join          (mrmailbox_t*, const char* qr);
 
 
 /* logging */

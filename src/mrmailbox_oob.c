@@ -128,7 +128,7 @@ cleanup:
  * @param mailbox The mailbox object.
  * @param qr The text of the scanned QR code.
  *
- * @return Scanning result as an mrlot_t object.
+ * @return Parsed QR code as an mrlot_t object.
  */
 mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 {
@@ -139,9 +139,9 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	char*           name        = NULL;
 	char*           return_tag  = NULL;
 	mrapeerstate_t* peerstate   = mrapeerstate_new();
-	mrlot_t*        ret         = mrlot_new();
+	mrlot_t*        qr_parsed   = mrlot_new();
 
-	ret->m_state = 0;
+	qr_parsed->m_state = 0;
 
 	if( mailbox==NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC || qr==NULL ) {
 		goto cleanup;
@@ -211,8 +211,8 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 			if( semicolon ) { *semicolon = 0; }
 		}
 		else {
-			ret->m_state = MR_QR_ERROR;
-			ret->m_text1 = safe_strdup("Bad e-mail address.");
+			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_text1 = safe_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
 	}
@@ -250,16 +250,16 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		      temp = mr_normalize_addr(addr); free(addr); addr = temp;
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
-			ret->m_state = MR_QR_ERROR;
-			ret->m_text1 = safe_strdup("Bad e-mail address.");
+			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_text1 = safe_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
 	}
 
 	if( fingerprint ) {
 		if( strlen(fingerprint) != 40 ) {
-			ret->m_state = MR_QR_ERROR;
-			ret->m_text1 = safe_strdup("Bad fingerprint length in QR code.");
+			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_text1 = safe_strdup("Bad fingerprint length in QR code.");
 			goto cleanup;
 		}
 	}
@@ -278,12 +278,12 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 			locked = 1;
 
 				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
-					ret->m_state = MR_QR_FPR_OK;
-					ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					qr_parsed->m_state = MR_QR_FPR_OK;
+					qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 					// TODO: add this to the security log
 				}
 				else {
-					ret->m_state = MR_QR_FPR_WITHOUT_ADDR;
+					qr_parsed->m_state = MR_QR_FPR_WITHOUT_ADDR;
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -295,17 +295,17 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				ret->m_state = MR_QR_FPR_ASK_OOB;
-				ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+				qr_parsed->m_state = MR_QR_FPR_ASK_OOB;
+				qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
 					if( strcasecmp(peerstate->m_fingerprint, fingerprint) != 0 ) {
 						mrmailbox_log_info(mailbox, 0, "Fingerprint mismatch for %s: Scanned: %s, saved: %s", addr, fingerprint, peerstate->m_fingerprint);
-						ret->m_state = MR_QR_FPR_MISMATCH;
+						qr_parsed->m_state = MR_QR_FPR_MISMATCH;
 					}
 				}
 
-				if( ret->m_state == MR_QR_FPR_ASK_OOB ) {
-					ret->m_text2 = safe_strdup(return_tag);
+				if( qr_parsed->m_state == MR_QR_FPR_ASK_OOB ) {
+					qr_parsed->m_text2 = safe_strdup(return_tag);
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -314,13 +314,13 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	}
 	else if( addr )
 	{
-        ret->m_state = MR_QR_ADDR;
-		ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+        qr_parsed->m_state = MR_QR_ADDR;
+		qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else
 	{
-        ret->m_state = MR_QR_TEXT;
-		ret->m_text1 = safe_strdup(qr);
+        qr_parsed->m_state = MR_QR_TEXT;
+		qr_parsed->m_text1 = safe_strdup(qr);
 	}
 
 cleanup:
@@ -329,7 +329,7 @@ cleanup:
 	free(fingerprint);
 	mrapeerstate_unref(peerstate);
 	free(payload);
-	return ret;
+	return qr_parsed;
 }
 
 
@@ -345,14 +345,14 @@ cleanup:
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object
- * @param contact_id The ID of the contact to verify out-of-band.
- *     Typically returned as lot.m_id from mrmailbox_check_qr()
+ * @param qr The text of the scanned QR code. Typically, the same string as given
+ *     to mrmailbox_check_qr().
  *
  * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.
  */
-int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id, const char* return_tag)
+int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 {
 	int      success           = 0;
 	int      ongoing_allocated = 0;
@@ -360,14 +360,19 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id, const char* re
 	uint32_t chat_id           = 0;
 	mrmsg_t* msg               = NULL;
 	uint32_t msg_id            = 0;
+	mrlot_t* qr_parsed         = NULL;
 
-	mrmailbox_log_info(mailbox, 0, "Joining oob-verification with contact #%i...", (int)contact_id);
+	mrmailbox_log_info(mailbox, 0, "Joining oob-verification ...");
 
 	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 ) {
 		goto cleanup;
 	}
 
-	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, contact_id)) == 0 ) {
+	if( ((qr_parsed=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_parsed->m_state!=MR_QR_FPR_ASK_OOB ) {
+		goto cleanup;
+	}
+
+	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_parsed->m_id)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -375,7 +380,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id, const char* re
 
 	msg = mrmsg_new();
 	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = mr_mprintf("oobv#1 return_tag=%s", return_tag);
+	msg->m_text = mr_mprintf("oobv#1 return_tag=%s", qr_parsed->m_text2);
 
 	if( (msg_id=mrmailbox_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
 		goto cleanup;
@@ -394,6 +399,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id, const char* re
 
 cleanup:
 	mrmsg_unref(msg);
+	mrlot_unref(qr_parsed);
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return success;
 }
