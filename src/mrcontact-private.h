@@ -58,7 +58,7 @@ struct _mrcontact
 #define MR_ORIGIN_INCOMING_UNKNOWN_FROM      0x10 /* From: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_CC        0x20 /* Cc: of incoming messages of unknown sender */
 #define MR_ORIGIN_INCOMING_UNKNOWN_TO        0x40 /* To: of incoming messages of unknown sender */
-#define MR_ORIGIN_UNHANDLED_QR_SCAN          0x50 /* address scanned but not verified */
+#define MR_ORIGIN_UNHANDLED_QR_SCAN          0x80 /* address scanned but not verified */
 #define MR_ORIGIN_INCOMING_REPLY_TO         0x100 /* Reply-To: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_CC               0x200 /* Cc: of incoming message of known sender */
 #define MR_ORIGIN_INCOMING_TO               0x400 /* additional To:'s of incoming message of known sender */
@@ -69,6 +69,7 @@ struct _mrcontact
 #define MR_ORIGIN_INTERNAL                0x40000 /* internal use */
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
+#define MR_ORIGIN_OOB_VERIFIED          0x1000000
 
 #define MR_ORIGIN_MIN_CONTACT_LIST    (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are shown in the contact list */
 #define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */

@@ -239,8 +239,9 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 			locked = 1;
 
 				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
-					ret->m_state = MR_QR_FINGERPRINT_ASK_CMP;
+					ret->m_state = MR_QR_FINGERPRINT_OK;
 					ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					// TODO: add this to the security log
 				}
 				else {
 					ret->m_state = MR_QR_FINGERPRINT_WITHOUT_ADDR;
@@ -251,11 +252,11 @@ mrlot_t* mrmailbox_check_scanned_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 		else
 		{
-			/* fingerprint and addr set ... */
+			/* fingerprint and addr set ... */  // TODO: add the states to the security log
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				ret->m_state = MR_QR_FINGERPRINT_ASK_CMP;
+				ret->m_state = MR_QR_FINGERPRINT_ASK_OOB;
 				ret->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
 					if( strcasecmp(peerstate->m_fingerprint, fingerprint) != 0 ) {
@@ -287,3 +288,10 @@ cleanup:
 	free(payload);
 	return ret;
 }
+
+
+void mrmailbox_join_oob(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	mrmailbox_log_info(mailbox, 0, "Joining oob-verification with contact #%i...", (int)contact_id);
+}
+
