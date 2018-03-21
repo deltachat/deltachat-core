@@ -390,6 +390,10 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf2 = mr_url_decode(buf1);
 		assert( strcmp(buf2, "Björn") == 0 );
 		free(buf1); free(buf2);
+
+		buf1 = mr_create_id();
+		assert( strlen(buf1) == MR_CREATE_ID_LEN );
+		free(buf1);
 	}
 
 	/* test mrarray_t

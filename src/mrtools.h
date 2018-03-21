@@ -96,6 +96,7 @@ time_t mr_create_smeared_timestamp__ (void);
 time_t mr_create_smeared_timestamps__(int count);
 
 /* Message-ID tools */
+#define MR_CREATE_ID_LEN                   11
 char* mr_create_id                         (void);
 char* mr_create_dummy_references_mid       (void);
 char* mr_create_incoming_rfc724_mid        (time_t message_timestamp, uint32_t contact_id_from, mrarray_t* contact_ids_to);

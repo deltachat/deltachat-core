@@ -1535,10 +1535,9 @@ char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 	}
 	*p1 = 0;
 
-	#define MR_VALID_ID_LEN       11 /* length returned by mr_create_id() */
 	#define MR_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
 	grpid_len = strlen(grpid);
-	if( grpid_len!=MR_VALID_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
+	if( grpid_len!=MR_CREATE_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;
 	}
 
