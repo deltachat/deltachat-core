@@ -74,7 +74,7 @@ typedef struct mrmimefactory_t {
 	char*        m_references;
 	int          m_req_mdn;
 
-	/* out: after a successfull mrmimefactory_create_mime(), here's the data */
+	/* out: after a successfull mrmimefactory_render(), here's the data */
 	MMAPString*  m_out;
 	int          m_out_encrypted;
 
