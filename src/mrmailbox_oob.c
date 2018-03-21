@@ -44,6 +44,8 @@
  * MR_QR_FINGERPRINT_ASK_OOB oob-verification can be joined using
  * mrmailbox_oob_join()
  *
+ * @memberof mrmailbox_t
+ *
  * @param mailbox The mailbox object.
  *
  * @return Text that should go to the qr code.
@@ -106,8 +108,9 @@ cleanup:
  * The function should be called after a QR code is scanned.
  * The function takes the raw text scanned and checks what can be done with it.
  *
- * @param mailbox The mailbox object.
+ * @memberof mrmailbox_t
  *
+ * @param mailbox The mailbox object.
  * @param qr The text of the scanned QR code.
  *
  * @return Scanning result as an mrlot_t object.
@@ -321,10 +324,15 @@ cleanup:
  * You should call it in a separate thread; if you want to abort it, you should
  * call mrmailbox_stop_ongoing_process().
  *
- * @param mailbox The mailbox object
+ * @memberof mrmailbox_t
  *
+ * @param mailbox The mailbox object
  * @param contact_id The ID of the contact to verify out-of-band.
  *     Typically returned as lot.m_id from mrmailbox_check_qr()
+ *
+ * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
+ *     verification successfull, the UI may redirect to the corresponding chat
+ *     where a new system message with the state was added.
  */
 int mrmailbox_oob_join(mrmailbox_t* mailbox, uint32_t contact_id)
 {
