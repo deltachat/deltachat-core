@@ -1,7 +1,7 @@
 # this script generates the c-api html-help-pages
 # from the c-core-source using `doxygen`
 
-UPLOADDIR="../../deltachat-api"
+UPLOADDIR="../../api"
 
 doxygen
 mkdir -p ${UPLOADDIR}/docs/
