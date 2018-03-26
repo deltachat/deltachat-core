@@ -25,6 +25,13 @@
 #include "mrmailbox_internal.h"
 #include "mrkey.h"
 #include "mrapeerstate.h"
+#include "mrmimeparser.h"
+#include "mrmimefactory.h"
+
+
+/*******************************************************************************
+ * Tools
+ ******************************************************************************/
 
 
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
@@ -32,90 +39,6 @@
 #define MATMSG_SCHEME      "MATMSG:"
 #define VCARD_BEGIN        "BEGIN:VCARD"
 #define SMTP_SCHEME        "SMTP:"
-
-
-/**
- * Get QR code text that will offer an oob verification.
- * The QR code is compatible to the OPENPGP4FPR format so that a basic
- * fingerprint comparison also works eg. with K-9 or OpenKeychain.
- *
- * The scanning Delta Chat device will pass the scanned content to
- * mrmailbox_check_qr() then; if this function reutrns
- * MR_QR_FINGERPRINT_ASK_OOB oob-verification can be joined using
- * mrmailbox_oob_join()
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object.
- *
- * @return Text that should go to the qr code.
- */
-char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
-{
-	int      locked               = 0;
-	char*    qr                   = NULL;
-	char*    self_addr            = NULL;
-	char*    self_addr_urlencoded = NULL;
-	char*    self_name            = NULL;
-	char*    self_name_urlencoded = NULL;
-	mrkey_t* self_key             = mrkey_new();
-	char*    fingerprint          = NULL;
-	char*    return_tag           = NULL;
-
-	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
-		goto cleanup;
-	}
-
-	mrmailbox_ensure_secret_key_exists(mailbox);
-
-	return_tag = mr_create_id();
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
-		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
-			goto cleanup;
-		}
-
-		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
-
-		/* prepend return_tag to the list of all tags */
-		{
-			#define MAX_REMEMBERED_RETURN_TAGS 10
-			#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RETURN_TAGS*(MR_CREATE_ID_LEN+1))
-			char* old_return_tags = mrsqlite3_get_config__(mailbox->m_sql, "return_tags", "");
-			if( strlen(old_return_tags) > MAX_REMEMBERED_CHARS ) {
-				old_return_tags[MAX_REMEMBERED_CHARS] = 0; /* the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway */
-			}
-			char* all_return_tags = mr_mprintf("%s,%s", return_tag, old_return_tags);
-			mrsqlite3_set_config__(mailbox->m_sql, "return_tags", all_return_tags);
-			free(all_return_tags);
-			free(old_return_tags);
-		}
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
-	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
-		goto cleanup;
-	}
-
-	self_addr_urlencoded = mr_url_encode(self_addr);
-	self_name_urlencoded = mr_url_encode(self_name);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, return_tag);
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrkey_unref(self_key);
-	free(self_addr_urlencoded);
-	free(self_addr);
-	free(self_name);
-	free(self_name_urlencoded);
-	free(fingerprint);
-	free(return_tag);
-	return qr? qr : safe_strdup(NULL);
-}
 
 
 /**
@@ -333,17 +256,110 @@ cleanup:
 }
 
 
+static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step_name)
+{
+	mrmsg_t* msg = mrmsg_new();
+
+	msg->m_type = MR_MSG_TEXT;
+	msg->m_text = mr_mprintf("out-of-band-verification, %s", step_name);
+	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
+	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step_name);
+	mrmailbox_send_msg_object(mailbox, chat_id, msg);
+
+	mrmsg_unref(msg);
+}
+
+
+/*******************************************************************************
+ * OOB verification main flow
+ ******************************************************************************/
+
 
 /**
- * This function is called for each incoming mail; if the mail belongs to an oobv
- * handshake, the function does what to do and returns 1. The caller should ignore the mail then.
+ * Get QR code text that will offer an oob verification.
+ * The QR code is compatible to the OPENPGP4FPR format so that a basic
+ * fingerprint comparison also works eg. with K-9 or OpenKeychain.
  *
- * Otherwise, in the huge majority of cases, 0 is returned.
- * The function also returns very fast in these cases.
+ * The scanning Delta Chat device will pass the scanned content to
+ * mrmailbox_check_qr() then; if this function reutrns
+ * MR_QR_FINGERPRINT_ASK_OOB oob-verification can be joined using
+ * mrmailbox_oob_join()
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return Text that should go to the qr code.
  */
-int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
+char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 {
-	return 0;
+	/* ==========================
+	   ==== the inviter side ====
+	   ========================== */
+
+	int      locked               = 0;
+	char*    qr                   = NULL;
+	char*    self_addr            = NULL;
+	char*    self_addr_urlencoded = NULL;
+	char*    self_name            = NULL;
+	char*    self_name_urlencoded = NULL;
+	mrkey_t* self_key             = mrkey_new();
+	char*    fingerprint          = NULL;
+	char*    return_tag           = NULL;
+
+	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
+
+	mrmailbox_ensure_secret_key_exists(mailbox);
+
+	return_tag = mr_create_id();
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
+		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+			goto cleanup;
+		}
+
+		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
+
+		/* prepend return_tag to the list of all tags */
+		{
+			#define MAX_REMEMBERED_RETURN_TAGS 10
+			#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RETURN_TAGS*(MR_CREATE_ID_LEN+1))
+			char* old_return_tags = mrsqlite3_get_config__(mailbox->m_sql, "return_tags", "");
+			if( strlen(old_return_tags) > MAX_REMEMBERED_CHARS ) {
+				old_return_tags[MAX_REMEMBERED_CHARS] = 0; /* the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway */
+			}
+			char* all_return_tags = mr_mprintf("%s,%s", return_tag, old_return_tags);
+			mrsqlite3_set_config__(mailbox->m_sql, "return_tags", all_return_tags);
+			free(all_return_tags);
+			free(old_return_tags);
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+		goto cleanup;
+	}
+
+	self_addr_urlencoded = mr_url_encode(self_addr);
+	self_name_urlencoded = mr_url_encode(self_name);
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, return_tag);
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mrkey_unref(self_key);
+	free(self_addr_urlencoded);
+	free(self_addr);
+	free(self_name);
+	free(self_name_urlencoded);
+	free(fingerprint);
+	free(return_tag);
+	return qr? qr : safe_strdup(NULL);
 }
 
 
@@ -368,12 +384,14 @@ int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* m
  */
 int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 {
+	/* =========================
+	   ==== the joiner side ====
+	   ========================= */
+
 	int      success           = 0;
 	int      ongoing_allocated = 0;
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t chat_id           = 0;
-	mrmsg_t* msg               = NULL;
-	uint32_t msg_id            = 0;
 	mrlot_t* qr_parsed         = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification ...");
@@ -392,16 +410,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	CHECK_EXIT
 
-	msg = mrmsg_new();
-	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = mr_mprintf("oobv#1 return_tag=%s", qr_parsed->m_text2);
-
-	if( (msg_id=mrmailbox_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
-		goto cleanup;
-	}
-
-	mrmsg_unref(msg);
-	msg = NULL;
+	send_message(mailbox, chat_id, "secure-join-requested");
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -412,8 +421,53 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	success = 1;
 
 cleanup:
-	mrmsg_unref(msg);
 	mrlot_unref(qr_parsed);
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return success;
+}
+
+
+/*
+ * mrmailbox_oob_is_handshake_message__() should be called called for each
+ * incoming mail. if the mail belongs to an oob-verify handshake, the function
+ * returns 1. The caller should unlock everything, stop normal message
+ * processing and call mrmailbox_oob_handle_handshake_message() then.
+ */
+int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
+{
+	if( mailbox == NULL || mimeparser == NULL || mrmimeparser_lookup_field(mimeparser, "OOB-Verify-Step") == NULL ) {
+		return 0;
+	}
+
+	return 1; /* processing is continued in mrmailbox_oob_handle_handshake_message() */
+}
+
+
+void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
+{
+	struct mailimf_field* field = NULL;
+	const char*           step = NULL;
+
+	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	field = mrmimeparser_lookup_field(mimeparser, "OOB-Verify-Step");
+	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD || field->fld_data.fld_optional_field == NULL ) {
+		goto cleanup;
+	}
+	step = field->fld_data.fld_optional_field->fld_value;
+	mrmailbox_log_info(mailbox, 0, "OOB-verify message '%s' received ...", step);
+
+	/* ==========================
+	   ==== the inviter side ====
+	   ========================== */
+
+	if( strcmp(step, "secure-join-requested")==0 )
+	{
+		send_message(mailbox, chat_id, "please-provide-random-secret");
+	}
+
+cleanup:
+	;
 }

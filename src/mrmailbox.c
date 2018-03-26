@@ -37,6 +37,14 @@
 #include "mrapeerstate.h"
 
 
+/* TODO:
+
+- the out-of-band verification messages should not appear as normal system messages,
+  only the result should be shown. however, for debugging it is nice to have them visible.
+
+*/
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/

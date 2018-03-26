@@ -867,6 +867,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	carray*          rr_event_to_send = carray_new(16);
 
 	int              has_return_path = 0;
+	int              is_handshake_message = 0;
 	char*            txt_raw = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
@@ -913,12 +914,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	db_locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
-
-
-		/* check of the message is a special handshake message; if so, we're done here */
-		if( mrmailbox_oob_is_handshake_message__(mailbox, mime_parser) ) {
-			goto cleanup;
-		}
 
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
@@ -1112,6 +1107,12 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				if( chat_id == 0 ) {
 					chat_id = MR_CHAT_ID_TRASH;
 				}
+			}
+
+			/* check of the message is a special handshake message; if so, we're done here */
+			if( mrmailbox_oob_is_handshake_message__(mailbox, mime_parser) ) {
+				is_handshake_message = 1;
+				goto cleanup;
 			}
 
 			/* correct message_timestamp, it should not be used before,
@@ -1368,6 +1369,10 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 cleanup:
 	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+
+	if( is_handshake_message ) {
+		mrmailbox_oob_handle_handshake_message(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
+	}
 
 	mrmimeparser_unref(mime_parser);
 	free(rfc724_mid);

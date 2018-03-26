@@ -552,6 +552,10 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			force_unencrypted = 1;
 		}
 
+		if( system_command == MR_SYSTEM_OOB_VERIFY_MESSAGE ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("OOB-Verify-Step"), mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL)/*mailimf takes ownership of string*/));
+		}
+
 		if( grpimage )
 		{
 			mrmsg_t* meta = mrmsg_new();
