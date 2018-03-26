@@ -37,8 +37,6 @@
 
 - make sure only to handle messages belonging to the current verification
 
-- do not read receipts
-
 */
 
 
