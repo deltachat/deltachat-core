@@ -145,7 +145,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 
 
 /* private oob-stuff */
-int             mrmailbox_oob_is_handshake_message__  (mrmailbox_t*, mrmimeparser_t* t);
+int             mrmailbox_oob_is_handshake_message__  (mrmailbox_t*, mrmimeparser_t*);
 
 
 #ifdef __cplusplus

@@ -341,7 +341,7 @@ cleanup:
  * Otherwise, in the huge majority of cases, 0 is returned.
  * The function also returns very fast in these cases.
  */
-int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox_t, mrmimeparser_t* t)
+int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
 	return 0;
 }
