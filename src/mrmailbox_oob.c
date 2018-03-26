@@ -333,6 +333,20 @@ cleanup:
 }
 
 
+
+/**
+ * This function is called for each incoming mail; if the mail belongs to an oobv
+ * handshake, the function does what to do and returns 1. The caller should ignore the mail then.
+ *
+ * Otherwise, in the huge majority of cases, 0 is returned.
+ * The function also returns very fast in these cases.
+ */
+int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox_t, mrmimeparser_t* t)
+{
+	return 0;
+}
+
+
 /**
  * Join an OOB-verification initiated on another device with mrmailbox_oob_get_qr().
  * This function is typically called when mrmailbox_check_qr() returns

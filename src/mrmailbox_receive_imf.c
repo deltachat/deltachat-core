@@ -915,6 +915,11 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	transaction_pending = 1;
 
 
+		/* check of the message is a special handshake message; if so, we're done here */
+		if( mrmailbox_oob_is_handshake_message__(mailbox, mime_parser) ) {
+			goto cleanup;
+		}
+
 		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
 		if( incoming
 		 && (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
