@@ -28,6 +28,19 @@
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
 
+/* TODO:
+
+- the out-of-band verification messages should not appear as normal system messages,
+  only the result should be shown. however, for debugging it is nice to have them visible.
+
+- verify fingerprints etc.
+
+- make sure only to handle messages belonging to the current verification
+
+- do not read receipts
+
+*/
+
 
 /*******************************************************************************
  * Tools
@@ -270,6 +283,9 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 }
 
 
+static int s_oob_ended_successfully_for_bob = 0;
+
+
 /*******************************************************************************
  * OOB verification main flow
  ******************************************************************************/
@@ -293,9 +309,9 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
  */
 char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 {
-	/* ==========================
-	   ==== the inviter side ====
-	   ========================== */
+	/* ==================================
+	   ==== Alice - the inviter side ====
+	   ================================== */
 
 	int      locked               = 0;
 	char*    qr                   = NULL;
@@ -384,9 +400,9 @@ cleanup:
  */
 int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 {
-	/* =========================
-	   ==== the joiner side ====
-	   ========================= */
+	/* =================================
+	   ==== Bob - the joiner's side ====
+	   ================================= */
 
 	int      success           = 0;
 	int      ongoing_allocated = 0;
@@ -410,7 +426,8 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	CHECK_EXIT
 
-	send_message(mailbox, chat_id, "secure-join-requested");
+	s_oob_ended_successfully_for_bob = 0;
+	send_message(mailbox, chat_id, "secure-join-requested"); // Bob -> Alice
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -418,7 +435,9 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 		usleep(300*1000);
 	}
 
-	success = 1;
+	if( s_oob_ended_successfully_for_bob ) {
+		success = 1;
+	}
 
 cleanup:
 	mrlot_unref(qr_parsed);
@@ -457,15 +476,41 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		goto cleanup;
 	}
 	step = field->fld_data.fld_optional_field->fld_value;
-	mrmailbox_log_info(mailbox, 0, "OOB-verify message '%s' received ...", step);
-
-	/* ==========================
-	   ==== the inviter side ====
-	   ========================== */
+	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> OOB-verify message '%s' received", step);
 
 	if( strcmp(step, "secure-join-requested")==0 )
 	{
-		send_message(mailbox, chat_id, "please-provide-random-secret");
+		/* ==================================
+		   ==== Alice - the inviter side ====
+		   ================================== */
+
+		send_message(mailbox, chat_id, "please-provide-random-secret"); // Alice -> Bob
+	}
+	else if( strcmp(step, "please-provide-random-secret")==0 )
+	{
+		/* =================================
+		   ==== Bob - the joiner's side ====
+		   ================================= */
+
+		send_message(mailbox, chat_id, "secure-join-with-random-secret"); // Bob -> Alice
+	}
+	else if( strcmp(step, "secure-join-with-random-secret")==0 )
+	{
+		/* ==================================
+		   ==== Alice - the inviter side ====
+		   ================================== */
+
+		send_message(mailbox, chat_id, "successful-verification-broadcast"); // Alice -> Bob and all other group members
+	}
+	else if( strcmp(step, "successful-verification-broadcast")==0 )
+	{
+		/* =================================
+		   ==== Bob - the joiner's side ====
+		   ================================= */
+
+		// handshake ends here
+		s_oob_ended_successfully_for_bob = 1;
+		mrmailbox_stop_ongoing_process(mailbox);
 	}
 
 cleanup:

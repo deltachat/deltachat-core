@@ -1110,10 +1110,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			}
 
 			/* check of the message is a special handshake message; if so, we're done here */
-			if( mrmailbox_oob_is_handshake_message__(mailbox, mime_parser) ) {
-				is_handshake_message = 1;
-				goto cleanup;
-			}
+			is_handshake_message = mrmailbox_oob_is_handshake_message__(mailbox, mime_parser);
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */

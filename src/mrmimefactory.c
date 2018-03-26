@@ -124,6 +124,8 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 		{
 			load_from__(factory);
 
+			factory->m_req_mdn = 0;
+
 			if( mrchat_is_self_talk(factory->m_chat) )
 			{
 				clist_append(factory->m_recipients_names, (void*)strdup_keep_null(factory->m_from_displayname));
@@ -160,11 +162,12 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 					}
 					free(self_addr);
 				}
-			}
 
-			factory->m_req_mdn = 0;
-			if( mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
-				factory->m_req_mdn = 1;
+				if( system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE
+				 && system_command!=MR_SYSTEM_OOB_VERIFY_MESSAGE
+				 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+					factory->m_req_mdn = 1;
+				}
 			}
 
 			/* Get a predecessor of the mail to send.
@@ -553,7 +556,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		}
 
 		if( system_command == MR_SYSTEM_OOB_VERIFY_MESSAGE ) {
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("OOB-Verify-Step"), mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL)/*mailimf takes ownership of string*/));
+			char* step = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+			mrmailbox_log_info(msg->m_mailbox, 0, "sending OOB-verify message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("OOB-Verify-Step"), step/*mailimf takes ownership of string*/));
 		}
 
 		if( grpimage )
