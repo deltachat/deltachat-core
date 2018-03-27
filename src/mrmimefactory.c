@@ -557,8 +557,8 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 		if( system_command == MR_SYSTEM_OOB_VERIFY_MESSAGE ) {
 			char* step = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
-			mrmailbox_log_info(msg->m_mailbox, 0, "sending OOB-verify message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("OOB-Verify-Step"), step/*mailimf takes ownership of string*/));
+			mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), step/*mailimf takes ownership of string*/));
 		}
 
 		if( grpimage )

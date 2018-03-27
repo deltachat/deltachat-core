@@ -28,14 +28,12 @@
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
 
-/* TODO:
+/* - TODO: the out-of-band verification messages should not appear as normal system messages,
+     only the result should be shown. however, for debugging it is nice to have them visible.
 
-- the out-of-band verification messages should not appear as normal system messages,
-  only the result should be shown. however, for debugging it is nice to have them visible.
+   - make sure only to handle messages belonging to the current verification
 
-- verify fingerprints etc.
-
-- make sure only to handle messages belonging to the current verification
+   - TODO: make sure, all Secure-Join:-headers go to the encrypted payload (except for the first, unencrypted message)
 
 */
 
@@ -272,11 +270,11 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 	mrmsg_t* msg = mrmsg_new();
 
 	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = mr_mprintf("out-of-band-verification, %s", step);
+	msg->m_text = mr_mprintf("Secure-Join: %s", step);
 	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
 	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step);
 
-	if( strcmp(step, "secure-join-requested") != 0 ) {
+	if( strcmp(step, "request") != 0 ) {
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
@@ -464,7 +462,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	s_bobs_status = 0;
 	s_bob_expects = PLEASE_PROVIDE_RANDOM_SECRET;
-	send_message(mailbox, chat_id, "secure-join-requested"); // Bob -> Alice
+	send_message(mailbox, chat_id, "request"); // Bob -> Alice
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -491,7 +489,7 @@ cleanup:
  */
 int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
-	if( mailbox == NULL || mimeparser == NULL || mrmimeparser_lookup_field(mimeparser, "OOB-Verify-Step") == NULL ) {
+	if( mailbox == NULL || mimeparser == NULL || mrmimeparser_lookup_field(mimeparser, "Secure-Join") == NULL ) {
 		return 0;
 	}
 
@@ -508,14 +506,14 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		goto cleanup;
 	}
 
-	field = mrmimeparser_lookup_field(mimeparser, "OOB-Verify-Step");
+	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join");
 	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD || field->fld_data.fld_optional_field == NULL ) {
 		goto cleanup;
 	}
 	step = field->fld_data.fld_optional_field->fld_value;
-	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> OOB-verify message '%s' received", step);
+	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
-	if( strcmp(step, "secure-join-requested")==0 )
+	if( strcmp(step, "request")==0 )
 	{
 		/* ==================================
 		   ==== Alice - the inviter side ====
@@ -534,7 +532,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
-		if( s_bob_expects != SECURE_JOIN_BROADCAST ) {
+		if( s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
@@ -544,10 +542,15 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
+		// TODO: verify that Alice's Autocrypt key and fingerprint matches the QR-code
+		// on failuer, print an error
+
+		// TODO: add Bob's own fingerprint to Secure-Join-Fingerprint:-header
+		// TODO: add the random secret from the QR code to the Secure-Join-Random-Secret:-header
 		s_bob_expects = SECURE_JOIN_BROADCAST;
-		send_message(mailbox, chat_id, "secure-join-with-random-secret"); // Bob -> Alice
+		send_message(mailbox, chat_id, "random-secret"); // Bob -> Alice
 	}
-	else if( strcmp(step, "secure-join-with-random-secret")==0 )
+	else if( strcmp(step, "random-secret")==0 )
 	{
 		/* ==================================
 		   ==== Alice - the inviter side ====
@@ -558,9 +561,13 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
-		send_message(mailbox, chat_id, "secure-join-broadcast"); // Alice -> Bob and all other group members
+		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+
+		// TODO: verify that Secure-Join-Random-Secret: matches the secret written to the QR code (we have to track it somewhere)
+
+		send_message(mailbox, chat_id, "broadcast"); // Alice -> Bob and all other group members
 	}
-	else if( strcmp(step, "secure-join-broadcast")==0 )
+	else if( strcmp(step, "broadcast")==0 )
 	{
 		/* =================================
 		   ==== Bob - the joiner's side ====
