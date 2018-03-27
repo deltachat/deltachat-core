@@ -523,6 +523,9 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		// this message may be unencrypted (Bob, the joinder and the sender, might not have Alice's key yet)
 
+		// it just ensures, we have Bobs key now. If we do _not_ have the key because eg. MitM has removed it,
+		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
+
 		send_message(mailbox, chat_id, "please-provide-random-secret"); // Alice -> Bob
 	}
 	else if( strcmp(step, "please-provide-random-secret")==0 )
