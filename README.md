@@ -100,6 +100,10 @@ Note that the above assumes `/usr/local/lib` is configured somewhere
 in `/etc/ld.so.conf` or `/etc/ld.so.conf.d/*`, which is fairly
 standard.
 
----
 
-Copyright © 2018 Delta Chat contributors
+License
+--------------------------------------------------------------------------------
+
+Licensed under the GPLv3, see LICENSE file for details.
+
+Copyright © 2017, 2018 Delta Chat contributors
