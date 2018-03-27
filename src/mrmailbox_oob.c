@@ -267,21 +267,47 @@ cleanup:
 }
 
 
-static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step_name)
+static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step)
 {
 	mrmsg_t* msg = mrmsg_new();
 
 	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = mr_mprintf("out-of-band-verification, %s", step_name);
+	msg->m_text = mr_mprintf("out-of-band-verification, %s", step);
 	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
-	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step_name);
+	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step);
+
+	if( strcmp(step, "secure-join-requested") != 0 ) {
+		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
+	}
+
 	mrmailbox_send_msg_object(mailbox, chat_id, msg);
 
 	mrmsg_unref(msg);
 }
 
 
-static int s_oob_ended_successfully_for_bob = 0;
+#define BOB_SUCCESS              1
+#define UNEXPECTED_UNENCRYPTED 400
+static void log_error(mrmailbox_t* mailbox, int status)
+{
+	if( status == UNEXPECTED_UNENCRYPTED ) {
+		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification message not encrypted but should.");
+	}
+	else {
+		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification status %i.", status);
+	}
+}
+
+
+static int s_bobs_status = 0;
+static void end_bobs_joining(mrmailbox_t* mailbox, int status)
+{
+	if( status >= 400 ) {
+		log_error(mailbox, status);
+	}
+	s_bobs_status = status;
+	mrmailbox_stop_ongoing_process(mailbox);
+}
 
 
 /*******************************************************************************
@@ -424,7 +450,14 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	CHECK_EXIT
 
-	s_oob_ended_successfully_for_bob = 0;
+	if( mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
+		goto cleanup;
+	}
+
+	CHECK_EXIT
+
+	s_bobs_status = 0;
 	send_message(mailbox, chat_id, "secure-join-requested"); // Bob -> Alice
 
 	while( 1 ) {
@@ -433,7 +466,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 		usleep(300*1000);
 	}
 
-	if( s_oob_ended_successfully_for_bob ) {
+	if( s_bobs_status == BOB_SUCCESS ) {
 		success = 1;
 	}
 
@@ -482,6 +515,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Alice - the inviter side ====
 		   ================================== */
 
+		// this message may be unencrypted (Bob, the joinder and the sender, might not have Alice's key yet)
+
 		send_message(mailbox, chat_id, "please-provide-random-secret"); // Alice -> Bob
 	}
 	else if( strcmp(step, "please-provide-random-secret")==0 )
@@ -489,6 +524,11 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		/* =================================
 		   ==== Bob - the joiner's side ====
 		   ================================= */
+
+		if( !mimeparser->m_decrypted_and_validated ) {
+			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			goto cleanup;
+		}
 
 		send_message(mailbox, chat_id, "secure-join-with-random-secret"); // Bob -> Alice
 	}
@@ -498,17 +538,25 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Alice - the inviter side ====
 		   ================================== */
 
-		send_message(mailbox, chat_id, "successful-verification-broadcast"); // Alice -> Bob and all other group members
+		if( !mimeparser->m_decrypted_and_validated ) {
+			log_error(mailbox, UNEXPECTED_UNENCRYPTED);
+			goto cleanup;
+		}
+
+		send_message(mailbox, chat_id, "secure-join-broadcast"); // Alice -> Bob and all other group members
 	}
-	else if( strcmp(step, "successful-verification-broadcast")==0 )
+	else if( strcmp(step, "secure-join-broadcast")==0 )
 	{
 		/* =================================
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
-		// handshake ends here
-		s_oob_ended_successfully_for_bob = 1;
-		mrmailbox_stop_ongoing_process(mailbox);
+		if( !mimeparser->m_decrypted_and_validated ) {
+			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			goto cleanup;
+		}
+
+		end_bobs_joining(mailbox, BOB_SUCCESS);
 	}
 
 cleanup:
