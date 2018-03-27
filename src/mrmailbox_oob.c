@@ -286,6 +286,11 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 }
 
 
+#define PLEASE_PROVIDE_RANDOM_SECRET 2
+#define SECURE_JOIN_BROADCAST        4
+static int s_bob_expects = 0;
+
+
 #define BOB_SUCCESS              1
 #define UNEXPECTED_UNENCRYPTED 400
 static void log_error(mrmailbox_t* mailbox, int status)
@@ -458,6 +463,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	CHECK_EXIT
 
 	s_bobs_status = 0;
+	s_bob_expects = PLEASE_PROVIDE_RANDOM_SECRET;
 	send_message(mailbox, chat_id, "secure-join-requested"); // Bob -> Alice
 
 	while( 1 ) {
@@ -525,11 +531,17 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
+		if( s_bob_expects != SECURE_JOIN_BROADCAST ) {
+			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
+			goto cleanup; // ignore the mail without raising and error; may come from another handshake
+		}
+
 		if( !mimeparser->m_decrypted_and_validated ) {
 			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
 			goto cleanup;
 		}
 
+		s_bob_expects = SECURE_JOIN_BROADCAST;
 		send_message(mailbox, chat_id, "secure-join-with-random-secret"); // Bob -> Alice
 	}
 	else if( strcmp(step, "secure-join-with-random-secret")==0 )
@@ -551,11 +563,17 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
+		if( s_bob_expects != SECURE_JOIN_BROADCAST ) {
+			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
+			goto cleanup; // ignore the mail without raising and error; may come from another handshake
+		}
+
 		if( !mimeparser->m_decrypted_and_validated ) {
 			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
 			goto cleanup;
 		}
 
+		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
 	}
 
