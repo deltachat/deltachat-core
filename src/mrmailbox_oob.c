@@ -39,6 +39,60 @@
 
 
 /*******************************************************************************
+ * Alice's random_secret mini-datastore
+ ******************************************************************************/
+
+
+static void store_random_secret__(mrmailbox_t* mailbox, const char* to_add)
+{
+	// prepend new random_secret to the list of all tags
+	#define MAX_REMEMBERED_RANDOM_SECRETS 10
+	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOM_SECRETS*(MR_CREATE_ID_LEN+1))
+	char* old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
+	if( strlen(old_random_secrets) > MAX_REMEMBERED_CHARS ) {
+		old_random_secrets[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway
+	}
+	char* new_random_secrets = mr_mprintf("%s,%s", to_add, old_random_secrets);
+	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets);
+
+	free(old_random_secrets);
+	free(new_random_secrets);
+}
+
+
+static int lookup_n_remove_random_secret__(mrmailbox_t* mailbox, const char* to_lookup)
+{
+	int            found              = 0;
+	char*          old_random_secrets = NULL;
+	mrstrbuilder_t new_random_secrets;
+	carray*        lines              = NULL;
+
+	mrstrbuilder_init(&new_random_secrets, 0);
+
+	old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
+	mr_str_replace(&old_random_secrets, ",", "\n");
+	lines = mr_split_into_lines(old_random_secrets);
+	for( int i = 0; i < carray_count(lines); i++ ) {
+		char* random_secret  = (char*)carray_get(lines, i); mr_trim(random_secret);
+		if( strlen(random_secret) >= 4 && strcmp(random_secret, to_lookup) == 0 ) {
+			found = 1;
+		}
+		else {
+			mrstrbuilder_catf(&new_random_secrets, "%s,", random_secret);
+		}
+	}
+
+	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets.m_buf);
+
+	mr_free_splitted_lines(lines);
+	free(old_random_secrets);
+	free(new_random_secrets.m_buf);
+	return found;
+}
+
+
+
+/*******************************************************************************
  * Tools
  ******************************************************************************/
 
@@ -64,14 +118,14 @@
  */
 mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 {
-	int             locked      = 0;
-	char*           payload     = NULL;
-	char*           addr        = NULL; /* must be normalized, if set */
-	char*           fingerprint = NULL; /* must be normalized, if set */
-	char*           name        = NULL;
-	char*           return_tag  = NULL;
-	mrapeerstate_t* peerstate   = mrapeerstate_new();
-	mrlot_t*        qr_parsed   = mrlot_new();
+	int             locked        = 0;
+	char*           payload       = NULL;
+	char*           addr          = NULL; /* must be normalized, if set */
+	char*           fingerprint   = NULL; /* must be normalized, if set */
+	char*           name          = NULL;
+	char*           random_secret = NULL;
+	mrapeerstate_t* peerstate     = mrapeerstate_new();
+	mrlot_t*        qr_parsed     = mrlot_new();
 
 	qr_parsed->m_state = 0;
 
@@ -105,7 +159,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 					mr_normalize_name(name);
 					free(name_urlencoded);
 				}
-				return_tag = mrparam_get(param, 'r', "");
+				random_secret = mrparam_get(param, 'r', "");
 			}
 
 			mrparam_unref(param);
@@ -237,7 +291,8 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 				}
 
 				if( qr_parsed->m_state == MR_QR_FPR_ASK_OOB ) {
-					qr_parsed->m_text2 = safe_strdup(return_tag);
+					qr_parsed->m_text1 = safe_strdup(fingerprint);
+					qr_parsed->m_text2 = safe_strdup(random_secret);
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -265,7 +320,88 @@ cleanup:
 }
 
 
-static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step)
+static char* get_self_fingerprint(mrmailbox_t* mailbox)
+{
+	int      locked      = 0;
+	char*    self_addr   = NULL;
+	mrkey_t* self_key    = mrkey_new();
+	char*    fingerprint = NULL;
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
+		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+		goto cleanup;
+	}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(self_addr);
+	mrkey_unref(self_key);
+	return fingerprint;
+}
+
+
+static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerprint, uint32_t chat_id)
+{
+	int             fingerprint_equal      = 0;
+	int             locked                 = 0;
+	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, chat_id);
+	mrcontact_t*    contact                = mrcontact_new();
+	mrapeerstate_t* peerstate              = mrapeerstate_new();
+	char*           fingerprint_normalized = NULL;
+
+	if( mrarray_get_cnt(contacts) != 1 ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, mrarray_get_id(contacts, 0))
+		 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	fingerprint_normalized = mr_normalize_fingerprint(fingerprint);
+
+	if( strcasecmp(fingerprint_normalized, peerstate->m_fingerprint) == 0 ) {
+		fingerprint_equal = 1;
+	}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(fingerprint_normalized);
+	mrcontact_unref(contact);
+	mrarray_unref(contacts);
+	return fingerprint_equal;
+}
+
+
+static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
+{
+	const char* value = NULL;
+	struct mailimf_field* field = mrmimeparser_lookup_field(mimeparser, key);
+	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
+	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL ) {
+		return NULL;
+	}
+	return value;
+}
+
+
+static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* random_secret, const char* fingerprint)
 {
 	mrmsg_t* msg = mrmsg_new();
 
@@ -273,6 +409,14 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 	msg->m_text = mr_mprintf("Secure-Join: %s", step);
 	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
 	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step);
+
+	if( random_secret ) {
+		mrparam_set(msg->m_param, MRP_SYSTEM_CMD_PARAM2, random_secret);
+	}
+
+	if( fingerprint ) {
+		mrparam_set(msg->m_param, MRP_SYSTEM_CMD_PARAM3, fingerprint);
+	}
 
 	if( strcmp(step, "request") != 0 ) {
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
@@ -284,30 +428,19 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 }
 
 
-#define PLEASE_PROVIDE_RANDOM_SECRET 2
-#define SECURE_JOIN_BROADCAST        4
-static int s_bob_expects = 0;
+#define         PLEASE_PROVIDE_RANDOM_SECRET 2
+#define         SECURE_JOIN_BROADCAST        4
+static int      s_bob_expects = 0;
+
+static mrlot_t* s_bobs_qr_scan = NULL; // TODO: this should be surround eg. by mrsqlite3_lock/unlock
+
+#define         BOB_ERROR       0
+#define         BOB_SUCCESS     1
+static int      s_bobs_status = 0;
 
 
-#define BOB_SUCCESS              1
-#define UNEXPECTED_UNENCRYPTED 400
-static void log_error(mrmailbox_t* mailbox, int status)
-{
-	if( status == UNEXPECTED_UNENCRYPTED ) {
-		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification message not encrypted but should.");
-	}
-	else {
-		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification status %i.", status);
-	}
-}
-
-
-static int s_bobs_status = 0;
 static void end_bobs_joining(mrmailbox_t* mailbox, int status)
 {
-	if( status >= 400 ) {
-		log_error(mailbox, status);
-	}
 	s_bobs_status = status;
 	mrmailbox_stop_ongoing_process(mailbox);
 }
@@ -346,9 +479,8 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 	char*    self_addr_urlencoded = NULL;
 	char*    self_name            = NULL;
 	char*    self_name_urlencoded = NULL;
-	mrkey_t* self_key             = mrkey_new();
 	char*    fingerprint          = NULL;
-	char*    return_tag           = NULL;
+	char*    random_secret        = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
 		goto cleanup;
@@ -356,52 +488,38 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
-	return_tag = mr_create_id();
+	random_secret = mr_create_id();
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
-		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
 			goto cleanup;
 		}
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
-		/* prepend return_tag to the list of all tags */
-		{
-			#define MAX_REMEMBERED_RETURN_TAGS 10
-			#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RETURN_TAGS*(MR_CREATE_ID_LEN+1))
-			char* old_return_tags = mrsqlite3_get_config__(mailbox->m_sql, "return_tags", "");
-			if( strlen(old_return_tags) > MAX_REMEMBERED_CHARS ) {
-				old_return_tags[MAX_REMEMBERED_CHARS] = 0; /* the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway */
-			}
-			char* all_return_tags = mr_mprintf("%s,%s", return_tag, old_return_tags);
-			mrsqlite3_set_config__(mailbox->m_sql, "return_tags", all_return_tags);
-			free(all_return_tags);
-			free(old_return_tags);
-		}
+		store_random_secret__(mailbox, random_secret);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+	if( (fingerprint=get_self_fingerprint(mailbox)) == NULL ) {
 		goto cleanup;
 	}
 
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, return_tag);
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&r=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, random_secret);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrkey_unref(self_key);
 	free(self_addr_urlencoded);
 	free(self_addr);
 	free(self_name);
 	free(self_name_urlencoded);
 	free(fingerprint);
-	free(return_tag);
+	free(random_secret);
 	return qr? qr : safe_strdup(NULL);
 }
 
@@ -435,19 +553,20 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	int      ongoing_allocated = 0;
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t chat_id           = 0;
-	mrlot_t* qr_parsed         = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification ...");
 
-	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 ) {
+	mrmailbox_ensure_secret_key_exists(mailbox);
+
+	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 || s_bobs_qr_scan != NULL ) {
 		goto cleanup;
 	}
 
-	if( ((qr_parsed=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_parsed->m_state!=MR_QR_FPR_ASK_OOB ) {
+	if( ((s_bobs_qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || s_bobs_qr_scan->m_state!=MR_QR_FPR_ASK_OOB ) {
 		goto cleanup;
 	}
 
-	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_parsed->m_id)) == 0 ) {
+	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, s_bobs_qr_scan->m_id)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -462,7 +581,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	s_bobs_status = 0;
 	s_bob_expects = PLEASE_PROVIDE_RANDOM_SECRET;
-	send_message(mailbox, chat_id, "request"); // Bob -> Alice
+	send_handshake_msg(mailbox, chat_id, "request", NULL, NULL); // Bob -> Alice
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -475,7 +594,9 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	}
 
 cleanup:
-	mrlot_unref(qr_parsed);
+	mrlot_unref(s_bobs_qr_scan);
+	s_bobs_qr_scan = NULL;
+
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return success;
 }
@@ -489,7 +610,7 @@ cleanup:
  */
 int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
-	if( mailbox == NULL || mimeparser == NULL || mrmimeparser_lookup_field(mimeparser, "Secure-Join") == NULL ) {
+	if( mailbox == NULL || mimeparser == NULL || lookup_field(mimeparser, "Secure-Join") == NULL ) {
 		return 0;
 	}
 
@@ -499,18 +620,16 @@ int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* m
 
 void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
 {
-	struct mailimf_field* field = NULL;
-	const char*           step = NULL;
+	int                   locked = 0;
+	const char*           step   = NULL;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join");
-	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD || field->fld_data.fld_optional_field == NULL ) {
+	if( (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
 		goto cleanup;
 	}
-	step = field->fld_data.fld_optional_field->fld_value;
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	if( strcmp(step, "request")==0 )
@@ -524,7 +643,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// it just ensures, we have Bobs key now. If we do _not_ have the key because eg. MitM has removed it,
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
 
-		send_message(mailbox, chat_id, "please-provide-random-secret"); // Alice -> Bob
+		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
 	}
 	else if( strcmp(step, "please-provide-random-secret")==0 )
 	{
@@ -532,23 +651,30 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
-		if( s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET ) {
+		if( s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET || s_bobs_qr_scan == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
 
-		// TODO: verify that Alice's Autocrypt key and fingerprint matches the QR-code
-		// on failuer, print an error
+		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
+		if( !fingerprint_equals_sender(mailbox, s_bobs_qr_scan->m_text1, chat_id) ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			end_bobs_joining(mailbox, BOB_ERROR);
+			goto cleanup;
+		}
 
-		// TODO: add Bob's own fingerprint to Secure-Join-Fingerprint:-header
-		// TODO: add the random secret from the QR code to the Secure-Join-Random-Secret:-header
+		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
+
 		s_bob_expects = SECURE_JOIN_BROADCAST;
-		send_message(mailbox, chat_id, "random-secret"); // Bob -> Alice
+		char* own_fingerprint = get_self_fingerprint(mailbox);
+		send_handshake_msg(mailbox, chat_id, "random-secret", s_bobs_qr_scan->m_text2/*random_secret*/, own_fingerprint); // Bob -> Alice
+		free(own_fingerprint);
 	}
 	else if( strcmp(step, "random-secret")==0 )
 	{
@@ -557,15 +683,45 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ================================== */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			log_error(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
 			goto cleanup;
 		}
 
-		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		const char* fingerprint = NULL;
+		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint not provided together with random-secret).");
+			goto cleanup;
+		}
 
-		// TODO: verify that Secure-Join-Random-Secret: matches the secret written to the QR code (we have to track it somewhere)
+		if( !fingerprint_equals_sender(mailbox, fingerprint, chat_id) ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			goto cleanup;
+		}
 
-		send_message(mailbox, chat_id, "broadcast"); // Alice -> Bob and all other group members
+		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
+
+		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
+		const char* random_secret = NULL;
+		if( (random_secret=lookup_field(mimeparser, "Secure-Join-Random-Secret")) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random-secret not provided).");
+			goto cleanup;
+		}
+
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+
+			if( lookup_n_remove_random_secret__(mailbox, random_secret) == 0 ) {
+				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random-secret invalid).");
+				goto cleanup;
+			}
+
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+
+		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
+
+		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
 	else if( strcmp(step, "broadcast")==0 )
 	{
@@ -579,7 +735,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
 
@@ -588,5 +745,5 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 	}
 
 cleanup:
-	;
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 }
