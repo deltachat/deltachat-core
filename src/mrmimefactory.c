@@ -563,7 +563,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 
 				char* random_secret = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM2, NULL);
 				if( random_secret ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join-Random.Secret"), random_secret/*mailimf takes ownership of string*/));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join-Random-Secret"), random_secret/*mailimf takes ownership of string*/));
 				}
 
 				char* fingerprint = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM3, NULL);

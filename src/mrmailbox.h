@@ -302,7 +302,7 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
 /* out-of-band verification */
-#define         MR_QR_FPR_ASK_OOB           200 /* id=contact, test2=return_tag */
+#define         MR_QR_FPR_ASK_OOB           200 /* id=contact, text2=random secret */
 #define         MR_QR_FPR_OK                210 /* id=contact */
 #define         MR_QR_FPR_MISMATCH          220 /* id=contact */
 #define         MR_QR_FPR_WITHOUT_ADDR      230 /* test1=formatted fingerprint */

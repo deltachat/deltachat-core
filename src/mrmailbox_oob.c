@@ -39,6 +39,60 @@
 
 
 /*******************************************************************************
+ * Alice's random_secret mini-datastore
+ ******************************************************************************/
+
+
+static void store_random_secret__(mrmailbox_t* mailbox, const char* to_add)
+{
+	// prepend new random_secret to the list of all tags
+	#define MAX_REMEMBERED_RANDOM_SECRETS 10
+	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOM_SECRETS*(MR_CREATE_ID_LEN+1))
+	char* old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
+	if( strlen(old_random_secrets) > MAX_REMEMBERED_CHARS ) {
+		old_random_secrets[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway
+	}
+	char* new_random_secrets = mr_mprintf("%s,%s", to_add, old_random_secrets);
+	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets);
+
+	free(old_random_secrets);
+	free(new_random_secrets);
+}
+
+
+static int lookup_n_remove_random_secret__(mrmailbox_t* mailbox, const char* to_lookup)
+{
+	int            found              = 0;
+	char*          old_random_secrets = NULL;
+	mrstrbuilder_t new_random_secrets;
+	carray*        lines              = NULL;
+
+	mrstrbuilder_init(&new_random_secrets, 0);
+
+	old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
+	mr_str_replace(&old_random_secrets, ",", "\n");
+	lines = mr_split_into_lines(old_random_secrets);
+	for( int i = 0; i < carray_count(lines); i++ ) {
+		char* random_secret  = (char*)carray_get(lines, i); mr_trim(random_secret);
+		if( strlen(random_secret) >= 4 && strcmp(random_secret, to_lookup) == 0 ) {
+			found = 1;
+		}
+		else {
+			mrstrbuilder_catf(&new_random_secrets, "%s,", random_secret);
+		}
+	}
+
+	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets.m_buf);
+
+	mr_free_splitted_lines(lines);
+	free(old_random_secrets);
+	free(new_random_secrets.m_buf);
+	return found;
+}
+
+
+
+/*******************************************************************************
  * Tools
  ******************************************************************************/
 
@@ -379,19 +433,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
-		/* prepend return_tag to the list of all tags */
-		{
-			#define MAX_REMEMBERED_RANDOM_SECRETS 10
-			#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOM_SECRETS*(MR_CREATE_ID_LEN+1))
-			char* old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "return_tags", "");
-			if( strlen(old_random_secrets) > MAX_REMEMBERED_CHARS ) {
-				old_random_secrets[MAX_REMEMBERED_CHARS] = 0; /* the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway */
-			}
-			char* all_random_secrets = mr_mprintf("%s,%s", random_secret, old_random_secrets);
-			mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", all_random_secrets);
-			free(all_random_secrets);
-			free(old_random_secrets);
-		}
+		store_random_secret__(mailbox, random_secret);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -511,15 +553,17 @@ int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* m
 
 void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
 {
-	struct mailimf_field* field = NULL;
-	const char*           step = NULL;
+	int                   locked = 0;
+	struct mailimf_field* field  = NULL;
+	const char*           step   = NULL;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
 	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join");
-	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD || field->fld_data.fld_optional_field == NULL ) {
+	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
+	 || field->fld_data.fld_optional_field == NULL || field->fld_data.fld_optional_field->fld_value == NULL ) {
 		goto cleanup;
 	}
 	step = field->fld_data.fld_optional_field->fld_value;
@@ -576,7 +620,27 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 
-		// TODO: verify that Secure-Join-Random-Secret: matches the secret written to the QR code (we have to track it somewhere)
+		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
+		const char* random_secret = NULL;
+		field = mrmimeparser_lookup_field(mimeparser, "Secure-Join-Random-Secret");
+		if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
+		 || field->fld_data.fld_optional_field == NULL || (random_secret=field->fld_data.fld_optional_field->fld_value) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random secret not provided).");
+			goto cleanup;
+		}
+
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+
+			if( lookup_n_remove_random_secret__(mailbox, random_secret) == 0 ) {
+				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random secret invalid).");
+				goto cleanup;
+			}
+
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+
+		mrmailbox_log_info(mailobx, 0, "Random secret validated.");
 
 		send_message(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
@@ -601,5 +665,5 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 	}
 
 cleanup:
-	;
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 }
