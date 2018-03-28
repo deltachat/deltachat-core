@@ -349,14 +349,15 @@ cleanup:
 }
 
 
-static const char* lookup_field()
+static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 {
-	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join-Random-Secret");
+	const char* value = NULL;
+	struct mailimf_field* field = mrmimeparser_lookup_field(mimeparser, key);
 	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
-	 || field->fld_data.fld_optional_field == NULL || (random_secret=field->fld_data.fld_optional_field->fld_value) == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random secret not provided).");
-		goto cleanup;
+	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL ) {
+		return NULL;
 	}
+	return value;
 }
 
 
@@ -583,7 +584,7 @@ cleanup:
  */
 int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
-	if( mailbox == NULL || mimeparser == NULL || mrmimeparser_lookup_field(mimeparser, "Secure-Join") == NULL ) {
+	if( mailbox == NULL || mimeparser == NULL || lookup_field(mimeparser, "Secure-Join") == NULL ) {
 		return 0;
 	}
 
@@ -594,19 +595,15 @@ int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* m
 void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
 {
 	int                   locked = 0;
-	struct mailimf_field* field  = NULL;
 	const char*           step   = NULL;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join");
-	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
-	 || field->fld_data.fld_optional_field == NULL || field->fld_data.fld_optional_field->fld_value == NULL ) {
+	if( (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
 		goto cleanup;
 	}
-	step = field->fld_data.fld_optional_field->fld_value;
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	if( strcmp(step, "request")==0 )
@@ -660,14 +657,17 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
-		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		const char* fingerprint = NULL;
+		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint not provided together with random-secret).");
+			goto cleanup;
+		}
 
 		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
 		const char* random_secret = NULL;
-		field = mrmimeparser_lookup_field(mimeparser, "Secure-Join-Random-Secret");
-		if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
-		 || field->fld_data.fld_optional_field == NULL || (random_secret=field->fld_data.fld_optional_field->fld_value) == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random secret not provided).");
+		if( (random_secret=lookup_field(mimeparser, "Secure-Join-Random-Secret")) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random-secret not provided).");
 			goto cleanup;
 		}
 
@@ -675,7 +675,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		locked = 1;
 
 			if( lookup_n_remove_random_secret__(mailbox, random_secret) == 0 ) {
-				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random secret invalid).");
+				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random-secret invalid).");
 				goto cleanup;
 			}
 
