@@ -291,6 +291,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 				}
 
 				if( qr_parsed->m_state == MR_QR_FPR_ASK_OOB ) {
+					qr_parsed->m_text1 = safe_strdup(fingerprint);
 					qr_parsed->m_text2 = safe_strdup(random_secret);
 				}
 
@@ -346,6 +347,45 @@ cleanup:
 	free(self_addr);
 	mrkey_unref(self_key);
 	return fingerprint;
+}
+
+
+static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerprint, uint32_t chat_id)
+{
+	int             fingerprint_equal      = 0;
+	int             locked                 = 0;
+	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, chat_id);
+	mrcontact_t*    contact                = mrcontact_new();
+	mrapeerstate_t* peerstate              = mrapeerstate_new();
+	char*           fingerprint_normalized = NULL;
+
+	if( mrarray_get_cnt(contacts) != 1 ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, mrarray_get_id(contacts, 0))
+		 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	fingerprint_normalized = mr_normalize_fingerprint(fingerprint);
+
+	if( strcasecmp(fingerprint_normalized, peerstate->m_fingerprint) == 0 ) {
+		fingerprint_equal = 1;
+	}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(fingerprint_normalized);
+	mrcontact_unref(contact);
+	mrarray_unref(contacts);
+	return fingerprint_equal;
 }
 
 
@@ -622,8 +662,14 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
-		// TODO: verify that Alice's Autocrypt key and fingerprint matches the QR-code
-		// on failuer, print an error
+		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
+		if( !fingerprint_equals_sender(mailbox, s_bobs_qr_scan->m_text1, chat_id) ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			end_bobs_joining(mailbox, BOB_ERROR);
+			goto cleanup;
+		}
+
+		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
 
 		s_bob_expects = SECURE_JOIN_BROADCAST;
 		char* own_fingerprint = get_self_fingerprint(mailbox);
@@ -641,12 +687,19 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
-		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 		const char* fingerprint = NULL;
 		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint not provided together with random-secret).");
 			goto cleanup;
 		}
+
+		if( !fingerprint_equals_sender(mailbox, fingerprint, chat_id) ) {
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			goto cleanup;
+		}
+
+		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
 
 		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
 		const char* random_secret = NULL;
