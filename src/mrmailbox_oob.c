@@ -319,6 +319,47 @@ cleanup:
 }
 
 
+static char* get_self_fingerprint(mrmailbox_t* mailbox)
+{
+	int      locked      = 0;
+	char*    self_addr   = NULL;
+	mrkey_t* self_key    = mrkey_new();
+	char*    fingerprint = NULL;
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
+		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+			goto cleanup;
+		}
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+		goto cleanup;
+	}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(self_addr);
+	mrkey_unref(self_key);
+	return fingerprint;
+}
+
+
+static const char* lookup_field()
+{
+	field = mrmimeparser_lookup_field(mimeparser, "Secure-Join-Random-Secret");
+	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
+	 || field->fld_data.fld_optional_field == NULL || (random_secret=field->fld_data.fld_optional_field->fld_value) == NULL ) {
+		mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random secret not provided).");
+		goto cleanup;
+	}
+}
+
+
 static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* random_secret, const char* fingerprint)
 {
 	mrmsg_t* msg = mrmsg_new();
@@ -411,7 +452,6 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 	char*    self_addr_urlencoded = NULL;
 	char*    self_name            = NULL;
 	char*    self_name_urlencoded = NULL;
-	mrkey_t* self_key             = mrkey_new();
 	char*    fingerprint          = NULL;
 	char*    random_secret        = NULL;
 
@@ -426,8 +466,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
-		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
 			goto cleanup;
 		}
 
@@ -438,7 +477,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+	if( (fingerprint=get_self_fingerprint(mailbox)) == NULL ) {
 		goto cleanup;
 	}
 
@@ -448,7 +487,6 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrkey_unref(self_key);
 	free(self_addr_urlencoded);
 	free(self_addr);
 	free(self_name);
@@ -490,6 +528,8 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	uint32_t chat_id           = 0;
 
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification ...");
+
+	mrmailbox_ensure_secret_key_exists(mailbox);
 
 	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 || s_bobs_qr_scan != NULL ) {
 		goto cleanup;
@@ -602,10 +642,12 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// on failuer, print an error
 
 		// TODO: add the random secret from the QR code to the Secure-Join-Random-Secret:-header
-		const char* own_fingerprint = NULL;
+		char* own_fingerprint = get_self_fingerprint(mailbox);
 
 		s_bob_expects = SECURE_JOIN_BROADCAST;
 		send_message(mailbox, chat_id, "random-secret", s_bobs_qr_scan->m_text2/*random_secret*/, own_fingerprint); // Bob -> Alice
+
+		free(own_fingerprint);
 	}
 	else if( strcmp(step, "random-secret")==0 )
 	{
@@ -618,7 +660,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			goto cleanup;
 		}
 
-		// TODO: verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
+		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 
 		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
 		const char* random_secret = NULL;
@@ -640,7 +682,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_log_info(mailobx, 0, "Random secret validated.");
+		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
 
 		send_message(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
