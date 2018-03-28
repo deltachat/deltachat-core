@@ -500,7 +500,16 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
 				param_autoconfig = moz_autoconfigure(mailbox, url, param);
 				free(url);
-				PROGRESS(300+i*50)
+				PROGRESS(300+i*20)
+			}
+		}
+
+		for( i = 0; i <= 1; i++ ) {
+			if( param_autoconfig==NULL ) {
+				char* url = mr_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
+				param_autoconfig = moz_autoconfigure(mailbox, url, param);
+				free(url);
+				PROGRESS(340+i*30)
 			}
 		}
 
