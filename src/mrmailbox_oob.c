@@ -361,7 +361,7 @@ static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 }
 
 
-static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* random_secret, const char* fingerprint)
+static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* random_secret, const char* fingerprint)
 {
 	mrmsg_t* msg = mrmsg_new();
 
@@ -394,27 +394,13 @@ static int      s_bob_expects = 0;
 
 static mrlot_t* s_bobs_qr_scan = NULL; // TODO: this should be surround eg. by mrsqlite3_lock/unlock
 
-#define         BOB_SUCCESS              1
-#define         UNEXPECTED_UNENCRYPTED 400
+#define         BOB_ERROR       0
+#define         BOB_SUCCESS     1
 static int      s_bobs_status = 0;
-
-
-static void log_error(mrmailbox_t* mailbox, int status)
-{
-	if( status == UNEXPECTED_UNENCRYPTED ) {
-		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification message not encrypted but should.");
-	}
-	else {
-		mrmailbox_log_error(mailbox, 0, "Out-of-band-verification status %i.", status);
-	}
-}
 
 
 static void end_bobs_joining(mrmailbox_t* mailbox, int status)
 {
-	if( status >= 400 ) {
-		log_error(mailbox, status);
-	}
 	s_bobs_status = status;
 	mrmailbox_stop_ongoing_process(mailbox);
 }
@@ -555,7 +541,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 
 	s_bobs_status = 0;
 	s_bob_expects = PLEASE_PROVIDE_RANDOM_SECRET;
-	send_message(mailbox, chat_id, "request", NULL, NULL); // Bob -> Alice
+	send_handshake_msg(mailbox, chat_id, "request", NULL, NULL); // Bob -> Alice
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -617,7 +603,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// it just ensures, we have Bobs key now. If we do _not_ have the key because eg. MitM has removed it,
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
 
-		send_message(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
+		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
 	}
 	else if( strcmp(step, "please-provide-random-secret")==0 )
 	{
@@ -631,19 +617,17 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
 
 		// TODO: verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		// on failuer, print an error
 
-		// TODO: add the random secret from the QR code to the Secure-Join-Random-Secret:-header
-		char* own_fingerprint = get_self_fingerprint(mailbox);
-
 		s_bob_expects = SECURE_JOIN_BROADCAST;
-		send_message(mailbox, chat_id, "random-secret", s_bobs_qr_scan->m_text2/*random_secret*/, own_fingerprint); // Bob -> Alice
-
+		char* own_fingerprint = get_self_fingerprint(mailbox);
+		send_handshake_msg(mailbox, chat_id, "random-secret", s_bobs_qr_scan->m_text2/*random_secret*/, own_fingerprint); // Bob -> Alice
 		free(own_fingerprint);
 	}
 	else if( strcmp(step, "random-secret")==0 )
@@ -653,7 +637,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ================================== */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			log_error(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
 			goto cleanup;
 		}
 
@@ -684,7 +668,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
 
-		send_message(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
+		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
 	else if( strcmp(step, "broadcast")==0 )
 	{
@@ -698,7 +682,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			end_bobs_joining(mailbox, UNEXPECTED_UNENCRYPTED);
+			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
 
