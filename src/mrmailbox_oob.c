@@ -292,13 +292,17 @@ static void send_message(mrmailbox_t* mailbox, uint32_t chat_id, const char* ste
 }
 
 
-#define PLEASE_PROVIDE_RANDOM_SECRET 2
-#define SECURE_JOIN_BROADCAST        4
-static int s_bob_expects = 0;
+#define         PLEASE_PROVIDE_RANDOM_SECRET 2
+#define         SECURE_JOIN_BROADCAST        4
+static int      s_bob_expects = 0;
+
+static mrlot_t* s_bobs_qr_scan = NULL; // TODO: this should be surround eg. by mrsqlite3_lock/unlock
+
+#define         BOB_SUCCESS              1
+#define         UNEXPECTED_UNENCRYPTED 400
+static int      s_bobs_status = 0;
 
 
-#define BOB_SUCCESS              1
-#define UNEXPECTED_UNENCRYPTED 400
 static void log_error(mrmailbox_t* mailbox, int status)
 {
 	if( status == UNEXPECTED_UNENCRYPTED ) {
@@ -310,7 +314,6 @@ static void log_error(mrmailbox_t* mailbox, int status)
 }
 
 
-static int s_bobs_status = 0;
 static void end_bobs_joining(mrmailbox_t* mailbox, int status)
 {
 	if( status >= 400 ) {
@@ -443,19 +446,18 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	int      ongoing_allocated = 0;
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t chat_id           = 0;
-	mrlot_t* qr_parsed         = NULL;
 
 	mrmailbox_log_info(mailbox, 0, "Joining oob-verification ...");
 
-	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 ) {
+	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 || s_bobs_qr_scan != NULL ) {
 		goto cleanup;
 	}
 
-	if( ((qr_parsed=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_parsed->m_state!=MR_QR_FPR_ASK_OOB ) {
+	if( ((s_bobs_qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || s_bobs_qr_scan->m_state!=MR_QR_FPR_ASK_OOB ) {
 		goto cleanup;
 	}
 
-	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_parsed->m_id)) == 0 ) {
+	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, s_bobs_qr_scan->m_id)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -483,7 +485,9 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 	}
 
 cleanup:
-	mrlot_unref(qr_parsed);
+	mrlot_unref(s_bobs_qr_scan);
+	s_bobs_qr_scan = NULL;
+
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return success;
 }
@@ -540,7 +544,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
-		if( s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET ) {
+		if( s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET || s_bobs_qr_scan == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
@@ -553,14 +557,11 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// TODO: verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		// on failuer, print an error
 
-		// TODO: add Bob's own fingerprint to Secure-Join-Fingerprint:-header
-		const char* random_secret = NULL;
-
 		// TODO: add the random secret from the QR code to the Secure-Join-Random-Secret:-header
 		const char* own_fingerprint = NULL;
 
 		s_bob_expects = SECURE_JOIN_BROADCAST;
-		send_message(mailbox, chat_id, "random-secret", random_secret, own_fingerprint); // Bob -> Alice
+		send_message(mailbox, chat_id, "random-secret", s_bobs_qr_scan->m_text2/*random_secret*/, own_fingerprint); // Bob -> Alice
 	}
 	else if( strcmp(step, "random-secret")==0 )
 	{
