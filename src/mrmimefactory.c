@@ -714,6 +714,16 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 	/* Encrypt the message
 	 *************************************************************************/
 
+	if( factory->m_loaded==MR_MF_MDN_LOADED ) {
+		char* e = mrstock_str(MR_STR_READRCPT); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+	}
+	else {
+		subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);
+	}
+
+	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
+	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
+
 	if( !force_unencrypted ) {
 		if( encrypt_to_self==0 || e2ee_guaranteed ) {
 			/* we're here (1) _always_ on SMTP and (2) on IMAP _only_ if SMTP was encrypted before - otherwise we can save some bytes in not-sending the Autocrypt-header to ourself */
@@ -721,21 +731,9 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		}
 	}
 
-	/* add a subject line */
 	if( e2ee_helper.m_encryption_successfull ) {
-		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
 		factory->m_out_encrypted = 1;
 	}
-	else {
-		if( factory->m_loaded==MR_MF_MDN_LOADED ) {
-			char* e = mrstock_str(MR_STR_READRCPT); subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
-		}
-		else {
-			subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);
-		}
-	}
-	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
-	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	/* create the full mail and return */
 	factory->m_out = mmap_string_new("");
