@@ -429,9 +429,11 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				}
 				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 					struct mailimf_optional_field* opt_field = field->fld_data.fld_optional_field;
-					if( opt_field
-					 && strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0/*Chat-Version may be used for filtering, however, this is subject to cha*/ ) {
-						move_to_encrypted = 1;
+					if( opt_field && opt_field->fld_name ) {
+						if(  strncmp(opt_field->fld_name, "Secure-Join", 11)==0
+						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering, however, this is subject to cha*/ ) {
+							move_to_encrypted = 1;
+						}
 					}
 				}
 			}
@@ -445,14 +447,12 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			}
 		}
 
-		char* subject_str = mrstock_str(MR_STR_ENCRYPTEDMSG);
+		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); char* subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
 		struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
 		mailimf_fields_add(imffields_unprotected, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 		free(subject_str);
 
-		// TODO: this dies
-		struct mailmime_content* content_to_encrypt = part_to_encrypt->mm_content_type;
-		clist_append(content_to_encrypt->ct_parameters, mailmime_param_new_with_data("protected-headers", "v1"));
+		clist_append(part_to_encrypt->mm_content_type->ct_parameters, mailmime_param_new_with_data("protected-headers", "v1"));
 
 		/* convert part to encrypt to plain text */
 		mailmime_write_mem(plain, &col, message_to_encrypt);
