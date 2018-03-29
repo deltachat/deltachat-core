@@ -77,6 +77,15 @@ void mrlot_empty(mrlot_t* ths)
 	free(ths->m_text2);
 	ths->m_text2 = NULL;
 
+	free(ths->m_fingerprint);
+	ths->m_fingerprint = NULL;
+
+	free(ths->m_random_public);
+	ths->m_random_public = NULL;
+
+	free(ths->m_random_secret);
+	ths->m_random_secret = NULL;
+
 	ths->m_timestamp = 0;
 	ths->m_state = 0;
 	ths->m_id = 0;
