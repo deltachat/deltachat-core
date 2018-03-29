@@ -200,6 +200,9 @@ extern "C" {
 #define MR_EVENT_IMEX_FILE_WRITTEN        2052
 
 
+#define MR_EVENT_SECURE_JOIN_REQUESTED    2060
+
+
 /*******************************************************************************
  * The following events are functions that should be provided by the frontends
  ******************************************************************************/

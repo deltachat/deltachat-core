@@ -357,6 +357,23 @@ cleanup:
 }
 
 
+static uint32_t chat_id_2_contact_id(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	uint32_t   contact_id = 0;
+	mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, chat_id);
+
+	if( mrarray_get_cnt(contacts) != 1 ) {
+		goto cleanup;
+	}
+
+	contact_id = mrarray_get_id(contacts, 0);
+
+cleanup:
+	mrarray_unref(contacts);
+	return contact_id;
+}
+
+
 static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerprint, uint32_t chat_id)
 {
 	int             fingerprint_equal      = 0;
@@ -600,11 +617,11 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 		usleep(300*1000);
 	}
 
+cleanup:
 	if( s_bobs_status == BOB_SUCCESS ) {
 		success = 1;
 	}
 
-cleanup:
 	mrlot_unref(s_bobs_qr_scan);
 	s_bobs_qr_scan = NULL;
 
@@ -655,6 +672,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
 
 		// verify that the `Secure-Join-Random-Public:`-header matches random_public written to the QR code
+		uint32_t    contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		const char* random_public = NULL;
 		if( (random_public=lookup_field(mimeparser, "Secure-Join-Random-Public")) == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Secure-join denied (random-public missing)."); // do not raise an error, this might just be spam or come from an old request
@@ -670,9 +688,9 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_log_info(mailbox, 0, "Secure-join requested successfully.");
+		mrmailbox_log_info(mailbox, 0, "Secure-join requested.");
 
-		// TODO: emit an event so that the UI can show a non-disturbing hint that sth. is going on
+		mailbox->m_cb(mailbox, MR_EVENT_SECURE_JOIN_REQUESTED, contact_id, 0);
 
 		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
 	}
