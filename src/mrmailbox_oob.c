@@ -31,8 +31,6 @@
 /* - TODO: the out-of-band verification messages should not appear as normal system messages,
      only the result should be shown. however, for debugging it is nice to have them visible.
 
-   - make sure only to handle messages belonging to the current verification
-
    - TODO: make sure, all Secure-Join:-headers go to the encrypted payload (except for the first, unencrypted message)
 
 */
@@ -720,14 +718,11 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-
 			if( s_bobs_qr_scan == NULL || s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET ) {
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
-
 			char* scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
 			char* random_secret                = safe_strdup(s_bobs_qr_scan->m_random_secret);
-
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
@@ -790,6 +785,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		locked = 0;
 
 		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
+
+		// TODO: increase the origin-value of the contact
 
 		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
