@@ -60,15 +60,14 @@ static void store_random_secret__(mrmailbox_t* mailbox, const char* to_add)
 }
 
 
-static int lookup_n_remove_random_secret__(mrmailbox_t* mailbox, const char* to_lookup)
+static int lookup_random_secret__(mrmailbox_t* mailbox, const char* to_lookup)
 {
 	int            found              = 0;
 	char*          old_random_secrets = NULL;
-	mrstrbuilder_t new_random_secrets;
 	carray*        lines              = NULL;
 
-	// TODO: maybe it is better not to delete the secrets - otherweise, multiple scans won't work
-	mrstrbuilder_init(&new_random_secrets, 0);
+	//mrstrbuilder_t new_random_secrets;  -- we do not delete the random secrets to allow multiple scans, the randoms are deleted when new are generated
+	//mrstrbuilder_init(&new_random_secrets, 0);
 
 	old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
 	mr_str_replace(&old_random_secrets, ",", "\n");
@@ -78,16 +77,16 @@ static int lookup_n_remove_random_secret__(mrmailbox_t* mailbox, const char* to_
 		if( strlen(random_secret) >= 4 && strcmp(random_secret, to_lookup) == 0 ) {
 			found = 1;
 		}
-		else {
-			mrstrbuilder_catf(&new_random_secrets, "%s,", random_secret);
-		}
+		//else {
+		//	mrstrbuilder_catf(&new_random_secrets, "%s,", random_secret);
+		//}
 	}
 
-	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets.m_buf);
+	//mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets.m_buf);
+	//free(new_random_secrets.m_buf);
 
 	mr_free_splitted_lines(lines);
 	free(old_random_secrets);
-	free(new_random_secrets.m_buf);
 	return found;
 }
 
@@ -717,7 +716,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 
-			if( lookup_n_remove_random_secret__(mailbox, random_secret) == 0 ) {
+			if( lookup_random_secret__(mailbox, random_secret) == 0 ) {
 				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random-secret invalid).");
 				goto cleanup;
 			}
