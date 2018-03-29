@@ -30,9 +30,6 @@
 
 /* - TODO: the out-of-band verification messages should not appear as normal system messages,
      only the result should be shown. however, for debugging it is nice to have them visible.
-
-   - TODO: make sure, all Secure-Join:-headers go to the encrypted payload (except for the first, unencrypted message)
-
 */
 
 
