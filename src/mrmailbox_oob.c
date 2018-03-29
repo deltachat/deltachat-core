@@ -67,6 +67,7 @@ static int lookup_n_remove_random_secret__(mrmailbox_t* mailbox, const char* to_
 	mrstrbuilder_t new_random_secrets;
 	carray*        lines              = NULL;
 
+	// TODO: maybe it is better not to delete the secrets - otherweise, multiple scans won't work
 	mrstrbuilder_init(&new_random_secrets, 0);
 
 	old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
@@ -488,6 +489,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
+	// TODO: we should also add a random_public that is used to allow the incoming message; later this can be hidden in the message-id or soemewhere
 	random_secret = mr_create_id();
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -642,6 +644,10 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		// it just ensures, we have Bobs key now. If we do _not_ have the key because eg. MitM has removed it,
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
+
+		// TOOD: check if random_public matches
+
+		// TODO: emit an event so that the UI can show a non-disturbing hint that sth. is going on
 
 		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
 	}
