@@ -39,54 +39,54 @@
 
 
 /*******************************************************************************
- * Alice's random_secret mini-datastore
+ * Alice's random_public and random_secret mini-datastore
  ******************************************************************************/
 
 
-static void store_random_secret__(mrmailbox_t* mailbox, const char* to_add)
+static void store_random__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_add)
 {
-	// prepend new random_secret to the list of all tags
-	#define MAX_REMEMBERED_RANDOM_SECRETS 10
-	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOM_SECRETS*(MR_CREATE_ID_LEN+1))
-	char* old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
-	if( strlen(old_random_secrets) > MAX_REMEMBERED_CHARS ) {
-		old_random_secrets[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway
+	// prepend new random to the list of all tags
+	#define MAX_REMEMBERED_RANDOMS 10
+	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOMS*(MR_CREATE_ID_LEN+1))
+	char* old_randoms = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
+	if( strlen(old_randoms) > MAX_REMEMBERED_CHARS ) {
+		old_randoms[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway
 	}
-	char* new_random_secrets = mr_mprintf("%s,%s", to_add, old_random_secrets);
-	mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets);
+	char* new_randoms = mr_mprintf("%s,%s", to_add, old_randoms);
+	mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_randoms);
 
-	free(old_random_secrets);
-	free(new_random_secrets);
+	free(old_randoms);
+	free(new_randoms);
 }
 
 
-static int lookup_random_secret__(mrmailbox_t* mailbox, const char* to_lookup)
+static int lookup_random__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_lookup)
 {
-	int            found              = 0;
-	char*          old_random_secrets = NULL;
-	carray*        lines              = NULL;
+	int            found       = 0;
+	char*          old_randoms = NULL;
+	carray*        lines       = NULL;
 
-	//mrstrbuilder_t new_random_secrets;  -- we do not delete the random secrets to allow multiple scans, the randoms are deleted when new are generated
-	//mrstrbuilder_init(&new_random_secrets, 0);
+	//mrstrbuilder_t new_randoms;  -- we do not delete the randoms to allow multiple scans, the randoms are deleted when new are generated
+	//mrstrbuilder_init(&new_randoms, 0);
 
-	old_random_secrets = mrsqlite3_get_config__(mailbox->m_sql, "random_secrets", "");
-	mr_str_replace(&old_random_secrets, ",", "\n");
-	lines = mr_split_into_lines(old_random_secrets);
+	old_randoms = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
+	mr_str_replace(&old_randoms, ",", "\n");
+	lines = mr_split_into_lines(old_randoms);
 	for( int i = 0; i < carray_count(lines); i++ ) {
-		char* random_secret  = (char*)carray_get(lines, i); mr_trim(random_secret);
-		if( strlen(random_secret) >= 4 && strcmp(random_secret, to_lookup) == 0 ) {
+		char* random  = (char*)carray_get(lines, i); mr_trim(random);
+		if( strlen(random) >= 4 && strcmp(random, to_lookup) == 0 ) {
 			found = 1;
 		}
 		//else {
-		//	mrstrbuilder_catf(&new_random_secrets, "%s,", random_secret);
+		//	mrstrbuilder_catf(&new_randoms, "%s,", random);
 		//}
 	}
 
-	//mrsqlite3_set_config__(mailbox->m_sql, "random_secrets", new_random_secrets.m_buf);
-	//free(new_random_secrets.m_buf);
+	//mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_randoms.m_buf);
+	//free(new_randoms.m_buf);
 
 	mr_free_splitted_lines(lines);
-	free(old_random_secrets);
+	free(old_randoms);
 	return found;
 }
 
@@ -500,7 +500,7 @@ char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
-		store_random_secret__(mailbox, random_secret);
+		store_random__(mailbox, "secureJoin.randomSecrets", random_secret);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -716,7 +716,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 
-			if( lookup_random_secret__(mailbox, random_secret) == 0 ) {
+			if( lookup_random__(mailbox, "secureJoin.randomSecrets", random_secret) == 0 ) {
 				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random-secret invalid).");
 				goto cleanup;
 			}
