@@ -459,7 +459,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		if( plain->str == NULL || plain->len<=0 ) {
 			goto cleanup;
 		}
-		char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
+		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
 		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
