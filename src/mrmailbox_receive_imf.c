@@ -1206,8 +1206,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
-					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param,bytes)"
-					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?,?,?);");
+					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param, bytes,hidden)"
+					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?);");
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, server_uid);

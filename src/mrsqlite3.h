@@ -111,6 +111,7 @@ enum
 	,SELECT_i_FROM_msgs_WHERE_query
 	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
 	,INSERT_INTO_msgs_msscftttsmttpb
+	,INSERT_INTO_msgs_cftttst
 	,INSERT_INTO_msgs_mcftttstpb
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id

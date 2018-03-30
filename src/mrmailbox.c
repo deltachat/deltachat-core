@@ -2817,6 +2817,49 @@ cleanup:
 }
 
 
+/*
+ * Log a system message.
+ * Such a message is typically shown in the "middle" of the chat.
+ * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
+ */
+uint32_t mrmailbox_add_system_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
+{
+	uint32_t      msg_id = 0;
+	int           locked = 0;
+	sqlite3_stmt* stmt = NULL;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || text == NULL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_cftttst,
+			"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
+		sqlite3_bind_int  (stmt,  1, chat_id);
+		sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_SYSTEM);
+		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SYSTEM);
+		sqlite3_bind_int64(stmt,  4, mr_create_smeared_timestamp__());
+		sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
+		sqlite3_bind_int  (stmt,  6, MR_STATE_IN_NOTICED);
+		sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
+		if( sqlite3_step(stmt) != SQLITE_DONE ) {
+			mrmailbox_log_error(mailbox, 0, "Cannot add system message to database.");
+			goto cleanup;
+		}
+
+		msg_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	locked = 0;
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	return msg_id;
+}
+
+
 /*******************************************************************************
  * Handle Group Chats
  ******************************************************************************/
@@ -4448,6 +4491,10 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		mrstrbuilder_cat(&ret, "Received: ");
 		p = mr_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
 		mrstrbuilder_cat(&ret, "\n");
+	}
+
+	if( msg->m_from_id == MR_CONTACT_ID_SYSTEM || msg->m_to_id == MR_CONTACT_ID_SYSTEM ) { // do not use mrmsg_is_systemcmd() as this would als catch system messages sent as real messages by others
+		goto cleanup; // internal message, no further details needed
 	}
 
 	/* add encryption state */

@@ -766,7 +766,14 @@ int mrmsg_is_systemcmd(const mrmsg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)? 1 : 0;
+
+	if( msg->m_from_id == MR_CONTACT_ID_SYSTEM
+	 || msg->m_to_id == MR_CONTACT_ID_SYSTEM
+	 || mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0) ) {
+		return 1;
+	}
+
+	return 0;
 }
 
 
