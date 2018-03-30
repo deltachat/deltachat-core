@@ -42,6 +42,7 @@ lib_hdr = [
   'mrcontact.h',
   'mrdehtml.h',
   'mrevent.h',
+  'mrerror.h',
   'mrhash.h',
   'mrimap.h',
   'mrjob.h',

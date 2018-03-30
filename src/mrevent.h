@@ -36,13 +36,14 @@ extern "C" {
 
 
 /**
- * The user may write an informational string to the log.
+ * The library-user may write an informational string to the log.
  * Passed to the callback given to mrmailbox_new().
- * This event should not be reported using a popup or something like that.
+ *
+ * This event should not be reported to the end-user using a popup or something like that.
  *
  * @param data1 0
  *
- * @param data2 Info string
+ * @param data2 Info string in english language.
  *
  * @return 0
  */
@@ -50,13 +51,14 @@ extern "C" {
 
 
 /**
- * The user should write a warning string to the log.
+ * The library-user should write a warning string to the log.
  * Passed to the callback given to mrmailbox_new().
- * This event should not be reported using a popup or something like that.
+ *
+ * This event should not be reported to the end-user using a popup or something like that.
  *
  * @param data1 0
  *
- * @param data2 Warning string
+ * @param data2 Warning string in english language.
  *
  * @return 0
  */
@@ -64,16 +66,29 @@ extern "C" {
 
 
 /**
- * The user should show an error.
- * The error must be reported to the user by a non-disturbing bubble or so.
+ * The library-user should report an error to the end-user.
+ * Passed to the callback given to mrmailbox_new().
  *
- * @param data1 0
+ * As most things are asynchrounous, things may go wrong at any time and the user
+ * should not be disturbed by a dialog or so.  Instead, use a bubble or so.
  *
- * @param data2 Error string
+ * However, for ongoing processes (eg. mrmailbox_configure_and_connect())
+ * or for functions that are expected to fail (eg. mrmailbox_continue_key_transfer())
+ * it might be better to delay showing these events until the function has really
+ * failed (returned false). It should be sufficient to report only the _last_ error
+ * in a messasge box then.
+ *
+ * @param data1 Error code, see mrerror.h for a list of constants.
+ *
+ * @param data2 Error string, always set, never NULL. Frequent error strings are
+ *     localized using MR_EVENT_GET_STRING, however, most error strings will be
+ *     in english language.
+ *
  *
  * @return 0
  */
 #define MR_EVENT_ERROR                    400
+
 
 
 /**

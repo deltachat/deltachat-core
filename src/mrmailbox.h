@@ -157,6 +157,7 @@ extern "C" {
 #include "mrcontact.h"
 #include "mrlot.h"
 #include "mrevent.h"
+#include "mrerror.h"
 
 
 /**
@@ -312,18 +313,6 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 mrlot_t*        mrmailbox_check_qr          (mrmailbox_t*, const char* qr);
 char*           mrmailbox_oob_get_qr        (mrmailbox_t*);
 int             mrmailbox_oob_join          (mrmailbox_t*, const char* qr);
-
-
-/* logging */
-void            mrmailbox_log_error         (mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_error_if      (int* condition, mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_warning       (mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_info          (mrmailbox_t*, int code, const char* msg, ...);
-
-
-/* error codes */
-#define         MR_ERR_SELF_NOT_IN_GROUP    1
-#define         MR_ERR_NONETWORK            2
 
 
 /* deprecated functions */
