@@ -848,6 +848,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	uint32_t         chat_id = 0;
 	int              chat_id_blocked = 0;
 	int              state   = MR_STATE_UNDEFINED;
+	int              hidden = 0;
 
 	sqlite3_stmt*    stmt;
 	size_t           i, icnt;
@@ -1112,6 +1113,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			/* check of the message is a special handshake message; if so, mark it as "seen" here and handle it when done */
 			is_handshake_message = mrmailbox_oob_is_handshake_message__(mailbox, mime_parser);
 			if( is_handshake_message ) {
+				hidden = 1;
 				if( state==MR_STATE_IN_FRESH || state==MR_STATE_IN_NOTICED ) {
 					state = MR_STATE_IN_SEEN;
 				}
@@ -1205,7 +1207,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
 					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param,bytes)"
-					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?,?);");
+					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?,?,?);");
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, server_uid);
@@ -1222,6 +1224,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				sqlite3_bind_text (stmt, 14, txt_raw? txt_raw : "", -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt, 15, part->m_param->m_packed, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt, 16, part->m_bytes);
+				sqlite3_bind_int  (stmt, 17, hidden);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
 					mrmailbox_log_info(mailbox, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */

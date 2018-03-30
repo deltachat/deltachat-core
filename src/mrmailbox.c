@@ -1403,6 +1403,7 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 					" LEFT JOIN chats ON m.chat_id=chats.id"
 					" LEFT JOIN contacts ON m.from_id=contacts.id"
 					" WHERE m.from_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF)
+					"   AND m.hidden=0 "
 					"   AND chats.blocked=2 "
 					"   AND contacts.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
@@ -1413,7 +1414,9 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 				"SELECT m.id, m.timestamp"
 					" FROM msgs m"
 					" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.starred=1 AND ct.blocked=0"
+					" WHERE m.starred=1 "
+					"   AND m.hidden=0 "
+					"   AND ct.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		}
 		else
@@ -1422,7 +1425,9 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 				"SELECT m.id, m.timestamp"
 					" FROM msgs m"
 					" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.chat_id=? AND ct.blocked=0"
+					" WHERE m.chat_id=? "
+					"   AND m.hidden=0 "
+					"   AND ct.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
@@ -1529,6 +1534,7 @@ mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const c
 				"SELECT m.id, m.timestamp FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
 				" WHERE m.chat_id=? "
+					" AND m.hidden=0 "
 					" AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
 				" ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
 			sqlite3_bind_int (stmt, 1, chat_id);
@@ -1542,6 +1548,7 @@ mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const c
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
 				" LEFT JOIN chats c ON m.chat_id=c.id"
 				" WHERE m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+					" AND m.hidden=0 "
 					" AND (c.blocked=0 OR c.blocked=?)"
 					" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
 				" ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
@@ -1667,7 +1674,10 @@ int mrmailbox_get_fresh_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 	sqlite3_stmt* stmt = NULL;
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE state=" MR_STRINGIFY(MR_STATE_IN_FRESH) " AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+		"SELECT COUNT(*) FROM msgs "
+		" WHERE state=" MR_STRINGIFY(MR_STATE_IN_FRESH)
+		"   AND hidden=0 "
+		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 	sqlite3_bind_int(stmt, 1, chat_id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -1687,7 +1697,8 @@ uint32_t mrmailbox_get_last_deaddrop_fresh_msg__(mrmailbox_t* mailbox)
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
 		" WHERE m.state=" MR_STRINGIFY(MR_STATE_IN_FRESH)
-		" AND c.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
+		"   AND m.hidden=0 "
+		"   AND c.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
 		" ORDER BY m.timestamp DESC, m.id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -2307,7 +2318,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* add message to the database */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_mcftttstpb,
-		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param) VALUES (?,?,?,?, ?,?,?, ?,?);");
+		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,hidden) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
 	sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt,  2, MR_CHAT_ID_MSGS_IN_CREATION);
 	sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SELF);
@@ -2317,6 +2328,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	sqlite3_bind_int  (stmt,  7, MR_STATE_OUT_PENDING);
 	sqlite3_bind_text (stmt,  8, msg->m_text? msg->m_text : "",  -1, SQLITE_STATIC);
 	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 10, msg->m_hidden);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot send message, cannot insert to database.", chat->m_id);
 		goto cleanup;

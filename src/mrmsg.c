@@ -106,6 +106,8 @@ void mrmsg_empty(mrmsg_t* msg)
 	mrparam_set_packed(msg->m_param, NULL);
 
 	msg->m_mailbox = NULL;
+
+	msg->m_hidden = 0;
 }
 
 
@@ -853,7 +855,7 @@ cleanup:
 
 #define MR_MSG_FIELDS " m.id,rfc724_mid,m.server_folder,m.server_uid,m.chat_id, " \
                       " m.from_id,m.to_id,m.timestamp,m.timestamp_sent,m.timestamp_rcvd, m.type,m.state,m.msgrmsg,m.txt, " \
-                      " m.param,m.starred,c.blocked "
+                      " m.param,m.starred,m.hidden,c.blocked "
 
 
 static int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
@@ -879,6 +881,7 @@ static int mrmsg_set_from_stmt__(mrmsg_t* ths, sqlite3_stmt* row, int row_offset
 
 	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
+	ths->m_hidden       =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
 	if( ths->m_chat_blocked == 2 ) {
