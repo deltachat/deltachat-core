@@ -786,6 +786,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
 
+		mrmailbox_add_system_msg(mailbox, chat_id, "Secure-join connection established.");
+
 		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
 	else if( strcmp(step, "broadcast")==0 )
@@ -811,6 +813,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECURE_JOINED);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
+
+		mrmailbox_add_system_msg(mailbox, chat_id, "Secure-join connection established.");
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
