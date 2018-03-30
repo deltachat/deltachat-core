@@ -390,6 +390,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
+		goto cleanup;
+	}
+
 	/* encrypt message, if possible */
 	if( do_encrypt )
 	{
@@ -412,6 +416,43 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				}
 			}
 		}
+
+		/* memoryhole headers */
+		clistiter* cur = clist_begin(imffields_unprotected->fld_list);
+		while( cur!=NULL ) {
+			int move_to_encrypted = 0;
+
+			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
+			if( field ) {
+				if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
+					move_to_encrypted = 1;
+				}
+				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
+					struct mailimf_optional_field* opt_field = field->fld_data.fld_optional_field;
+					if( opt_field && opt_field->fld_name ) {
+						if(  strncmp(opt_field->fld_name, "Secure-Join", 11)==0
+						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering, however, this is subject to cha*/ ) {
+							move_to_encrypted = 1;
+						}
+					}
+				}
+			}
+
+			if( move_to_encrypted ) {
+				mailimf_fields_add(imffields_encrypted, field);
+				cur = clist_delete(imffields_unprotected->fld_list, cur);
+			}
+			else {
+				cur = clist_next(cur);
+			}
+		}
+
+		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); char* subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+		struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
+		mailimf_fields_add(imffields_unprotected, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
+		free(subject_str);
+
+		clist_append(part_to_encrypt->mm_content_type->ct_parameters, mailmime_param_new_with_data("protected-headers", "v1"));
 
 		/* convert part to encrypt to plain text */
 		mailmime_write_mem(plain, &col, message_to_encrypt);
@@ -446,13 +487,6 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
 
 		helper->m_encryption_successfull = 1;
-	}
-
-	/* add Autocrypt:-header to allow the recipient to send us encrypted messages back
-	(the Autocrypt:-header in the IMAP copy is needed to detect the presence of the first Autocrypt:-client if the user tries to enable multiple device
-	(we show a warning then to avoid the generation of a second keypair and to allow the user to import the first key)) */
-	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
-		goto cleanup;
 	}
 
 	char* p = mraheader_render(autocryptheader);
