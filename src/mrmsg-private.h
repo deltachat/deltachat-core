@@ -75,6 +75,8 @@ struct _mrmsg
 
 	int             m_state;                  /**< Message state. It is recommended to use mrmsg_get_state() to access this field. */
 
+	int             m_hidden;                 /**< Used eg. for handshaking messages. */
+
 	time_t          m_timestamp;              /**< Unix time for sorting. 0 if unset. */
 	time_t          m_timestamp_sent;         /**< Unix time the message was sent. 0 if unset. */
 	time_t          m_timestamp_rcvd;         /**< Unix time the message was recveived. 0 if unset. */

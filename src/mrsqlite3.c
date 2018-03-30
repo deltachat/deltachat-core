@@ -371,6 +371,16 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 28
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
 	}
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);

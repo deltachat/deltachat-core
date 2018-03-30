@@ -426,6 +426,7 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 
 	msg->m_type = MR_MSG_TEXT;
 	msg->m_text = mr_mprintf("Secure-Join: %s", step);
+	msg->m_hidden = 1;
 	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
 	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step);
 
