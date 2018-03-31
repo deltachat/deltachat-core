@@ -28,10 +28,6 @@
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
 
-/* - TODO: the out-of-band verification messages should not appear as normal system messages,
-     only the result should be shown. however, for debugging it is nice to have them visible.
-*/
-
 
 /*******************************************************************************
  * Alice's random_public and random_secret mini-datastore
