@@ -4442,6 +4442,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	int            locked = 0;
 	sqlite3_stmt*  stmt;
 	mrmsg_t*       msg = mrmsg_new();
+	mrcontact_t*   contact_from = mrcontact_new();
 	char           *rawtxt = NULL, *p;
 
 	mrstrbuilder_init(&ret, 0);
@@ -4454,6 +4455,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	locked = 1;
 
 		mrmsg_load_from_db__(msg, mailbox, msg_id);
+		mrcontact_load_from_db__(contact_from, mailbox->m_sql, msg->m_from_id);
 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
 			"SELECT txt_raw FROM msgs WHERE id=?;");
@@ -4497,40 +4499,45 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		goto cleanup; // device-internal message, no further details needed
 	}
 
-	/* add encryption state */
+	/* add state */
+	switch( msg->m_state ) {
+		case MR_STATE_IN_FRESH:      p = safe_strdup("Fresh");           break;
+		case MR_STATE_IN_NOTICED:    p = safe_strdup("Noticed");         break;
+		case MR_STATE_IN_SEEN:       p = safe_strdup("Seen");            break;
+		case MR_STATE_OUT_DELIVERED: p = safe_strdup("Delivered");       break;
+		case MR_STATE_OUT_ERROR:     p = safe_strdup("Error");           break;
+		case MR_STATE_OUT_MDN_RCVD:  p = safe_strdup("Read");            break;
+		case MR_STATE_OUT_PENDING:   p = safe_strdup("Pending");         break;
+		default:                     p = mr_mprintf("%i", msg->m_state); break;
+	}
+	mrstrbuilder_catf(&ret, "State: %s", p); free(p);
+
+	p = NULL;
 	int e2ee_errors;
 	if( (e2ee_errors=mrparam_get_int(msg->m_param, MRP_ERRONEOUS_E2EE, 0)) ) {
 		if( e2ee_errors&MR_VALIDATE_BAD_SIGNATURE/* check worst errors first */ ) {
-			p = safe_strdup("End-to-end, bad signature");
+			p = safe_strdup("Encrypted, bad signature");
 		}
 		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
-			p = safe_strdup("End-to-end, unknown signature");
+			p = safe_strdup("Encrypted, unknown signature");
 		}
 		else {
-			p = safe_strdup("End-to-end, no signature");
+			p = safe_strdup("Encrypted, no signature");
 		}
 	}
 	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
-		if( !msg->m_mailbox->m_e2ee_enabled ) {
-			p = safe_strdup("End-to-end, transport for replies");
-		}
-		else {
-			p = safe_strdup("End-to-end");
-		}
+		p = safe_strdup("Encrypted");
 	}
-	else {
-		p = safe_strdup("Transport");
-	}
-	mrstrbuilder_cat(&ret, "Encryption: ");
-	mrstrbuilder_cat(&ret, p); free(p);
-	mrstrbuilder_cat(&ret, "\n");
 
-	/* add "suspicious" status */
-	if( msg->m_state==MR_STATE_IN_FRESH ) {
-		mrstrbuilder_cat(&ret, "Status: Fresh\n");
+	if( p ) {
+		mrstrbuilder_catf(&ret, ", %s\n", p); free(p);
 	}
-	else if( msg->m_state==MR_STATE_IN_NOTICED ) {
-		mrstrbuilder_cat(&ret, "Status: Noticed\n");
+
+	/* add sender (only for info messages as the avatar may not be shown for them) */
+	if( mrmsg_is_info(msg) ) {
+		mrstrbuilder_cat(&ret, "Sender: ");
+		p = mrcontact_get_name_n_addr(contact_from); mrstrbuilder_cat(&ret, p); free(p);
+		mrstrbuilder_cat(&ret, "\n");
 	}
 
 	/* add file info */
@@ -4572,6 +4579,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrmsg_unref(msg);
+	mrcontact_unref(contact_from);
 	free(rawtxt);
 	return ret.m_buf;
 }
