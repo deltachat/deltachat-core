@@ -318,7 +318,7 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 					msgtext,
 					mrmsg_is_starred(msg)? " \xE2\x98\x85" : "",
 					mrmsg_get_from_id(msg)==1? "" : (mrmsg_get_state(msg)==MR_STATE_IN_SEEN? "[SEEN]" : (mrmsg_get_state(msg)==MR_STATE_IN_NOTICED? "[NOTICED]":"[FRESH]")),
-					mrmsg_is_systemcmd(msg)? "[SYSTEM]" : "",
+					mrmsg_is_info(msg)? "[INFO]" : "",
 					statestr,
 					temp2);
 			free(msgtext);

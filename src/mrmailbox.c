@@ -4493,8 +4493,8 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		mrstrbuilder_cat(&ret, "\n");
 	}
 
-	if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) { // do not use mrmsg_is_systemcmd() as this would als catch system messages sent as real messages by others
-		goto cleanup; // internal message, no further details needed
+	if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) {
+		goto cleanup; // device-internal message, no further details needed
 	}
 
 	/* add encryption state */
