@@ -4500,6 +4500,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	}
 
 	/* add state */
+	p = NULL;
 	switch( msg->m_state ) {
 		case MR_STATE_IN_FRESH:      p = safe_strdup("Fresh");           break;
 		case MR_STATE_IN_NOTICED:    p = safe_strdup("Noticed");         break;
@@ -4510,7 +4511,8 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		case MR_STATE_OUT_PENDING:   p = safe_strdup("Pending");         break;
 		default:                     p = mr_mprintf("%i", msg->m_state); break;
 	}
-	mrstrbuilder_catf(&ret, "State: %s", p); free(p);
+	mrstrbuilder_catf(&ret, "State: %s", p);
+	free(p);
 
 	p = NULL;
 	int e2ee_errors;
@@ -4530,8 +4532,10 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	}
 
 	if( p ) {
-		mrstrbuilder_catf(&ret, ", %s\n", p); free(p);
+		mrstrbuilder_catf(&ret, ", %s", p);
+		free(p);
 	}
+	mrstrbuilder_cat(&ret, "\n");
 
 	/* add sender (only for info messages as the avatar may not be shown for them) */
 	if( mrmsg_is_info(msg) ) {
@@ -4547,7 +4551,18 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	}
 
 	if( msg->m_type != MR_MSG_TEXT ) {
-		p = mr_mprintf("Type: %i\n", msg->m_type); mrstrbuilder_cat(&ret, p); free(p);
+		p = NULL;
+		switch( msg->m_type )  {
+			case MR_MSG_AUDIO: p = safe_strdup("Audio");          break;
+			case MR_MSG_FILE:  p = safe_strdup("File");           break;
+			case MR_MSG_GIF:   p = safe_strdup("GIF");            break;
+			case MR_MSG_IMAGE: p = safe_strdup("Image");          break;
+			case MR_MSG_VIDEO: p = safe_strdup("Video");          break;
+			case MR_MSG_VOICE: p = safe_strdup("Voice");          break;
+			default:           p = mr_mprintf("%i", msg->m_type); break;
+		}
+		mrstrbuilder_catf(&ret, "Type: %s\n", p);
+		free(p);
 	}
 
 	int w = mrparam_get_int(msg->m_param, MRP_WIDTH, 0), h = mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
@@ -4571,7 +4586,15 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	#ifdef __ANDROID__
 		mrstrbuilder_cat(&ret, "<c#808080>");
 	#endif
-	mrstrbuilder_catf(&ret, "\nMessage-ID: %s\nLast seen as: %s/%i", msg->m_rfc724_mid, msg->m_server_folder, (int)msg->m_server_uid);
+
+	if( msg->m_rfc724_mid && msg->m_rfc724_mid[0] ) {
+		mrstrbuilder_catf(&ret, "\nMessage-ID: %s", msg->m_rfc724_mid);
+	}
+
+	if( msg->m_server_folder && msg->m_server_folder[0] ) {
+		mrstrbuilder_catf(&ret, "\nLast seen as: %s/%i", msg->m_server_folder, (int)msg->m_server_uid);
+	}
+
 	#ifdef __ANDROID__
 		mrstrbuilder_cat(&ret, "</c>");
 	#endif
