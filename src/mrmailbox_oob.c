@@ -423,15 +423,15 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 	msg->m_type = MR_MSG_TEXT;
 	msg->m_text = mr_mprintf("Secure-Join: %s", step);
 	msg->m_hidden = 1;
-	mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_OOB_VERIFY_MESSAGE);
-	mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, step);
+	mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_OOB_VERIFY_MESSAGE);
+	mrparam_set    (msg->m_param, MRP_CMD_PARAM, step);
 
 	if( random ) {
-		mrparam_set(msg->m_param, MRP_SYSTEM_CMD_PARAM2, random);
+		mrparam_set(msg->m_param, MRP_CMD_PARAM2, random);
 	}
 
 	if( fingerprint ) {
-		mrparam_set(msg->m_param, MRP_SYSTEM_CMD_PARAM3, fingerprint);
+		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
 	}
 
 	if( strcmp(step, "request") != 0 ) {
@@ -782,7 +782,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
 
-		mrmailbox_add_system_msg(mailbox, chat_id, "Secure-join connection established.");
+		mrmailbox_add_device_msg(mailbox, chat_id, "Secure-join connection established.");
 
 		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
@@ -810,7 +810,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_add_system_msg(mailbox, chat_id, "Secure-join connection established.");
+		mrmailbox_add_device_msg(mailbox, chat_id, "Secure-join connection established.");
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);

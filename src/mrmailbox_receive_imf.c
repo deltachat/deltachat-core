@@ -661,19 +661,19 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
 			X_MrRemoveFromGrp = optional_field->fld_value;
-			mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP;
+			mime_parser->m_is_system_message = MR_CMD_MEMBER_REMOVED_FROM_GROUP;
 		}
 		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL ) {
 			X_MrAddToGrp = optional_field->fld_value;
-			mime_parser->m_is_system_message = MR_SYSTEM_MEMBER_ADDED_TO_GROUP;
+			mime_parser->m_is_system_message = MR_CMD_MEMBER_ADDED_TO_GROUP;
 		}
 		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL ) {
 			X_MrGrpNameChanged = 1;
-			mime_parser->m_is_system_message = MR_SYSTEM_GROUPNAME_CHANGED;
+			mime_parser->m_is_system_message = MR_CMD_GROUPNAME_CHANGED;
 		}
 		else if( (optional_field=mrmimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL ) {
 			X_MrGrpImageChanged = 1;
-			mime_parser->m_is_system_message = MR_SYSTEM_GROUPIMAGE_CHANGED;
+			mime_parser->m_is_system_message = MR_CMD_GROUPIMAGE_CHANGED;
 		}
 	}
 
@@ -1202,7 +1202,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 
 				if( mime_parser->m_is_system_message ) {
-					mrparam_set_int(part->m_param, MRP_SYSTEM_CMD, mime_parser->m_is_system_message);
+					mrparam_set_int(part->m_param, MRP_CMD, mime_parser->m_is_system_message);
 				}
 
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,

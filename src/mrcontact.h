@@ -37,7 +37,7 @@ extern "C" {
 typedef struct _mrcontact mrcontact_t;
 
 #define         MR_CONTACT_ID_SELF         1
-#define         MR_CONTACT_ID_SYSTEM       2
+#define         MR_CONTACT_ID_DEVICE       2
 #define         MR_CONTACT_ID_LAST_SPECIAL 9
 
 

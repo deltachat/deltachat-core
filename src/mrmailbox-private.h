@@ -157,7 +157,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 int             mrmailbox_oob_is_handshake_message__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
 void            mrmailbox_oob_handle_handshake_message(mrmailbox_t*, mrmimeparser_t*, uint32_t chat_id); /* must not be called from lock */
 
-uint32_t        mrmailbox_add_system_msg              (mrmailbox_t*, uint32_t chat_id, const char* text);
+uint32_t        mrmailbox_add_device_msg              (mrmailbox_t*, uint32_t chat_id, const char* text);
 
 
 #ifdef __cplusplus

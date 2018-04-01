@@ -2189,7 +2189,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
-		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_SYSTEM_CMD, 0)!=MR_SYSTEM_OOB_VERIFY_MESSAGE ) {
+		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_OOB_VERIFY_MESSAGE ) {
 			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL); /* send message to IMAP in another job */
 		}
 
@@ -2267,8 +2267,8 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int do_guarantee_e2ee = 0;
-	int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
-	if( mailbox->m_e2ee_enabled && system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+	int command = mrparam_get_int(msg->m_param, MRP_CMD, 0);
+	if( mailbox->m_e2ee_enabled && command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE )
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
@@ -2818,11 +2818,11 @@ cleanup:
 
 
 /*
- * Log a system message.
- * Such a message is typically shown in the "middle" of the chat.
+ * Log a device message.
+ * Such a message is typically shown in the "middle" of the chat, the user can check this using mrmsg_is_systemmsg().
  * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
  */
-uint32_t mrmailbox_add_system_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
+uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
 {
 	uint32_t      msg_id = 0;
 	int           locked = 0;
@@ -2838,14 +2838,14 @@ uint32_t mrmailbox_add_system_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_cftttst,
 			"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
 		sqlite3_bind_int  (stmt,  1, chat_id);
-		sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_SYSTEM);
-		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_SYSTEM);
+		sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_DEVICE);
+		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_DEVICE);
 		sqlite3_bind_int64(stmt,  4, mr_create_smeared_timestamp__());
 		sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
 		sqlite3_bind_int  (stmt,  6, MR_STATE_IN_NOTICED);
 		sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot add system message to database.");
+			mrmailbox_log_error(mailbox, 0, "Cannot add device message to database.");
 			goto cleanup;
 		}
 
@@ -3058,7 +3058,7 @@ int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* 
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
-		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_GROUPNAME_CHANGED);
+		mrparam_set_int(msg->m_param, MRP_CMD, MR_CMD_GROUPNAME_CHANGED);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -3130,8 +3130,8 @@ int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, con
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD,       MR_SYSTEM_GROUPIMAGE_CHANGED);
-		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, new_image);
+		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_GROUPIMAGE_CHANGED);
+		mrparam_set    (msg->m_param, MRP_CMD_PARAM, new_image);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
@@ -3271,8 +3271,8 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_ADDED_TO_GROUP);
-		mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
+		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
+		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -3350,8 +3350,8 @@ int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, u
 			else {
 				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
-			mrparam_set_int(msg->m_param, MRP_SYSTEM_CMD, MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP);
-			mrparam_set    (msg->m_param, MRP_SYSTEM_CMD_PARAM, contact->m_addr);
+			mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_REMOVED_FROM_GROUP);
+			mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
 			msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
@@ -4493,7 +4493,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		mrstrbuilder_cat(&ret, "\n");
 	}
 
-	if( msg->m_from_id == MR_CONTACT_ID_SYSTEM || msg->m_to_id == MR_CONTACT_ID_SYSTEM ) { // do not use mrmsg_is_systemcmd() as this would als catch system messages sent as real messages by others
+	if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) { // do not use mrmsg_is_systemcmd() as this would als catch system messages sent as real messages by others
 		goto cleanup; // internal message, no further details needed
 	}
 

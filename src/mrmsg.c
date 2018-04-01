@@ -753,7 +753,7 @@ int mrmsg_is_forwarded(const mrmsg_t* msg)
  * mrmsg_get_text() returns a descriptive text about what is going on.
  *
  * There is no need to perfrom any action when seeing such a message - this is already done by the core.
- * Typically, this text is displayed in another color or in another font than normal user messages.
+ * Typically, these messages are displayed in the center of the chat.
  *
  * @memberof mrmsg_t
  *
@@ -767,9 +767,11 @@ int mrmsg_is_systemcmd(const mrmsg_t* msg)
 		return 0;
 	}
 
-	if( msg->m_from_id == MR_CONTACT_ID_SYSTEM
-	 || msg->m_to_id == MR_CONTACT_ID_SYSTEM
-	 || mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0) ) {
+	int cmd = mrparam_get_int(msg->m_param, MRP_CMD, 0);
+
+	if( msg->m_from_id == MR_CONTACT_ID_DEVICE
+	 || msg->m_to_id == MR_CONTACT_ID_DEVICE
+	 || (cmd && cmd != MR_CMD_AUTOCRYPT_SETUP_MESSAGE) ) {
 		return 1;
 	}
 
@@ -791,8 +793,7 @@ int mrmsg_is_systemcmd(const mrmsg_t* msg)
  * @param msg The message object.
  *
  * @return 1=message is a setup message, 0=no setup message.
- *     For setup messages, mrmsg_is_systemcmd() returns 1 and
- *     mrmsg_get_type() returns MR_MSG_FILE.
+ *     For setup messages, mrmsg_get_type() returns MR_MSG_FILE.
  */
 int mrmsg_is_setupmessage(const mrmsg_t* msg)
 {
@@ -800,7 +801,7 @@ int mrmsg_is_setupmessage(const mrmsg_t* msg)
 		return 0;
 	}
 
-	return mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0)==MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
+	return mrparam_get_int(msg->m_param, MRP_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
 }
 
 
@@ -1039,7 +1040,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 			break;
 
 		case MR_MSG_FILE:
-			if( mrparam_get_int(param, MRP_SYSTEM_CMD, 0)==MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
+			if( mrparam_get_int(param, MRP_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 				ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
 			}
 			else {

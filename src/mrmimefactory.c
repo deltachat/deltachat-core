@@ -148,9 +148,9 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 					}
 				}
 
-				int system_command = mrparam_get_int(factory->m_msg->m_param, MRP_SYSTEM_CMD, 0);
-				if( system_command==MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
-					char* email_to_remove = mrparam_get(factory->m_msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+				int command = mrparam_get_int(factory->m_msg->m_param, MRP_CMD, 0);
+				if( command==MR_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
+					char* email_to_remove = mrparam_get(factory->m_msg->m_param, MRP_CMD_PARAM, NULL);
 					char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 					{
@@ -163,8 +163,8 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 					free(self_addr);
 				}
 
-				if( system_command!=MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE
-				 && system_command!=MR_SYSTEM_OOB_VERIFY_MESSAGE
+				if( command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE
+				 && command!=MR_CMD_OOB_VERIFY_MESSAGE
 				 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
@@ -414,7 +414,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
-	if( mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0) == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE )
+	if( mrparam_get_int(msg->m_param, MRP_CMD, 0) == MR_CMD_AUTOCRYPT_SETUP_MESSAGE )
 	{
 		ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
@@ -519,54 +519,54 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 		char* placeholdertext = NULL;
 
 		/* build header etc. */
-		int system_command = mrparam_get_int(msg->m_param, MRP_SYSTEM_CMD, 0);
+		int command = mrparam_get_int(msg->m_param, MRP_CMD, 0);
 		if( chat->m_type==MR_CHAT_TYPE_GROUP )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));
 
-			if( system_command == MR_SYSTEM_MEMBER_REMOVED_FROM_GROUP ) {
-				char* email_to_remove = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP ) {
+				char* email_to_remove = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( email_to_remove ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Removed"), email_to_remove));
 				}
 			}
-			else if( system_command == MR_SYSTEM_MEMBER_ADDED_TO_GROUP ) {
-				char* email_to_add = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+			else if( command == MR_CMD_MEMBER_ADDED_TO_GROUP ) {
+				char* email_to_add = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( email_to_add ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Added"), email_to_add));
 					grpimage = mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
 				}
 			}
-			else if( system_command == MR_SYSTEM_GROUPNAME_CHANGED ) {
+			else if( command == MR_CMD_GROUPNAME_CHANGED ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
 			}
-			else if( system_command == MR_SYSTEM_GROUPIMAGE_CHANGED ) {
-				grpimage = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+			else if( command == MR_CMD_GROUPIMAGE_CHANGED ) {
+				grpimage = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( grpimage==NULL ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), safe_strdup("0")));
 				}
 			}
 		}
 
-		if( system_command == MR_SYSTEM_AUTOCRYPT_SETUP_MESSAGE ) {
+		if( command == MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
 			placeholdertext = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
 			force_unencrypted = 1;
 		}
 
-		if( system_command == MR_SYSTEM_OOB_VERIFY_MESSAGE ) {
-			char* step = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM, NULL);
+		if( command == MR_CMD_OOB_VERIFY_MESSAGE ) {
+			char* step = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 			if( step ) {
 				mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), step/*mailimf takes ownership of string*/));
 
-				char* random_secret = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM2, NULL);
+				char* random_secret = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);
 				if( random_secret ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strcmp(step, "request")==0? strdup("Secure-Join-Random-Public"):strdup("Secure-Join-Random-Secret"), random_secret/*mailimf takes ownership of string*/));
 				}
 
-				char* fingerprint = mrparam_get(msg->m_param, MRP_SYSTEM_CMD_PARAM3, NULL);
+				char* fingerprint = mrparam_get(msg->m_param, MRP_CMD_PARAM3, NULL);
 				if( fingerprint ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join-Fingerprint"), fingerprint/*mailimf takes ownership of string*/));
 				}
