@@ -851,6 +851,9 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		end_bobs_joining(mailbox, BOB_SUCCESS);
 	}
 
+	// mark the message for deletion (we do not do this on errors)
+	//mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, 0, );
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 }

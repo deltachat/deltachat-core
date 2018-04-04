@@ -4750,7 +4750,8 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
+		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id)
+		 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
 			goto cleanup;
 		}
 
@@ -4865,7 +4866,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			mrmailbox_update_msg_chat_id__(mailbox, msg_ids[i], MR_CHAT_ID_TRASH);
-			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 30); /* results in a call to mrmailbox_delete_msg_on_imap() */
+			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_delete_msg_on_imap() */
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
