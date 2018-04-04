@@ -118,6 +118,8 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	char*           random_secret = NULL;
 	mrapeerstate_t* peerstate     = mrapeerstate_new();
 	mrlot_t*        qr_parsed     = mrlot_new();
+	uint32_t        chat_id       = 0;
+	char*           device_msg    = NULL;
 
 	qr_parsed->m_state = 0;
 
@@ -259,7 +261,9 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
 					qr_parsed->m_state = MR_QR_FPR_OK;
 					qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
-					// TODO: add this to the security log
+
+					mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
+					device_msg = mr_mprintf("%s verified via QR code.", peerstate->m_addr);
 				}
 				else {
 					qr_parsed->m_text1 = mr_format_fingerprint(fingerprint);
@@ -271,7 +275,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 		else
 		{
-			/* fingerprint and addr set ... */  // TODO: add the states to the security log
+			/* fingerprint and addr set ... */
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
@@ -305,6 +309,10 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		qr_parsed->m_text1 = safe_strdup(qr);
 	}
 
+	if( device_msg ) {
+		mrmailbox_add_device_msg(mailbox, chat_id, device_msg);
+	}
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(addr);
@@ -314,6 +322,7 @@ cleanup:
 	free(name);
 	free(random_public);
 	free(random_secret);
+	free(device_msg);
 	return qr_parsed;
 }
 
