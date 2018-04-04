@@ -3,6 +3,7 @@
  *                              Delta Chat Core
  *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
+ *                   Contact: schneider17@gmx.com (cs)
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -25,6 +26,8 @@
 #include "mrmimefactory.h"
 #include "mrsimplify.h"
 
+/* new cs */
+#include "mruudecode.h"
 
 /*******************************************************************************
  * debug output
@@ -1024,8 +1027,55 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					part = mrmimepart_new();
 					part->m_type = MR_MSG_TEXT;
 					part->m_int_mimetype = mime_type;
-					part->m_msg = simplified_txt;
-					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+					
+                    /* cs:
+                     * 
+                     * Not shure if  part->m_msg  is the correct string to work on (!)
+                     * Maybe part->m_msg_raw should be handled (too?)
+                     * 
+                     */
+                    
+                    part->m_msg = simplified_txt;  // (r10s) this should contain all msg text incl. uuencoded parts
+					
+                    /*
+                     *      New code from cs 
+                     *
+                     *  
+                     * The following code uses mr_... functions of mruudecode.c
+                     * 
+                     * taken from cs testing sources mruudecode.c (main)
+                     * 
+                     * here reduced to the real needs
+                     * 
+                     * uuencoded parts in part->m_msg will be
+                     *      - detected,
+                     *      - replaced by a replacement text (in the moment)
+                     *          a) needs to be adapted to the requirements here
+                     *          b) link to the generated file (!?) (todo)
+                     *      - decoded and saved to a file
+                     * 
+                     */
+                     
+                    char* lineend = "\r\n";  // default line end
+                    char* uustartpos;
+                    char* source_str = part->m_msg; // original string is changed (!)
+    
+                    lineend = mr_detect_line_end(part->m_msg);
+    
+                    while(1){
+                        /* any number of parts possible */
+                        uustartpos = mr_find_uuencoded_part(source_str, lineend);
+                        if(uustartpos){
+                            /* todo: path to created files is not handled in the moment */
+                            source_str = mr_handle_uuencoded_part (source_str, uustartpos, lineend);
+                        }
+                        else{
+                            break;
+                        }
+                    }
+                    /* end of code cs*/
+                    
+                    part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
 					do_add_single_part(ths, part);
 					part = NULL;
 				}
