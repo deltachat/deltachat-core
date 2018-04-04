@@ -2832,8 +2832,6 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 		goto cleanup;
 	}
 
-	mrmailbox_log_info(mailbox, 0, text);
-
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 

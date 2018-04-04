@@ -252,9 +252,10 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	{
 		/* fingerprint set ... */
 
-		if( addr == NULL )
+		if( addr == NULL || random_public == NULL || random_secret == NULL )
 		{
-			/* _only_ fingerprint set ... */
+			// _only_ fingerprint set ...
+			// (we could also do this before/instead of a secure-join, however, this may require complicated questions in the ui)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
@@ -275,24 +276,17 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		}
 		else
 		{
-			/* fingerprint and addr set ... */
+			// fingerprint + addr set, secure-join requested
+			// do not comapre the fingerprint already, errors are catched later more proberly.
+			// (theroretically, there is also the state "addr=set, fingerprint=set, do_secure_join=0", however, currently, we won't get into this state)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				qr_parsed->m_state = MR_QR_FPR_ASK_OOB;
-				qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
-				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
-					if( strcasecmp(peerstate->m_fingerprint, fingerprint) != 0 ) {
-						mrmailbox_log_info(mailbox, 0, "Fingerprint mismatch for %s: Scanned: %s, saved: %s", addr, fingerprint, peerstate->m_fingerprint);
-						qr_parsed->m_state = MR_QR_FPR_MISMATCH;
-					}
-				}
-
-				if( qr_parsed->m_state == MR_QR_FPR_ASK_OOB ) {
-					qr_parsed->m_fingerprint  = safe_strdup(fingerprint);
-					qr_parsed->m_random_public = safe_strdup(random_public);
-					qr_parsed->m_random_secret = safe_strdup(random_secret);
-				}
+				qr_parsed->m_state         = MR_QR_FPR_ASK_OOB;
+				qr_parsed->m_id            = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
+				qr_parsed->m_random_public = safe_strdup(random_public);
+				qr_parsed->m_random_secret = safe_strdup(random_secret);
 
 			mrsqlite3_unlock(mailbox->m_sql);
 			locked = 0;
@@ -450,6 +444,34 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 	mrmailbox_send_msg_object(mailbox, chat_id, msg);
 
 	mrmsg_unref(msg);
+}
+
+
+static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t chat_id, const char* details)
+{
+	uint32_t     contact_id = chat_id_2_contact_id(mailbox, chat_id);
+	mrcontact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	char*        msg        = mr_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
+
+	mrmailbox_add_device_msg(mailbox, chat_id, msg);
+
+	mrmailbox_log_error(mailbox, 0, "%s (%s)", msg, details); // additionaly raise an error; this typically results in a toast (inviter side) or a dialog (joiner side)
+
+	free(msg);
+	mrcontact_unref(contact);
+}
+
+
+static void secure_connection_established(mrmailbox_t* mailbox, uint32_t chat_id)
+{
+	uint32_t     contact_id = chat_id_2_contact_id(mailbox, chat_id);
+	mrcontact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	char*        msg        = mr_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
+
+	mrmailbox_add_device_msg(mailbox, chat_id, msg);
+
+	free(msg);
+	mrcontact_unref(contact);
 }
 
 
@@ -713,7 +735,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ================================= */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			could_not_establish_secure_connection(mailbox, chat_id, "Not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
@@ -730,7 +752,8 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		locked = 0;
 
 		if( !fingerprint_equals_sender(mailbox, scanned_fingerprint_of_alice, chat_id) ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			// MitM?
+			could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on joiner-side.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
@@ -753,19 +776,20 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ================================== */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			could_not_establish_secure_connection(mailbox, chat_id, "Random-secret not encrypted.");
 			goto cleanup;
 		}
 
 		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 		const char* fingerprint = NULL;
 		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint not provided together with random-secret).");
+			could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint not provided.");
 			goto cleanup;
 		}
 
 		if( !fingerprint_equals_sender(mailbox, fingerprint, chat_id) ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (fingerprint mismatch).");
+			// MitM?
+			could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on inviter-side.");
 			goto cleanup;
 		}
 
@@ -774,7 +798,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
 		const char* random_secret = NULL;
 		if( (random_secret=lookup_field(mimeparser, "Secure-Join-Random-Secret")) == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (requested random-secret not provided).");
+			could_not_establish_secure_connection(mailbox, chat_id, "Random-secret not provided.");
 			goto cleanup;
 		}
 
@@ -782,7 +806,9 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 			if( lookup_random__(mailbox, "secureJoin.randomSecrets", random_secret) == 0 ) {
-				mrmailbox_log_error(mailbox, 0, "Secure-join failed (random-secret invalid).");
+				mrsqlite3_unlock(mailbox->m_sql);
+				locked = 0;
+				could_not_establish_secure_connection(mailbox, chat_id, "Random-secret invalid.");
 				goto cleanup;
 			}
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECURE_INVITED);
@@ -791,7 +817,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
 
-		mrmailbox_add_device_msg(mailbox, chat_id, "Secure-join connection established.");
+		secure_connection_established(mailbox, chat_id);
 
 		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
 	}
@@ -807,7 +833,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			mrmailbox_log_error(mailbox, 0, "Secure-join failed (mail not encrypted).");
+			could_not_establish_secure_connection(mailbox, chat_id, "Broadcast not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
@@ -819,7 +845,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_add_device_msg(mailbox, chat_id, "Secure-join connection established.");
+		secure_connection_established(mailbox, chat_id);
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
