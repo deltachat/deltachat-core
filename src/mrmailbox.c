@@ -2819,7 +2819,7 @@ cleanup:
 
 /*
  * Log a device message.
- * Such a message is typically shown in the "middle" of the chat, the user can check this using mrmsg_is_systemmsg().
+ * Such a message is typically shown in the "middle" of the chat, the user can check this using mrmsg_is_info().
  * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
  */
 uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
@@ -2853,6 +2853,8 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
+
+	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg_id);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
