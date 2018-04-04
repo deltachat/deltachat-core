@@ -84,7 +84,7 @@ cd builddir
 meson
 # optionally configure some parameters
 # run `meson configure` to see the options, e.g. 
-meson config -Dlibdir=lib
+meson configure -Dlibdir=lib
 ninja
 sudo ninja install
 sudo ldconfig
