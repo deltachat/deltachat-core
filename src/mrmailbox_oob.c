@@ -263,7 +263,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 					qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
 					mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
-					device_msg = mr_mprintf("%s verified via QR code.", peerstate->m_addr);
+					device_msg = mr_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
 					qr_parsed->m_text1 = mr_format_fingerprint(fingerprint);
