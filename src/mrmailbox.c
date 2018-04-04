@@ -758,7 +758,7 @@ void mrmailbox_connect(mrmailbox_t* mailbox)
 		mailbox->m_imap->m_log_connect_errors = 1;
 
 		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
-		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL);
+		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL, 0);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 }
@@ -2190,7 +2190,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
 		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_OOB_VERIFY_MESSAGE ) {
-			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL); /* send message to IMAP in another job */
+			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
@@ -2338,7 +2338,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 	mrmailbox_update_msg_chat_id__(mailbox, msg_id, chat->m_id);
-	mrjob_add__(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
+	mrjob_add__(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
 
 cleanup:
 	free(rfc724_mid);
@@ -4865,7 +4865,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			mrmailbox_update_msg_chat_id__(mailbox, msg_ids[i], MR_CHAT_ID_TRASH);
-			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_delete_msg_on_imap() */
+			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 30); /* results in a call to mrmailbox_delete_msg_on_imap() */
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
@@ -4929,7 +4929,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
 				{
-					mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL); /* results in a call to mrmailbox_send_mdn() */
+					mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL, 0); /* results in a call to mrmailbox_send_mdn() */
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -5023,7 +5023,7 @@ void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int 
 				if( curr_state == MR_STATE_IN_FRESH || curr_state == MR_STATE_IN_NOTICED ) {
 					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_SEEN);
 					mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
-					mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+					mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 					send_event = 1;
 				}
 			}
