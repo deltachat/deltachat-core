@@ -4345,20 +4345,20 @@ int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 
 /* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
-int mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
+uint32_t mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
-		"SELECT server_folder, server_uid FROM msgs WHERE rfc724_mid=?;");
+		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		*ret_server_folder = NULL;
-		*ret_server_uid = 0;
+		if( ret_server_folder ) { *ret_server_folder = NULL; }
+		if( ret_server_uid )    { *ret_server_uid    = 0; }
 		return 0;
 	}
 
-	*ret_server_folder = safe_strdup((char*)sqlite3_column_text(stmt, 0));
-	*ret_server_uid = sqlite3_column_int(stmt, 1); /* may be 0 */
-	return 1;
+	if( ret_server_folder ) { *ret_server_folder = safe_strdup((char*)sqlite3_column_text(stmt, 0)); }
+	if( ret_server_uid )    { *ret_server_uid = sqlite3_column_int(stmt, 1); /* may be 0 */ }
+	return sqlite3_column_int(stmt, 2);
 }
 
 

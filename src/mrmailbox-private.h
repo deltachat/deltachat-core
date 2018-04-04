@@ -118,7 +118,7 @@ void            mrmailbox_set_group_explicitly_left__             (mrmailbox_t*,
 size_t          mrmailbox_get_real_msg_cnt__                      (mrmailbox_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t          mrmailbox_get_deaddrop_msg_cnt__                  (mrmailbox_t*);
 int             mrmailbox_rfc724_mid_cnt__                        (mrmailbox_t*, const char* rfc724_mid);
-int             mrmailbox_rfc724_mid_exists__                     (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
+uint32_t        mrmailbox_rfc724_mid_exists__                     (mrmailbox_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
 void            mrmailbox_update_server_uid__                     (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 void            mrmailbox_update_msg_chat_id__                    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void            mrmailbox_update_msg_state__                      (mrmailbox_t*, uint32_t msg_id, int state);
