@@ -158,6 +158,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 int             mrmailbox_is_securejoin_handshake__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
 void            mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t chat_id); /* must not be called from lock */
 
+#define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
 
 
 #ifdef __cplusplus
