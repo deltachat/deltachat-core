@@ -489,6 +489,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/mrmailbox_internal.h" />
+		<Unit filename="src/mrmailbox_keyhistory.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrmailbox_log.c">
 			<Option compilerVar="CC" />
 		</Unit>

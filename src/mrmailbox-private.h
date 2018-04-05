@@ -154,11 +154,15 @@ int             mrmailbox_alloc_ongoing     (mrmailbox_t*);
 void            mrmailbox_free_ongoing      (mrmailbox_t*);
 
 
-/* private secure-join stuff */
+/* library private: secure-join */
 int             mrmailbox_is_securejoin_handshake__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
 void            mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t chat_id); /* must not be called from lock */
 
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
+
+
+/* library private: key-history */
+void            mrmailbox_add_to_keyhistory(mrmailbox_t*, const char* rfc724_mid, time_t, const char* addr, const char* fingerprint);
 
 
 #ifdef __cplusplus
