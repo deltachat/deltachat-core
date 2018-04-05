@@ -279,11 +279,11 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		{
 			// fingerprint + addr set, secure-join requested
 			// do not comapre the fingerprint already, errors are catched later more proberly.
-			// (theroretically, there is also the state "addr=set, fingerprint=set, do_secure_join=0", however, currently, we won't get into this state)
+			// (theroretically, there is also the state "addr=set, fingerprint=set, random_public=0", however, currently, we won't get into this state)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				qr_parsed->m_state         = MR_QR_FPR_ASK_OOB;
+				qr_parsed->m_state         = MR_QR_ASK_SECUREJOIN;
 				qr_parsed->m_id            = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_random_public = safe_strdup(random_public);
@@ -427,7 +427,7 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 	msg->m_type = MR_MSG_TEXT;
 	msg->m_text = mr_mprintf("Secure-Join: %s", step);
 	msg->m_hidden = 1;
-	mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_OOB_VERIFY_MESSAGE);
+	mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_SECUREJOIN_MESSAGE);
 	mrparam_set    (msg->m_param, MRP_CMD_PARAM, step);
 
 	if( random ) {
@@ -477,7 +477,7 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t chat_id
 
 
 #define         PLEASE_PROVIDE_RANDOM_SECRET 2
-#define         SECURE_JOIN_BROADCAST        4
+#define         SECUREJOIN_BROADCAST         4
 static int      s_bob_expects = 0;
 
 static mrlot_t* s_bobs_qr_scan = NULL; // should be surround eg. by mrsqlite3_lock/unlock
@@ -495,19 +495,19 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
 
 
 /*******************************************************************************
- * OOB verification main flow
+ * Secure-join main flow
  ******************************************************************************/
 
 
 /**
- * Get QR code text that will offer an oob verification.
+ * Get QR code text that will offer an secure-join verification.
  * The QR code is compatible to the OPENPGP4FPR format so that a basic
  * fingerprint comparison also works eg. with K-9 or OpenKeychain.
  *
  * The scanning Delta Chat device will pass the scanned content to
- * mrmailbox_check_qr() then; if this function reutrns
- * MR_QR_FINGERPRINT_ASK_OOB oob-verification can be joined using
- * mrmailbox_oob_join()
+ * mrmailbox_check_qr() then; if this function returns
+ * MR_QR_ASK_SECUREJOIN an out-of-band-verification can be joined using
+ * mrmailbox_join_securejoin()
  *
  * @memberof mrmailbox_t
  *
@@ -515,7 +515,7 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  *
  * @return Text that should go to the qr code.
  */
-char* mrmailbox_oob_get_qr(mrmailbox_t* mailbox)
+char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	/* ==================================
 	   ==== Alice - the inviter side ====
@@ -577,9 +577,9 @@ cleanup:
 
 
 /**
- * Join an OOB-verification initiated on another device with mrmailbox_oob_get_qr().
+ * Join an out-of-band-verification initiated on another device with mrmailbox_get_securejoin_qr().
  * This function is typically called when mrmailbox_check_qr() returns
- * lot.m_state=MR_QR_FINGERPRINT_ASK_OOB
+ * lot.m_state=MR_QR_ASK_SECUREJOIN
  *
  * This function takes some time and sends and receives several messages.
  * You should call it in a separate thread; if you want to abort it, you should
@@ -595,7 +595,7 @@ cleanup:
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.
  */
-int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
+int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 {
 	/* =================================
 	   ==== Bob - the joiner's side ====
@@ -615,7 +615,7 @@ int mrmailbox_oob_join(mrmailbox_t* mailbox, const char* qr)
 		goto cleanup;
 	}
 
-	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_FPR_ASK_OOB ) {
+	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_ASK_SECUREJOIN ) {
 		goto cleanup;
 	}
 
@@ -666,22 +666,22 @@ cleanup:
 
 
 /*
- * mrmailbox_oob_is_handshake_message__() should be called called for each
- * incoming mail. if the mail belongs to an oob-verify handshake, the function
+ * mrmailbox_is_securejoin_handshake__() should be called called for each
+ * incoming mail. if the mail belongs to an secure-join handshake, the function
  * returns 1. The caller should unlock everything, stop normal message
- * processing and call mrmailbox_oob_handle_handshake_message() then.
+ * processing and call mrmailbox_handle_securejoin_handshake() then.
  */
-int mrmailbox_oob_is_handshake_message__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
+int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
 	if( mailbox == NULL || mimeparser == NULL || lookup_field(mimeparser, "Secure-Join") == NULL ) {
 		return 0;
 	}
 
-	return 1; /* processing is continued in mrmailbox_oob_handle_handshake_message() */
+	return 1; /* processing is continued in mrmailbox_handle_securejoin_handshake() */
 }
 
 
-void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
+void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
 {
 	int                   locked = 0;
 	const char*           step   = NULL;
@@ -725,7 +725,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		mrmailbox_log_info(mailbox, 0, "Secure-join requested.");
 
-		mailbox->m_cb(mailbox, MR_EVENT_SECURE_JOIN_REQUESTED, contact_id, 0);
+		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_REQUESTED, contact_id, 0);
 
 		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
 	}
@@ -763,7 +763,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 
-		s_bob_expects = SECURE_JOIN_BROADCAST;
+		s_bob_expects = SECUREJOIN_BROADCAST;
 		send_handshake_msg(mailbox, chat_id, "random-secret", random_secret, own_fingerprint); // Bob -> Alice
 
 		free(own_fingerprint);
@@ -812,7 +812,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 				could_not_establish_secure_connection(mailbox, chat_id, "Random-secret invalid.");
 				goto cleanup;
 			}
-			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECURE_INVITED);
+			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
@@ -828,7 +828,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		   ==== Bob - the joiner's side ====
 		   ================================= */
 
-		if( s_bob_expects != SECURE_JOIN_BROADCAST ) {
+		if( s_bob_expects != SECUREJOIN_BROADCAST ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
@@ -842,7 +842,7 @@ void mrmailbox_oob_handle_handshake_message(mrmailbox_t* mailbox, mrmimeparser_t
 		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECURE_JOINED);
+			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 

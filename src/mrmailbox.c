@@ -2189,7 +2189,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
-		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_OOB_VERIFY_MESSAGE ) {
+		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
 			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 

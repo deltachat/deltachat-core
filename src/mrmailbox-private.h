@@ -128,6 +128,7 @@ void            mrmailbox_send_mdn                                (mrmailbox_t*,
 void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 int             mrmailbox_get_thread_index                        (void);
+uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 
 
 /* library private: end-to-end-encryption */
@@ -153,11 +154,10 @@ int             mrmailbox_alloc_ongoing     (mrmailbox_t*);
 void            mrmailbox_free_ongoing      (mrmailbox_t*);
 
 
-/* private oob-stuff */
-int             mrmailbox_oob_is_handshake_message__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
-void            mrmailbox_oob_handle_handshake_message(mrmailbox_t*, mrmimeparser_t*, uint32_t chat_id); /* must not be called from lock */
+/* private secure-join stuff */
+int             mrmailbox_is_securejoin_handshake__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
+void            mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t chat_id); /* must not be called from lock */
 
-uint32_t        mrmailbox_add_device_msg              (mrmailbox_t*, uint32_t chat_id, const char* text);
 
 
 #ifdef __cplusplus

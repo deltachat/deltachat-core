@@ -1111,7 +1111,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			}
 
 			/* check of the message is a special handshake message; if so, mark it as "seen" here and handle it when done */
-			is_handshake_message = mrmailbox_oob_is_handshake_message__(mailbox, mime_parser);
+			is_handshake_message = mrmailbox_is_securejoin_handshake__(mailbox, mime_parser);
 			if( is_handshake_message ) {
 				hidden = 1;
 				if( state==MR_STATE_IN_FRESH || state==MR_STATE_IN_NOTICED ) {
@@ -1376,7 +1376,7 @@ cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( is_handshake_message ) {
-		mrmailbox_oob_handle_handshake_message(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
+		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
 	}
 
 	mrmimeparser_unref(mime_parser);

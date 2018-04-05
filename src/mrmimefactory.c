@@ -164,7 +164,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				}
 
 				if( command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE
-				 && command!=MR_CMD_OOB_VERIFY_MESSAGE
+				 && command!=MR_CMD_SECUREJOIN_MESSAGE
 				 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
@@ -555,7 +555,7 @@ int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
 			force_unencrypted = 1;
 		}
 
-		if( command == MR_CMD_OOB_VERIFY_MESSAGE ) {
+		if( command == MR_CMD_SECUREJOIN_MESSAGE ) {
 			char* step = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 			if( step ) {
 				mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);

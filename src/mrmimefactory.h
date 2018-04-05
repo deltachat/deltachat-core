@@ -39,7 +39,7 @@ typedef struct _mrmailbox mrmailbox_t;
 #define MR_CMD_MEMBER_ADDED_TO_GROUP       4
 #define MR_CMD_MEMBER_REMOVED_FROM_GROUP   5
 #define MR_CMD_AUTOCRYPT_SETUP_MESSAGE     6
-#define MR_CMD_OOB_VERIFY_MESSAGE          7
+#define MR_CMD_SECUREJOIN_MESSAGE          7
 
 
 typedef enum {

@@ -215,7 +215,7 @@ extern "C" {
 #define MR_EVENT_IMEX_FILE_WRITTEN        2052
 
 
-#define MR_EVENT_SECURE_JOIN_REQUESTED    2060
+#define MR_EVENT_SECUREJOIN_REQUESTED     2060
 
 
 /*******************************************************************************
