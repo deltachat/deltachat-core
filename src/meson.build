@@ -18,7 +18,7 @@ lib_src = [
   'mrmailbox_e2ee.c',
   'mrmailbox_imex.c',
   'mrmailbox_log.c',
-  'mrmailbox_oob.c',
+  'mrmailbox_securejoin.c',
   'mrmailbox_receive_imf.c',
   'mrmimefactory.c',
   'mrmimeparser.c',
