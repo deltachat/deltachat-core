@@ -23,7 +23,7 @@
 #include "mrmailbox_internal.h"
 
 
-void mrmailbox_add_to_keyhistory(mrmailbox_t* mailbox, const char* rfc724_mid, time_t sending_time, const char* addr, const char* fingerprint)
+void mrmailbox_add_to_keyhistory__(mrmailbox_t* mailbox, const char* rfc724_mid, time_t sending_time, const char* addr, const char* fingerprint)
 {
 	// TODO
 }

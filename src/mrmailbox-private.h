@@ -162,7 +162,7 @@ void            mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser
 
 
 /* library private: key-history */
-void            mrmailbox_add_to_keyhistory(mrmailbox_t*, const char* rfc724_mid, time_t, const char* addr, const char* fingerprint);
+void            mrmailbox_add_to_keyhistory__(mrmailbox_t*, const char* rfc724_mid, time_t, const char* addr, const char* fingerprint);
 
 
 #ifdef __cplusplus
