@@ -3,7 +3,7 @@
  *                              Delta Chat Core
  *                      Copyright (C) 2017 Björn Petersen
  *                   Contact: r10s@b44t.com, http://b44t.com
- *                   Contact: schneider17@gmx.com (cs)
+ *                   Contact: schneider17@gmx.de (cs)
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
