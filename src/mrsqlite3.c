@@ -376,7 +376,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified TEXT DEFAULT '';");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified TEXT DEFAULT 0;");
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
