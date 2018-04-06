@@ -259,7 +259,7 @@ int mrcontact_is_blocked(mrcontact_t* contact)
  *
  * @return 1=contact is verified, 0=contact is not verified.
  */
-int mrcontact_is_verfied(mrcontact_t* contact)
+int mrcontact_is_verified(mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;

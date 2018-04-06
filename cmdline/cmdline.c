@@ -347,7 +347,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 		if( (contact=mrmailbox_get_contact(mailbox, contact_id))!=NULL ) {
 			char* name = mrcontact_get_name(contact);
 			char* addr = mrcontact_get_addr(contact);
-			const char* verified = mrcontact_is_verfied(contact)? " √": "";
+			const char* verified = mrcontact_is_verified(contact)? " √": "";
 			line = mr_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified, (addr&&addr[0])? addr : "addr unset");
 			mrsqlite3_lock(mailbox->m_sql);
 				int peerstate_ok = mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
