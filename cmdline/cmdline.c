@@ -704,8 +704,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					char* temp_subtitle = mrchat_get_subtitle(chat);
 					char* temp_name = mrchat_get_name(chat);
-						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]", mrchat_get_type(chat)==MR_CHAT_TYPE_GROUP? "Groupchat" : "Chat",
-							(int)mrchat_get_id(chat), temp_name, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
+					const char* verified = mrchat_is_verified(chat)? " √": "";
+						mrmailbox_log_info(mailbox, 0, "%s#%i: %s%s [%s] [%i fresh]", mrchat_get_type(chat)==MR_CHAT_TYPE_GROUP? "Groupchat" : "Chat",
+							(int)mrchat_get_id(chat), temp_name, verified, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
 					free(temp_subtitle);
 					free(temp_name);
 
