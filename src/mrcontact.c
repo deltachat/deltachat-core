@@ -248,6 +248,27 @@ int mrcontact_is_blocked(mrcontact_t* contact)
 
 
 /**
+ * Check if a contact was verified eg. by a secure-join QR code scan
+ * and if the key has not changed since this verification.
+ *
+ * The UI may draw a checkbox or sth. like that beside verified contacts.
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object.
+ *
+ * @return 1=contact is verified, 0=contact is not verified.
+ */
+int mrcontact_is_verfied(mrcontact_t* contact)
+{
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+		return 0;
+	}
+	return 0; // TODO: store the verified key in the contact database and compare the current peerstate with this key
+}
+
+
+/**
  * Get the first name.
  *
  * In a string, get the part before the first space.
