@@ -264,6 +264,9 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t chat_id
 
 	mrmailbox_add_device_msg(mailbox, chat_id, msg);
 
+	// in addition to MR_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send MR_EVENT_CHAT_MODIFIED to update all views
+	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+
 	free(msg);
 	mrcontact_unref(contact);
 }

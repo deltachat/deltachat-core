@@ -150,7 +150,8 @@ extern "C" {
 
 
 /**
- * Group changed.  The name or the image of a chat group was changed or members were added or removed.
+ * Chat changed.  The name or the image of a chat group was changed or members were added or removed.
+ * Or the verify state of a chat has changed.
  * See mrmailbox_set_chat_name(), mrmailbox_set_chat_profile_image(), mrmailbox_add_contact_to_chat()
  * and mrmailbox_remove_contact_from_chat().
  *
