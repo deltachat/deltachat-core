@@ -51,6 +51,7 @@ struct _mrcontact
 	char*           m_addr;     /**< E-Mail-Address of the contact. It is recommended to use mrcontact_get_addr() to access this field. May be NULL. */
 	int             m_blocked;  /**< Blocked state. Use mrcontact_is_blocked() to access this field. */
 	int             m_origin;   /**< The origin/source of the contact. One of the MR_ORIGIN_* constants. */
+	int             m_verified;
 };
 
 

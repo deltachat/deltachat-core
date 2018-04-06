@@ -179,6 +179,28 @@ cleanup:
 }
 
 
+static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint)
+{
+	int             success = 0;
+	mrapeerstate_t* peerstate = mrapeerstate_new();
+
+	if( !mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
+		goto cleanup;
+	}
+
+	if( !mrapeerstate_set_verified(peerstate, fingerprint) ) {
+		goto cleanup;
+	}
+
+	mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+	success = 1;
+
+cleanup:
+	mrapeerstate_unref(peerstate);
+	return success;
+}
+
+
 static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 {
 	const char* value = NULL;
@@ -308,7 +330,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
-	// random_public will be used to allow starting the handshake, random_secret will be used to validate the fingerprint
+	// random_public will be used to allow starting the handshake, random_secret will be used to verify the fingerprint
 	random_public = mr_create_id();
 	random_secret = mr_create_id();
 
@@ -530,7 +552,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
+		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
 
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 
@@ -565,7 +587,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(mailbox, 0, "Fingerprint validated.");
+		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
 
 		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
 		const char* random_secret = NULL;
@@ -583,11 +605,19 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 				could_not_establish_secure_connection(mailbox, chat_id, "Random-secret invalid.");
 				goto cleanup;
 			}
+
+			if( !mark_peer_as_verified__(mailbox, fingerprint) ) {
+				mrsqlite3_unlock(mailbox->m_sql);
+				locked = 0;
+				could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
+				goto cleanup;
+			}
+
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_log_info(mailbox, 0, "Random secret validated.");
+		mrmailbox_log_info(mailbox, 0, "Random secret verified.");
 
 		secure_connection_established(mailbox, chat_id);
 
@@ -613,6 +643,15 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
+			if( s_bobs_qr_scan == NULL ) {
+				goto cleanup; // no error, just aborted somehow or a mail from another handshake
+			}
+
+			if( !mark_peer_as_verified__(mailbox, s_bobs_qr_scan->m_fingerprint) ) {
+				could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since please-provide-random-secret message
+				goto cleanup;
+			}
+
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;

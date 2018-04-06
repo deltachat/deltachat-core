@@ -264,7 +264,12 @@ int mrcontact_is_verfied(mrcontact_t* contact)
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
 	}
-	return 0; // TODO: store the verified key in the contact database and compare the current peerstate with this key
+
+	if( contact->m_id == MR_CONTACT_ID_SELF ) {
+		return 1; // we're always sort or secured-verified as we could verify the key on this device any time with the key on this device
+	}
+
+	return contact->m_verified;
 }
 
 
@@ -411,7 +416,10 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 	else
 	{
 		stmt = mrsqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
-			"SELECT name, addr, origin, blocked, authname FROM contacts WHERE id=?;");
+			"SELECT c.name, c.addr, c.origin, c.blocked, c.authname, ps.verified "
+			" FROM contacts c "
+			" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
+			" WHERE c.id=?;");
 		sqlite3_bind_int(stmt, 1, contact_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
 			goto cleanup;
@@ -423,6 +431,7 @@ int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contac
 		ths->m_origin           =                    sqlite3_column_int  (stmt, 2);
 		ths->m_blocked          =                    sqlite3_column_int  (stmt, 3);
 		ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 4));
+		ths->m_verified         =                    sqlite3_column_int  (stmt, 5);
 	}
 
 	success = 1;
