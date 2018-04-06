@@ -69,8 +69,8 @@ struct _mrcontact
 #define MR_ORIGIN_INTERNAL                0x40000 /* internal use */
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_MANUALLY_CREATED       0x100000 /* contact added by mrmailbox_create_contact() */
-#define MR_ORIGIN_SECUREJOIN_INVITED    0x1000000 /* set on Alice's side for contacts like Bob that have scanned the QR code offered by her; this state does not mean the currently used key is verified! */
-#define MR_ORIGIN_SECUREJOIN_JOINED     0x2000000 /* set on Bob's side for contacts scanned and verified from a QR code; this state does not mean the currently used key is verified! */
+#define MR_ORIGIN_SECUREJOIN_INVITED    0x1000000 /* set on Alice's side for contacts like Bob that have scanned the QR code offered by her. This state only allows showing incoming messages. (See mrcontact_is_verfied() for verification state.) */
+#define MR_ORIGIN_SECUREJOIN_JOINED     0x2000000 /* set on Bob's side for contacts scanned and verified from a QR code. This state only allows showing incoming messages. (See mrcontact_is_verfied() for verification state.) */
 
 #define MR_ORIGIN_MIN_CONTACT_LIST    (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are shown in the contact list */
 #define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
