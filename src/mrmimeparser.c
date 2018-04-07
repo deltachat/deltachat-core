@@ -1422,7 +1422,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
 	int validation_errors = 0;
-	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, &validation_errors) ) {
+	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, &validation_errors, &ths->m_degrade_event) ) {
 		if( validation_errors == 0 ) {
 			ths->m_decrypted_and_validated = 1;
 		}

@@ -2823,7 +2823,7 @@ cleanup:
 /* similar to mrmailbox_add_device_msg() but without locking and without sending
  * an event.
  */
-uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
+uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, const char* text, time_t timestamp)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -2836,7 +2836,7 @@ uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, cons
 	sqlite3_bind_int  (stmt,  1, chat_id);
 	sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_DEVICE);
 	sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_DEVICE);
-	sqlite3_bind_int64(stmt,  4, mr_create_smeared_timestamp__());
+	sqlite3_bind_int64(stmt,  4, timestamp);
 	sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
 	sqlite3_bind_int  (stmt,  6, MR_STATE_IN_NOTICED);
 	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
@@ -2865,7 +2865,7 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		mrmailbox_add_device_msg__(mailbox, chat_id, text);
+		mrmailbox_add_device_msg__(mailbox, chat_id, text, mr_create_smeared_timestamp__());
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;

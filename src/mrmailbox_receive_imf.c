@@ -276,6 +276,20 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmim
  ******************************************************************************/
 
 
+static uint32_t add_degrade_message__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t timestamp)
+{
+	mrcontact_t* contact = mrcontact_new(mailbox);
+	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
+
+	char* msg = mr_mprintf("Changed setup for %s", contact->m_addr);
+	uint32_t msg_id = mrmailbox_add_device_msg__(mailbox, chat_id, msg, timestamp);
+	free(msg);
+
+	mrcontact_unref(contact);
+	return msg_id;
+}
+
+
 static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
                                         time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
@@ -871,6 +885,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	int              is_handshake_message = 0;
 	char*            txt_raw = NULL;
 
+	uint32_t         degrade_msg_id = 0;
+
 	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
 	to_ids = mrarray_new(mailbox, 16);
@@ -1186,6 +1202,10 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 
+			if( mime_parser->m_degrade_event ) {
+				degrade_msg_id = add_degrade_message__(mailbox, chat_id, from_id, sort_timestamp);
+			}
+
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
 			and add them to the database (mails sent by other messenger clients should result
 			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
@@ -1377,6 +1397,9 @@ cleanup:
 
 	if( is_handshake_message ) {
 		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
+	}
+	else if( mime_parser->m_degrade_event ) {
+		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
 	}
 
 	mrmimeparser_unref(mime_parser);

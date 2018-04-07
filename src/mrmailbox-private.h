@@ -129,6 +129,7 @@ void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* 
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 int             mrmailbox_get_thread_index                        (void);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
+uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
 
 
 /* library private: end-to-end-encryption */
@@ -141,7 +142,7 @@ typedef struct mrmailbox_e2ee_helper_t {
 } mrmailbox_e2ee_helper_t;
 
 void            mrmailbox_e2ee_encrypt      (mrmailbox_t*, const clist* recipients_addr, int e2ee_guaranteed, int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*);
-int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors); /* returns 1 if sth. was decrypted, 0 in other cases */
+int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors, int* ret_degrade_event); /* returns 1 if sth. was decrypted, 0 in other cases */
 void            mrmailbox_e2ee_thanks       (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
 int             mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
 char*           mrmailbox_create_setup_code (mrmailbox_t*);
