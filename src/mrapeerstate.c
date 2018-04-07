@@ -59,6 +59,8 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 		mrkey_unref(ths->m_gossip_key);
 		ths->m_gossip_key = NULL;
 	}
+
+	ths->m_degrade_event = 0;
 }
 
 
@@ -353,11 +355,13 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 		return 0;
 	}
 
+	if( ths->m_prefer_encrypt == MRA_PE_MUTUAL ) {
+		ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
+	}
+
 	ths->m_prefer_encrypt = MRA_PE_RESET;
 	ths->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
 	ths->m_to_save        = MRA_SAVE_ALL;
-
-	// TODO: this should be notified in the corresponding chat
 
 	return 1;
 }
@@ -381,10 +385,12 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 		if( (header->m_prefer_encrypt==MRA_PE_MUTUAL || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE) /*this also switches from MRA_PE_RESET to MRA_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
 		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
 		{
+			if( ths->m_prefer_encrypt == MRA_PE_MUTUAL && header->m_prefer_encrypt != MRA_PE_MUTUAL ) {
+				ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
+			}
+
 			ths->m_prefer_encrypt = header->m_prefer_encrypt;
 			ths->m_to_save |= MRA_SAVE_ALL;
-
-			// TODO: if encryption degrades, this should be notified in the corresponding chat
 		}
 
 		if( ths->m_public_key == NULL ) {
@@ -396,8 +402,6 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
 			mrapeerstate_recalc_fingerprint(ths);
 			ths->m_to_save |= MRA_SAVE_ALL;
-
-			// TODO: this should be notified in the corresponding chat
 		}
 	}
 }
@@ -468,7 +472,7 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		peerstate->m_to_save  |= MRA_SAVE_ALL;
 		peerstate->m_verified = 0;
 
-		// TODO: this should be notified in the corresponding chat
+		peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
 	}
 
 	success = 1;

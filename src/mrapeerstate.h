@@ -62,6 +62,11 @@ typedef struct mrapeerstate_t
 	#define        MRA_SAVE_TIMESTAMPS 0x01
 	#define        MRA_SAVE_ALL        0x02
 	int            m_to_save;
+
+	#define        MRA_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail
+	#define        MRA_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
+	int            m_degrade_event;
+
 } mrapeerstate_t;
 
 
