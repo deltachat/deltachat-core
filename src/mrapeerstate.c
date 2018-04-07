@@ -502,9 +502,10 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 		goto cleanup;
 	}
 
-	peerstate->m_to_save   |= MRA_SAVE_ALL;
-	peerstate->m_verified = 1;
-	verified = 1;
+	peerstate->m_to_save        |= MRA_SAVE_ALL;
+	peerstate->m_prefer_encrypt =  MRA_PE_MUTUAL;
+	peerstate->m_verified       = 1;
+	verified                    = 1;
 
 cleanup:
 	return verified;
