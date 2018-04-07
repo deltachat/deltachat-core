@@ -356,6 +356,9 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 	ths->m_prefer_encrypt = MRA_PE_RESET;
 	ths->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
 	ths->m_to_save        = MRA_SAVE_ALL;
+
+	// TODO: this should be notified in the corresponding chat
+
 	return 1;
 }
 
@@ -380,6 +383,8 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 		{
 			ths->m_prefer_encrypt = header->m_prefer_encrypt;
 			ths->m_to_save |= MRA_SAVE_ALL;
+
+			// TODO: if encryption degrades, this should be notified in the corresponding chat
 		}
 
 		if( ths->m_public_key == NULL ) {
@@ -391,6 +396,8 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
 			mrapeerstate_recalc_fingerprint(ths);
 			ths->m_to_save |= MRA_SAVE_ALL;
+
+			// TODO: this should be notified in the corresponding chat
 		}
 	}
 }
@@ -460,6 +467,8 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 	{
 		peerstate->m_to_save  |= MRA_SAVE_ALL;
 		peerstate->m_verified = 0;
+
+		// TODO: this should be notified in the corresponding chat
 	}
 
 	success = 1;
