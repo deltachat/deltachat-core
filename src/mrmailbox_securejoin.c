@@ -145,7 +145,7 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 	int             fingerprint_equal      = 0;
 	int             locked                 = 0;
 	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, chat_id);
-	mrcontact_t*    contact                = mrcontact_new();
+	mrcontact_t*    contact                = mrcontact_new(mailbox);
 	mrapeerstate_t* peerstate              = mrapeerstate_new();
 	char*           fingerprint_normalized = NULL;
 

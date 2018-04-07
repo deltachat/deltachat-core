@@ -35,7 +35,7 @@
  *
  * @return The contact object. Must be freed using mrcontact_unref() when done.
  */
-mrcontact_t* mrcontact_new()
+mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 {
 	mrcontact_t* ths = NULL;
 
@@ -43,7 +43,8 @@ mrcontact_t* mrcontact_new()
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic = MR_CONTACT_MAGIC;
+	ths->m_magic   = MR_CONTACT_MAGIC;
+	ths->m_mailbox = mailbox;
 
 	return ths;
 }

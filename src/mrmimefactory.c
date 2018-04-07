@@ -239,7 +239,7 @@ cleanup:
 int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
 {
 	int           success = 0, locked = 0;
-	mrcontact_t*  contact = mrcontact_new();
+	mrcontact_t*  contact = mrcontact_new(factory->m_mailbox);
 
 	if( factory == NULL ) {
 		goto cleanup;

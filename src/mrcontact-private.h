@@ -36,6 +36,7 @@ struct _mrcontact
 	/** @privatesection */
 
 	uint32_t        m_magic;
+	mrmailbox_t*    m_mailbox;
 
 	/**
 	 * The contact ID.

@@ -41,7 +41,7 @@ typedef struct _mrcontact mrcontact_t;
 #define         MR_CONTACT_ID_LAST_SPECIAL 9
 
 
-mrcontact_t* mrcontact_new                    (); /* the returned pointer is ref'd and must be unref'd after usage */
+mrcontact_t* mrcontact_new                    (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
 void         mrcontact_empty                  (mrcontact_t*);
 void         mrcontact_unref                  (mrcontact_t*);
 

@@ -3567,7 +3567,7 @@ void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_i
 int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int          is_blocked = 0;
-	mrcontact_t* contact = mrcontact_new();
+	mrcontact_t* contact = mrcontact_new(mailbox);
 
 	if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		if( contact->m_blocked ) {
@@ -3584,7 +3584,7 @@ int mrmailbox_get_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, in
 {
 	int          ret = 0;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
-	mrcontact_t* contact = mrcontact_new();
+	mrcontact_t* contact = mrcontact_new(mailbox);
 
 	*ret_blocked = 0;
 
@@ -3891,7 +3891,7 @@ cleanup:
  */
 mrcontact_t* mrmailbox_get_contact(mrmailbox_t* mailbox, uint32_t contact_id)
 {
-	mrcontact_t* ret = mrcontact_new();
+	mrcontact_t* ret = mrcontact_new(mailbox);
 
 	mrsqlite3_lock(mailbox->m_sql);
 
@@ -3981,7 +3981,7 @@ void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
 void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_blocking)
 {
 	int locked = 0, send_event = 0, transaction_pending = 0;
-	mrcontact_t*  contact = mrcontact_new();
+	mrcontact_t*  contact = mrcontact_new(mailbox);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
@@ -4069,7 +4069,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	int             e2ee_enabled = 0;
 	int             explain_id = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
-	mrcontact_t*    contact = mrcontact_new();
+	mrcontact_t*    contact = mrcontact_new(mailbox);
 	mrapeerstate_t* peerstate = mrapeerstate_new();
 	int             peerstate_ok = 0;
 	mrkey_t*        self_key = mrkey_new();
@@ -4250,7 +4250,7 @@ int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, c
 {
 	int addr_are_equal = 0;
 	if( other_addr ) {
-		mrcontact_t* contact = mrcontact_new();
+		mrcontact_t* contact = mrcontact_new(mailbox);
 		if( mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 			if( contact->m_addr ) {
 				if( strcasecmp(contact->m_addr, other_addr)==0 ) {
@@ -4447,7 +4447,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	int            locked = 0;
 	sqlite3_stmt*  stmt;
 	mrmsg_t*       msg = mrmsg_new();
-	mrcontact_t*   contact_from = mrcontact_new();
+	mrcontact_t*   contact_from = mrcontact_new(mailbox);
 	char           *rawtxt = NULL, *p;
 
 	mrstrbuilder_init(&ret, 0);
@@ -4632,7 +4632,7 @@ void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 {
 	mrmsg_t*      msg = mrmsg_new();
 	mrchat_t*     chat = mrchat_new(mailbox);
-	mrcontact_t*  contact = mrcontact_new();
+	mrcontact_t*  contact = mrcontact_new(mailbox);
 	int           locked = 0, transaction_pending = 0;
 	carray*       created_db_entries = carray_new(16);
 	char*         idsstr = NULL, *q3 = NULL;
