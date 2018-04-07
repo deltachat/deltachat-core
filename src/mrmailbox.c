@@ -4070,7 +4070,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	int             explain_id = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
 	mrcontact_t*    contact = mrcontact_new(mailbox);
-	mrapeerstate_t* peerstate = mrapeerstate_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 	int             peerstate_ok = 0;
 	mrkey_t*        self_key = mrkey_new();
 	char*           fingerprint_str_self = NULL;

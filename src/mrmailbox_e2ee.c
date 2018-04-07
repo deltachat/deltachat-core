@@ -364,7 +364,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			clistiter*      iter1;
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
 				const char* recipient_addr = clist_content(iter1);
-				mrapeerstate_t* peerstate = mrapeerstate_new();
+				mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
 				 && mrapeerstate_peek_key(peerstate)
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
@@ -733,7 +733,7 @@ static void update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, 
 					if( mrhash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
 					{
 						/* valid recipient: update peerstate */
-						mrapeerstate_t* peerstate = mrapeerstate_new();
+						mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 						if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
 							mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
 							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
@@ -768,7 +768,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	struct mailimf_fields* imffields = mailmime_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
 	mraheader_t*           autocryptheader = NULL;
 	time_t                 message_time = 0;
-	mrapeerstate_t*        peerstate = mrapeerstate_new();
+	mrapeerstate_t*        peerstate = mrapeerstate_new(mailbox);
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	mrkeyring_t*           private_keyring = mrkeyring_new();

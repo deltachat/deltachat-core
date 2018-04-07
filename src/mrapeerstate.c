@@ -203,13 +203,15 @@ cleanup:
  ******************************************************************************/
 
 
-mrapeerstate_t* mrapeerstate_new()
+mrapeerstate_t* mrapeerstate_new(mrmailbox_t* mailbox)
 {
 	mrapeerstate_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrapeerstate_t)))==NULL ) {
 		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
+
+	ths->m_mailbox = mailbox;
 
 	return ths;
 }

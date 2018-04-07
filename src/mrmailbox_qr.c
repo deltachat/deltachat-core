@@ -53,7 +53,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	char*           name          = NULL;
 	char*           random_public = NULL;
 	char*           random_secret = NULL;
-	mrapeerstate_t* peerstate     = mrapeerstate_new();
+	mrapeerstate_t* peerstate     = mrapeerstate_new(mailbox);
 	mrlot_t*        qr_parsed     = mrlot_new();
 	uint32_t        chat_id       = 0;
 	char*           device_msg    = NULL;

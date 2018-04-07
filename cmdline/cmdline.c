@@ -139,7 +139,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	/* mainly for testing: if the partner does not support Autocrypt,
 	encryption is disabled as soon as the first messages comes from the partner */
 	mraheader_t*    header = mraheader_new();
-	mrapeerstate_t* peerstate = mrapeerstate_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 	int             locked = 0, success = 0;
 
 	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
@@ -338,7 +338,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 {
 	int             i, cnt = mrarray_get_cnt(contacts);
 	mrcontact_t*    contact = NULL;
-	mrapeerstate_t* peerstate = mrapeerstate_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 
 	for( i = 0; i < cnt; i++ ) {
 		uint32_t contact_id = mrarray_get_id(contacts, i);

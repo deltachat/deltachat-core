@@ -358,7 +358,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 				/* init fingerprint column */
 				sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths, "SELECT addr FROM acpeerstates;");
 					while( sqlite3_step(stmt) == SQLITE_ROW ) {
-						mrapeerstate_t* peerstate = mrapeerstate_new();
+						mrapeerstate_t* peerstate = mrapeerstate_new(ths->m_mailbox);
 							if( mrapeerstate_load_by_addr__(peerstate, ths, (const char*)sqlite3_column_text(stmt, 0))
 							 && mrapeerstate_recalc_fingerprint(peerstate) ) {
 								mrapeerstate_save_to_db__(peerstate, ths, 0/*don't create*/);

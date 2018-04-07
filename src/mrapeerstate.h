@@ -44,6 +44,8 @@ typedef struct mraheader_t mraheader_t;
 typedef struct mrapeerstate_t
 {
 	/** @privatesection */
+	mrmailbox_t*   m_mailbox;
+
 	char*          m_addr;
 	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
 
@@ -63,7 +65,7 @@ typedef struct mrapeerstate_t
 } mrapeerstate_t;
 
 
-mrapeerstate_t* mrapeerstate_new                  (); /* the returned pointer is ref'd and must be unref'd after usage */
+mrapeerstate_t* mrapeerstate_new                  (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
 void            mrapeerstate_unref                (mrapeerstate_t*);
 
 int             mrapeerstate_init_from_header     (mrapeerstate_t*, const mraheader_t*, time_t message_time);

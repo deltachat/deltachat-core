@@ -266,7 +266,7 @@ int mrcontact_is_verified(mrcontact_t* contact)
 	// if you change the algorithm here, you may also want to adapt mrchat_is_verfied()
 
 	int             contact_verified = 0;
-	mrapeerstate_t* peerstate        = mrapeerstate_new();
+	mrapeerstate_t* peerstate        = mrapeerstate_new(contact->m_mailbox);
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;

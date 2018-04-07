@@ -146,7 +146,7 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 	int             locked                 = 0;
 	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, chat_id);
 	mrcontact_t*    contact                = mrcontact_new(mailbox);
-	mrapeerstate_t* peerstate              = mrapeerstate_new();
+	mrapeerstate_t* peerstate              = mrapeerstate_new(mailbox);
 	char*           fingerprint_normalized = NULL;
 
 	if( mrarray_get_cnt(contacts) != 1 ) {
@@ -182,7 +182,7 @@ cleanup:
 static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint)
 {
 	int             success = 0;
-	mrapeerstate_t* peerstate = mrapeerstate_new();
+	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 
 	if( !mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
 		goto cleanup;
