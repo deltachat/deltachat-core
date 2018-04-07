@@ -2820,6 +2820,34 @@ cleanup:
 }
 
 
+/* similar to mrmailbox_add_device_msg() but without locking and without sending
+ * an event.
+ */
+uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
+{
+	sqlite3_stmt* stmt = NULL;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || text == NULL ) {
+		return 0;
+	}
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_cftttst,
+		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
+	sqlite3_bind_int  (stmt,  1, chat_id);
+	sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_DEVICE);
+	sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_DEVICE);
+	sqlite3_bind_int64(stmt,  4, mr_create_smeared_timestamp__());
+	sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
+	sqlite3_bind_int  (stmt,  6, MR_STATE_IN_NOTICED);
+	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		return 0;
+	}
+
+	return sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+}
+
+
 /*
  * Log a device message.
  * Such a message is typically shown in the "middle" of the chat, the user can check this using mrmsg_is_info().
@@ -2829,7 +2857,6 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 {
 	uint32_t      msg_id = 0;
 	int           locked = 0;
-	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || text == NULL ) {
 		goto cleanup;
@@ -2838,21 +2865,7 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_cftttst,
-			"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
-		sqlite3_bind_int  (stmt,  1, chat_id);
-		sqlite3_bind_int  (stmt,  2, MR_CONTACT_ID_DEVICE);
-		sqlite3_bind_int  (stmt,  3, MR_CONTACT_ID_DEVICE);
-		sqlite3_bind_int64(stmt,  4, mr_create_smeared_timestamp__());
-		sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
-		sqlite3_bind_int  (stmt,  6, MR_STATE_IN_NOTICED);
-		sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot add device message to database.");
-			goto cleanup;
-		}
-
-		msg_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
+		mrmailbox_add_device_msg__(mailbox, chat_id, text);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
