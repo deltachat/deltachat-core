@@ -319,7 +319,7 @@ cleanup:
 
 void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
-                    int encrypt_to_self, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
+                    struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	mraheader_t*           autocryptheader = mraheader_new();
