@@ -318,6 +318,7 @@ cleanup:
 
 
 void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
+                    int force_unencrypted,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
@@ -385,6 +386,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			if( !mrkey_load_self_private__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
 				do_encrypt = 0;
 			}
+		}
+
+		if( force_unencrypted ) {
+			do_encrypt = 0;
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);

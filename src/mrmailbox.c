@@ -2270,8 +2270,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int do_guarantee_e2ee = 0;
-	int command = mrparam_get_int(msg->m_param, MRP_CMD, 0);
-	if( mailbox->m_e2ee_enabled && command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE )
+	if( mailbox->m_e2ee_enabled && mrparam_get_int(msg->m_param, MRP_FORCE_UNENCRYPTED, 0)==0 )
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
@@ -4679,6 +4678,7 @@ void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 
 			mrparam_set_int(msg->m_param, MRP_FORWARDED, 1);
 			mrparam_set    (msg->m_param, MRP_GUARANTEE_E2EE, NULL);
+			mrparam_set    (msg->m_param, MRP_FORCE_UNENCRYPTED, NULL);
 
 			uint32_t new_msg_id = mrmailbox_send_msg_i__(mailbox, chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);

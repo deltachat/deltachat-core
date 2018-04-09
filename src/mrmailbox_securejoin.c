@@ -231,7 +231,10 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
 	}
 
-	if( strcmp(step, "request") != 0 ) {
+	if( strcmp(step, "request") == 0 ) {
+		mrparam_set_int(msg->m_param, MRP_FORCE_UNENCRYPTED, 1); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
+	}
+	else {
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
