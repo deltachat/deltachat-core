@@ -472,7 +472,9 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		peerstate->m_to_save  |= MRA_SAVE_ALL;
 		peerstate->m_verified = 0;
 
-		peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
+		if( old_fingerprint && old_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
+			peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
+		}
 	}
 
 	success = 1;
