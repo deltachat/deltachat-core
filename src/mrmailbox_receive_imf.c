@@ -1400,6 +1400,7 @@ cleanup:
 	}
 	else if( mime_parser->m_degrade_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
+		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
 
 	mrmimeparser_unref(mime_parser);
