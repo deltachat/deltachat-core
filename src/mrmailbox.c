@@ -2075,7 +2075,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
-	if( !mrmimefactory_render(&mimefactory, 1/*encrypt to self*/) ) {
+	if( !mrmimefactory_render(&mimefactory) ) {
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
@@ -2144,7 +2144,7 @@ void mrmailbox_send_msg_to_smtp(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(mimefactory.m_recipients_addr) > 0 ) {
-		if( !mrmimefactory_render(&mimefactory, 0/*encrypt_to_self*/) ) {
+		if( !mrmimefactory_render(&mimefactory) ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
 			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -5172,7 +5172,7 @@ void mrmailbox_send_mdn(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
     if( !mrmimefactory_load_mdn(&mimefactory, job->m_foreign_id)
-     || !mrmimefactory_render(&mimefactory, 0/*encrypt to self*/) ) {
+     || !mrmimefactory_render(&mimefactory) ) {
 		goto cleanup;
     }
 

@@ -432,7 +432,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 }
 
 
-int mrmimefactory_render(mrmimefactory_t* factory, int encrypt_to_self)
+int mrmimefactory_render(mrmimefactory_t* factory)
 {
 	if( factory == NULL
 	 || factory->m_loaded == MR_MF_NOTHING_LOADED
