@@ -77,6 +77,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_AC_SETUP_MSG_SUBJECT:  return safe_strdup("Autocrypt Setup Message");
 		case MR_STR_AC_SETUP_MSG_BODY:     return safe_strdup("This is the Autocrypt Setup Message used to transfer your key between clients.\n\nTo decrypt and use your key, open the message in an Autocrypt-compliant client and enter the setup code presented on the generating device.");
 		case MR_STR_SELFTALK_SUBTITLE:     return safe_strdup("Messages I sent to myself");
+		case MR_STR_CANTDECRYPT_MSG_BODY:  return safe_strdup("The messsage was encrypted to a different setup.\n\nSend any message to the contact to share your new setup; eg. ask the contact to send the message again.");
 	}
 	return safe_strdup("ErrStr");
 }

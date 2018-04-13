@@ -59,6 +59,7 @@ extern "C" {
 #define MR_STR_ENCR_E2E                   25
 #define MR_STR_ENCR_TRANSP                27
 #define MR_STR_ENCR_NONE                  28
+#define MR_STR_CANTDECRYPT_MSG_BODY       29
 #define MR_STR_FINGERPRINTS               30
 #define MR_STR_READRCPT                   31
 #define MR_STR_READRCPT_MAILBODY          32
