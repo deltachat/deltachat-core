@@ -259,12 +259,15 @@ int mrcontact_is_blocked(mrcontact_t* contact)
  *
  * @param contact The contact object.
  *
- * @return 1=contact is verified, 0=contact is not verified.
+ * @return 0=contact is not verified.
+ *    1=SELF has verified the fingerprint of the contact, it is not clear if the
+ *    contact has verified the fingerprint of SELF; in the UI typically
+ *    one checkmark is shown.
+ *    2=secure join - SELF and contact have verified their fingerprints in both
+ *    directions; in the UI typically two checkmarks are shown.
  */
 int mrcontact_is_verified(mrcontact_t* contact)
 {
-	// if you change the algorithm here, you may also want to adapt mrchat_is_verfied()
-
 	int             contact_verified = 0;
 	mrapeerstate_t* peerstate        = mrapeerstate_new(contact->m_mailbox);
 
@@ -273,7 +276,7 @@ int mrcontact_is_verified(mrcontact_t* contact)
 	}
 
 	if( contact->m_id == MR_CONTACT_ID_SELF ) {
-		contact_verified = 1;
+		contact_verified = 2;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
@@ -281,11 +284,7 @@ int mrcontact_is_verified(mrcontact_t* contact)
 		goto cleanup;
 	}
 
-	if( peerstate->m_verified==0 || peerstate->m_prefer_encrypt!=MRA_PE_MUTUAL ) {
-		goto cleanup;
-	}
-
-	contact_verified = 1;
+	contact_verified = peerstate->m_verified;
 
 cleanup:
 	mrapeerstate_unref(peerstate);
