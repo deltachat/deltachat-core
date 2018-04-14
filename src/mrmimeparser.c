@@ -1235,7 +1235,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					{
 						mrmimepart_t* part = mrmimepart_new();
 						part->m_type = MR_MSG_TEXT;
-						part->m_msg = mrstock_str(MR_STR_ENCRYPTEDMSG); /* not sure if the text "Encrypted message" is 100% sufficient here (bp) */
+						part->m_msg = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
 						carray_add(ths->m_parts, (void*)part, NULL);
 						any_part_added = 1;
 						ths->m_decrypting_failed = 1;
