@@ -359,7 +359,7 @@ void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 	/* Function unwraps the given string and removes unnecessary whitespace.
 	Function stops processing after approx_characters are processed.
 	(as we're using UTF-8, for simplicity, we cut the string only at whitespaces). */
-	const char* ellipse_utf8 = do_unwrap? " ..." : " " MR_ELLIPSE_STR; /* a single line is truncated `...` instead of `[...]` (the former is typically also used by the UI to fit strings in a rectangle) */
+	const char* ellipse_utf8 = do_unwrap? " ..." : " " MR_EDITORIAL_ELLIPSE; /* a single line is truncated `...` instead of `[...]` (the former is typically also used by the UI to fit strings in a rectangle) */
 	int lastIsCharacter = 0;
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	while( *p1 ) {
@@ -399,7 +399,7 @@ void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 
 void mr_truncate_str(char* buf, int approx_chars)
 {
-	if( approx_chars > 0 && strlen(buf) > approx_chars+strlen(MR_ELLIPSE_STR) )
+	if( approx_chars > 0 && strlen(buf) > approx_chars+strlen(MR_EDITORIAL_ELLIPSE) )
 	{
 		char* p = &buf[approx_chars]; /* null-terminate string at the desired length */
 		*p = 0;
@@ -411,7 +411,7 @@ void mr_truncate_str(char* buf, int approx_chars)
 			}
 		}
 
-		strcat(p, MR_ELLIPSE_STR);
+		strcat(p, MR_EDITORIAL_ELLIPSE);
 	}
 }
 

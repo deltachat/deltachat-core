@@ -1235,7 +1235,11 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					{
 						mrmimepart_t* part = mrmimepart_new();
 						part->m_type = MR_MSG_TEXT;
-						part->m_msg = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
+
+						char* msg_body = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
+						part->m_msg = mr_mprintf(MR_EDITORIAL_OPEN "%s" MR_EDITORIAL_CLOSE, msg_body);
+						free(msg_body);
+
 						carray_add(ths->m_parts, (void*)part, NULL);
 						any_part_added = 1;
 						ths->m_decrypting_failed = 1;

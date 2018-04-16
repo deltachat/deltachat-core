@@ -288,7 +288,7 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		str = strdup("this is a little test string");
 			mr_truncate_str(str, 16);
-			assert( strcmp(str, "this is a " MR_ELLIPSE_STR)==0 );
+			assert( strcmp(str, "this is a " MR_EDITORIAL_ELLIPSE)==0 );
 		free(str);
 
 		str = strdup("1234");
