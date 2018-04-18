@@ -862,7 +862,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	mrmailbox_log_info(mailbox, 0, "Chatlist created in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	mrmailbox_log_info(mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query?query:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	if( success ) {
 		return obj;
