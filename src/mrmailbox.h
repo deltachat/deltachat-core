@@ -278,7 +278,10 @@ mrmsg_t*        mrmailbox_get_msg           (mrmailbox_t*, uint32_t msg_id);
 /* Handle contacts */
 uint32_t        mrmailbox_create_contact    (mrmailbox_t*, const char* name, const char* addr);
 int             mrmailbox_add_address_book  (mrmailbox_t*, const char*);
-mrarray_t*      mrmailbox_get_known_contacts (mrmailbox_t*, const char* query);
+
+#define         MR_GCL_VERIFIED_ONLY 0x01
+mrarray_t*      mrmailbox_get_contacts      (mrmailbox_t*, uint32_t flags, const char* query);
+
 int             mrmailbox_get_blocked_count (mrmailbox_t*);
 mrarray_t*      mrmailbox_get_blocked_contacts (mrmailbox_t*);
 void            mrmailbox_block_contact     (mrmailbox_t*, uint32_t contact_id, int block);

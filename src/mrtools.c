@@ -179,6 +179,10 @@ int mr_str_replace(char** haystack, const char* needle, const char* replacement)
 int mr_str_contains(const char* haystack, const const char* needle)
 {
 	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
+	if( haystack==NULL || needle == NULL ) {
+		return 0;
+	}
+
 	if( strstr(haystack, needle)!=NULL ) {
 		return 1;
 	}

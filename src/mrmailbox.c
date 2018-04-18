@@ -830,8 +830,8 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
  *       chats
  *     - if the flag MR_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
  *       to the list (may be used eg. for selecting chats on forwarding, the flag is
- *      F not needed when MR_GCL_ARCHIVED_ONLY is already set)
-
+ *       not needed when MR_GCL_ARCHIVED_ONLY is already set)
+ *
  * @param query An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
  *
@@ -3729,13 +3729,17 @@ cleanup:
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
+ * @param listflags A combination of flags:
+ *     - if the flag MR_GCL_VERIFIED_ONLY is set, only verified contacts are returned.
+ *       if MR_GCL_VERIFIED_ONLY is not set, verified and unverified contacts are returned.
+ *
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
  *
  * @return An array containing all contact IDs.  Must be mrarray_unref()'d
  *     after usage.
  */
-mrarray_t* mrmailbox_get_known_contacts(mrmailbox_t* mailbox, const char* query)
+mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, const char* query)
 {
 	int           locked = 0;
 	char*         self_addr = NULL;
@@ -3882,7 +3886,7 @@ cleanup:
 
 
 /**
- * Get a single contact object.  For a list, see eg. mrmailbox_get_known_contacts().
+ * Get a single contact object.  For a list, see eg. mrmailbox_get_contacts().
  *
  * For contact MR_CONTACT_ID_SELF (1), the function returns the name
  * MR_STR_SELF (typically "Me" in the selected language) and the email address

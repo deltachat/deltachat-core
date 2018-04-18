@@ -63,7 +63,7 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
  *
  * @memberof mrarray_t
  *
- * @param array The array object to free, created eg. by mrmailbox_get_chatlist(), mrmailbox_get_known_contacts() and so on.
+ * @param array The array object to free, created eg. by mrmailbox_get_chatlist(), mrmailbox_get_contacts() and so on.
  *
  * @return None.
  *

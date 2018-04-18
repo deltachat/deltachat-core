@@ -1110,7 +1110,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 )
 	{
-		mrarray_t* contacts = mrmailbox_get_known_contacts(mailbox, arg1);
+		mrarray_t* contacts = mrmailbox_get_contacts(mailbox, 0, arg1);
 		if( contacts ) {
 			log_contactlist(mailbox, contacts);
 			ret = mr_mprintf("%i contacts.", (int)mrarray_get_cnt(contacts));
