@@ -260,11 +260,8 @@ int mrcontact_is_blocked(mrcontact_t* contact)
  * @param contact The contact object.
  *
  * @return 0=contact is not verified.
- *    1=SELF has verified the fingerprint of the contact, it is not clear if the
- *    contact has verified the fingerprint of SELF; in the UI typically
- *    one checkmark is shown.
- *    2=secure join - SELF and contact have verified their fingerprints in both
- *    directions; in the UI typically two checkmarks are shown.
+ *    2=SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
+ *    1=SELF has verified the contact but not the other way round.
  */
 int mrcontact_is_verified(mrcontact_t* contact)
 {

@@ -496,6 +496,7 @@ cleanup:
  *
  * @param peerstate The peerstate object.
  * @param fingerprint Fingerprint expected in the object
+ * @param verified 1=we verified the contact, 2=contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call mrapeerstate_save_to_db__()
@@ -503,11 +504,11 @@ cleanup:
  *     0=the given fingerprint is not eqial to the peer's fingerprint,
  *     verified-state not changed.
  */
-int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint)
+int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint, int verified)
 {
-	int verified = 0;
+	int success = 0;
 
-	if( peerstate == NULL || fingerprint == NULL ) {
+	if( peerstate == NULL || fingerprint == NULL || verified<1 || verified>2 ) {
 		goto cleanup;
 	}
 
@@ -521,9 +522,9 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 
 	peerstate->m_to_save        |= MRA_SAVE_ALL;
 	peerstate->m_prefer_encrypt =  MRA_PE_MUTUAL;
-	peerstate->m_verified       = 1;
-	verified                    = 1;
+	peerstate->m_verified       = verified;
+	success                     = 1;
 
 cleanup:
-	return verified;
+	return success;
 }

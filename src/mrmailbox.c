@@ -3759,22 +3759,26 @@ mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, cons
 
 		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", ""); /* we add MR_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
 
-		if( query )
+		if( (listflags&MR_GCL_VERIFIED_ONLY) || query )
 		{
-			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query))==NULL ) {
+			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query? query : ""))==NULL ) {
 				goto cleanup;
 			}
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
-				"SELECT id FROM contacts"
-					" WHERE addr!=? AND id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0 AND (name LIKE ? OR addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
-					" ORDER BY LOWER(name||addr),id;");
+				"SELECT c.id FROM contacts c"
+					" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
+					" WHERE c.addr!=? AND c.id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
+					" AND (ps.verified=2 OR 1=0) "
+					" ORDER BY LOWER(c.name||c.addr),c.id;");
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
+			//sqlite3_bind_int (stmt, 4, (listflags&MR_GCL_VERIFIED_ONLY)? 2 : 0);
+			//sqlite3_bind_int (stmt, 5, (listflags&MR_GCL_VERIFIED_ONLY)? 0 : 1/*force statement being always true*/);
 
 			self_name  = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 			self_name2 = mrstock_str(MR_STR_SELF);
-			if( mr_str_contains(self_addr, query) || mr_str_contains(self_name, query) || mr_str_contains(self_name2, query) ) {
+			if( query==NULL || mr_str_contains(self_addr, query) || mr_str_contains(self_name, query) || mr_str_contains(self_name2, query) ) {
 				add_self = 1;
 			}
 		}

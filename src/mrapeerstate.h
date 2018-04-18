@@ -87,7 +87,7 @@ mrkey_t*        mrapeerstate_peek_key             (const mrapeerstate_t*);
 
 int             mrapeerstate_recalc_fingerprint   (mrapeerstate_t*);
 
-int             mrapeerstate_set_verified         (mrapeerstate_t*, const char* fingerprint);
+int             mrapeerstate_set_verified         (mrapeerstate_t*, const char* fingerprint, int verfied);
 
 int             mrapeerstate_load_by_addr__       (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
 int             mrapeerstate_load_by_fingerprint__(mrapeerstate_t*, mrsqlite3_t*, const char* fingerprint);
