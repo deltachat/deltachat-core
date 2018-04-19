@@ -1255,10 +1255,11 @@ cleanup:
  * - for the deaddrop, all contacts are returned, MR_CONTACT_ID_SELF is not
  *   added
  *
+ * To get all chats shared with a given contact, use mrmailbox_get_contacts_chats()
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
- *
  * @param chat_id Chat ID to get the belonging contact IDs for.
  *
  * @return an array of contact IDs belonging to the chat; must be freed using mrarray_unref() when done.
@@ -1282,12 +1283,51 @@ mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c_ORDER_BY,
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY,
 			"SELECT cc.contact_id FROM chats_contacts cc"
 				" LEFT JOIN contacts c ON c.id=cc.contact_id"
 				" WHERE cc.chat_id=?"
 				" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
 		sqlite3_bind_int(stmt, 1, chat_id);
+
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
+		}
+
+cleanup:
+	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	return ret;
+}
+
+
+/**
+ * Get all chats shared with a given contact.
+ * See also mrmailbox_get_chat_contacts().
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param contact_id Contact ID to get the shared chat IDs for.
+ *
+ * @return an array of chat IDs shared with the contact; must be freed using mrarray_unref() when done.
+ */
+mrarray_t* mrmailbox_get_contacts_chats(mrmailbox_t* mailbox, uint32_t contact_id)
+{
+	int           locked = 0;
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
+	sqlite3_stmt* stmt;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(mailbox->m_sql);
+	locked = 1;
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_chat_id_FROM_chats_contacts_WHERE_contact_id_ORDER_BY,
+			"SELECT cc.chat_id FROM chats_contacts cc"
+				" WHERE cc.contact_id=? AND cc.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL));
+		sqlite3_bind_int(stmt, 1, contact_id);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));

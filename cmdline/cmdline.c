@@ -1143,7 +1143,25 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
-			ret = mrmailbox_get_contact_encrinfo(mailbox, contact_id);
+			mrstrbuilder_t strbuilder;
+			mrstrbuilder_init(&strbuilder, 0);
+
+			char* encrinfo = mrmailbox_get_contact_encrinfo(mailbox, contact_id);
+			mrstrbuilder_cat(&strbuilder, encrinfo);
+			free(encrinfo);
+
+			mrarray_t* chat_ids = mrmailbox_get_contacts_chats(mailbox, contact_id);
+			int chat_ids_cnt = mrarray_get_cnt(chat_ids);
+			if( chat_ids_cnt > 0 ) {
+				mrstrbuilder_catf(&strbuilder, "\n\n%i chats shared with Contact#%i: ", chat_ids_cnt, contact_id);
+				for( int i = 0; i < chat_ids_cnt; i++ ) {
+					if( i ) { mrstrbuilder_cat(&strbuilder, ", ");  }
+					mrstrbuilder_catf(&strbuilder, "Chat#%i", mrarray_get_id(chat_ids, i));
+				}
+			}
+			mrarray_unref(chat_ids);
+
+			ret = strbuilder.m_buf;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
