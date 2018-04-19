@@ -694,7 +694,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listchats")==0 || strcmp(cmd, "listarchived")==0 || strcmp(cmd, "chats")==0 )
 	{
 		int listflags = strcmp(cmd, "listarchived")==0? MR_GCL_ARCHIVED_ONLY : 0;
-		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, listflags, arg1);
+		mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, listflags, arg1, 0);
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
@@ -1150,16 +1150,16 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			mrstrbuilder_cat(&strbuilder, encrinfo);
 			free(encrinfo);
 
-			mrarray_t* chat_ids = mrmailbox_get_contacts_chats(mailbox, contact_id);
-			int chat_ids_cnt = mrarray_get_cnt(chat_ids);
-			if( chat_ids_cnt > 0 ) {
-				mrstrbuilder_catf(&strbuilder, "\n\n%i chats shared with Contact#%i: ", chat_ids_cnt, contact_id);
-				for( int i = 0; i < chat_ids_cnt; i++ ) {
+			mrchatlist_t* chatlist = mrmailbox_get_chatlist(mailbox, 0, NULL, contact_id);
+			int chatlist_cnt = mrchatlist_get_cnt(chatlist);
+			if( chatlist_cnt > 0 ) {
+				mrstrbuilder_catf(&strbuilder, "\n\n%i chats shared with Contact#%i: ", chatlist_cnt, contact_id);
+				for( int i = 0; i < chatlist_cnt; i++ ) {
 					if( i ) { mrstrbuilder_cat(&strbuilder, ", ");  }
-					mrstrbuilder_catf(&strbuilder, "Chat#%i", mrarray_get_id(chat_ids, i));
+					mrstrbuilder_catf(&strbuilder, "Chat#%i", mrchatlist_get_chat_id(chatlist, i));
 				}
 			}
-			mrarray_unref(chat_ids);
+			mrchatlist_unref(chatlist);
 
 			ret = strbuilder.m_buf;
 		}

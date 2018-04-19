@@ -832,13 +832,16 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
  *       to the list (may be used eg. for selecting chats on forwarding, the flag is
  *       not needed when MR_GCL_ARCHIVED_ONLY is already set)
  *
- * @param query An optional query for filtering the list.  Only chats matching this query
+ * @param query_str An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
+ *
+ * @param query_str An optional contact ID for filtering the list.  Only chats including this contact ID
+ *     are returned.  Give 0 for no filtering.
  *
  * @return A chatlist as an mrchatlist_t object. Must be freed using
  *     mrchatlist_unref() when no longer used
  */
-mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const char* query)
+mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const char* query_str, uint32_t query_id)
 {
 	clock_t       start = clock();
 
@@ -853,7 +856,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 
-		if( !mrchatlist_load_from_db__(obj, listflags, query) ) {
+		if( !mrchatlist_load_from_db__(obj, listflags, query_str, query_id) ) {
 			goto cleanup;
 		}
 
@@ -862,7 +865,7 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	mrmailbox_log_info(mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query?query:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	mrmailbox_log_info(mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query_str?query_str:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	if( success ) {
 		return obj;
@@ -1255,8 +1258,6 @@ cleanup:
  * - for the deaddrop, all contacts are returned, MR_CONTACT_ID_SELF is not
  *   added
  *
- * To get all chats shared with a given contact, use mrmailbox_get_contacts_chats()
- *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
@@ -1289,45 +1290,6 @@ mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 				" WHERE cc.chat_id=?"
 				" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
 		sqlite3_bind_int(stmt, 1, chat_id);
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	return ret;
-}
-
-
-/**
- * Get all chats shared with a given contact.
- * See also mrmailbox_get_chat_contacts().
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
- * @param contact_id Contact ID to get the shared chat IDs for.
- *
- * @return an array of chat IDs shared with the contact; must be freed using mrarray_unref() when done.
- */
-mrarray_t* mrmailbox_get_contacts_chats(mrmailbox_t* mailbox, uint32_t contact_id)
-{
-	int           locked = 0;
-	mrarray_t*    ret = mrarray_new(mailbox, 100);
-	sqlite3_stmt* stmt;
-
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
-		goto cleanup;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_chat_id_FROM_chats_contacts_WHERE_contact_id_ORDER_BY,
-			"SELECT cc.chat_id FROM chats_contacts cc"
-				" WHERE cc.contact_id=? AND cc.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL));
-		sqlite3_bind_int(stmt, 1, contact_id);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
 			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));

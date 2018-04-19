@@ -304,7 +304,7 @@ mrmailbox_t* mrchatlist_get_mailbox(mrchatlist_t* chatlist)
  *
  * @private @memberof mrchatlist_t
  */
-int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* query__)
+int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	int           success = 0;
 	int           add_archived_link_item = 0;
@@ -324,7 +324,14 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
-	if( listflags & MR_GCL_ARCHIVED_ONLY )
+	if( query_contact_id )
+	{
+		// show chats shared with a given contact
+		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
+			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
+		sqlite3_bind_int(stmt, 1, query_contact_id);
+	}
+	else if( listflags & MR_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
 		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,

@@ -68,6 +68,7 @@ enum
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query
+	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id
 	,SELECT_itndd_FROM_chats_WHERE_i
 	,SELECT_id_FROM_chats_WHERE_id
 	,SELECT_id_FROM_chats_WHERE_contact_id
@@ -89,7 +90,6 @@ enum
 	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
 	,SELECT_c_FROM_chats_contacts_WHERE_c
 	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
-	,SELECT_chat_id_FROM_chats_contacts_WHERE_contact_id_ORDER_BY
 	,SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id
 	,INSERT_INTO_chats_contacts
 

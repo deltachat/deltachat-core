@@ -221,7 +221,7 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 /* Handle chatlists */
 #define         MR_GCL_ARCHIVED_ONLY        0x01
 #define         MR_GCL_NO_SPECIALS          0x02
-mrchatlist_t*   mrmailbox_get_chatlist      (mrmailbox_t*, int flags, const char* query);
+mrchatlist_t*   mrmailbox_get_chatlist      (mrmailbox_t*, int flags, const char* query_str, uint32_t query_id);
 
 
 /* Handle chats */

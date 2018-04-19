@@ -39,7 +39,7 @@ struct _mrchatlist
 };
 
 
-int             mrchatlist_load_from_db__   (mrchatlist_t*, int listflags, const char* query);
+int             mrchatlist_load_from_db__   (mrchatlist_t*, int listflags, const char* query, uint32_t query_contact_id);
 
 
 #ifdef __cplusplus
