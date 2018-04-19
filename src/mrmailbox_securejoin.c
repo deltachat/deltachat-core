@@ -425,6 +425,8 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 
 	CHECK_EXIT
 
+	// TODO: if we have already Alice's key, we can proceed to step 4b) directly and save to mails
+
 	s_bobs_status = 0;
 	s_bob_expects = VC_AUTH_REQUIRED;
 
