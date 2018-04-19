@@ -772,7 +772,7 @@ void stress_functions(mrmailbox_t* mailbox)
 	if( mrmailbox_is_configured(mailbox) )
 	{
 		char* qr = mrmailbox_get_securejoin_qr(mailbox, 0);
-		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#v=", 3)==0 );
+		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#a=", 3)==0 );
 
 		mrlot_t* res = mrmailbox_check_qr(mailbox, qr);
 		assert( res );

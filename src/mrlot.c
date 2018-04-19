@@ -80,11 +80,11 @@ void mrlot_empty(mrlot_t* ths)
 	free(ths->m_fingerprint);
 	ths->m_fingerprint = NULL;
 
-	free(ths->m_random_public);
-	ths->m_random_public = NULL;
+	free(ths->m_invitenumber);
+	ths->m_invitenumber = NULL;
 
-	free(ths->m_random_secret);
-	ths->m_random_secret = NULL;
+	free(ths->m_auth);
+	ths->m_auth = NULL;
 
 	ths->m_timestamp = 0;
 	ths->m_state = 0;

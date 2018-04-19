@@ -563,9 +563,9 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 				mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), step/*mailimf takes ownership of string*/));
 
-				char* random_secret = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);
-				if( random_secret ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strcmp(step, "request")==0? strdup("Secure-Join-Random-Public"):strdup("Secure-Join-Random-Secret"), random_secret/*mailimf takes ownership of string*/));
+				char* param2 = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);
+				if( param2 ) {
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strcmp(step, "vc-request-with-auth")==0? strdup("Secure-Join-Auth"):strdup("Secure-Join-Invitenumber"), param2/*mailimf takes ownership of string*/));
 				}
 
 				char* fingerprint = mrparam_get(msg->m_param, MRP_CMD_PARAM3, NULL);

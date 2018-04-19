@@ -31,59 +31,50 @@
 
 
 /*******************************************************************************
- * Tools: Alice's random_public and random_secret mini-datastore
+ * Tools: Alice's invitenumber and auth mini-datastore
  ******************************************************************************/
 
 
-/* the "mini-datastore is used to remember Alice's last few random_public and
-random_secret as they're written to a QR code.  This is needed for later
+/* the "mini-datastore is used to remember Alice's last few invitenumbers and
+auths as they're written to a QR code.  This is needed for later
 comparison when the data are provided by Bob. */
 
 
-static void store_random__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_add)
+static void store_tag__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_add)
 {
-	// prepend new random to the list of all tags
-	#define MAX_REMEMBERED_RANDOMS 10
-	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_RANDOMS*(MR_CREATE_ID_LEN+1))
-	char* old_randoms = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
-	if( strlen(old_randoms) > MAX_REMEMBERED_CHARS ) {
-		old_randoms[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete und unrecognizable, however, this is no problem as it would be deleted soon anyway
+	// prepend new tag to the list of all tags
+	#define MAX_REMEMBERED_TAGS 10
+	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_TAGS*(MR_CREATE_ID_LEN+1))
+	char* old_tags = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
+	if( strlen(old_tags) > MAX_REMEMBERED_CHARS ) {
+		old_tags[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete and unrecognizable, however, this should not be a problem as it would be deleted soon anyway
 	}
-	char* new_randoms = mr_mprintf("%s,%s", to_add, old_randoms);
-	mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_randoms);
+	char* new_tags = mr_mprintf("%s,%s", to_add, old_tags);
+	mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_tags);
 
-	free(old_randoms);
-	free(new_randoms);
+	free(old_tags);
+	free(new_tags);
 }
 
 
-static int lookup_random__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_lookup)
+static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_lookup)
 {
 	int            found       = 0;
-	char*          old_randoms = NULL;
+	char*          old_tags    = NULL;
 	carray*        lines       = NULL;
 
-	//mrstrbuilder_t new_randoms;  -- we do not delete the randoms to allow multiple scans, the randoms are deleted when new are generated
-	//mrstrbuilder_init(&new_randoms, 0);
-
-	old_randoms = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
-	mr_str_replace(&old_randoms, ",", "\n");
-	lines = mr_split_into_lines(old_randoms);
+	old_tags = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
+	mr_str_replace(&old_tags, ",", "\n");
+	lines = mr_split_into_lines(old_tags);
 	for( int i = 0; i < carray_count(lines); i++ ) {
-		char* random  = (char*)carray_get(lines, i); mr_trim(random);
-		if( strlen(random) >= 4 && strcmp(random, to_lookup) == 0 ) {
+		char* tag  = (char*)carray_get(lines, i); mr_trim(tag);
+		if( strlen(tag) >= 4 && strcmp(tag, to_lookup) == 0 ) {
 			found = 1;
 		}
-		//else {
-		//	mrstrbuilder_catf(&new_randoms, "%s,", random);
-		//}
 	}
 
-	//mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_randoms.m_buf);
-	//free(new_randoms.m_buf);
-
 	mr_free_splitted_lines(lines);
-	free(old_randoms);
+	free(old_tags);
 	return found;
 }
 
@@ -213,7 +204,7 @@ static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 }
 
 
-static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* random, const char* fingerprint)
+static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* step, const char* param2, const char* fingerprint)
 {
 	mrmsg_t* msg = mrmsg_new();
 
@@ -223,15 +214,15 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 	mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_SECUREJOIN_MESSAGE);
 	mrparam_set    (msg->m_param, MRP_CMD_PARAM, step);
 
-	if( random ) {
-		mrparam_set(msg->m_param, MRP_CMD_PARAM2, random);
+	if( param2 ) {
+		mrparam_set(msg->m_param, MRP_CMD_PARAM2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
 	}
 
 	if( fingerprint ) {
 		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
 	}
 
-	if( strcmp(step, "request") == 0 ) {
+	if( strcmp(step, "vc-request") == 0 ) {
 		mrparam_set_int(msg->m_param, MRP_FORCE_UNENCRYPTED, 1); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
@@ -275,8 +266,8 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t chat_id
 }
 
 
-#define         PLEASE_PROVIDE_RANDOM_SECRET 2
-#define         SECUREJOIN_BROADCAST         4
+#define         VC_AUTH_REQUIRED     2
+#define         VC_CONTACT_CONFIRM   6
 static int      s_bob_expects = 0;
 
 static mrlot_t* s_bobs_qr_scan = NULL; // should be surround eg. by mrsqlite3_lock/unlock
@@ -316,9 +307,10 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  */
 char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 {
-	/* ==================================
-	   ==== Alice - the inviter side ====
-	   ================================== */
+	/* =========================================================
+	   ====             Alice - the inviter side            ====
+	   ==== Step 1 in "Establish verified contact" protocol ====
+	   ========================================================= */
 
 	int      locked               = 0;
 	char*    qr                   = NULL;
@@ -327,8 +319,8 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 	char*    self_name            = NULL;
 	char*    self_name_urlencoded = NULL;
 	char*    fingerprint          = NULL;
-	char*    random_public        = NULL;
-	char*    random_secret        = NULL;
+	char*    invitenumber         = NULL;
+	char*    auth                 = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
 		goto cleanup;
@@ -336,9 +328,9 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
-	// random_public will be used to allow starting the handshake, random_secret will be used to verify the fingerprint
-	random_public = mr_create_id();
-	random_secret = mr_create_id();
+	// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
+	invitenumber  = mr_create_id();
+	auth          = mr_create_id();
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -349,8 +341,8 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
-		store_random__(mailbox, "secureJoin.randomPublics", random_public);
-		store_random__(mailbox, "secureJoin.randomSecrets", random_secret);
+		store_tag__(mailbox, "secureJoin.invitenumbers", invitenumber);
+		store_tag__(mailbox, "secureJoin.auths", auth);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -361,7 +353,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t chat_id)
 
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#v=%s&n=%s&p=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, random_public, random_secret);
+	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -370,7 +362,8 @@ cleanup:
 	free(self_name);
 	free(self_name_urlencoded);
 	free(fingerprint);
-	free(random_secret);
+	free(invitenumber);
+	free(auth);
 	return qr? qr : safe_strdup(NULL);
 }
 
@@ -396,9 +389,10 @@ cleanup:
  */
 int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 {
-	/* =================================
-	   ==== Bob - the joiner's side ====
-	   ================================= */
+	/* ==========================================================
+	   ====             Bob - the joiner's side             =====
+	   ==== Step 2 in "Establish verified contact" protocol =====
+	   ========================================================== */
 
 	int      success           = 0;
 	int      ongoing_allocated = 0;
@@ -432,13 +426,13 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	CHECK_EXIT
 
 	s_bobs_status = 0;
-	s_bob_expects = PLEASE_PROVIDE_RANDOM_SECRET;
+	s_bob_expects = VC_AUTH_REQUIRED;
 
 	mrsqlite3_lock(mailbox->m_sql);
 		s_bobs_qr_scan = qr_scan;
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	send_handshake_msg(mailbox, chat_id, "request", qr_scan->m_random_public, NULL); // Bob -> Alice
+	send_handshake_msg(mailbox, chat_id, "vc-request", qr_scan->m_invitenumber, NULL); // Bob -> Alice
 
 	while( 1 ) {
 		CHECK_EXIT
@@ -494,29 +488,30 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
-	if( strcmp(step, "request")==0 )
+	if( strcmp(step, "vc-request")==0 )
 	{
-		/* ==================================
-		   ==== Alice - the inviter side ====
-		   ================================== */
+		/* =========================================================
+		   ====             Alice - the inviter side            ====
+		   ==== Step 3 in "Establish verified contact" protocol ====
+		   ========================================================= */
 
 		// this message may be unencrypted (Bob, the joinder and the sender, might not have Alice's key yet)
 
 		// it just ensures, we have Bobs key now. If we do _not_ have the key because eg. MitM has removed it,
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
 
-		// verify that the `Secure-Join-Random-Public:`-header matches random_public written to the QR code
+		// verify that the `Secure-Join-Invitenumber:`-header matches invitenumber written to the QR code
 		uint32_t    contact_id = chat_id_2_contact_id(mailbox, chat_id);
-		const char* random_public = NULL;
-		if( (random_public=lookup_field(mimeparser, "Secure-Join-Random-Public")) == NULL ) {
-			mrmailbox_log_warning(mailbox, 0, "Secure-join denied (random-public missing)."); // do not raise an error, this might just be spam or come from an old request
+		const char* invitenumber = NULL;
+		if( (invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL ) {
+			mrmailbox_log_warning(mailbox, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
 
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-			if( lookup_random__(mailbox, "secureJoin.randomPublics", random_public) == 0 ) {
-				mrmailbox_log_warning(mailbox, 0, "Secure-join denied (bad random-public).");  // do not raise an error, this might just be spam or come from an old request
+			if( lookup_tag__(mailbox, "secureJoin.invitenumbers", invitenumber) == 0 ) {
+				mrmailbox_log_warning(mailbox, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 				goto cleanup;
 			}
 		mrsqlite3_unlock(mailbox->m_sql);
@@ -526,13 +521,14 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_REQUESTED, contact_id, 0);
 
-		send_handshake_msg(mailbox, chat_id, "please-provide-random-secret", NULL, NULL); // Alice -> Bob
+		send_handshake_msg(mailbox, chat_id, "vc-auth-required", NULL, NULL); // Alice -> Bob
 	}
-	else if( strcmp(step, "please-provide-random-secret")==0 )
+	else if( strcmp(step, "vc-auth-required")==0 )
 	{
-		/* =================================
-		   ==== Bob - the joiner's side ====
-		   ================================= */
+		/* ==========================================================
+		   ====             Bob - the joiner's side             =====
+		   ==== Step 4 in "Establish verified contact" protocol =====
+		   ========================================================== */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
 			could_not_establish_secure_connection(mailbox, chat_id, "Not encrypted.");
@@ -543,11 +539,11 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-			if( s_bobs_qr_scan == NULL || s_bob_expects != PLEASE_PROVIDE_RANDOM_SECRET ) {
+			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED ) {
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			char* scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
-			char* random_secret                = safe_strdup(s_bobs_qr_scan->m_random_secret);
+			char* auth                         = safe_strdup(s_bobs_qr_scan->m_auth);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
@@ -562,21 +558,22 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 
-		s_bob_expects = SECUREJOIN_BROADCAST;
-		send_handshake_msg(mailbox, chat_id, "random-secret", random_secret, own_fingerprint); // Bob -> Alice
+		s_bob_expects = VC_CONTACT_CONFIRM;
+		send_handshake_msg(mailbox, chat_id, "vc-request-with-auth", auth, own_fingerprint); // Bob -> Alice
 
 		free(own_fingerprint);
 		free(scanned_fingerprint_of_alice);
-		free(random_secret);
+		free(auth);
 	}
-	else if( strcmp(step, "random-secret")==0 )
+	else if( strcmp(step, "vc-request-with-auth")==0 )
 	{
-		/* ==================================
-		   ==== Alice - the inviter side ====
-		   ================================== */
+		/* ============================================================
+		   ====              Alice - the inviter side              ====
+		   ==== Steps 5+6 in "Establish verified contact" protocol ====
+		   ============================================================ */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			could_not_establish_secure_connection(mailbox, chat_id, "Random-secret not encrypted.");
+			could_not_establish_secure_connection(mailbox, chat_id, "Auth not encrypted.");
 			goto cleanup;
 		}
 
@@ -595,20 +592,20 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
 
-		// verify that the `Secure-Join-Random-Secret:`-header matches the secret written to the QR code
-		const char* random_secret = NULL;
-		if( (random_secret=lookup_field(mimeparser, "Secure-Join-Random-Secret")) == NULL ) {
-			could_not_establish_secure_connection(mailbox, chat_id, "Random-secret not provided.");
+		// verify that the `Secure-Join-Auth:`-header matches the secret written to the QR code
+		const char* auth = NULL;
+		if( (auth=lookup_field(mimeparser, "Secure-Join-Auth")) == NULL ) {
+			could_not_establish_secure_connection(mailbox, chat_id, "Auth not provided.");
 			goto cleanup;
 		}
 
 		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-			if( lookup_random__(mailbox, "secureJoin.randomSecrets", random_secret) == 0 ) {
+			if( lookup_tag__(mailbox, "secureJoin.auths", auth) == 0 ) {
 				mrsqlite3_unlock(mailbox->m_sql);
 				locked = 0;
-				could_not_establish_secure_connection(mailbox, chat_id, "Random-secret invalid.");
+				could_not_establish_secure_connection(mailbox, chat_id, "Auth invalid.");
 				goto cleanup;
 			}
 
@@ -623,25 +620,26 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
 
-		mrmailbox_log_info(mailbox, 0, "Random secret verified.");
+		mrmailbox_log_info(mailbox, 0, "Auth verified.");
 
 		secure_connection_established(mailbox, chat_id);
 
-		send_handshake_msg(mailbox, chat_id, "broadcast", NULL, NULL); // Alice -> Bob and all other group members
+		send_handshake_msg(mailbox, chat_id, "vc-contact-confirm", NULL, NULL); // Alice -> Bob and all other group members
 	}
-	else if( strcmp(step, "broadcast")==0 )
+	else if( strcmp(step, "vc-contact-confirm")==0 )
 	{
-		/* =================================
-		   ==== Bob - the joiner's side ====
-		   ================================= */
+		/* ==========================================================
+		   ====             Bob - the joiner's side             =====
+		   ==== Step 7 in "Establish verified contact" protocol =====
+		   ========================================================== */
 
-		if( s_bob_expects != SECUREJOIN_BROADCAST ) {
+		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			could_not_establish_secure_connection(mailbox, chat_id, "Broadcast not encrypted.");
+			could_not_establish_secure_connection(mailbox, chat_id, "Contact confirm message not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
@@ -654,7 +652,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			}
 
 			if( !mark_peer_as_verified__(mailbox, s_bobs_qr_scan->m_fingerprint) ) {
-				could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since please-provide-random-secret message
+				could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 				goto cleanup;
 			}
 
