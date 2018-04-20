@@ -2962,14 +2962,15 @@ int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint
  * @memberof mrmailbox_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
- *
+ * @param verified If set to 1 the function creates a secure verfied group.
+ *     Only secure-verified members are allowd in these groups and end-to-end-encryption is always enabled.
  * @param chat_name The name of the group chat to create.
  *     The name may be changed later using mrmailbox_set_chat_name().
  *     To find out the name of a group later, see mrchat_t::m_name
  *
  * @return The chat ID of the new group chat, 0 on errors.
  */
-uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, const char* chat_name)
+uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, int verified, const char* chat_name)
 {
 	uint32_t      chat_id = 0;
 	int           locked = 0;

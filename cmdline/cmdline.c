@@ -814,7 +814,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "creategroup")==0 )
 	{
 		if( arg1 ) {
-			int chat_id = mrmailbox_create_group_chat(mailbox, arg1);
+			int chat_id = mrmailbox_create_group_chat(mailbox, 0, arg1);
 			ret = chat_id!=0? mr_mprintf("Groupchat#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
