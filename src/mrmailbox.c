@@ -4511,23 +4511,40 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 		mr_trim(rawtxt);
 		mr_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
+		/* add time */
+		mrstrbuilder_cat(&ret, "Sent: ");
+		p = mr_timestamp_to_str(mrmsg_get_timestamp(msg)); mrstrbuilder_cat(&ret, p); free(p);
+		mrstrbuilder_cat(&ret, "\n");
+
+		if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
+			mrstrbuilder_cat(&ret, "Received: ");
+			p = mr_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
+			mrstrbuilder_cat(&ret, "\n");
+		}
+
+		if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) {
+			goto cleanup; // device-internal message, no further details needed
+		}
+
+		/* add mdn's time and readers */
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+			"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
+		sqlite3_bind_int (stmt, 1, msg_id);
+		while( sqlite3_step(stmt) == SQLITE_ROW ) {
+			mrstrbuilder_cat(&ret, "Read: ");
+			p = mr_timestamp_to_str(sqlite3_column_int64(stmt, 1)); mrstrbuilder_cat(&ret, p); free(p);
+			mrstrbuilder_cat(&ret, " by ");
+
+			mrcontact_t* contact = mrcontact_new(mailbox);
+				mrcontact_load_from_db__(contact, mailbox->m_sql, sqlite3_column_int64(stmt, 0));
+				p = mrcontact_get_display_name(contact); mrstrbuilder_cat(&ret, p); free(p);
+			mrcontact_unref(contact);
+			mrstrbuilder_cat(&ret, "\n");
+		}
+		sqlite3_finalize(stmt);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
-
-	/* add time */
-	mrstrbuilder_cat(&ret, "Sent: ");
-	p = mr_timestamp_to_str(mrmsg_get_timestamp(msg)); mrstrbuilder_cat(&ret, p); free(p);
-	mrstrbuilder_cat(&ret, "\n");
-
-	if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
-		mrstrbuilder_cat(&ret, "Received: ");
-		p = mr_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
-		mrstrbuilder_cat(&ret, "\n");
-	}
-
-	if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) {
-		goto cleanup; // device-internal message, no further details needed
-	}
 
 	/* add state */
 	p = NULL;
@@ -4577,7 +4594,7 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	/* add file info */
 	char* file = mrparam_get(msg->m_param, MRP_FILE, NULL);
 	if( file ) {
-		p = mr_mprintf("File: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
+		p = mr_mprintf("\nFile: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
 	}
 
 	if( msg->m_type != MR_MSG_TEXT ) {
