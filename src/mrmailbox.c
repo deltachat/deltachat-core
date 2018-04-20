@@ -2012,6 +2012,13 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		mrsqlite3_begin_transaction__(mailbox->m_sql);
 		pending_transaction = 1;
 
+			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT msg_id FROM msgs WHERE chat_id=%i);", chat_id);
+			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
+				goto cleanup;
+			}
+			sqlite3_free(q3);
+			q3 = NULL;
+
 			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
@@ -4811,7 +4818,13 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id, "DELETE FROM msgs WHERE id=?;");
+		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id,
+			"DELETE FROM msgs WHERE id=?;");
+		sqlite3_bind_int(stmt, 1, msg->m_id);
+		sqlite3_step(stmt);
+
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m,
+			"DELETE FROM msgs_mdns WHERE msg_id=?;");
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
@@ -5077,7 +5090,7 @@ cleanup:
 }
 
 
-int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid,
+int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
                                      uint32_t* ret_chat_id,
                                      uint32_t* ret_msg_id)
 {
@@ -5105,29 +5118,34 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 		return 0; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
 	}
 
-	/* normal chat? that's quite easy. */
-	if( chat_type == MR_CHAT_TYPE_NORMAL )
-	{
+	// collect receipt senders, we do this also for normal chats as we may want to show the timestamp
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_msgs_mdns_WHERE_mc,
+		"SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
+	sqlite3_bind_int(stmt, 1, *ret_msg_id);
+	sqlite3_bind_int(stmt, 2, from_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_mdns,
+			"INSERT INTO msgs_mdns (msg_id, contact_id, timestamp_sent) VALUES (?, ?, ?);");
+		sqlite3_bind_int  (stmt, 1, *ret_msg_id);
+		sqlite3_bind_int  (stmt, 2, from_id);
+		sqlite3_bind_int64(stmt, 3, timestamp_sent);
+		sqlite3_step(stmt);
+	}
+
+	// Normal chat? that's quite easy.
+	if( chat_type == MR_CHAT_TYPE_NORMAL ) {
 		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_STATE_OUT_MDN_RCVD);
 		return 1; /* send event about new state */
 	}
 
-	/* group chat: collect receipt senders */
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_msgs_mdns_WHERE_mc, "SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
-	sqlite3_bind_int(stmt, 1, *ret_msg_id);
-	sqlite3_bind_int(stmt, 2, from_id);
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_mdns, "INSERT INTO msgs_mdns (msg_id, contact_id) VALUES (?, ?);");
-		sqlite3_bind_int(stmt, 1, *ret_msg_id);
-		sqlite3_bind_int(stmt, 2, from_id);
-		sqlite3_step(stmt);
-	}
-
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_mdns_WHERE_m, "SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
+	// Group chat: get the number of receipt senders
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_msgs_mdns_WHERE_m,
+		"SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0; /* error */
 	}
+	int ist_cnt  = sqlite3_column_int(stmt, 0);
 
 	/*
 	Groupsize:  Min. MDNs
@@ -5141,17 +5159,12 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 
 	(S=Sender, R=Recipient)
 	*/
-	int ist_cnt  = sqlite3_column_int(stmt, 0);
 	int soll_cnt = (mrmailbox_get_chat_contact_count__(mailbox, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
 	if( ist_cnt < soll_cnt ) {
 		return 0; /* wait for more receipts */
 	}
 
 	/* got enough receipts :-) */
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m, "DELETE FROM msgs_mdns WHERE msg_id=?;");
-	sqlite3_bind_int(stmt, 1, *ret_msg_id);
-	sqlite3_step(stmt);
-
 	mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_STATE_OUT_MDN_RCVD);
 	return 1;
 }

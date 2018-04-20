@@ -927,6 +927,13 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 		incoming = 1;
 	}
 
+	if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
+		struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
+		if( orig_date ) {
+			sent_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); // is not yet checked against bad times! we do this later if we have the database information.
+		}
+	}
+
 	mrsqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
@@ -1137,12 +1144,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
-				struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-				if( orig_date ) {
-					sent_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-				}
-			}
 			mrmailbox_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
 				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
@@ -1284,6 +1285,13 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 		}
+		else
+		{
+			// there are no non-meta data in message, do some basic calculations so that the varaiables are correct in the further processing
+			if( sent_timestamp > time(NULL) ) {
+				sent_timestamp = time(NULL);
+			}
+		}
 
 
 		if( carray_count(mime_parser->m_reports) > 0 )
@@ -1339,7 +1347,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 											{
 												uint32_t chat_id = 0;
 												uint32_t msg_id = 0;
-												if( mrmailbox_mdn_from_ext__(mailbox, from_id, rfc724_mid, &chat_id, &msg_id) ) {
+												if( mrmailbox_mdn_from_ext__(mailbox, from_id, rfc724_mid, sent_timestamp, &chat_id, &msg_id) ) {
 													carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
 													carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
 												}

@@ -363,11 +363,12 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 31
+		#define NEW_DB_VERSION 32
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				recalc_fingerprints = 1;
 
 				dbversion = NEW_DB_VERSION;

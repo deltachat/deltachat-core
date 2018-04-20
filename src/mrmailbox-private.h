@@ -123,7 +123,7 @@ void            mrmailbox_update_server_uid__                     (mrmailbox_t*,
 void            mrmailbox_update_msg_chat_id__                    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void            mrmailbox_update_msg_state__                      (mrmailbox_t*, uint32_t msg_id, int state);
 void            mrmailbox_delete_msg_on_imap                      (mrmailbox_t* mailbox, mrjob_t* job);
-int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
+int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
 void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
 void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
