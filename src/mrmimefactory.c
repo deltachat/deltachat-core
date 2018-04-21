@@ -418,7 +418,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 	{
 		ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
-	else if( chat->m_type==MR_CHAT_TYPE_GROUP )
+	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		ret = mr_mprintf(MR_CHAT_PREFIX " %s: %s%s", chat->m_name, fwd, raw_subject);
 	}
@@ -523,7 +523,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 		/* build header etc. */
 		int command = mrparam_get_int(msg->m_param, MRP_CMD, 0);
-		if( chat->m_type==MR_CHAT_TYPE_GROUP )
+		if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));

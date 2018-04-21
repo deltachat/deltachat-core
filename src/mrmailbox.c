@@ -2242,7 +2242,12 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	sqlite3_stmt* stmt;
 	uint32_t      msg_id = 0, to_id = 0;
 
-	if( chat->m_type==MR_CHAT_TYPE_GROUP && !mrmailbox_is_contact_in_chat__(mailbox, chat->m_id, MR_CONTACT_ID_SELF) ) {
+	if( !MR_CHAT_TYPE_CAN_SEND(chat->m_type) ) {
+		mrmailbox_log_error(mailbox, 0, "Cannot send to chat type #%i.", chat->m_type);
+		goto cleanup;
+	}
+
+	if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) && !mrmailbox_is_contact_in_chat__(mailbox, chat->m_id, MR_CONTACT_ID_SELF) ) {
 		mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
 		goto cleanup;
 	}
@@ -2253,7 +2258,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 			mrmailbox_log_error(mailbox, 0, "Cannot send message, not configured successfully.");
 			goto cleanup;
 		}
-		rfc724_mid = mr_create_outgoing_rfc724_mid(chat->m_type==MR_CHAT_TYPE_GROUP? chat->m_grpid : NULL, from);
+		rfc724_mid = mr_create_outgoing_rfc724_mid(MR_CHAT_TYPE_IS_MULTI(chat->m_type)? chat->m_grpid : NULL, from);
 		free(from);
 	}
 
@@ -2268,7 +2273,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 		}
 		to_id = sqlite3_column_int(stmt, 0);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_GROUP )
+	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		if( mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
 			/* mark group as being no longer unpromoted */
@@ -2913,6 +2918,7 @@ void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grp
 
 static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 {
+	// check if a group or a verified group exists under the given ID
 	sqlite3_stmt* stmt;
 	int           ret = 0;
 
@@ -2922,9 +2928,10 @@ static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 	}
 
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_chats_WHERE_id,
-		"SELECT id FROM chats WHERE id=? AND type=?;");
+		"SELECT id FROM chats "
+		" WHERE id=? "
+		"   AND (type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) " OR type=" MR_STRINGIFY(MR_CHAT_TYPE_VERIFIED_GROUP) ");");
 	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_bind_int(stmt, 2, MR_CHAT_TYPE_GROUP);
 
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
 		ret = 1;
@@ -2989,7 +2996,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, int verified, const c
 
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=MRP_UNPROMOTED*/ );
-		sqlite3_bind_int  (stmt, 1, MR_CHAT_TYPE_GROUP);
+		sqlite3_bind_int  (stmt, 1, verified? MR_CHAT_TYPE_VERIFIED_GROUP : MR_CHAT_TYPE_GROUP);
 		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
 		sqlite3_bind_int64(stmt, 3, time(NULL));
 		sqlite3_bind_text (stmt, 4, draft_txt, -1, SQLITE_STATIC);

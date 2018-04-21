@@ -371,7 +371,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 	                     " FROM chats_contacts cc "
 	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
 	                     " WHERE cc.chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
-	                     "   AND c.type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) /* do not select normal chats which are equal to a group with a single member and without SELF */
+	                     "   AND c.type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) /* no verified groups and no single chats (which are equal to a group with a single member and without SELF) */
 	                     "   AND cc.contact_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
 	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);

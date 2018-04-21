@@ -157,6 +157,9 @@ uint32_t mrchat_get_id(mrchat_t* chat)
  * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
  *   members, incl. MR_CONTACT_ID_SELF
  *
+ * - MR_CHAT_TYPE_VERIFIED_GROUP  (130) - a verified group chat. In verified groups,
+ *   all members are verified and encryption is always active and cannot be disabled.
+ *
  * @memberof mrchat_t
  *
  * @param chat The chat object.
@@ -241,7 +244,7 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 
 		mrsqlite3_unlock(chat->m_mailbox->m_sql);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_GROUP )
+	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		int cnt = 0;
 		if( chat->m_id == MR_CHAT_ID_DEADDROP )

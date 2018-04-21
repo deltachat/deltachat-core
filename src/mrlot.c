@@ -219,7 +219,7 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 		ths->m_text1 = NULL;
 		ths->m_text1_meaning = 0;
 	}
-	else if( chat->m_type==MR_CHAT_TYPE_GROUP )
+	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		if( contact==NULL ) {
 			free(ths->m_text1);

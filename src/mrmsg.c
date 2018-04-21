@@ -641,7 +641,7 @@ mrlot_t* mrmsg_get_summary(const mrmsg_t* msg, const mrchat_t* chat)
 		chat = chat_to_delete;
 	}
 
-	if( msg->m_from_id != MR_CONTACT_ID_SELF  &&  chat->m_type == MR_CHAT_TYPE_GROUP ) {
+	if( msg->m_from_id != MR_CONTACT_ID_SELF && MR_CHAT_TYPE_IS_MULTI(chat->m_type) ) {
 		contact = mrmailbox_get_contact(chat->m_mailbox, msg->m_from_id);
 	}
 
