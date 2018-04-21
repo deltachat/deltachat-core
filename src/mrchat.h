@@ -39,7 +39,7 @@ typedef struct _mrmailbox mrmailbox_t;
 
 
 #define         MR_CHAT_TYPE_UNDEFINED      0
-#define         MR_CHAT_TYPE_NORMAL       100
+#define         MR_CHAT_TYPE_SINGLE       100
 #define         MR_CHAT_TYPE_GROUP        120
 
 

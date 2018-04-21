@@ -1761,7 +1761,7 @@ void mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t 
 			"SELECT c.id, c.blocked"
 			" FROM chats c"
 			" INNER JOIN chats_contacts j ON c.id=j.chat_id"
-			" WHERE c.type=" MR_STRINGIFY(MR_CHAT_TYPE_NORMAL) " AND c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
+			" WHERE c.type=" MR_STRINGIFY(MR_CHAT_TYPE_SINGLE) " AND c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -1807,7 +1807,7 @@ void mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
 	/* create chat record */
-	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", MR_CHAT_TYPE_NORMAL, chat_name,
+	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", MR_CHAT_TYPE_SINGLE, chat_name,
 		contact_id==MR_CONTACT_ID_SELF? "K=1" : "", create_blocked);
 	assert( MRP_SELFTALK == 'K' );
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
@@ -2257,7 +2257,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 		free(from);
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_NORMAL )
+	if( chat->m_type == MR_CHAT_TYPE_SINGLE )
 	{
 		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
 			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
@@ -3535,7 +3535,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_n_WHERE_c,
 					"UPDATE chats SET name=? WHERE type=? AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
-				sqlite3_bind_int (stmt, 2, MR_CHAT_TYPE_NORMAL);
+				sqlite3_bind_int (stmt, 2, MR_CHAT_TYPE_SINGLE);
 				sqlite3_bind_int (stmt, 3, row_id);
 				sqlite3_step     (stmt);
 			}
@@ -4038,7 +4038,7 @@ void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_blocked_WHERE_contact_id,
 					"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_int(stmt, 1, new_blocking);
-				sqlite3_bind_int(stmt, 2, MR_CHAT_TYPE_NORMAL);
+				sqlite3_bind_int(stmt, 2, MR_CHAT_TYPE_SINGLE);
 				sqlite3_bind_int(stmt, 3, contact_id);
 				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
 					goto cleanup;
@@ -5151,7 +5151,7 @@ int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char*
 	}
 
 	// Normal chat? that's quite easy.
-	if( chat_type == MR_CHAT_TYPE_NORMAL ) {
+	if( chat_type == MR_CHAT_TYPE_SINGLE ) {
 		mrmailbox_update_msg_state__(mailbox, *ret_msg_id, MR_STATE_OUT_MDN_RCVD);
 		return 1; /* send event about new state */
 	}

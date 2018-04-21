@@ -203,7 +203,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			mrsqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 			mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 			mrsqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'rsvd'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'starred'), (6,120,'archivedlink'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-			#if !defined(MR_CHAT_TYPE_NORMAL) || MR_CHAT_TYPE_NORMAL!=100 || MR_CHAT_TYPE_GROUP!=120 || \
+			#if !defined(MR_CHAT_TYPE_SINGLE) || MR_CHAT_TYPE_SINGLE!=100 || MR_CHAT_TYPE_GROUP!=120 || \
 			 MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TRASH!=3 || \
 			 MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_STARRED!=5 || MR_CHAT_ID_ARCHIVED_LINK!=6 || \
 			 MR_CHAT_NOT_BLOCKED!=0  || MR_CHAT_MANUALLY_BLOCKED!=1 || MR_CHAT_DEADDROP_BLOCKED!=2

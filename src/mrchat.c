@@ -149,7 +149,7 @@ uint32_t mrchat_get_id(mrchat_t* chat)
  *
  * Currently, there are two chat types:
  *
- * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact,
+ * - MR_CHAT_TYPE_SINGLE (100) - a normal chat is a chat with a single contact,
  *   chats_contacts contains one record for the user.  MR_CONTACT_ID_SELF
  *   (see mrcontact_t::m_id) is added _only_ for a self talk; in addition to
  *   this, for self talks also the flag MRP_SELFTALK is set.
@@ -166,7 +166,7 @@ uint32_t mrchat_get_id(mrchat_t* chat)
 int mrchat_get_type(mrchat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return MR_CHAT_TYPE_NORMAL;
+		return MR_CHAT_TYPE_UNDEFINED;
 	}
 	return chat->m_type;
 }
@@ -219,11 +219,11 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 		return safe_strdup("Err");
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_NORMAL && mrparam_exists(chat->m_param, MRP_SELFTALK) )
+	if( chat->m_type == MR_CHAT_TYPE_SINGLE && mrparam_exists(chat->m_param, MRP_SELFTALK) )
 	{
 		ret = mrstock_str(MR_STR_SELFTALK_SUBTITLE);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_NORMAL )
+	else if( chat->m_type == MR_CHAT_TYPE_SINGLE )
 	{
 		int r;
 		mrsqlite3_lock(chat->m_mailbox->m_sql);
