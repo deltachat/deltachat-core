@@ -518,8 +518,15 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		struct mailmime* meta_part = NULL;
 		char* placeholdertext = NULL;
 
-		force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0);
-		e2ee_guaranteed   = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
+		if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP ) {
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
+			force_unencrypted = 0;
+			e2ee_guaranteed   = 1;
+		}
+		else {
+			force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0);
+			e2ee_guaranteed   = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
+		}
 
 		/* build header etc. */
 		int command = mrparam_get_int(msg->m_param, MRP_CMD, 0);
@@ -527,6 +534,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));
+
 
 			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP ) {
 				char* email_to_remove = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
