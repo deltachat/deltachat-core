@@ -389,6 +389,14 @@ void mrmailbox_cmdline_skip_auth()
 }
 
 
+static const char* chat_prefix(const mrchat_t* chat)
+{
+	     if( chat->m_type == MR_CHAT_TYPE_GROUP ) { return "Group"; }
+	else if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP ) { return "VerifiedGroup"; }
+	else { return "Single"; }
+}
+
+
 char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 {
 	#define      COMMAND_FAILED    ((char*)1)
@@ -453,6 +461,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"createchat <contact-id>\n"
 				"createchatbymsg <msg-id>\n"
 				"creategroup <name>\n"
+				"createverified <name>\n"
 				"addmember <contact-id>\n"
 				"removemember <contact-id>\n"
 				"groupname <name>\n"
@@ -705,11 +714,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					char* temp_subtitle = mrchat_get_subtitle(chat);
 					char* temp_name = mrchat_get_name(chat);
-					int   chat_type = mrchat_get_type(chat);
-					const char* verified = mrchat_is_verified(chat)? " √√": "";
-						mrmailbox_log_info(mailbox, 0, "%s#%i: %s%s [%s] [%i fresh]",
-							chat_type==MR_CHAT_TYPE_VERIFIED_GROUP? "VerifiedGroup" : (chat_type==MR_CHAT_TYPE_GROUP? "Group" : "Chat"),
-							(int)mrchat_get_id(chat), temp_name, verified, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
+						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]",
+							chat_prefix(chat),
+							(int)mrchat_get_id(chat), temp_name, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
 					free(temp_subtitle);
 					free(temp_name);
 
@@ -770,7 +777,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, mrchat_get_id(sel_chat), MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
 			char* temp_name = mrchat_get_name(sel_chat);
-				mrmailbox_log_info(mailbox, 0, "Chat#%i: %s [%s]", mrchat_get_id(sel_chat), temp_name, temp2);
+				mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), mrchat_get_id(sel_chat), temp_name, temp2);
 			free(temp_name);
 			free(temp2);
 			if( msglist ) {
@@ -796,7 +803,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
 			int chat_id = mrmailbox_create_chat_by_contact_id(mailbox, contact_id);
-			ret = chat_id!=0? mr_mprintf("Chat#%lu created successfully.", chat_id) : COMMAND_FAILED;
+			ret = chat_id!=0? mr_mprintf("Single#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
@@ -807,7 +814,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			int msg_id = atoi(arg1);
 			int chat_id = mrmailbox_create_chat_by_msg_id(mailbox, msg_id);
-			ret = chat_id!=0? mr_mprintf("Chat#%lu created successfully.", chat_id) : COMMAND_FAILED;
+			if( chat_id != 0 ) {
+				mrchat_t* chat = mrmailbox_get_chat(mailbox, chat_id);
+					ret = mr_mprintf("%s#%lu created successfully.", chat_prefix(chat), chat_id);
+				mrchat_unref(chat);
+			}
+			else {
+				ret = COMMAND_FAILED;
+			}
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
@@ -817,7 +831,17 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int chat_id = mrmailbox_create_group_chat(mailbox, 0, arg1);
-			ret = chat_id!=0? mr_mprintf("Groupchat#%lu created successfully.", chat_id) : COMMAND_FAILED;
+			ret = chat_id!=0? mr_mprintf("Group#%lu created successfully.", chat_id) : COMMAND_FAILED;
+		}
+		else {
+			ret = safe_strdup("ERROR: Argument <name> missing.");
+		}
+	}
+	else if( strcmp(cmd, "createverified")==0 )
+	{
+		if( arg1 ) {
+			int chat_id = mrmailbox_create_group_chat(mailbox, 1, arg1);
+			ret = chat_id!=0? mr_mprintf("VerifiedGroup#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
 			ret = safe_strdup("ERROR: Argument <name> missing.");
@@ -1158,7 +1182,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				mrstrbuilder_catf(&strbuilder, "\n\n%i chats shared with Contact#%i: ", chatlist_cnt, contact_id);
 				for( int i = 0; i < chatlist_cnt; i++ ) {
 					if( i ) { mrstrbuilder_cat(&strbuilder, ", ");  }
-					mrstrbuilder_catf(&strbuilder, "Chat#%i", mrchatlist_get_chat_id(chatlist, i));
+
+					mrchat_t* chat = mrmailbox_get_chat(mailbox, mrchatlist_get_chat_id(chatlist, i));
+						mrstrbuilder_catf(&strbuilder, "%s#%i", chat_prefix(chat), mrchat_get_id(chat));
+					mrchat_unref(chat);
 				}
 			}
 			mrchatlist_unref(chatlist);
