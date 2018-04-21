@@ -3241,6 +3241,8 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special status message that is sent automatically by this function.
  *
+ * If the group is a verified group, only verified contacts can be added to the group.
+ *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof mrmailbox_t
@@ -3286,6 +3288,12 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 
 		if( 1==mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) ) {
 			success = 1;
+			goto cleanup;
+		}
+
+		if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
+		 && !mrcontact_is_verified__(contact) ) {
+			mrmailbox_log_error(mailbox, 0, "Only verified contacts can be added to verfied groups.");
 			goto cleanup;
 		}
 

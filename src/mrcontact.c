@@ -249,21 +249,7 @@ int mrcontact_is_blocked(mrcontact_t* contact)
 }
 
 
-/**
- * Check if a contact was verified eg. by a secure-join QR code scan
- * and if the key has not changed since this verification.
- *
- * The UI may draw a checkbox or sth. like that beside verified contacts.
- *
- * @memberof mrcontact_t
- *
- * @param contact The contact object.
- *
- * @return 0=contact is not verified.
- *    2=SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
- *    1=SELF has verified the contact but not the other way round.
- */
-int mrcontact_is_verified(mrcontact_t* contact)
+int mrcontact_is_verified__(mrcontact_t* contact)
 {
 	int             contact_verified = 0;
 	mrapeerstate_t* peerstate        = mrapeerstate_new(contact->m_mailbox);
@@ -285,6 +271,37 @@ int mrcontact_is_verified(mrcontact_t* contact)
 
 cleanup:
 	mrapeerstate_unref(peerstate);
+	return contact_verified;
+}
+
+
+/**
+ * Check if a contact was verified eg. by a secure-join QR code scan
+ * and if the key has not changed since this verification.
+ *
+ * The UI may draw a checkbox or sth. like that beside verified contacts.
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object.
+ *
+ * @return 0=contact is not verified.
+ *    2=SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
+ *    1=SELF has verified the contact but not the other way round.
+ */
+int mrcontact_is_verified(mrcontact_t* contact)
+{
+	int contact_verified = 0;
+
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+		goto cleanup;
+	}
+
+	mrsqlite3_lock(contact->m_mailbox->m_sql);
+		contact_verified = mrcontact_is_verified__(contact);
+	mrsqlite3_unlock(contact->m_mailbox->m_sql);
+
+cleanup:
 	return contact_verified;
 }
 
