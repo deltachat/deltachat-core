@@ -381,12 +381,23 @@ int mrchat_is_unpromoted(mrchat_t* chat)
 }
 
 
+/**
+ * Check if a chat is verified.  Verified chats contain only verified members
+ * and encryption is alwasy enabled.  Verified chats are created using
+ * mrmailbox_create_group_chat() by setting the 'verified' parameter to true.
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return 1=chat verified, 0=chat is not verified
+ */
 int mrchat_is_verified(mrchat_t* chat)
 {
-	// verified chat won't be created opportunistically just by all contacts being verified;
-	// instead verified chats are created as such and do not lose this state.
-	// TODO: add a "verified" flag
-	return 0;
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
+		return 0;
+	}
+	return (chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP);
 }
 
 
