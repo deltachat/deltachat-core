@@ -280,6 +280,7 @@ uint32_t        mrmailbox_create_contact    (mrmailbox_t*, const char* name, con
 int             mrmailbox_add_address_book  (mrmailbox_t*, const char*);
 
 #define         MR_GCL_VERIFIED_ONLY 0x01
+#define         MR_GCL_ADD_SELF      0x02
 mrarray_t*      mrmailbox_get_contacts      (mrmailbox_t*, uint32_t flags, const char* query);
 
 int             mrmailbox_get_blocked_count (mrmailbox_t*);

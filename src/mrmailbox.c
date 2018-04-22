@@ -3755,9 +3755,9 @@ cleanup:
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
  * @param listflags A combination of flags:
+ *     - if the flag MR_GCL_ADD_SELF is set, SELF is added to the list unless filtered by other parameters
  *     - if the flag MR_GCL_VERIFIED_ONLY is set, only verified contacts are returned.
  *       if MR_GCL_VERIFIED_ONLY is not set, verified and unverified contacts are returned.
- *
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
  *
@@ -3826,7 +3826,7 @@ mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, cons
 	locked = 0;
 
 	/* to the end of the list, add self - this is to be in sync with member lists and to allow the user to start a self talk */
-	if( add_self ) {
+	if( (listflags&MR_GCL_ADD_SELF) && add_self ) {
 		mrarray_add_id(ret, MR_CONTACT_ID_SELF);
 	}
 
