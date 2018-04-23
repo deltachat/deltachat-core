@@ -849,7 +849,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
                            const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */
-	int              incoming = 0;
+	int              incoming = 1;
 	int              incoming_origin = 0;
 	#define          outgoing (!incoming)
 
@@ -881,7 +881,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 	carray*          rr_event_to_send = carray_new(16);
 
-	int              has_return_path = 0;
 	int              is_handshake_message = 0;
 	char*            txt_raw = NULL;
 
@@ -913,19 +912,15 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
 
-	/* Check, if the mail comes from extern, resp. is not sent by us.  This is a _really_ important step
-	as messages sent by us are used to validate other mail senders and receivers.
-	For this purpose, we assume, the `Return-Path:`-header is never present if the message is sent by us.
-	The `Received:`-header may be another idea, however, this is also set if mails are transfered from other accounts via IMAP.
-	Using `From:` alone is no good idea, as mailboxes may use different sending-addresses - moreover, they may change over the years.
-	However, we use `From:` as an additional hint below. */
-	if( mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
-		has_return_path = 1;
+	/* messages without a Return-Path header typically are outgoing, however, if the Return-Path header
+	is missing for other reasons, see issue #150, foreign messages appear as own messages, this is very confusing.
+	as it may even be confusing when _own_ messages sent from other devices with other e-mail-adresses appear as being sent from SELF
+	we disabled this check for now */
+	#if 0
+	if( !mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
+		incoming = 0;
 	}
-
-	if( has_return_path ) {
-		incoming = 1;
-	}
+	#endif
 
 	if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
 		struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
@@ -939,9 +934,9 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
 
-		/* for incoming messages, get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass) */
-		if( incoming
-		 && (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
+		/* get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass)
+		or if From: is equal to SELF (in this case, it is any outgoing messages, we do not check Return-Path any more as this is unreliable, see issue #150 */
+		if( (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
 		 && field->fld_type==MAILIMF_FIELD_FROM)
 		{
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
@@ -952,15 +947,11 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
+					incoming = 0;
+
 					if( mrmimeparser_sender_equals_recipient(mime_parser) )
 					{
 						from_id = MR_CONTACT_ID_SELF;
-					}
-					else
-					{
-						incoming = 0; /* The `Return-Path:`-approach above works well, however, there may be outgoing messages which we also receive -
-									  for these messages, the `Return-Path:` is set although we're the sender.  To correct these cases, we add an
-									  additional From: check - which, however, will not work for older From:-addresses used on the mailbox. */
 					}
 				}
 				else
