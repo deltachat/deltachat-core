@@ -634,7 +634,7 @@ static int decrypt_part(mrmailbox_t*       mailbox,
 			goto cleanup;
 		}
 
-		//mailmime_print(new_mime);
+		//mailmime_print(decrypted_mime);
 
 		*ret_decrypted_mime = decrypted_mime;
 		sth_decrypted = 1;
