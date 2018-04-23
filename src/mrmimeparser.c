@@ -244,14 +244,17 @@ static void display_field(struct mailimf_field * field)
 			break;
 
 		case MAILIMF_FIELD_RETURN_PATH:
-			printf("Return-Path: ");
-			if( field->fld_data.fld_return_path ) {
-				struct mailimf_return* ret = field->fld_data.fld_return_path;
-				if( ret->ret_path ) {
-					printf("%s", ret->ret_path->pt_addr_spec);
+			{
+				printf("Return-Path (as regular field): ");
+				struct mailimf_return* return_path = field->fld_data.fld_return_path;
+				if( return_path ) {
+					struct mailimf_path* path = return_path->ret_path;
+					if( path ) {
+						printf("%s", path->pt_addr_spec? path->pt_addr_spec : "?");
+					}
 				}
+				printf("\n");
 			}
-			printf("\n");
 			break;
 
 		case MAILIMF_FIELD_OPTIONAL_FIELD:
