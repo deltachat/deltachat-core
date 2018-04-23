@@ -1172,6 +1172,12 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			mrstrbuilder_t strbuilder;
 			mrstrbuilder_init(&strbuilder, 0);
 
+			mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id);
+			char* nameNaddr = mrcontact_get_name_n_addr(contact);
+			mrstrbuilder_catf(&strbuilder, "Contact info for: %s:\n\n", nameNaddr);
+			free(nameNaddr);
+			mrcontact_unref(contact);
+
 			char* encrinfo = mrmailbox_get_contact_encrinfo(mailbox, contact_id);
 			mrstrbuilder_cat(&strbuilder, encrinfo);
 			free(encrinfo);
