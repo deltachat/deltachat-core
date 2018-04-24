@@ -835,7 +835,7 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
  * @param query_str An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
  *
- * @param query_str An optional contact ID for filtering the list.  Only chats including this contact ID
+ * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
  *     are returned.  Give 0 for no filtering.
  *
  * @return A chatlist as an mrchatlist_t object. Must be freed using
