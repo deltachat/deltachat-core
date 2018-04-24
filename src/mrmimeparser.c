@@ -243,20 +243,6 @@ static void display_field(struct mailimf_field * field)
 			printf("Message-ID: %s\n", field->fld_data.fld_message_id->mid_value);
 			break;
 
-		case MAILIMF_FIELD_RETURN_PATH:
-			{
-				printf("Return-Path (as regular field): ");
-				struct mailimf_return* return_path = field->fld_data.fld_return_path;
-				if( return_path ) {
-					struct mailimf_path* path = return_path->ret_path;
-					if( path ) {
-						printf("%s", path->pt_addr_spec? path->pt_addr_spec : "?");
-					}
-				}
-				printf("\n");
-			}
-			break;
-
 		case MAILIMF_FIELD_OPTIONAL_FIELD:
 			{
 				struct mailimf_optional_field* of = field->fld_data.fld_optional_field;
