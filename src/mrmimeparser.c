@@ -1089,9 +1089,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 						do_add_single_file_part(ths, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
 
-						txt = new_txt;
-						free(txt);
-
+						free(txt);         txt = new_txt;
 						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
 						free(uu_filename); uu_filename = NULL;
 					}
