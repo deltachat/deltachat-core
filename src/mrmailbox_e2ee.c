@@ -436,7 +436,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 					struct mailimf_optional_field* opt_field = field->fld_data.fld_optional_field;
 					if( opt_field && opt_field->fld_name ) {
 						if(  strncmp(opt_field->fld_name, "Secure-Join", 11)==0
-						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering, however, this is subject to cha*/ ) {
+						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering and is not added to the encrypted part, however, this is subject to change*/ ) {
 							move_to_encrypted = 1;
 						}
 					}
