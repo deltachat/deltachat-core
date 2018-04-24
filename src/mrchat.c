@@ -426,7 +426,7 @@ int mrchat_are_all_members_verified__(mrchat_t* chat)
 		uint32_t contact_id       = sqlite3_column_int(stmt, 0);
 		int      contact_verified = sqlite3_column_int(stmt, 1);
 		if( contact_id != MR_CONTACT_ID_SELF
-		 && contact_verified==0 )
+		 && contact_verified!=MRV_BIDIRECTIONAL )
 		{
 			goto cleanup; // a single unverified contact results in an unverified chat
 		}

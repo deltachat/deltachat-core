@@ -3292,8 +3292,8 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 		}
 
 		if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
-		 && !mrcontact_is_verified__(contact) ) {
-			mrmailbox_log_error(mailbox, 0, "Only verified contacts can be added to verfied groups.");
+		 && mrcontact_is_verified__(contact)!=MRV_BIDIRECTIONAL ) {
+			mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 			goto cleanup;
 		}
 
@@ -3798,8 +3798,8 @@ mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, cons
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
-			sqlite3_bind_int (stmt, 4, (listflags&MR_GCL_VERIFIED_ONLY)? 2 : 0);
-			sqlite3_bind_int (stmt, 5, (listflags&MR_GCL_VERIFIED_ONLY)? 0 : 1/*force statement being always true*/);
+			sqlite3_bind_int (stmt, 4, (listflags&MR_GCL_VERIFIED_ONLY)? MRV_BIDIRECTIONAL : 0);
+			sqlite3_bind_int (stmt, 5, (listflags&MR_GCL_VERIFIED_ONLY)? 0/*force checking for MRV_BIDIRECTIONAL*/ : 1/*force statement being always true*/);
 
 			self_name  = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 			self_name2 = mrstock_str(MR_STR_SELF);

@@ -251,7 +251,7 @@ int mrcontact_is_blocked(mrcontact_t* contact)
 
 int mrcontact_is_verified__(mrcontact_t* contact)
 {
-	int             contact_verified = 0;
+	int             contact_verified = MRV_NOT_VERIFIED;
 	mrapeerstate_t* peerstate        = mrapeerstate_new(contact->m_mailbox);
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
@@ -259,7 +259,7 @@ int mrcontact_is_verified__(mrcontact_t* contact)
 	}
 
 	if( contact->m_id == MR_CONTACT_ID_SELF ) {
-		contact_verified = 2;
+		contact_verified = MRV_BIDIRECTIONAL;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
@@ -285,13 +285,13 @@ cleanup:
  *
  * @param contact The contact object.
  *
- * @return 0=contact is not verified.
- *    2=SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
- *    1=SELF has verified the contact but not the other way round.
+ * @return MRV_NOT_VERIFIED (0): contact is not verified.
+ *    MRV_SIMPLE (1): =SELF has verified the contact but not the other way round.
+ *    MRV_BIDIRECTIONAL (2): SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
 int mrcontact_is_verified(mrcontact_t* contact)
 {
-	int contact_verified = 0;
+	int contact_verified = MRV_NOT_VERIFIED;
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;

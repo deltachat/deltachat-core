@@ -46,7 +46,7 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 
 	free(ths->m_fingerprint);
 	ths->m_fingerprint = NULL;
-	ths->m_verified    = 0;
+	ths->m_verified    = MRV_NOT_VERIFIED;
 
 	if( ths->m_public_key ) {
 		mrkey_unref(ths->m_public_key);
@@ -470,7 +470,7 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 	 || strcasecmp(old_fingerprint, peerstate->m_fingerprint) != 0 )
 	{
 		peerstate->m_to_save  |= MRA_SAVE_ALL;
-		peerstate->m_verified = 0;
+		peerstate->m_verified = MRV_NOT_VERIFIED;
 
 		if( old_fingerprint && old_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 			peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
@@ -496,7 +496,7 @@ cleanup:
  *
  * @param peerstate The peerstate object.
  * @param fingerprint Fingerprint expected in the object
- * @param verified 1=we verified the contact, 2=contact verfied in both directions
+ * @param MRV_SIMPLE (1): we verified the contact, MRV_BIDIRECTIONAL (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call mrapeerstate_save_to_db__()
@@ -508,7 +508,7 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 {
 	int success = 0;
 
-	if( peerstate == NULL || fingerprint == NULL || verified<1 || verified>2 ) {
+	if( peerstate == NULL || fingerprint == NULL || (verified!=MRV_SIMPLE && verified!=MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 

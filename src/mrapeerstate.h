@@ -57,6 +57,10 @@ typedef struct mrapeerstate_t
 	mrkey_t*       m_gossip_key; /* may be NULL */
 
 	char*          m_fingerprint; /* fingerprint belonging to public_key (if set) or m_gossip_key (otherwise), may be NULL */
+
+	#define        MRV_NOT_VERIFIED  0
+	#define        MRV_SIMPLE        1
+	#define        MRV_BIDIRECTIONAL 2
 	int            m_verified;    // fingerprint verified?
 
 	#define        MRA_SAVE_TIMESTAMPS 0x01

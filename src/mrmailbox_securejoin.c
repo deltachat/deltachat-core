@@ -179,7 +179,7 @@ static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint
 		goto cleanup;
 	}
 
-	if( !mrapeerstate_set_verified(peerstate, fingerprint, 2) ) {
+	if( !mrapeerstate_set_verified(peerstate, fingerprint, MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 
