@@ -482,14 +482,14 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 }
 
 
-static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, const char* grpname, int create_blocked)
+static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, const char* grpname, int create_blocked, int create_verified)
 {
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt = NULL;
 
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 		"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
-	sqlite3_bind_int (stmt, 1, MR_CHAT_TYPE_GROUP);
+	sqlite3_bind_int (stmt, 1, create_verified? MR_CHAT_TYPE_VERIFIED_GROUP : MR_CHAT_TYPE_GROUP);
 	sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 4, create_blocked);
@@ -572,7 +572,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 
 	/* create group record */
-	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked);
+	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
 	for( i = 0; i < mrarray_get_cnt(member_ids); i++ ) {
 		mrmailbox_add_contact_to_chat__(mailbox, chat_id, mrarray_get_id(member_ids, i));
@@ -609,10 +609,11 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
                                      int32_t from_id, const mrarray_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
-	uint32_t              chat_id = 0;
-	int                   chat_id_blocked = 0;
-	char*                 grpid = NULL;
-	char*                 grpname = NULL;
+	uint32_t              chat_id          = 0;
+	int                   chat_id_blocked  = 0;
+	int                   chat_id_verified = 0;
+	char*                 grpid            = NULL;
+	char*                 grpname          = NULL;
 	sqlite3_stmt*         stmt;
 	int                   i, to_ids_cnt = mrarray_get_cnt(to_ids);
 	char*                 self_addr = NULL;
@@ -693,11 +694,16 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 	/* check, if we have a chat with this group ID */
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
-		"SELECT id, blocked FROM chats WHERE grpid=?;");
+		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
-		chat_id = sqlite3_column_int(stmt, 0);
-		chat_id_blocked = sqlite3_column_int(stmt, 1);
+		chat_id          = sqlite3_column_int(stmt, 0);
+		chat_id_blocked  = sqlite3_column_int(stmt, 1);
+		chat_id_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP)? 1 : 0;
+
+		// TODO: if the message is encrypted with a correct signature and the sender is verified,
+		// mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here);
+		// if anything fails, set chat_id to 0 to force the creation of an unverified ad-hoc group.
 	}
 
 	/* check if the sender is a member of the existing group -
@@ -719,8 +725,16 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
 	 )
 	{
-		chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked);
-		chat_id_blocked = create_blocked;
+		int create_verified = 0;
+		if( mrmimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
+			// TODO: if the message is encrypted with a correct signature and the sender is verified,
+			// mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here)
+			// and set create_verified = 1
+		}
+
+		chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, create_verified);
+		chat_id_blocked  = create_blocked;
+		chat_id_verified = create_verified;
 		recreate_member_list = 1;
 	}
 
