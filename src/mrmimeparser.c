@@ -951,6 +951,62 @@ static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
 }
 
 
+static void do_add_single_file_part(mrmimeparser_t* parser, int msg_type, int mime_type,
+                                    const char* decoded_data, size_t decoded_data_bytes,
+                                    const char* desired_filename)
+{
+	mrmimepart_t* part = NULL;
+	char*         pathNfilename = NULL;
+
+	/* create a free file name to use */
+	if( (pathNfilename=mr_get_fine_pathNfilename(parser->m_blobdir, desired_filename)) == NULL ) {
+		goto cleanup;
+	}
+
+	/* copy data to file */
+	if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_mailbox)==0 ) {
+		goto cleanup;
+	}
+
+	part = mrmimepart_new();
+	part->m_type  = msg_type;
+	part->m_int_mimetype = mime_type;
+	part->m_bytes = decoded_data_bytes;
+	mrparam_set(part->m_param, MRP_FILE, pathNfilename);
+	if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
+		part->m_msg = mr_get_filename(pathNfilename);
+	}
+	else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
+		part->m_msg = mr_get_filesuffix_lc(pathNfilename);
+	}
+
+	if( mime_type == MR_MIMETYPE_IMAGE ) {
+		uint32_t w = 0, h = 0;
+		if( mr_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
+			mrparam_set_int(part->m_param, MRP_WIDTH, w);
+			mrparam_set_int(part->m_param, MRP_HEIGHT, h);
+		}
+	}
+
+	/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by mr_get_fine_pathNfilename()) */
+	if( msg_type == MR_MSG_AUDIO ) {
+		char* author = NULL, *title = NULL;
+		mrmsg_get_authorNtitle_from_filename(desired_filename, &author, &title);
+		mrparam_set(part->m_param, MRP_AUTHORNAME, author);
+		mrparam_set(part->m_param, MRP_TRACKNAME, title);
+		free(author);
+		free(title);
+	}
+
+	do_add_single_part(parser, part);
+	part = NULL;
+
+cleanup:
+	free(pathNfilename);
+	mrmimepart_unref(part);
+}
+
+
 static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mailmime* mime)
 {
 	mrmimepart_t*                part = NULL;
@@ -958,7 +1014,6 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 	int                          mime_type;
 	struct mailmime_data*        mime_data;
-	char*                        pathNfilename = NULL;
 	char*                        file_suffix = NULL, *desired_filename = NULL;
 	int                          msg_type;
 
@@ -1086,48 +1141,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 				mr_replace_bad_utf8_chars(desired_filename);
 
-				/* create a free file name to use */
-				if( (pathNfilename=mr_get_fine_pathNfilename(ths->m_blobdir, desired_filename)) == NULL ) {
-					goto cleanup;
-				}
-
-				/* copy data to file */
-                if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, ths->m_mailbox)==0 ) {
-					goto cleanup;
-                }
-
-				part = mrmimepart_new();
-				part->m_type  = msg_type;
-				part->m_int_mimetype = mime_type;
-				part->m_bytes = decoded_data_bytes;
-				mrparam_set(part->m_param, MRP_FILE, pathNfilename);
-				if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
-					part->m_msg = mr_get_filename(pathNfilename);
-				}
-				else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
-					part->m_msg = mr_get_filesuffix_lc(pathNfilename);
-				}
-
-				if( mime_type == MR_MIMETYPE_IMAGE ) {
-					uint32_t w = 0, h = 0;
-					if( mr_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
-						mrparam_set_int(part->m_param, MRP_WIDTH, w);
-						mrparam_set_int(part->m_param, MRP_HEIGHT, h);
-					}
-				}
-
-				/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by mr_get_fine_pathNfilename()) */
-				if( msg_type == MR_MSG_AUDIO ) {
-					char* author = NULL, *title = NULL;
-					mrmsg_get_authorNtitle_from_filename(desired_filename, &author, &title);
-					mrparam_set(part->m_param, MRP_AUTHORNAME, author);
-					mrparam_set(part->m_param, MRP_TRACKNAME, title);
-					free(author);
-					free(title);
-				}
-
-				do_add_single_part(ths, part);
-				part = NULL;
+				do_add_single_file_part(ths, msg_type, mime_type, decoded_data, decoded_data_bytes, desired_filename);
 			}
 			break;
 
@@ -1140,7 +1154,6 @@ cleanup:
 	mrsimplify_unref(simplifier);
 	if( charset_buffer ) { charconv_buffer_free(charset_buffer); }
 	if( transfer_decoding_buffer ) { mmap_string_unref(transfer_decoding_buffer); }
-	free(pathNfilename);
 	free(file_suffix);
 	free(desired_filename);
 	mrmimepart_unref(part);
