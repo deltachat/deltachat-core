@@ -1079,8 +1079,9 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				{
 					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
 					size_t uu_blob_bytes = 0;
-					int    uu_msg_type = 0;
-					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
+					int    uu_msg_type = 0, added_uu_parts = 0;
+					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL
+					    && added_uu_parts < 10/*fence against endless loops*/ )
 					{
 						mrmsg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
 						if( uu_msg_type == 0 ) {
@@ -1088,6 +1089,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 						}
 
 						do_add_single_file_part(ths, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
+						added_uu_parts++;
 
 						free(txt);         txt = new_txt;
 						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
