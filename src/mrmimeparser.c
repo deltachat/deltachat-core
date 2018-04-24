@@ -23,6 +23,7 @@
 #include "mrmailbox_internal.h"
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
+#include "mruudecode.h"
 #include "mrsimplify.h"
 
 
@@ -1073,7 +1074,33 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					}
 				}
 
-				char* simplified_txt = mrsimplify_simplify(simplifier, decoded_data, decoded_data_bytes, mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+				// add uuencoded stuff as MR_MSG_FILE/MR_MSG_IMAGE/etc. parts
+				char* txt = strndup(decoded_data, decoded_data_bytes);
+				{
+					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
+					size_t uu_blob_bytes = 0;
+					int    uu_msg_type = 0;
+					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
+					{
+						mrmsg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
+						if( uu_msg_type == 0 ) {
+							uu_msg_type = MR_MSG_FILE;
+						}
+
+						do_add_single_file_part(ths, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
+
+						txt = new_txt;
+						free(txt);
+
+						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
+						free(uu_filename); uu_filename = NULL;
+					}
+				}
+
+				// add text as MR_MSG_TEXT part
+				char* simplified_txt = mrsimplify_simplify(simplifier, txt, strlen(txt), mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+				free(txt);
+				txt = NULL;
 				if( simplified_txt && simplified_txt[0] )
 				{
 					part = mrmimepart_new();
