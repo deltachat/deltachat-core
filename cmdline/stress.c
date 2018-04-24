@@ -276,6 +276,20 @@ void stress_functions(mrmailbox_t* mailbox)
 		mrmimeparser_unref(mimeparser);
 	}
 
+	/* test message helpers
+	 **************************************************************************/
+
+	{
+		int type;
+		char* mime;
+		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, NULL);
+		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, &mime);
+		assert( strcmp(mime, "audio/mpeg")==0 );
+		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", &type, NULL);
+		assert( type == MR_MSG_AUDIO );
+		free(mime);
+	}
+
 	/* test some string functions
 	 **************************************************************************/
 
