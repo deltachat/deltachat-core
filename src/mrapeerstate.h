@@ -61,7 +61,8 @@ typedef struct mrapeerstate_t
 	#define        MRV_NOT_VERIFIED  0
 	#define        MRV_SIMPLE        1
 	#define        MRV_BIDIRECTIONAL 2
-	int            m_verified;    // fingerprint verified?
+	int            m_public_key_verified;
+	int            m_gossip_key_verified;
 
 	#define        MRA_SAVE_TIMESTAMPS 0x01
 	#define        MRA_SAVE_ALL        0x02

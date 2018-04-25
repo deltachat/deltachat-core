@@ -367,7 +367,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN public_key_verified INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_verified INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				recalc_fingerprints = 1;
 

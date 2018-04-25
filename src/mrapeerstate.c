@@ -46,7 +46,8 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 
 	free(ths->m_fingerprint);
 	ths->m_fingerprint = NULL;
-	ths->m_verified    = MRV_NOT_VERIFIED;
+	ths->m_public_key_verified = MRV_NOT_VERIFIED;
+	ths->m_gossip_key_verified = MRV_NOT_VERIFIED;
 
 	if( ths->m_public_key ) {
 		mrkey_unref(ths->m_public_key);
@@ -66,7 +67,7 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 
 static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt* stmt)
 {
-	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, fingerprint, verified"
+	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, fingerprint, public_key_verified, gossip_key_verified"
 	peerstate->m_addr                = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
 	peerstate->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
 	peerstate->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
@@ -75,7 +76,8 @@ static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt
 	peerstate->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
 	#define GOSSIP_KEY_COL                                                      6
 	peerstate->m_fingerprint         = safe_strdup((char*)sqlite3_column_text  (stmt, 7));
-	peerstate->m_verified            =                    sqlite3_column_int   (stmt, 8);
+	peerstate->m_public_key_verified =                    sqlite3_column_int   (stmt, 8);
+	peerstate->m_gossip_key_verified =                    sqlite3_column_int   (stmt, 9);
 
 	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_public_key = mrkey_new();
@@ -165,7 +167,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
 			"UPDATE acpeerstates "
 			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
-			"       public_key=?, gossip_timestamp=?, gossip_key=?, fingerprint=?, verified=? "
+			"       public_key=?, gossip_timestamp=?, gossip_key=?, fingerprint=?, public_key_verified=?, gossip_key_verified=? "
 			" WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
@@ -174,8 +176,9 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 		sqlite3_bind_int64(stmt, 5, ths->m_gossip_timestamp);
 		sqlite3_bind_blob (stmt, 6, ths->m_gossip_key? ths->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_gossip_key? ths->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 7, ths->m_fingerprint, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (stmt, 8, ths->m_verified);
-		sqlite3_bind_text (stmt, 9, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_int  (stmt, 8, ths->m_public_key_verified);
+		sqlite3_bind_int  (stmt, 9, ths->m_gossip_key_verified);
+		sqlite3_bind_text (stmt,10, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -459,7 +462,7 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		goto cleanup;
 	}
 
-	old_fingerprint = peerstate->m_fingerprint;
+	old_fingerprint = peerstate->m_fingerprint; // TODO: need two fingerprints
 
 	peerstate->m_fingerprint = mrkey_get_fingerprint(key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
 
@@ -470,7 +473,8 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 	 || strcasecmp(old_fingerprint, peerstate->m_fingerprint) != 0 )
 	{
 		peerstate->m_to_save  |= MRA_SAVE_ALL;
-		peerstate->m_verified = MRV_NOT_VERIFIED;
+		peerstate->m_public_key_verified = MRV_NOT_VERIFIED; // TODO: need two fingerprints
+		peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
 
 		if( old_fingerprint && old_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 			peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
@@ -504,7 +508,7 @@ cleanup:
  *     0=the given fingerprint is not eqial to the peer's fingerprint,
  *     verified-state not changed.
  */
-int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint, int verified)
+int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint, int verified) // TODO: need two fingerprints
 {
 	int success = 0;
 
@@ -522,7 +526,8 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 
 	peerstate->m_to_save        |= MRA_SAVE_ALL;
 	peerstate->m_prefer_encrypt =  MRA_PE_MUTUAL;
-	peerstate->m_verified       = verified;
+	peerstate->m_public_key_verified       = verified; // TODO: need two fingerprints
+	peerstate->m_gossip_key_verified       = verified;
 	success                     = 1;
 
 cleanup:
