@@ -869,12 +869,18 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	// prefer validated keys for checking the signature, see check_verified_properties() for further information about this.
+	const mrkey_t* public_key_for_validate =
+		(peerstate->m_gossip_key_verified && !peerstate->m_public_key_verified)?
+			peerstate->m_gossip_key
+		:	peerstate->m_public_key;
+
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
 	*ret_validation_errors = 0;
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
-		        peerstate->m_public_key, /* never use gossip_key for validation - if we get a mail to validate from the user, we normally also have the public_key */
+		        public_key_for_validate,
 		        ret_validation_errors, &gossip_headers) ) {
 			break;
 		}
