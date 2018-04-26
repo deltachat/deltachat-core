@@ -3793,13 +3793,14 @@ mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, cons
 				"SELECT c.id FROM contacts c"
 					" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 					" WHERE c.addr!=? AND c.id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in mrmailbox_search_msgs() about the LIKE operator */
-					" AND (ps.verified=? OR 1=?) "
+					" AND (ps.public_key_verified=? OR ps.gossip_key_verified=? OR 1=?) "
 					" ORDER BY LOWER(c.name||c.addr),c.id;");
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_int (stmt, 4, (listflags&MR_GCL_VERIFIED_ONLY)? MRV_BIDIRECTIONAL : 0);
-			sqlite3_bind_int (stmt, 5, (listflags&MR_GCL_VERIFIED_ONLY)? 0/*force checking for MRV_BIDIRECTIONAL*/ : 1/*force statement being always true*/);
+			sqlite3_bind_int (stmt, 5, (listflags&MR_GCL_VERIFIED_ONLY)? MRV_BIDIRECTIONAL : 0);
+			sqlite3_bind_int (stmt, 6, (listflags&MR_GCL_VERIFIED_ONLY)? 0/*force checking for MRV_BIDIRECTIONAL*/ : 1/*force statement being always true*/);
 
 			self_name  = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
 			self_name2 = mrstock_str(MR_STR_SELF);
@@ -4167,7 +4168,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		if( !e2ee_enabled ) {
 			explain_id = MR_STR_E2E_DIS_BY_YOU;
 		}
-		else if( peerstate_ok && mrapeerstate_peek_key(peerstate) ) {
+		else if( peerstate_ok && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) ) {
 			explain_id = MR_STR_E2E_DIS_BY_RCPT; /* this includes the situation where we have only a gossip_key and no direct contact to the recipient */
 		}
 		else {
@@ -4177,7 +4178,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
 	if( peerstate_ok
-	 && mrapeerstate_peek_key(peerstate) )
+	 && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -4194,7 +4195,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrstrbuilder_cat(&ret, ":\n\n");
 
 		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key);
-		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate));
+		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);

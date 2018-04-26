@@ -22,6 +22,7 @@
 
 #include "mrmailbox_internal.h"
 #include "mrmimefactory.h"
+#include "mrapeerstate.h"
 
 #define LINEEND "\r\n" /* lineend used in IMF */
 
@@ -449,6 +450,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 	int                          parts = 0;
 	mrmailbox_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
+	int                          min_verified = MRV_NOT_VERIFIED;
 	int                          force_unencrypted = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
 	char*                        grpimage = NULL;
 
@@ -522,6 +524,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
 			force_unencrypted = 0;
 			e2ee_guaranteed   = 1;
+			min_verified      = MRV_BIDIRECTIONAL;
 		}
 		else {
 			force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0);
@@ -733,7 +736,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if( force_unencrypted != 2 ) {
-		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_unencrypted, e2ee_guaranteed, message, &e2ee_helper);
+		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_unencrypted, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 
 	if( e2ee_helper.m_encryption_successfull ) {

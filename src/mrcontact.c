@@ -267,7 +267,7 @@ int mrcontact_is_verified__(mrcontact_t* contact)
 		goto cleanup;
 	}
 
-	contact_verified = peerstate->m_verified;
+	contact_verified = MR_MAX(peerstate->m_public_key_verified, peerstate->m_gossip_key_verified);
 
 cleanup:
 	mrapeerstate_unref(peerstate);

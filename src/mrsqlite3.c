@@ -355,20 +355,23 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 				mrsqlite3_execute__(ths, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index2 ON acpeerstates (fingerprint);");
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 32
+		#define NEW_DB_VERSION 34
 			if( dbversion < NEW_DB_VERSION )
 			{
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN public_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN public_key_verified INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_verified INTEGER DEFAULT 0;");
+				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index3 ON acpeerstates (public_key_fingerprint);");
+				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index4 ON acpeerstates (gossip_key_fingerprint);");
 				recalc_fingerprints = 1;
 
 				dbversion = NEW_DB_VERSION;

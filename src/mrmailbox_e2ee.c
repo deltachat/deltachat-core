@@ -320,6 +320,7 @@ cleanup:
 void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     int force_unencrypted,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
+                    int min_verified,
                     struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
@@ -367,10 +368,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
-				 && mrapeerstate_peek_key(peerstate)
+				 && mrapeerstate_peek_key(peerstate, min_verified)
 				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
-					mrkeyring_add(keyring, mrapeerstate_peek_key(peerstate)); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
+					mrkeyring_add(keyring, mrapeerstate_peek_key(peerstate, min_verified)); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					mrarray_add_ptr(peerstates, peerstate);
 				}
 				else {
@@ -415,7 +416,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		int iCnt = mrarray_get_cnt(peerstates);
 		if( iCnt > 1 ) {
 			for( int i = 0; i < iCnt; i++ ) {
-				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)mrarray_get_ptr(peerstates, i));
+				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)mrarray_get_ptr(peerstates, i), min_verified);
 				if( p ) {
 					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
 				}
