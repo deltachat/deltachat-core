@@ -321,7 +321,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
-	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id AND m.hidden=0)) " \
+	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id AND hidden=0)) " /* not: `m.hidden` which would refer the outer select and takes lot of time*/ \
 	                " WHERE c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
