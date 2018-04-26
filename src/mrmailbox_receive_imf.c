@@ -282,6 +282,13 @@ static uint32_t add_degrade_message__(mrmailbox_t* mailbox, uint32_t chat_id, ui
 	mrcontact_t* contact = mrcontact_new(mailbox);
 	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
 
+	uint32_t from_chat_id = 0;
+	int      from_chat_id_blocked = 0;
+	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, from_id, &from_chat_id, &from_chat_id_blocked);
+	if( from_chat_id && !from_chat_id_blocked ) {
+		chat_id = from_chat_id; // if there is a single-chat with the sender, show the degrade-message there
+	}
+
 	char* msg = mr_mprintf("Changed setup for %s", contact->m_addr);
 	uint32_t msg_id = mrmailbox_add_device_msg__(mailbox, chat_id, msg, timestamp);
 	free(msg);
