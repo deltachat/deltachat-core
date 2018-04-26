@@ -138,8 +138,10 @@ int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* s
 	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
-		 " WHERE fingerprint=? COLLATE NOCASE;");
+		 " WHERE public_key_fingerprint=? COLLATE NOCASE "
+		 "    OR gossip_key_fingerprint=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, fingerprint, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, fingerprint, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
