@@ -992,7 +992,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	mrsqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
 
-		/* get From: and check if it is known (for known From:'s we add the other To:/Cc:/Bcc: in the 3rd pass)
+		/* get From: and check if it is known (for known From:'s we add the other To:/Cc: in the 3rd pass)
 		or if From: is equal to SELF (in this case, it is any outgoing messages, we do not check Return-Path any more as this is unreliable, see issue #150 */
 		if( (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
 		 && field->fld_type==MAILIMF_FIELD_FROM)
@@ -1024,7 +1024,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			}
 		}
 
-		/* Make sure, to_ids starts with the first To:-address (Cc: and Bcc: are added in the loop below pass) */
+		/* Make sure, to_ids starts with the first To:-address (Cc: is added in the loop below pass) */
 		if( (field=mrmimeparser_lookup_field(mime_parser, "To"))!=NULL
 		 && field->fld_type==MAILIMF_FIELD_TO )
 		{
@@ -1043,22 +1043,15 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			 * Add parts
 			 *********************************************************************/
 
-			/* collect the rest information */
+			/* collect the rest information, CC: is added to the to-list, BCC: is ignored
+			(we should not add BCC to groups as this would split groups. We could add them as "known contacts",
+			however, the benefit is very small and this may leak data that is expected to be hidden) */
 			if( (field=mrmimeparser_lookup_field(mime_parser, "Cc"))!=NULL && field->fld_type==MAILIMF_FIELD_CC )
 			{
 				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 				if( fld_cc ) {
 					mrmailbox_add_or_lookup_contacts_by_address_list__(mailbox, fld_cc->cc_addr_list,
 						outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
-				}
-			}
-
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Bcc"))!=NULL && field->fld_type==MAILIMF_FIELD_BCC )
-			{
-				struct mailimf_bcc* fld_bcc = field->fld_data.fld_bcc;
-				if( outgoing && fld_bcc ) {
-					mrmailbox_add_or_lookup_contacts_by_address_list__(mailbox, fld_bcc->bcc_addr_list,
-						MR_ORIGIN_OUTGOING_BCC, to_ids, NULL);
 				}
 			}
 
