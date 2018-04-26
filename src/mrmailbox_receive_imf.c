@@ -617,6 +617,8 @@ static int check_verified_properties(mrmailbox_t* mailbox, mrmimeparser_t* mimep
 
 	// TODO: mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here)
 
+	// it's up to the caller to check if the sender is a member of the group
+	// (we do this for both, verified and unverified group, so we do not check this here)
 	everythings_okay = 1;
 
 cleanup:
