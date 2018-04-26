@@ -23,6 +23,7 @@
 #include "mrmailbox_internal.h"
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
+#include "mrapeerstate.h"
 #include "mrimap.h"
 #include "mrjob.h"
 #include "mrarray-private.h"
@@ -1244,7 +1245,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 
-			if( mime_parser->m_degrade_event ) {
+			if( mime_parser->m_degrade_event
+			 && mime_parser->m_degrade_event!=MRA_DE_ENCRYPTION_PAUSED /*no events logged for paused decryption, we have the lock-symbol for that*/ ) {
 				degrade_msg_id = add_degrade_message__(mailbox, chat_id, from_id, sort_timestamp);
 			}
 
