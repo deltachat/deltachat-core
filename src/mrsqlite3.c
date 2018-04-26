@@ -636,17 +636,38 @@ int mrsqlite3_set_config_int__(mrsqlite3_t* ths, const char* key, int32_t value)
  ******************************************************************************/
 
 
+#ifdef MR_USE_LOCK_DEBUG
+void mrsqlite3_lockNdebug(mrsqlite3_t* ths, const char* filename, int linenum) /* wait and lock */
+#else
 void mrsqlite3_lock(mrsqlite3_t* ths) /* wait and lock */
+#endif
 {
+	#ifdef MR_USE_LOCK_DEBUG
+		clock_t start = clock();
+		mrmailbox_log_info(ths->m_mailbox, 0, "    waiting for lock at %s#L%i", filename, linenum);
+	#endif
+
 	pthread_mutex_lock(&ths->m_critical_);
+
+	#ifdef MR_USE_LOCK_DEBUG
+		mrmailbox_log_info(ths->m_mailbox, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	#endif
 
 	//mrmailbox_wake_lock(ths->m_mailbox);
 }
 
 
+#ifdef MR_USE_LOCK_DEBUG
+void mrsqlite3_unlockNdebug(mrsqlite3_t* ths, const char* filename, int linenum)
+#else
 void mrsqlite3_unlock(mrsqlite3_t* ths)
+#endif
 {
 	//mrmailbox_wake_unlock(ths->m_mailbox);
+
+	#ifdef MR_USE_LOCK_DEBUG
+		mrmailbox_log_info(ths->m_mailbox, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
+	#endif
 
 	pthread_mutex_unlock(&ths->m_critical_);
 }
