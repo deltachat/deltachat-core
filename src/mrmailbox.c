@@ -843,8 +843,6 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
  */
 mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const char* query_str, uint32_t query_id)
 {
-	clock_t       start = clock();
-
 	int success = 0;
 	int db_locked = 0;
 	mrchatlist_t* obj = mrchatlist_new(mailbox);
@@ -864,8 +862,6 @@ mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const 
 
 cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-
-	mrmailbox_log_info(mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query_str?query_str:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	if( success ) {
 		return obj;
