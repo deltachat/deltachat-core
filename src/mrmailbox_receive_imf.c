@@ -76,7 +76,7 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -93,7 +93,7 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mail
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 
