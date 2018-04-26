@@ -486,6 +486,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delmsg <msg-id>\n"
 				"===========================Contact commands==\n"
 				"listcontacts [<query>]\n"
+				"listverified [<query>]\n"
 				"addcontact [<name>] <addr>\n"
 				"contactinfo <contact-id>\n"
 				"delcontact <contact-id>\n"
@@ -1135,9 +1136,9 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	 * Contact commands
 	 ******************************************************************************/
 
-	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 )
+	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 || strcmp(cmd, "listverified")==0 )
 	{
-		mrarray_t* contacts = mrmailbox_get_contacts(mailbox, 0, arg1);
+		mrarray_t* contacts = mrmailbox_get_contacts(mailbox, strcmp(cmd, "listverified")==0? MR_GCL_VERIFIED_ONLY : 0, arg1);
 		if( contacts ) {
 			log_contactlist(mailbox, contacts);
 			ret = mr_mprintf("%i contacts.", (int)mrarray_get_cnt(contacts));
