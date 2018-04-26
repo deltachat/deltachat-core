@@ -593,7 +593,7 @@ cleanup:
 }
 
 
-static int check_verified_properties(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t from_id)
+static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t from_id)
 {
 	int          everythings_okay = 0;
 	mrcontact_t* contact          = mrcontact_new(mailbox);
@@ -736,7 +736,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		chat_id_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP)? 1 : 0;
 
 		if( chat_id_verified ) {
-			if( !check_verified_properties(mailbox, mime_parser, from_id) ) {
+			if( !check_verified_properties__(mailbox, mime_parser, from_id) ) {
 				chat_id = 0; // force the creation of an unverified ad-hoc group.
 			}
 		}
@@ -763,7 +763,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	{
 		int create_verified = 0;
 		if( mrmimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
-			if( check_verified_properties(mailbox, mime_parser, from_id) ) {
+			if( check_verified_properties__(mailbox, mime_parser, from_id) ) {
 				create_verified = 1;
 			}
 		}
