@@ -157,7 +157,7 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 
 	fingerprint_normalized = mr_normalize_fingerprint(fingerprint);
 
-	if( strcasecmp(fingerprint_normalized, peerstate->m_fingerprint) == 0 ) {
+	if( strcasecmp(fingerprint_normalized, peerstate->m_public_key_fingerprint) == 0 ) {
 		fingerprint_equal = 1;
 	}
 
@@ -182,6 +182,11 @@ static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint
 	if( !mrapeerstate_set_verified(peerstate, fingerprint, MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
+
+	// set MUTUAL as an out-of-band-verification is a strong hint that encryption is wanted.
+	// the state may be corrected by the Autocrypt headers as usual later;
+	// maybe it is a good idea to add the prefer-encrypt-state to the QR code.
+	peerstate->m_prefer_encrypt = MRA_PE_MUTUAL;
 
 	mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 	success = 1;

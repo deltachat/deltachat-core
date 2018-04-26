@@ -4167,7 +4167,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		if( !e2ee_enabled ) {
 			explain_id = MR_STR_E2E_DIS_BY_YOU;
 		}
-		else if( peerstate_ok && mrapeerstate_peek_key(peerstate) ) {
+		else if( peerstate_ok && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) ) {
 			explain_id = MR_STR_E2E_DIS_BY_RCPT; /* this includes the situation where we have only a gossip_key and no direct contact to the recipient */
 		}
 		else {
@@ -4177,7 +4177,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
 	if( peerstate_ok
-	 && mrapeerstate_peek_key(peerstate) )
+	 && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -4194,7 +4194,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrstrbuilder_cat(&ret, ":\n\n");
 
 		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key);
-		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate));
+		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);

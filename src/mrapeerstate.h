@@ -50,18 +50,19 @@ typedef struct mrapeerstate_t
 	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
 
 	time_t         m_last_seen_autocrypt;
-	mrkey_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
 	int            m_prefer_encrypt;
-
-	time_t         m_gossip_timestamp;
-	mrkey_t*       m_gossip_key; /* may be NULL */
-
-	char*          m_fingerprint; /* fingerprint belonging to public_key (if set) or m_gossip_key (otherwise), may be NULL */
 
 	#define        MRV_NOT_VERIFIED  0
 	#define        MRV_SIMPLE        1
 	#define        MRV_BIDIRECTIONAL 2
+
+	mrkey_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
+	char*          m_public_key_fingerprint;
 	int            m_public_key_verified;
+
+	mrkey_t*       m_gossip_key; /* may be NULL */
+	time_t         m_gossip_timestamp;
+	char*          m_gossip_key_fingerprint;
 	int            m_gossip_key_verified;
 
 	#define        MRA_SAVE_TIMESTAMPS 0x01
@@ -86,9 +87,9 @@ int             mrapeerstate_degrade_encryption   (mrapeerstate_t*, time_t messa
 void            mrapeerstate_apply_header         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 void            mrapeerstate_apply_gossip         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
 
-char*           mrapeerstate_render_gossip_header (const mrapeerstate_t*);
+char*           mrapeerstate_render_gossip_header (const mrapeerstate_t*, int min_verified);
 
-mrkey_t*        mrapeerstate_peek_key             (const mrapeerstate_t*);
+mrkey_t*        mrapeerstate_peek_key             (const mrapeerstate_t*, int min_verified);
 
 int             mrapeerstate_recalc_fingerprint   (mrapeerstate_t*);
 
