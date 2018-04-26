@@ -593,6 +593,38 @@ cleanup:
 }
 
 
+static int check_verified_properties(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t from_id)
+{
+	int          everythings_okay = 0;
+	mrcontact_t* contact          = mrcontact_new(mailbox);
+
+	// ensure, the message was encrypted and signed
+	if( !mimeparser->m_decrypted_and_validated ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted/signed properly.");
+		goto cleanup;
+	}
+
+	// ensure, the contact is verified and
+	// the message was signed with a verfied key (this is implicit:
+	// mrmailbox_e2ee_decrypt() prefers a verified key for signature checking
+	// and and mrcontact_is_verified__() checks if there is a verified key
+	// -> the message was signed with a verified key (however, we cannot tell which one if gossip/public differs))
+	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
+	if( !mrcontact_is_verified__(contact) ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
+		goto cleanup;
+	}
+
+	// TODO: mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here)
+
+	everythings_okay = 1;
+
+cleanup:
+	mrcontact_unref(contact);
+	return everythings_okay;
+}
+
+
 /* the function tries extracts the group-id from the message and returns the
 corresponding chat_id.  If the chat_id is not existant, it is created.
 If the message contains groups commands (name, profile image, changed members),
@@ -701,9 +733,11 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		chat_id_blocked  = sqlite3_column_int(stmt, 1);
 		chat_id_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP)? 1 : 0;
 
-		// TODO: if the message is encrypted with a correct signature and the sender is verified,
-		// mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here);
-		// if anything fails, set chat_id to 0 to force the creation of an unverified ad-hoc group.
+		if( chat_id_verified ) {
+			if( !check_verified_properties(mailbox, mime_parser, from_id) ) {
+				chat_id = 0; // force the creation of an unverified ad-hoc group.
+			}
+		}
 	}
 
 	/* check if the sender is a member of the existing group -
@@ -727,9 +761,9 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	{
 		int create_verified = 0;
 		if( mrmimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
-			// TODO: if the message is encrypted with a correct signature and the sender is verified,
-			// mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here)
-			// and set create_verified = 1
+			if( check_verified_properties(mailbox, mime_parser, from_id) ) {
+				create_verified = 1;
+			}
 		}
 
 		chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, create_verified);
