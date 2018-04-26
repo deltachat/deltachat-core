@@ -436,7 +436,7 @@ char* mrarray_get_string(const mrarray_t* array, const char* sep)
 	char* ret = NULL;
 
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || sep==NULL ) {
-		return NULL;
+		return safe_strdup("");
 	}
 
 	INT_ARR_TO_STR(array->m_array, array->m_count);
