@@ -187,6 +187,7 @@ static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint
 	// the state may be corrected by the Autocrypt headers as usual later;
 	// maybe it is a good idea to add the prefer-encrypt-state to the QR code.
 	peerstate->m_prefer_encrypt = MRA_PE_MUTUAL;
+	peerstate->m_to_save       |= MRA_SAVE_ALL;
 
 	mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 	success = 1;
