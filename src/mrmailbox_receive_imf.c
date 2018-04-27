@@ -643,24 +643,22 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		int public_key_verified =              sqlite3_column_int (stmt, 1);
 		int gossip_key_verified =              sqlite3_column_int (stmt, 2);
 
+		if( gossip_key_verified < MRV_BIDIRECTIONAL
+		 && mrhash_find(mimeparser->m_gossipped_addr, to_addr, strlen(to_addr))
+		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
+		{
+			// mark gossip-key as verified even if there is a public-verified-key; mrapeerstate_peek_key() will peek the newer one
+			// (the date is already updated in update_gossip_peerstates())
+			peerstate->m_gossip_key_verified = MRV_BIDIRECTIONAL;
+			peerstate->m_to_save |= MRA_SAVE_ALL;
+			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+			gossip_key_verified = MRV_BIDIRECTIONAL;
+		}
+
 		if( public_key_verified < MRV_BIDIRECTIONAL && gossip_key_verified < MRV_BIDIRECTIONAL )
 		{
-			if( mrhash_find(mimeparser->m_gossipped_addr, to_addr, strlen(to_addr)) )
-			{
-				if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) ) {
-					goto cleanup; // should not happen, the peerstate was just created.
-				}
-				peerstate->m_gossip_key_verified = MRV_BIDIRECTIONAL;
-				peerstate->m_to_save |= MRA_SAVE_ALL;
-				if( !mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0) ) {
-					goto cleanup;
-				}
-			}
-			else
-			{
-				mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
-				goto cleanup;
-			}
+			mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
+			goto cleanup;
 		}
 	}
 
