@@ -800,7 +800,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	if( ret_gossipped_addr )    { *ret_gossipped_addr    = NULL; }
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL
-	 || ret_validation_errors==NULL || ret_gossipped_addr
+	 || ret_validation_errors==NULL || ret_gossipped_addr == NULL
 	 || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}
