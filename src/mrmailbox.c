@@ -4145,7 +4145,6 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	{
 		/* e2e fine and used */
 		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
-		explain_id = MR_STR_E2E_FINE;
 	}
 	else
 	{
@@ -4207,7 +4206,9 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		mrstrbuilder_cat(&ret, "\n\n");
 	}
 
-	p = mrstock_str(explain_id); mrstrbuilder_cat(&ret, p); free(p);
+	if( explain_id ) {
+		p = mrstock_str(explain_id); mrstrbuilder_cat(&ret, p); free(p);
+	}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
