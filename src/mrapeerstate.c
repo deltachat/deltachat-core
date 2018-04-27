@@ -296,25 +296,32 @@ cleanup:
  */
 mrkey_t* mrapeerstate_peek_key(const mrapeerstate_t* peerstate, int min_verified)
 {
-	if( peerstate == NULL ) {
-		return NULL; /* error */
+	if(  peerstate == NULL
+	 || (peerstate->m_public_key && (peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0))
+	 || (peerstate->m_gossip_key && (peerstate->m_gossip_key->m_binary==NULL || peerstate->m_gossip_key->m_bytes<=0)) ) {
+		return NULL;
 	}
 
-	if( peerstate->m_public_key && peerstate->m_public_key_verified>=min_verified ) {
-		if( peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0 ) {
-			return NULL; /* error */
-		}
-		return peerstate->m_public_key; /* use this key */
+	if( min_verified == MRV_BIDIRECTIONAL
+	 && peerstate->m_public_key_verified == MRV_BIDIRECTIONAL
+	 && peerstate->m_gossip_key_verified == MRV_BIDIRECTIONAL  )
+	{
+		// have two verified keys, use the key that is newer
+		return peerstate->m_gossip_timestamp > peerstate->m_last_seen_autocrypt?
+			peerstate->m_gossip_key : peerstate->m_public_key;
 	}
 
-	if( peerstate->m_gossip_key && peerstate->m_gossip_key_verified>=min_verified ) {
-		if( peerstate->m_gossip_key->m_binary==NULL || peerstate->m_gossip_key->m_bytes<=0 ) {
-			return NULL; /* error */
-		}
-		return peerstate->m_gossip_key; /* use this key */
+	if( peerstate->m_public_key && peerstate->m_public_key_verified>=min_verified )
+	{
+		return peerstate->m_public_key;
 	}
 
-	return NULL; /* no key available */
+	if( peerstate->m_gossip_key && peerstate->m_gossip_key_verified>=min_verified )
+	{
+		return peerstate->m_gossip_key;
+	}
+
+	return NULL; // no key with the desired verification available
 }
 
 
