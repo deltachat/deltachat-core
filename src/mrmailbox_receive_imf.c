@@ -601,10 +601,14 @@ cleanup:
 }
 
 
-static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t from_id)
+static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser,
+                                       uint32_t from_id, const mrarray_t* to_ids)
 {
-	int          everythings_okay = 0;
-	mrcontact_t* contact          = mrcontact_new(mailbox);
+	int             everythings_okay = 0;
+	mrcontact_t*    contact          = mrcontact_new(mailbox);
+	mrapeerstate_t* peerstate        = mrapeerstate_new(mailbox);
+	char*           to_ids_str       = NULL;
+	char*           q3               = NULL;
 
 	// ensure, the message was encrypted and signed
 	if( !mimeparser->m_decrypted_and_validated ) {
@@ -618,19 +622,57 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	// and and mrcontact_is_verified__() checks if there is a verified key
 	// -> the message was signed with a verified key (however, we cannot tell which one if gossip/public differs))
 	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
-	if( !mrcontact_is_verified__(contact) ) {
+	if( mrcontact_is_verified__(contact) < MRV_BIDIRECTIONAL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
 
-	// TODO: mark the gossiped keys of the members as being verified (if they differ from the real key, prefer gossip here)
+	// check that all members are verified.
+	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.
+	to_ids_str = mrarray_get_string(to_ids, ",");
+	q3 = sqlite3_mprintf("SELECT c.addr, ps.public_key_verified, ps.gossip_key_verified "
+						 " FROM contacts c "
+						 " LEFT JOIN peerstate ps ON c.addr=ps.addr "
+						 " WHERE c.id IN(%s) ",
+						 to_ids_str);
+	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	if( sqlite3_step(stmt)==SQLITE_ROW )
+	{
+		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
+		int public_key_verified =              sqlite3_column_int (stmt, 1);
+		int gossip_key_verified =              sqlite3_column_int (stmt, 2);
+
+		if( public_key_verified < MRV_BIDIRECTIONAL && gossip_key_verified < MRV_BIDIRECTIONAL )
+		{
+			if( mrhash_find(mimeparser->m_gossipped_addr, to_addr, strlen(to_addr)) )
+			{
+				if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) ) {
+					goto cleanup; // should not happen, the peerstate was just created.
+				}
+				peerstate->m_gossip_key_verified = MRV_BIDIRECTIONAL;
+				peerstate->m_to_save |= MRA_SAVE_ALL;
+				if( !mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0) ) {
+					goto cleanup;
+				}
+			}
+			else
+			{
+				mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
+				goto cleanup;
+			}
+		}
+	}
 
 	// it's up to the caller to check if the sender is a member of the group
 	// (we do this for both, verified and unverified group, so we do not check this here)
 	everythings_okay = 1;
 
 cleanup:
+	if( stmt ) { sqlite3_finalize(stmt); }
 	mrcontact_unref(contact);
+	mrapeerstate_unref(peerstate);
+	free(to_ids_str);
+	if( q3 ) { sqlite3_free(q3); }
 	return everythings_okay;
 }
 
@@ -744,7 +786,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		chat_id_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP)? 1 : 0;
 
 		if( chat_id_verified ) {
-			if( !check_verified_properties__(mailbox, mime_parser, from_id) ) {
+			if( !check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
 				chat_id = 0; // force the creation of an unverified ad-hoc group.
 			}
 		}
@@ -771,7 +813,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	{
 		int create_verified = 0;
 		if( mrmimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
-			if( check_verified_properties__(mailbox, mime_parser, from_id) ) {
+			if( check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
 				create_verified = 1;
 			}
 		}
