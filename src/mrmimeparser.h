@@ -64,9 +64,13 @@ typedef struct mrmimeparser_t
 
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
+
 	int                    m_decrypted_and_validated;
 	int                    m_decrypted_with_validation_errors;
 	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
+	mrhash_t*              m_gossipped_addr;
+	int                    m_degrade_event;
+
 	const char*            m_blobdir;
 
 	int                    m_is_forwarded;
@@ -76,8 +80,6 @@ typedef struct mrmimeparser_t
 	carray*                m_reports;           /* array of mailmime objects */
 
 	int                    m_is_system_message;
-
-	int                    m_degrade_event;
 
 } mrmimeparser_t;
 
