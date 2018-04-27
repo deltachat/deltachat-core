@@ -609,6 +609,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	mrapeerstate_t* peerstate        = mrapeerstate_new(mailbox);
 	char*           to_ids_str       = NULL;
 	char*           q3               = NULL;
+	sqlite3_stmt*   stmt             = NULL;
 
 	// ensure, the message was encrypted and signed
 	if( !mimeparser->m_decrypted_and_validated ) {
@@ -632,10 +633,10 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	to_ids_str = mrarray_get_string(to_ids, ",");
 	q3 = sqlite3_mprintf("SELECT c.addr, ps.public_key_verified, ps.gossip_key_verified "
 						 " FROM contacts c "
-						 " LEFT JOIN peerstate ps ON c.addr=ps.addr "
+						 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 						 " WHERE c.id IN(%s) ",
 						 to_ids_str);
-	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 	if( sqlite3_step(stmt)==SQLITE_ROW )
 	{
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
