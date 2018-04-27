@@ -580,11 +580,22 @@ int mrmsg_get_duration(const mrmsg_t* msg)
 int mrmsg_get_showpadlock(const mrmsg_t* msg)
 {
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
-	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
+	int show_encryption_state = 0;
+
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL ) {
 		return 0;
 	}
 
-	if( msg->m_mailbox && msg->m_mailbox->m_e2ee_enabled ) {
+	if( msg->m_mailbox->m_e2ee_enabled ) {
+		show_encryption_state = 1;
+	}
+	else {
+		mrchat_t* chat = mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id);
+		show_encryption_state = mrchat_is_verified(chat);
+		mrchat_unref(chat);
+	}
+
+	if( show_encryption_state ) {
 		if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) != 0 ) {
 			return 1;
 		}
