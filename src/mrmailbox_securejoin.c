@@ -228,7 +228,7 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t chat_id, const cha
 		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
 	}
 
-	if( strcmp(step, "vc-request") == 0 ) {
+	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
 		mrparam_set_int(msg->m_param, MRP_FORCE_UNENCRYPTED, 1); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
@@ -489,6 +489,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 {
 	int                   locked = 0;
 	const char*           step   = NULL;
+	int                   join_vg = 0;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -499,7 +500,9 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
-	if( strcmp(step, "vc-request")==0 )
+	join_vg = (strncmp(step, "vg-", 3)==0);
+
+	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{
 		/* =========================================================
 		   ====             Alice - the inviter side            ====
@@ -532,9 +535,9 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_REQUESTED, contact_id, 0);
 
-		send_handshake_msg(mailbox, chat_id, "vc-auth-required", NULL, NULL); // Alice -> Bob
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-auth-required" : "vc-auth-required", NULL, NULL); // Alice -> Bob
 	}
-	else if( strcmp(step, "vc-auth-required")==0 )
+	else if( strcmp(step, "vg-auth-required")==0 || strcmp(step, "vc-auth-required")==0 )
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
@@ -570,13 +573,13 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 
 		s_bob_expects = VC_CONTACT_CONFIRM;
-		send_handshake_msg(mailbox, chat_id, "vc-request-with-auth", auth, own_fingerprint); // Bob -> Alice
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", auth, own_fingerprint); // Bob -> Alice
 
 		free(own_fingerprint);
 		free(scanned_fingerprint_of_alice);
 		free(auth);
 	}
-	else if( strcmp(step, "vc-request-with-auth")==0 )
+	else if( strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0 )
 	{
 		/* ============================================================
 		   ====              Alice - the inviter side              ====
@@ -635,9 +638,9 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		secure_connection_established(mailbox, chat_id);
 
-		send_handshake_msg(mailbox, chat_id, "vc-contact-confirm", NULL, NULL); // Alice -> Bob and all other group members
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL); // Alice -> Bob and all other group members
 	}
-	else if( strcmp(step, "vc-contact-confirm")==0 )
+	else if( strcmp(step, "vg-contact-confirm")==0 || strcmp(step, "vc-contact-confirm")==0 )
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====

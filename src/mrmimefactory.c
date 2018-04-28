@@ -576,12 +576,17 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 				char* param2 = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);
 				if( param2 ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strcmp(step, "vc-request-with-auth")==0? strdup("Secure-Join-Auth"):strdup("Secure-Join-Invitenumber"), param2/*mailimf takes ownership of string*/));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+						(strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0)?
+							strdup("Secure-Join-Auth") : strdup("Secure-Join-Invitenumber"),
+						param2/*mailimf takes ownership of string*/));
 				}
 
 				char* fingerprint = mrparam_get(msg->m_param, MRP_CMD_PARAM3, NULL);
 				if( fingerprint ) {
-					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join-Fingerprint"), fingerprint/*mailimf takes ownership of string*/));
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+						strdup("Secure-Join-Fingerprint"),
+						fingerprint/*mailimf takes ownership of string*/));
 				}
 			}
 		}
