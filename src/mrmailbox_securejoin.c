@@ -408,6 +408,7 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t chat_id           = 0;
 	mrlot_t* qr_scan           = NULL;
+	int      join_vg           = 0;
 
 	mrmailbox_log_info(mailbox, 0, "Requesting secure-join ...");
 
@@ -434,16 +435,23 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 
 	CHECK_EXIT
 
-	// TODO: if we have already Alice's key, we can proceed to step 4b) directly and save two mails
-
 	s_bobs_status = 0;
-	s_bob_expects = VC_AUTH_REQUIRED;
-
 	mrsqlite3_lock(mailbox->m_sql);
 		s_bobs_qr_scan = qr_scan;
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	send_handshake_msg(mailbox, chat_id, "vc-request", qr_scan->m_invitenumber, NULL); // Bob -> Alice
+	if( fingerprint_equals_sender(mailbox, qr_scan->m_fingerprint, chat_id) ) {
+		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
+		mrmailbox_log_info(mailbox, 0, "Taking protocol shortcut.");
+		s_bob_expects = VC_CONTACT_CONFIRM;
+		char* own_fingerprint = get_self_fingerprint(mailbox);
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", qr_scan->m_auth, own_fingerprint); // Bob -> Alice
+		free(own_fingerprint);
+	}
+	else {
+		s_bob_expects = VC_AUTH_REQUIRED;
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request" : "vc-request", qr_scan->m_invitenumber, NULL); // Bob -> Alice
+	}
 
 	while( 1 ) {
 		CHECK_EXIT
