@@ -480,6 +480,10 @@ char* mr_binary_fingerprint_to_uc_hex(const uint8_t* fingerprint_buf, size_t fin
 	char* fingerprint_hex = NULL;
 	int   i;
 
+	if( fingerprint_buf == NULL || fingerprint_bytes <= 0 ) {
+		goto cleanup;
+	}
+
 	if( (fingerprint_hex=calloc(1, fingerprint_bytes*2+1))==NULL ) {
 		goto cleanup;
 	}
