@@ -4081,10 +4081,10 @@ cleanup:
 
 static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* fingerprint_str)
 {
+	mrstrbuilder_cat(ret, "\n\n");
 	mrstrbuilder_cat(ret, addr);
 	mrstrbuilder_cat(ret, ":\n");
 	mrstrbuilder_cat(ret, fingerprint_str);
-	mrstrbuilder_cat(ret, "\n\n");
 }
 
 
@@ -4105,11 +4105,9 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
 	int             e2ee_enabled = 0;
-	int             explain_id = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
 	mrcontact_t*    contact = mrcontact_new(mailbox);
 	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
-	int             peerstate_ok = 0;
 	mrkey_t*        self_key = mrkey_new();
 	char*           fingerprint_str_self = NULL;
 	char*           fingerprint_str_other = NULL;
@@ -4128,7 +4126,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 			goto cleanup;
 		}
-		peerstate_ok = mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
+		mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
 		e2ee_enabled = mailbox->m_e2ee_enabled;
 
@@ -4137,44 +4135,11 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	/* show the encryption that would be used for the next outgoing message */
-	if( e2ee_enabled
-	 && peerstate_ok
-	 && peerstate->m_prefer_encrypt==MRA_PE_MUTUAL
-	 && peerstate->m_public_key!=NULL )
+	if( mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
-		/* e2e fine and used */
-		p = mrstock_str(MR_STR_ENCR_E2E); mrstrbuilder_cat(&ret, p); free(p);
-	}
-	else
-	{
-		/* e2e not used ... first, show status quo ... */
-		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
-		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
-		{
-			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
-		}
-		else
-		{
-			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
-		}
+		// E2E available :)
+		p = mrstock_str(MR_STR_E2E_AVAILABLE); mrstrbuilder_cat(&ret, p); free(p);
 
-		/* ... and then explain why we cannot use e2e */
-		if( !e2ee_enabled ) {
-			explain_id = MR_STR_E2E_DIS_BY_YOU;
-		}
-		else if( peerstate_ok && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) ) {
-			explain_id = MR_STR_E2E_DIS_BY_RCPT; /* this includes the situation where we have only a gossip_key and no direct contact to the recipient */
-		}
-		else {
-			explain_id = MR_STR_E2E_NO_AUTOCRYPT;
-		}
-	}
-
-	/* show fingerprints for comparison (sorted by email-address to make a device-side-by-side comparison easier) */
-	if( peerstate_ok
-	 && mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
-	{
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
 			mrmailbox_ensure_secret_key_exists(mailbox);
@@ -4187,7 +4152,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 
 		mrstrbuilder_cat(&ret, " ");
 		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
-		mrstrbuilder_cat(&ret, ":\n\n");
+		mrstrbuilder_cat(&ret, ":");
 
 		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key);
 		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
@@ -4200,14 +4165,24 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
 		}
+
+		if( peerstate->m_prefer_encrypt == MRA_PE_MUTUAL ) {
+			mrstrbuilder_cat(&ret, "\n\n");
+			p = mrstock_str(MR_STR_MUTUAL_ENABLED); mrstrbuilder_cat(&ret, p); free(p);
+		}
 	}
 	else
 	{
-		mrstrbuilder_cat(&ret, "\n\n");
-	}
-
-	if( explain_id ) {
-		p = mrstock_str(explain_id); mrstrbuilder_cat(&ret, p); free(p);
+		// No E2E available
+		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
+		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
+		{
+			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
+		}
+		else
+		{
+			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
+		}
 	}
 
 cleanup:
