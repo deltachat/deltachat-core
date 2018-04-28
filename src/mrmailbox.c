@@ -4079,12 +4079,21 @@ cleanup:
 }
 
 
-static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* fingerprint_str)
+static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* fingerprint_verified, const char* fingerprint_unverified)
 {
 	mrstrbuilder_cat(ret, "\n\n");
 	mrstrbuilder_cat(ret, addr);
 	mrstrbuilder_cat(ret, ":\n");
-	mrstrbuilder_cat(ret, fingerprint_str);
+	mrstrbuilder_cat(ret, fingerprint_verified);
+
+	if( fingerprint_unverified && strcmp(fingerprint_verified, fingerprint_unverified)!=0 ) {
+		// might be that for verified chats the - older - verified gossiped key is used
+		// and for normal chats the - newer - unverified key :/
+		mrstrbuilder_cat(ret, "\n\n");
+		mrstrbuilder_cat(ret, addr);
+		mrstrbuilder_cat(ret, " (alternative):\n");
+		mrstrbuilder_cat(ret, fingerprint_unverified);
+	}
 }
 
 
@@ -4104,13 +4113,13 @@ static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* f
 char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
-	int             e2ee_enabled = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
 	mrcontact_t*    contact = mrcontact_new(mailbox);
 	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 	mrkey_t*        self_key = mrkey_new();
-	char*           fingerprint_str_self = NULL;
-	char*           fingerprint_str_other = NULL;
+	char*           fingerprint_self = NULL;
+	char*           fingerprint_other_verified = NULL;
+	char*           fingerprint_other_unverified = NULL;
 	char*           p;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -4128,7 +4137,6 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		}
 		mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
 		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
-		e2ee_enabled = mailbox->m_e2ee_enabled;
 
 		mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);
 
@@ -4154,16 +4162,17 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
 		mrstrbuilder_cat(&ret, ":");
 
-		fingerprint_str_self = mrkey_get_formatted_fingerprint(self_key);
-		fingerprint_str_other = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
+		fingerprint_self = mrkey_get_formatted_fingerprint(self_key);
+		fingerprint_other_verified = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL));
+		fingerprint_other_unverified = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
-			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
-			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
+			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_self, NULL);
+			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_other_verified, fingerprint_other_unverified);
 		}
 		else {
-			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_str_other);
-			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_str_self);
+			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_other_verified, fingerprint_other_unverified);
+			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_self, NULL);
 		}
 
 		if( peerstate->m_prefer_encrypt == MRA_PE_MUTUAL ) {
@@ -4191,8 +4200,9 @@ cleanup:
 	mrcontact_unref(contact);
 	mrloginparam_unref(loginparam);
 	mrkey_unref(self_key);
-	free(fingerprint_str_self);
-	free(fingerprint_str_other);
+	free(fingerprint_self);
+	free(fingerprint_other_verified);
+	free(fingerprint_other_unverified);
 	return ret.m_buf;
 }
 
