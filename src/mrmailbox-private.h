@@ -138,12 +138,19 @@ uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*,
 #define MR_MDNS_DEFAULT_ENABLED  1
 
 typedef struct mrmailbox_e2ee_helper_t {
+	// encryption
 	int   m_encryption_successfull;
 	void* m_cdata_to_free;
+
+	// decryption
+	int       m_validation_errors;
+	int       m_degrade_event;
+	mrhash_t* m_gossipped_addr;
+
 } mrmailbox_e2ee_helper_t;
 
 void            mrmailbox_e2ee_encrypt      (mrmailbox_t*, const clist* recipients_addr, int force_unencrypted, int e2ee_guaranteed, int min_verified, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*);
-int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, int* ret_validation_errors, int* ret_degrade_event, mrhash_t** ret_gossiped_addr); /* returns 1 if sth. was decrypted, 0 in other cases */
+int             mrmailbox_e2ee_decrypt      (mrmailbox_t*, struct mailmime* in_out_message, mrmailbox_e2ee_helper_t*); /* returns 1 if sth. was decrypted, 0 in other cases */
 void            mrmailbox_e2ee_thanks       (mrmailbox_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
 int             mrmailbox_ensure_secret_key_exists (mrmailbox_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
 char*           mrmailbox_create_setup_code (mrmailbox_t*);

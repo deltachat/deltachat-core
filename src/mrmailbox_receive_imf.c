@@ -644,7 +644,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		int gossip_key_verified =              sqlite3_column_int (stmt, 2);
 
 		if( gossip_key_verified < MRV_BIDIRECTIONAL
-		 && mrhash_find(mimeparser->m_gossipped_addr, to_addr, strlen(to_addr))
+		 && mrhash_find(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr, strlen(to_addr))
 		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
 			// mark gossip-key as verified even if there is a public-verified-key; mrapeerstate_peek_key() will peek the newer one
@@ -1286,8 +1286,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 
-			if( mime_parser->m_degrade_event
-			 && mime_parser->m_degrade_event!=MRA_DE_ENCRYPTION_PAUSED /*no events logged for paused decryption, we have the lock-symbol for that*/ ) {
+			if( mime_parser->m_e2ee_helper->m_degrade_event
+			 && mime_parser->m_e2ee_helper->m_degrade_event!=MRA_DE_ENCRYPTION_PAUSED /*no events logged for paused decryption, we have the lock-symbol for that*/ ) {
 				degrade_msg_id = add_degrade_message__(mailbox, chat_id, from_id, sort_timestamp);
 			}
 
@@ -1490,7 +1490,7 @@ cleanup:
 	if( is_handshake_message ) {
 		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
 	}
-	else if( mime_parser->m_degrade_event ) {
+	else if( mime_parser->m_e2ee_helper->m_degrade_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}

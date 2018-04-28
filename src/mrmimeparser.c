@@ -846,6 +846,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_parts   = carray_new(16);
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 	ths->m_reports = carray_new(16);
+	ths->m_e2ee_helper = calloc(1, sizeof(mrmailbox_e2ee_helper_t));
 
 	mrhash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
 
@@ -873,6 +874,7 @@ void mrmimeparser_unref(mrmimeparser_t* ths)
 	mrmimeparser_empty(ths);
 	if( ths->m_parts )   { carray_free(ths->m_parts); }
 	if( ths->m_reports ) { carray_free(ths->m_reports); }
+	free(ths->m_e2ee_helper);
 	free(ths);
 }
 
@@ -934,15 +936,9 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 	}
 
 	ths->m_decrypted_and_validated = 0;
-	ths->m_decrypted_with_validation_errors = 0;
 	ths->m_decrypting_failed = 0;
 
-	if( ths->m_gossipped_addr )
-	{
-		mrhash_clear(ths->m_gossipped_addr);
-		free(ths->m_gossipped_addr);
-		ths->m_gossipped_addr = NULL;
-	}
+	mrmailbox_e2ee_thanks(ths->m_e2ee_helper);
 }
 
 
@@ -952,8 +948,8 @@ static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
 	if( parser->m_decrypted_and_validated ) {
 		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
-	else if( parser->m_decrypted_with_validation_errors ) {
-		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, parser->m_decrypted_with_validation_errors);
+	else if( parser->m_e2ee_helper->m_validation_errors ) {
+		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, parser->m_e2ee_helper->m_validation_errors);
 	}
 	carray_add(parser->m_parts, (void*)part, NULL);
 }
@@ -1472,13 +1468,9 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	int validation_errors = 0;
-	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, &validation_errors, &ths->m_degrade_event, &ths->m_gossipped_addr) ) {
-		if( validation_errors == 0 ) {
+	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, ths->m_e2ee_helper) ) {
+		if( ths->m_e2ee_helper->m_validation_errors == 0 ) {
 			ths->m_decrypted_and_validated = 1;
-		}
-		else {
-			ths->m_decrypted_with_validation_errors = validation_errors;
 		}
 	}
 

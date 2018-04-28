@@ -553,7 +553,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ========================================================== */
 
 		if( !mimeparser->m_decrypted_and_validated ) {
-			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_decrypted_with_validation_errors? "Signature errors." : "Not encrypted.");
+			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_validation_errors? "Signature errors." : "Not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}

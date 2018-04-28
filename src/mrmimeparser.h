@@ -36,6 +36,9 @@ extern "C" {
 #include "mrparam.h"
 
 
+typedef struct mrmailbox_e2ee_helper_t mrmailbox_e2ee_helper_t;
+
+
 typedef struct mrmimepart_t
 {
 	/** @privatesection */
@@ -66,10 +69,9 @@ typedef struct mrmimeparser_t
 	int                    m_is_send_by_messenger;
 
 	int                    m_decrypted_and_validated;
-	int                    m_decrypted_with_validation_errors;
 	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
-	mrhash_t*              m_gossipped_addr;
-	int                    m_degrade_event;
+
+	mrmailbox_e2ee_helper_t* m_e2ee_helper;
 
 	const char*            m_blobdir;
 

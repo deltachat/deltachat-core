@@ -521,6 +521,13 @@ void mrmailbox_e2ee_thanks(mrmailbox_e2ee_helper_t* helper)
 
 	free(helper->m_cdata_to_free);
 	helper->m_cdata_to_free = NULL;
+
+	if( helper->m_gossipped_addr )
+	{
+		mrhash_clear(helper->m_gossipped_addr);
+		free(helper->m_gossipped_addr);
+		helper->m_gossipped_addr = NULL;
+	}
 }
 
 
@@ -779,9 +786,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 
 
 int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message,
-                           int*       ret_validation_errors,
-                           int*       ret_degrade_event,
-                           mrhash_t** ret_gossipped_addr)
+                           mrmailbox_e2ee_helper_t* helper)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
@@ -795,13 +800,10 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	int                    sth_decrypted = 0;
 	struct mailimf_fields* gossip_headers = NULL;
 
-	if( ret_validation_errors ) { *ret_validation_errors = 0; }
-	if( ret_degrade_event )     { *ret_degrade_event     = 0; }
-	if( ret_gossipped_addr )    { *ret_gossipped_addr    = NULL; }
+	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL
-	 || ret_validation_errors==NULL || ret_gossipped_addr == NULL
-	 || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
+	 || helper == NULL || imffields==NULL || peerstate==NULL || private_keyring==NULL ) {
 		goto cleanup;
 	}
 
@@ -863,9 +865,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 			}
 		}
 
-		if( ret_degrade_event ) {
-			*ret_degrade_event = peerstate->m_degrade_event;
-		}
+		helper->m_degrade_event = peerstate->m_degrade_event;
 
 		/* load private key for decryption */
 		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
@@ -897,7 +897,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	while( avoid_deadlock > 0 ) {
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
 		        public_key_for_validate,
-		        ret_validation_errors, &gossip_headers) ) {
+		        &helper->m_validation_errors, &gossip_headers) ) {
 			break;
 		}
 		sth_decrypted = 1;
@@ -906,7 +906,7 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 
 	/* check for Autocrypt-Gossip */
 	if( gossip_headers ) {
-		*ret_gossipped_addr = update_gossip_peerstates(mailbox, message_time, imffields, gossip_headers);
+		helper->m_gossipped_addr = update_gossip_peerstates(mailbox, message_time, imffields, gossip_headers);
 	}
 
 	//mailmime_print(in_out_message);
