@@ -143,8 +143,8 @@ typedef struct mrmailbox_e2ee_helper_t {
 	void* m_cdata_to_free;
 
 	// decryption
-	int       m_encrypted;
-	mrhash_t* m_valid_signatures;
+	int       m_encrypted;  // encrypted without problems
+	mrhash_t* m_signatures; // fingerprints of valid signatures
 	int       m_degrade_event;
 	mrhash_t* m_gossipped_addr;
 

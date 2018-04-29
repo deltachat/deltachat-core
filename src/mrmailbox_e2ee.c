@@ -530,11 +530,11 @@ void mrmailbox_e2ee_thanks(mrmailbox_e2ee_helper_t* helper)
 		helper->m_gossipped_addr = NULL;
 	}
 
-	if( helper->m_valid_signatures )
+	if( helper->m_signatures )
 	{
-		mrhash_clear(helper->m_valid_signatures);
-		free(helper->m_valid_signatures);
-		helper->m_valid_signatures = NULL;
+		mrhash_clear(helper->m_signatures);
+		free(helper->m_signatures);
+		helper->m_signatures = NULL;
 	}
 }
 
@@ -898,14 +898,14 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	mrkeyring_add(public_keyring_for_validate, peerstate->m_public_key);
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
-	helper->m_valid_signatures = malloc(sizeof(mrhash_t));
-	mrhash_init(helper->m_valid_signatures, MRHASH_STRING, 1/*copy key*/);
+	helper->m_signatures = malloc(sizeof(mrhash_t));
+	mrhash_init(helper->m_signatures, MRHASH_STRING, 1/*copy key*/);
 
 	int avoid_deadlock = 10;
 	while( avoid_deadlock > 0 ) {
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
 		        public_keyring_for_validate,
-		        helper->m_valid_signatures, &gossip_headers) ) {
+		        helper->m_signatures, &gossip_headers) ) {
 			break;
 		}
 		sth_decrypted = 1;

@@ -86,7 +86,7 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
 
 static int decrypted_and_signed(mrmimeparser_t* mimeparser)
 {
-	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_valid_signatures)<=0 ) {
+	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
 		return 0;
 	}
 	return 1;

@@ -945,7 +945,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
-	if( parser->m_e2ee_helper->m_encrypted && mrhash_count(parser->m_e2ee_helper->m_valid_signatures)>0 ) {
+	if( parser->m_e2ee_helper->m_encrypted && mrhash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
 		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
 	else if( parser->m_e2ee_helper->m_encrypted ) {
