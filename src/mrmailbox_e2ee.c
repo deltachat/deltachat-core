@@ -918,6 +918,9 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 	//mailmime_print(in_out_message);
 
+	// TODO: do not mark only partly encrypted messages as being encrypted - otherwise we'll show a lock beside parts that are not encrypted!
+	helper->m_encrypted = sth_decrypted;
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
@@ -927,6 +930,5 @@ cleanup:
 	mrkeyring_unref(public_keyring_for_validate);
 	free(from);
 	free(self_addr);
-	helper->m_encrypted = sth_decrypted;
 }
 
