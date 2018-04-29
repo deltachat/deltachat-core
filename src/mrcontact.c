@@ -249,10 +249,9 @@ int mrcontact_is_blocked(mrcontact_t* contact)
 }
 
 
-int mrcontact_is_verified__(mrcontact_t* contact)
+int mrcontact_is_verified__(const mrcontact_t* contact, const mrapeerstate_t* peerstate)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
-	mrapeerstate_t* peerstate        = mrapeerstate_new(contact->m_mailbox);
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;
@@ -263,14 +262,9 @@ int mrcontact_is_verified__(mrcontact_t* contact)
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
-	if( !mrapeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
-		goto cleanup;
-	}
-
 	contact_verified = MR_MAX(peerstate->m_public_key_verified, peerstate->m_gossip_key_verified);
 
 cleanup:
-	mrapeerstate_unref(peerstate);
 	return contact_verified;
 }
 
@@ -291,17 +285,28 @@ cleanup:
  */
 int mrcontact_is_verified(mrcontact_t* contact)
 {
-	int contact_verified = MRV_NOT_VERIFIED;
+	int             contact_verified = MRV_NOT_VERIFIED;
+	int             locked           = 0;
+	mrapeerstate_t* peerstate        = NULL;
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
+	peerstate = mrapeerstate_new(contact->m_mailbox);
+
 	mrsqlite3_lock(contact->m_mailbox->m_sql);
-		contact_verified = mrcontact_is_verified__(contact);
-	mrsqlite3_unlock(contact->m_mailbox->m_sql);
+	locked = 1;
+
+		if( !mrapeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
+			goto cleanup;
+		}
+
+		contact_verified = mrcontact_is_verified__(contact, peerstate);
 
 cleanup:
+	if( locked ) { mrsqlite3_unlock(contact->m_mailbox->m_sql); }
+	mrapeerstate_unref(peerstate);
 	return contact_verified;
 }
 

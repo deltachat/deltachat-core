@@ -3253,11 +3253,12 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
  */
 int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
-	int          success = 0, locked = 0;
-	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id);
-	mrchat_t*    chat = mrchat_new(mailbox);
-	mrmsg_t*     msg = mrmsg_new();
-	char*        self_addr = NULL;
+	int             success   = 0, locked = 0;
+	mrcontact_t*    contact   = mrmailbox_get_contact(mailbox, contact_id);
+	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+	mrchat_t*       chat      = mrchat_new(mailbox);
+	mrmsg_t*        msg       = mrmsg_new();
+	char*           self_addr = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || contact == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -3287,8 +3288,12 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 			goto cleanup;
 		}
 
+		if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+			goto cleanup;
+		}
+
 		if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
-		 && mrcontact_is_verified__(contact)!=MRV_BIDIRECTIONAL ) {
+		 && mrcontact_is_verified__(contact, peerstate)!=MRV_BIDIRECTIONAL ) {
 			mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 			goto cleanup;
 		}
@@ -3318,6 +3323,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrchat_unref(chat);
 	mrcontact_unref(contact);
+	mrapeerstate_unref(peerstate);
 	mrmsg_unref(msg);
 	free(self_addr);
 	return success;
