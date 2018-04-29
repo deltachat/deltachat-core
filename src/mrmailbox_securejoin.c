@@ -459,6 +459,7 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
 		mrmailbox_log_info(mailbox, 0, "Taking protocol shortcut.");
 		s_bob_expects = VC_CONTACT_CONFIRM;
+		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(mailbox, chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", qr_scan->m_auth, own_fingerprint); // Bob -> Alice
 		free(own_fingerprint);
@@ -516,6 +517,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	char*        scanned_fingerprint_of_alice = NULL;
 	char*        scanned_auth = NULL;
 	char*        own_fingerprint = NULL;
+	uint32_t     contact_id = 0;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -526,7 +528,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
-	join_vg = (strncmp(step, "vg-", 3)==0);
+	join_vg    = (strncmp(step, "vg-", 3)==0);
+	contact_id = chat_id_2_contact_id(mailbox, chat_id);
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{
@@ -541,7 +544,6 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		// send_message() will fail with the error "End-to-end-encryption unavailable unexpectedly.", so, there is no additional check needed here.
 
 		// verify that the `Secure-Join-Invitenumber:`-header matches invitenumber written to the QR code
-		uint32_t    contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		const char* invitenumber = NULL;
 		if( (invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL ) {
 			mrmailbox_log_warning(mailbox, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
@@ -598,6 +600,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		own_fingerprint = get_self_fingerprint(mailbox);
 
+		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
+
 		s_bob_expects = VC_CONTACT_CONFIRM;
 		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", scanned_auth, own_fingerprint); // Bob -> Alice
 	}
@@ -635,7 +639,6 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 			if( lookup_tag__(mailbox, "secureJoin.auths", auth) == 0 ) {
@@ -691,7 +694,6 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 			if( !mark_peer_as_verified__(mailbox, scanned_fingerprint_of_alice) ) {

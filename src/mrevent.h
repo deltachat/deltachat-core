@@ -228,7 +228,8 @@ extern "C" {
  * @param data1 ID of the contact that wants to join.
  *
  * @param data2 Progress as:
- *     3=vg-request/vc-request, 6=vg-contact-confirm/vc-contact-confirm.
+ *     3=vg-request/vc-request, typically shown as "bob@addr joins.";
+ *     6=vg-contact-confirm/vc-contact-confirm, typically shown as "bob@addr verified."
  *
  * @return 0
  */
@@ -246,7 +247,8 @@ extern "C" {
  *
  * @param data1 ID of the contact that wants to join.
  *
- * @param data2 progress
+ * @param data2 Progress as:
+ *     4=vg-auth-required/vc-auth-required, typically shown as "alice@addr verified.";
  *
  * @return 0
  */
