@@ -928,7 +928,7 @@ cleanup:
 	mrkeyring_unref(public_keyring_for_validate);
 	free(from);
 	free(self_addr);
-	helper->m_decrypted = sth_decrypted;
+	helper->m_encrypted = sth_decrypted;
 	return sth_decrypted;
 }
 

@@ -86,7 +86,7 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
 
 static int decrypted_and_signed(mrmimeparser_t* mimeparser)
 {
-	if( !mimeparser->m_e2ee_helper->m_decrypted || mrhash_count(mimeparser->m_e2ee_helper->m_valid_signatures)<=0 ) {
+	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_valid_signatures)<=0 ) {
 		return 0;
 	}
 	return 1;
@@ -562,7 +562,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ========================================================== */
 
 		if( !decrypted_and_signed(mimeparser) ) {
-			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_decrypted? "No valid signature." : "Not encrypted.");
+			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
