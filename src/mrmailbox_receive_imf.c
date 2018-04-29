@@ -611,22 +611,25 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	char*           q3               = NULL;
 	sqlite3_stmt*   stmt             = NULL;
 
-	// ensure, the message was encrypted and signed
-	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) { // TODO: check the correct fingerprint
-		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted/signed properly.");
-		goto cleanup;
-	}
-
-	// ensure, the contact is verified and
-	// the message was signed with a verfied key (this is implicit:
-	// mrmailbox_e2ee_decrypt() prefers a verified key for signature checking
-	// and and mrcontact_is_verified__() checks if there is a verified key
-	// -> the message was signed with a verified key (however, we cannot tell which one if gossip/public differs))
-	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
-	if( mrcontact_is_verified__(contact) < MRV_BIDIRECTIONAL ) {
+	// ensure, the contact is verified
+	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, from_id)
+	 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
+	 || mrcontact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
+
+	// ensure, the message is encrypted
+	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted properly.");
+		goto cleanup;
+	}
+
+	// ensure, the message is signed with a verified key of the sender
+	if( !mrapeerstate_has_verified_key(peerstate, mimeparser->m_e2ee_helper->m_signatures) ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not signed properly.");
+		goto cleanup;
+    }
 
 	// check that all members are verified.
 	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.

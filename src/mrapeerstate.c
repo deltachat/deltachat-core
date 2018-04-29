@@ -23,6 +23,7 @@
 #include "mrmailbox_internal.h"
 #include "mrapeerstate.h"
 #include "mraheader.h"
+#include "mrhash.h"
 
 
 /*******************************************************************************
@@ -573,4 +574,26 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 
 cleanup:
 	return success;
+}
+
+
+int mrapeerstate_has_verified_key(const mrapeerstate_t* peerstate, const mrhash_t* fingerprints)
+{
+	if( peerstate == NULL || fingerprints == NULL ) {
+		return 0;
+	}
+
+	if( peerstate->m_public_key_verified >= MRV_BIDIRECTIONAL
+	 && peerstate->m_public_key_fingerprint
+	 && mrhash_find_str(fingerprints, peerstate->m_public_key_fingerprint) ) {
+		return 1;
+	}
+
+	if( peerstate->m_gossip_key_verified >= MRV_BIDIRECTIONAL
+	 && peerstate->m_gossip_key_fingerprint
+	 && mrhash_find_str(fingerprints, peerstate->m_gossip_key_fingerprint) ) {
+		return 1;
+	}
+
+	return 0;
 }

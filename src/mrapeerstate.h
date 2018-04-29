@@ -99,6 +99,7 @@ int             mrapeerstate_load_by_addr__       (mrapeerstate_t*, mrsqlite3_t*
 int             mrapeerstate_load_by_fingerprint__(mrapeerstate_t*, mrsqlite3_t*, const char* fingerprint);
 int             mrapeerstate_save_to_db__         (const mrapeerstate_t*, mrsqlite3_t*, int create);
 
+int             mrapeerstate_has_verified_key     (const mrapeerstate_t*, const mrhash_t* fingerprints);
 
 #ifdef __cplusplus
 } /* /extern "C" */
