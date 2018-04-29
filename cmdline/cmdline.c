@@ -492,7 +492,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"delcontact <contact-id>\n"
 				"cleanupcontacts\n"
 				"======================================Misc.==\n"
-				"getqr\n"
+				"getqr [<chat-id>]\n"
 				"getbadqr\n"
 				"checkqr <qr-contenct>\n"
 				"event <event-id to test>\n"
@@ -1223,7 +1223,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 	else if( strcmp(cmd, "getqr")==0 )
 	{
-		ret = mrmailbox_get_securejoin_qr(mailbox, 0);
+		ret = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 	}
 	else if( strcmp(cmd, "checkqr")==0 )
 	{
