@@ -791,7 +791,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 }
 
 
-int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message,
+void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message,
                            mrmailbox_e2ee_helper_t* helper)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
@@ -928,6 +928,5 @@ cleanup:
 	free(from);
 	free(self_addr);
 	helper->m_encrypted = sth_decrypted;
-	return sth_decrypted;
 }
 
