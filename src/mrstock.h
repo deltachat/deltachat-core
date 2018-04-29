@@ -64,7 +64,7 @@ extern "C" {
 #define MR_STR_READRCPT                   31
 #define MR_STR_READRCPT_MAILBODY          32
 #define MR_STR_MSGGRPIMGDELETED           33
-#define MR_STR_MUTUAL_ENABLED             34
+#define MR_STR_E2E_PREFERRED              34
 #define MR_STR_ARCHIVEDCHATS              40
 #define MR_STR_STARREDMSGS                41
 #define MR_STR_AC_SETUP_MSG_SUBJECT       42

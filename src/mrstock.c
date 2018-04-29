@@ -68,7 +68,7 @@ static char* default_string(int id, int qty)
 		case MR_STR_READRCPT:              return safe_strdup("Return receipt");
 		case MR_STR_READRCPT_MAILBODY:     return safe_strdup("This is a return receipt for the message \"%1$s\".");
 		case MR_STR_MSGGRPIMGDELETED:      return safe_strdup("Group image deleted.");
-		case MR_STR_MUTUAL_ENABLED:        return safe_strdup("End-to-end encryption preferred.");
+		case MR_STR_E2E_PREFERRED:         return safe_strdup("End-to-end encryption preferred.");
 		case MR_STR_ARCHIVEDCHATS:         return safe_strdup("Archived chats");
 		case MR_STR_STARREDMSGS:           return safe_strdup("Starred messages");
 		case MR_STR_AC_SETUP_MSG_SUBJECT:  return safe_strdup("Autocrypt Setup Message");

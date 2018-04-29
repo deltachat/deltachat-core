@@ -4152,7 +4152,7 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 	if( mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
 		// E2E available :)
-		p = mrstock_str(MR_STR_E2E_AVAILABLE); mrstrbuilder_cat(&ret, p); free(p);
+		p = mrstock_str(peerstate->m_prefer_encrypt == MRA_PE_MUTUAL? MR_STR_E2E_PREFERRED : MR_STR_E2E_AVAILABLE); mrstrbuilder_cat(&ret, p); free(p);
 
 		if( self_key->m_binary == NULL ) {
 			mrpgp_rand_seed(mailbox, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -4179,11 +4179,6 @@ char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
 		else {
 			cat_fingerprint(&ret, peerstate->m_addr, fingerprint_other_verified, fingerprint_other_unverified);
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_self, NULL);
-		}
-
-		if( peerstate->m_prefer_encrypt == MRA_PE_MUTUAL ) {
-			mrstrbuilder_cat(&ret, "\n\n");
-			p = mrstock_str(MR_STR_MUTUAL_ENABLED); mrstrbuilder_cat(&ret, p); free(p);
 		}
 	}
 	else
