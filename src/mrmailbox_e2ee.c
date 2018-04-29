@@ -670,7 +670,8 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
                              const mrkeyring_t*      private_keyring,
                              const mrkeyring_t*      public_keyring_for_validate,
                              mrhash_t*               ret_valid_signatures,
-                             struct mailimf_fields** ret_gossip_headers )
+                             struct mailimf_fields** ret_gossip_headers,
+                             int*                    ret_has_unencrypted_parts )
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
@@ -707,10 +708,11 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
+			*ret_has_unencrypted_parts = 1; // there is a part that could not be decrypted
 		}
 		else {
 			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers) ) {
+				if( decrypt_recursive(mailbox, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts) ) {
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
@@ -718,9 +720,13 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 	}
 	else if( mime->mm_type == MAILMIME_MESSAGE )
 	{
-		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers) ) {
+		if( decrypt_recursive(mailbox, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts) ) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
+	}
+	else
+	{
+		*ret_has_unencrypted_parts = 1; // there is a part that was not encrypted at all. in combination with otherwise encrypted mails, this is a problem.
 	}
 
 	return 0;
@@ -804,7 +810,6 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	char*                  from = NULL, *self_addr = NULL;
 	mrkeyring_t*           private_keyring = mrkeyring_new();
 	mrkeyring_t*           public_keyring_for_validate = mrkeyring_new();
-	int                    sth_decrypted = 0;
 	struct mailimf_fields* gossip_headers = NULL;
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
@@ -902,12 +907,21 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 	int iterations = 0;
 	while( iterations < 10 ) {
+		int has_unencrypted_parts = 0;
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
 		        public_keyring_for_validate,
-		        helper->m_signatures, &gossip_headers) ) {
+		        helper->m_signatures, &gossip_headers, &has_unencrypted_parts) ) {
 			break;
 		}
-		sth_decrypted = 1;
+
+		// if we're here, sth. was encrypted. if we're on top-level, and there are no
+		// additional unencrypted parts in the message the encryption was fine
+		// (signature is handled separately and returned as m_signatures)
+		if( iterations == 0
+		 && !has_unencrypted_parts ) {
+			helper->m_encrypted = 1;
+		}
+
 		iterations++;
 	}
 
@@ -917,9 +931,6 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	}
 
 	//mailmime_print(in_out_message);
-
-	// TODO: do not mark only partly encrypted messages as being encrypted - otherwise we'll show a lock beside parts that are not encrypted!
-	helper->m_encrypted = sth_decrypted;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
