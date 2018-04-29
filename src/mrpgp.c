@@ -623,7 +623,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
                        const void*        ctext,
                        size_t             ctext_bytes,
                        const mrkeyring_t* raw_private_keys_for_decryption,
-                       const mrkey_t*     raw_public_key_for_validation,
+                       const mrkeyring_t* raw_public_keys_for_validation,
                        int                use_armor,
                        void**             ret_plain,
                        size_t*            ret_plain_bytes,
@@ -659,10 +659,12 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 		goto cleanup;
 	}
 
-	if( raw_public_key_for_validation ) {
-		pgp_memory_clear(keysmem);
-		pgp_memory_add(keysmem, raw_public_key_for_validation->m_binary, raw_public_key_for_validation->m_bytes);
-		pgp_filter_keys_from_mem(&s_io, public_keys, dummy_keys/*should stay empty*/, NULL, 0, keysmem);
+	if( raw_public_keys_for_validation ) {
+		for( i = 0; i < raw_public_keys_for_validation->m_count; i++ ) {
+			pgp_memory_clear(keysmem);
+			pgp_memory_add(keysmem, raw_public_keys_for_validation->m_keys[i]->m_binary, raw_public_keys_for_validation->m_keys[i]->m_bytes);
+			pgp_filter_keys_from_mem(&s_io, public_keys, dummy_keys/*should stay empty*/, NULL, 0, keysmem);
+		}
 	}
 
 	/* decrypt */
