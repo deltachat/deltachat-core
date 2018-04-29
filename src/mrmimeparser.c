@@ -24,6 +24,7 @@
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
 #include "mruudecode.h"
+#include "mrpgp.h"
 #include "mrsimplify.h"
 
 
@@ -935,7 +936,6 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 		carray_set_size(ths->m_reports, 0);
 	}
 
-	ths->m_decrypted_and_validated = 0;
 	ths->m_decrypting_failed = 0;
 
 	mrmailbox_e2ee_thanks(ths->m_e2ee_helper);
@@ -945,11 +945,11 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
-	if( parser->m_decrypted_and_validated ) {
+	if( parser->m_e2ee_helper->m_decrypted && mrhash_count(parser->m_e2ee_helper->m_valid_signatures)>0 ) {
 		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
-	else if( parser->m_e2ee_helper->m_validation_errors ) {
-		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, parser->m_e2ee_helper->m_validation_errors);
+	else if( parser->m_e2ee_helper->m_decrypted ) {
+		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, MRE2EE_NO_VALID_SIGNATURE);
 	}
 	carray_add(parser->m_parts, (void*)part, NULL);
 }
@@ -1468,11 +1468,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	if( mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, ths->m_e2ee_helper) ) {
-		if( ths->m_e2ee_helper->m_validation_errors == 0 ) {
-			ths->m_decrypted_and_validated = 1;
-		}
-	}
+	mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, ths->m_e2ee_helper);
 
 	//printf("after decryption:\n"); mailmime_print(ths->m_mimeroot);
 

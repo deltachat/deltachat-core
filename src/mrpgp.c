@@ -45,6 +45,7 @@ one :-) */
 #include "mrkey.h"
 #include "mrkeyring.h"
 #include "mrpgp.h"
+#include "mrhash.h"
 
 
 static pgp_io_t s_io;
@@ -626,7 +627,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
                        int                use_armor,
                        void**             ret_plain,
                        size_t*            ret_plain_bytes,
-                       int*               ret_validation_errors)
+                       mrhash_t*          ret_signature_fingerprints)
 {
 	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*    private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -637,7 +638,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 	pgp_memory_t*     keysmem = pgp_memory_new();
 	int               i, success = 0;
 
-	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL || ret_validation_errors==NULL
+	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
 	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->m_count<=0
 	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
@@ -676,27 +677,26 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 		*ret_plain_bytes = outmem->length;
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
 
-		/* validate */
-		*ret_validation_errors = 0;
-		if( vresult->validc <= 0 && vresult->invalidc <= 0 && vresult->unknownc <= 0 )
+		// collect the keys of the valid signatures
+		if( ret_signature_fingerprints )
 		{
-			/* no valid nor invalid signatures found */
-			*ret_validation_errors = MR_VALIDATE_NO_SIGNATURE;
-		}
-		else if( raw_public_key_for_validation==NULL || vresult->unknownc > 0 )
-		{
-			/* at least one valid or invalid signature found, but no key for verification */
-			*ret_validation_errors = MR_VALIDATE_UNKNOWN_SIGNATURE;
-		}
-		else if( vresult->invalidc > 0 )
-		{
-			/* at least one invalid signature found */
-			*ret_validation_errors = MR_VALIDATE_BAD_SIGNATURE;
-		}
-		else
-		{
-			/* only valid signatures found */
-			;
+			for( i = 0; i < vresult->validc; i++ )
+			{
+				unsigned from = 0;
+				pgp_key_t* key0 = pgp_getkeybyid(&s_io, public_keys, vresult->valid_sigs[i].signer_id, &from, NULL, NULL, 0, 0);
+				if( key0 ) {
+					pgp_pubkey_t* pubkey0 = &key0->key.pubkey;
+					if( !pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0) ) {
+						goto cleanup;
+					}
+
+					char* fingerprint_hex = mr_binary_fingerprint_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
+					if( fingerprint_hex ) {
+						mrhash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
+					}
+					free(fingerprint_hex);
+				}
+			}
 		}
 	}
 

@@ -612,7 +612,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	sqlite3_stmt*   stmt             = NULL;
 
 	// ensure, the message was encrypted and signed
-	if( !mimeparser->m_decrypted_and_validated ) {
+	if( !mimeparser->m_e2ee_helper->m_decrypted || mrhash_count(mimeparser->m_e2ee_helper->m_valid_signatures)<=0 ) { // TODO: check the correct fingerprint
 		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted/signed properly.");
 		goto cleanup;
 	}

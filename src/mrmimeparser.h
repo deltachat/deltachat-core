@@ -68,7 +68,6 @@ typedef struct mrmimeparser_t
 	char*                  m_subject;
 	int                    m_is_send_by_messenger;
 
-	int                    m_decrypted_and_validated;
 	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 
 	mrmailbox_e2ee_helper_t* m_e2ee_helper;

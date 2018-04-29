@@ -84,6 +84,15 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
  ******************************************************************************/
 
 
+static int decrypted_and_signed(mrmimeparser_t* mimeparser)
+{
+	if( !mimeparser->m_e2ee_helper->m_decrypted || mrhash_count(mimeparser->m_e2ee_helper->m_valid_signatures)<=0 ) {
+		return 0;
+	}
+	return 1;
+}
+
+
 static char* get_self_fingerprint(mrmailbox_t* mailbox)
 {
 	int      locked      = 0;
@@ -552,8 +561,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ==== Step 4 in "Establish verified contact" protocol =====
 		   ========================================================== */
 
-		if( !mimeparser->m_decrypted_and_validated ) {
-			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_validation_errors? "Signature errors." : "Not encrypted.");
+		if( !decrypted_and_signed(mimeparser) ) {
+			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_decrypted? "No valid signature." : "Not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
 		}
@@ -594,7 +603,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ==== Steps 5+6 in "Establish verified contact" protocol ====
 		   ============================================================ */
 
-		if( !mimeparser->m_decrypted_and_validated ) {
+		if( !decrypted_and_signed(mimeparser) ) {
 			could_not_establish_secure_connection(mailbox, chat_id, "Auth not encrypted.");
 			goto cleanup;
 		}
@@ -660,7 +669,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
 
-		if( !mimeparser->m_decrypted_and_validated ) {
+		if( !decrypted_and_signed(mimeparser) ) {
 			could_not_establish_secure_connection(mailbox, chat_id, "Contact confirm message not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;

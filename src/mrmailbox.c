@@ -4563,14 +4563,8 @@ char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
 	p = NULL;
 	int e2ee_errors;
 	if( (e2ee_errors=mrparam_get_int(msg->m_param, MRP_ERRONEOUS_E2EE, 0)) ) {
-		if( e2ee_errors&MR_VALIDATE_BAD_SIGNATURE/* check worst errors first */ ) {
-			p = safe_strdup("Encrypted, bad signature");
-		}
-		else if( e2ee_errors&MR_VALIDATE_UNKNOWN_SIGNATURE ) {
-			p = safe_strdup("Encrypted, unknown signature");
-		}
-		else {
-			p = safe_strdup("Encrypted, no signature");
+		if( e2ee_errors&MRE2EE_NO_VALID_SIGNATURE ) {
+			p = safe_strdup("Encrypted, no valid signature");
 		}
 	}
 	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {

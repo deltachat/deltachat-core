@@ -729,31 +729,37 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key);
 			void* plain = NULL;
-			int validation_errors = 0, ok;
+			mrhash_t valid_signatures;
+			mrhash_init(&valid_signatures, MRHASH_STRING, 1/*copy key*/);
+			int ok;
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == 0 );
+			assert( mrhash_count(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
+			mrhash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == MR_VALIDATE_UNKNOWN_SIGNATURE );
+			assert( mrhash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
+			mrhash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key2/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == MR_VALIDATE_UNKNOWN_SIGNATURE );
+			assert( mrhash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
+			mrhash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			ok = mrpgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( validation_errors == MR_VALIDATE_NO_SIGNATURE );
+			assert( mrhash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
+			mrhash_clear(&valid_signatures);
 
 			mrkeyring_unref(keyring);
 		}
@@ -762,8 +768,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			mrkeyring_t* keyring = mrkeyring_new();
 			mrkeyring_add(keyring, private_key2);
 			void* plain = NULL;
-			int validation_errors = 0;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, &validation_errors);
+			int ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_key/*for validate*/, 1, &plain, &plain_bytes, NULL);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			mrkeyring_unref(keyring);
