@@ -559,7 +559,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mrmailbox_log_info(mailbox, 0, "Secure-join requested.");
 
-		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_REQUESTED, contact_id, 0);
+		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_PROGRESS, contact_id, 3);
 
 		send_handshake_msg(mailbox, chat_id, join_vg? "vg-auth-required" : "vc-auth-required", NULL, NULL); // Alice -> Bob
 	}
@@ -659,6 +659,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		mrmailbox_log_info(mailbox, 0, "Auth verified.");
 
 		secure_connection_established(mailbox, chat_id);
+
+		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_PROGRESS, contact_id, 6);
 
 		send_handshake_msg(mailbox, chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL); // Alice -> Bob and all other group members
 	}

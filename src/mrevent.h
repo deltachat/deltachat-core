@@ -222,11 +222,12 @@ extern "C" {
  *
  * @param data1 ID of the contact that wants to join.
  *
- * @param data2 0
+ * @param data2 Alice's (Inviter, QR shower) progress as:
+ *     3=vg-request/vc-request, 6=vg-contact-confirm/vc-contact-confirm
  *
  * @return 0
  */
-#define MR_EVENT_SECUREJOIN_REQUESTED     2060
+#define MR_EVENT_SECUREJOIN_PROGRESS      2060
 
 
 /*******************************************************************************
