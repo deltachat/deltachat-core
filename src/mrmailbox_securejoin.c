@@ -84,11 +84,17 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
  ******************************************************************************/
 
 
-static int decrypted_and_signed(mrmimeparser_t* mimeparser)
+static int encrypted_and_signed(mrmimeparser_t* mimeparser, const char* expected_fingerprint)
 {
 	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
 		return 0;
 	}
+
+	if( expected_fingerprint == NULL
+	 || mrhash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
+		return 0;
+	}
+
 	return 1;
 }
 
@@ -504,9 +510,12 @@ int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 
 void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t chat_id)
 {
-	int                   locked = 0;
-	const char*           step   = NULL;
-	int                   join_vg = 0;
+	int          locked = 0;
+	const char*  step   = NULL;
+	int          join_vg = 0;
+	char*        scanned_fingerprint_of_alice = NULL;
+	char*        scanned_auth = NULL;
+	char*        own_fingerprint = NULL;
 
 	if( mailbox == NULL || mimeparser == NULL || chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -561,22 +570,22 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ==== Step 4 in "Establish verified contact" protocol =====
 		   ========================================================== */
 
-		if( !decrypted_and_signed(mimeparser) ) {
-			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
-			end_bobs_joining(mailbox, BOB_ERROR);
-			goto cleanup;
-		}
-
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
 			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED ) {
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
-			char* scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
-			char* auth                         = safe_strdup(s_bobs_qr_scan->m_auth);
+			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
+			scanned_auth                 = safe_strdup(s_bobs_qr_scan->m_auth);
 		mrsqlite3_unlock(mailbox->m_sql);
 		locked = 0;
+
+		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
+			could_not_establish_secure_connection(mailbox, chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
+			end_bobs_joining(mailbox, BOB_ERROR);
+			goto cleanup;
+		}
 
 		if( !fingerprint_equals_sender(mailbox, scanned_fingerprint_of_alice, chat_id) ) {
 			// MitM?
@@ -587,14 +596,10 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
 
-		char* own_fingerprint = get_self_fingerprint(mailbox);
+		own_fingerprint = get_self_fingerprint(mailbox);
 
 		s_bob_expects = VC_CONTACT_CONFIRM;
-		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", auth, own_fingerprint); // Bob -> Alice
-
-		free(own_fingerprint);
-		free(scanned_fingerprint_of_alice);
-		free(auth);
+		send_handshake_msg(mailbox, chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", scanned_auth, own_fingerprint); // Bob -> Alice
 	}
 	else if( strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0 )
 	{
@@ -603,15 +608,15 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ==== Steps 5+6 in "Establish verified contact" protocol ====
 		   ============================================================ */
 
-		if( !decrypted_and_signed(mimeparser) ) {
-			could_not_establish_secure_connection(mailbox, chat_id, "Auth not encrypted.");
-			goto cleanup;
-		}
-
 		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 		const char* fingerprint = NULL;
 		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
 			could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint not provided.");
+			goto cleanup;
+		}
+
+		if( !encrypted_and_signed(mimeparser, fingerprint) ) {
+			could_not_establish_secure_connection(mailbox, chat_id, "Auth not encrypted.");
 			goto cleanup;
 		}
 
@@ -669,7 +674,16 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
 
-		if( !decrypted_and_signed(mimeparser) ) {
+		mrsqlite3_lock(mailbox->m_sql);
+		locked = 1;
+			if( s_bobs_qr_scan == NULL ) {
+				goto cleanup; // no error, just aborted somehow or a mail from another handshake
+			}
+			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
+		mrsqlite3_unlock(mailbox->m_sql);
+		locked = 0;
+
+		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(mailbox, chat_id, "Contact confirm message not encrypted.");
 			end_bobs_joining(mailbox, BOB_ERROR);
 			goto cleanup;
@@ -678,11 +692,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		uint32_t contact_id = chat_id_2_contact_id(mailbox, chat_id);
 		mrsqlite3_lock(mailbox->m_sql);
 		locked = 1;
-			if( s_bobs_qr_scan == NULL ) {
-				goto cleanup; // no error, just aborted somehow or a mail from another handshake
-			}
-
-			if( !mark_peer_as_verified__(mailbox, s_bobs_qr_scan->m_fingerprint) ) {
+			if( !mark_peer_as_verified__(mailbox, scanned_fingerprint_of_alice) ) {
 				could_not_establish_secure_connection(mailbox, chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 				goto cleanup;
 			}
@@ -709,4 +719,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	free(scanned_fingerprint_of_alice);
+	free(scanned_auth);
+	free(own_fingerprint);
 }
