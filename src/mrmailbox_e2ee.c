@@ -900,15 +900,15 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	helper->m_signatures = malloc(sizeof(mrhash_t));
 	mrhash_init(helper->m_signatures, MRHASH_STRING, 1/*copy key*/);
 
-	int avoid_deadlock = 10;
-	while( avoid_deadlock > 0 ) {
+	int iterations = 0;
+	while( iterations < 10 ) {
 		if( !decrypt_recursive(mailbox, in_out_message, private_keyring,
 		        public_keyring_for_validate,
 		        helper->m_signatures, &gossip_headers) ) {
 			break;
 		}
 		sth_decrypted = 1;
-		avoid_deadlock--;
+		iterations++;
 	}
 
 	/* check for Autocrypt-Gossip */
