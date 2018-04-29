@@ -4090,9 +4090,11 @@ static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* f
 	mrstrbuilder_cat(ret, "\n\n");
 	mrstrbuilder_cat(ret, addr);
 	mrstrbuilder_cat(ret, ":\n");
-	mrstrbuilder_cat(ret, fingerprint_verified);
+	mrstrbuilder_cat(ret, (fingerprint_verified&&fingerprint_verified[0])? fingerprint_verified : fingerprint_unverified);
 
-	if( fingerprint_unverified && strcmp(fingerprint_verified, fingerprint_unverified)!=0 ) {
+	if( fingerprint_verified && fingerprint_verified[0]
+	 && fingerprint_unverified && fingerprint_unverified[0]
+	 && strcmp(fingerprint_verified, fingerprint_unverified)!=0 ) {
 		// might be that for verified chats the - older - verified gossiped key is used
 		// and for normal chats the - newer - unverified key :/
 		mrstrbuilder_cat(ret, "\n\n");
