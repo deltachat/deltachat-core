@@ -891,9 +891,8 @@ int mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	// prefer validated keys for checking the signature, see check_verified_properties() for further information about this.
-	// TODO: This does _not_ work when we're just about to introduce a new key and the currently validated is not longer okay.
-	//       in this case, we should prefer the "normal" key. maybe we should also forward the min_verified flag as for other functions
+	// offer both, gossip and public, for signature validation.
+	// the caller may check the signature fingerprints as needed later.
 	mrkeyring_add(public_keyring_for_validate, peerstate->m_gossip_key);
 	mrkeyring_add(public_keyring_for_validate, peerstate->m_public_key);
 
