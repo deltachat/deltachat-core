@@ -458,12 +458,12 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	}
 
 	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT ) {
-		mrmailbox_log_info(mailbox, 0, "Unknown QR code.");
+		mrmailbox_log_error(mailbox, 0, "Unknown QR code.");
 		goto cleanup;
 	}
 
 	if( (contact_chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_scan->m_id)) == 0 ) {
-		mrmailbox_log_info(mailbox, 0, "Unknown contact.");
+		mrmailbox_log_error(mailbox, 0, "Unknown contact.");
 		goto cleanup;
 	}
 
