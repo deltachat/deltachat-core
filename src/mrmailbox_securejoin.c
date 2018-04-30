@@ -785,11 +785,13 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 	// delete the message in 20 seconds - typical handshake last about 5 seconds, so do not disturb the connection _now_.
 	// for errors, we do not the corresoinding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
-	struct mailimf_field* field;
-	if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
-		struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
-		if( fld_message_id && fld_message_id->mid_value ) {
-			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 20);
+	if( mrmailbox_is_securejoin_handshake__(mailbox, mimeparser) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+		struct mailimf_field* field;
+		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
+			if( fld_message_id && fld_message_id->mid_value ) {
+				mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 20);
+			}
 		}
 	}
 
