@@ -499,7 +499,8 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	}
 	else {
 		s_bob_expects = VC_AUTH_REQUIRED;
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request" : "vc-request", qr_scan->m_invitenumber, NULL, NULL); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request" : "vc-request",
+			qr_scan->m_invitenumber, NULL, NULL); // Bob -> Alice
 	}
 
 	while( 1 ) {
@@ -597,7 +598,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
 
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required", NULL, NULL, NULL); // Alice -> Bob
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required",
+			NULL, NULL, NULL); // Alice -> Bob
 	}
 	else if( strcmp(step, "vg-auth-required")==0 || strcmp(step, "vc-auth-required")==0 )
 	{
@@ -639,7 +641,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
 
 		s_bob_expects = VC_CONTACT_CONFIRM;
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", auth, own_fingerprint, grpid); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
+			auth, own_fingerprint, grpid); // Bob -> Alice
 	}
 	else if( strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0 )
 	{
@@ -715,7 +718,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			mrmailbox_add_contact_to_chat4(mailbox, verified_chat_id, contact_id, 1/*from_handshake*/); // Alice -> Bob and all members
 		}
 		else {
-			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm", NULL, NULL, NULL); // Alice -> Bob
+			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm",
+				NULL, NULL, NULL); // Alice -> Bob
 		}
 	}
 	else if( strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0 )
