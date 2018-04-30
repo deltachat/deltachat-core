@@ -539,23 +539,32 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));
 
 
-			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP ) {
+			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP )
+			{
 				char* email_to_remove = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( email_to_remove ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Removed"), email_to_remove));
 				}
 			}
-			else if( command == MR_CMD_MEMBER_ADDED_TO_GROUP ) {
+			else if( command == MR_CMD_MEMBER_ADDED_TO_GROUP )
+			{
 				char* email_to_add = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( email_to_add ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Added"), email_to_add));
 					grpimage = mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
 				}
+
+				if( mrparam_get_int(msg->m_param, MRP_CMD_PARAM2, 0) ) {
+					mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
+				}
 			}
-			else if( command == MR_CMD_GROUPNAME_CHANGED ) {
+			else if( command == MR_CMD_GROUPNAME_CHANGED )
+			{
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
 			}
-			else if( command == MR_CMD_GROUPIMAGE_CHANGED ) {
+			else if( command == MR_CMD_GROUPIMAGE_CHANGED )
+			{
 				grpimage = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 				if( grpimage==NULL ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), safe_strdup("0")));

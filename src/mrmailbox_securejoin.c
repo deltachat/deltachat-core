@@ -705,7 +705,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
 		if( join_vg ) {
-			//send_handshake_msg(mailbox, contact_chat_id, "vg-member-added", NULL, NULL);
+			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
 			grpid = safe_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
 			LOCK

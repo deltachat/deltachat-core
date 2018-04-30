@@ -3330,7 +3330,7 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,from_handshake);
+		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,from_handshake); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
