@@ -219,7 +219,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				qr_parsed->m_state         = MR_QR_ASK_SECUREJOIN;
+				qr_parsed->m_state         = MR_QR_ASK_VERIFYCONTACT;
 				qr_parsed->m_id            = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);

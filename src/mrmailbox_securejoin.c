@@ -457,7 +457,7 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 		goto cleanup;
 	}
 
-	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_ASK_SECUREJOIN ) {
+	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT ) {
 		goto cleanup;
 	}
 
