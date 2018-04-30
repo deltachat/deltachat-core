@@ -329,22 +329,25 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  *
  * @return Text that should go to the qr code.
  */
-char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t contact_chat_id)
+char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 {
 	/* =========================================================
 	   ====             Alice - the inviter side            ====
 	   ==== Step 1 in "Establish verified contact" protocol ====
 	   ========================================================= */
 
-	int      locked               = 0;
-	char*    qr                   = NULL;
-	char*    self_addr            = NULL;
-	char*    self_addr_urlencoded = NULL;
-	char*    self_name            = NULL;
-	char*    self_name_urlencoded = NULL;
-	char*    fingerprint          = NULL;
-	char*    invitenumber         = NULL;
-	char*    auth                 = NULL;
+	int       locked               = 0;
+	char*     qr                   = NULL;
+	char*     self_addr            = NULL;
+	char*     self_addr_urlencoded = NULL;
+	char*     self_name            = NULL;
+	char*     self_name_urlencoded = NULL;
+	char*     fingerprint          = NULL;
+	char*     invitenumber         = NULL;
+	char*     auth                 = NULL;
+	mrchat_t* chat                 = NULL;
+	char*     group_name           = NULL;
+	char*     group_name_urlencoded= NULL;
 
 	if( mailbox == NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC ) {
 		goto cleanup;
@@ -360,6 +363,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t contact_chat_id
 	locked = 1;
 
 		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
+			mrmailbox_log_error(mailbox, 0, "Not configured.");
 			goto cleanup;
 		}
 
@@ -377,7 +381,24 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t contact_chat_id
 
 	self_addr_urlencoded = mr_url_encode(self_addr);
 	self_name_urlencoded = mr_url_encode(self_name);
-	qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
+
+	if( group_chat_id )
+	{
+		// parameters used: a=g=x=i=s=
+		chat = mrmailbox_get_chat(mailbox, group_chat_id);
+		if( chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
+			mrmailbox_log_error(mailbox, 0, "Secure join is only available for verified groups.");
+			goto cleanup;
+		}
+		group_name = mrchat_get_name(chat);
+		group_name_urlencoded = mr_url_encode(group_name);
+		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
+	}
+	else
+	{
+		// parameters used: a=n=i=s=
+		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
+	}
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -388,6 +409,9 @@ cleanup:
 	free(fingerprint);
 	free(invitenumber);
 	free(auth);
+	mrchat_unref(chat);
+	free(group_name);
+	free(group_name_urlencoded);
 	return qr? qr : safe_strdup(NULL);
 }
 
