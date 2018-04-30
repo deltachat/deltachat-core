@@ -225,7 +225,7 @@ static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 }
 
 
-static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint)
+static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint, const char* grpid)
 {
 	mrmsg_t* msg = mrmsg_new();
 
@@ -241,6 +241,10 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, c
 
 	if( fingerprint ) {
 		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
+	}
+
+	if( grpid ) {
+		mrparam_set(msg->m_param, MRP_CMD_PARAM4, grpid);
 	}
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
@@ -490,12 +494,12 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 		s_bob_expects = VC_CONTACT_CONFIRM;
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(mailbox, contact_chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(mailbox);
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", qr_scan->m_auth, own_fingerprint); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", qr_scan->m_auth, own_fingerprint, NULL); // Bob -> Alice
 		free(own_fingerprint);
 	}
 	else {
 		s_bob_expects = VC_AUTH_REQUIRED;
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request" : "vc-request", qr_scan->m_invitenumber, NULL); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request" : "vc-request", qr_scan->m_invitenumber, NULL, NULL); // Bob -> Alice
 	}
 
 	while( 1 ) {
@@ -546,9 +550,10 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	const char*  step   = NULL;
 	int          join_vg = 0;
 	char*        scanned_fingerprint_of_alice = NULL;
-	char*        scanned_auth = NULL;
+	char*        auth = NULL;
 	char*        own_fingerprint = NULL;
 	uint32_t     contact_id = 0;
+	char*        grpid = NULL;
 
 	if( mailbox == NULL || mimeparser == NULL || contact_chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -592,7 +597,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
 
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required", NULL, NULL); // Alice -> Bob
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required", NULL, NULL, NULL); // Alice -> Bob
 	}
 	else if( strcmp(step, "vg-auth-required")==0 || strcmp(step, "vc-auth-required")==0 )
 	{
@@ -608,7 +613,10 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
-			scanned_auth                 = safe_strdup(s_bobs_qr_scan->m_auth);
+			auth = safe_strdup(s_bobs_qr_scan->m_auth);
+			if( join_vg ) {
+				grpid = safe_strdup(s_bobs_qr_scan->m_text2);
+			}
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
@@ -631,7 +639,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
 
 		s_bob_expects = VC_CONTACT_CONFIRM;
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", scanned_auth, own_fingerprint); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", auth, own_fingerprint, grpid); // Bob -> Alice
 	}
 	else if( strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0 )
 	{
@@ -694,8 +702,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		if( join_vg ) {
 			//send_handshake_msg(mailbox, contact_chat_id, "vg-member-added", NULL, NULL);
-			const char* grpid = "";
-			int      is_verified = 0;
+			grpid = safe_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
+			int is_verified = 0;
 			LOCK
 				uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
 			UNLOCK
@@ -707,7 +715,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			mrmailbox_add_contact_to_chat4(mailbox, verified_chat_id, contact_id, 1/*from_handshake*/); // Alice -> Bob and all members
 		}
 		else {
-			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm", NULL, NULL); // Alice -> Bob
+			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm", NULL, NULL, NULL); // Alice -> Bob
 		}
 	}
 	else if( strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0 )
@@ -764,6 +772,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 cleanup:
 	if( locked ) { UNLOCK }
 	free(scanned_fingerprint_of_alice);
-	free(scanned_auth);
+	free(auth);
 	free(own_fingerprint);
+	free(grpid);
 }

@@ -59,6 +59,7 @@ typedef struct mrparam_t
 #define MRP_CMD_PARAM         'E'  /* for msgs */
 #define MRP_CMD_PARAM2        'F'  /* for msgs */
 #define MRP_CMD_PARAM3        'G'  /* for msgs */
+#define MRP_CMD_PARAM4        'H'  /* for msgs */
 
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */
 #define MRP_SERVER_UID        'z'  /* for jobs */

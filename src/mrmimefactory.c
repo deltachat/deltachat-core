@@ -588,6 +588,13 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 						strdup("Secure-Join-Fingerprint"),
 						fingerprint/*mailimf takes ownership of string*/));
 				}
+
+				char* grpid = mrparam_get(msg->m_param, MRP_CMD_PARAM4, NULL);
+				if( grpid ) {
+					mailimf_fields_add(imf_fields, mailimf_field_new_custom(
+						strdup("Secure-Join-Group"),
+						grpid/*mailimf takes ownership of string*/));
+				}
 			}
 		}
 
