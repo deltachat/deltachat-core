@@ -1822,7 +1822,7 @@ void mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	/* add contact IDs to the new chat record (may be replaced by mrmailbox_add_contact_to_chat__()) */
+	/* add contact IDs to the new chat record (may be replaced by mrmailbox_add_to_chat_contacts_table__()) */
 	q = sqlite3_mprintf("INSERT INTO chats_contacts (chat_id, contact_id) VALUES(%i, %i)", chat_id, contact_id);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q);
 
@@ -2937,7 +2937,7 @@ static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
-int mrmailbox_add_contact_to_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int mrmailbox_add_to_chat_contacts_table__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_chats_contacts,
@@ -3005,7 +3005,7 @@ uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, int verified, const c
 			goto cleanup;
 		}
 
-		if( mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF) ) {
+		if( mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, MR_CONTACT_ID_SELF) ) {
 			goto cleanup;
 		}
 
@@ -3298,7 +3298,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
 			goto cleanup;
 		}
 
-		if( 0==mrmailbox_add_contact_to_chat__(mailbox, chat_id, contact_id) ) {
+		if( 0==mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, contact_id) ) {
 			goto cleanup;
 		}
 

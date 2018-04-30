@@ -111,7 +111,7 @@ int             mrmailbox_get_fresh_msg_count__                   (mrmailbox_t*,
 uint32_t        mrmailbox_get_last_deaddrop_fresh_msg__           (mrmailbox_t*);
 void            mrmailbox_send_msg_to_smtp                        (mrmailbox_t*, mrjob_t*);
 void            mrmailbox_send_msg_to_imap                        (mrmailbox_t*, mrjob_t*);
-int             mrmailbox_add_contact_to_chat__                   (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
+int             mrmailbox_add_to_chat_contacts_table__            (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_is_contact_in_chat__                    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_get_chat_contact_count__                (mrmailbox_t*, uint32_t chat_id);
 int             mrmailbox_is_group_explicitly_left__              (mrmailbox_t*, const char* grpid);

@@ -583,7 +583,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
 	for( i = 0; i < mrarray_get_cnt(member_ids); i++ ) {
-		mrmailbox_add_contact_to_chat__(mailbox, chat_id, mrarray_get_id(member_ids, i));
+		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, mrarray_get_id(member_ids, i));
 	}
 
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -897,13 +897,13 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		sqlite3_finalize(stmt);
 
 		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
-			mrmailbox_add_contact_to_chat__(mailbox, chat_id, MR_CONTACT_ID_SELF);
+			mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, MR_CONTACT_ID_SELF);
 		}
 
 		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
 			if( mrmailbox_contact_addr_equals__(mailbox, from_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, from_id, skip)==0) ) {
-				mrmailbox_add_contact_to_chat__(mailbox, chat_id, from_id);
+				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, from_id);
 			}
 		}
 
@@ -912,7 +912,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 			uint32_t to_id = mrarray_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
-				mrmailbox_add_contact_to_chat__(mailbox, chat_id, to_id);
+				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, to_id);
 			}
 		}
 		send_EVENT_CHAT_MODIFIED = 1;
