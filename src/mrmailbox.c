@@ -992,6 +992,10 @@ uint32_t mrmailbox_get_chat_id_by_grpid__(mrmailbox_t* mailbox, const char* grpi
 	if(ret_blocked)  { *ret_blocked = 0;  }
 	if(ret_verified) { *ret_verified = 0; }
 
+	if( mailbox == NULL || grpid == NULL ) {
+		goto cleanup;
+	}
+
 	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
 		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
@@ -1001,6 +1005,7 @@ uint32_t mrmailbox_get_chat_id_by_grpid__(mrmailbox_t* mailbox, const char* grpi
 		if(ret_verified) { *ret_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP); }
 	}
 
+cleanup:
 	return chat_id;
 }
 
