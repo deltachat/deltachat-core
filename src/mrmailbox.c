@@ -3284,28 +3284,40 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
+		if( from_handshake && mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
+			// after a handshake, force sending the `Chat-Group-Member-Added` message
+			mrparam_set(chat->m_param, MRP_UNPROMOTED, NULL);
+			mrchat_update_param__(chat);
+		}
+
 		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 		if( strcasecmp(contact->m_addr, self_addr)==0 ) {
 			goto cleanup; /* ourself is added using MR_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
 		}
 
-		if( 1==mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) ) {
-			success = 1;
-			goto cleanup;
+		if( mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) )
+		{
+			if( !from_handshake ) {
+				success = 1;
+				goto cleanup;
+			}
+			// else continue and send status mail
 		}
+		else
+		{
+			if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+				goto cleanup;
+			}
 
-		if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
-			goto cleanup;
-		}
+			if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
+			 && mrcontact_is_verified__(contact, peerstate)!=MRV_BIDIRECTIONAL ) {
+				mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
+				goto cleanup;
+			}
 
-		if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
-		 && mrcontact_is_verified__(contact, peerstate)!=MRV_BIDIRECTIONAL ) {
-			mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
-			goto cleanup;
-		}
-
-		if( 0==mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, contact_id) ) {
-			goto cleanup;
+			if( 0==mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, contact_id) ) {
+				goto cleanup;
+			}
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -3318,6 +3330,7 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
+		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,from_handshake);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
