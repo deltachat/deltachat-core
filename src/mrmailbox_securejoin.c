@@ -457,7 +457,8 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 		goto cleanup;
 	}
 
-	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL) || qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT ) {
+	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL)
+	 || (qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
 		mrmailbox_log_error(mailbox, 0, "Unknown QR code.");
 		goto cleanup;
 	}
@@ -475,6 +476,8 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	}
 
 	CHECK_EXIT
+
+	join_vg = (qr_scan->m_state==MR_QR_ASK_VERIFYGROUP);
 
 	s_bobs_status = 0;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -556,7 +559,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
-	join_vg    = (strncmp(step, "vg-", 3)==0);
+	join_vg = (strncmp(step, "vg-", 3)==0);
 	contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
@@ -600,7 +603,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		LOCK
-			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED ) {
+			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
+				mrmailbox_log_warning(mailbox, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
@@ -702,7 +706,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		}
 
 		LOCK
-			if( s_bobs_qr_scan == NULL ) {
+			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
+				mrmailbox_log_warning(mailbox, 0, "contact-confirm message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
