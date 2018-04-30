@@ -749,6 +749,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
+		// TODO: for the broadcasted vg-member-added, make sure, the message is ours (eg. by comparing Chat-Group-Member-Added against SELF)
+
 		LOCK
 			if( !mark_peer_as_verified__(mailbox, scanned_fingerprint_of_alice) ) {
 				could_not_establish_secure_connection(mailbox, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
