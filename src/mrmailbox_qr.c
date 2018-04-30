@@ -84,11 +84,11 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 
 			addr = mrparam_get(param, 'a', NULL);
 			if( addr ) {
-				char* name_urlencoded = mrparam_get(param, 'n', NULL);
-				if( name_urlencoded ) {
-					name = mr_url_decode(name_urlencoded);
+				char* urlencoded = mrparam_get(param, 'n', NULL);
+				if(urlencoded ) {
+					name = mr_url_decode(urlencoded);
 					mr_normalize_name(name);
-					free(name_urlencoded);
+					free(urlencoded);
 				}
 				invitenumber  = mrparam_get(param, 'i', NULL);
 				auth          = mrparam_get(param, 's', NULL);
