@@ -561,7 +561,7 @@ int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 }
 
 
-void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_chat_id)
+void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
 	#define      LOCK   mrsqlite3_lock  (mailbox->m_sql); locked = 1;
@@ -571,10 +571,10 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	char*        scanned_fingerprint_of_alice = NULL;
 	char*        auth = NULL;
 	char*        own_fingerprint = NULL;
-	uint32_t     contact_id = 0;
+	uint32_t     contact_chat_id = 0;
 	char*        grpid = NULL;
 
-	if( mailbox == NULL || mimeparser == NULL || contact_chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( mailbox == NULL || mimeparser == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -584,7 +584,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
-	contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
+	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &contact_chat_id, NULL);
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{

@@ -1485,7 +1485,7 @@ cleanup:
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( is_handshake_message ) {
-		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, chat_id); /* must be called after unlocking before deletion of mime_parser */
+		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, from_id); /* must be called after unlocking before deletion of mime_parser */
 	}
 	else if( mime_parser->m_e2ee_helper->m_degrade_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
