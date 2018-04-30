@@ -530,17 +530,34 @@ cleanup:
 
 /*
  * mrmailbox_is_securejoin_handshake__() should be called called for each
- * incoming mail. if the mail belongs to an secure-join handshake, the function
- * returns 1. The caller should unlock everything, stop normal message
- * processing and call mrmailbox_handle_securejoin_handshake() then.
+ * incoming mail.
+ *
+ * Return values:
+ *
+ * - 0: the mail does not belong to a secure-join handshake. The caller shoud do
+ *   normal processing.
+ *
+ * - MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING (1):
+ *   the mail belongs to a secure-join handshake. The caller shoud _continue_
+ *   normal processing and call mrmailbox_handle_securejoin_handshake() then.
+ *
+ * - MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING (2):
+ *   the mail belongs to a secure-join handshake. The caller should _stop_
+ *   normal processing and call mrmailbox_handle_securejoin_handshake() then.
  */
 int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
 {
-	if( mailbox == NULL || mimeparser == NULL || lookup_field(mimeparser, "Secure-Join") == NULL ) {
+	const char*  step   = NULL;
+
+	if( mailbox == NULL || mimeparser == NULL || (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
 		return 0;
 	}
 
-	return 1; /* processing is continued in mrmailbox_handle_securejoin_handshake() */
+	if( strcmp(step, "vg-member-added")==0 ) {
+		return MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
+	}
+
+	return MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
 }
 
 

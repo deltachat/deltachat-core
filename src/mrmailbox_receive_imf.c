@@ -1215,7 +1215,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 			/* check of the message is a special handshake message; if so, mark it as "seen" here and handle it when done */
 			is_handshake_message = mrmailbox_is_securejoin_handshake__(mailbox, mime_parser);
-			if( is_handshake_message ) {
+			if( is_handshake_message == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 				hidden = 1;
 				if( state==MR_STATE_IN_FRESH || state==MR_STATE_IN_NOTICED ) {
 					state = MR_STATE_IN_SEEN;
