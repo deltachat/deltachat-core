@@ -234,6 +234,11 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
         qr_parsed->m_state = MR_QR_ADDR;
 		qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
+	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
+	{
+		qr_parsed->m_state = MR_QR_URL;
+		qr_parsed->m_text1 = safe_strdup(qr);
+	}
 	else
 	{
         qr_parsed->m_state = MR_QR_TEXT;
