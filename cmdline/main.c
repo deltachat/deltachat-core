@@ -166,13 +166,15 @@ int main(int argc, char ** argv)
 		{
 			mrmailbox_connect(mailbox);
 			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
-			if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
-				for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
+			if( qrstr && qrstr[0] ) {
+				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
+					for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
+				}
+				printf("%s\n", qrstr);
+				char* syscmd = mr_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
+				system(syscmd);
+				free(syscmd);
 			}
-			printf("%s\n", qrstr);
-			char* syscmd = mr_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
-			system(syscmd);
-			free(syscmd);
 			free(qrstr);
 		}
 		else if( strcmp(cmd, "exit")==0 )
