@@ -494,7 +494,8 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 		s_bob_expects = VC_CONTACT_CONFIRM;
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(mailbox, contact_chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(mailbox);
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth", qr_scan->m_auth, own_fingerprint, NULL); // Bob -> Alice
+		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
+			qr_scan->m_auth, own_fingerprint, join_vg? qr_scan->m_text2 : NULL); // Bob -> Alice
 		free(own_fingerprint);
 	}
 	else {
