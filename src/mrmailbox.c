@@ -984,6 +984,27 @@ uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t cont
 }
 
 
+uint32_t mrmailbox_get_chat_id_by_grpid__(mrmailbox_t* mailbox, const char* grpid, int* ret_blocked, int* ret_verified)
+{
+	uint32_t      chat_id = 0;
+	sqlite3_stmt* stmt;
+
+	if(ret_blocked)  { *ret_blocked = 0;  }
+	if(ret_verified) { *ret_verified = 0; }
+
+	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
+		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
+	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt)==SQLITE_ROW ) {
+		                    chat_id      =  sqlite3_column_int(stmt, 0);
+		if(ret_blocked)  { *ret_blocked  =  sqlite3_column_int(stmt, 1); }
+		if(ret_verified) { *ret_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP); }
+	}
+
+	return chat_id;
+}
+
+
 /**
  * Create a normal chat with a single user.  To create group chats,
  * see mrmailbox_create_group_chat().
@@ -3231,27 +3252,7 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 }
 
 
-/**
- * Add a member to a group.
- *
- * If the group is already _promoted_ (any message was sent to the group),
- * all group members are informed by a special status message that is sent automatically by this function.
- *
- * If the group is a verified group, only verified contacts can be added to the group.
- *
- * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox Mailbox object as created by mrmailbox_new().
- *
- * @param chat_id The chat ID to add the contact to.  Must be a group chat.
- *
- * @param contact_id The contact ID to add to the chat.
- *
- * @return 1=member added to group, 0=error
- */
-int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id, int from_handshake)
 {
 	int             success   = 0, locked = 0;
 	mrcontact_t*    contact   = mrmailbox_get_contact(mailbox, contact_id);
@@ -3327,6 +3328,32 @@ cleanup:
 	mrmsg_unref(msg);
 	free(self_addr);
 	return success;
+}
+
+
+/**
+ * Add a member to a group.
+ *
+ * If the group is already _promoted_ (any message was sent to the group),
+ * all group members are informed by a special status message that is sent automatically by this function.
+ *
+ * If the group is a verified group, only verified contacts can be added to the group.
+ *
+ * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox Mailbox object as created by mrmailbox_new().
+ *
+ * @param chat_id The chat ID to add the contact to.  Must be a group chat.
+ *
+ * @param contact_id The contact ID to add to the chat.
+ *
+ * @return 1=member added to group, 0=error
+ */
+int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+{
+	return mrmailbox_add_contact_to_chat4(mailbox, chat_id, contact_id, 0);
 }
 
 

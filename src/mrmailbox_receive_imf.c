@@ -779,18 +779,12 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	}
 
 	/* check, if we have a chat with this group ID */
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
-		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
-	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
-	if( sqlite3_step(stmt)==SQLITE_ROW ) {
-		chat_id          = sqlite3_column_int(stmt, 0);
-		chat_id_blocked  = sqlite3_column_int(stmt, 1);
-		chat_id_verified = (sqlite3_column_int(stmt, 2)==MR_CHAT_TYPE_VERIFIED_GROUP)? 1 : 0;
-
-		if( chat_id_verified ) {
-			if( !check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
-				chat_id = 0; // force the creation of an unverified ad-hoc group.
-			}
+	if( (chat_id=mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
+		if( chat_id_verified
+		 && !check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
+			chat_id          = 0; // force the creation of an unverified ad-hoc group.
+			chat_id_blocked  = 0;
+			chat_id_verified = 0;
 		}
 	}
 

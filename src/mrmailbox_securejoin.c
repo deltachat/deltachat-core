@@ -692,14 +692,23 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
-		if( !join_vg ) {
-			send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL); // Alice -> Bob
+		if( join_vg ) {
+			//send_handshake_msg(mailbox, contact_chat_id, "vg-member-added", NULL, NULL);
+			const char* grpid = "";
+			int      is_verified = 0;
+			uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
+			if( verified_chat_id == 0 || !is_verified ) {
+				mrmailbox_log_error(mailbox, 0, "Verified chat not found.");
+				goto cleanup;
+			}
+
+			mrmailbox_add_contact_to_chat4(mailbox, verified_chat_id, contact_id, 1/*from_handshake*/); // Alice -> Bob and all members
 		}
 		else {
-			send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL);
+			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm", NULL, NULL); // Alice -> Bob
 		}
 	}
-	else if( strcmp(step, "vg-contact-confirm")==0 || strcmp(step, "vc-contact-confirm")==0 )
+	else if( strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0 )
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
