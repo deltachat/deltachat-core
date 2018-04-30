@@ -318,7 +318,7 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 #define         MR_QR_ERROR                 400 /* text1=error string */
 mrlot_t*        mrmailbox_check_qr          (mrmailbox_t*, const char* qr);
 char*           mrmailbox_get_securejoin_qr (mrmailbox_t*, uint32_t chat_id);
-int             mrmailbox_join_securejoin   (mrmailbox_t*, const char* qr);
+uint32_t        mrmailbox_join_securejoin   (mrmailbox_t*, const char* qr);
 
 
 /* deprecated functions */

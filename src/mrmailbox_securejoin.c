@@ -439,14 +439,14 @@ cleanup:
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.
  */
-int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
+uint32_t mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 {
 	/* ==========================================================
 	   ====             Bob - the joiner's side             =====
 	   ====   Step 2 in "Setup verified contact" protocol   =====
 	   ========================================================== */
 
-	int      success           = 0;
+	int      ret_chat_id       = 0;
 	int      ongoing_allocated = 0;
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t contact_chat_id   = 0;
@@ -514,7 +514,14 @@ cleanup:
 	s_bob_expects = 0;
 
 	if( s_bobs_status == BOB_SUCCESS ) {
-		success = 1;
+		if( join_vg ) {
+			mrsqlite3_lock(mailbox->m_sql);
+				ret_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, qr_scan->m_text2, NULL, NULL);
+			mrsqlite3_unlock(mailbox->m_sql);
+		}
+		else {
+			ret_chat_id = contact_chat_id;
+		}
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -524,7 +531,7 @@ cleanup:
 	mrlot_unref(qr_scan);
 
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
-	return success;
+	return ret_chat_id;
 }
 
 
