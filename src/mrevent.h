@@ -248,7 +248,9 @@ extern "C" {
  * @param data1 ID of the contact that wants to join.
  *
  * @param data2 Progress as:
- *     4=vg-auth-required/vc-auth-required, typically shown as "alice@addr verified.";
+ *     4=vg-auth-required/vc-auth-required, typically shown as
+ *     "alice@addr verified, introducing myself."
+ *     (Bob has verified alice and waits until Alice does the same for him)
  *
  * @return 0
  */
