@@ -333,7 +333,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 {
 	/* =========================================================
 	   ====             Alice - the inviter side            ====
-	   ==== Step 1 in "Establish verified contact" protocol ====
+	   ====   Step 1 in "Setup verified contact" protocol   ====
 	   ========================================================= */
 
 	int       locked               = 0;
@@ -439,7 +439,7 @@ int mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 {
 	/* ==========================================================
 	   ====             Bob - the joiner's side             =====
-	   ==== Step 2 in "Establish verified contact" protocol =====
+	   ====   Step 2 in "Setup verified contact" protocol   =====
 	   ========================================================== */
 
 	int      success           = 0;
@@ -566,7 +566,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	{
 		/* =========================================================
 		   ====             Alice - the inviter side            ====
-		   ==== Step 3 in "Establish verified contact" protocol ====
+		   ====   Step 3 in "Setup verified contact" protocol   ====
 		   ========================================================= */
 
 		// this message may be unencrypted (Bob, the joinder and the sender, might not have Alice's key yet)
@@ -598,7 +598,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
-		   ==== Step 4 in "Establish verified contact" protocol =====
+		   ====   Step 4 in "Setup verified contact" protocol   =====
 		   ========================================================== */
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
@@ -637,7 +637,8 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	{
 		/* ============================================================
 		   ====              Alice - the inviter side              ====
-		   ==== Steps 5+6 in "Establish verified contact" protocol ====
+		   ====   Steps 5+6 in "Setup verified contact" protocol   ====
+		   ====  Step 6 in "Out-of-band verified groups" protocol  ====
 		   ============================================================ */
 
 		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
@@ -691,13 +692,18 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
-		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL); // Alice -> Bob and all other group members
+		if( !join_vg ) {
+			send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL); // Alice -> Bob
+		}
+		else {
+			send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-contact-confirm" : "vc-contact-confirm", NULL, NULL);
+		}
 	}
 	else if( strcmp(step, "vg-contact-confirm")==0 || strcmp(step, "vc-contact-confirm")==0 )
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
-		   ==== Step 7 in "Establish verified contact" protocol =====
+		   ====   Step 7 in "Setup verified contact" protocol   =====
 		   ========================================================== */
 
 		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
