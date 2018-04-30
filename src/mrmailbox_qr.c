@@ -57,6 +57,8 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	mrlot_t*        qr_parsed     = mrlot_new();
 	uint32_t        chat_id       = 0;
 	char*           device_msg    = NULL;
+	char*           grpid         = NULL;
+	char*           grpname       = NULL;
 
 	qr_parsed->m_state = 0;
 
@@ -71,7 +73,9 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 
 	if( strncasecmp(qr, OPENPGP4FPR_SCHEME, strlen(OPENPGP4FPR_SCHEME)) == 0 )
 	{
-		/* scheme: OPENPGP4FPR:FINGERPRINT#a=ADDR&n=NAME&i=INVITENUMBER&s=AUTH */
+		/* scheme: OPENPGP4FPR:FINGERPRINT#a=ADDR&n=NAME&i=INVITENUMBER&s=AUTH
+		       or: OPENPGP4FPR:FINGERPRINT#a=ADDR&g=GROUPNAME&x=GROUPID&i=INVITENUMBER&s=AUTH */
+
 		payload  = safe_strdup(&qr[strlen(OPENPGP4FPR_SCHEME)]);
 		char* fragment = strchr(payload, '#'); /* must not be freed, only a pointer inside payload */
 		if( fragment )
@@ -90,8 +94,18 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 					mr_normalize_name(name);
 					free(urlencoded);
 				}
+
 				invitenumber  = mrparam_get(param, 'i', NULL);
 				auth          = mrparam_get(param, 's', NULL);
+
+				grpid  = mrparam_get(param, 'x', NULL);
+				if( grpid ) {
+					urlencoded = mrparam_get(param, 'g', NULL);
+					if( urlencoded ) {
+						grpname = mr_url_decode(urlencoded);
+						free(urlencoded);
+					}
+				}
 			}
 
 			mrparam_unref(param);
@@ -214,16 +228,25 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 		else
 		{
 			// fingerprint + addr set, secure-join requested
-			// do not comapre the fingerprint already, errors are catched later more proberly.
+			// do not comapre the fingerprint already - it may have changed - errors are catched later more proberly.
 			// (theroretically, there is also the state "addr=set, fingerprint=set, invitenumber=0", however, currently, we won't get into this state)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				qr_parsed->m_state         = MR_QR_ASK_VERIFYCONTACT;
+				if( grpid && grpname ) {
+					qr_parsed->m_state = MR_QR_ASK_VERIFYGROUP;
+					qr_parsed->m_text1 = safe_strdup(grpname);
+					qr_parsed->m_text2 = safe_strdup(grpid);
+				}
+				else {
+					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
+				}
+
 				qr_parsed->m_id            = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);
 				qr_parsed->m_auth          = safe_strdup(auth);
+
 
 			mrsqlite3_unlock(mailbox->m_sql);
 			locked = 0;
@@ -259,6 +282,8 @@ cleanup:
 	free(invitenumber);
 	free(auth);
 	free(device_msg);
+	free(grpname);
+	free(grpid);
 	return qr_parsed;
 }
 
