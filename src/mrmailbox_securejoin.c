@@ -696,7 +696,9 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			//send_handshake_msg(mailbox, contact_chat_id, "vg-member-added", NULL, NULL);
 			const char* grpid = "";
 			int      is_verified = 0;
-			uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
+			LOCK
+				uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
+			UNLOCK
 			if( verified_chat_id == 0 || !is_verified ) {
 				mrmailbox_log_error(mailbox, 0, "Verified chat not found.");
 				goto cleanup;
