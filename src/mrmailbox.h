@@ -308,11 +308,13 @@ void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 /* out-of-band verification */
 #define         MR_QR_ASK_VERIFYCONTACT     200 /* id=contact */
+#define         MR_QR_ASK_VERIFYGROUP       202 /* text1=groupname */
 #define         MR_QR_FPR_OK                210 /* id=contact */
 #define         MR_QR_FPR_MISMATCH          220 /* id=contact */
 #define         MR_QR_FPR_WITHOUT_ADDR      230 /* test1=formatted fingerprint */
 #define         MR_QR_ADDR                  320 /* id=contact */
 #define         MR_QR_TEXT                  330 /* text1=text */
+#define         MR_QR_URL                   332 /* text1=text */
 #define         MR_QR_ERROR                 400 /* text1=error string */
 mrlot_t*        mrmailbox_check_qr          (mrmailbox_t*, const char* qr);
 char*           mrmailbox_get_securejoin_qr (mrmailbox_t*, uint32_t chat_id);

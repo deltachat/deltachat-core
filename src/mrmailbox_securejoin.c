@@ -317,8 +317,8 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  *
  * The scanning Delta Chat device will pass the scanned content to
  * mrmailbox_check_qr() then; if this function returns
- * MR_QR_ASK_SECUREJOIN an out-of-band-verification can be joined using
- * mrmailbox_join_securejoin()
+ * MR_QR_ASK_VERIFYCONTACT or MR_QR_ASK_VERIFYGROUP an out-of-band-verification
+ * can be joined using mrmailbox_join_securejoin()
  *
  * @memberof mrmailbox_t
  *
@@ -419,7 +419,7 @@ cleanup:
 /**
  * Join an out-of-band-verification initiated on another device with mrmailbox_get_securejoin_qr().
  * This function is typically called when mrmailbox_check_qr() returns
- * lot.m_state=MR_QR_ASK_SECUREJOIN
+ * lot.m_state=MR_QR_ASK_VERIFYCONTACT or lot.m_state=MR_QR_ASK_VERIFYGROUP.
  *
  * This function takes some time and sends and receives several messages.
  * You should call it in a separate thread; if you want to abort it, you should
