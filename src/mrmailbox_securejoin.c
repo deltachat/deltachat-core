@@ -538,6 +538,8 @@ int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mi
 void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_chat_id)
 {
 	int          locked = 0;
+	#define      LOCK   mrsqlite3_lock  (mailbox->m_sql); locked = 1;
+	#define      UNLOCK mrsqlite3_unlock(mailbox->m_sql); locked = 0;
 	const char*  step   = NULL;
 	int          join_vg = 0;
 	char*        scanned_fingerprint_of_alice = NULL;
@@ -576,14 +578,12 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		LOCK
 			if( lookup_tag__(mailbox, "secureJoin.invitenumbers", invitenumber) == 0 ) {
 				mrmailbox_log_warning(mailbox, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 				goto cleanup;
 			}
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		UNLOCK
 
 		mrmailbox_log_info(mailbox, 0, "Secure-join requested.");
 
@@ -599,15 +599,13 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		   ========================================================== */
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		LOCK
 			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED ) {
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
 			scanned_auth                 = safe_strdup(s_bobs_qr_scan->m_auth);
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(mailbox, contact_chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
@@ -665,8 +663,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		LOCK
 			if( lookup_tag__(mailbox, "secureJoin.auths", auth) == 0 ) {
 				mrsqlite3_unlock(mailbox->m_sql);
 				locked = 0;
@@ -682,8 +679,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			}
 
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		UNLOCK
 
 		mrmailbox_log_info(mailbox, 0, "Auth verified.");
 
@@ -705,14 +701,12 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
 		}
 
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		LOCK
 			if( s_bobs_qr_scan == NULL ) {
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(mailbox, contact_chat_id, "Contact confirm message not encrypted.");
@@ -720,16 +714,14 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 			goto cleanup;
 		}
 
-		mrsqlite3_lock(mailbox->m_sql);
-		locked = 1;
+		LOCK
 			if( !mark_peer_as_verified__(mailbox, scanned_fingerprint_of_alice) ) {
 				could_not_establish_secure_connection(mailbox, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 				goto cleanup;
 			}
 
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
-		mrsqlite3_unlock(mailbox->m_sql);
-		locked = 0;
+		UNLOCK
 
 		secure_connection_established(mailbox, contact_chat_id);
 
@@ -748,7 +740,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { UNLOCK }
 	free(scanned_fingerprint_of_alice);
 	free(scanned_auth);
 	free(own_fingerprint);
