@@ -760,14 +760,17 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 					{
 						/* valid recipient: update peerstate */
 						mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
-						if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
-							mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
-						}
-						else {
-							mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
-							mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
-						}
+						mrsqlite3_lock(mailbox->m_sql);
+							if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
+								mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+								mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+							}
+							else {
+								mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
+								mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
+							}
+						mrsqlite3_unlock(mailbox->m_sql);
+
 						mrapeerstate_unref(peerstate);
 
 						// collect all gossipped addresses; we need them later to mark them as being
