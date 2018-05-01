@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 
+#include <assert.h>
 #include "mrmailbox_internal.h"
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
@@ -977,7 +978,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 	carray*          rr_event_to_send = carray_new(16);
 
-	int              is_handshake_message = 0;
 	char*            txt_raw = NULL;
 
 	uint32_t         degrade_msg_id = 0;
@@ -1102,6 +1102,19 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				state = (flags&MR_IMAP_SEEN)? MR_STATE_IN_SEEN : MR_STATE_IN_FRESH;
 				to_id = MR_CONTACT_ID_SELF;
 
+				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
+				assert( chat_id == 0 );
+				if( mrmimeparser_lookup_field(mime_parser, "Secure-Join") ) {
+					mrsqlite3_commit__(mailbox->m_sql);
+					mrsqlite3_unlock(mailbox->m_sql);
+						if( mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, from_id) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+							hidden = 1;
+							state = MR_STATE_IN_SEEN;
+						}
+					mrsqlite3_lock(mailbox->m_sql);
+					mrsqlite3_begin_transaction__(mailbox->m_sql);
+				}
+
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
 				uint32_t test_normal_chat_id = 0;
 				int      test_normal_chat_id_blocked = 0;
@@ -1210,15 +1223,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 				if( chat_id == 0 ) {
 					chat_id = MR_CHAT_ID_TRASH;
-				}
-			}
-
-			/* check of the message is a special handshake message; if so, mark it as "seen" here and handle it when done */
-			is_handshake_message = mrmailbox_is_securejoin_handshake__(mailbox, mime_parser);
-			if( is_handshake_message == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
-				hidden = 1;
-				if( state==MR_STATE_IN_FRESH || state==MR_STATE_IN_NOTICED ) {
-					state = MR_STATE_IN_SEEN;
 				}
 			}
 
@@ -1484,10 +1488,7 @@ cleanup:
 	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	if( is_handshake_message ) {
-		mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, from_id); /* must be called after unlocking before deletion of mime_parser */
-	}
-	else if( mime_parser->m_e2ee_helper->m_degrade_event ) {
+	if( mime_parser->m_e2ee_helper->m_degrade_event ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}

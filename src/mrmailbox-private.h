@@ -169,9 +169,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 /* library private: secure-join */
 #define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
 #define         MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
-int             mrmailbox_is_securejoin_handshake__  (mrmailbox_t*, mrmimeparser_t*); /* must be called from lock */
-
-void            mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t contact_id); /* must not be called from lock */
+int             mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t contact_id);
 
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
 

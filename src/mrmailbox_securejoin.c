@@ -546,40 +546,7 @@ cleanup:
 }
 
 
-/*
- * mrmailbox_is_securejoin_handshake__() should be called called for each
- * incoming mail.
- *
- * Return values:
- *
- * - 0: the mail does not belong to a secure-join handshake. The caller shoud do
- *   normal processing.
- *
- * - MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING (1):
- *   the mail belongs to a secure-join handshake. The caller shoud _continue_
- *   normal processing and call mrmailbox_handle_securejoin_handshake() then.
- *
- * - MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING (2):
- *   the mail belongs to a secure-join handshake. The caller should _stop_
- *   normal processing and call mrmailbox_handle_securejoin_handshake() then.
- */
-int mrmailbox_is_securejoin_handshake__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser)
-{
-	const char*  step   = NULL;
-
-	if( mailbox == NULL || mimeparser == NULL || (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
-		return 0;
-	}
-
-	if( strcmp(step, "vg-member-added")==0 ) {
-		return MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
-	}
-
-	return MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
-}
-
-
-void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_id)
+int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
 	#define      LOCK   mrsqlite3_lock  (mailbox->m_sql); locked = 1;
@@ -590,8 +557,9 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	char*        auth = NULL;
 	char*        own_fingerprint = NULL;
 	uint32_t     contact_chat_id = 0;
+	int          contact_chat_id_blocked = 0;
 	char*        grpid = NULL;
-	int          delete_handshake_msg = 1;
+	int          ret = 0;
 
 	if( mailbox == NULL || mimeparser == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -603,7 +571,14 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
-	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, contact_id, &contact_chat_id, NULL);
+	LOCK
+		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
+		if( contact_chat_id_blocked ) {
+			mrmailbox_unblock_chat__(mailbox, contact_chat_id);
+		}
+	UNLOCK
+
+	ret = MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{
@@ -799,7 +774,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 		secure_connection_established(mailbox, contact_chat_id);
 
 		if( join_vg ) {
-			delete_handshake_msg = 0; // vg-member-added is just part of a Chat-Group-Member-Added which should be kept
+			ret = MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING; // vg-member-added is just part of a Chat-Group-Member-Added which should be kept
 		}
 
 		s_bob_expects = 0;
@@ -808,7 +783,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 	// delete the message in 20 seconds - typical handshake last about 5 seconds, so do not disturb the connection _now_.
 	// for errors, we do not the corresoinding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
-	if( delete_handshake_msg ) {
+	if( ret == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 		struct mailimf_field* field;
 		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
@@ -824,4 +799,5 @@ cleanup:
 	free(auth);
 	free(own_fingerprint);
 	free(grpid);
+	return ret;
 }
