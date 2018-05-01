@@ -86,12 +86,23 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
 
 static int encrypted_and_signed(mrmimeparser_t* mimeparser, const char* expected_fingerprint)
 {
-	if( !mimeparser->m_e2ee_helper->m_encrypted || mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
+	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
+		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message not encrypted.");
 		return 0;
 	}
 
-	if( expected_fingerprint == NULL
-	 || mrhash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
+	if( mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
+		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message not signed.");
+		return 0;
+	}
+
+	if( expected_fingerprint == NULL ) {
+		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Fingerprint for comparison missing.");
+		return 0;
+	}
+
+	if( mrhash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
+		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
 
