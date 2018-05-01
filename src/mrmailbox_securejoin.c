@@ -591,6 +591,7 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 	char*        own_fingerprint = NULL;
 	uint32_t     contact_chat_id = 0;
 	char*        grpid = NULL;
+	int          delete_handshake_msg = 1;
 
 	if( mailbox == NULL || mimeparser == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -797,13 +798,17 @@ void mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t*
 
 		secure_connection_established(mailbox, contact_chat_id);
 
+		if( join_vg ) {
+			delete_handshake_msg = 0; // vg-member-added is just part of a Chat-Group-Member-Added which should be kept
+		}
+
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
 	}
 
 	// delete the message in 20 seconds - typical handshake last about 5 seconds, so do not disturb the connection _now_.
 	// for errors, we do not the corresoinding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
-	if( mrmailbox_is_securejoin_handshake__(mailbox, mimeparser) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+	if( delete_handshake_msg ) {
 		struct mailimf_field* field;
 		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
