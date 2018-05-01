@@ -29,6 +29,9 @@
 #include "mrmimefactory.h"
 #include "mrjob.h"
 
+#define      LOCK                 { mrsqlite3_lock  (mailbox->m_sql); locked = 1; }
+#define      UNLOCK  if( locked ) { mrsqlite3_unlock(mailbox->m_sql); locked = 0; }
+
 
 /*******************************************************************************
  * Tools: Alice's invitenumber and auth mini-datastore
@@ -76,6 +79,57 @@ static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const 
 	mr_free_splitted_lines(lines);
 	free(old_tags);
 	return found;
+}
+
+
+/*******************************************************************************
+ * Tools: Handle degraded keys and lost verificaton
+ ******************************************************************************/
+
+
+void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, mrapeerstate_t* peerstate)
+{
+	sqlite3_stmt* stmt            = NULL;
+	int           locked          = 0;
+	uint32_t      contact_id      = 0;
+	uint32_t      contact_chat_id = 0;
+
+	if( mailbox == NULL || peerstate == NULL ) {
+		goto cleanup;
+	}
+
+	LOCK
+
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM contacts WHERE addr=?;");
+			sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
+			sqlite3_step(stmt);
+			contact_id = sqlite3_column_int(stmt, 0);
+		sqlite3_finalize(stmt);
+
+		if( contact_id == 0 ) {
+			goto cleanup;
+		}
+
+		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
+
+	UNLOCK
+
+	if( peerstate->m_degrade_event & MRA_DE_FINGERPRINT_CHANGED )
+	{
+		char* msg = mr_mprintf("Changed setup for %s", peerstate->m_addr);
+		mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
+		free(msg);
+		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
+	}
+
+	if( peerstate->m_degrade_event & MRA_DE_VERIFICATION_LOST )
+	{
+		// TODO: remove contact_id from all verified chats and add a system message that the contact was removed
+		// if the contact wants to join again, he has to do a new oob-verification
+	}
+
+cleanup:
+	UNLOCK
 }
 
 
@@ -549,8 +603,6 @@ cleanup:
 int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
-	#define      LOCK   mrsqlite3_lock  (mailbox->m_sql); locked = 1;
-	#define      UNLOCK mrsqlite3_unlock(mailbox->m_sql); locked = 0;
 	const char*  step   = NULL;
 	int          join_vg = 0;
 	char*        scanned_fingerprint_of_alice = NULL;
@@ -795,7 +847,9 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 	}
 
 cleanup:
-	if( locked ) { UNLOCK }
+
+	UNLOCK
+
 	free(scanned_fingerprint_of_alice);
 	free(auth);
 	free(own_fingerprint);

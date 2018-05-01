@@ -278,25 +278,7 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmim
  ******************************************************************************/
 
 
-static uint32_t add_degrade_message__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t timestamp)
-{
-	mrcontact_t* contact = mrcontact_new(mailbox);
-	mrcontact_load_from_db__(contact, mailbox->m_sql, from_id);
 
-	uint32_t from_chat_id = 0;
-	int      from_chat_id_blocked = 0;
-	mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, from_id, &from_chat_id, &from_chat_id_blocked);
-	if( from_chat_id && !from_chat_id_blocked ) {
-		chat_id = from_chat_id; // if there is a single-chat with the sender, show the degrade-message there
-	}
-
-	char* msg = mr_mprintf("Changed setup for %s", contact->m_addr);
-	uint32_t msg_id = mrmailbox_add_device_msg__(mailbox, chat_id, msg, timestamp);
-	free(msg);
-
-	mrcontact_unref(contact);
-	return msg_id;
-}
 
 
 static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
@@ -980,8 +962,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 	char*            txt_raw = NULL;
 
-	uint32_t         degrade_msg_id = 0;
-
 	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
 	to_ids = mrarray_new(mailbox, 16);
@@ -1287,11 +1267,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 
-			if( mime_parser->m_e2ee_helper->m_degrade_event
-			 && mime_parser->m_e2ee_helper->m_degrade_event!=MRA_DE_ENCRYPTION_PAUSED /*no events logged for paused decryption, we have the lock-symbol for that*/ ) {
-				degrade_msg_id = add_degrade_message__(mailbox, chat_id, from_id, sort_timestamp);
-			}
-
 			/* fine, so far.  now, split the message into simple parts usable as "short messages"
 			and add them to the database (mails sent by other messenger clients should result
 			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
@@ -1487,11 +1462,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 cleanup:
 	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-
-	if( mime_parser->m_e2ee_helper->m_degrade_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, degrade_msg_id);
-		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
-	}
 
 	mrmimeparser_unref(mime_parser);
 	free(rfc724_mid);

@@ -771,6 +771,10 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 							}
 						mrsqlite3_unlock(mailbox->m_sql);
 
+						if( peerstate->m_degrade_event ) {
+							mrmailbox_handle_degrade_event(mailbox, peerstate);
+						}
+
 						mrapeerstate_unref(peerstate);
 
 						// collect all gossipped addresses; we need them later to mark them as being
@@ -880,8 +884,6 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 			}
 		}
 
-		helper->m_degrade_event = peerstate->m_degrade_event;
-
 		/* load private key for decryption */
 		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
 			goto cleanup;
@@ -898,6 +900,10 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
+
+	if( peerstate->m_degrade_event ) {
+		mrmailbox_handle_degrade_event(mailbox, peerstate);
+	}
 
 	// offer both, gossip and public, for signature validation.
 	// the caller may check the signature fingerprints as needed later.

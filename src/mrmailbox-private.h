@@ -147,7 +147,6 @@ typedef struct mrmailbox_e2ee_helper_t {
 	// decryption
 	int       m_encrypted;  // encrypted without problems
 	mrhash_t* m_signatures; // fingerprints of valid signatures
-	int       m_degrade_event;
 	mrhash_t* m_gossipped_addr;
 
 } mrmailbox_e2ee_helper_t;
@@ -170,6 +169,8 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 #define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
 #define         MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
 int             mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t contact_id);
+void            mrmailbox_handle_degrade_event       (mrmailbox_t*, mrapeerstate_t*);
+
 
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
 
