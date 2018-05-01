@@ -459,7 +459,6 @@ void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gos
 
 /*
  * Recalculate the fingerprints for the keys.
- * (public_key, if set, gossip_key otherwise).
  *
  * If the fingerprint has changed, the verified-state is reset.
  *
@@ -488,7 +487,11 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		 || strcasecmp(old_public_fingerprint, peerstate->m_public_key_fingerprint) != 0 )
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
-			peerstate->m_public_key_verified = MRV_NOT_VERIFIED;
+
+			if( peerstate->m_public_key_verified ) {
+				peerstate->m_public_key_verified = MRV_NOT_VERIFIED;
+				peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
+			}
 
 			if( old_public_fingerprint && old_public_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
@@ -508,7 +511,11 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		 || strcasecmp(old_gossip_fingerprint, peerstate->m_gossip_key_fingerprint) != 0 )
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
-			peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
+
+			if( peerstate->m_public_key_verified ) {
+				peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
+				peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
+			}
 
 			if( old_gossip_fingerprint && old_gossip_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;

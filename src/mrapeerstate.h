@@ -71,6 +71,7 @@ typedef struct mrapeerstate_t
 
 	#define        MRA_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail
 	#define        MRA_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
+	#define        MRA_DE_VERIFICATION_LOST   0x04 // recoverable by a new verify
 	int            m_degrade_event;
 
 } mrapeerstate_t;
