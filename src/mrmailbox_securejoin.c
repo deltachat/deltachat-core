@@ -741,6 +741,11 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		   ====   Step 7 in "Setup verified contact" protocol   =====
 		   ========================================================== */
 
+		if( join_vg ) {
+			// vg-member-added is just part of a Chat-Group-Member-Added which should be kept in any way, eg. for multi-client
+			ret = MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
+		}
+
 		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
 			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			goto cleanup; // ignore the mail without raising and error; may come from another handshake
@@ -772,10 +777,6 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		UNLOCK
 
 		secure_connection_established(mailbox, contact_chat_id);
-
-		if( join_vg ) {
-			ret = MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING; // vg-member-added is just part of a Chat-Group-Member-Added which should be kept
-		}
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
