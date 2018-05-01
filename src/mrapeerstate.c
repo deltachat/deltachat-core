@@ -470,6 +470,7 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 {
 	int            success = 0;
 	char*          old_public_fingerprint = NULL, *old_gossip_fingerprint = NULL;
+	int            has_old_verified_key = (mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL)!=NULL);
 
 	if( peerstate == NULL ) {
 		goto cleanup;
@@ -488,10 +489,7 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
 
-			if( peerstate->m_public_key_verified ) {
-				peerstate->m_public_key_verified = MRV_NOT_VERIFIED;
-				peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
-			}
+			peerstate->m_public_key_verified = MRV_NOT_VERIFIED;
 
 			if( old_public_fingerprint && old_public_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
@@ -512,15 +510,17 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
 
-			if( peerstate->m_public_key_verified ) {
-				peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
-				peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
-			}
+			peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
 
 			if( old_gossip_fingerprint && old_gossip_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
 			}
 		}
+	}
+
+	if( has_old_verified_key
+	 && (mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL)==NULL) ) {
+		peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
 	}
 
 	success = 1;
