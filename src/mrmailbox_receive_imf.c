@@ -630,7 +630,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		int gossip_key_verified =              sqlite3_column_int (stmt, 2);
 
 		if( gossip_key_verified < MRV_BIDIRECTIONAL
-		 && mrhash_find(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr, strlen(to_addr))
+		 && mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
 		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
 			// mark gossip-key as verified even if there is a public-verified-key; mrapeerstate_peek_key() will peek the newer one

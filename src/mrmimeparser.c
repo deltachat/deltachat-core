@@ -1678,7 +1678,7 @@ cleanup:
  */
 struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	return (struct mailimf_field*)mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
+	return (struct mailimf_field*)mrhash_find_str(&mimeparser->m_header, field_name);
 }
 
 
@@ -1698,7 +1698,7 @@ struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, cons
  */
 struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	struct mailimf_field* field = mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
+	struct mailimf_field* field = mrhash_find_str(&mimeparser->m_header, field_name);
 	if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 		return field->fld_data.fld_optional_field;
 	}
@@ -1868,7 +1868,7 @@ int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
 	}
 
 	/* check if From: == To:/Cc: */
-	if( mrhash_find(recipients, from_addr_norm, strlen(from_addr_norm)) ) {
+	if( mrhash_find_str(recipients, from_addr_norm) ) {
 		sender_equals_recipient = 1;
 	}
 
