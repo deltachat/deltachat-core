@@ -50,6 +50,7 @@ char*        mrcontact_get_addr               (mrcontact_t*);
 char*        mrcontact_get_name               (mrcontact_t*);
 char*        mrcontact_get_display_name       (mrcontact_t*);
 char*        mrcontact_get_name_n_addr        (mrcontact_t*);
+char*        mrcontact_get_first_name         (const mrcontact_t*);
 int          mrcontact_is_blocked             (mrcontact_t*);
 int          mrcontact_is_verified            (mrcontact_t*);
 

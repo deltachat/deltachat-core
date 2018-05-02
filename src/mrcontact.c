@@ -176,7 +176,7 @@ char* mrcontact_get_name(mrcontact_t* contact)
  * modified by the user or, if both are unset, the email address.
  *
  * This name is typically used in lists and must not be speaded via mail (To:, CC: ...).
- * To get the name editable in a formular, use mrcontact_get_edit_name().
+ * To get the name editable in a formular, use mrcontact_get_name().
  *
  * @memberof mrcontact_t
  *
@@ -223,6 +223,31 @@ char* mrcontact_get_name_n_addr(mrcontact_t* contact)
 
 	if( contact->m_name && contact->m_name[0] ) {
 		return mr_mprintf("%s (%s)", contact->m_name, contact->m_addr);
+	}
+
+	return safe_strdup(contact->m_addr);
+}
+
+
+/**
+ * Get the part of the name before the first space. In most languages, this seems to be
+ * the prename. If there is no space, the full display name is returned.
+ * If the display name is not set, the e-mail address is returned.
+ *
+ * @memberof mrcontact_t
+ *
+ * @param contact The contact object.
+ *
+ * @return String with the name to display, must be free()'d. Never returns NULL.
+ */
+char* mrcontact_get_first_name(const mrcontact_t* contact)
+{
+	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+		return safe_strdup(NULL);
+	}
+
+	if( contact->m_name && contact->m_name[0] ) {
+		return mr_get_first_name(contact->m_name);
 	}
 
 	return safe_strdup(contact->m_addr);

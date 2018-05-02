@@ -230,16 +230,8 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 			ths->m_text1 = NULL;
 			ths->m_text1_meaning = 0;
 		}
-		else if( contact->m_name && contact->m_name[0] ) {
-			ths->m_text1 = mr_get_first_name(contact->m_name);
-			ths->m_text1_meaning = MR_TEXT1_USERNAME;
-		}
-		else if( contact->m_addr && contact->m_addr[0] ) {
-			ths->m_text1 = safe_strdup(contact->m_addr);
-			ths->m_text1_meaning = MR_TEXT1_USERNAME;
-		}
 		else {
-			ths->m_text1 = safe_strdup("Unnamed contact");
+			ths->m_text1 = mrcontact_get_first_name(contact);
 			ths->m_text1_meaning = MR_TEXT1_USERNAME;
 		}
 	}
