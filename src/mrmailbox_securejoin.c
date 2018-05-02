@@ -572,7 +572,7 @@ uint32_t mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 	while( 1 ) {
 		CHECK_EXIT
 
-		usleep(300*1000);
+		usleep(300*1000); // 0.3 seconds
 	}
 
 cleanup:
@@ -810,8 +810,8 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 
 		LOCK
 			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
-				mrmailbox_log_warning(mailbox, 0, "contact-confirm message out of sync.");
-				goto cleanup; // no error, just aborted somehow or a mail from another handshake
+				mrmailbox_log_warning(mailbox, 0, "Message out of sync or belongs to a different handshake.");
+				goto cleanup;
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
 		UNLOCK
