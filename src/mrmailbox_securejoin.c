@@ -259,7 +259,7 @@ static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint
 		goto cleanup;
 	}
 
-	if( !mrapeerstate_set_verified(peerstate, fingerprint, MRV_BIDIRECTIONAL) ) {
+	if( !mrapeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 

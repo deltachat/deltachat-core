@@ -542,8 +542,9 @@ cleanup:
  * @memberof mrapeerstate_t
  *
  * @param peerstate The peerstate object.
+ * @param which_key Which key should be marked as being verified? MRA_GOSSIP_KEY (1) or MRA_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
- * @param MRV_SIMPLE (1): we verified the contact, MRV_BIDIRECTIONAL (2): contact verfied in both directions
+ * @param verified MRV_SIMPLE (1): we verified the contact, MRV_BIDIRECTIONAL (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call mrapeerstate_save_to_db__()
@@ -551,15 +552,18 @@ cleanup:
  *     0=the given fingerprint is not eqial to the peer's fingerprint,
  *     verified-state not changed.
  */
-int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint, int verified)
+int mrapeerstate_set_verified(mrapeerstate_t* peerstate, int which_key, const char* fingerprint, int verified)
 {
 	int success = 0;
 
-	if( peerstate == NULL || fingerprint == NULL || (verified!=MRV_SIMPLE && verified!=MRV_BIDIRECTIONAL) ) {
+	if( peerstate == NULL
+	 || (which_key!=MRA_GOSSIP_KEY && which_key!=MRA_PUBLIC_KEY)
+	 || (verified!=MRV_SIMPLE && verified!=MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 
-	if( peerstate->m_public_key_fingerprint != NULL
+	if( which_key == MRA_PUBLIC_KEY
+	 && peerstate->m_public_key_fingerprint != NULL
 	 && peerstate->m_public_key_fingerprint[0] != 0
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_public_key_fingerprint, fingerprint) == 0 )
@@ -569,7 +573,8 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, const char* fingerprint
 		success                          = 1;
 	}
 
-	if( peerstate->m_gossip_key_fingerprint != NULL
+	if( which_key == MRA_GOSSIP_KEY
+	 && peerstate->m_gossip_key_fingerprint != NULL
 	 && peerstate->m_gossip_key_fingerprint[0] != 0
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_gossip_key_fingerprint, fingerprint) == 0 )
