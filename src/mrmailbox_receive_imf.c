@@ -635,6 +635,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		{
 			// mark gossip-key as verified even if there is a public-verified-key; mrapeerstate_peek_key() will peek the newer one
 			// (the date is already updated in update_gossip_peerstates())
+			mrmailbox_log_info(mailbox, 0, "marking gossipped key %s as verified due to verified %s", to_addr, contact->m_addr);
 			peerstate->m_gossip_key_verified = MRV_BIDIRECTIONAL;
 			peerstate->m_to_save |= MRA_SAVE_ALL;
 			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);

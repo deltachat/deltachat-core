@@ -799,8 +799,13 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		}
 
 		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
-			mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
-			goto cleanup; // ignore the mail without raising and error; may come from another handshake
+			if( join_vg ) {
+				mrmailbox_log_info(mailbox, 0, "vg-member-added received as broadcast.");
+			}
+			else {
+				mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
+			}
+			goto cleanup;
 		}
 
 		LOCK
