@@ -140,9 +140,11 @@ int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* s
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE public_key_fingerprint=? COLLATE NOCASE "
-		 "    OR gossip_key_fingerprint=? COLLATE NOCASE;");
+		 "    OR gossip_key_fingerprint=? COLLATE NOCASE "
+		 " ORDER BY public_key_fingerprint=? DESC;"); // if for, any reasons, different peers have the same key, prefer the peer with the correct public key. should not happen, however.
 	sqlite3_bind_text(stmt, 1, fingerprint, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, fingerprint, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, fingerprint, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
