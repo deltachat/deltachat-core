@@ -210,19 +210,23 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 
 	if( msg->m_from_id == MR_CONTACT_ID_SELF )
 	{
-		ths->m_text1 = mrstock_str(MR_STR_SELF);
-		ths->m_text1_meaning = MR_TEXT1_SELF;
+		if( mrmsg_is_info(msg) ) {
+			ths->m_text1 = NULL;
+			ths->m_text1_meaning = 0;
+		}
+		else {
+			ths->m_text1 = mrstock_str(MR_STR_SELF);
+			ths->m_text1_meaning = MR_TEXT1_SELF;
+		}
 	}
 	else if( chat == NULL )
 	{
-		free(ths->m_text1);
 		ths->m_text1 = NULL;
 		ths->m_text1_meaning = 0;
 	}
 	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
-		if( contact==NULL ) {
-			free(ths->m_text1);
+		if( mrmsg_is_info(msg) || contact==NULL ) {
 			ths->m_text1 = NULL;
 			ths->m_text1_meaning = 0;
 		}
