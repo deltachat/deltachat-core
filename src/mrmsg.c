@@ -765,7 +765,7 @@ int mrmsg_is_forwarded(const mrmsg_t* msg)
  * created due to other actions, eg. mrmailbox_set_chat_name(), mrmailbox_set_chat_profile_image()
  * or mrmailbox_add_contact_to_chat().
  *
- * These messages are typically shown i n the center of the chat view,
+ * These messages are typically shown in the center of the chat view,
  * mrmsg_get_text() returns a descriptive text about what is going on.
  *
  * There is no need to perfrom any action when seeing such a message - this is already done by the core.
