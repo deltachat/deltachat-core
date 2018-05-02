@@ -119,7 +119,7 @@ void mrcontact_empty(mrcontact_t* contact)
  *
  * @return the ID of the contact, 0 on errors.
  */
-uint32_t mrcontact_get_id(mrcontact_t* contact)
+uint32_t mrcontact_get_id(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
@@ -137,7 +137,7 @@ uint32_t mrcontact_get_id(mrcontact_t* contact)
  *
  * @return String with the email address, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_addr(mrcontact_t* contact)
+char* mrcontact_get_addr(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -161,7 +161,7 @@ char* mrcontact_get_addr(mrcontact_t* contact)
  *
  * @return String with the name to display, must be free()'d. Empty string if unset, never returns NULL.
  */
-char* mrcontact_get_name(mrcontact_t* contact)
+char* mrcontact_get_name(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -184,7 +184,7 @@ char* mrcontact_get_name(mrcontact_t* contact)
  *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_display_name(mrcontact_t* contact)
+char* mrcontact_get_display_name(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -215,7 +215,7 @@ char* mrcontact_get_display_name(mrcontact_t* contact)
  *
  * @return Summary string, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_name_n_addr(mrcontact_t* contact)
+char* mrcontact_get_name_n_addr(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -265,7 +265,7 @@ char* mrcontact_get_first_name(const mrcontact_t* contact)
  *
  * @return 1=contact is blocked, 0=contact is not blocked.
  */
-int mrcontact_is_blocked(mrcontact_t* contact)
+int mrcontact_is_blocked(const mrcontact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
@@ -308,7 +308,7 @@ cleanup:
  *    MRV_SIMPLE (1): =SELF has verified the contact but not the other way round.
  *    MRV_BIDIRECTIONAL (2): SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
-int mrcontact_is_verified(mrcontact_t* contact)
+int mrcontact_is_verified(const mrcontact_t* contact)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 	int             locked           = 0;
