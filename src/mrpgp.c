@@ -315,7 +315,7 @@ int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_pu
 	}
 
 	/* Generate User ID.  For convention, use the same address as given in `Autocrypt: to=...` in angle brackets
-	(RFC 2822 grammar angle-addr, see also https://autocrypt.org/en/latest/level0.html#type-p-openpgp-based-key-data )
+	(RFC 2822 grammar angle-addr, see also https://autocrypt.org/level1.html#openpgp-based-key-data )
 	We do not add the name to the ID for the following reasons:
 	- privacy
 	- the name may be changed
