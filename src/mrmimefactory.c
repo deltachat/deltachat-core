@@ -134,6 +134,9 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			}
 			else
 			{
+				// TODO: do not add unverified members to verified groups,
+				// (currently, a message with a single unverified member is not send at all)
+
 				sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
 					"SELECT c.authname, c.addr FROM chats_contacts cc LEFT JOIN contacts c ON cc.contact_id=c.id WHERE cc.chat_id=? AND cc.contact_id>?;");
 				sqlite3_bind_int(stmt, 1, factory->m_msg->m_chat_id);
