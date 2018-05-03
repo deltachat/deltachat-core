@@ -530,8 +530,9 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 			min_verified      = MRV_BIDIRECTIONAL;
 		}
 		else {
-			force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0);
-			e2ee_guaranteed   = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
+			if( (force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0)) == 0 ) {
+				e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
+			}
 		}
 
 		/* build header etc. */
