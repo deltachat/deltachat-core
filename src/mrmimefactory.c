@@ -467,7 +467,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 	mrmailbox_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
 	int                          min_verified = MRV_NOT_VERIFIED;
-	int                          force_unencrypted = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
+	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
 	char*                        grpimage = NULL;
 
 	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
@@ -538,12 +538,12 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 		if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
-			force_unencrypted = 0;
+			force_plaintext   = 0;
 			e2ee_guaranteed   = 1;
 			min_verified      = MRV_BIDIRECTIONAL;
 		}
 		else {
-			if( (force_unencrypted = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_UNENCRYPTED, 0)) == 0 ) {
+			if( (force_plaintext = mrparam_get_int(factory->m_msg->m_param, MRP_FORCE_PLAINTEXT, 0)) == 0 ) {
 				e2ee_guaranteed = mrparam_get_int(factory->m_msg->m_param, MRP_GUARANTEE_E2EE, 0);
 			}
 		}
@@ -752,7 +752,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		- in older versions, we did not encrypt messages to ourself when they to to SMTP - however, if these messages
 		  are forwarded for any reasons (eg. gmail always forwards to IMAP), we have no chance to decrypt them;
 		  this issue is fixed with 0.9.4 */
-		force_unencrypted = 2;
+		force_plaintext = 2;
 	}
 	else
 	{
@@ -773,8 +773,8 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
-	if( force_unencrypted != 2 ) {
-		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_unencrypted, e2ee_guaranteed, min_verified, message, &e2ee_helper);
+	if( force_plaintext != 2 ) {
+		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 
 	if( e2ee_helper.m_encryption_successfull ) {

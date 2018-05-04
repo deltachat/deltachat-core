@@ -52,7 +52,7 @@ typedef struct mrparam_t
 #define MRP_TRACKNAME         'n'  /* for msgs: name of author or artist */
 #define MRP_GUARANTEE_E2EE    'c'  /* for msgs: incoming: message is encryoted, outgoing: guarantee E2EE or the message is not send */
 #define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
-#define MRP_FORCE_UNENCRYPTED 'u'  /* for msgs: force unencrypted message, 1=add Autocrypt header, 2=no Autocrypt header */
+#define MRP_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, 1=add Autocrypt header, 2=no Autocrypt header */
 #define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
 #define MRP_FORWARDED         'a'  /* for msgs */
 #define MRP_CMD               'S'  /* for msgs */
