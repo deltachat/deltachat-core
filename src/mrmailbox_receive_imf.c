@@ -768,6 +768,10 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 			chat_id          = 0; // force the creation of an unverified ad-hoc group.
 			chat_id_blocked  = 0;
 			chat_id_verified = 0;
+			free(grpid);
+			grpid = NULL;
+			free(grpname);
+			grpname = NULL;
 		}
 	}
 
@@ -785,6 +789,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
 	 && !mrmimeparser_is_mailinglist_message(mime_parser)
+	 && grpid
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
 	 && (!group_explicitly_left || (X_MrAddToGrp&&strcasecmp(self_addr,X_MrAddToGrp)==0) ) /*re-create explicitly left groups only if ourself is re-added*/
