@@ -98,34 +98,34 @@ void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, mrapeerstate_t* peerst
 		goto cleanup;
 	}
 
-	LOCK
-
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM contacts WHERE addr=?;");
-			sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
-			sqlite3_step(stmt);
-			contact_id = sqlite3_column_int(stmt, 0);
-		sqlite3_finalize(stmt);
-
-		if( contact_id == 0 ) {
-			goto cleanup;
-		}
-
-		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
-
-	UNLOCK
+	// - we do not issue an warning for MRA_DE_ENCRYPTION_PAUSED as this is quite normal
+	// - currently, we do not issue an extra warning for MRA_DE_VERIFICATION_LOST - this always comes
+	//   together with MRA_DE_FINGERPRINT_CHANGED which is logged, the idea is not to bother
+	//   with things they cannot fix, so the user is just kicked from the verified group
+	//   (and he will know this and can fix this)
 
 	if( peerstate->m_degrade_event & MRA_DE_FINGERPRINT_CHANGED )
 	{
+		LOCK
+
+			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM contacts WHERE addr=?;");
+				sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
+				sqlite3_step(stmt);
+				contact_id = sqlite3_column_int(stmt, 0);
+			sqlite3_finalize(stmt);
+
+			if( contact_id == 0 ) {
+				goto cleanup;
+			}
+
+			mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
+
+		UNLOCK
+
 		char* msg = mr_mprintf("Changed setup for %s", peerstate->m_addr);
 		mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
 		free(msg);
 		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
-	}
-
-	if( peerstate->m_degrade_event & MRA_DE_VERIFICATION_LOST )
-	{
-		// TODO: remove contact_id from all verified chats and add a system message that the contact was removed
-		// if the contact wants to join again, he has to do a new oob-verification
 	}
 
 cleanup:
