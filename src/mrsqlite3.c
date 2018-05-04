@@ -70,13 +70,13 @@ sqlite3_stmt* mrsqlite3_prepare_v2_(mrsqlite3_t* ths, const char* querystr)
 	if( sqlite3_prepare_v2(ths->m_cobj,
 	         querystr, -1 /*read `sql` up to the first null-byte*/,
 	         &retStmt,
-	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
+	         NULL /*tail not interesting, we use only single statements*/) != SQLITE_OK )
 	{
 		mrsqlite3_log_error(ths, "Query failed: %s", querystr);
 		return NULL;
 	}
 
-	/* success - the result mus be freed using sqlite3_finalize() */
+	/* success - the result must be freed using sqlite3_finalize() */
 	return retStmt;
 }
 
@@ -158,7 +158,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 	}
 
 	if( ths->m_cobj ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opend.", dbfile);
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
 	}
 
@@ -440,7 +440,7 @@ int mrsqlite3_is_open(const mrsqlite3_t* ths)
 
 sqlite3_stmt* mrsqlite3_predefine__(mrsqlite3_t* ths, size_t idx, const char* querystr)
 {
-	/* predefines a statement or resets and reuses a statment.
+	/* predefines a statement or resets and reuses a statement.
 	Subsequent call may ommit the querystring.
 	CAVE: you must not call this function with different strings for the same index! */
 
