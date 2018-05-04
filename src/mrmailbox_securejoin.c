@@ -351,6 +351,9 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact
 	// in addition to MR_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send MR_EVENT_CHAT_MODIFIED to update all views
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
+	// the following event results in reloading contact lists (needed eg. when showing a qr-invite from create-group)
+	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
+
 	free(msg);
 	mrcontact_unref(contact);
 }
