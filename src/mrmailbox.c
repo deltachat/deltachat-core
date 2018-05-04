@@ -3519,6 +3519,8 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
                                            int          origin,
                                            int*         sth_modified )
 {
+	#define       CONTACT_MODIFIED 1
+	#define       CONTACT_CREATED  2
 	sqlite3_stmt* stmt;
 	uint32_t      row_id = 0;
 	int           dummy;
@@ -3602,7 +3604,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 				sqlite3_step     (stmt);
 			}
 
-			*sth_modified = 1;
+			*sth_modified = CONTACT_MODIFIED;
 		}
 	}
 	else
@@ -3615,7 +3617,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 		if( sqlite3_step(stmt) == SQLITE_DONE )
 		{
 			row_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
-			*sth_modified = 1;
+			*sth_modified = CONTACT_CREATED;
 		}
 		else
 		{
@@ -3712,6 +3714,7 @@ cleanup:
 uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const char* addr)
 {
 	uint32_t contact_id = 0;
+	int      sth_modified = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr == NULL || addr[0]==0 ) {
 		goto cleanup;
@@ -3719,11 +3722,11 @@ uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const 
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		contact_id = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_MANUALLY_CREATED, NULL);
+		contact_id = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_MANUALLY_CREATED, &sth_modified);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, sth_modified==CONTACT_CREATED? contact_id : 0, 0);
 
 cleanup:
 	return contact_id;

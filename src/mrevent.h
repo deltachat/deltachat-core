@@ -167,7 +167,7 @@ extern "C" {
 /**
  * Contact(s) created, renamed, blocked or deleted.
  *
- * @param data1 0
+ * @param data1 If not 0, this is the contact_id of an added contact that should be selected.
  *
  * @param data2 0
  *

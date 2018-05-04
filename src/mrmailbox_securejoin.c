@@ -351,9 +351,6 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact
 	// in addition to MR_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send MR_EVENT_CHAT_MODIFIED to update all views
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
-	// the following event results in reloading contact lists (needed eg. when showing a qr-invite from create-group)
-	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
-
 	free(msg);
 	mrcontact_unref(contact);
 }
@@ -768,6 +765,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 
 		secure_connection_established(mailbox, contact_chat_id);
 
+		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
 		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
 		if( join_vg ) {
@@ -837,6 +835,8 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		UNLOCK
 
 		secure_connection_established(mailbox, contact_chat_id);
+
+		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
