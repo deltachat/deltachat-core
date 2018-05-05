@@ -503,6 +503,12 @@ cleanup:
  * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.
+ *
+ *     TODO: check if we should say to the caller, which activity to show after
+ *     vc-request:
+ *     - for a qr-scan while group-creation, returning to the chatlist might be better
+ *     - for a qr-scan to add a contact (even without handshake), opening the created normal-chat is better
+ *     (for vg-request always the new group is shown, this is perfect)
  */
 uint32_t mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
 {
