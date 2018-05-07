@@ -149,13 +149,16 @@ uint32_t mrchat_get_id(mrchat_t* chat)
  *
  * Currently, there are two chat types:
  *
- * - MR_CHAT_TYPE_NORMAL (100) - a normal chat is a chat with a single contact,
+ * - MR_CHAT_TYPE_SINGLE (100) - a normal chat is a chat with a single contact,
  *   chats_contacts contains one record for the user.  MR_CONTACT_ID_SELF
  *   (see mrcontact_t::m_id) is added _only_ for a self talk; in addition to
  *   this, for self talks also the flag MRP_SELFTALK is set.
  *
  * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
  *   members, incl. MR_CONTACT_ID_SELF
+ *
+ * - MR_CHAT_TYPE_VERIFIED_GROUP  (130) - a verified group chat. In verified groups,
+ *   all members are verified and encryption is always active and cannot be disabled.
  *
  * @memberof mrchat_t
  *
@@ -166,7 +169,7 @@ uint32_t mrchat_get_id(mrchat_t* chat)
 int mrchat_get_type(mrchat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return MR_CHAT_TYPE_NORMAL;
+		return MR_CHAT_TYPE_UNDEFINED;
 	}
 	return chat->m_type;
 }
@@ -219,11 +222,11 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 		return safe_strdup("Err");
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_NORMAL && mrparam_exists(chat->m_param, MRP_SELFTALK) )
+	if( chat->m_type == MR_CHAT_TYPE_SINGLE && mrparam_exists(chat->m_param, MRP_SELFTALK) )
 	{
 		ret = mrstock_str(MR_STR_SELFTALK_SUBTITLE);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_NORMAL )
+	else if( chat->m_type == MR_CHAT_TYPE_SINGLE )
 	{
 		int r;
 		mrsqlite3_lock(chat->m_mailbox->m_sql);
@@ -241,7 +244,7 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 
 		mrsqlite3_unlock(chat->m_mailbox->m_sql);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_GROUP )
+	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		int cnt = 0;
 		if( chat->m_id == MR_CHAT_ID_DEADDROP )
@@ -375,6 +378,66 @@ int mrchat_is_unpromoted(mrchat_t* chat)
 		return 0;
 	}
 	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
+}
+
+
+/**
+ * Check if a chat is verified.  Verified chats contain only verified members
+ * and encryption is alwasy enabled.  Verified chats are created using
+ * mrmailbox_create_group_chat() by setting the 'verified' parameter to true.
+ *
+ * @memberof mrchat_t
+ *
+ * @param chat The chat object.
+ *
+ * @return 1=chat verified, 0=chat is not verified
+ */
+int mrchat_is_verified(mrchat_t* chat)
+{
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
+		return 0;
+	}
+	return (chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP);
+}
+
+
+int mrchat_are_all_members_verified__(mrchat_t* chat)
+{
+	int           chat_verified = 0;
+	sqlite3_stmt* stmt;
+
+	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
+		goto cleanup;
+	}
+
+	if( chat->m_id == MR_CHAT_ID_DEADDROP || chat->m_id == MR_CHAT_ID_STARRED ) {
+		goto cleanup; // deaddrop & co. are never verified
+	}
+
+	stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
+		"SELECT c.id, ps.public_key_verified, ps.gossip_key_verified "
+		" FROM chats_contacts cc"
+		" LEFT JOIN contacts c ON c.id=cc.contact_id"
+		" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
+		" WHERE cc.chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat->m_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		uint32_t contact_id          = sqlite3_column_int(stmt, 0);
+		int      public_key_verified = sqlite3_column_int(stmt, 1);
+		int      gossip_key_verified = sqlite3_column_int(stmt, 2);
+		if( contact_id != MR_CONTACT_ID_SELF
+		 && public_key_verified != MRV_BIDIRECTIONAL
+		 && gossip_key_verified != MRV_BIDIRECTIONAL )
+		{
+			goto cleanup; // a single unverified contact results in an unverified chat
+		}
+	}
+
+	chat_verified = 1;
+
+cleanup:
+	return chat_verified;
 }
 
 

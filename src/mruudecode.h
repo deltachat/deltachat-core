@@ -30,7 +30,6 @@ extern "C" {
 char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename);
 
 
-
 /**
  *  From here new code from: Christian Schneider <schneider17@gmx.de>  
  */

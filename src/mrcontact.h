@@ -41,16 +41,18 @@ typedef struct _mrcontact mrcontact_t;
 #define         MR_CONTACT_ID_LAST_SPECIAL 9
 
 
-mrcontact_t* mrcontact_new                    (); /* the returned pointer is ref'd and must be unref'd after usage */
+mrcontact_t* mrcontact_new                    (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
 void         mrcontact_empty                  (mrcontact_t*);
 void         mrcontact_unref                  (mrcontact_t*);
 
-uint32_t     mrcontact_get_id                 (mrcontact_t*);
-char*        mrcontact_get_addr               (mrcontact_t*);
-char*        mrcontact_get_name               (mrcontact_t*);
-char*        mrcontact_get_display_name       (mrcontact_t*);
-char*        mrcontact_get_name_n_addr        (mrcontact_t*);
-int          mrcontact_is_blocked             (mrcontact_t*);
+uint32_t     mrcontact_get_id                 (const mrcontact_t*);
+char*        mrcontact_get_addr               (const mrcontact_t*);
+char*        mrcontact_get_name               (const mrcontact_t*);
+char*        mrcontact_get_display_name       (const mrcontact_t*);
+char*        mrcontact_get_name_n_addr        (const mrcontact_t*);
+char*        mrcontact_get_first_name         (const mrcontact_t*);
+int          mrcontact_is_blocked             (const mrcontact_t*);
+int          mrcontact_is_verified            (const mrcontact_t*);
 
 
 #ifdef __cplusplus

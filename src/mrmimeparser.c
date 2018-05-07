@@ -1083,8 +1083,8 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
 					size_t uu_blob_bytes = 0;
 					int    uu_msg_type = 0, added_uu_parts = 0;
-					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL
-					    && added_uu_parts < 10/*fence against endless loops*/ )
+
+					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
 					{
 						mrmsg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
 						if( uu_msg_type == 0 ) {
@@ -1092,11 +1092,15 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 						}
 
 						do_add_single_file_part(ths, uu_msg_type, 0, uu_blob, uu_blob_bytes, uu_filename);
-						added_uu_parts++;
 
-						free(txt);         txt = new_txt;
+						free(txt);         txt = new_txt; new_txt = NULL;
 						free(uu_blob);     uu_blob = NULL; uu_blob_bytes = 0; uu_msg_type = 0;
 						free(uu_filename); uu_filename = NULL;
+
+						added_uu_parts++;
+						if( added_uu_parts > 50/*fence against endless loops*/ ) {
+							break;
+						}
 					}
 				}
 
@@ -1675,7 +1679,7 @@ cleanup:
  */
 struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	return (struct mailimf_field*)mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
+	return (struct mailimf_field*)mrhash_find_str(&mimeparser->m_header, field_name);
 }
 
 
@@ -1695,7 +1699,7 @@ struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, cons
  */
 struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t* mimeparser, const char* field_name)
 {
-	struct mailimf_field* field = mrhash_find(&mimeparser->m_header, field_name, strlen(field_name));
+	struct mailimf_field* field = mrhash_find_str(&mimeparser->m_header, field_name);
 	if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 		return field->fld_data.fld_optional_field;
 	}
@@ -1865,7 +1869,7 @@ int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
 	}
 
 	/* check if From: == To:/Cc: */
-	if( mrhash_find(recipients, from_addr_norm, strlen(from_addr_norm)) ) {
+	if( mrhash_find_str(recipients, from_addr_norm) ) {
 		sender_equals_recipient = 1;
 	}
 

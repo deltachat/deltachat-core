@@ -154,7 +154,6 @@ cleanup:
 
 
 
-
 /**
  *  From here on new code from  Christian Schneider <schneider17@gmx.de>  follows
  *
@@ -812,4 +811,3 @@ int main()
 
 
 #endif /* __MRUUDECODE_TESTING__ */
-

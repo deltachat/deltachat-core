@@ -17,9 +17,11 @@ lib_src = [
   'mrmailbox_configure.c',
   'mrmailbox_e2ee.c',
   'mrmailbox_imex.c',
+  'mrmailbox_keyhistory.c',
   'mrmailbox_log.c',
-  'mrmailbox_oob.c',
+  'mrmailbox_qr.c',
   'mrmailbox_receive_imf.c',
+  'mrmailbox_securejoin.c',
   'mrmimefactory.c',
   'mrmimeparser.c',
   'mrmsg.c',
@@ -32,6 +34,7 @@ lib_src = [
   'mrsqlite3.c',
   'mrstock.c',
   'mrtools.c',
+  'mruudecode.c',
 ]
 lib_hdr = [
   'mraheader.h',
