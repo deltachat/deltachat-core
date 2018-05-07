@@ -326,6 +326,12 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
+	// nb: the query currently shows messages from blocked contacts in groups.
+	// however, for normal-groups, this is okay as the message is also returned by mrmailbox_get_chat_msgs()
+	// (otherwise it would be hard to follow conversations, wa and tg do the same)
+	// for the deaddrop, however, they should really be hidden, however, _currently_ the deaddrop is not
+	// shown at all permanent in the chatlist.
+
 	if( query_contact_id )
 	{
 		// show chats shared with a given contact

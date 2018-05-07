@@ -1429,7 +1429,7 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 					" LEFT JOIN contacts ON m.from_id=contacts.id"
 					" WHERE m.from_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF)
 					"   AND m.hidden=0 "
-					"   AND chats.blocked=2 "
+					"   AND chats.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
 					"   AND contacts.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		}
@@ -1449,10 +1449,10 @@ mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
 				"SELECT m.id, m.timestamp"
 					" FROM msgs m"
-					" LEFT JOIN contacts ct ON m.from_id=ct.id"
+					//" LEFT JOIN contacts ct ON m.from_id=ct.id"
 					" WHERE m.chat_id=? "
 					"   AND m.hidden=0 "
-					"   AND ct.blocked=0"
+					//"   AND ct.blocked=0" -- we hide blocked-contacts from starred and deaddrop, but we have to show them in groups (otherwise it may be hard to follow conversation, wa and tg do the same. however, maybe this needs discussion some time :)
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 			sqlite3_bind_int(stmt, 1, chat_id);
 		}
