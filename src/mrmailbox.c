@@ -817,7 +817,8 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
 }
 
 /**
- * Get a list of chats.
+ * Get a list of chats. The list can be filtered by query parameters.
+ * To get the chat messages, use mrmailbox_get_chat_msgs().
  *
  * @memberof mrmailbox_t
  *
