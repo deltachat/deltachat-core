@@ -51,7 +51,7 @@ static char* read_cmd(void)
 }
 
 
-static int s_do_log_info = 0;
+static int s_do_log_info = 1;
 
 
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
@@ -142,10 +142,11 @@ int main(int argc, char ** argv)
 		printf("ERROR: Bad arguments\n");
 	}
 
+	s_do_log_info = 0;
 	stress_functions(mailbox);
+	s_do_log_info = 1;
 
 	printf("Delta Chat Core is awaiting your commands.\n");
-	s_do_log_info = 1;
 
 	/* wait for command */
 	while(1)
