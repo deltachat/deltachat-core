@@ -752,7 +752,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		- in older versions, we did not encrypt messages to ourself when they to to SMTP - however, if these messages
 		  are forwarded for any reasons (eg. gmail always forwards to IMAP), we have no chance to decrypt them;
 		  this issue is fixed with 0.9.4 */
-		force_plaintext = 2;
+		force_plaintext = MRFP_NO_AUTOCRYPT_HEADER;
 	}
 	else
 	{
@@ -773,7 +773,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
-	if( force_plaintext != 2 ) {
+	if( force_plaintext != MRFP_NO_AUTOCRYPT_HEADER ) {
 		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 

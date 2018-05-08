@@ -313,7 +313,7 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, c
 	}
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
-		mrparam_set_int(msg->m_param, MRP_FORCE_PLAINTEXT, 1); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
+		mrparam_set_int(msg->m_param, MRP_FORCE_PLAINTEXT, MRFP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
