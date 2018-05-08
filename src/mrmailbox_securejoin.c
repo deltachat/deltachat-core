@@ -393,7 +393,7 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  *
  * @param mailbox The mailbox object.
  *
- * @param contact_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
+ * @param group_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
  *     If set to 0, the "Setup Verified Contact" protocol is offered in the QR code.
  *
  * @return Text that should go to the qr code.
