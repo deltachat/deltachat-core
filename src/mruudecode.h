@@ -30,6 +30,37 @@ extern "C" {
 char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename);
 
 
+/**
+ *  From here new code from: Christian Schneider <schneider17@gmx.de>  
+ */
+
+
+/* return hex representation of a string*/
+char* mr_print_hex(char* s);
+
+/* delivers one line from a string */
+int   mr_getline (char** line, char* source, char** nextchar);
+
+/* CR or CRLF or LF */
+char* mr_detect_line_end (const char* txt);
+
+/* checks if line matches uuencoded rules */
+int   mr_uu_check_line(int n, int line_len);
+
+/* find uuencoded part in msgtxt and returns it's position */
+char* mr_find_uuencoded_part (const char* msgtxt);
+
+/* extract uuencoded part and make it for next func available */
+char* mr_handle_uuencoded_part (const char*   msgtxt,
+                                 char*         uu_msg_start_pos,
+                                 char**        ret_binary,
+                                 size_t*       ret_binary_bytes,
+                                 char**        ret_filename);
+
+/* decode uuencoded part and provide it, used in mr_handle_uuencoded_part() */
+int   mr_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_body_start);
+
+
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
