@@ -19,20 +19,58 @@
  *
  ******************************************************************************/
 
+/**
+ * For module testing activate __MRUUDECODE_TESTING__ (and __DEBUG__)
+ */
 //#define __MRUUDECODE_TESTING__
 //#define __DEBUG__
 
 
 #ifndef __MRUUDECODE_TESTING__
-    #include "mrmailbox_internal.h"
+    #include "mrmailbox_internal.h"  // cs: Why is this include necessary? I see no reason !?
 #endif
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "mruudecode.h"
 
+/**
+ *  Locally needed function declarations
+ *  This makes the order of function definitions independent from first use
+ */
+
+/* return hex representation of a string*/
+char* mr_print_hex(char* s);
+
+/* delivers one line from a string */
+int   mr_getline (char** line, char* source, char** nextchar);
+
+/* CR or CRLF or LF */
+char* mr_detect_line_end (const char* txt);
+
+/* checks if line matches uuencoded rules */
+int   mr_uu_check_line(int n, int line_len);
+
+/* find uuencoded part in msgtxt and returns it's position */
+char* mr_find_uuencoded_part (const char* msgtxt);
+
+/* extract uuencoded part and make it for next func available */
+char* mr_handle_uuencoded_part (const char*   msgtxt,
+                                 char*         uu_msg_start_pos,
+                                 char**        ret_binary,
+                                 size_t*       ret_binary_bytes,
+                                 char**        ret_filename);
+
+/* decode uuencoded part and provide it, used in mr_handle_uuencoded_part() */
+int   mr_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_body_start);
+
+
+
+/**
+ *  Variables and preprocessor definitions
+ */
 
 /* for mr_detect_line_end */
 #define CRLF "\r\n" //1310 dez
@@ -52,6 +90,11 @@ static char*    line_end_pattern    = NULL;
 #ifdef __DEBUG__
     char in[100]; // for gets()
 #endif
+
+
+/**
+ *  Function defintions
+ */
 
 
 /**
@@ -154,6 +197,7 @@ cleanup:
 
 
 
+
 /**
  *  From here on new code from  Christian Schneider <schneider17@gmx.de>  follows
  *
@@ -166,11 +210,13 @@ cleanup:
  *  Helper functions
  */
 
-char* mr_print_hex(char* s){
+char* mr_print_hex (char* s){
     /**
      * make hex representation of a string
      * 
-     * Author: Christian Schneider <schneider17@gmx.de>
+     * @Return
+     *      hex representation of s (needs to be free'd)
+     * 
      */
     int n = strlen(s);
     int i;
@@ -181,14 +227,13 @@ char* mr_print_hex(char* s){
     }
     
     return hex;
-}
+    
+} //mr_print_hex()
 
 
 int mr_getline (char** ret_lineptr, char* source, char** ret_nextchar){
     /**
      * Extracts first line from a given string 
-     *
-     * Author: Christian Schneider <schneider17@gmx.de>
      *
      *  Parameters:
      * 
@@ -240,14 +285,12 @@ int mr_getline (char** ret_lineptr, char* source, char** ret_nextchar){
     }
     
     return linelen;
-}
+} //mr_getline()
 
 
 char* mr_detect_line_end (const char* txt){
     /**
      *  Detect line end if it is CRLF or LF or CR
-     * 
-     *  Author: Christian Schneider <schneider17@gmx.de>
      * 
      *  This function delivers the first detected line end in a string
      */
@@ -278,14 +321,13 @@ char* mr_detect_line_end (const char* txt){
     #endif
     
     return NULL;
-}
+    
+} //mr_detect_line_end()
 
 
 int mr_uu_check_line (int n, int line_len){
     /**
      *  Checks if n describes the correct line length for given encoded len char line len
-     * 
-     *  Author: Christian Schneider <schneider17@gmx.de>
      * 
      *  Parameters:
      * 
@@ -311,7 +353,8 @@ int mr_uu_check_line (int n, int line_len){
 
     /* # of chars + len char is the expected line len*/
     return (line_len == expected + 1) ? 1 : 0;
-}
+    
+} //mr_uu_check_line()
 
 
 /**
@@ -322,8 +365,6 @@ char* mr_find_uuencoded_part (const char* msgtxt){
     /**
      *  Find uuencoded part in msgtxt & return it's position.
      *  If no part is found NULL is returned.
-     * 
-     *  Author: Christian Schneider <schneider17@gmx.de>
      */
      
     char* uu_part_pos = NULL;
@@ -342,7 +383,8 @@ char* mr_find_uuencoded_part (const char* msgtxt){
     }
     
     return uu_part_pos;
-}
+    
+} //mr_find_uuencoded_part()
 
 
 char* mr_handle_uuencoded_part (const char*   msgtxt,
@@ -352,8 +394,6 @@ char* mr_handle_uuencoded_part (const char*   msgtxt,
                                  char**        ret_filename){
     /**
      *  Handle first (!) uuencoded part in a msg
-     * 
-     *  Author: Christian Schneider <schneider17@gmx.de>
      * 
      * Parameters:
      * 
@@ -504,7 +544,8 @@ char* mr_handle_uuencoded_part (const char*   msgtxt,
 	strcat(ret_msgtxt, uu_body_end );
     
 	return ret_msgtxt;
-}
+    
+} //mr_handle_uuencoded_part()
 
 
 
@@ -514,8 +555,6 @@ char* mr_handle_uuencoded_part (const char*   msgtxt,
 int mr_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_body_start){
     /**
      *  Decode uuencoded part and provide it. Used in mr_handle_uuencoded_part
-     * 
-     *  Author: Christian Schneider <schneider17@gmx.de>
      * 
      *  Parameters:
      * 
@@ -690,18 +729,22 @@ int mr_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* uu_
     fclose(fp);
     
     return ret_decoded_bytes;
-}
+} // mr_uudecode()
+
+
+
+
 
 
 
 #ifdef __MRUUDECODE_TESTING__
 
 
-/***********************************************************************
- *
- *  Testing functions 
- *
- ***********************************************************************/
+/**
+ * 
+ *  Testing functions
+ *  
+ **/
 
 
 char* ReadFile(char *filename, int* size){
@@ -745,6 +788,7 @@ char* ReadFile(char *filename, int* size){
 
     return buffer;
 }
+
 
 
 
@@ -811,3 +855,4 @@ int main()
 
 
 #endif /* __MRUUDECODE_TESTING__ */
+
