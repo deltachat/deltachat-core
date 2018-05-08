@@ -214,6 +214,44 @@ char* mr_null_terminate(const char* in, int bytes) /* the result must be free()'
 }
 
 
+/**
+ * Converts a byte-buffer to a string with hexadecimal,
+ * upper-case digits.
+ *
+ * This function is used eg. to create readable fingerprints, however, it may
+ * be used for other purposes as well.
+ *
+ * @param buf The buffer to convert to an hexadecimal string. If this is NULL,
+ *     the functions returns NULL.
+ *
+ * @param bytes The number of bytes in buf. buf may or may not be null-terminated
+ *     If this is <=0, the function returns NULL.
+ *
+ * @return Returns a null-terminated string, must be free()'d when no longer
+ *     needed. For errors, NULL is returned.
+ */
+char* mr_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
+{
+	char* hex = NULL;
+	int   i;
+
+	if( buf == NULL || bytes <= 0 ) {
+		goto cleanup;
+	}
+
+	if( (hex=calloc(sizeof(char), bytes*2+1))==NULL ) {
+		goto cleanup;
+	}
+
+	for( i = 0; i < bytes; i++ ) {
+		snprintf(&hex[i*2], 3, "%02X", (int)buf[i]);
+	}
+
+cleanup:
+	return hex;
+}
+
+
 char* mr_mprintf(const char* format, ...)
 {
 	char  testbuf[1];

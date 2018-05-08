@@ -692,7 +692,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 						goto cleanup;
 					}
 
-					char* fingerprint_hex = mr_binary_fingerprint_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
+					char* fingerprint_hex = mr_binary_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
 					if( fingerprint_hex ) {
 						mrhash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
 					}

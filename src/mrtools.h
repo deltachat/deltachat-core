@@ -52,6 +52,7 @@ int     mr_str_replace             (char** haystack, const char* needle, const c
 int     mr_str_contains            (const char* haystack, const char* needle);
 char*   mr_null_terminate          (const char*, int bytes); /* the result must be free()'d */
 char*   mr_mprintf                 (const char* format, ...); /* The result must be free()'d. */
+char*   mr_binary_to_uc_hex        (const uint8_t* buf, size_t bytes);
 void    mr_remove_cr_chars         (char*); /* remove all \r characters from string */
 void    mr_replace_bad_utf8_chars  (char*); /* replace bad UTF-8 characters by sequences of `_` (to avoid problems in filenames, we do not use eg. `?`) the function is useful if strings are unexpectingly encoded eg. as ISO-8859-1 */
 void    mr_truncate_str            (char*, int approx_characters);
