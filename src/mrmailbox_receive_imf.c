@@ -617,7 +617,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	// check that all members are verified.
 	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.
 	to_ids_str = mrarray_get_string(to_ids, ",");
-	q3 = sqlite3_mprintf("SELECT c.addr, ps.public_key_verified, ps.gossip_key_verified "
+	q3 = sqlite3_mprintf("SELECT c.addr, LENGTH(ps.verified_key_fingerprint) "
 						 " FROM contacts c "
 						 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 						 " WHERE c.id IN(%s) ",
@@ -626,22 +626,21 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	if( sqlite3_step(stmt)==SQLITE_ROW )
 	{
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
-		int public_key_verified =              sqlite3_column_int (stmt, 1);
-		int gossip_key_verified =              sqlite3_column_int (stmt, 2);
+		int is_verified         =              sqlite3_column_int (stmt, 1);
 
-		if( gossip_key_verified < MRV_BIDIRECTIONAL
+		if( !is_verified
 		 && mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
 		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
-			// mark gossip-key as verified even if there is a public-verified-key; mrapeerstate_peek_key() will peek the newer one
-			// (the date is already updated in update_gossip_peerstates())
+			// TODO: we have the chance here to update the verified key even if we
+			// already have a direct key - that may be older. we should check this.
 			mrmailbox_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
 			mrapeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
 			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
-			gossip_key_verified = MRV_BIDIRECTIONAL;
+			is_verified = 1;
 		}
 
-		if( public_key_verified < MRV_BIDIRECTIONAL && gossip_key_verified < MRV_BIDIRECTIONAL )
+		if( !is_verified )
 		{
 			mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
 			goto cleanup;

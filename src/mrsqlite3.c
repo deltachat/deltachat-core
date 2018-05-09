@@ -169,6 +169,8 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 
 	if( !(flags&MR_OPEN_READONLY) )
 	{
+		int dbversion_before_update = 0;
+
 		/* Init tables to dbversion=0 */
 		if( !mrsqlite3_table_exists__(ths, "config") )
 		{
@@ -249,10 +251,14 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 
 			mrsqlite3_set_config_int__(ths, "dbversion", 0);
 		}
+		else
+		{
+			dbversion_before_update = mrsqlite3_get_config_int__(ths, "dbversion", 0);
+		}
 
 		// (1) update low-level database structure.
 		// this should be done before updates that use high-level objects that rely themselves on the low-level structure.
-		int dbversion = mrsqlite3_get_config_int__(ths, "dbversion", 0);
+		int dbversion = dbversion_before_update;
 		int recalc_fingerprints = 0;
 
 		#define NEW_DB_VERSION 1
@@ -367,12 +373,31 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN public_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN public_key_verified INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_verified INTEGER DEFAULT 0;");
 				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index3 ON acpeerstates (public_key_fingerprint);");
 				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index4 ON acpeerstates (gossip_key_fingerprint);");
 				recalc_fingerprints = 1;
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
+		#define NEW_DB_VERSION 38
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified_key;");
+				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");
+
+				if( dbversion_before_update == 34 )
+				{
+					// migrate database from the use of verified-flags to verified_key,
+					// _only_ version 34 (0.17.0) has the fields public_key_verified and gossip_key_verified
+					// this block can be deleted in half a year or so (created 5/2018)
+					mrsqlite3_execute__(ths, "UPDATE acpeerstates SET verified_key=gossip_key, verified_key_fingerprint=gossip_key_fingerprint WHERE gossip_key_verified=2;");
+					mrsqlite3_execute__(ths, "UPDATE acpeerstates SET verified_key=public_key, verified_key_fingerprint=public_key_fingerprint WHERE public_key_verified=2;");
+				}
 
 				dbversion = NEW_DB_VERSION;
 				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);

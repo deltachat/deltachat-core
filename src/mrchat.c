@@ -415,7 +415,7 @@ int mrchat_are_all_members_verified__(mrchat_t* chat)
 	}
 
 	stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
-		"SELECT c.id, ps.public_key_verified, ps.gossip_key_verified "
+		"SELECT c.id, LENGTH(ps.verified_key_fingerprint) "
 		" FROM chats_contacts cc"
 		" LEFT JOIN contacts c ON c.id=cc.contact_id"
 		" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
@@ -424,11 +424,9 @@ int mrchat_are_all_members_verified__(mrchat_t* chat)
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		uint32_t contact_id          = sqlite3_column_int(stmt, 0);
-		int      public_key_verified = sqlite3_column_int(stmt, 1);
-		int      gossip_key_verified = sqlite3_column_int(stmt, 2);
+		int      has_verified_key    = sqlite3_column_int(stmt, 1);
 		if( contact_id != MR_CONTACT_ID_SELF
-		 && public_key_verified != MRV_BIDIRECTIONAL
-		 && gossip_key_verified != MRV_BIDIRECTIONAL )
+		 && !has_verified_key )
 		{
 			goto cleanup; // a single unverified contact results in an unverified chat
 		}

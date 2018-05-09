@@ -134,28 +134,20 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			}
 			else
 			{
-				int min_verified = factory->m_chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP? MRV_BIDIRECTIONAL : MRV_NOT_VERIFIED;
-
 				sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
-					"SELECT c.authname, c.addr, ps.public_key_verified, ps.gossip_key_verified "
+					"SELECT c.authname, c.addr "
 					" FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON cc.contact_id=c.id "
-					" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 					" WHERE cc.chat_id=? AND cc.contact_id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";");
 				sqlite3_bind_int(stmt, 1, factory->m_msg->m_chat_id);
 				while( sqlite3_step(stmt) == SQLITE_ROW )
 				{
 					const char* authname            = (const char*)sqlite3_column_text(stmt, 0);
 					const char* addr                = (const char*)sqlite3_column_text(stmt, 1);
-					int         public_key_verified =              sqlite3_column_int (stmt, 2);
-					int         gossip_key_verified =              sqlite3_column_int (stmt, 3);
 					if( clist_search_string_nocase(factory->m_recipients_addr, addr)==0 )
 					{
-						if( public_key_verified >= min_verified || gossip_key_verified >= min_verified )
-						{
-							clist_append(factory->m_recipients_names, (void*)((authname&&authname[0])? safe_strdup(authname) : NULL));
-							clist_append(factory->m_recipients_addr,  (void*)safe_strdup(addr));
-						}
+						clist_append(factory->m_recipients_names, (void*)((authname&&authname[0])? safe_strdup(authname) : NULL));
+						clist_append(factory->m_recipients_addr,  (void*)safe_strdup(addr));
 					}
 				}
 
@@ -163,20 +155,14 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				if( command==MR_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 					char* email_to_remove     = mrparam_get(factory->m_msg->m_param, MRP_CMD_PARAM, NULL);
 					char* self_addr           = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
-					mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
-					mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, email_to_remove);
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 					{
 						if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
 						{
-							if( peerstate->m_public_key_verified >= min_verified || peerstate->m_gossip_key_verified >= min_verified )
-							{
-								clist_append(factory->m_recipients_names, NULL);
-								clist_append(factory->m_recipients_addr,  (void*)email_to_remove);
-							}
+							clist_append(factory->m_recipients_names, NULL);
+							clist_append(factory->m_recipients_addr,  (void*)email_to_remove);
 						}
 					}
-					mrapeerstate_unref(peerstate);
 					free(self_addr);
 				}
 

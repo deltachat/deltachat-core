@@ -287,7 +287,7 @@ int mrcontact_is_verified__(const mrcontact_t* contact, const mrapeerstate_t* pe
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
-	contact_verified = MR_MAX(peerstate->m_public_key_verified, peerstate->m_gossip_key_verified);
+	contact_verified = peerstate->m_verified_key? MRV_BIDIRECTIONAL : 0;
 
 cleanup:
 	return contact_verified;
@@ -305,7 +305,6 @@ cleanup:
  * @param contact The contact object.
  *
  * @return MRV_NOT_VERIFIED (0): contact is not verified.
- *    MRV_SIMPLE (1): =SELF has verified the contact but not the other way round.
  *    MRV_BIDIRECTIONAL (2): SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
 int mrcontact_is_verified(const mrcontact_t* contact)

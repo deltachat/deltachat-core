@@ -53,17 +53,17 @@ typedef struct mrapeerstate_t
 	int            m_prefer_encrypt;
 
 	#define        MRV_NOT_VERIFIED  0
-	#define        MRV_SIMPLE        1
 	#define        MRV_BIDIRECTIONAL 2
 
 	mrkey_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
 	char*          m_public_key_fingerprint;
-	int            m_public_key_verified;
 
 	mrkey_t*       m_gossip_key; /* may be NULL */
 	time_t         m_gossip_timestamp;
 	char*          m_gossip_key_fingerprint;
-	int            m_gossip_key_verified;
+
+	mrkey_t*       m_verified_key; // may be NULL
+	char*          m_verified_key_fingerprint;
 
 	#define        MRA_SAVE_TIMESTAMPS 0x01
 	#define        MRA_SAVE_ALL        0x02
@@ -71,7 +71,6 @@ typedef struct mrapeerstate_t
 
 	#define        MRA_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail
 	#define        MRA_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
-	#define        MRA_DE_VERIFICATION_LOST   0x04 // recoverable by a new verify
 	int            m_degrade_event;
 
 } mrapeerstate_t;

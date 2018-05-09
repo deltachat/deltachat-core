@@ -51,8 +51,8 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 	free(ths->m_gossip_key_fingerprint);
 	ths->m_gossip_key_fingerprint = NULL;
 
-	ths->m_public_key_verified = MRV_NOT_VERIFIED;
-	ths->m_gossip_key_verified = MRV_NOT_VERIFIED;
+	free(ths->m_verified_key_fingerprint);
+	ths->m_verified_key_fingerprint = NULL;
 
 	if( ths->m_public_key ) {
 		mrkey_unref(ths->m_public_key);
@@ -66,13 +66,18 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 		ths->m_gossip_key = NULL;
 	}
 
+	if( ths->m_verified_key ) {
+		mrkey_unref(ths->m_verified_key);
+		ths->m_verified_key = NULL;
+	}
+
 	ths->m_degrade_event = 0;
 }
 
 
 static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt* stmt)
 {
-	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, public_key_fingerprint, gossip_key_fingerprint, public_key_verified, gossip_key_verified"
+	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, public_key_fingerprint, gossip_key_fingerprint, verified_key, verified_key_fingerprint"
 	peerstate->m_addr                = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
 	peerstate->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
 	peerstate->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
@@ -82,8 +87,8 @@ static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt
 	#define GOSSIP_KEY_COL                                                      6
 	peerstate->m_public_key_fingerprint = safe_strdup((char*)sqlite3_column_text  (stmt, 7));
 	peerstate->m_gossip_key_fingerprint = safe_strdup((char*)sqlite3_column_text  (stmt, 8));
-	peerstate->m_public_key_verified =                    sqlite3_column_int   (stmt, 9);
-	peerstate->m_gossip_key_verified =                    sqlite3_column_int   (stmt,10);
+	#define VERIFIED_KEY_COL                                                             9
+	peerstate->m_verified_key_fingerprint = safe_strdup((char*)sqlite3_column_text(stmt, 10));
 
 	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_public_key = mrkey_new();
@@ -93,6 +98,11 @@ static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt
 	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_gossip_key = mrkey_new();
 		mrkey_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+	}
+
+	if( sqlite3_column_type(stmt, VERIFIED_KEY_COL)!=SQLITE_NULL ) {
+		peerstate->m_verified_key = mrkey_new();
+		mrkey_set_from_stmt(peerstate->m_verified_key, stmt, VERIFIED_KEY_COL, MR_PUBLIC);
 	}
 }
 
@@ -177,7 +187,7 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
 			"UPDATE acpeerstates "
 			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
-			"       public_key=?, gossip_timestamp=?, gossip_key=?, public_key_fingerprint=?, gossip_key_fingerprint=?, public_key_verified=?, gossip_key_verified=? "
+			"       public_key=?, gossip_timestamp=?, gossip_key=?, public_key_fingerprint=?, gossip_key_fingerprint=?, verified_key=?, verified_key_fingerprint=? "
 			" WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
@@ -187,8 +197,8 @@ int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int c
 		sqlite3_bind_blob (stmt, 6, ths->m_gossip_key? ths->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_gossip_key? ths->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 7, ths->m_public_key_fingerprint, -1, SQLITE_STATIC);
 		sqlite3_bind_text (stmt, 8, ths->m_gossip_key_fingerprint, -1, SQLITE_STATIC);
-		sqlite3_bind_int  (stmt, 9, ths->m_public_key_verified);
-		sqlite3_bind_int  (stmt,10, ths->m_gossip_key_verified);
+		sqlite3_bind_blob (stmt, 9, ths->m_verified_key? ths->m_verified_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_verified_key? ths->m_verified_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_text (stmt,10, ths->m_verified_key_fingerprint, -1, SQLITE_STATIC);
 		sqlite3_bind_text (stmt,11, ths->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
@@ -301,30 +311,22 @@ mrkey_t* mrapeerstate_peek_key(const mrapeerstate_t* peerstate, int min_verified
 {
 	if(  peerstate == NULL
 	 || (peerstate->m_public_key && (peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0))
-	 || (peerstate->m_gossip_key && (peerstate->m_gossip_key->m_binary==NULL || peerstate->m_gossip_key->m_bytes<=0)) ) {
+	 || (peerstate->m_gossip_key && (peerstate->m_gossip_key->m_binary==NULL || peerstate->m_gossip_key->m_bytes<=0))
+	 || (peerstate->m_verified_key && (peerstate->m_verified_key->m_binary==NULL || peerstate->m_verified_key->m_bytes<=0)) ) {
 		return NULL;
 	}
 
-	if( min_verified == MRV_BIDIRECTIONAL
-	 && peerstate->m_public_key_verified == MRV_BIDIRECTIONAL
-	 && peerstate->m_gossip_key_verified == MRV_BIDIRECTIONAL  )
+	if( min_verified )
 	{
-		// have two verified keys, use the key that is newer
-		return peerstate->m_gossip_timestamp > peerstate->m_last_seen_autocrypt?
-			peerstate->m_gossip_key : peerstate->m_public_key;
+		return peerstate->m_verified_key;
 	}
 
-	if( peerstate->m_public_key && peerstate->m_public_key_verified>=min_verified )
+	if( peerstate->m_public_key )
 	{
 		return peerstate->m_public_key;
 	}
 
-	if( peerstate->m_gossip_key && peerstate->m_gossip_key_verified>=min_verified )
-	{
-		return peerstate->m_gossip_key;
-	}
-
-	return NULL; // no key with the desired verification available
+	return peerstate->m_gossip_key;
 }
 
 
@@ -472,7 +474,6 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 {
 	int            success = 0;
 	char*          old_public_fingerprint = NULL, *old_gossip_fingerprint = NULL;
-	int            has_old_verified_key = (mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL)!=NULL);
 
 	if( peerstate == NULL ) {
 		goto cleanup;
@@ -490,8 +491,6 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		 || strcasecmp(old_public_fingerprint, peerstate->m_public_key_fingerprint) != 0 )
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
-
-			peerstate->m_public_key_verified = MRV_NOT_VERIFIED;
 
 			if( old_public_fingerprint && old_public_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
@@ -512,17 +511,10 @@ int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
 		{
 			peerstate->m_to_save  |= MRA_SAVE_ALL;
 
-			peerstate->m_gossip_key_verified = MRV_NOT_VERIFIED;
-
 			if( old_gossip_fingerprint && old_gossip_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
 				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
 			}
 		}
-	}
-
-	if( has_old_verified_key
-	 && (mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL)==NULL) ) {
-		peerstate->m_degrade_event |= MRA_DE_VERIFICATION_LOST;
 	}
 
 	success = 1;
@@ -546,7 +538,7 @@ cleanup:
  * @param peerstate The peerstate object.
  * @param which_key Which key should be marked as being verified? MRA_GOSSIP_KEY (1) or MRA_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
- * @param verified MRV_SIMPLE (1): we verified the contact, MRV_BIDIRECTIONAL (2): contact verfied in both directions
+ * @param verified MRV_BIDIRECTIONAL (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call mrapeerstate_save_to_db__()
@@ -560,7 +552,7 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, int which_key, const ch
 
 	if( peerstate == NULL
 	 || (which_key!=MRA_GOSSIP_KEY && which_key!=MRA_PUBLIC_KEY)
-	 || (verified!=MRV_SIMPLE && verified!=MRV_BIDIRECTIONAL) ) {
+	 || (verified!=MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 
@@ -570,9 +562,10 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, int which_key, const ch
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_public_key_fingerprint, fingerprint) == 0 )
 	{
-		peerstate->m_to_save            |= MRA_SAVE_ALL;
-		peerstate->m_public_key_verified = verified;
-		success                          = 1;
+		peerstate->m_to_save                 |= MRA_SAVE_ALL;
+		peerstate->m_verified_key             = mrkey_ref(peerstate->m_public_key);
+		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_public_key_fingerprint);
+		success                               = 1;
 	}
 
 	if( which_key == MRA_GOSSIP_KEY
@@ -581,9 +574,10 @@ int mrapeerstate_set_verified(mrapeerstate_t* peerstate, int which_key, const ch
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_gossip_key_fingerprint, fingerprint) == 0 )
 	{
-		peerstate->m_to_save            |= MRA_SAVE_ALL;
-		peerstate->m_gossip_key_verified = verified;
-		success                          = 1;
+		peerstate->m_to_save                 |= MRA_SAVE_ALL;
+		peerstate->m_verified_key             = mrkey_ref(peerstate->m_gossip_key);
+		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_gossip_key_fingerprint);
+		success                               = 1;
 	}
 
 cleanup:
@@ -597,15 +591,9 @@ int mrapeerstate_has_verified_key(const mrapeerstate_t* peerstate, const mrhash_
 		return 0;
 	}
 
-	if( peerstate->m_public_key_verified >= MRV_BIDIRECTIONAL
-	 && peerstate->m_public_key_fingerprint
-	 && mrhash_find_str(fingerprints, peerstate->m_public_key_fingerprint) ) {
-		return 1;
-	}
-
-	if( peerstate->m_gossip_key_verified >= MRV_BIDIRECTIONAL
-	 && peerstate->m_gossip_key_fingerprint
-	 && mrhash_find_str(fingerprints, peerstate->m_gossip_key_fingerprint) ) {
+	if( peerstate->m_verified_key
+	 && peerstate->m_verified_key_fingerprint
+	 && mrhash_find_str(fingerprints, peerstate->m_verified_key_fingerprint) ) {
 		return 1;
 	}
 
