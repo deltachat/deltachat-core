@@ -374,7 +374,6 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp("grpimg="    MR_STRINGIFY(MR_CMD_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
 
 		assert( strcmp("notverified="    MR_STRINGIFY(MRV_NOT_VERIFIED),  "notverified=0")==0 );
-		assert( strcmp("simple="         MR_STRINGIFY(MRV_SIMPLE),        "simple=1")==0 );
 		assert( strcmp("bidirectional="  MR_STRINGIFY(MRV_BIDIRECTIONAL), "bidirectional=2")==0 );
 
 		assert( MRP_FILE == 'f' );
