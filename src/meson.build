@@ -15,6 +15,7 @@ lib_src = [
   'mrlot.c',
   'mrmailbox.c',
   'mrmailbox_configure.c',
+  'mrmailbox_connect.c',
   'mrmailbox_e2ee.c',
   'mrmailbox_imex.c',
   'mrmailbox_keyhistory.c',

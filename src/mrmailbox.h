@@ -190,9 +190,7 @@ typedef struct _mrmailbox mrmailbox_t;
 typedef uintptr_t (*mrmailboxcb_t) (mrmailbox_t*, int event, uintptr_t data1, uintptr_t data2);
 
 
-
-
-/* create/open/connect */
+// create/open/config/information
 mrmailbox_t*    mrmailbox_new               (mrmailboxcb_t, void* userdata, const char* os_name);
 void            mrmailbox_unref             (mrmailbox_t*);
 void*           mrmailbox_get_userdata      (mrmailbox_t*);
@@ -207,15 +205,17 @@ char*           mrmailbox_get_config        (mrmailbox_t*, const char* key, cons
 int             mrmailbox_set_config_int    (mrmailbox_t*, const char* key, int32_t value);
 int32_t         mrmailbox_get_config_int    (mrmailbox_t*, const char* key, int32_t def);
 char*           mrmailbox_get_version_str   (void);
+char*           mrmailbox_get_info          (mrmailbox_t*);
 
+
+// connect
 int             mrmailbox_configure_and_connect(mrmailbox_t*);
-void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_connect           (mrmailbox_t*);
 void            mrmailbox_disconnect        (mrmailbox_t*);
 
-char*           mrmailbox_get_info          (mrmailbox_t*);
+void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 
 
 /* Handle chatlists */

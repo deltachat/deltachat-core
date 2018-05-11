@@ -31,7 +31,6 @@
 #include "mrmimefactory.h"
 #include "mrtools.h"
 #include "mrjob.h"
-#include "mrloginparam.h"
 #include "mrkey.h"
 #include "mrpgp.h"
 #include "mrapeerstate.h"
@@ -358,6 +357,37 @@ char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
 }
 
 
+void mrmailbox_wake_lock(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
+		mailbox->m_wake_lock++;
+		if( mailbox->m_wake_lock == 1 ) {
+			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 1, 0);
+		}
+	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
+}
+
+
+void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
+		if( mailbox->m_wake_lock == 1 ) {
+			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 0, 0);
+		}
+
+		if( mailbox->m_wake_lock > 0 ) {
+			mailbox->m_wake_lock--;
+		}
+	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
+}
+
+
 /*******************************************************************************
  * INI-handling, Information
  ******************************************************************************/
@@ -486,6 +516,19 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 	mrsqlite3_unlock(ths->m_sql);
 
 	return ret;
+}
+
+
+/**
+ * Find out the version of the Delta Chat core library.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @return String with version number as `major.minor.revision`. The return value must be free()'d.
+ */
+char* mrmailbox_get_version_str(void)
+{
+	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
 }
 
 
@@ -635,186 +678,20 @@ char* mrmailbox_get_info(mrmailbox_t* mailbox)
 
 
 /*******************************************************************************
- * Misc.
+ * Handle chatlists
  ******************************************************************************/
 
 
 int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
 {
-	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived, "SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
+	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived,
+		"SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
 		return sqlite3_column_int(stmt, 0);
 	}
 	return 0;
 }
 
-
-/**
- * Find out the version of the Delta Chat core library.
- *
- * @memberof mrmailbox_t
- *
- * @return String with version number as `major.minor.revision`. The return value must be free()'d.
- */
-char* mrmailbox_get_version_str(void)
-{
-	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
-}
-
-
-void mrmailbox_wake_lock(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
-		mailbox->m_wake_lock++;
-		if( mailbox->m_wake_lock == 1 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 1, 0);
-		}
-	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
-}
-
-
-void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
-		if( mailbox->m_wake_lock == 1 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 0, 0);
-		}
-
-		if( mailbox->m_wake_lock > 0 ) {
-			mailbox->m_wake_lock--;
-		}
-	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
-}
-
-
-/*******************************************************************************
- * Connect
- ******************************************************************************/
-
-
-void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if the function is called directly!*/)
-{
-	int             is_locked = 0;
-	mrloginparam_t* param = mrloginparam_new();
-
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
-		goto cleanup;
-	}
-
-	if( mrimap_is_connected(ths->m_imap) ) {
-		mrmailbox_log_info(ths, 0, "Already connected or trying to connect.");
-		goto cleanup;
-	}
-
-	mrsqlite3_lock(ths->m_sql);
-	is_locked = 1;
-
-		if( mrsqlite3_get_config_int__(ths->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_error(ths, 0, "Not configured.");
-			goto cleanup;
-		}
-
-		mrloginparam_read__(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
-
-	mrsqlite3_unlock(ths->m_sql);
-	is_locked = 0;
-
-	if( !mrimap_connect(ths->m_imap, param) ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
-		goto cleanup;
-	}
-
-cleanup:
-	if( is_locked ) { mrsqlite3_unlock(ths->m_sql); }
-	mrloginparam_unref(param);
-}
-
-
-/**
- * Connect to the mailbox using the configured settings.  We connect using IMAP-IDLE or, if this is not possible,
- * a using pull algorithm.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_connect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mailbox->m_smtp->m_log_connect_errors = 1;
-		mailbox->m_imap->m_log_connect_errors = 1;
-
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
-		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL, 0);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-}
-
-
-/**
- * Disonnect the mailbox from the server.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_disconnect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
-}
-
-
-/**
- * Stay alive.
- * The library tries itself to stay alive. For this purpose there is an additional
- * "heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
- * However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can
- * force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
- * If in doubt, call this function too often, not too less :-)
- *
- * The function MUST NOT be called from the UI thread and may take a moment to return.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object.
- *
- * @return None.
- */
-void mrmailbox_heartbeat(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	//mrmailbox_log_info(ths, 0, "<3 Mailbox");
-	mrimap_heartbeat(mailbox->m_imap);
-}
 
 /**
  * Get a list of chats. The list can be filtered by query parameters.
@@ -872,6 +749,11 @@ cleanup:
 		return NULL;
 	}
 }
+
+
+/*******************************************************************************
+ * Handle chats
+ ******************************************************************************/
 
 
 /**
@@ -1878,7 +1760,6 @@ void mrmailbox_unarchive_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
 	sqlite3_bind_int (stmt, 1, chat_id);
 	sqlite3_step(stmt);
 }
-
 
 
 /**
@@ -3468,7 +3349,6 @@ cleanup:
 }
 
 
-
 /*******************************************************************************
  * Handle Contacts
  ******************************************************************************/
@@ -4336,7 +4216,6 @@ int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, c
 	}
 	return addr_are_equal;
 }
-
 
 
 /*******************************************************************************
