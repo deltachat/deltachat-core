@@ -28,58 +28,10 @@
 #include "mrmimeparser.h"
 #include "mrmimefactory.h"
 #include "mrjob.h"
+#include "mrtoken.h"
 
 #define      LOCK                 { mrsqlite3_lock  (mailbox->m_sql); locked = 1; }
 #define      UNLOCK  if( locked ) { mrsqlite3_unlock(mailbox->m_sql); locked = 0; }
-
-
-/*******************************************************************************
- * Tools: Alice's invitenumber and auth mini-datastore
- ******************************************************************************/
-
-
-/* the "mini-datastore is used to remember Alice's last few invitenumbers and
-auths as they're written to a QR code.  This is needed for later
-comparison when the data are provided by Bob. */
-
-
-static void store_tag__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_add)
-{
-	// prepend new tag to the list of all tags
-	#define MAX_REMEMBERED_TAGS 10
-	#define MAX_REMEMBERED_CHARS (MAX_REMEMBERED_TAGS*(MR_CREATE_ID_LEN+1))
-	char* old_tags = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
-	if( strlen(old_tags) > MAX_REMEMBERED_CHARS ) {
-		old_tags[MAX_REMEMBERED_CHARS] = 0; // the oldest tag may be incomplete and unrecognizable, however, this should not be a problem as it would be deleted soon anyway
-	}
-	char* new_tags = mr_mprintf("%s,%s", to_add, old_tags);
-	mrsqlite3_set_config__(mailbox->m_sql, datastore_name, new_tags);
-
-	free(old_tags);
-	free(new_tags);
-}
-
-
-static int lookup_tag__(mrmailbox_t* mailbox, const char* datastore_name, const char* to_lookup)
-{
-	int            found       = 0;
-	char*          old_tags    = NULL;
-	carray*        lines       = NULL;
-
-	old_tags = mrsqlite3_get_config__(mailbox->m_sql, datastore_name, "");
-	mr_str_replace(&old_tags, ",", "\n");
-	lines = mr_split_into_lines(old_tags);
-	for( int i = 0; i < carray_count(lines); i++ ) {
-		char* tag  = (char*)carray_get(lines, i); mr_trim(tag);
-		if( strlen(tag) >= 4 && strcmp(tag, to_lookup) == 0 ) {
-			found = 1;
-		}
-	}
-
-	mr_free_splitted_lines(lines);
-	free(old_tags);
-	return found;
-}
 
 
 /*******************************************************************************
@@ -424,12 +376,21 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
-	// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
-	invitenumber  = mr_create_id();
-	auth          = mr_create_id();
-
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
+
+		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
+		invitenumber = mrtoken_lookup__(mailbox, MRT_INVITENUMBER, group_chat_id);
+		if( invitenumber == NULL ) {
+			invitenumber = mr_create_id();
+			mrtoken_save__(mailbox, MRT_INVITENUMBER, group_chat_id, invitenumber);
+		}
+
+		auth = mrtoken_lookup__(mailbox, MRT_AUTH, group_chat_id);
+		if( auth == NULL ) {
+			auth = mr_create_id();
+			mrtoken_save__(mailbox, MRT_AUTH, group_chat_id, auth);
+		}
 
 		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Not configured.");
@@ -437,9 +398,6 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 		}
 
 		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
-
-		store_tag__(mailbox, "secureJoin.invitenumbers", invitenumber);
-		store_tag__(mailbox, "secureJoin.auths", auth);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -658,7 +616,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		}
 
 		LOCK
-			if( lookup_tag__(mailbox, "secureJoin.invitenumbers", invitenumber) == 0 ) {
+			if( mrtoken_exists__(mailbox, MRT_INVITENUMBER, invitenumber) == 0 ) {
 				mrmailbox_log_warning(mailbox, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 				goto cleanup;
 			}
@@ -750,7 +708,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		}
 
 		LOCK
-			if( lookup_tag__(mailbox, "secureJoin.auths", auth) == 0 ) {
+			if( mrtoken_exists__(mailbox, MRT_AUTH, auth) == 0 ) {
 				mrsqlite3_unlock(mailbox->m_sql);
 				locked = 0;
 				could_not_establish_secure_connection(mailbox, contact_chat_id, "Auth invalid.");

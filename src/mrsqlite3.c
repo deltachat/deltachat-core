@@ -383,9 +383,15 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
-		#define NEW_DB_VERSION 38
+		#define NEW_DB_VERSION 39
 			if( dbversion < NEW_DB_VERSION )
 			{
+				mrsqlite3_execute__(ths, "CREATE TABLE tokens ("
+							" id INTEGER PRIMARY KEY,"
+							" namespc INTEGER DEFAULT 0,"
+							" foreign_id INTEGER DEFAULT 0,"
+							" token TEXT DEFAULT '',"
+							" timestamp INTEGER DEFAULT 0);");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified_key;");
 				mrsqlite3_execute__(ths, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
 				mrsqlite3_execute__(ths, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");

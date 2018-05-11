@@ -33,6 +33,7 @@ lib_src = [
   'mrsmtp.c',
   'mrsqlite3.c',
   'mrstock.c',
+  'mrtoken.c',
   'mrtools.c',
   'mruudecode.c',
 ]
