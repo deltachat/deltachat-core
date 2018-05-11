@@ -455,7 +455,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = mrmailbox_get_chat(mailbox, group_chat_id);
-		if( chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
+		if( chat == NULL || chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
 			mrmailbox_log_error(mailbox, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
