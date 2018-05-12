@@ -212,12 +212,9 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 int             mrmailbox_configure_and_connect(mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
-void            mrmailbox_push_connect      (mrmailbox_t*); // app in foreground
-void            mrmailbox_push_disconnect   (mrmailbox_t*); // app leaves foreground
-int             mrmailbox_pull              (mrmailbox_t*); // app in backgroup, returns the number of seconds when to pull again
-
-void            mrmailbox_connect           (mrmailbox_t*); // legacy
-void            mrmailbox_disconnect        (mrmailbox_t*); // legacy
+void            mrmailbox_connect           (mrmailbox_t*);
+void            mrmailbox_disconnect        (mrmailbox_t*);
+int             mrmailbox_pull              (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 

@@ -121,6 +121,42 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
 
 
 /**
+ * Check for changes in the mailbox. mrmailbox_pull() connects, checks and disconnects
+ * as fast as possible for this purpose. If there are new messages, you get them
+ * as usual through the event handler given to mrmailbox_new().
+ *
+ * The function may take a while until it returns, typically about 1 second
+ * but if connection is not possible, it may be much longer.  The caller may
+ * want to call mrmailbox_pull() from a non-ui thread therefore.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return Returns the number of seconds when this function should be called again.
+ */
+int mrmailbox_pull(mrmailbox_t* mailbox)
+{
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
+
+	// TODO: connect to IMAP and check the INBOX _without_ creating a separate thread.
+	#if 0
+	mrmailbox_connect_to_imap(mailbox, NULL);
+	if( !mrimap_is_connected(mailbox->m_imap) ) {
+		goto cleanup;
+	}
+
+	mrimap_disconnect(mailbox->m_imap);
+	#endif
+
+cleanup:
+	return 30;
+}
+
+
+/**
  * Stay alive.
  * The library tries itself to stay alive. For this purpose there is an additional
  * "heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
