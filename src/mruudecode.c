@@ -196,16 +196,6 @@ cleanup:
 }
 
 
-
-
-/**
- *  From here on new code from  Christian Schneider <schneider17@gmx.de>  follows
- *
- *  This is version 2 of the mruudecode.c which uses the api which is used in
- *  mrmimeparser.c or the original project.
- */ 
-
-
 /**
  *  Helper functions
  */
