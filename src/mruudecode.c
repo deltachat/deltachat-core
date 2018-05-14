@@ -77,13 +77,6 @@ int   mr_uudecode(char** ret_binary, size_t uudecoding_buffer_len, const char* u
 #define CR   "\r"   //13
 #define LF   "\n"   //10
 
-// prevent infinite loops
-#define MAX_DECODING_LOOPS 20
-
-
-// prevent infinite loops 
-static int      uu_part_loop_cnt    = 0;
-
 // keeps line end pattern for all functions
 static char*    line_end_pattern    = NULL;
 
@@ -126,8 +119,6 @@ static char*    line_end_pattern    = NULL;
  */
 char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename)
 {
-	// CAVE: This function may be called in a loop until it returns NULL, so make sure not to create an invinitive look.
-
 	if( text == NULL || ret_binary == NULL || ret_binary_bytes == NULL || ret_filename == NULL ) {
 		goto cleanup; // bad parameters
 	}
@@ -137,12 +128,6 @@ char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_byte
      */
     char* uustartpos    = NULL;
     char* ret_msg_text  = NULL; // NULL = no uuencoded parts are found (standard case)
-    
-    
-    if (++uu_part_loop_cnt > MAX_DECODING_LOOPS){
-        // fence against infinite loops
-        goto cleanup;
-    }
 
     if (line_end_pattern == NULL){
         // we are in the first loop -> init
@@ -185,12 +170,11 @@ char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_byte
     #endif
 
     return ret_msg_text;
-    
+
 
 cleanup:
     // reset globals
     line_end_pattern = NULL;
-    uu_part_loop_cnt = 0;
 
 	return NULL;
 }
