@@ -3569,10 +3569,10 @@ cleanup:
 
 
 /**
- * Add a single contact.
+ * Add a single contact as a result of an _explicit_ user action.
  *
  * We assume, the contact name, if any, is entered by the user and is used "as is" therefore,
- * mr_normalize_name() is _not_ called for the name.
+ * mr_normalize_name() is _not_ called for the name. If the contact is blocked, it is unblocked.
  *
  * To add a number of contacts, see mrmailbox_add_address_book() which is much faster for adding
  * a bunch of addresses.
@@ -3596,6 +3596,7 @@ uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const 
 {
 	uint32_t contact_id = 0;
 	int      sth_modified = 0;
+	int      blocked = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr == NULL || addr[0]==0 ) {
 		goto cleanup;
@@ -3605,9 +3606,15 @@ uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const 
 
 		contact_id = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_MANUALLY_CREATED, &sth_modified);
 
+		blocked = mrmailbox_is_contact_blocked__(mailbox, contact_id);
+
 	mrsqlite3_unlock(mailbox->m_sql);
 
 	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, sth_modified==CONTACT_CREATED? contact_id : 0, 0);
+
+	if( blocked ) {
+		mrmailbox_block_contact(mailbox, contact_id, 0);
+	}
 
 cleanup:
 	return contact_id;
