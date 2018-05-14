@@ -1134,28 +1134,33 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		case MR_MIMETYPE_FILE:
 		case MR_MIMETYPE_AC_SETUP_FILE:
 			{
-				/* get desired file name */
+				/* try to get file name from MIME-header `Content-Disposition: <disposition>; filename=<filename>` */
 				struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
-				clistiter* cur;
-				for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
-					struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
-					if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition ) {
+				for( clistiter* cur1 = clist_begin(mime->mm_mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1) )
+				{
+					struct mailmime_field* field = (struct mailmime_field*)clist_content(cur1);
+					if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition )
+					{
 						file_disposition = field->fld_data.fld_disposition;
+						if( file_disposition )
+						{
+							for( clistiter* cur2 = clist_begin(file_disposition->dsp_parms); cur2 != NULL; cur2 = clist_next(cur2) )
+							{
+								struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur2);
+								if( dsp_param )
+								{
+									if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
+										desired_filename = safe_strdup(dsp_param->pa_data.pa_filename);
+										break;
+									}
+								}
+							}
+						}
 						break;
 					}
 				}
 
-				if( file_disposition ) {
-					for( cur = clist_begin(file_disposition->dsp_parms); cur != NULL; cur = clist_next(cur) ) {
-						struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur);
-						if( dsp_param ) {
-							if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-								desired_filename = safe_strdup(dsp_param->pa_data.pa_filename);
-							}
-						}
-					}
-				}
-
+				/* try to get file name from MIME-header `Content-Type: <maintype>/<subtype>; name=<filename>` */
 				if( desired_filename==NULL ) {
 					struct mailmime_parameter* param = mailmime_find_ct_parameter(mime, "name");
 					if( param && param->pa_value && param->pa_value[0] ) {
@@ -1163,6 +1168,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					}
 				}
 
+				/* if there is still no filename, guess one */
 				if( desired_filename==NULL ) {
 					if( mime->mm_content_type && mime->mm_content_type->ct_subtype ) {
 						desired_filename = mr_mprintf("file.%s", mime->mm_content_type->ct_subtype);
