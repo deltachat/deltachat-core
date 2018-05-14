@@ -300,11 +300,17 @@ char* mr_mprintf(const char* format, ...)
 }
 
 
+/**
+ * Remove all `\r` characters from the given buffer.
+ * This function will not convert anything else in the future, so it can be used
+ * safely for marking thinks to remove by `\r` and call this function afterwards.
+ *
+ * @param buf The buffer to convert.
+ *
+ * @return None.
+ */
 void mr_remove_cr_chars(char* buf)
 {
-	/* remove all carriage return characters (`\r`) from the null-terminated buffer;
-	the buffer itself is modified for this purpose */
-
 	const char* p1 = buf; /* search for first `\r` */
 	while( *p1 ) {
 		if( *p1 == '\r' ) {
@@ -324,6 +330,27 @@ void mr_remove_cr_chars(char* buf)
 
 	/* add trailing null-byte */
 	*p2 = 0;
+}
+
+
+/**
+ * Unify the lineends in the given null-terminated buffer to a simple `\n` (LF, ^J).
+ * Carriage return characters (`\r`, CR, ^M) are removed.
+ *
+ * This function does _not_ convert only-CR linefeeds; AFAIK, they only came from
+ * Mac OS 9 and before and should not be in use  for nearly 20 year, so maybe this
+ * is no issue.  However, this could be easily added to the function as needed
+ * by converting all `\r` to `\n` if there is no single `\n` in the original buffer.
+ *
+ * @param buf The buffer to convert.
+ *
+ * @return None.
+ */
+void mr_unify_lineends(char* buf)
+{
+	// this function may be extended to do more linefeed unification, do not mess up
+	// with mr_remove_cr_chars() which does only exactly removing CR.
+	mr_remove_cr_chars(buf);
 }
 
 
