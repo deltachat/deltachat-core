@@ -3187,14 +3187,13 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 		}
 		else
 		{
-			if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
-				goto cleanup;
-			}
-
-			if( chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP
-			 && mrcontact_is_verified__(contact, peerstate)!=MRV_BIDIRECTIONAL ) {
-				mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
-				goto cleanup;
+			if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP )
+			{
+				if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
+				 || mrcontact_is_verified__(contact, peerstate) != MRV_BIDIRECTIONAL ) {
+					mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
+					goto cleanup;
+				}
 			}
 
 			if( 0==mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, contact_id) ) {
