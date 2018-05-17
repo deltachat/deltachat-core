@@ -557,7 +557,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 					grpimage = mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
 				}
 
-				if( mrparam_get_int(msg->m_param, MRP_CMD_PARAM2, 0) ) {
+				if( mrparam_get_int(msg->m_param, MRP_CMD_PARAM2, 0)&MR_FROM_HANDSHAKE ) {
 					mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
 				}

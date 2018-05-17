@@ -131,7 +131,10 @@ void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* 
 int             mrmailbox_get_thread_index                        (void);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
-int             mrmailbox_add_contact_to_chat4                    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id, int from_handshake);
+
+#define         MR_FROM_HANDSHAKE                                 0x01
+int             mrmailbox_add_contact_to_chat_ex                  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id, int flags);
+
 uint32_t        mrmailbox_get_chat_id_by_grpid__                  (mrmailbox_t*, const char* grpid, int* ret_blocked, int* ret_verified);
 
 

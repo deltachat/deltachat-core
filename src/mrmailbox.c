@@ -3139,7 +3139,7 @@ int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_
 }
 
 
-int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id, int from_handshake)
+int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id, int flags)
 {
 	int             success   = 0, locked = 0;
 	mrcontact_t*    contact   = mrmailbox_get_contact(mailbox, contact_id);
@@ -3166,7 +3166,7 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
-		if( from_handshake && mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
+		if( (flags&MR_FROM_HANDSHAKE) && mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
 			// after a handshake, force sending the `Chat-Group-Member-Added` message
 			mrparam_set(chat->m_param, MRP_UNPROMOTED, NULL);
 			mrchat_update_param__(chat);
@@ -3179,7 +3179,7 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 
 		if( mrmailbox_is_contact_in_chat__(mailbox, chat_id, contact_id) )
 		{
-			if( !from_handshake ) {
+			if( !(flags&MR_FROM_HANDSHAKE) ) {
 				success = 1;
 				goto cleanup;
 			}
@@ -3211,7 +3211,7 @@ int mrmailbox_add_contact_to_chat4(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
 		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,from_handshake); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
+		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -3252,7 +3252,7 @@ cleanup:
  */
 int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
-	return mrmailbox_add_contact_to_chat4(mailbox, chat_id, contact_id, 0);
+	return mrmailbox_add_contact_to_chat_ex(mailbox, chat_id, contact_id, 0);
 }
 
 

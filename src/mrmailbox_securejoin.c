@@ -744,7 +744,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 				goto cleanup;
 			}
 
-			mrmailbox_add_contact_to_chat4(mailbox, verified_chat_id, contact_id, 1/*from_handshake*/); // Alice -> Bob and all members
+			mrmailbox_add_contact_to_chat_ex(mailbox, verified_chat_id, contact_id, MR_FROM_HANDSHAKE); // Alice -> Bob and all members
 		}
 		else {
 			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm",
