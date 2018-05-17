@@ -27,40 +27,40 @@
 #include "mrsmtp.h"
 
 
-void mrmailbox_connect_to_imap(mrmailbox_t* ths, mrjob_t* job /*may be NULL if the function is called directly!*/)
+void mrmailbox_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
-	if( mrimap_is_connected(ths->m_imap) ) {
-		mrmailbox_log_info(ths, 0, "Already connected or trying to connect.");
+	if( mrimap_is_connected(mailbox->m_imap) ) {
+		mrmailbox_log_info(mailbox, 0, "Already connected or trying to connect.");
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(ths->m_sql);
+	mrsqlite3_lock(mailbox->m_sql);
 	is_locked = 1;
 
-		if( mrsqlite3_get_config_int__(ths->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_error(ths, 0, "Not configured.");
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
+			mrmailbox_log_error(mailbox, 0, "Not configured.");
 			goto cleanup;
 		}
 
-		mrloginparam_read__(param, ths->m_sql, "configured_" /*the trailing underscore is correct*/);
+		mrloginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-	mrsqlite3_unlock(ths->m_sql);
+	mrsqlite3_unlock(mailbox->m_sql);
 	is_locked = 0;
 
-	if( !mrimap_connect(ths->m_imap, param) ) {
+	if( !mrimap_connect(mailbox->m_imap, param) ) {
 		mrjob_try_again_later(job, MR_STANDARD_DELAY);
 		goto cleanup;
 	}
 
 cleanup:
-	if( is_locked ) { mrsqlite3_unlock(ths->m_sql); }
+	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrloginparam_unref(param);
 }
 
@@ -178,6 +178,6 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
 		return;
 	}
 
-	//mrmailbox_log_info(ths, 0, "<3 Mailbox");
+	//mrmailbox_log_info(mailbox, 0, "<3 Mailbox");
 	mrimap_heartbeat(mailbox->m_imap);
 }
