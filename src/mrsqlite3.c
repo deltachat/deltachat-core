@@ -162,7 +162,13 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		goto cleanup;
 	}
 
-	if( sqlite3_open(dbfile, &ths->m_cobj) != SQLITE_OK ) {
+	// Note: from 5/2018 we force serialized mode (SQLITE_OPEN_FULLMUTEX) explicitly.
+	// So, most of the explicit lock/unlocks on mrsqlite3_t object are no longer needed.
+	// However, locking is _also_ used for mrmailbox_t which _is_ still needed, so, we
+	// should remove locks only if we're really sure. If in doubt, leave the locking.
+	if( sqlite3_open_v2(dbfile, &ths->m_cobj,
+			SQLITE_OPEN_FULLMUTEX | ((flags&MR_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
+			NULL) != SQLITE_OK ) {
 		mrsqlite3_log_error(ths, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
 		goto cleanup;
 	}
