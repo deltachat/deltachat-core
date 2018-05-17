@@ -61,12 +61,12 @@ extern "C" {
  * mrmailbox_set_config(mailbox, "addr",    "alice@delta.chat"); // use some real test credentials here
  * mrmailbox_set_config(mailbox, "mail_pw", "***");
  *
- * mrmailbox_configure_and_connect(mailbox);
+ * mrmailbox_configure(mailbox);
+ * mrmailbox_connect();
  * ```
  *
- * mrmailbox_configure_and_connect() may take a while and saves the result in
- * the database. On subsequent starts, you can call mrmailbox_connect() instead
- * if mrmailbox_is_configured() returns true.
+ * mrmailbox_configure() may take a while and saves the result in
+ * the database. On subsequent starts, you can call mrmailbox_connect() directly.
  *
  * However, now you can send your first message:
  *
@@ -209,7 +209,7 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 
 
 // connect
-int             mrmailbox_configure_and_connect(mrmailbox_t*);
+int             mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_connect           (mrmailbox_t*);
@@ -328,6 +328,7 @@ int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* d
 #define         mrpoortext_unref            mrlot_unref
 #define         mrmailbox_imex_cancel       mrmailbox_stop_ongoing_process
 #define         mrmailbox_configure_cancel  mrmailbox_stop_ongoing_process
+int             mrmailbox_configure_and_connect(mrmailbox_t*);              // deprecated - use mrmailbox_configure() and mrmailbox_connect() instead
 
 
 #ifdef __cplusplus

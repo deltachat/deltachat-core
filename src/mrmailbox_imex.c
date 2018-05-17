@@ -1318,7 +1318,7 @@ cleanup:
  *         do {
  *             ask_user_for_credentials();
  *         }
- *         while( !mrmailbox_configure_and_connect(mailbox) )
+ *         while( !mrmailbox_configure(mailbox) )
  *     }
  *     free(file);
  * }

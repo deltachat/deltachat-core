@@ -72,7 +72,7 @@ extern "C" {
  * As most things are asynchrounous, things may go wrong at any time and the user
  * should not be disturbed by a dialog or so.  Instead, use a bubble or so.
  *
- * However, for ongoing processes (eg. mrmailbox_configure_and_connect())
+ * However, for ongoing processes (eg. mrmailbox_configure())
  * or for functions that are expected to fail (eg. mrmailbox_continue_key_transfer())
  * it might be better to delay showing these events until the function has really
  * failed (returned false). It should be sufficient to report only the _last_ error
@@ -177,7 +177,7 @@ extern "C" {
 
 
 /**
- * Inform about the configuration progress started by mrmailbox_configure_and_connect().
+ * Inform about the configuration progress started by mrmailbox_configure().
  *
  * @param data1 Permille
  *

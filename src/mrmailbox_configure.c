@@ -367,7 +367,7 @@ cleanup:
  * - Before your call this function, you should set at least `addr` and `mail_pw`
  *   using mrmailbox_set_config().
  *
- * - mrmailbox_configure_and_connect() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
+ * - mrmailbox_configure() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
  *   to stop the configuration progress, you can use mrmailbox_stop_ongoing_process().
  *
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
@@ -389,11 +389,11 @@ cleanup:
  *     mrmailbox_connect(mailbox); // fast, reuse the configuration
  * }
  * else {
- *     mrmailbox_configure_and_connect(mailbox); // may take a while, typically started in a thread
+ *     mrmailbox_configure(mailbox); // may take a while, typically started in a thread
  * }
  * ```
  */
-int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
+int mrmailbox_configure(mrmailbox_t* mailbox)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0;
@@ -689,7 +689,7 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( !success && imap_connected_here ) {
+	if( imap_connected_here ) {
 		mrimap_disconnect(mailbox->m_imap);
 	}
 	mrloginparam_unref(param);
@@ -701,18 +701,28 @@ cleanup:
 }
 
 
+int mrmailbox_configure_and_connect(mrmailbox_t* mailbox) // deprecated
+{
+	int success = mrmailbox_configure(mailbox);
+	if( success ) {
+		mrmailbox_connect(mailbox);
+	}
+	return success;
+}
+
+
 /**
  * Check if the mailbox is already configured.
  *
  * Typically, for unconfigured mailboxes, the user is prompeted for
- * to enter some settings and mrmailbox_configure_and_connect() is called in a thread then.
+ * to enter some settings and mrmailbox_configure() is called in a thread then.
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
  * @return 1=mailbox is configured and mrmailbox_connect() can be called directly as needed,
- *     0=mailbox is not configured and a configuration by mrmailbox_configure_and_connect() is required.
+ *     0=mailbox is not configured and a configuration by mrmailbox_configure() is required.
  */
 int mrmailbox_is_configured(mrmailbox_t* mailbox)
 {
@@ -788,7 +798,7 @@ void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
  * would be GUI-blocking and should be started in another thread then; this
  * would make things even more complicated.
  *
- * Typical ongoing processes are started by mrmailbox_configure_and_connect(),
+ * Typical ongoing processes are started by mrmailbox_configure(),
  * mrmailbox_initiate_key_transfer() or mrmailbox_imex(). As there is always at most only
  * one onging process at the same time, there is no need to define _which_ process to exit.
  *
