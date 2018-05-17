@@ -628,16 +628,23 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
 		int is_verified         =              sqlite3_column_int (stmt, 1);
 
-		if( !is_verified
-		 && mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
+		if( mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
 		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
-			// TODO: we have the chance here to update the verified key even if we
-			// already have a direct key - that may be older. we should check this.
-			mrmailbox_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
-			mrapeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
-			is_verified = 1;
+			// if we're here, we know the gossip key is verified:
+			// - use the gossip-key as verified-key if there is no verified-key
+			// - OR if the verified-key does not match public-key or gossip-key
+			//   (otherwise a verified key can _only_ be updated through QR scan which might be annoying,
+			//   see https://github.com/nextleap-project/countermitm/issues/46 for a discussion about this point)
+			if( !is_verified
+			 ||   (strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_public_key_fingerprint)!=0
+			    && strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_gossip_key_fingerprint)!=0) )
+			{
+				mrmailbox_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
+				mrapeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
+				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+				is_verified = 1;
+			}
 		}
 
 		if( !is_verified )
