@@ -1077,6 +1077,41 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 			}
 
+			/* get Message-ID; if the header is lacking one, generate one based on fields that do never change.
+			(missing Message-IDs may come if the mail was set from this account with another client that relies in the SMTP server to generate one.
+			true eg. for the Webmailer used in all-inkl-KAS) */
+			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
+				if( fld_message_id ) {
+					rfc724_mid = safe_strdup(fld_message_id->mid_value);
+				}
+			}
+
+			if( rfc724_mid == NULL ) {
+				rfc724_mid = mr_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
+				if( rfc724_mid == NULL ) {
+					mrmailbox_log_info(mailbox, 0, "Cannot create Message-ID.");
+					goto cleanup;
+				}
+			}
+
+			/* check, if the mail is already in our database - if so, just update the folder/uid (if the mail was moved around) and finish.
+			(we may get a mail twice eg. if it is moved between folders. make sure, this check is done eg. before securejoin-processing) */
+			{
+				char*    old_server_folder = NULL;
+				uint32_t old_server_uid = 0;
+				if( mrmailbox_rfc724_mid_exists__(mailbox, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
+						mrsqlite3_rollback__(mailbox->m_sql);
+						transaction_pending = 0;
+						mrmailbox_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
+					}
+					free(old_server_folder);
+					mrmailbox_log_info(mailbox, 0, "Message already in DB.");
+					goto cleanup;
+				}
+			}
+
 			/* check if the message introduces a new chat:
 			- outgoing messages introduce a chat with the first to: address if they are sent by a messenger
 			- incoming messages introduce a chat only for known contacts if they are sent by a messenger
@@ -1217,43 +1252,6 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 			/* unarchive chat */
 			mrmailbox_unarchive_chat__(mailbox, chat_id);
-
-			/* check, if the mail is already in our database - if so, there's nothing more to do
-			(we may get a mail twice eg. if it is moved between folders) */
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
-				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
-				if( fld_message_id ) {
-					rfc724_mid = safe_strdup(fld_message_id->mid_value);
-				}
-			}
-
-			if( rfc724_mid == NULL ) {
-				/* header is lacking a Message-ID - this may be the case, if the message was sent from this account and the mail client
-				the the SMTP-server set the ID (true eg. for the Webmailer used in all-inkl-KAS)
-				in these cases, we build a message ID based on some useful header fields that do never change (date, to)
-				we do not use the folder-local id, as this will change if the mail is moved to another folder. */
-				rfc724_mid = mr_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
-				if( rfc724_mid == NULL ) {
-					mrmailbox_log_info(mailbox, 0, "Cannot create Message-ID.");
-					goto cleanup;
-				}
-			}
-
-			{
-				char*    old_server_folder = NULL;
-				uint32_t old_server_uid = 0;
-				if( mrmailbox_rfc724_mid_exists__(mailbox, rfc724_mid, &old_server_folder, &old_server_uid) ) {
-					/* The message is already added to our database; rollback.  If needed, update the server_uid which may have changed if the message was moved around on the server. */
-					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
-						mrsqlite3_rollback__(mailbox->m_sql);
-						transaction_pending = 0;
-						mrmailbox_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
-					}
-					free(old_server_folder);
-					mrmailbox_log_info(mailbox, 0, "Message already in DB.");
-					goto cleanup;
-				}
-			}
 
 			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
 			(later, we move these replies to the Chats-folder) */
