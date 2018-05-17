@@ -453,7 +453,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"configure\n"
 				"connect\n"
 				"disconnect\n"
-				"pull\n"
+				"poll\n"
 				"help imex (Import/Export)\n"
 				"==============================Chat commands==\n"
 				"listchats [<query>]\n"
@@ -690,10 +690,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		mrmailbox_disconnect(mailbox);
 		ret = COMMAND_SUCCEEDED;
 	}
-	else if( strcmp(cmd, "pull")==0 )
+	else if( strcmp(cmd, "poll")==0 )
 	{
-		int seconds = mrmailbox_pull(mailbox);
-		ret = mr_mprintf("Should pull again in %i seconds.", seconds);
+		int seconds = mrmailbox_poll(mailbox);
+		ret = mr_mprintf("Should poll again in %i seconds.", seconds);
 	}
 	else if( strcmp(cmd, "info")==0 )
 	{

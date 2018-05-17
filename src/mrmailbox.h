@@ -214,7 +214,7 @@ int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_connect           (mrmailbox_t*);
 void            mrmailbox_disconnect        (mrmailbox_t*);
-int             mrmailbox_pull              (mrmailbox_t*);
+int             mrmailbox_poll              (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 

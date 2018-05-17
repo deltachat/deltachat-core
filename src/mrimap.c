@@ -1759,7 +1759,7 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 			{
 				mrmailbox_log_info(ths->m_mailbox, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, ths->m_moveto_folder);
 				/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
-				we will catch these messages again on the next pull, try to move them away and so on, see also (***) in mrmailbox.c */
+				we will catch these messages again on the next poll, try to move them away and so on, see also (***) in mrmailbox.c */
 			}
 			else if( ths->m_moveto_folder )
 			{

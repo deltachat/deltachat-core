@@ -68,7 +68,7 @@ cleanup:
 
 /**
  * Connect to the mailbox using the configured settings.  We connect using IMAP-IDLE or, if this is not possible,
- * a using pull algorithm.
+ * a using poll algorithm.
  *
  * @memberof mrmailbox_t
  *
@@ -121,13 +121,13 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
 
 
 /**
- * Check for changes in the mailbox. mrmailbox_pull() connects, checks and disconnects
+ * Check for changes in the mailbox. mrmailbox_poll() connects, checks and disconnects
  * as fast as possible for this purpose. If there are new messages, you get them
  * as usual through the event handler given to mrmailbox_new().
  *
  * The function may take a while until it returns, typically about 1 second
  * but if connection is not possible, it may be much longer.  The caller may
- * want to call mrmailbox_pull() from a non-ui thread therefore.
+ * want to call mrmailbox_poll() from a non-ui thread therefore.
  *
  * @memberof mrmailbox_t
  *
@@ -135,7 +135,7 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  *
  * @return Returns the number of seconds when this function should be called again.
  */
-int mrmailbox_pull(mrmailbox_t* mailbox)
+int mrmailbox_poll(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
