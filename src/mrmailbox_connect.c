@@ -131,30 +131,67 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  * but if connection is not possible, it may be much longer.  The caller may
  * want to call mrmailbox_poll() from a non-ui thread therefore.
  *
+ * If there is already a permanent push connection to the server, mrmailbox_poll()
+ * return 0 and does nothing.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
  *
- * @return Returns the number of seconds when this function should be called again.
+ * @return Returns the number of seconds when this function should be called again
+ *     or 0 on errors or if there is already a permanent connection.
  */
 int mrmailbox_poll(mrmailbox_t* mailbox)
 {
+	clock_t         start = clock();
+	int             poll_again_seconds = 0;
+	int             is_locked = 0;
+	int             connected_here = 0;
+	mrloginparam_t* param = mrloginparam_new();
+
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
-	// TODO: connect to IMAP and check the INBOX _without_ creating a separate thread.
-	#if 0
-	mrmailbox_connect_to_imap(mailbox, NULL);
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
+	mrmailbox_log_info(mailbox, 0, "Polling...");
+
+	if( mrimap_is_connected(mailbox->m_imap) ) {
+		mrmailbox_log_info(mailbox, 0, "Poll not needed, already connected or trying to connect.");
 		goto cleanup;
 	}
 
+	mrsqlite3_lock(mailbox->m_sql);
+	is_locked = 1;
+
+		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
+			mrmailbox_log_error(mailbox, 0, "Not configured.");
+			goto cleanup;
+		}
+
+		mrloginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
+
+	mrsqlite3_unlock(mailbox->m_sql);
+	is_locked = 0;
+
+	if( !mrimap_connect(mailbox->m_imap, param) ) {
+		goto cleanup;
+	}
+	connected_here = 1;
+
+	mrimap_fetch(mailbox->m_imap);
+
 	mrimap_disconnect(mailbox->m_imap);
-	#endif
+	connected_here = 0;
+
+	mrmailbox_log_info(mailbox, 0, "Poll finished in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+
+	poll_again_seconds = 30;
 
 cleanup:
-	return 30;
+	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( connected_here ) { mrimap_disconnect(mailbox->m_imap); }
+	mrloginparam_unref(param);
+	return poll_again_seconds;
 }
 
 

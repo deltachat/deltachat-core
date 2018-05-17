@@ -1577,11 +1577,8 @@ int mrimap_fetch(mrimap_t* ths)
 		return 0;
 	}
 
-	/* the following code has no effect in IDLE mode, however, it also does not disturb */
-	pthread_mutex_lock(&ths->m_watch_condmutex);
-		ths->m_watch_condflag = 1;
-		pthread_cond_signal(&ths->m_watch_cond);
-	pthread_mutex_unlock(&ths->m_watch_condmutex);
+	fetch_from_single_folder(ths, "INBOX");
+
 	return 1;
 }
 
