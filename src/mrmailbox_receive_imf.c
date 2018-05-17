@@ -623,7 +623,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 						 " WHERE c.id IN(%s) ",
 						 to_ids_str);
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
-	if( sqlite3_step(stmt)==SQLITE_ROW )
+	while( sqlite3_step(stmt)==SQLITE_ROW )
 	{
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
 		int is_verified         =              sqlite3_column_int (stmt, 1);
