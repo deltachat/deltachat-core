@@ -55,7 +55,8 @@ typedef struct mrimap_t
 	char*                 m_imap_pw;
 	int                   m_server_flags;
 
-	int                   m_connected; /* initally connected and watch thread installed */
+	int                   m_connected;
+	int                   m_watch_thread_started;
 	mailimap*             m_hEtpan;   /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
 	pthread_mutex_t       m_hEtpanmutex;
 	int                   m_idle_set_up;
@@ -104,6 +105,7 @@ int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
 void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
+void      mrimap_start_watch_thread(mrimap_t*);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 

@@ -59,6 +59,8 @@ void mrmailbox_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL 
 		goto cleanup;
 	}
 
+	mrimap_start_watch_thread(mailbox->m_imap);
+
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrloginparam_unref(param);

@@ -1369,13 +1369,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 			free(capinfostr.m_buf);
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Starting IMAP-watch-thread...");
-		ths->m_watch_do_exit = 0;
-
 	UNLOCK_HANDLE
-
-	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
-	pthread_create(&ths->m_heartbeat_thread, NULL, heartbeat_thread_entry_point, ths);
 
 	success = 1;
 
@@ -1388,9 +1382,35 @@ cleanup:
 }
 
 
+void mrimap_start_watch_thread(mrimap_t* ths)
+{
+	int handle_locked = 0;
+
+	if( ths == NULL ) {
+		goto cleanup;
+	}
+
+	mrmailbox_log_info(ths->m_mailbox, 0, "Starting IMAP-watch-thread...");
+
+	LOCK_HANDLE
+		if( !ths->m_connected || ths->m_watch_thread_started ) {
+			goto cleanup;
+		}
+		ths->m_watch_thread_started = 1;
+		ths->m_watch_do_exit        = 0;
+	UNLOCK_HANDLE
+
+	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
+	pthread_create(&ths->m_heartbeat_thread, NULL, heartbeat_thread_entry_point, ths);
+
+cleanup:
+	UNLOCK_HANDLE
+}
+
+
 void mrimap_disconnect(mrimap_t* ths)
 {
-	int handle_locked = 0, connected;
+	int handle_locked = 0, connected = 0, watch_thread_started = 0;
 
 	if( ths==NULL ) {
 		return;
@@ -1398,9 +1418,10 @@ void mrimap_disconnect(mrimap_t* ths)
 
 	LOCK_HANDLE
 		connected = (ths->m_hEtpan && ths->m_connected);
+		watch_thread_started = (ths->m_hEtpan && ths->m_watch_thread_started);
 	UNLOCK_HANDLE
 
-	if( connected )
+	if( watch_thread_started )
 	{
 		mrmailbox_log_info(ths->m_mailbox, 0, "Stopping IMAP-watch-thread...");
 
@@ -1431,8 +1452,15 @@ void mrimap_disconnect(mrimap_t* ths)
 			pthread_join(ths->m_watch_thread, NULL);
 			pthread_join(ths->m_heartbeat_thread, NULL);
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread stopped.");
+			LOCK_HANDLE
+				ths->m_watch_thread_started = 0;
+			UNLOCK_HANDLE
 
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread stopped.");
+	}
+
+	if( connected )
+	{
 		LOCK_HANDLE
 			unsetup_handle__(ths);
 			ths->m_can_idle  = 0;
