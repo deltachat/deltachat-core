@@ -377,20 +377,20 @@ cleanup:
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
  *
- * @return 1=configured and connected,
- *     0=not configured, not explicitly connected, however, an existing connection may still be present
+ * @return 1=configured successfully can connect with mrmailbox_connect()
+ *     0=configuration failed
  *
  * There is no need to call this every program start, the result is saved in the
  * database. Instead, you can use mrmailbox_connect() which reuses the configuration
  * and is much faster:
  *
  * ```
- * if( mrmailbox_is_configured(mailbox) ) {
- *     mrmailbox_connect(mailbox); // fast, reuse the configuration
+ * if( !mrmailbox_is_configured(mailbox) ) {
+ *     if( !mrmailbox_configure(mailbox) ) {
+ *         // show an error and/or try over
+ *     }
  * }
- * else {
- *     mrmailbox_configure(mailbox); // may take a while, typically started in a thread
- * }
+ * mrmailbox_connect(mailbox);
  * ```
  */
 int mrmailbox_configure(mrmailbox_t* mailbox)
