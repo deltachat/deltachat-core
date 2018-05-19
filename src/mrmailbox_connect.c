@@ -133,7 +133,7 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  *
  * If there is already a permanent push connection to the server, mrmailbox_poll()
  * return 0 and does nothing (permanent push connections are started and ended with mrmailbox_connect()
- * mrmailbox_disconnect())
+ * and mrmailbox_disconnect())
  *
  * @memberof mrmailbox_t
  *
