@@ -692,8 +692,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "poll")==0 )
 	{
-		int seconds = mrmailbox_poll(mailbox);
-		ret = mr_mprintf("Should poll again in %i seconds.", seconds);
+		ret = mrmailbox_poll(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "info")==0 )
 	{

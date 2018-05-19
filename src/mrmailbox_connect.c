@@ -127,24 +127,25 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  * as fast as possible for this purpose. If there are new messages, you get them
  * as usual through the event handler given to mrmailbox_new().
  *
- * The function may take a while until it returns, typically about 1 second
- * but if connection is not possible, it may be much longer.  The caller may
- * want to call mrmailbox_poll() from a non-ui thread therefore.
+ * Typically the function takes less than 1 second, however, for various reasons
+ * it may take much longer to connect-check-disconnect.  The caller should
+ * call mrmailbox_poll() from a non-ui thread therefore.
  *
  * If there is already a permanent push connection to the server, mrmailbox_poll()
- * return 0 and does nothing.
+ * return 0 and does nothing (permanent push connections are started and ended with mrmailbox_connect()
+ * mrmailbox_disconnect())
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
  *
- * @return Returns the number of seconds when this function should be called again
- *     or 0 on errors or if there is already a permanent connection.
+ * @return If polling was done, the function returns 1.
+ *     If polling was not done, eg. on errors or if there is already a permanent connection, the function returns 0.
  */
 int mrmailbox_poll(mrmailbox_t* mailbox)
 {
 	clock_t         start = clock();
-	int             poll_again_seconds = 0;
+	int             polling_done = 0;
 	int             is_locked = 0;
 	int             connected_here = 0;
 	mrloginparam_t* param = mrloginparam_new();
@@ -185,13 +186,13 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 
 	mrmailbox_log_info(mailbox, 0, "Poll finished in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
-	poll_again_seconds = 30;
+	polling_done = 1;
 
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( connected_here ) { mrimap_disconnect(mailbox->m_imap); }
 	mrloginparam_unref(param);
-	return poll_again_seconds;
+	return polling_done;
 }
 
 
