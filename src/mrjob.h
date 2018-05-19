@@ -26,7 +26,8 @@ extern "C" {
 #endif
 
 
-#define MRJ_DELETE_MSG_ON_IMAP     100    /* low priority ... */
+#define MRJ_DISCONNECT              50    /* low priority ... */
+#define MRJ_DELETE_MSG_ON_IMAP     100
 #define MRJ_MARKSEEN_MDN_ON_IMAP   102
 #define MRJ_SEND_MDN               105
 #define MRJ_MARKSEEN_MSG_ON_IMAP   110
@@ -52,7 +53,7 @@ typedef struct mrjob_t
 void     mrjob_init_thread     (mrmailbox_t*);
 void     mrjob_exit_thread     (mrmailbox_t*);
 uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const char* param, int delay); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
-void     mrjob_kill_action__   (mrmailbox_t*, int action); /* delete all pending jobs with the given action */
+void     mrjob_kill_actions__  (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
 
 #define  MR_AT_ONCE            0
 #define  MR_INCREATION_POLL    2 /* this value does not increase the number of tries */

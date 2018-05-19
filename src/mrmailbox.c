@@ -253,7 +253,7 @@ int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir
 		if( !mrsqlite3_open__(mailbox->m_sql, dbfile, 0) ) {
 			goto cleanup;
 		}
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
+		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 		/* backup dbfile name */
 		mailbox->m_dbfile = safe_strdup(dbfile);
@@ -1975,7 +1975,7 @@ void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* connect to IMAP-server */
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_connect_to_imap(mailbox, NULL);
+		mrmailbox_ll_connect_to_imap(mailbox, NULL);
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
 			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
@@ -4742,7 +4742,7 @@ void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	if( delete_from_server )
 	{
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrmailbox_connect_to_imap(mailbox, NULL);
+			mrmailbox_ll_connect_to_imap(mailbox, NULL);
 			if( !mrimap_is_connected(mailbox->m_imap) ) {
 				mrjob_try_again_later(job, MR_STANDARD_DELAY);
 				goto cleanup;
@@ -4869,7 +4869,7 @@ void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	int      in_ms_flags = 0, out_ms_flags = 0;
 
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_connect_to_imap(mailbox, NULL);
+		mrmailbox_ll_connect_to_imap(mailbox, NULL);
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
 			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;
@@ -4939,7 +4939,7 @@ void mrmailbox_markseen_mdn_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
 	int      out_ms_flags = 0;
 
 	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_connect_to_imap(mailbox, NULL);
+		mrmailbox_ll_connect_to_imap(mailbox, NULL);
 		if( !mrimap_is_connected(mailbox->m_imap) ) {
 			mrjob_try_again_later(job, MR_STANDARD_DELAY);
 			goto cleanup;

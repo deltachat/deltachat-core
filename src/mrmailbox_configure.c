@@ -397,6 +397,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0;
+	int             recreate_job_thread = 0;
 
 	mrloginparam_t* param = NULL;
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -421,7 +422,9 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	}
 
 	/* disconnect */
-	mrmailbox_disconnect(mailbox);
+	mrjob_exit_thread(mailbox);
+	recreate_job_thread = 1;
+	mrmailbox_ll_disconnect(mailbox, NULL);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -429,7 +432,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
+		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -697,6 +700,8 @@ cleanup:
 	free(param_addr_urlencoded);
 
 	mrmailbox_free_ongoing(mailbox);
+
+	if( recreate_job_thread ) { mrjob_init_thread(mailbox); }
 	return success;
 }
 

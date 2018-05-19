@@ -128,7 +128,8 @@ static void* job_thread_entry_point(void* entry_arg)
 			mrmailbox_log_info(mailbox, 0, "Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
 			job.m_start_again_at = 0;
 			switch( job.m_action ) {
-				case MRJ_CONNECT_TO_IMAP:      mrmailbox_connect_to_imap      (mailbox, &job); break;
+				case MRJ_CONNECT_TO_IMAP:      mrmailbox_ll_connect_to_imap   (mailbox, &job); break;
+				case MRJ_DISCONNECT:           mrmailbox_ll_disconnect        (mailbox, &job); break;
                 case MRJ_SEND_MSG_TO_SMTP:     mrmailbox_send_msg_to_smtp     (mailbox, &job); break;
                 case MRJ_SEND_MSG_TO_IMAP:     mrmailbox_send_msg_to_imap     (mailbox, &job); break;
                 case MRJ_DELETE_MSG_ON_IMAP:   mrmailbox_delete_msg_on_imap   (mailbox, &job); break;
@@ -231,7 +232,7 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 {
-	if( ths == NULL ) { /* may be NULL if called eg. from mrmailbox_connect_to_imap() */
+	if( ths == NULL ) {
 		return;
 	}
 
@@ -265,15 +266,16 @@ void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 }
 
 
-void mrjob_kill_action__(mrmailbox_t* mailbox, int action)
+void mrjob_kill_actions__(mrmailbox_t* mailbox, int action1, int action2)
 {
 	if( mailbox == NULL ) {
 		return;
 	}
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_jobs_WHERE_action,
-		"DELETE FROM jobs WHERE action=?;");
-	sqlite3_bind_int(stmt, 1, action);
+		"DELETE FROM jobs WHERE action=? OR action=?;");
+	sqlite3_bind_int(stmt, 1, action1);
+	sqlite3_bind_int(stmt, 2, action2);
 	sqlite3_step(stmt);
 }
 

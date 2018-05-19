@@ -27,7 +27,7 @@
 #include "mrsmtp.h"
 
 
-void mrmailbox_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
+void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
@@ -67,6 +67,16 @@ cleanup:
 }
 
 
+void mrmailbox_ll_disconnect(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
+{
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+
+	mrimap_disconnect(mailbox->m_imap);
+	mrsmtp_disconnect(mailbox->m_smtp);
+}
+
 
 /**
  * Connect to the mailbox using the configured settings.  We connect using IMAP-IDLE or, if this is not possible,
@@ -89,7 +99,7 @@ void mrmailbox_connect(mrmailbox_t* mailbox)
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
 
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
+		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL, 0);
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -98,6 +108,9 @@ void mrmailbox_connect(mrmailbox_t* mailbox)
 
 /**
  * Disonnect the mailbox from the server.
+ * This function adds a job to disconnect the mailbox from the server.
+ * The disconnect job has a lower priority, so that pending sending etc. are
+ * executed before. During this time calls to mrmailbox_pull() will return 0.
  *
  * @memberof mrmailbox_t
  *
@@ -113,12 +126,10 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		mrjob_kill_action__(mailbox, MRJ_CONNECT_TO_IMAP);
+		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
+		mrjob_add__(mailbox, MRJ_DISCONNECT, 0, NULL, 0);
 
 	mrsqlite3_unlock(mailbox->m_sql);
-
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
 }
 
 
@@ -133,7 +144,7 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  *
  * If there is already a permanent push connection to the server, mrmailbox_poll()
  * return 0 and does nothing (permanent push connections are started and ended with mrmailbox_connect()
- * and mrmailbox_disconnect())
+ * and mrmailbox_disconnect()).
  *
  * @memberof mrmailbox_t
  *
