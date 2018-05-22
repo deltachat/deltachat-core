@@ -396,7 +396,7 @@ cleanup:
 int mrmailbox_configure(mrmailbox_t* mailbox)
 {
 	int             success = 0, locked = 0, i;
-	int             imap_connected_here = 0;
+	int             imap_connected_here = 0, smtp_connected_here = 0;
 	int             recreate_job_thread = 0;
 
 	mrloginparam_t* param = NULL;
@@ -653,6 +653,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	if( !mrimap_connect(mailbox->m_imap, param) ) {
 		goto cleanup;
 	}
+
 	imap_connected_here = 1;
 
 	PROGRESS(800)
@@ -675,6 +676,8 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		}
 	}
 
+	smtp_connected_here = 1;
+
 	PROGRESS(900)
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
@@ -690,11 +693,13 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	success = 1;
 	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
+	PROGRESS(950)
+
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( imap_connected_here ) {
-		mrimap_disconnect(mailbox->m_imap);
-	}
+
+	if( imap_connected_here ) { mrimap_disconnect(mailbox->m_imap); }
+	if( smtp_connected_here ) { mrsmtp_disconnect(mailbox->m_smtp); }
 	mrloginparam_unref(param);
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
