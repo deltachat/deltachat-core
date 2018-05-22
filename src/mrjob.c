@@ -179,6 +179,9 @@ exit_:
 
 void mrjob_init_thread(mrmailbox_t* mailbox)
 {
+	mailbox->m_job_condflag = 0;
+	mailbox->m_job_do_exit = 0;
+
 	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
     pthread_cond_init(&mailbox->m_job_cond, NULL);
     pthread_create(&mailbox->m_job_thread, NULL, job_thread_entry_point, mailbox);
