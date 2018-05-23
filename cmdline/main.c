@@ -35,6 +35,10 @@ all further options can be set using the set-command (type ? for help). */
 #include "stress.h"
 
 
+#define ANSI_RED    "\e[31m"
+#define ANSI_NORMAL "\e[0m"
+
+
 static char* read_cmd(void)
 {
 	printf("> ");
@@ -74,7 +78,7 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 			break;
 
 		case MR_EVENT_ERROR:
-			printf("[ERROR #%i] %s\n", (int)data1, (char*)data2);
+			printf(ANSI_RED "[ERROR #%i] %s" ANSI_NORMAL "\n", (int)data1, (char*)data2);
 			break;
 
 		case MR_EVENT_HTTP_GET:
