@@ -45,7 +45,7 @@ void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NU
 	is_locked = 1;
 
 		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_error(mailbox, 0, "Not configured.");
+			mrmailbox_log_warning(mailbox, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
 			goto cleanup;
 		}
 
@@ -176,7 +176,7 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 	is_locked = 1;
 
 		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_error(mailbox, 0, "Not configured.");
+			mrmailbox_log_warning(mailbox, 0, "Not configured, cannot poll."); // this is no error, pull() is called eg. from a timer, it's okay if the caller does not check all circumstances here
 			goto cleanup;
 		}
 

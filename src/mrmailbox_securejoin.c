@@ -393,7 +393,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 		}
 
 		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Not configured.");
+			mrmailbox_log_error(mailbox, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
