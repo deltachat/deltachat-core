@@ -368,14 +368,19 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
 				mrkey_t* key_to_use = NULL;
-				if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
-				 && (key_to_use=mrapeerstate_peek_key(peerstate, min_verified)) != NULL
-				 && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
+				if( strcasecmp(recipient_addr, autocryptheader->m_addr) == 0 )
+				{
+					; // encrypt to SELF, this key is added below
+				}
+				else if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
+				      && (key_to_use=mrapeerstate_peek_key(peerstate, min_verified)) != NULL
+				      && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					mrkeyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					mrarray_add_ptr(peerstates, peerstate);
 				}
-				else {
+				else
+				{
 					mrapeerstate_unref(peerstate);
 					do_encrypt = 0;
 					break; /* if we cannot encrypt to a single recipient, we cannot encrypt the message at all */
