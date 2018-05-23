@@ -157,6 +157,11 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		goto cleanup;
 	}
 
+	if( sqlite3_threadsafe() == 0 ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
+		goto cleanup;
+	}
+
 	if( ths->m_cobj ) {
 		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
