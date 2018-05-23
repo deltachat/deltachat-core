@@ -35,8 +35,11 @@ static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do no
 	int           ret = -1;
 	sqlite3_stmt* stmt;
 
-	mrsqlite3_lock(mailbox->m_sql);
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MIN_d_FROM_jobs, "SELECT MIN(desired_timestamp) FROM jobs;");
+	// do not call mrsqlite3_lock() here as this is already locked by the caller of mrjob_add__()
+	// this avoids letting mrjob_add__() having sqlite3mutex allocated while waiting for condmutex - and the jobthreads has condmutex and waits for sqlite3mutex
+	// (a lock is not required as sqlite3 is opened in serialized mode and we use SELECT_MIN_d_FROM_jobs only from the same thread)
+		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MIN_d_FROM_jobs,
+			"SELECT MIN(desired_timestamp) FROM jobs;");
 		if( stmt && sqlite3_step(stmt) == SQLITE_ROW )
 		{
 			if( sqlite3_column_type(stmt, 0)!=SQLITE_NULL )
@@ -51,7 +54,7 @@ static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do no
 				}
 			}
 		}
-	mrsqlite3_unlock(mailbox->m_sql);
+	// /lock not required
 
 	return ret;
 }
@@ -177,18 +180,22 @@ exit_:
  ******************************************************************************/
 
 
-void mrjob_init_thread(mrmailbox_t* mailbox)
+void mrjob_init(mrmailbox_t* mailbox)
 {
-	mailbox->m_job_condflag = 0;
-	mailbox->m_job_do_exit = 0;
-
 	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
-    pthread_cond_init(&mailbox->m_job_cond, NULL);
-    pthread_create(&mailbox->m_job_thread, NULL, job_thread_entry_point, mailbox);
+	pthread_cond_init(&mailbox->m_job_cond, NULL);
 }
 
 
-void mrjob_exit_thread(mrmailbox_t* mailbox)
+void mrjob_start_thread(mrmailbox_t* mailbox)
+{
+	mailbox->m_job_condflag = 0;
+	mailbox->m_job_do_exit = 0;
+	pthread_create(&mailbox->m_job_thread, NULL, job_thread_entry_point, mailbox);
+}
+
+
+void mrjob_stop_thread(mrmailbox_t* mailbox)
 {
 	pthread_mutex_lock(&mailbox->m_job_condmutex);
 		mailbox->m_job_condflag = 1;
@@ -197,6 +204,11 @@ void mrjob_exit_thread(mrmailbox_t* mailbox)
 	pthread_mutex_unlock(&mailbox->m_job_condmutex);
 
 	pthread_join(mailbox->m_job_thread, NULL);
+}
+
+
+void mrjob_exit(mrmailbox_t* mailbox)
+{
 	pthread_cond_destroy(&mailbox->m_job_cond);
 	pthread_mutex_destroy(&mailbox->m_job_condmutex);
 }

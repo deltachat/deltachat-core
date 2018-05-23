@@ -477,9 +477,10 @@ int mrsqlite3_is_open(const mrsqlite3_t* ths)
 
 sqlite3_stmt* mrsqlite3_predefine__(mrsqlite3_t* ths, size_t idx, const char* querystr)
 {
-	/* predefines a statement or resets and reuses a statement.
-	Subsequent call may ommit the querystring.
-	CAVE: you must not call this function with different strings for the same index! */
+	/* Predefines a statement or resets and reuses a statement.
+
+	The same idx MUST NOT be used at the same time from different threads and
+	you MUST NOT call this function with different strings for the same index. */
 
 	if( ths == NULL || ths->m_cobj == NULL || idx >= PREDEFINED_CNT ) {
 		return NULL;

@@ -397,7 +397,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0;
-	int             recreate_job_thread = 0;
+	int             restart_job_thread = 0;
 
 	mrloginparam_t* param = NULL;
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -422,8 +422,8 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	}
 
 	/* disconnect */
-	mrjob_exit_thread(mailbox);
-	recreate_job_thread = 1;
+	mrjob_stop_thread(mailbox);
+	restart_job_thread = 1;
 	mrmailbox_ll_disconnect(mailbox, NULL);
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -706,7 +706,7 @@ cleanup:
 
 	mrmailbox_free_ongoing(mailbox);
 
-	if( recreate_job_thread ) { mrjob_init_thread(mailbox); }
+	if( restart_job_thread ) { mrjob_start_thread(mailbox); }
 	return success;
 }
 

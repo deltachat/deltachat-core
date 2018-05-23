@@ -118,7 +118,8 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 	ths->m_smtp     = mrsmtp_new(ths);
 	ths->m_os_name  = strdup_keep_null(os_name);
 
-	mrjob_init_thread(ths);
+	mrjob_init(ths);
+	mrjob_start_thread(ths);
 
 	mrpgp_init(ths);
 
@@ -162,7 +163,8 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 
 	mrpgp_exit(mailbox);
 
-	mrjob_exit_thread(mailbox);
+	mrjob_stop_thread(mailbox);
+	mrjob_exit(mailbox);
 
 	if( mrmailbox_is_open(mailbox) ) {
 		mrmailbox_close(mailbox);
