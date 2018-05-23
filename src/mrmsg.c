@@ -761,7 +761,7 @@ int mrmsg_is_forwarded(const mrmsg_t* msg)
 
 /**
  * Check if the message is an informational message, created by the
- * device or by another users. Suche messages are not "typed" by the user but
+ * device or by another users. Such messages are not "typed" by the user but
  * created due to other actions, eg. mrmailbox_set_chat_name(), mrmailbox_set_chat_profile_image()
  * or mrmailbox_add_contact_to_chat().
  *
