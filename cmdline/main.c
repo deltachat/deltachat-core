@@ -36,6 +36,7 @@ all further options can be set using the set-command (type ? for help). */
 
 
 #define ANSI_RED    "\e[31m"
+#define ANSI_YELLOW "\e[33m"
 #define ANSI_NORMAL "\e[0m"
 
 
@@ -97,31 +98,35 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 			}
 
 		case MR_EVENT_IS_OFFLINE:
-			printf("{{Received MR_EVENT_IS_OFFLINE()}}\n");
+			printf(ANSI_YELLOW "{{Received MR_EVENT_IS_OFFLINE()}}\n" ANSI_NORMAL);
 			break;
 
 		case MR_EVENT_MSGS_CHANGED:
-			printf("{{Received MR_EVENT_MSGS_CHANGED(%i, %i)}}\n", (int)data1, (int)data2);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_MSGS_CHANGED(%i, %i)}}\n" ANSI_NORMAL, (int)data1, (int)data2);
 			break;
 
 		case MR_EVENT_CONTACTS_CHANGED:
-			printf("{{Received MR_EVENT_CONTACTS_CHANGED()}}\n");
+			printf(ANSI_YELLOW "{{Received MR_EVENT_CONTACTS_CHANGED()}}\n" ANSI_NORMAL);
 			break;
 
 		case MR_EVENT_CONFIGURE_PROGRESS:
-			printf("{{Received MR_EVENT_CONFIGURE_PROGRESS(%i ‰)}}\n", (int)data1);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_CONFIGURE_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
 		case MR_EVENT_IMEX_PROGRESS:
-			printf("{{Received MR_EVENT_IMEX_PROGRESS(%i ‰)}}\n", (int)data1);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_IMEX_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
 		case MR_EVENT_IMEX_FILE_WRITTEN:
-			printf("{{Received MR_EVENT_IMEX_FILE_WRITTEN(%s)}}\n", (char*)data1);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_IMEX_FILE_WRITTEN(%s)}}\n" ANSI_NORMAL, (char*)data1);
+			break;
+
+		case MR_EVENT_CHAT_MODIFIED:
+			printf(ANSI_YELLOW "{{Received MR_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (char*)data1);
 			break;
 
 		default:
-			printf("{{Received MR_EVENT_%i(%i, %i)}}\n", (int)event, (int)data1, (int)data2);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_%i(%i, %i)}}\n" ANSI_NORMAL, (int)event, (int)data1, (int)data2);
 			break;
 	}
 	return 0;
