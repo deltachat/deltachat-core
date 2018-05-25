@@ -412,6 +412,14 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf1 = mr_create_id();
 		assert( strlen(buf1) == MR_CREATE_ID_LEN );
 		free(buf1);
+
+		buf1 = mr_decode_header_string("=?utf-8?B?dGVzdMOkw7bDvC50eHQ=?=");
+		assert( strcmp(buf1, "testäöü.txt")==0 );
+		free(buf1);
+
+		buf1 = mr_decode_header_string("just ascii test");
+		assert( strcmp(buf1, "just ascii test")==0 );
+		free(buf1);
 	}
 
 	/* test mrarray_t

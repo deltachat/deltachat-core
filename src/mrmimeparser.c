@@ -1150,7 +1150,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 								if( dsp_param )
 								{
 									if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-										desired_filename = safe_strdup(dsp_param->pa_data.pa_filename);
+										desired_filename = mr_decode_header_string(dsp_param->pa_data.pa_filename); // additional decoding needed, see #162
 										break;
 									}
 								}
@@ -1164,7 +1164,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				if( desired_filename==NULL ) {
 					struct mailmime_parameter* param = mailmime_find_ct_parameter(mime, "name");
 					if( param && param->pa_value && param->pa_value[0] ) {
-						desired_filename = safe_strdup(param->pa_value);
+						desired_filename = safe_strdup(param->pa_value);// is already decoded, see #162
 					}
 				}
 
