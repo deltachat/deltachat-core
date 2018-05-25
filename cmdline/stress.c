@@ -420,6 +420,17 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf1 = mr_decode_header_string("just ascii test");
 		assert( strcmp(buf1, "just ascii test")==0 );
 		free(buf1);
+
+		buf1 = mr_encode_header_string("abcdef");
+		assert( strcmp(buf1, "abcdef")==0 );
+		free(buf1);
+
+		buf1 = mr_encode_header_string("testäöü.txt");
+		assert( strncmp(buf1, "=?utf-8", 7)==0 );
+		buf2 = mr_decode_header_string(buf1);
+		assert( strcmp("testäöü.txt", buf2)==0 );
+		free(buf1);
+		free(buf2);
 	}
 
 	/* test mrarray_t
