@@ -328,6 +328,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_nam
 	char* mimetype = mrparam_get(msg->m_param, MRP_MIMETYPE, NULL);
 	char* suffix = mr_get_filesuffix_lc(pathNfilename);
 	char* filename_to_send = NULL;
+	char* filename_encoded = NULL;
 
 	if( pathNfilename == NULL ) {
 		goto cleanup;
@@ -398,6 +399,7 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_nam
 	}
 
 	content = mailmime_content_new_with_str(mimetype);
+	clist_append(content->ct_parameters, mailmime_param_new_with_data("name", (filename_encoded=mr_encode_header_string(filename_to_send))));
 
 	mime_sub = mailmime_new_empty(content, mime_fields);
 
@@ -407,6 +409,7 @@ cleanup:
 	free(pathNfilename);
 	free(mimetype);
 	free(filename_to_send);
+	free(filename_encoded);
 	free(suffix);
 	return mime_sub;
 }
