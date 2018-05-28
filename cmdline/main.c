@@ -122,7 +122,7 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 			break;
 
 		case MR_EVENT_CHAT_MODIFIED:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (char*)data1);
+			printf(ANSI_YELLOW "{{Received MR_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
 		default:
