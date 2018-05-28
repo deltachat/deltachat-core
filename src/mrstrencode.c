@@ -489,7 +489,7 @@ char* mr_encode_ext_header(const char* to_encode)
 	const char *pstr = to_encode;
 
 	if( to_encode == NULL ) {
-		return safe_strdup("");
+		return safe_strdup(PREFIX);
 	}
 
 	char *buf = malloc(strlen(PREFIX) + strlen(to_encode) * 3 + 1);
