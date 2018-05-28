@@ -23,11 +23,7 @@ update_libetpan() {
 	# copy docs
 
 	rm                   libetpan/*
-	cp $SRCDIR/AUTHORS   libetpan/
 	cp $SRCDIR/COPYRIGHT libetpan/
-	cp $SRCDIR/ChangeLog libetpan/
-	cp $SRCDIR/NEWS      libetpan/
-	cp $SRCDIR/README.md libetpan/
 
 	# copy source
 	
@@ -68,6 +64,7 @@ update_libetpan() {
 	rm libetpan/src/low-level/maildir/*.c
 	rm libetpan/src/low-level/mbox/*.c
 	rm libetpan/src/low-level/mh/*.c
+	rm libetpan/src/low-level/nntp/*.c
 	rm libetpan/src/low-level/pop3/*.c
 
 	# copy includes 

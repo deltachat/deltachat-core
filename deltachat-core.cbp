@@ -363,15 +363,6 @@
 		<Unit filename="libs/libetpan/src/low-level/mime/mailmime_write_mem.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp_socket.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="libs/libetpan/src/low-level/nntp/newsnntp_ssl.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="libs/libetpan/src/low-level/smtp/mailsmtp.c">
 			<Option compilerVar="CC" />
 		</Unit>
