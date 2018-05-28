@@ -27,6 +27,7 @@
 #include "mrtools.h"
 #include "mrdehtml.h"
 #include "mrmimeparser.h"
+#include "mrstrbuilder.h"
 
 
 /*******************************************************************************

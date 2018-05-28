@@ -20,33 +20,30 @@
  ******************************************************************************/
 
 
-#ifndef __MRMAILBOX_INTERNAL_H__
-#define __MRMAILBOX_INTERNAL_H__
+#ifndef __MRSTRBUILDER_H__
+#define __MRSTRBUILDER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/* Includes that are used frequently.  This file may also be used to create predefined headers. */
-#include "mrmailbox.h"
-#include <stdlib.h>
-#include <string.h>
-#include "mrsqlite3.h"
-#include "mrtools.h"
-#include "mrstrbuilder.h"
-#include "mrparam.h"
-#include "mrstock.h"
-#include "mrarray-private.h"
-#include "mrchat-private.h"
-#include "mrchatlist-private.h"
-#include "mrlot-private.h"
-#include "mrmsg-private.h"
-#include "mrcontact-private.h"
-#include "mrmailbox-private.h"
+typedef struct mrstrbuilder_t
+{
+	char* m_buf;
+	int   m_allocated;
+	int   m_free;
+	char* m_eos;
+} mrstrbuilder_t;
+
+
+void  mrstrbuilder_init    (mrstrbuilder_t* ths, int init_bytes);
+char* mrstrbuilder_cat     (mrstrbuilder_t* ths, const char* text);
+void  mrstrbuilder_catf    (mrstrbuilder_t* ths, const char* format, ...);
+void  mrstrbuilder_empty   (mrstrbuilder_t* ths);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMAILBOX_INTERNAL_H__ */
+#endif /* __MRSTRBUILDER_H__ */
 

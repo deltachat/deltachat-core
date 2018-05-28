@@ -531,6 +531,9 @@
 		<Unit filename="src/mrstock.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/mrstrbuilder.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/mrtoken.c">
 			<Option compilerVar="CC" />
 		</Unit>

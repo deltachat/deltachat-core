@@ -68,6 +68,7 @@ lib_hdr = [
   'mrsmtp.h',
   'mrsqlite3.h',
   'mrstock.h',
+  'mrstrbuilder.h',
   'mrtools.h',
 ]
 lib_inc = include_directories('.')

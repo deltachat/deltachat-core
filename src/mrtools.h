@@ -69,20 +69,6 @@ char*   mr_url_encode              (const char*); /* the result must be free()'d
 char*   mr_url_decode              (const char*); /* the result must be free()'d */
 char*   encode_base64              (const char * in, int len); /* prototype, from libetpan/src/data-types/base64.h which cannot be included without adding libetpan/src/... to the include-search-paths, which would result in double-file-name-errors */
 
-/* string builder */
-typedef struct mrstrbuilder_t
-{
-	char* m_buf;
-	int   m_allocated;
-	int   m_free;
-	char* m_eos;
-} mrstrbuilder_t;
-void  mrstrbuilder_init    (mrstrbuilder_t* ths, int init_bytes);
-char* mrstrbuilder_cat     (mrstrbuilder_t* ths, const char* text);
-void  mrstrbuilder_catf    (mrstrbuilder_t* ths, const char* format, ...);
-void  mrstrbuilder_empty   (mrstrbuilder_t* ths); /* set the string to a lenght of 0, does not free the buffer */
-
-
 /* clist tools */
 void    clist_free_content         (const clist*); /* calls free() for each item content */
 int     clist_search_string_nocase (const clist*, const char* str);

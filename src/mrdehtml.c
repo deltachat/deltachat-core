@@ -26,6 +26,7 @@
 #include "mrdehtml.h"
 #include "mrsaxparser.h"
 #include "mrtools.h"
+#include "mrstrbuilder.h"
 
 
 
