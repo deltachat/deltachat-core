@@ -33,7 +33,6 @@ update_libetpan() {
 	
 	rm -r libetpan/src/*
 	
-	cp_sources $SRCDIR "src/bsd"
 	cp_sources $SRCDIR "src/data-types"
 	cp_sources $SRCDIR "src/driver"
 	cp_sources $SRCDIR "src/driver/implementation/data-message"
@@ -61,6 +60,15 @@ update_libetpan() {
 	cp_sources $SRCDIR "src/low-level/pop3"
 	cp_sources $SRCDIR "src/low-level/smtp"
 	cp_sources $SRCDIR "src/main"
+
+	rm libetpan/src/driver/tools/*.c
+	rm libetpan/src/engine/mailprivacy_gnupg.c
+	rm libetpan/src/engine/mailprivacy_smime.c
+	rm libetpan/src/low-level/feed/*.c
+	rm libetpan/src/low-level/maildir/*.c
+	rm libetpan/src/low-level/mbox/*.c
+	rm libetpan/src/low-level/mh/*.c
+	rm libetpan/src/low-level/pop3/*.c
 
 	# copy includes 
 	# (in the include directory there are just links to the source directory)
