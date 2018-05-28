@@ -20,34 +20,21 @@
  ******************************************************************************/
 
 
-#ifndef __MRMAILBOX_INTERNAL_H__
-#define __MRMAILBOX_INTERNAL_H__
+#ifndef __MRSTRENCODE_H__
+#define __MRSTRENCODE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+char*   mr_urlencode              (const char*);
+char*   mr_urldecode              (const char*);
 
-/* Includes that are used frequently.  This file may also be used to create predefined headers. */
-#include "mrmailbox.h"
-#include <stdlib.h>
-#include <string.h>
-#include "mrsqlite3.h"
-#include "mrtools.h"
-#include "mrstrbuilder.h"
-#include "mrstrencode.h"
-#include "mrparam.h"
-#include "mrstock.h"
-#include "mrarray-private.h"
-#include "mrchat-private.h"
-#include "mrchatlist-private.h"
-#include "mrlot-private.h"
-#include "mrmsg-private.h"
-#include "mrcontact-private.h"
-#include "mrmailbox-private.h"
+char*   mr_encode_header_words    (const char*);
+char*   mr_decode_header_words    (const char*);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMAILBOX_INTERNAL_H__ */
+#endif /* __MRSTRENCODE_H__ */
 

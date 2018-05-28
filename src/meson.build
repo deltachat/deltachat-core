@@ -34,6 +34,8 @@ lib_src = [
   'mrsmtp.c',
   'mrsqlite3.c',
   'mrstock.c',
+  'mrstrbuilder.c',
+  'mrstrencode.c',
   'mrtoken.c',
   'mrtools.c',
   'mruudecode.c',
@@ -69,6 +71,7 @@ lib_hdr = [
   'mrsqlite3.h',
   'mrstock.h',
   'mrstrbuilder.h',
+  'mrstrencode.h',
   'mrtools.h',
 ]
 lib_inc = include_directories('.')

@@ -61,7 +61,7 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 	/* add addr_spec if missing, update otherwise */
 	char* display_name_dec = NULL;
 	if( display_name_enc ) {
-		display_name_dec = mr_decode_header_string(display_name_enc);
+		display_name_dec = mr_decode_header_words(display_name_enc);
 		mr_normalize_name(display_name_dec);
 	}
 
@@ -746,7 +746,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		}
 
 		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL ) {
-			grpname = mr_decode_header_string(optional_field->fld_value); /* this is no changed groupname message */
+			grpname = mr_decode_header_words(optional_field->fld_value); /* this is no changed groupname message */
 		}
 
 		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {

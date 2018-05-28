@@ -474,7 +474,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	}
 	param_domain++;
 
-	param_addr_urlencoded = mr_url_encode(param->m_addr);
+	param_addr_urlencoded = mr_urlencode(param->m_addr);
 
 	/* if no password is given, assume an empty password.
 	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */

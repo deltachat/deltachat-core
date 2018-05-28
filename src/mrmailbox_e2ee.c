@@ -460,7 +460,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 
 		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); char* subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
-		struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
+		struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_words(subject_str));
 		mailimf_fields_add(imffields_unprotected, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 		free(subject_str);
 

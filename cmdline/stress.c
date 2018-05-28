@@ -403,34 +403,38 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		mr_replace_bad_utf8_chars(NULL); /* should do nothing */
 
-		buf1 = mr_url_encode("Björn");
-		assert( strcmp(buf1, "Bj%C3%B6rn") == 0 );
-		buf2 = mr_url_decode(buf1);
-		assert( strcmp(buf2, "Björn") == 0 );
+		buf1 = mr_urlencode("Björn Petersen");
+		assert( strcmp(buf1, "Bj%C3%B6rn+Petersen") == 0 );
+		buf2 = mr_urldecode(buf1);
+		assert( strcmp(buf2, "Björn Petersen") == 0 );
 		free(buf1); free(buf2);
 
 		buf1 = mr_create_id();
 		assert( strlen(buf1) == MR_CREATE_ID_LEN );
 		free(buf1);
 
-		buf1 = mr_decode_header_string("=?utf-8?B?dGVzdMOkw7bDvC50eHQ=?=");
+		buf1 = mr_decode_header_words("=?utf-8?B?dGVzdMOkw7bDvC50eHQ=?=");
 		assert( strcmp(buf1, "testäöü.txt")==0 );
 		free(buf1);
 
-		buf1 = mr_decode_header_string("just ascii test");
+		buf1 = mr_decode_header_words("just ascii test");
 		assert( strcmp(buf1, "just ascii test")==0 );
 		free(buf1);
 
-		buf1 = mr_encode_header_string("abcdef");
+		buf1 = mr_encode_header_words("abcdef");
 		assert( strcmp(buf1, "abcdef")==0 );
 		free(buf1);
 
-		buf1 = mr_encode_header_string("testäöü.txt");
+		buf1 = mr_encode_header_words("testäöü.txt");
 		assert( strncmp(buf1, "=?utf-8", 7)==0 );
-		buf2 = mr_decode_header_string(buf1);
+		buf2 = mr_decode_header_words(buf1);
 		assert( strcmp("testäöü.txt", buf2)==0 );
 		free(buf1);
 		free(buf2);
+
+		buf1 = mr_decode_header_words("=?ISO-8859-1?Q?attachment=3B=0D=0A_filename=3D?= =?ISO-8859-1?Q?=22test=E4=F6=FC=2Etxt=22=3B=0D=0A_size=3D39?=");
+		assert( strcmp(buf1, "attachment;\r\n filename=\"testäöü.txt\";\r\n size=39")==0 );
+		free(buf1);
 	}
 
 	/* test mrarray_t

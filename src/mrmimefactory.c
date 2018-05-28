@@ -464,7 +464,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 	{
 		struct mailimf_mailbox_list* from = mailimf_mailbox_list_new_empty();
-		mailimf_mailbox_list_add(from, mailimf_mailbox_new(factory->m_from_displayname? mr_encode_header_string(factory->m_from_displayname) : NULL, safe_strdup(factory->m_from_addr)));
+		mailimf_mailbox_list_add(from, mailimf_mailbox_new(factory->m_from_displayname? mr_encode_header_words(factory->m_from_displayname) : NULL, safe_strdup(factory->m_from_addr)));
 
 		struct mailimf_address_list* to = NULL;
 		if( factory->m_recipients_names && factory->m_recipients_addr && clist_count(factory->m_recipients_addr)>0 ) {
@@ -473,7 +473,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 			for( iter1=clist_begin(factory->m_recipients_names),iter2=clist_begin(factory->m_recipients_addr);  iter1!=NULL&&iter2!=NULL;  iter1=clist_next(iter1),iter2=clist_next(iter2)) {
 				const char* name = clist_content(iter1);
 				const char* addr = clist_content(iter2);
-				mailimf_address_list_add(to, mailimf_address_new(MAILIMF_ADDRESS_MAILBOX, mailimf_mailbox_new(name? mr_encode_header_string(name) : NULL, safe_strdup(addr)), NULL));
+				mailimf_address_list_add(to, mailimf_address_new(MAILIMF_ADDRESS_MAILBOX, mailimf_mailbox_new(name? mr_encode_header_words(name) : NULL, safe_strdup(addr)), NULL));
 			}
 		}
 
@@ -539,7 +539,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
-			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_string(chat->m_name)));
+			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), mr_encode_header_words(chat->m_name)));
 
 
 			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP )
@@ -756,7 +756,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);
 	}
 
-	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_string(subject_str));
+	struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_words(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if( force_plaintext != MRFP_NO_AUTOCRYPT_HEADER ) {

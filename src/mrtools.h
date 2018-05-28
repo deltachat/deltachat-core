@@ -61,12 +61,9 @@ void    mr_truncate_n_unwrap_str   (char*, int approx_characters, int do_unwrap)
 carray* mr_split_into_lines        (const char* buf_terminated); /* split string into lines*/
 void    mr_free_splitted_lines     (carray* lines);
 char*   mr_insert_breaks           (const char*, int break_every, const char* break_chars); /* insert a break every n characters, the return must be free()'d */
-char*   mr_decode_header_string    (const char*); /* the result must be free()'d */
-char*   mr_encode_header_string    (const char*); /* the result must be free()'d */
+
 char*   imap_modified_utf7_to_utf8 (const char *mbox, int change_spaces);
 char*   imap_utf8_to_modified_utf7 (const char *src, int change_spaces);
-char*   mr_url_encode              (const char*); /* the result must be free()'d */
-char*   mr_url_decode              (const char*); /* the result must be free()'d */
 char*   encode_base64              (const char * in, int len); /* prototype, from libetpan/src/data-types/base64.h which cannot be included without adding libetpan/src/... to the include-search-paths, which would result in double-file-name-errors */
 
 /* clist tools */

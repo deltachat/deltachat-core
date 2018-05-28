@@ -1150,7 +1150,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 								if( dsp_param )
 								{
 									if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-										desired_filename = mr_decode_header_string(dsp_param->pa_data.pa_filename); // additional decoding needed, see #162
+										desired_filename = mr_decode_header_words(dsp_param->pa_data.pa_filename); // additional decoding needed, see #162
 										break;
 									}
 								}
@@ -1496,7 +1496,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	{
 		struct mailimf_field* field = mrmimeparser_lookup_field(ths, "Subject");
 		if( field && field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-			ths->m_subject = mr_decode_header_string(field->fld_data.fld_subject->sbj_value);
+			ths->m_subject = mr_decode_header_words(field->fld_data.fld_subject->sbj_value);
 		}
 	}
 

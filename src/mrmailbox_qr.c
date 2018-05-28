@@ -90,7 +90,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 			if( addr ) {
 				char* urlencoded = mrparam_get(param, 'n', NULL);
 				if(urlencoded ) {
-					name = mr_url_decode(urlencoded);
+					name = mr_urldecode(urlencoded);
 					mr_normalize_name(name);
 					free(urlencoded);
 				}
@@ -102,7 +102,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 				if( grpid ) {
 					urlencoded = mrparam_get(param, 'g', NULL);
 					if( urlencoded ) {
-						grpname = mr_url_decode(urlencoded);
+						grpname = mr_urldecode(urlencoded);
 						free(urlencoded);
 					}
 				}
@@ -178,7 +178,7 @@ mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
 	  ---------------------- */
 
 	if( addr ) {
-		char* temp = mr_url_decode(addr);     free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
+		char* temp = mr_urldecode(addr);      free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
 		      temp = mr_normalize_addr(addr); free(addr); addr = temp;
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {

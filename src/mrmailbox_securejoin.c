@@ -406,8 +406,8 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 		goto cleanup;
 	}
 
-	self_addr_urlencoded = mr_url_encode(self_addr);
-	self_name_urlencoded = mr_url_encode(self_name);
+	self_addr_urlencoded = mr_urlencode(self_addr);
+	self_name_urlencoded = mr_urlencode(self_name);
 
 	if( group_chat_id )
 	{
@@ -418,7 +418,7 @@ char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
 			goto cleanup;
 		}
 		group_name = mrchat_get_name(chat);
-		group_name_urlencoded = mr_url_encode(group_name);
+		group_name_urlencoded = mr_urlencode(group_name);
 		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
 	}
 	else
