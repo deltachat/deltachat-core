@@ -63,7 +63,6 @@ lib_hdr = [
   'mrosnative.h',
   'mrparam.h',
   'mrpgp.h',
-  'mrpoortext.h',
   'mrsaxparser.h',
   'mrsimplify.h',
   'mrsmtp.h',

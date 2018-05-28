@@ -726,22 +726,22 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 					free(temp_subtitle);
 					free(temp_name);
 
-					mrpoortext_t* poortext = mrchatlist_get_summary(chatlist, i, chat);
+					mrlot_t* lot = mrchatlist_get_summary(chatlist, i, chat);
 
 						const char* statestr = "";
 						if( mrchat_get_archived(chat) ) {
 							statestr = " [Archived]";
 						}
-						else switch( mrlot_get_state(poortext) ) {
+						else switch( mrlot_get_state(lot) ) {
 							case MR_STATE_OUT_PENDING:   statestr = " o";   break;
 							case MR_STATE_OUT_DELIVERED: statestr = " √";   break;
 							case MR_STATE_OUT_MDN_RCVD:  statestr = " √√";  break;
 							case MR_STATE_OUT_ERROR:     statestr = " ERR"; break;
 						}
 
-						char* timestr = mr_timestamp_to_str(mrlot_get_timestamp(poortext));
-						char* text1 = mrlot_get_text1(poortext);
-						char* text2 = mrlot_get_text2(poortext);
+						char* timestr = mr_timestamp_to_str(mrlot_get_timestamp(lot));
+						char* text1 = mrlot_get_text1(lot);
+						char* text2 = mrlot_get_text2(lot);
 							mrmailbox_log_info(mailbox, 0, "%s%s%s%s [%s]",
 								text1? text1 : "",
 								text1? ": " : "",
@@ -752,7 +752,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 						free(text2);
 						free(timestr);
 
-					mrpoortext_unref(poortext);
+					mrlot_unref(lot);
 
 					mrchat_unref(chat);
 
