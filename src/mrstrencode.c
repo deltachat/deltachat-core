@@ -45,13 +45,16 @@ static char hex_2_int(char ch)
 
 
 /**
- * Url-encodes a string. 
+ * Url-encodes a string.
  * All characters but A-Z, a-z, 0-9 and -_. are encoded by a percent sign followed by two hexadecimal digits.
- * The space in encoded as `+`.
+ *
+ * The space in encoded as `+` - this is correct for parts in the url _after_ the `?` and saves some bytes when used in QR codes.
+ * (in the URL _before_ the `?` or elsewhere, the space should be encoded as `%20`)
+ *
  * Belongs to RFC 3986: https://tools.ietf.org/html/rfc3986#section-2
  *
  * Example: The string `Björn Petersen` will be encoded as `"Bj%C3%B6rn+Petersen`.
- * 
+ *
  * @param to_encode Null-terminated UTF-8 string to encode.
  *
  * @return Returns a null-terminated url-encoded strings. The result must be free()'d when no longer needed.
@@ -61,16 +64,16 @@ static char hex_2_int(char ch)
 char* mr_urlencode(const char *to_encode)
 {
 	const char *pstr = to_encode;
-	
+
 	if( to_encode == NULL ) {
 		return safe_strdup("");
 	}
-	
+
 	char *buf = malloc(strlen(to_encode) * 3 + 1), *pbuf = buf;
 	if( buf == NULL ) {
 		exit(46);
 	}
-	
+
 	while (*pstr)
 	{
 		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') {
@@ -82,12 +85,12 @@ char* mr_urlencode(const char *to_encode)
 		else {
 			*pbuf++ = '%', *pbuf++ = int_2_uppercase_hex(*pstr >> 4), *pbuf++ = int_2_uppercase_hex(*pstr & 15);
 		}
-		
+
 		pstr++;
 	}
-	
+
 	*pbuf = '\0';
-	
+
 	return buf;
 }
 
@@ -99,7 +102,7 @@ char* mr_urlencode(const char *to_encode)
  *
  * @param to_decode Null-terminated string to decode.
  *
- * @return The function returns a null-terminated UTF-8 string. 
+ * @return The function returns a null-terminated UTF-8 string.
  *     The return value must be free() when no longer used.
  *     On memory allocation errors the program halts.
  *     On other errors, an empty string is returned.
@@ -107,16 +110,16 @@ char* mr_urlencode(const char *to_encode)
 char* mr_urldecode(const char* to_decode)
 {
 	const char *pstr = to_decode;
-	
+
 	if( to_decode == NULL ) {
 		return safe_strdup("");
 	}
-	
+
 	char *buf = malloc(strlen(to_decode) + 1), *pbuf = buf;
 	if( buf == NULL ) {
 		exit(50);
 	}
-	
+
 	while (*pstr)
 	{
 		if (*pstr == '%') {
@@ -131,12 +134,12 @@ char* mr_urldecode(const char* to_decode)
 		else {
 			*pbuf++ = *pstr;
 		}
-		
+
 		pstr++;
 	}
-	
+
 	*pbuf = '\0';
-	
+
 	return buf;
 }
 
@@ -145,12 +148,12 @@ char* mr_urldecode(const char* to_decode)
  * Encode header words, RFC 2047
  ******************************************************************************/
 
- 
+
 #define DEF_INCOMING_CHARSET "iso-8859-1"
 #define DEF_DISPLAY_CHARSET  "utf-8"
 #define MAX_IMF_LINE         666 /* see comment below */
 
-                           
+
 static int to_be_quoted(const char * word, size_t size)
 {
 	const char* cur = word;
@@ -180,14 +183,14 @@ static int to_be_quoted(const char * word, size_t size)
 			case '?':
 			case '_':
 				return 1;
-				
+
 			default:
 				if( ((unsigned char)*cur) >= 128 ) {
 					return 1;
 				}
 				break;
 		}
-		
+
 		cur++;
 	}
 
@@ -205,15 +208,15 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 	if (mmap_string_append(mmapstr, "=?") == NULL) {
 		return 0;
 	}
-	
+
 	if (mmap_string_append(mmapstr, display_charset) == NULL) {
 		return 0;
 	}
-	
+
 	if (mmap_string_append(mmapstr, "?Q?") == NULL) {
 		return 0;
 	}
-	
+
 	col = mmapstr->len;
 
 	cur = word;
@@ -243,11 +246,11 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 			if (mmap_string_append(mmapstr, "=?") == NULL) {
 				return 0;
 			}
-		  
+
 			if (mmap_string_append(mmapstr, display_charset) == NULL) {
 				return 0;
 			}
-		  
+
 			if (mmap_string_append(mmapstr, "?Q?") == NULL) {
 				return 0;
 			}
@@ -310,7 +313,7 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 			}
 			col += 3;
 		}
-		
+
 		cur++;
 	}
 
@@ -347,7 +350,7 @@ static void get_word(const char* begin, const char** pend, int* pto_be_quoted)
  * Encode non-ascii-strings as `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`.
  * Belongs to RFC 2047: https://tools.ietf.org/html/rfc2047
  *
- * We do not fold at position 72; this would result in empty words as `=?utf-8?Q??=` which are correct, 
+ * We do not fold at position 72; this would result in empty words as `=?utf-8?Q??=` which are correct,
  * but cannot be displayed by some mail programs (eg. Android Stock Mail).
  * however, this is not needed, as long as _one_ word is not longer than 72 characters.
  * _if_ it is, the display may get weired.  This affects the subject only.
@@ -357,17 +360,17 @@ static void get_word(const char* begin, const char** pend, int* pto_be_quoted)
  *
  * @return Returns the encoded string which must be free()'d when no longed needed.
  *     On errors, NULL is returned.
- */ 
+ */
 char* mr_encode_header_words(const char* to_encode)
 {
 	char*       ret_str = NULL;
 	const char* cur = to_encode;
 	MMAPString* mmapstr = mmap_string_new("");
-	
+
 	if( to_encode == NULL || mmapstr == NULL ) {
 		goto cleanup;
 	}
-	
+
 	while (* cur != '\0')
 	{
 		const char * begin;
@@ -389,8 +392,8 @@ char* mr_encode_header_words(const char* to_encode)
 			}
 			else {
 				break;
-			}	
-		
+			}
+
 			if (* cur != '\0') {
 				cur ++;
 			}
@@ -475,3 +478,42 @@ char* mr_decode_header_words(const char* in)
 }
 
 
+/*******************************************************************************
+ * Encode international header, RFC 2231, RFC 5987
+ ******************************************************************************/
+
+
+char* mr_encode_ext_header(const char* to_encode)
+{
+	#define PREFIX "utf-8''"
+	const char *pstr = to_encode;
+
+	if( to_encode == NULL ) {
+		return safe_strdup("");
+	}
+
+	char *buf = malloc(strlen(PREFIX) + strlen(to_encode) * 3 + 1);
+	if( buf == NULL ) {
+		exit(46);
+	}
+
+	char* pbuf = buf;
+	strcpy(pbuf, PREFIX);
+	pbuf += strlen(pbuf);
+
+	while (*pstr)
+	{
+		if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') {
+			*pbuf++ = *pstr;
+		}
+		else {
+			*pbuf++ = '%', *pbuf++ = int_2_uppercase_hex(*pstr >> 4), *pbuf++ = int_2_uppercase_hex(*pstr & 15);
+		}
+
+		pstr++;
+	}
+
+	*pbuf = '\0';
+
+	return buf;
+}

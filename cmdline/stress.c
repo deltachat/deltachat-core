@@ -435,6 +435,10 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf1 = mr_decode_header_words("=?ISO-8859-1?Q?attachment=3B=0D=0A_filename=3D?= =?ISO-8859-1?Q?=22test=E4=F6=FC=2Etxt=22=3B=0D=0A_size=3D39?=");
 		assert( strcmp(buf1, "attachment;\r\n filename=\"testäöü.txt\";\r\n size=39")==0 );
 		free(buf1);
+
+		buf1 = mr_encode_ext_header("Björn Petersen");
+		assert( strcmp(buf1, "utf-8''Bj%C3%B6rn%20Petersen") == 0 );
+		free(buf1);
 	}
 
 	/* test mrarray_t
