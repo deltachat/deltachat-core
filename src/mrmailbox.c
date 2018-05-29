@@ -1918,7 +1918,7 @@ void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 		mrsqlite3_begin_transaction__(mailbox->m_sql);
 		pending_transaction = 1;
 
-			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT msg_id FROM msgs WHERE chat_id=%i);", chat_id);
+			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
 			if( !mrsqlite3_execute__(mailbox->m_sql, q3) ) {
 				goto cleanup;
 			}
