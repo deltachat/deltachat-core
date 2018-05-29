@@ -33,6 +33,7 @@ char*   mr_encode_header_words    (const char*);
 char*   mr_decode_header_words    (const char*);
 
 char*   mr_encode_ext_header      (const char*);
+char*   mr_decode_ext_header      (const char*);
 
 
 #ifdef __cplusplus

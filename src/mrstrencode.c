@@ -517,3 +517,49 @@ char* mr_encode_ext_header(const char* to_encode)
 
 	return buf;
 }
+
+
+char* mr_decode_ext_header(const char* to_decode)
+{
+	char       *decoded = NULL, *charset = NULL;
+	const char *p2 = NULL;
+
+	if( to_decode == NULL ) {
+		goto cleanup;
+	}
+
+	// get char set
+	if( (p2=strchr(to_decode, '\'')) == NULL
+	 || (p2 == to_decode) /*no empty charset allowed*/ ) {
+		goto cleanup;
+	}
+
+	charset = mr_null_terminate(to_decode, p2-to_decode);
+	p2++;
+
+	// skip language
+	if( (p2=strchr(p2, '\'')) == NULL ) {
+		goto cleanup;
+	}
+
+	p2++;
+
+	// decode text
+	decoded = mr_urldecode(p2);
+
+	if( charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0 ) {
+		char* converted = NULL;
+		int r = charconv("utf-8", charset, decoded, strlen(decoded), &converted);
+		if( r == MAIL_CHARCONV_NO_ERROR && converted != NULL ) {
+			free(decoded);
+			decoded = converted;
+		}
+		else {
+			free(converted);
+		}
+	}
+
+cleanup:
+	free(charset);
+	return decoded? decoded : safe_strdup(to_decode);
+}

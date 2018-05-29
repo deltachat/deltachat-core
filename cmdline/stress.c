@@ -438,6 +438,34 @@ void stress_functions(mrmailbox_t* mailbox)
 
 		buf1 = mr_encode_ext_header("Björn Petersen");
 		assert( strcmp(buf1, "utf-8''Bj%C3%B6rn%20Petersen") == 0 );
+		buf2 = mr_decode_ext_header(buf1);
+		assert( strcmp(buf2, "Björn Petersen") == 0 );
+		free(buf1);
+		free(buf2);
+
+		buf1 = mr_decode_ext_header("iso-8859-1'en'%A3%20rates");
+		assert( strcmp(buf1, "£ rates") == 0 );
+		assert( strcmp(buf1, "\xC2\xA3 rates") == 0 );
+		free(buf1);
+
+		buf1 = mr_decode_ext_header("wrong'format"); // bad format -> should return given string
+		assert( strcmp(buf1, "wrong'format") == 0 );
+		free(buf1);
+
+		buf1 = mr_decode_ext_header("''"); // empty charset -> should return given string
+		assert( strcmp(buf1, "''") == 0 );
+		free(buf1);
+
+		buf1 = mr_decode_ext_header("x''"); // charset given -> return empty encoded string
+		assert( strcmp(buf1, "") == 0 );
+		free(buf1);
+
+		buf1 = mr_decode_ext_header("'"); // bad format -> should return given string
+		assert( strcmp(buf1, "'") == 0 );
+		free(buf1);
+
+		buf1 = mr_decode_ext_header(""); // bad format -> should return given string - empty in this case
+		assert( strcmp(buf1, "") == 0 );
 		free(buf1);
 	}
 
