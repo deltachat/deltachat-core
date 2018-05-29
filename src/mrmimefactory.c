@@ -392,14 +392,14 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_nam
 	`Content-Disposition: attachment` seems not to make a difference to `Content-Disposition: inline` at least on tested Thunderbird and Gma'l in 2017.
 	But I've heard about problems with inline and outl'k, so we just use the attachment-type until we run into other problems ... */
 	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
-		mr_encode_header_string(filename_to_send), MAILMIME_MECHANISM_BASE64);
+		mr_encode_header_words(filename_to_send), MAILMIME_MECHANISM_BASE64);
 
 	if( ret_file_name_as_sent ) {
 		*ret_file_name_as_sent = safe_strdup(filename_to_send);
 	}
 
 	content = mailmime_content_new_with_str(mimetype);
-	clist_append(content->ct_parameters, mailmime_param_new_with_data("name", (filename_encoded=mr_encode_header_string(filename_to_send))));
+	clist_append(content->ct_parameters, mailmime_param_new_with_data("name", (filename_encoded=mr_encode_header_words(filename_to_send))));
 
 	mime_sub = mailmime_new_empty(content, mime_fields);
 
