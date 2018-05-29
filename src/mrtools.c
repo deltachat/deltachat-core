@@ -199,6 +199,18 @@ int mr_str_contains(const char* haystack, const const char* needle)
 }
 
 
+/**
+ * Creates a null-terminated string from a buffer.
+ * Similar to strndup() but allows bad parameters and just halts the program
+ * on memory allocation errors.
+ *
+ * @param in The start of the string.
+ * @param bytes The number of bytes to take from the string.
+ *
+ * @return The null-terminates string, must be free()'d by the caller.
+ *     On memory-allocation errors, the program halts.
+ *     On other errors, an empty string is returned.
+ */
 char* mr_null_terminate(const char* in, int bytes) /* the result must be free()'d */
 {
 	char* out = malloc(bytes+1);
