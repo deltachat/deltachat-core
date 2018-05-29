@@ -1140,13 +1140,12 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				or `Content-Disposition: ... filename=...` */
 				mrstrbuilder_t filename_parts;
 				mrstrbuilder_init(&filename_parts, 0);
-				struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
 				for( clistiter* cur1 = clist_begin(mime->mm_mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1) )
 				{
 					struct mailmime_field* field = (struct mailmime_field*)clist_content(cur1);
 					if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition )
 					{
-						file_disposition = field->fld_data.fld_disposition;
+						struct mailmime_disposition* file_disposition = field->fld_data.fld_disposition;
 						if( file_disposition )
 						{
 							for( clistiter* cur2 = clist_begin(file_disposition->dsp_parms); cur2 != NULL; cur2 = clist_next(cur2) )

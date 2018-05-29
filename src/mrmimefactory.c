@@ -391,19 +391,43 @@ static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_nam
 	/* create mime part, for Content-Disposition, see RFC 2183.
 	`Content-Disposition: attachment` seems not to make a difference to `Content-Disposition: inline` at least on tested Thunderbird and Gma'l in 2017.
 	But I've heard about problems with inline and outl'k, so we just use the attachment-type until we run into other problems ... */
-	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
-		mr_encode_header_words(filename_to_send), MAILMIME_MECHANISM_BASE64);
+	int needs_ext = mr_needs_ext_header(filename_to_send);
 
-	if( ret_file_name_as_sent ) {
-		*ret_file_name_as_sent = safe_strdup(filename_to_send);
+	mime_fields = mailmime_fields_new_filename(MAILMIME_DISPOSITION_TYPE_ATTACHMENT,
+		needs_ext? NULL : safe_strdup(filename_to_send), MAILMIME_MECHANISM_BASE64);
+
+	if( needs_ext ) {
+		for( clistiter* cur1 = clist_begin(mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1) ) {
+			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur1);
+			if( field && field->fld_type == MAILMIME_FIELD_DISPOSITION && field->fld_data.fld_disposition )
+			{
+				struct mailmime_disposition* file_disposition = field->fld_data.fld_disposition;
+				if( file_disposition )
+				{
+					struct mailmime_disposition_parm* parm = mailmime_disposition_parm_new(
+						MAILMIME_DISPOSITION_PARM_PARAMETER, NULL, NULL, NULL, NULL, 0,
+						mailmime_parameter_new(strdup("filename*"), mr_encode_ext_header(filename_to_send)));
+					if( parm ) {
+						clist_append(file_disposition->dsp_parms, parm);
+					}
+				}
+
+				break;
+			}
+		}
 	}
 
 	content = mailmime_content_new_with_str(mimetype);
-	clist_append(content->ct_parameters, mailmime_param_new_with_data("name", (filename_encoded=mr_encode_header_words(filename_to_send))));
+	clist_append(content->ct_parameters, mailmime_param_new_with_data("name",
+			(filename_encoded=mr_encode_header_words(filename_to_send))));
 
 	mime_sub = mailmime_new_empty(content, mime_fields);
 
 	mailmime_set_body_file(mime_sub, safe_strdup(pathNfilename));
+
+	if( ret_file_name_as_sent ) {
+		*ret_file_name_as_sent = safe_strdup(filename_to_send);
+	}
 
 cleanup:
 	free(pathNfilename);

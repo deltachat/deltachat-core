@@ -752,11 +752,36 @@ char* mr_decode_modified_utf7(const char *to_decode, int change_spaces)
 
 
 /**
+ * Check if extended header format is needed for a given string.
+ *
+ * @param to_check Null-terminated UTF-8 string to check.
+ *
+ * @return 0=extended header encoding is not needed,
+ *     1=extended header encoding is needed,
+ *     use mr_encode_ext_header() for this purpose.
+ */
+int mr_needs_ext_header(const char* to_check)
+{
+	if( to_check ) {
+		while( *to_check )
+		{
+			if( !isalnum(*to_check) && *to_check!='-' && *to_check!='_' && *to_check!='.' && *to_check!='~' ) {
+				return 1;
+			}
+			to_check++;
+		}
+	}
+
+	return 0;
+}
+
+
+/**
  * Encode an UTF-8 string to the extended header format.
  *
  * Example: `Björn Petersen` gets encoded to `utf-8''Bj%C3%B6rn%20Petersen`
  *
- * @param to_encode Null-terminated UTF-8 string to encode
+ * @param to_encode Null-terminated UTF-8 string to encode.
  *
  * @return Null-terminated encoded string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,

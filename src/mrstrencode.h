@@ -36,6 +36,7 @@ char*   mr_decode_header_words    (const char*);
 char*   mr_encode_modified_utf7   (const char*, int change_spaces);
 char*   mr_decode_modified_utf7   (const char*, int change_spaces);
 
+int     mr_needs_ext_header       (const char*);
 char*   mr_encode_ext_header      (const char*);
 char*   mr_decode_ext_header      (const char*);
 

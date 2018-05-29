@@ -468,6 +468,13 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(buf1, "") == 0 );
 		free(buf1);
 
+		assert(  mr_needs_ext_header("Björn") );
+		assert( !mr_needs_ext_header("Bjoern") );
+		assert( !mr_needs_ext_header("") );
+		assert(  mr_needs_ext_header(" ") );
+		assert(  mr_needs_ext_header("a b") );
+		assert( !mr_needs_ext_header(NULL) );
+
 		buf1 = mr_encode_modified_utf7("Björn Petersen", 1);
 		assert( strcmp(buf1, "Bj&APY-rn_Petersen")==0 );
 		buf2 = mr_decode_modified_utf7(buf1, 1);
