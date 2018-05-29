@@ -57,6 +57,7 @@ these to work.
 - [LibEtPan](https://github.com/dinhviethoa/libetpan); this does not
   use `pkg-config`, instead it ships with a `libetpan-config` binary
   which must be in the PATH to be picked up by the build system.
+  Version 1.8 or newer required.
 
 - [OpenSSL](https://www.openssl.org/)
 
