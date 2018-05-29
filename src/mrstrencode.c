@@ -145,7 +145,7 @@ char* mr_urldecode(const char* to_decode)
 
 
 /*******************************************************************************
- * Encode header words, RFC 2047
+ * Encode/decode header words, RFC 2047
  ******************************************************************************/
 
 
@@ -443,12 +443,6 @@ cleanup:
 }
 
 
-
-/*******************************************************************************
- * Decode header words, RFC 2047
- ******************************************************************************/
-
-
 /**
  * Decode non-ascii-strings as `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`.
  * Belongs to RFC 2047: https://tools.ietf.org/html/rfc2047
@@ -479,10 +473,296 @@ char* mr_decode_header_words(const char* in)
 
 
 /*******************************************************************************
- * Encode international header, RFC 2231, RFC 5987
+ * Encode/decode modified UTF-7 as needed for IMAP, see RFC 2192
  ******************************************************************************/
 
 
+// UTF7 modified base64 alphabet
+static const char base64chars[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+,";
+
+
+/**
+ * Convert an UTF-8 string to a modified UTF-7 string
+ * that is needed eg. for IMAP mailbox names.
+ *
+ * Example: `Björn Petersen` gets encoded to `Bj&APY-rn_Petersen`
+ *
+ * @param to_encode Null-terminated UTF-8 string to encode
+ *
+ * @param change_spaces If set, spaces are encoded using the underscore character.
+ *
+ * @return Null-terminated encoded string.
+ *     Halts the program on memory allocation errors,
+ *     for all other errors, an empty string is returned.
+ *     NULL is never returned.
+ */
+char* mr_encode_modified_utf7(const char* to_encode, int change_spaces)
+{
+	#define UTF16MASK       0x03FFUL
+	#define UTF16SHIFT      10
+	#define UTF16BASE       0x10000UL
+	#define UTF16HIGHSTART  0xD800UL
+	#define UTF16HIGHEND    0xDBFFUL
+	#define UTF16LOSTART    0xDC00UL
+	#define UTF16LOEND      0xDFFFUL
+	#define UNDEFINED       64
+
+	unsigned int  utf8pos, utf8total, c, utf7mode, bitstogo, utf16flag;
+	unsigned long ucs4 = 0, bitbuf = 0;
+	char          *dst, *res;
+
+	if (!to_encode) {
+		return safe_strdup("");
+	}
+
+	res = (char*)malloc(2*strlen(to_encode)+1);
+	dst = res;
+	if(!dst) {
+		exit(51);
+	}
+
+	utf7mode = 0;
+	utf8total = 0;
+	bitstogo = 0;
+	utf8pos = 0;
+	while ((c = (unsigned char)*to_encode) != '\0')
+	{
+		++to_encode;
+		// normal character?
+		if (c >= ' ' && c <= '~' && (c != '_' || !change_spaces)) {
+			// switch out of UTF-7 mode
+			if (utf7mode) {
+				if (bitstogo) {
+					*dst++ = base64chars[(bitbuf << (6 - bitstogo)) & 0x3F];
+				}
+				*dst++ = '-';
+				utf7mode = 0;
+				utf8pos  = 0;
+				bitstogo = 0;
+				utf8total= 0;
+			}
+			if (change_spaces && c == ' ') {
+				*dst++ = '_';
+			}
+			else {
+				*dst++ = c;
+			}
+
+			// encode '&' as '&-'
+			if (c == '&') {
+				*dst++ = '-';
+			}
+			continue;
+		}
+
+		// switch to UTF-7 mode
+		if (!utf7mode) {
+			*dst++ = '&';
+			utf7mode = 1;
+		}
+		// encode ascii characters as themselves
+		if (c < 0x80) {
+			ucs4 = c;
+		}
+		else if (utf8total) {
+			// save UTF8 bits into UCS4
+			ucs4 = (ucs4 << 6) | (c & 0x3FUL);
+			if (++utf8pos < utf8total) {
+				continue;
+			}
+		}
+		else {
+			utf8pos = 1;
+			if (c < 0xE0) {
+				utf8total = 2;
+				ucs4 = c & 0x1F;
+			}
+			else if (c < 0xF0) {
+				utf8total = 3;
+				ucs4 = c & 0x0F;
+			}
+			else {
+				// NOTE: cannot convert UTF8 sequences longer than 4
+				utf8total = 4;
+				ucs4 = c & 0x03;
+			}
+			continue;
+		}
+
+		// loop to split ucs4 into two utf16 chars if necessary
+		utf8total = 0;
+		do {
+		  if (ucs4 >= UTF16BASE) {
+			ucs4 -= UTF16BASE;
+			bitbuf = (bitbuf << 16) | ((ucs4 >> UTF16SHIFT)
+									   + UTF16HIGHSTART);
+			ucs4 = (ucs4 & UTF16MASK) + UTF16LOSTART;
+			utf16flag = 1;
+		  } else {
+			bitbuf = (bitbuf << 16) | ucs4;
+			utf16flag = 0;
+		  }
+		  bitstogo += 16;
+		  /* spew out base64 */
+		  while (bitstogo >= 6) {
+			bitstogo -= 6;
+			*dst++ = base64chars[(bitstogo ? (bitbuf >> bitstogo)
+								  : bitbuf)
+								 & 0x3F];
+		  }
+		} while (utf16flag);
+	}
+
+	// if in UTF-7 mode, finish in ASCII
+	if (utf7mode) {
+		if (bitstogo) {
+		  *dst++ = base64chars[(bitbuf << (6 - bitstogo)) & 0x3F];
+		}
+		*dst++ = '-';
+	}
+
+	*dst = '\0';
+	return res;
+}
+
+
+/**
+ * Convert an modified UTF-7 encoded string to an UTF-8 string.
+ * Modified UTF-7 strings are used eg. in IMAP mailbox names.
+ *
+ * @param to_decode Null-terminated, modified UTF-7 string to decode.
+ *
+ * @param change_spaces If set, the underscore character `_` is converted to
+ *    a space.
+ *
+ * @return Null-terminated UTF-8 string.
+ *     Halts the program on memory allocation errors,
+ *     for all other errors, an empty string is returned.
+ *     NULL is never returned.
+ */
+char* mr_decode_modified_utf7(const char *to_decode, int change_spaces)
+{
+	unsigned      c, i, bitcount;
+	unsigned long ucs4, utf16, bitbuf;
+	unsigned char base64[256];
+	const char    *src;
+	char          *dst, *res;
+
+	if( to_decode == NULL ) {
+		return safe_strdup("");
+	}
+
+	res  = (char*)malloc(4*strlen(to_decode)+1);
+	dst = res;
+	src = to_decode;
+	if(!dst) {
+		exit(52);
+	}
+
+	memset(base64, UNDEFINED, sizeof (base64));
+	for (i = 0; i < sizeof (base64chars); ++i) {
+		base64[(unsigned)base64chars[i]] = i;
+	}
+
+	while (*src != '\0')
+	{
+		c = *src++;
+		// deal with literal characters and &-
+		if (c != '&' || *src == '-') {
+			// encode literally
+			if (change_spaces && c == '_') {
+				*dst++ = ' ';
+			}
+			else {
+				*dst++ = c;
+			}
+			// skip over the '-' if this is an &- sequence
+			if (c == '&') ++src;
+		}
+		else {
+			// convert modified UTF-7 -> UTF-16 -> UCS-4 -> UTF-8 -> HEX
+			bitbuf = 0;
+			bitcount = 0;
+			ucs4 = 0;
+			while ((c = base64[(unsigned char) *src]) != UNDEFINED) {
+				++src;
+				bitbuf = (bitbuf << 6) | c;
+				bitcount += 6;
+
+				// enough bits for a UTF-16 character?
+				if (bitcount >= 16)
+				{
+					bitcount -= 16;
+					utf16 = (bitcount ? bitbuf >> bitcount : bitbuf) & 0xffff;
+
+					// convert UTF16 to UCS4
+					if (utf16 >= UTF16HIGHSTART && utf16 <= UTF16HIGHEND) {
+						ucs4 = (utf16 - UTF16HIGHSTART) << UTF16SHIFT;
+						continue;
+					}
+					else if (utf16 >= UTF16LOSTART && utf16 <= UTF16LOEND) {
+						ucs4 += utf16 - UTF16LOSTART + UTF16BASE;
+					}
+					else {
+						ucs4 = utf16;
+					}
+
+					// convert UTF-16 range of UCS4 to UTF-8
+					if (ucs4 <= 0x7fUL) {
+						dst[0] = ucs4;
+						dst += 1;
+					}
+					else if (ucs4 <= 0x7ffUL) {
+						dst[0] = 0xc0 | (ucs4 >> 6);
+						dst[1] = 0x80 | (ucs4 & 0x3f);
+						dst += 2;
+					}
+					else if (ucs4 <= 0xffffUL) {
+						dst[0] = 0xe0 | (ucs4 >> 12);
+						dst[1] = 0x80 | ((ucs4 >> 6) & 0x3f);
+						dst[2] = 0x80 | (ucs4 & 0x3f);
+						dst += 3;
+					}
+					else {
+						dst[0] = 0xf0 | (ucs4 >> 18);
+						dst[1] = 0x80 | ((ucs4 >> 12) & 0x3f);
+						dst[2] = 0x80 | ((ucs4 >> 6) & 0x3f);
+						dst[3] = 0x80 | (ucs4 & 0x3f);
+						dst += 4;
+					}
+				}
+			}
+
+			// skip over trailing '-' in modified UTF-7 encoding
+			if (*src == '-') {
+				++src;
+			}
+		}
+	}
+
+	*dst = '\0';
+	return res;
+}
+
+
+/*******************************************************************************
+ * Encode/decode extended header, RFC 2231, RFC 5987
+ ******************************************************************************/
+
+
+/**
+ * Encode an UTF-8 string to the extended header format.
+ *
+ * Example: `Björn Petersen` gets encoded to `utf-8''Bj%C3%B6rn%20Petersen`
+ *
+ * @param to_encode Null-terminated UTF-8 string to encode
+ *
+ * @return Null-terminated encoded string.
+ *     Halts the program on memory allocation errors,
+ *     for all other errors, an empty string is returned or just the given string is returned.
+ *     NULL is never returned.
+ */
 char* mr_encode_ext_header(const char* to_encode)
 {
 	#define PREFIX "utf-8''"
@@ -519,6 +799,16 @@ char* mr_encode_ext_header(const char* to_encode)
 }
 
 
+/**
+ * Decode an extended-header-format strings to UTF-8.
+ *
+ * @param to_encode Null-terminated string to decode
+ *
+ * @return Null-terminated decoded UTF-8 string.
+ *     Halts the program on memory allocation errors,
+ *     for all other errors, an empty string is returned or just the given string is returned.
+ *     NULL is never returned.
+ */
 char* mr_decode_ext_header(const char* to_decode)
 {
 	char       *decoded = NULL, *charset = NULL;

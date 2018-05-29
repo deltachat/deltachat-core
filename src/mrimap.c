@@ -248,7 +248,7 @@ static clist* list_folders__(mrimap_t* ths)
 			ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
 		}
 
-		ret_folder->m_name_utf8      = imap_modified_utf7_to_utf8(imap_folder->mb_name, 0);
+		ret_folder->m_name_utf8      = mr_decode_modified_utf7(imap_folder->mb_name, 0);
 		ret_folder->m_meaning        = get_folder_meaning(ths, imap_folder->mb_flag, ret_folder->m_name_utf8, false);
 
 		if( ret_folder->m_meaning != MEANING_NORMAL ) {

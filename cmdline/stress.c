@@ -467,6 +467,13 @@ void stress_functions(mrmailbox_t* mailbox)
 		buf1 = mr_decode_ext_header(""); // bad format -> should return given string - empty in this case
 		assert( strcmp(buf1, "") == 0 );
 		free(buf1);
+
+		buf1 = mr_encode_modified_utf7("Björn Petersen", 1);
+		assert( strcmp(buf1, "Bj&APY-rn_Petersen")==0 );
+		buf2 = mr_decode_modified_utf7(buf1, 1);
+		assert( strcmp(buf2, "Björn Petersen")==0 );
+		free(buf1);
+		free(buf2);
 	}
 
 	/* test mrarray_t
