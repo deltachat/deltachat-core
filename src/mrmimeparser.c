@@ -1134,7 +1134,12 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		case MR_MIMETYPE_FILE:
 		case MR_MIMETYPE_AC_SETUP_FILE:
 			{
-				/* try to get file name from MIME-header `Content-Disposition: <disposition>; filename=<filename>` */
+				/* try to get file name from
+				   `Content-Disposition: ... filename*=...`
+				or `Content-Disposition: ... filename*0*=... filename*1*=... filename*2*=...`
+				or `Content-Disposition: ... filename=...` */
+				mrstrbuilder_t filename_parts;
+				mrstrbuilder_init(&filename_parts, 0);
 				struct mailmime_disposition* file_disposition = NULL; /* must not be free()'d */
 				for( clistiter* cur1 = clist_begin(mime->mm_mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1) )
 				{
@@ -1149,9 +1154,16 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 								struct mailmime_disposition_parm* dsp_param = (struct mailmime_disposition_parm*)clist_content(cur2);
 								if( dsp_param )
 								{
-									if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME ) {
-										desired_filename = mr_decode_header_words(dsp_param->pa_data.pa_filename); // additional decoding needed, see #162
-										break;
+									if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_PARAMETER
+									 && dsp_param->pa_data.pa_parameter
+									 && dsp_param->pa_data.pa_parameter->pa_name
+									 && strncmp(dsp_param->pa_data.pa_parameter->pa_name, "filename*", 9)==0 )
+									{
+										mrstrbuilder_cat(&filename_parts, dsp_param->pa_data.pa_parameter->pa_value); // we assume the filename*?* parts are in order, not seen anything else yet
+									}
+									else if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME )
+									{
+										desired_filename = mr_decode_header_words(dsp_param->pa_data.pa_filename); // this is used only if the parts buffer stays empty
 									}
 								}
 							}
@@ -1160,7 +1172,14 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					}
 				}
 
-				/* try to get file name from MIME-header `Content-Type: <maintype>/<subtype>; name=<filename>` */
+				if( strlen(filename_parts.m_buf) ) {
+					free(desired_filename);
+					desired_filename = mr_decode_ext_header(filename_parts.m_buf);
+				}
+
+				free(filename_parts.m_buf);
+
+				/* try to get file name from `Content-Type: ... name=...` */
 				if( desired_filename==NULL ) {
 					struct mailmime_parameter* param = mailmime_find_ct_parameter(mime, "name");
 					if( param && param->pa_value && param->pa_value[0] ) {
