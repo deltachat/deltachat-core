@@ -33,8 +33,8 @@ char*   mr_urldecode              (const char*);
 char*   mr_encode_header_words    (const char*);
 char*   mr_decode_header_words    (const char*);
 
-char*   mr_encode_modified_utf7   (const char *src, int change_spaces);
-char*   mr_decode_modified_utf7   (const char *mbox, int change_spaces);
+char*   mr_encode_modified_utf7   (const char*, int change_spaces);
+char*   mr_decode_modified_utf7   (const char*, int change_spaces);
 
 char*   mr_encode_ext_header      (const char*);
 char*   mr_decode_ext_header      (const char*);

@@ -492,7 +492,7 @@ static const char base64chars[] =
  *
  * @param change_spaces If set, spaces are encoded using the underscore character.
  *
- * @return Null-terminated encoded string.
+ * @return Null-terminated encoded string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned.
  *     NULL is never returned.
@@ -636,7 +636,7 @@ char* mr_encode_modified_utf7(const char* to_encode, int change_spaces)
  * @param change_spaces If set, the underscore character `_` is converted to
  *    a space.
  *
- * @return Null-terminated UTF-8 string.
+ * @return Null-terminated UTF-8 string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned.
  *     NULL is never returned.
@@ -758,7 +758,7 @@ char* mr_decode_modified_utf7(const char *to_decode, int change_spaces)
  *
  * @param to_encode Null-terminated UTF-8 string to encode
  *
- * @return Null-terminated encoded string.
+ * @return Null-terminated encoded string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned or just the given string is returned.
  *     NULL is never returned.
@@ -804,7 +804,7 @@ char* mr_encode_ext_header(const char* to_encode)
  *
  * @param to_encode Null-terminated string to decode
  *
- * @return Null-terminated decoded UTF-8 string.
+ * @return Null-terminated decoded UTF-8 string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned or just the given string is returned.
  *     NULL is never returned.
