@@ -377,12 +377,11 @@ cleanup:
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
  *
- * @return 1=configured successfully can connect with mrmailbox_connect()
+ * @return 1=configured successfully,
  *     0=configuration failed
  *
  * There is no need to call this every program start, the result is saved in the
- * database. Instead, you can use mrmailbox_connect() which reuses the configuration
- * and is much faster:
+ * database and you can call mrmailbox_poll() or mrmailbox_idle() directly:
  *
  * ```
  * if( !mrmailbox_is_configured(mailbox) ) {
@@ -390,7 +389,7 @@ cleanup:
  *         // show an error and/or try over
  *     }
  * }
- * mrmailbox_connect(mailbox);
+ * mrmailbox_idle(mailbox);
  * ```
  */
 int mrmailbox_configure(mrmailbox_t* mailbox)
@@ -432,7 +431,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
+		//mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -711,16 +710,6 @@ cleanup:
 }
 
 
-int mrmailbox_configure_and_connect(mrmailbox_t* mailbox) // deprecated
-{
-	int success = mrmailbox_configure(mailbox);
-	if( success ) {
-		mrmailbox_connect(mailbox);
-	}
-	return success;
-}
-
-
 /**
  * Check if the mailbox is already configured.
  *
@@ -731,7 +720,7 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox) // deprecated
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @return 1=mailbox is configured and mrmailbox_connect() can be called directly as needed,
+ * @return 1=mailbox is configured and mrmailbox_poll() or mrmailbox_idle() will work as expected;
  *     0=mailbox is not configured and a configuration by mrmailbox_configure() is required.
  */
 int mrmailbox_is_configured(mrmailbox_t* mailbox)

@@ -26,14 +26,13 @@ extern "C" {
 #endif
 
 
-#define MRJ_DISCONNECT              50    /* low priority ... */
-#define MRJ_DELETE_MSG_ON_IMAP     100
+#define MRJ_DELETE_MSG_ON_IMAP     100    /* low priority ... */
 #define MRJ_MARKSEEN_MDN_ON_IMAP   102
 #define MRJ_SEND_MDN               105
 #define MRJ_MARKSEEN_MSG_ON_IMAP   110
 #define MRJ_SEND_MSG_TO_IMAP       700
-#define MRJ_SEND_MSG_TO_SMTP       800
-#define MRJ_CONNECT_TO_IMAP        900    /* ... high priority*/
+#define MRJ_SEND_MSG_TO_SMTP       800    /* ... high priority*/
+
 
 /**
  * Library-internal.

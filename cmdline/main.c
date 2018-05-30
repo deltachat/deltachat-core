@@ -173,7 +173,6 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
-			mrmailbox_connect(mailbox);
 			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {

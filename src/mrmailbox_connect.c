@@ -79,61 +79,6 @@ void mrmailbox_ll_disconnect(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if
 
 
 /**
- * Connect to the mailbox using the configured settings.  We connect using IMAP-IDLE or, if this is not possible,
- * a using poll algorithm.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_connect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mailbox->m_smtp->m_log_connect_errors = 1;
-		mailbox->m_imap->m_log_connect_errors = 1;
-
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
-		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL, 0);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-}
-
-
-/**
- * Disonnect the mailbox from the server.
- * This function adds a job to disconnect the mailbox from the server.
- * The disconnect job has a lower priority, so that pending sending etc. are
- * executed before. During this time calls to mrmailbox_pull() will return 0.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_disconnect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
-		mrjob_add__(mailbox, MRJ_DISCONNECT, 0, NULL, 0);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-}
-
-
-/**
  * Check for changes in the mailbox. mrmailbox_poll() connects, checks and disconnects
  * as fast as possible for this purpose. If there are new messages, you get them
  * as usual through the event handler given to mrmailbox_new().
@@ -231,4 +176,16 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
 
 	//mrmailbox_log_info(mailbox, 0, "<3 Mailbox");
 	mrimap_heartbeat(mailbox->m_imap);
+}
+
+
+int mrmailbox_idle(mrmailbox_t* mailbox)
+{
+	return 0;
+}
+
+
+int mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
+{
+	return 0;
 }

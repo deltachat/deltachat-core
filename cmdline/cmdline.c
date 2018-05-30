@@ -451,8 +451,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 				"set <configuration-key> [<value>]\n"
 				"get <configuration-key>\n"
 				"configure\n"
-				"connect\n"
-				"disconnect\n"
+				"idle\n"
+				"interruptidle\n"
 				"poll\n"
 				"help imex (Import/Export)\n"
 				"==============================Chat commands==\n"
@@ -680,15 +680,13 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	{
 		ret = mrmailbox_configure(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
-	else if( strcmp(cmd, "connect")==0 )
+	else if( strcmp(cmd, "idle")==0 )
 	{
-		mrmailbox_connect(mailbox);
-		ret = COMMAND_SUCCEEDED;
+		ret = COMMAND_FAILED;
 	}
-	else if( strcmp(cmd, "disconnect")==0 )
+	else if( strcmp(cmd, "interruptidle")==0 )
 	{
-		mrmailbox_disconnect(mailbox);
-		ret = COMMAND_SUCCEEDED;
+		ret = COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "poll")==0 )
 	{

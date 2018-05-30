@@ -252,7 +252,7 @@ int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir
 		if( !mrsqlite3_open__(mailbox->m_sql, dbfile, 0) ) {
 			goto cleanup;
 		}
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
+		//mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 		/* backup dbfile name */
 		mailbox->m_dbfile = safe_strdup(dbfile);
