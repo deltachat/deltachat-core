@@ -1098,40 +1098,6 @@ exit_:
 }
 
 
-static void* heartbeat_thread_entry_point(void* entry_arg)
-{
-	mrimap_t*       ths = (mrimap_t*)entry_arg;
-
-	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread started.");
-
-	while( 1 )
-	{
-		pthread_mutex_lock(&ths->m_heartbeat_condmutex);
-			struct timespec timeToWait;
-			timeToWait.tv_sec  = time(NULL) + 50;
-			timeToWait.tv_nsec = 0;
-			pthread_cond_timedwait(&ths->m_heartbeat_cond, &ths->m_heartbeat_condmutex, &timeToWait);
-		pthread_mutex_unlock(&ths->m_heartbeat_condmutex);
-		if( ths->m_watch_do_exit ) {
-			break;
-		}
-
-		/* After waiting 50 seconds, call mrimap_heartbeat().
-		As pthread_cond_timedwait() eg. on Android does not always wake up in time when the device sleeps,
-		you may want to call mrimap_heartbeat() (resp. mrmailbox_heartbeat()) from an additional, IDLE-safe, timer. */
-		//mrmailbox_log_info(ths->m_mailbox, 0, "<3 IMAP");
-		mrimap_heartbeat(ths);
-	}
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-heartbeat-thread ended.");
-
-	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
-	return NULL;
-}
-
-
 void mrimap_heartbeat(mrimap_t* ths)
 {
 	/* the function */
@@ -1401,7 +1367,6 @@ void mrimap_start_watch_thread(mrimap_t* ths)
 	UNLOCK_HANDLE
 
 	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
-	pthread_create(&ths->m_heartbeat_thread, NULL, heartbeat_thread_entry_point, ths);
 
 cleanup:
 	UNLOCK_HANDLE
@@ -1444,13 +1409,8 @@ void mrimap_disconnect(mrimap_t* ths)
 				pthread_mutex_unlock(&ths->m_watch_condmutex);
 			}
 
-			pthread_mutex_lock(&ths->m_heartbeat_condmutex);
-				pthread_cond_signal(&ths->m_heartbeat_cond);
-			pthread_mutex_unlock(&ths->m_heartbeat_condmutex);
-
 			/* wait for the threads to terminate */
 			pthread_join(ths->m_watch_thread, NULL);
-			pthread_join(ths->m_heartbeat_thread, NULL);
 
 			LOCK_HANDLE
 				ths->m_watch_thread_started = 0;
@@ -1506,9 +1466,6 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 
 	ths->m_enter_watch_wait_time = 0;
 
-	pthread_mutex_init(&ths->m_heartbeat_condmutex, NULL);
-	pthread_cond_init (&ths->m_heartbeat_cond, NULL);
-
 	ths->m_selected_folder = calloc(1, 1);
 	ths->m_moveto_folder   = NULL;
 	ths->m_sent_folder     = NULL;
@@ -1546,9 +1503,6 @@ void mrimap_unref(mrimap_t* ths)
 	}
 
 	mrimap_disconnect(ths);
-
-	pthread_cond_destroy(&ths->m_heartbeat_cond);
-	pthread_mutex_destroy(&ths->m_heartbeat_condmutex);
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);

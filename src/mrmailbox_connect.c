@@ -209,12 +209,12 @@ cleanup:
 
 /**
  * Stay alive.
- * The library tries itself to stay alive. For this purpose there is an additional
- * "heartbeat" thread that checks if the IDLE-thread is up and working. This check is done about every minute.
- * However, depending on the operating system, this thread may be delayed or stopped, if this is the case you can
- * force additional checks manually by just calling mrmailbox_heartbeat() about every minute.
- * If in doubt, call this function too often, not too less :-)
+ * This function checks that eg. installed IMAP-PUSH is working and not halted
+ * for any reasons. Normally, this works automatically - we have a timeout of about
+ * 25 minutes and re-install push then. However, if this thread hangs it may
+ * be useful on some operating systems to force a check. This can be done by this function.
  *
+ * If you think, this function is required, you may want to call it about every minute.
  * The function MUST NOT be called from the UI thread and may take a moment to return.
  *
  * @memberof mrmailbox_t

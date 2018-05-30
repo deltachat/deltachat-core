@@ -79,10 +79,6 @@ typedef struct mrimap_t
 
 	time_t                m_enter_watch_wait_time;
 
-	pthread_t             m_heartbeat_thread;
-	pthread_cond_t        m_heartbeat_cond;
-	pthread_mutex_t       m_heartbeat_condmutex;
-
 	struct mailimap_fetch_type* m_fetch_type_uid;
 	struct mailimap_fetch_type* m_fetch_type_message_id;
 	struct mailimap_fetch_type* m_fetch_type_body;
