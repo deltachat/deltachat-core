@@ -63,9 +63,6 @@ struct _mrmailbox
 
 	uint32_t         m_cmdline_sel_chat_id;   /**< Internal */
 
-	int              m_wake_lock;             /**< Internal */
-	pthread_mutex_t  m_wake_lock_critical;    /**< Internal */
-
 	int              m_e2ee_enabled;          /**< Internal */
 
 	#define          MR_LOG_RINGBUF_SIZE 200
@@ -91,8 +88,6 @@ void            mrmailbox_receive_imf                             (mrmailbox_t*,
 uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
 void            mrmailbox_ll_connect_to_imap                      (mrmailbox_t*, mrjob_t*);
 void            mrmailbox_ll_disconnect                           (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_wake_lock                               (mrmailbox_t*);
-void            mrmailbox_wake_unlock                             (mrmailbox_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);

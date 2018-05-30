@@ -695,8 +695,6 @@ void mrsqlite3_lock(mrsqlite3_t* ths) /* wait and lock */
 	#ifdef MR_USE_LOCK_DEBUG
 		mrmailbox_log_info(ths->m_mailbox, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 	#endif
-
-	//mrmailbox_wake_lock(ths->m_mailbox);
 }
 
 
@@ -706,8 +704,6 @@ void mrsqlite3_unlockNdebug(mrsqlite3_t* ths, const char* filename, int linenum)
 void mrsqlite3_unlock(mrsqlite3_t* ths)
 #endif
 {
-	//mrmailbox_wake_unlock(ths->m_mailbox);
-
 	#ifdef MR_USE_LOCK_DEBUG
 		mrmailbox_log_info(ths->m_mailbox, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
 	#endif
