@@ -175,7 +175,7 @@ void mrmailbox_heartbeat(mrmailbox_t* mailbox)
 	}
 
 	//mrmailbox_log_info(mailbox, 0, "<3 Mailbox");
-	mrimap_heartbeat(mailbox->m_imap);
+	//mrimap_heartbeat(mailbox->m_imap);
 }
 
 

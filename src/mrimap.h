@@ -112,7 +112,7 @@ int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t serv
 
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
-void      mrimap_heartbeat         (mrimap_t*);
+//void      mrimap_heartbeat         (mrimap_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

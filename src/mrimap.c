@@ -1098,6 +1098,7 @@ exit_:
 }
 
 
+#if 0
 void mrimap_heartbeat(mrimap_t* ths)
 {
 	/* the function */
@@ -1141,6 +1142,7 @@ void mrimap_heartbeat(mrimap_t* ths)
 cleanup:
 	UNLOCK_HANDLE
 }
+#endif
 
 
 /*******************************************************************************
