@@ -126,7 +126,6 @@ int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*,
 void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
 void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
-int             mrmailbox_get_thread_index                        (void);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
 
