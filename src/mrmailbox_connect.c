@@ -20,6 +20,8 @@
  ******************************************************************************/
 
 
+#include <stdarg.h>
+#include <unistd.h>
 #include "mrmailbox_internal.h"
 #include "mrloginparam.h"
 #include "mrjob.h"
@@ -27,8 +29,9 @@
 #include "mrsmtp.h"
 
 
-void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
+int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
+	int             ret_connected = 0;
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
@@ -37,6 +40,7 @@ void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NU
 	}
 
 	if( mrimap_is_connected(mailbox->m_imap) ) {
+		ret_connected = 1;
 		mrmailbox_log_info(mailbox, 0, "Already connected or trying to connect.");
 		goto cleanup;
 	}
@@ -59,11 +63,12 @@ void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NU
 		goto cleanup;
 	}
 
-	mrimap_start_watch_thread(mailbox->m_imap);
+	ret_connected = 1;
 
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrloginparam_unref(param);
+	return ret_connected;
 }
 
 
@@ -90,6 +95,8 @@ void mrmailbox_ll_disconnect(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if
  * If there is already a permanent push connection to the server, mrmailbox_poll()
  * return 0 and does nothing (permanent push connections are started and ended with mrmailbox_connect()
  * and mrmailbox_disconnect()).
+ *
+ * See also: mrmailbox_idle()
  *
  * @memberof mrmailbox_t
  *
@@ -153,39 +160,78 @@ cleanup:
 
 
 /**
- * Stay alive.
- * This function checks that eg. installed IMAP-PUSH is working and not halted
- * for any reasons. Normally, this works automatically - we have a timeout of about
- * 25 minutes and re-install push then. However, if this thread hangs it may
- * be useful on some operating systems to force a check. This can be done by this function.
+ * Wait for messages.
+ * mrmailbox_idle() waits until there are new message.
+ * If there are new messages, you get them as usual through the event handler given to mrmailbox_new().
+ * After that, the function waits for messages again.
+ * If the mailbox is not yet configured or the connection is down,
+ * the function tries to reconnect as soon as changes in the environment are detected.
  *
- * If you think, this function is required, you may want to call it about every minute.
- * The function MUST NOT be called from the UI thread and may take a moment to return.
+ * So, the function may last forever; however, you can interrupt it by mrmailbox_interrupt_idle().
+ *
+ * Waiting for messages is typically done by IMAP-IDLE, but there may also be different approaches
+ * eg. if IMAP-IDLE is not available.
+ *
+ * This function MUST be called in a separate thread
+ * and MUST NOT run in the UI thread or in the thread that calls mrmailbox_interrupt_idle().
+ *
+ * See also: mrmailbox_poll()
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
  *
- * @return None.
+ * @return 0=cannot do idle, probably, there is already an idle process running
+ *     1=idle interrupted by mrmailbox_interrupt_idle()
  */
-void mrmailbox_heartbeat(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	//mrmailbox_log_info(mailbox, 0, "<3 Mailbox");
-	//mrimap_heartbeat(mailbox->m_imap);
-}
-
-
 int mrmailbox_idle(mrmailbox_t* mailbox)
 {
-	return 0;
+	int success = 0;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		goto cleanup;
+	}
+
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_info(mailbox, 0, "Already in idle.");
+		goto cleanup;
+	}
+
+	if( !mrmailbox_ll_connect_to_imap(mailbox, NULL) ) {
+		goto cleanup;
+	}
+
+	mailbox->m_in_idle = 1;
+
+		mrimap_watch_n_wait(mailbox->m_imap);
+
+	mailbox->m_in_idle = 0;
+
+	success = 1;
+
+cleanup:
+	return success;
 }
 
 
 int mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
 {
-	return 0;
+	int success = 0;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		goto cleanup;
+	}
+
+	if( !mailbox->m_in_idle ) {
+		goto cleanup;
+	}
+
+	mrimap_interrupt_watch(mailbox->m_imap);
+
+	success = 1;
+
+cleanup:
+	return success;
 }
+
+

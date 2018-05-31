@@ -56,7 +56,6 @@ typedef struct mrimap_t
 	int                   m_server_flags;
 
 	int                   m_connected;
-	int                   m_watch_thread_started;
 	mailimap*             m_hEtpan;   /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
 	pthread_mutex_t       m_hEtpanmutex;
 	int                   m_idle_set_up;
@@ -71,13 +70,13 @@ typedef struct mrimap_t
 	pthread_mutex_t       m_idlemutex;    /* set, if idle is not possible; morover, the interrupted IDLE thread waits a second before IDLEing again; this allows several jobs to be executed */
 	pthread_mutex_t       m_inwait_mutex; /* only used to wait for mailstream_wait_idle()/mailimap_idle_done() to terminate. */
 
-	pthread_t             m_watch_thread;
+	int                   m_watch_thread_running;
 	pthread_cond_t        m_watch_cond;
 	pthread_mutex_t       m_watch_condmutex;
 	int                   m_watch_condflag;
 	int                   m_watch_do_exit;
 
-	time_t                m_enter_watch_wait_time;
+	//time_t                m_enter_watch_wait_time;
 
 	struct mailimap_fetch_type* m_fetch_type_uid;
 	struct mailimap_fetch_type* m_fetch_type_message_id;
@@ -101,7 +100,9 @@ int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
 void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
-void      mrimap_start_watch_thread(mrimap_t*);
+
+void      mrimap_watch_n_wait      (mrimap_t*);
+void      mrimap_interrupt_watch   (mrimap_t*);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
@@ -112,7 +113,6 @@ int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t serv
 
 int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
-//void      mrimap_heartbeat         (mrimap_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

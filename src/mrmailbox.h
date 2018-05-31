@@ -305,7 +305,6 @@ char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
 char*           mrmailbox_initiate_key_transfer(mrmailbox_t*);
 int             mrmailbox_continue_key_transfer(mrmailbox_t*, uint32_t msg_id, const char* setup_code);
-void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
 /* out-of-band verification */
@@ -329,6 +328,7 @@ int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* d
 #define         mrpoortext_unref            mrlot_unref
 #define         mrmailbox_imex_cancel       mrmailbox_stop_ongoing_process
 #define         mrmailbox_configure_cancel  mrmailbox_stop_ongoing_process
+#define         mrmailbox_heartbeat(a)
 
 
 #ifdef __cplusplus

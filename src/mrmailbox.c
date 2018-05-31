@@ -159,6 +159,11 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 		return;
 	}
 
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_error(mailbox, 0, "Interrupt idle before destroying the mailbox object.");
+		return;
+	}
+
 	mrpgp_exit(mailbox);
 
 	mrjob_stop_thread(mailbox);
@@ -299,6 +304,11 @@ void mrmailbox_close(mrmailbox_t* mailbox)
 		return;
 	}
 
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_error(mailbox, 0, "Interrupt idle before closing the mailbox object.");
+		return;
+	}
+
 	mrimap_disconnect(mailbox->m_imap);
 	mrsmtp_disconnect(mailbox->m_smtp);
 
@@ -329,7 +339,7 @@ void mrmailbox_close(mrmailbox_t* mailbox)
  */
 int mrmailbox_is_open(const mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0; /* error - database not opened */
 	}
 

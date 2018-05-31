@@ -682,11 +682,11 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "idle")==0 )
 	{
-		ret = COMMAND_FAILED;
+		ret = mrmailbox_idle(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "interruptidle")==0 )
 	{
-		ret = COMMAND_FAILED;
+		ret = mrmailbox_interrupt_idle(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "poll")==0 )
 	{

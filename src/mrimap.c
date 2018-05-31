@@ -883,11 +883,8 @@ static int fetch_from_all_folders(mrimap_t* ths)
  ******************************************************************************/
 
 
-static void* watch_thread_entry_point(void* entry_arg)
+void mrimap_watch_n_wait(mrimap_t* ths)
 {
-	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
-
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* give the job thread a little time before we IDLE again, otherwise there will be many idle-interrupt sequences */
@@ -896,6 +893,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 
 	time_t          last_fullread_time = 0;
 
+	ths->m_watch_thread_running = 1;
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
 
 	if( ths->m_can_idle )
@@ -942,7 +940,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 					{
 						mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
 
-						ths->m_enter_watch_wait_time = time(NULL);
+						//ths->m_enter_watch_wait_time = time(NULL);
 
 						UNLOCK_HANDLE
 						UNBLOCK_IDLE
@@ -985,7 +983,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 						BLOCK_IDLE
 						LOCK_HANDLE
 
-						ths->m_enter_watch_wait_time = 0;
+						//ths->m_enter_watch_wait_time = 0;
 					}
 				}
 
@@ -1066,15 +1064,15 @@ static void* watch_thread_entry_point(void* entry_arg)
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
 
-					LOCK_HANDLE
+					/*LOCK_HANDLE
 						ths->m_enter_watch_wait_time = time(NULL);
-					UNLOCK_HANDLE
+					UNLOCK_HANDLE*/
 
 					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
 
-					LOCK_HANDLE
+					/*LOCK_HANDLE
 						ths->m_enter_watch_wait_time = 0;
-					UNLOCK_HANDLE
+					UNLOCK_HANDLE*/
 				}
 				ths->m_watch_condflag = 0;
 
@@ -1088,61 +1086,43 @@ static void* watch_thread_entry_point(void* entry_arg)
 	}
 
 exit_:
-	ths->m_enter_watch_wait_time = 0;
-
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
-	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
-	return NULL;
+	ths->m_watch_thread_running = 0;
 }
 
 
-#if 0
-void mrimap_heartbeat(mrimap_t* ths)
+void mrimap_interrupt_watch(mrimap_t* ths)
 {
-	/* the function */
-	int handle_locked = 0, idle_blocked = 0;
+	int idle_blocked = 0;
 
-	if( ths == NULL ) {
+	if( ths==NULL || ths->m_hEtpan==NULL || !ths->m_watch_thread_running ) {
 		return;
 	}
 
-	LOCK_HANDLE
+	ths->m_watch_do_exit = 1;
 
-		if( ths->m_hEtpan == NULL || ths->m_should_reconnect == 1 ) {
-			goto cleanup;
-		}
+	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
+	{
+		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit idle ...");
 
-		if( ths->m_enter_watch_wait_time != 0
-		 && time(NULL)-ths->m_enter_watch_wait_time > (IDLE_DELAY_SECONDS+60) )
-		{
-			/* force reconnect if the IDLE timeout does not arrive */
-			mrmailbox_log_info(ths->m_mailbox, 0, "Reconnect forced from the heartbeat thread.");
-			ths->m_should_reconnect = 1;
-			ths->m_enter_watch_wait_time = 0;
-			if( ths->m_can_idle )
-			{
-				/* the handle must be LOCKED when calling BLOCK_IDLE */
-				BLOCK_IDLE
-					INTERRUPT_IDLE
-				UNBLOCK_IDLE
-			}
-			else
-			{
-				UNLOCK_HANDLE
+		BLOCK_IDLE
+			INTERRUPT_IDLE
+		UNBLOCK_IDLE
+	}
+	else
+	{
+		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit poll ...");
 
-				pthread_mutex_lock(&ths->m_watch_condmutex);
-					ths->m_watch_condflag = 1;
-					pthread_cond_signal(&ths->m_watch_cond);
-				pthread_mutex_unlock(&ths->m_watch_condmutex);
-			}
-		}
+		pthread_mutex_lock(&ths->m_watch_condmutex);
+			ths->m_watch_condflag = 1;
+			pthread_cond_signal(&ths->m_watch_cond);
+		pthread_mutex_unlock(&ths->m_watch_condmutex);
+	}
 
-cleanup:
-	UNLOCK_HANDLE
+	mrmailbox_log_info(ths->m_mailbox, 0, "Watch-thread signalled.");
 }
-#endif
 
 
 /*******************************************************************************
@@ -1350,34 +1330,9 @@ cleanup:
 }
 
 
-void mrimap_start_watch_thread(mrimap_t* ths)
-{
-	int handle_locked = 0;
-
-	if( ths == NULL ) {
-		goto cleanup;
-	}
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Starting IMAP-watch-thread...");
-
-	LOCK_HANDLE
-		if( !ths->m_connected || ths->m_watch_thread_started ) {
-			goto cleanup;
-		}
-		ths->m_watch_thread_started = 1;
-		ths->m_watch_do_exit        = 0;
-	UNLOCK_HANDLE
-
-	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
-
-cleanup:
-	UNLOCK_HANDLE
-}
-
-
 void mrimap_disconnect(mrimap_t* ths)
 {
-	int handle_locked = 0, connected = 0, watch_thread_started = 0;
+	int handle_locked = 0, connected = 0;
 
 	if( ths==NULL ) {
 		return;
@@ -1385,41 +1340,7 @@ void mrimap_disconnect(mrimap_t* ths)
 
 	LOCK_HANDLE
 		connected = (ths->m_hEtpan && ths->m_connected);
-		watch_thread_started = (ths->m_hEtpan && ths->m_watch_thread_started);
 	UNLOCK_HANDLE
-
-	if( watch_thread_started )
-	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Stopping IMAP-watch-thread...");
-
-			/* prepare for exit */
-			if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
-			{
-				ths->m_watch_do_exit = 1;
-
-				LOCK_HANDLE
-					mrmailbox_log_info(ths->m_mailbox, 0, "Interrupting IDLE for disconnecting...");
-					mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
-				UNLOCK_HANDLE
-			}
-			else
-			{
-				pthread_mutex_lock(&ths->m_watch_condmutex);
-					ths->m_watch_condflag = 1;
-					ths->m_watch_do_exit  = 1;
-					pthread_cond_signal(&ths->m_watch_cond);
-				pthread_mutex_unlock(&ths->m_watch_condmutex);
-			}
-
-			/* wait for the threads to terminate */
-			pthread_join(ths->m_watch_thread, NULL);
-
-			LOCK_HANDLE
-				ths->m_watch_thread_started = 0;
-			UNLOCK_HANDLE
-
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread stopped.");
-	}
 
 	if( connected )
 	{
@@ -1466,7 +1387,7 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
-	ths->m_enter_watch_wait_time = 0;
+	//ths->m_enter_watch_wait_time = 0;
 
 	ths->m_selected_folder = calloc(1, 1);
 	ths->m_moveto_folder   = NULL;
@@ -1502,6 +1423,10 @@ void mrimap_unref(mrimap_t* ths)
 {
 	if( ths==NULL ) {
 		return;
+	}
+
+	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot delete imap object while watch thread is running.");
 	}
 
 	mrimap_disconnect(ths);
