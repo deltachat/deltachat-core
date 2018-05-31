@@ -35,42 +35,6 @@ are usually logged by mrmailbox_log_warning(). */
 
 
 /*******************************************************************************
- * Get a unique thread ID to recognize log output from different threads
- ******************************************************************************/
-
-
-int mrmailbox_get_thread_index(void)
-{
-	#define          MR_MAX_THREADS 32 /* if more threads are started, the full ID is printed (this may happen eg. on many failed connections so that we try to start a working thread several times) */
-	static pthread_t s_threadIds[MR_MAX_THREADS];
-	static int       s_threadIdsCnt = 0;
-
-	int       i;
-	pthread_t self = pthread_self();
-
-	if( s_threadIdsCnt==0 ) {
-		for( i = 0; i < MR_MAX_THREADS; i++ ) {
-			s_threadIds[i] = 0;
-		}
-	}
-
-	for( i = 0; i < s_threadIdsCnt; i++ ) {
-		if( s_threadIds[i] == self ) {
-			return i+1;
-		}
-	}
-
-	if( s_threadIdsCnt >= MR_MAX_THREADS ) {
-		return (int)(self); /* Fallback, this may happen, see comment above */
-	}
-
-	s_threadIds[s_threadIdsCnt] = self;
-	s_threadIdsCnt++;
-	return s_threadIdsCnt;
-}
-
-
-/*******************************************************************************
  * Main interface
  ******************************************************************************/
 
@@ -105,13 +69,6 @@ static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, con
 		     if( event == MR_EVENT_INFO )    { msg = mr_mprintf("Info: %i",    (int)code); }
 		else if( event == MR_EVENT_WARNING ) { msg = mr_mprintf("Warning: %i", (int)code); }
 		else                                 { msg = mr_mprintf("Error: %i",   (int)code); }
-	}
-
-	/* prefix the message by the thread-id? we do this for non-errros that are normally only logged (for the few errros, the thread should be clear (enough)) */
-	if( event != MR_EVENT_ERROR ) {
-		char* temp = msg;
-		msg = mr_mprintf("T%i: %s", (int)mrmailbox_get_thread_index(), temp);
-		free(temp);
 	}
 
 	/* finally, log */

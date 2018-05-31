@@ -98,8 +98,6 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  */
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name)
 {
-	mrmailbox_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
-
 	mrmailbox_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmailbox_t)))==NULL ) {
