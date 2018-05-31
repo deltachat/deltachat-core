@@ -31,7 +31,10 @@
 
 int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
-	int             ret_connected = 0;
+	#define         NOT_CONNECTED     0
+	#define         ALREADY_CONNECTED 1
+	#define         JUST_CONNECTED    2
+	int             ret_connected = NOT_CONNECTED;
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
@@ -40,7 +43,7 @@ int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NUL
 	}
 
 	if( mrimap_is_connected(mailbox->m_imap) ) {
-		ret_connected = 1;
+		ret_connected = ALREADY_CONNECTED;
 		mrmailbox_log_info(mailbox, 0, "Already connected or trying to connect.");
 		goto cleanup;
 	}
@@ -63,7 +66,7 @@ int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NUL
 		goto cleanup;
 	}
 
-	ret_connected = 1;
+	ret_connected = JUST_CONNECTED;
 
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -109,9 +112,7 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 {
 	clock_t         start = clock();
 	int             polling_done = 0;
-	int             is_locked = 0;
-	int             connected_here = 0;
-	mrloginparam_t* param = mrloginparam_new();
+	int             connected = NOT_CONNECTED;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
@@ -119,42 +120,25 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 
 	mrmailbox_log_info(mailbox, 0, "Polling...");
 
-	if( mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_log_info(mailbox, 0, "Poll not needed, already connected or trying to connect.");
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_info(mailbox, 0, "In idle, polling not needed.");
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
-	is_locked = 1;
-
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_warning(mailbox, 0, "Not configured, cannot poll."); // this is no error, pull() is called eg. from a timer, it's okay if the caller does not check all circumstances here
-			goto cleanup;
-		}
-
-		mrloginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	is_locked = 0;
-
-	if( !mrimap_connect(mailbox->m_imap, param) ) {
+	if( (connected=mrmailbox_ll_connect_to_imap(mailbox, NULL)) == NOT_CONNECTED ) {
 		goto cleanup;
 	}
-	connected_here = 1;
 
 	mrimap_fetch(mailbox->m_imap);
 
 	mrimap_disconnect(mailbox->m_imap);
-	connected_here = 0;
 
 	mrmailbox_log_info(mailbox, 0, "Poll finished in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	polling_done = 1;
 
 cleanup:
-	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( connected_here ) { mrimap_disconnect(mailbox->m_imap); }
-	mrloginparam_unref(param);
+	if( connected == JUST_CONNECTED ) { mrimap_disconnect(mailbox->m_imap); }
 	return polling_done;
 }
 
