@@ -198,6 +198,22 @@ cleanup:
 }
 
 
+/**
+ * Interrupt the function that waits for messages.
+ * If you have started mrmailbox_idle() in a separate thread to wait for push messages, this function typically runs forever.
+ *
+ * To stop waiting for messagees, call mrmailbox_interrupt_idle().
+ * mrmailbox_interrupt_idle() signals mrmailbox_idle() stop and returns immediately.
+ * You may want to wait for the idle-thread to finish; this is not done by this function.
+ * (waiting for a thread can be perfomed eg. by pthread_join() or Thread.join(), depending on your environment)
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return 0=There is no idle function to interrupt or other errors;
+ *     1=mrmailbox_idle() signalled to stop
+ */
 int mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
 {
 	int success = 0;
