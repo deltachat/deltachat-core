@@ -35,28 +35,15 @@ all further options can be set using the set-command (type ? for help). */
 #include "stress.h"
 
 
-#define ANSI_RED    "\e[31m"
-#define ANSI_YELLOW "\e[33m"
-#define ANSI_NORMAL "\e[0m"
-
-
-static char* read_cmd(void)
-{
-	printf("> ");
-	static char cmdbuffer[1024];
-	fgets(cmdbuffer, 1000, stdin);
-
-	while( strlen(cmdbuffer)>0
-	 && (cmdbuffer[strlen(cmdbuffer)-1]=='\n' || cmdbuffer[strlen(cmdbuffer)-1]==' ') )
-	{
-		cmdbuffer[strlen(cmdbuffer)-1] = '\0';
-	}
-
-	return cmdbuffer;
-}
+/*******************************************************************************
+ * Event Handler
+ ******************************************************************************/
 
 
 static int s_do_log_info = 1;
+#define ANSI_RED    "\e[31m"
+#define ANSI_YELLOW "\e[33m"
+#define ANSI_NORMAL "\e[0m"
 
 
 static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
@@ -132,6 +119,65 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 }
 
 
+/*******************************************************************************
+ * The idle thread - wait for push messages
+ ******************************************************************************/
+
+
+pthread_t idle_thread;
+int       idle_thread_started = 0;
+
+
+static void* idle_thread_entry_point(void* entry_arg)
+{
+	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
+	mrmailbox_idle(mailbox); // this may take hours ...
+	return NULL;
+}
+
+
+static void idle_connect(mrmailbox_t* mailbox)
+{
+	if( !idle_thread_started )
+	{
+		idle_thread_started = 1;
+		pthread_create(&idle_thread, NULL, idle_thread_entry_point, mailbox);
+	}
+}
+
+
+static void idle_disconnect(mrmailbox_t* mailbox)
+{
+	if( idle_thread_started )
+	{
+		mrmailbox_interrupt_idle(mailbox);
+		pthread_join(idle_thread, NULL);
+		idle_thread_started = 0;
+	}
+}
+
+
+/*******************************************************************************
+ * The main loop
+ ******************************************************************************/
+
+
+static char* read_cmd(void)
+{
+	printf("> ");
+	static char cmdbuffer[1024];
+	fgets(cmdbuffer, 1000, stdin);
+
+	while( strlen(cmdbuffer)>0
+	 && (cmdbuffer[strlen(cmdbuffer)-1]=='\n' || cmdbuffer[strlen(cmdbuffer)-1]==' ') )
+	{
+		cmdbuffer[strlen(cmdbuffer)-1] = '\0';
+	}
+
+	return cmdbuffer;
+}
+
+
 int main(int argc, char ** argv)
 {
 	char*        cmd = NULL;
@@ -166,13 +212,22 @@ int main(int argc, char ** argv)
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) { *arg1 = 0; arg1++; }
 
-		if( strcmp(cmd, "clear")==0 )
+		if( strcmp(cmd, "connect")==0 )
+		{
+			idle_connect(mailbox);
+		}
+		else if( strcmp(cmd, "disconnect")==0 )
+		{
+			idle_disconnect(mailbox);
+		}
+		else if( strcmp(cmd, "clear")==0 )
 		{
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
 			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
 		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
+			idle_connect(mailbox);
 			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
@@ -204,6 +259,7 @@ int main(int argc, char ** argv)
 	}
 
 	free(cmd);
+	idle_disconnect(mailbox);
 	mrmailbox_close(mailbox);
 	mrmailbox_unref(mailbox);
 	mailbox = NULL;

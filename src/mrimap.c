@@ -893,6 +893,10 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 	time_t          last_fullread_time = 0;
 
+	if( ths->m_watch_thread_running ) {
+		goto exit_;
+	}
+
 	ths->m_watch_thread_running = 1;
 	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
 
@@ -1090,6 +1094,7 @@ exit_:
 	UNBLOCK_IDLE
 
 	ths->m_watch_thread_running = 0;
+	ths->m_watch_do_exit = 0;
 }
 
 
