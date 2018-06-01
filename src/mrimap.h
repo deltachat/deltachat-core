@@ -90,6 +90,8 @@ typedef struct mrimap_t
 	mrmailbox_t*          m_mailbox;
 
 	int                   m_log_connect_errors;
+	int                   m_skip_log_capabilities;
+
 } mrimap_t;
 
 

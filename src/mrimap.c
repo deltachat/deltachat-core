@@ -1110,7 +1110,7 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 
 	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit idle ...");
+		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit idle.");
 
 		BLOCK_IDLE
 			INTERRUPT_IDLE
@@ -1118,15 +1118,13 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 	}
 	else
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit poll ...");
+		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit poll.");
 
 		pthread_mutex_lock(&ths->m_watch_condmutex);
 			ths->m_watch_condflag = 1;
 			pthread_cond_signal(&ths->m_watch_cond);
 		pthread_mutex_unlock(&ths->m_watch_condmutex);
 	}
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Watch-thread signalled.");
 }
 
 
@@ -1163,35 +1161,35 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 
 	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
 		r = mailimap_socket_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\". (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 			goto cleanup;
 		}
 
 		if( ths->m_server_flags&MR_IMAP_SOCKET_STARTTLS )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to IMAP-STARTTLS.", ths->m_imap_server, (int)ths->m_imap_port);
 			r = mailimap_socket_starttls(ths->m_hEtpan);
 			if( is_error(ths, r) ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 				goto cleanup;
 			}
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i STARTTLS-connected.", ths->m_imap_server, (int)ths->m_imap_port);
+		}
+		else
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i connected.", ths->m_imap_server, (int)ths->m_imap_port);
 		}
 	}
 	else
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\" via SSL...", ths->m_imap_server, (int)ths->m_imap_port);
 		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 			goto cleanup;
 		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i SSL-connected.", ths->m_imap_server, (int)ths->m_imap_port);
 	}
-	mrmailbox_log_info(ths->m_mailbox, 0, "Connection to IMAP-server ok.");
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Login to IMAP-server as \"%s\"...", ths->m_imap_user);
 
 		/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
 		/*if( ths->m_server_flags&MR_AUTH_XOAUTH2 )
@@ -1212,11 +1210,11 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		}
 
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not login: %s (Error #%i)", ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not login as %s: %s (Error #%i)", ths->m_imap_user, ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
 			goto cleanup;
 		}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-Login ok.");
+	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-login as %s ok.", ths->m_imap_user);
 
 	success = 1;
 
@@ -1238,8 +1236,6 @@ static void unsetup_handle__(mrimap_t* ths)
 
 	if( ths->m_hEtpan )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Disconnecting...");
-
 			if( ths->m_idle_set_up ) {
 				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
 				ths->m_idle_set_up = 0;
@@ -1253,7 +1249,7 @@ static void unsetup_handle__(mrimap_t* ths)
 			mailimap_free(ths->m_hEtpan);
 			ths->m_hEtpan = NULL;
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Disconnect done.");
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP disconnected.");
 	}
 
 	ths->m_selected_folder[0] = 0;
@@ -1303,8 +1299,11 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		#endif
 
 
-		if( ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability ) {
+		if( !ths->m_skip_log_capabilities
+		 && ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability )
+		{
 			/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
+			ths->m_skip_log_capabilities = 1;
 			mrstrbuilder_t capinfostr;
 			mrstrbuilder_init(&capinfostr, 0);
 			clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;

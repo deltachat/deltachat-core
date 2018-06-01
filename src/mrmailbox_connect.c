@@ -123,8 +123,6 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Polling...");
-
 	if( (connected=mrmailbox_ll_connect_to_imap(mailbox, NULL)) == NOT_CONNECTED ) {
 		goto cleanup;
 	}
