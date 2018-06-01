@@ -733,7 +733,6 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		if( uidvalidity != ths->m_hEtpan->imap_selection_info->sel_uidvalidity )
 		{
 			/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
-			mrmailbox_log_info(ths->m_mailbox, 0, "Init lastseenuid and attach it to UIDVALIDITY for folder \"%s\".", folder);
 			if( ths->m_hEtpan->imap_selection_info->sel_uidvalidity <= 0 ) {
 				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
 				goto cleanup;
@@ -825,15 +824,11 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 cleanup:
 	UNLOCK_HANDLE
 
-	{
-		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
-		if( read_errors ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, temp);
-		}
-		else {
-			mrmailbox_log_info(ths->m_mailbox, 0, temp);
-		}
-		free(temp);
+	if( read_errors ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
+	}
+	else {
+		mrmailbox_log_info(ths->m_mailbox, 0, "%i mails read from \"%s\".", (int)read_cnt, folder);
 	}
 
 	if( fetch_result ) {
@@ -869,7 +864,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	{
 		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
 		if( folder->m_meaning == MEANING_IGNORE ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" ignored.", folder->m_name_utf8);
+			mrmailbox_log_info(ths->m_mailbox, 0, "Ignoring \"%s\".", folder->m_name_utf8);
 		}
 		else if( folder->m_meaning != MEANING_INBOX ) {
 			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select);
