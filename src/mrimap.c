@@ -1044,19 +1044,19 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 				last_fullread_time = now;
 			}
 
-			/* calculate the wait time: every 10 seconds in the first 2 minutes after a new message, after that growing up to 5 minutes */
-			if( now-last_message_time < 2*60 ) {
-				seconds_to_wait = 10;
+			/* calculate the wait time: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds */
+			if( now-last_message_time < 3*60 ) {
+				seconds_to_wait = 7;
 			}
 			else {
-				seconds_to_wait = (now-last_message_time)/6;
-				if( seconds_to_wait > 5*60 ) {
-					seconds_to_wait = 5*60;
+				seconds_to_wait = (now-last_message_time)/20;
+				if( seconds_to_wait > 60 ) {
+					seconds_to_wait = 60;
 				}
 			}
 
 			#ifdef __APPLE__
-			seconds_to_wait = 10; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
+			seconds_to_wait = 7; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
 			#endif
 
 			/* wait */
