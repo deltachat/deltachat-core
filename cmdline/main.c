@@ -132,6 +132,7 @@ static void* idle_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
 	mrmailbox_idle(mailbox); // this may take hours ...
+	idle_thread_started = 0;
 	return NULL;
 }
 
@@ -150,9 +151,9 @@ static void idle_disconnect(mrmailbox_t* mailbox)
 {
 	if( idle_thread_started )
 	{
+		idle_thread_started = 0;
 		mrmailbox_interrupt_idle(mailbox);
 		pthread_join(idle_thread, NULL);
-		idle_thread_started = 0;
 	}
 }
 
