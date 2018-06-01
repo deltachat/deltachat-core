@@ -689,6 +689,13 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	PROGRESS(920)
+
+	// we generate the keypair just now - we could also postpone this until the first message is sent, however,
+	// this may result in a unexpected and annoying delay when the user sends his very first message
+	// (~30 seconds on a Moto G4 play) and might looks as if message sending is always that slow.
+	mrmailbox_ensure_secret_key_exists(mailbox);
+
 	success = 1;
 	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
