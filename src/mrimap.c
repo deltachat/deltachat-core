@@ -888,8 +888,8 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* give the job thread a little time before we IDLE again, otherwise there will be many idle-interrupt sequences */
-	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
-	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minutes (typically together with the IDLE delay break) */
+	#define         IDLE_DELAY_SECONDS         (23*60)                 // most servers do not allow more than ~28 minutes; stay below. if the delay is reached, we also check _all_ folders.
+	#define         FULL_FETCH_EVERY_SECONDS   (IDLE_DELAY_SECONDS-60) // force a full-fetch together with the IDLE delay break
 
 	time_t          last_fullread_time = 0;
 
