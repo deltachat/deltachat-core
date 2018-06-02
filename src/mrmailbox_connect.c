@@ -39,6 +39,7 @@ int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NUL
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
@@ -171,6 +172,7 @@ int mrmailbox_idle(mrmailbox_t* mailbox)
 	int success = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot idle: Bad parameters.");
 		goto cleanup;
 	}
 
@@ -217,10 +219,12 @@ int mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
 	int success = 0;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot interrupt idle: Bad parameters.");
 		goto cleanup;
 	}
 
 	if( !mailbox->m_in_idle ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot interrupt idle: Not in idle.");
 		goto cleanup;
 	}
 
