@@ -58,6 +58,7 @@ struct _mrmailbox
 	int              m_job_do_exit;           /**< Internal */
 
 	int              m_in_idle;
+	pthread_mutex_t  m_in_idle_critical;
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 

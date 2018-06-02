@@ -176,24 +176,26 @@ int mrmailbox_idle(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
-	if( mailbox->m_in_idle ) {
-		mrmailbox_log_info(mailbox, 0, "Already in idle.");
-		goto cleanup;
-	}
+	pthread_mutex_lock(&mailbox->m_in_idle_critical); // the mutex makes sure, m_in_idle can only be set by one thread
+		if( mailbox->m_in_idle ) {
+			mrmailbox_log_info(mailbox, 0, "Already in idle.");
+			pthread_mutex_unlock(&mailbox->m_in_idle_critical);
+			goto cleanup;
+		}
+		mailbox->m_in_idle = 1;
+	pthread_mutex_unlock(&mailbox->m_in_idle_critical);
 
 	if( !mrmailbox_ll_connect_to_imap(mailbox, NULL) ) {
+		mrmailbox_log_info(mailbox, 0, "Cannot idle: Cannot connect.");
 		goto cleanup;
 	}
 
-	mailbox->m_in_idle = 1;
-
-		mrimap_watch_n_wait(mailbox->m_imap);
-
-	mailbox->m_in_idle = 0;
+	mrimap_watch_n_wait(mailbox->m_imap);
 
 	success = 1;
 
 cleanup:
+	mailbox->m_in_idle = 0;
 	return success;
 }
 

@@ -104,6 +104,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&ths->m_in_idle_critical, NULL);
 	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
 
 	ths->m_magic    = MR_MAILBOX_MAGIC;
@@ -175,6 +176,7 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	mrsmtp_unref(mailbox->m_smtp);
 	mrsqlite3_unref(mailbox->m_sql);
 
+	pthread_mutex_destroy(&mailbox->m_in_idle_critical);
 	pthread_mutex_destroy(&mailbox->m_log_ringbuf_critical);
 	for( int i = 0; i < MR_LOG_RINGBUF_SIZE; i++ ) {
 		free(mailbox->m_log_ringbuf[i]);
