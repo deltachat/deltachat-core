@@ -113,13 +113,13 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( ths->m_hEtpan ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Already connected to SMTP server.");
+			mrmailbox_log_warning(ths->m_mailbox, 0, "SMTP already connected.");
 			success = 1; /* otherwise, the handle would get deleted */
 			goto cleanup;
 		}
 
 		if( lp->m_addr == NULL || lp->m_send_server == NULL || lp->m_send_port == 0 ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot connect to SMTP; bad parameters.");
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP bad parameters.");
 			goto cleanup;
 		}
 

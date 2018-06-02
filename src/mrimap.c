@@ -897,7 +897,7 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 	}
 
 	ths->m_watch_thread_running = 1;
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
+	mrmailbox_log_info(ths->m_mailbox, 0, "▶️ IMAP-watch started.");
 
 	if( ths->m_can_idle )
 	{
@@ -1092,6 +1092,8 @@ exit_:
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
+	mrmailbox_log_info(ths->m_mailbox, 0, "⏹️ IMAP-watch ended.");
+
 	ths->m_watch_thread_running = 0;
 	ths->m_watch_do_exit = 0;
 }
@@ -1109,16 +1111,12 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 
 	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit idle.");
-
 		BLOCK_IDLE
 			INTERRUPT_IDLE
 		UNBLOCK_IDLE
 	}
 	else
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Signal watch-thread to exit poll.");
-
 		pthread_mutex_lock(&ths->m_watch_condmutex);
 			ths->m_watch_condflag = 1;
 			pthread_cond_signal(&ths->m_watch_cond);

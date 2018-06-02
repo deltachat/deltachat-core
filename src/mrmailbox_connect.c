@@ -44,7 +44,7 @@ int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NUL
 
 	if( mrimap_is_connected(mailbox->m_imap) ) {
 		ret_connected = ALREADY_CONNECTED;
-		mrmailbox_log_info(mailbox, 0, "Already connected or trying to connect.");
+		mrmailbox_log_info(mailbox, 0, "IMAP already connected.");
 		goto cleanup;
 	}
 
@@ -119,7 +119,7 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 	}
 
 	if( mailbox->m_in_idle ) {
-		mrmailbox_log_info(mailbox, 0, "In idle, polling not needed.");
+		mrmailbox_log_info(mailbox, 0, "In idle, poll not needed.");
 		goto cleanup;
 	}
 
@@ -131,7 +131,7 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 
 	mrimap_disconnect(mailbox->m_imap);
 
-	mrmailbox_log_info(mailbox, 0, "Poll finished in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	mrmailbox_log_info(mailbox, 0, "▶⏹️ Poll done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	polling_done = 1;
 
