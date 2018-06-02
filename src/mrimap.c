@@ -1101,7 +1101,7 @@ exit_:
 
 void mrimap_interrupt_watch(mrimap_t* ths)
 {
-	int idle_blocked = 0;
+	int handle_locked = 0, idle_blocked = 0;
 
 	if( ths==NULL || ths->m_hEtpan==NULL || !ths->m_watch_thread_running ) {
 		return;
@@ -1111,9 +1111,11 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 
 	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
 	{
+		LOCK_HANDLE
 		BLOCK_IDLE
 			INTERRUPT_IDLE
 		UNBLOCK_IDLE
+		UNLOCK_HANDLE
 	}
 	else
 	{
