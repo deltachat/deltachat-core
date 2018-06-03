@@ -1862,7 +1862,7 @@ int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
 	const struct mailimf_field* fld;
 	const struct mailimf_from*  fld_from;
 	struct mailimf_mailbox*     mb;
-	char*                       from_addr_norm;
+	char*                       from_addr_norm = NULL;
 	mrhash_t*                   recipients   = NULL;
 
 	if( mimeparser == NULL || mimeparser->m_header_root == NULL ) {
