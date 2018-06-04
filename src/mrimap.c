@@ -1104,6 +1104,7 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 	int handle_locked = 0, idle_blocked = 0;
 
 	if( ths==NULL || ths->m_hEtpan==NULL || !ths->m_watch_thread_running ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "IMAP-watch not running.");
 		return;
 	}
 
