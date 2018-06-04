@@ -61,7 +61,7 @@ int             mrchat_are_all_members_verified__ (mrchat_t*);
 
 
 #define         MR_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
-#define         MR_CHATS_FOLDER             "Chats"      /* if we want to support Gma'l-labels - "Chats" is a reserved word for Gma'l */
+#define         MR_CHATS_FOLDER             "DeltaChat"  // make sure not to use reserved words here, eg. "Chats" or "Chat" are reserved in gmail
 
 
 #ifdef __cplusplus

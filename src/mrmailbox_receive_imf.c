@@ -1261,17 +1261,17 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			mrmailbox_unarchive_chat__(mailbox, chat_id);
 
 			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
-			(later, we move these replies to the Chats-folder) */
+			(later, we move these replies to the folder used for DeltaChat messages) */
 			int msgrmsg = mime_parser->m_is_send_by_messenger; /* 1 or 0 for yes/no */
 			if( msgrmsg )
 			{
-				mrmailbox_log_info(mailbox, 0, "Message sent by another messenger (will be moved to Chats-folder).");
+				mrmailbox_log_info(mailbox, 0, "Message sent by another messenger.");
 			}
 			else
 			{
 				if( mrmailbox_is_reply_to_messenger_message__(mailbox, mime_parser) )
 				{
-					mrmailbox_log_info(mailbox, 0, "Message is a reply to a messenger message (will be moved to Chats-folder).");
+					mrmailbox_log_info(mailbox, 0, "Message is a reply to a messenger message.");
 					msgrmsg = 2; /* 2=no, but is reply to messenger message */
 				}
 			}
