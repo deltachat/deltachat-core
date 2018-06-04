@@ -893,6 +893,7 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 	time_t          last_fullread_time = 0;
 
 	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
 		goto exit_;
 	}
 
@@ -1140,7 +1141,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 {
 	int r, success = 0;
 
-	if( ths==NULL ) {
+	if( ths==NULL || ths->m_connected==0 ) {
 		goto cleanup;
 	}
 
@@ -1287,11 +1288,11 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 		                          ths->m_server_flags = lp->m_server_flags;
 
+		ths->m_connected = 1;
 		if( !setup_handle_if_needed__(ths) ) {
+			ths->m_connected = 0;
 			goto cleanup;
 		}
-
-		ths->m_connected = 1;
 
 		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
 		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
@@ -1339,25 +1340,26 @@ cleanup:
 
 void mrimap_disconnect(mrimap_t* ths)
 {
-	int handle_locked = 0, connected = 0;
+	int handle_locked = 0;
 
 	if( ths==NULL ) {
 		return;
 	}
 
-	LOCK_HANDLE
-		connected = (ths->m_hEtpan && ths->m_connected);
-	UNLOCK_HANDLE
+	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot disconnect imap object while watch thread is running.");
+		return;
+	}
 
-	if( connected )
-	{
-		LOCK_HANDLE
+	LOCK_HANDLE
+		if( ths->m_connected )
+		{
 			unsetup_handle__(ths);
 			ths->m_can_idle  = 0;
 			ths->m_has_xlist = 0;
 			ths->m_connected = 0;
-		UNLOCK_HANDLE
-	}
+		}
+	UNLOCK_HANDLE
 }
 
 
@@ -1434,6 +1436,7 @@ void mrimap_unref(mrimap_t* ths)
 
 	if( ths->m_watch_thread_running ) {
 		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot delete imap object while watch thread is running.");
+		return;
 	}
 
 	mrimap_disconnect(ths);
