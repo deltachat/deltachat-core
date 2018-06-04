@@ -76,17 +76,6 @@ cleanup:
 }
 
 
-void mrmailbox_ll_disconnect(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
-}
-
-
 /**
  * Check for changes in the mailbox. mrmailbox_poll() connects, checks and disconnects
  * as fast as possible for this purpose. If there are new messages, you get them

@@ -91,7 +91,6 @@ void            mrmailbox_log_info          (mrmailbox_t*, int code, const char*
 void            mrmailbox_receive_imf                             (mrmailbox_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
 int             mrmailbox_ll_connect_to_imap                      (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_ll_disconnect                           (mrmailbox_t*, mrjob_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);

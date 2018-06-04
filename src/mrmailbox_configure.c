@@ -434,7 +434,8 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		usleep(300*1000); // test every 0.3 seconds if idle has finished
 	}
 
-	mrmailbox_ll_disconnect(mailbox, NULL);
+	mrimap_disconnect(mailbox->m_imap);
+	mrsmtp_disconnect(mailbox->m_smtp);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
