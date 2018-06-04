@@ -19,7 +19,7 @@
  *
  ******************************************************************************/
 
-
+#include <unistd.h>
 #include <libetpan/libetpan.h>
 #include "mrmailbox_internal.h"
 #include "mrsmtp.h"
@@ -199,8 +199,27 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if( lp->m_send_user )
 		{
 				if((r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-					mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
-					goto cleanup;
+					/* 
+					 * There are some Mailservers which do not correclty implement PLAIN auth (hMail)
+					 * So here we try a workaround. See https://github.com/deltachat/deltachat-android/issues/67
+					 */
+					if (ths->m_hEtpan->auth & MAILSMTP_AUTH_PLAIN) {
+						mrmailbox_log_info(ths->m_mailbox, 0, "Trying SMTP-Login workaround \"%s\"...", lp->m_send_user);
+						int err;
+						char hostname[513];
+
+						err = gethostname(hostname, sizeof(hostname));
+						if (err < 0) {
+							mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-Login: Cannot get hostname.");
+							goto cleanup;
+						}
+						r = mailesmtp_auth_sasl(ths->m_hEtpan, "PLAIN", hostname, NULL, NULL, NULL, lp->m_send_user, lp->m_send_pw, NULL);
+					}
+					if (r != MAILSMTP_NO_ERROR)
+					{
+						mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
+						goto cleanup;
+					}
 				}
 
 			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-login as %s ok.", lp->m_send_user);
