@@ -68,6 +68,7 @@ typedef struct mrimap_t
 	int                   m_has_xlist;
 	char*                 m_moveto_folder;/* Folder, where reveived chat messages should go to.  Normally "Chats" but may be NULL to leave them in the INBOX */
 	char*                 m_sent_folder;  /* Folder, where send messages should go to.  Normally "Chats". */
+	char                  m_imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 	pthread_mutex_t       m_idlemutex;    /* set, if idle is not possible; morover, the interrupted IDLE thread waits a second before IDLEing again; this allows several jobs to be executed */
 	pthread_mutex_t       m_inwait_mutex; /* only used to wait for mailstream_wait_idle()/mailimap_idle_done() to terminate. */
 

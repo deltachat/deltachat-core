@@ -233,10 +233,16 @@ static clist* list_folders__(mrimap_t* ths)
 		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot get folder list.");
 		goto cleanup;
 	}
-
+	//default IMAP delimiter if none is returned by the list command
+	ths->m_imap_delimiter = '.';
 	for( iter1 = clist_begin(imap_list); iter1 != NULL ; iter1 = clist_next(iter1) )
 	{
 		struct mailimap_mailbox_list* imap_folder = (struct mailimap_mailbox_list*)clist_content(iter1);
+		if (imap_folder->mb_delimiter) {
+			/* Set IMAP delimiter */
+			ths->m_imap_delimiter = imap_folder->mb_delimiter;
+		}
+
 		mrimapfolder_t* ret_folder = calloc(1, sizeof(mrimapfolder_t));
 
 		if( strcasecmp(imap_folder->mb_name, "INBOX")==0 ) {
@@ -312,11 +318,16 @@ static int init_chat_folders__(mrimap_t* ths)
 
 	free(ths->m_moveto_folder);
 	ths->m_moveto_folder = NULL;
-
+	//this sets ths->m_imap_delimiter as side-effect
 	folder_list = list_folders__(ths);
+
+	//as a fallback, the chats_folder is created under INBOX as required e.g. for DomainFactory
+	char fallback_folder[64];
+	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", ths->m_imap_delimiter, MR_CHATS_FOLDER);
+
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
-		if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, MR_CHATS_FOLDER_FALLBACK)==0 ) {
+		if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
 			chats_folder = safe_strdup(folder->m_name_to_select);
 			break;
 		}
@@ -333,13 +344,13 @@ static int init_chat_folders__(mrimap_t* ths)
 		int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
 		if( is_error(ths, r) ) {
 			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
-			r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER_FALLBACK);
+			r = mailimap_create(ths->m_hEtpan, fallback_folder);
 			if( is_error(ths, r) ) {
 				/* continue on errors, we'll just use a different folder then */
 				mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using default.");
 			}
 			else {
-				chats_folder = safe_strdup(MR_CHATS_FOLDER_FALLBACK);
+				chats_folder = safe_strdup(fallback_folder);
 				mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder created (inbox subfolder).");
 			}
 		}
