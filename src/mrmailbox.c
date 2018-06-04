@@ -98,17 +98,14 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  */
 mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name)
 {
-	mrmailbox_get_thread_index(); /* make sure, the main thread has the index #1, only for a nicer look of the logs */
-
 	mrmailbox_t* ths = NULL;
 
 	if( (ths=calloc(1, sizeof(mrmailbox_t)))==NULL ) {
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&ths->m_in_idle_critical, NULL);
 	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
-
-	pthread_mutex_init(&ths->m_wake_lock_critical, NULL);
 
 	ths->m_magic    = MR_MAILBOX_MAGIC;
 	ths->m_sql      = mrsqlite3_new(ths);
@@ -161,6 +158,11 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 		return;
 	}
 
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_error(mailbox, 0, "Interrupt idle before destroying the mailbox object.");
+		return;
+	}
+
 	mrpgp_exit(mailbox);
 
 	mrjob_stop_thread(mailbox);
@@ -173,8 +175,8 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	mrimap_unref(mailbox->m_imap);
 	mrsmtp_unref(mailbox->m_smtp);
 	mrsqlite3_unref(mailbox->m_sql);
-	pthread_mutex_destroy(&mailbox->m_wake_lock_critical);
 
+	pthread_mutex_destroy(&mailbox->m_in_idle_critical);
 	pthread_mutex_destroy(&mailbox->m_log_ringbuf_critical);
 	for( int i = 0; i < MR_LOG_RINGBUF_SIZE; i++ ) {
 		free(mailbox->m_log_ringbuf[i]);
@@ -255,7 +257,7 @@ int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir
 		if( !mrsqlite3_open__(mailbox->m_sql, dbfile, 0) ) {
 			goto cleanup;
 		}
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
+		//mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 		/* backup dbfile name */
 		mailbox->m_dbfile = safe_strdup(dbfile);
@@ -302,6 +304,11 @@ void mrmailbox_close(mrmailbox_t* mailbox)
 		return;
 	}
 
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_error(mailbox, 0, "Interrupt idle before closing the mailbox object.");
+		return;
+	}
+
 	mrimap_disconnect(mailbox->m_imap);
 	mrsmtp_disconnect(mailbox->m_smtp);
 
@@ -332,7 +339,7 @@ void mrmailbox_close(mrmailbox_t* mailbox)
  */
 int mrmailbox_is_open(const mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0; /* error - database not opened */
 	}
 
@@ -356,37 +363,6 @@ char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
 		return safe_strdup(NULL);
 	}
 	return safe_strdup(mailbox->m_blobdir);
-}
-
-
-void mrmailbox_wake_lock(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
-		mailbox->m_wake_lock++;
-		if( mailbox->m_wake_lock == 1 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 1, 0);
-		}
-	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
-}
-
-
-void mrmailbox_wake_unlock(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-	pthread_mutex_lock(&mailbox->m_wake_lock_critical);
-		if( mailbox->m_wake_lock == 1 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_WAKE_LOCK, 0, 0);
-		}
-
-		if( mailbox->m_wake_lock > 0 ) {
-			mailbox->m_wake_lock--;
-		}
-	pthread_mutex_unlock(&mailbox->m_wake_lock_critical);
 }
 
 

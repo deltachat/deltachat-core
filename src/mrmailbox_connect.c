@@ -20,6 +20,8 @@
  ******************************************************************************/
 
 
+#include <stdarg.h>
+#include <unistd.h>
 #include "mrmailbox_internal.h"
 #include "mrloginparam.h"
 #include "mrjob.h"
@@ -27,17 +29,23 @@
 #include "mrsmtp.h"
 
 
-void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
+int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
 {
+	#define         NOT_CONNECTED     0
+	#define         ALREADY_CONNECTED 1
+	#define         JUST_CONNECTED    2
+	int             ret_connected = NOT_CONNECTED;
 	int             is_locked = 0;
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
 	if( mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_log_info(mailbox, 0, "Already connected or trying to connect.");
+		ret_connected = ALREADY_CONNECTED;
+		mrmailbox_log_info(mailbox, 0, "IMAP already connected.");
 		goto cleanup;
 	}
 
@@ -59,77 +67,12 @@ void mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NU
 		goto cleanup;
 	}
 
-	mrimap_start_watch_thread(mailbox->m_imap);
+	ret_connected = JUST_CONNECTED;
 
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrloginparam_unref(param);
-}
-
-
-void mrmailbox_ll_disconnect(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
-}
-
-
-/**
- * Connect to the mailbox using the configured settings.  We connect using IMAP-IDLE or, if this is not possible,
- * a using poll algorithm.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_connect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mailbox->m_smtp->m_log_connect_errors = 1;
-		mailbox->m_imap->m_log_connect_errors = 1;
-
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
-		mrjob_add__(mailbox, MRJ_CONNECT_TO_IMAP, 0, NULL, 0);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-}
-
-
-/**
- * Disonnect the mailbox from the server.
- * This function adds a job to disconnect the mailbox from the server.
- * The disconnect job has a lower priority, so that pending sending etc. are
- * executed before. During this time calls to mrmailbox_pull() will return 0.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox The mailbox object as created by mrmailbox_new()
- *
- * @return None
- */
-void mrmailbox_disconnect(mrmailbox_t* mailbox)
-{
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
-		mrjob_add__(mailbox, MRJ_DISCONNECT, 0, NULL, 0);
-
-	mrsqlite3_unlock(mailbox->m_sql);
+	return ret_connected;
 }
 
 
@@ -146,6 +89,8 @@ void mrmailbox_disconnect(mrmailbox_t* mailbox)
  * return 0 and does nothing (permanent push connections are started and ended with mrmailbox_connect()
  * and mrmailbox_disconnect()).
  *
+ * See also: mrmailbox_idle()
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
@@ -157,78 +102,139 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 {
 	clock_t         start = clock();
 	int             polling_done = 0;
-	int             is_locked = 0;
-	int             connected_here = 0;
-	mrloginparam_t* param = mrloginparam_new();
+	int             connected = NOT_CONNECTED;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Polling...");
-
-	if( mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_log_info(mailbox, 0, "Poll not needed, already connected or trying to connect.");
+	if( mailbox->m_in_idle ) {
+		mrmailbox_log_info(mailbox, 0, "In idle, poll not needed.");
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
-	is_locked = 1;
-
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_warning(mailbox, 0, "Not configured, cannot poll."); // this is no error, pull() is called eg. from a timer, it's okay if the caller does not check all circumstances here
-			goto cleanup;
-		}
-
-		mrloginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	is_locked = 0;
-
-	if( !mrimap_connect(mailbox->m_imap, param) ) {
+	if( mailbox->m_block_idle ) {
+		mrmailbox_log_info(mailbox, 0, "Idle blocked, won't poll as well.");
 		goto cleanup;
 	}
-	connected_here = 1;
+
+	if( (connected=mrmailbox_ll_connect_to_imap(mailbox, NULL)) == NOT_CONNECTED ) {
+		goto cleanup;
+	}
 
 	mrimap_fetch(mailbox->m_imap);
 
 	mrimap_disconnect(mailbox->m_imap);
-	connected_here = 0;
 
-	mrmailbox_log_info(mailbox, 0, "Poll finished in %.3f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	mrmailbox_log_info(mailbox, 0, "▶⏹️ Poll done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	polling_done = 1;
 
 cleanup:
-	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( connected_here ) { mrimap_disconnect(mailbox->m_imap); }
-	mrloginparam_unref(param);
+	if( connected == JUST_CONNECTED ) { mrimap_disconnect(mailbox->m_imap); }
 	return polling_done;
 }
 
 
 /**
- * Stay alive.
- * This function checks that eg. installed IMAP-PUSH is working and not halted
- * for any reasons. Normally, this works automatically - we have a timeout of about
- * 25 minutes and re-install push then. However, if this thread hangs it may
- * be useful on some operating systems to force a check. This can be done by this function.
+ * Wait for messages.
+ * mrmailbox_idle() waits until there are new message.
+ * If there are new messages, you get them as usual through the event handler given to mrmailbox_new().
+ * After that, the function waits for messages again.
+ * If the mailbox is not yet configured or the connection is down,
+ * the function tries to reconnect as soon as changes in the environment are detected.
  *
- * If you think, this function is required, you may want to call it about every minute.
- * The function MUST NOT be called from the UI thread and may take a moment to return.
+ * So, the function may last forever; however, you can interrupt it by mrmailbox_interrupt_idle().
+ *
+ * Waiting for messages is typically done by IMAP-IDLE, but there may also be different approaches
+ * eg. if IMAP-IDLE is not available.
+ *
+ * This function MUST be called in a separate thread
+ * and MUST NOT run in the UI thread or in the thread that calls mrmailbox_interrupt_idle().
+ *
+ * See also: mrmailbox_poll()
  *
  * @memberof mrmailbox_t
  *
  * @param mailbox The mailbox object.
  *
- * @return None.
+ * @return 0=cannot do idle, probably, there is already an idle process running
+ *     1=idle interrupted by mrmailbox_interrupt_idle()
  */
-void mrmailbox_heartbeat(mrmailbox_t* mailbox)
+int mrmailbox_idle(mrmailbox_t* mailbox)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
+	int success = 0;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot idle: Bad parameters.");
+		goto cleanup;
 	}
 
-	//mrmailbox_log_info(mailbox, 0, "<3 Mailbox");
-	mrimap_heartbeat(mailbox->m_imap);
+	if( mailbox->m_block_idle ) {
+		mrmailbox_log_info(mailbox, 0, "Idle blocked.");
+		goto cleanup;
+	}
+
+	pthread_mutex_lock(&mailbox->m_in_idle_critical); // the mutex makes sure, m_in_idle can only be set by one thread
+		if( mailbox->m_in_idle ) {
+			mrmailbox_log_info(mailbox, 0, "Already in idle.");
+			pthread_mutex_unlock(&mailbox->m_in_idle_critical);
+			goto cleanup;
+		}
+		mailbox->m_in_idle = 1;
+	pthread_mutex_unlock(&mailbox->m_in_idle_critical);
+
+	if( !mrmailbox_ll_connect_to_imap(mailbox, NULL) ) {
+		mrmailbox_log_info(mailbox, 0, "Cannot idle: Cannot connect.");
+		goto cleanup;
+	}
+
+	mrimap_watch_n_wait(mailbox->m_imap);
+
+	success = 1;
+
+cleanup:
+	mailbox->m_in_idle = 0;
+	return success;
 }
+
+
+/**
+ * Interrupt the function that waits for messages.
+ * If you have started mrmailbox_idle() in a separate thread to wait for push messages, this function typically runs forever.
+ *
+ * To stop waiting for messagees, call mrmailbox_interrupt_idle().
+ * mrmailbox_interrupt_idle() signals mrmailbox_idle() stop and returns immediately.
+ * You may want to wait for the idle-thread to finish; this is not done by this function.
+ * (waiting for a thread can be perfomed eg. by pthread_join() or Thread.join(), depending on your environment)
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return 0=There is no idle function to interrupt or other errors;
+ *     1=mrmailbox_idle() signalled to stop
+ */
+int mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
+{
+	int success = 0;
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot interrupt idle: Bad parameters.");
+		goto cleanup;
+	}
+
+	if( !mailbox->m_in_idle ) {
+		mrmailbox_log_warning(mailbox, 0, "Cannot interrupt idle: Not in idle.");
+		goto cleanup;
+	}
+
+	mrimap_interrupt_watch(mailbox->m_imap);
+
+	success = 1;
+
+cleanup:
+	return success;
+}
+
+

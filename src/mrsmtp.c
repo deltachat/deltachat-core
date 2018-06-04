@@ -113,13 +113,13 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if( ths->m_hEtpan ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Already connected to SMTP server.");
+			mrmailbox_log_warning(ths->m_mailbox, 0, "SMTP already connected.");
 			success = 1; /* otherwise, the handle would get deleted */
 			goto cleanup;
 		}
 
 		if( lp->m_addr == NULL || lp->m_send_server == NULL || lp->m_send_port == 0 ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot connect to SMTP; bad parameters.");
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP bad parameters.");
 			goto cleanup;
 		}
 
@@ -139,7 +139,6 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		/* connect to SMTP server */
 		if( lp->m_server_flags&(MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_PLAIN) )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\" via Socket...", lp->m_send_server, (int)lp->m_send_port);
 			if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 				goto cleanup;
@@ -147,7 +146,6 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 		else
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to SMTP-server \"%s:%i\" via SSL...", lp->m_send_server, (int)lp->m_send_port);
 			if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 				goto cleanup;
@@ -170,7 +168,6 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 		if( lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to SMTP-STARTTLS.");
 			if( (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 				goto cleanup;
@@ -188,19 +185,25 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
 				goto cleanup;
 			}
+			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i STARTTLS-connected.", lp->m_send_server, (int)lp->m_send_port);
 		}
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connection to SMTP-server ok.");
+		else if( lp->m_server_flags&MR_SMTP_SOCKET_PLAIN )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i connected.", lp->m_send_server, (int)lp->m_send_port);
+		}
+		else
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i SSL-connected.", lp->m_send_server, (int)lp->m_send_port);
+		}
 
 		if( lp->m_send_user )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Login to SMTP-server as \"%s\"...", lp->m_send_user);
-
 				if((r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
 					mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
 					goto cleanup;
 				}
 
-			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-Login ok.");
+			mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-login as %s ok.", lp->m_send_user);
 		}
 
 		success = 1;

@@ -322,21 +322,6 @@ extern "C" {
  */
 #define MR_EVENT_HTTP_GET                 2100
 
-/**
- * Acquire or release a wakelock.
- *
- * The core surrounds critical functions that should not be killed by the operating system with wakelocks.
- * Before a critical function _MR_EVENT_WAKE_LOCK with data1=1_ is called, when it finishes, _MR_EVENT_WAKE_LOCK with data1=0_ is called.
- * If you do not need this functionality, just ignore this event.
- *
- * @param data1 1=acquire wakelock, 0=release wakelock, the core does not make nested or unsynchronized calls
- *
- * @param data2 0
- *
- * @return 0
- */
-#define MR_EVENT_WAKE_LOCK                2110
-
 
 #ifdef __cplusplus
 } /* /extern "C" */

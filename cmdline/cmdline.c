@@ -32,6 +32,7 @@ your library */
 #include "../src/mrpgp.h"
 
 
+
 /*
  * Reset database tables. This function is called from Core cmdline.
  *
@@ -679,16 +680,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "configure")==0 )
 	{
 		ret = mrmailbox_configure(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-	}
-	else if( strcmp(cmd, "connect")==0 )
-	{
-		mrmailbox_connect(mailbox);
-		ret = COMMAND_SUCCEEDED;
-	}
-	else if( strcmp(cmd, "disconnect")==0 )
-	{
-		mrmailbox_disconnect(mailbox);
-		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "poll")==0 )
 	{

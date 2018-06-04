@@ -30,8 +30,8 @@
 #include "mrosnative.h"
 #include "mrloginparam.h"
 
-#define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); mrmailbox_wake_lock(ths->m_mailbox); handle_locked = 1;
-#define UNLOCK_HANDLE if( handle_locked ) { mrmailbox_wake_unlock(ths->m_mailbox); pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
+#define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); handle_locked = 1;
+#define UNLOCK_HANDLE if( handle_locked ) { pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
 
 #define BLOCK_IDLE   pthread_mutex_lock(&ths->m_idlemutex); idle_blocked = 1;
 #define UNBLOCK_IDLE if( idle_blocked ) { pthread_mutex_unlock(&ths->m_idlemutex); idle_blocked = 0; }
@@ -228,11 +228,18 @@ static clist* list_folders__(mrimap_t* ths)
 	else {
 		r = mailimap_list(ths->m_hEtpan, "", "*", &imap_list);
 	}
+
 	if( is_error(ths, r) || imap_list==NULL ) {
 		imap_list = NULL;
 		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot get folder list.");
 		goto cleanup;
 	}
+
+	if( clist_count(imap_list)<=0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Folder list is empty.");
+		goto cleanup;
+	}
+
 	//default IMAP delimiter if none is returned by the list command
 	ths->m_imap_delimiter = '.';
 	for( iter1 = clist_begin(imap_list); iter1 != NULL ; iter1 = clist_next(iter1) )
@@ -746,7 +753,6 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		if( uidvalidity != ths->m_hEtpan->imap_selection_info->sel_uidvalidity )
 		{
 			/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
-			mrmailbox_log_info(ths->m_mailbox, 0, "Init lastseenuid and attach it to UIDVALIDITY for folder \"%s\".", folder);
 			if( ths->m_hEtpan->imap_selection_info->sel_uidvalidity <= 0 ) {
 				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
 				goto cleanup;
@@ -838,15 +844,11 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 cleanup:
 	UNLOCK_HANDLE
 
-	{
-		char* temp = mr_mprintf("%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
-		if( read_errors ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, temp);
-		}
-		else {
-			mrmailbox_log_info(ths->m_mailbox, 0, temp);
-		}
-		free(temp);
+	if( read_errors ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "%i mails read from \"%s\" with %i errors.", (int)read_cnt, folder, (int)read_errors);
+	}
+	else {
+		mrmailbox_log_info(ths->m_mailbox, 0, "%i mails read from \"%s\".", (int)read_cnt, folder);
 	}
 
 	if( fetch_result ) {
@@ -863,8 +865,6 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	clist*     folder_list = NULL;
 	clistiter* cur;
 	int        total_cnt = 0;
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Fetching from all folders.");
 
 	LOCK_HANDLE
 		folder_list = list_folders__(ths);
@@ -884,7 +884,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 	{
 		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
 		if( folder->m_meaning == MEANING_IGNORE ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" ignored.", folder->m_name_utf8);
+			mrmailbox_log_info(ths->m_mailbox, 0, "Ignoring \"%s\".", folder->m_name_utf8);
 		}
 		else if( folder->m_meaning != MEANING_INBOX ) {
 			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select);
@@ -902,20 +902,23 @@ static int fetch_from_all_folders(mrimap_t* ths)
  ******************************************************************************/
 
 
-static void* watch_thread_entry_point(void* entry_arg)
+void mrimap_watch_n_wait(mrimap_t* ths)
 {
-	mrimap_t*       ths = (mrimap_t*)entry_arg;
-	mrosnative_setup_thread(ths->m_mailbox); /* must be very first */
-
 	int             handle_locked = 0, idle_blocked = 0, force_sleep = 0, do_fetch = 0;
 	#define         SLEEP_ON_ERROR_SECONDS     10
 	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* give the job thread a little time before we IDLE again, otherwise there will be many idle-interrupt sequences */
-	#define         IDLE_DELAY_SECONDS         (28*60) /* 28 minutes is a typical maximum, most servers do not allow more. if the delay is reached, we also check _all_ folders. */
-	#define         FULL_FETCH_EVERY_SECONDS   (27*60) /* force a full fetch every 27 minutes (typically together with the IDLE delay break) */
+	#define         IDLE_DELAY_SECONDS         (23*60)                 // most servers do not allow more than ~28 minutes; stay below. if the delay is reached, we also check _all_ folders.
+	#define         FULL_FETCH_EVERY_SECONDS   (IDLE_DELAY_SECONDS-60) // force a full-fetch together with the IDLE delay break
 
 	time_t          last_fullread_time = 0;
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread started.");
+	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
+		goto exit_;
+	}
+
+	ths->m_watch_thread_running = 1;
+	mrmailbox_log_info(ths->m_mailbox, 0, "▶️ IMAP-watch started.");
 
 	if( ths->m_can_idle )
 	{
@@ -950,8 +953,11 @@ static void* watch_thread_entry_point(void* entry_arg)
 						LOCK_HANDLE
 						last_fullread_time = time(NULL);
 					}
-					mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-					ths->m_idle_set_up = 1;
+
+					if( ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { // additional check needed due to the unlock above
+						mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+						ths->m_idle_set_up = 1;
+					}
 				}
 
 				if( select_folder__(ths, "INBOX") )
@@ -961,7 +967,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 					{
 						mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
 
-						ths->m_enter_watch_wait_time = time(NULL);
+						//ths->m_enter_watch_wait_time = time(NULL);
 
 						UNLOCK_HANDLE
 						UNBLOCK_IDLE
@@ -1004,7 +1010,7 @@ static void* watch_thread_entry_point(void* entry_arg)
 						BLOCK_IDLE
 						LOCK_HANDLE
 
-						ths->m_enter_watch_wait_time = 0;
+						//ths->m_enter_watch_wait_time = 0;
 					}
 				}
 
@@ -1061,19 +1067,19 @@ static void* watch_thread_entry_point(void* entry_arg)
 				last_fullread_time = now;
 			}
 
-			/* calculate the wait time: every 10 seconds in the first 2 minutes after a new message, after that growing up to 5 minutes */
-			if( now-last_message_time < 2*60 ) {
-				seconds_to_wait = 10;
+			/* calculate the wait time: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds */
+			if( now-last_message_time < 3*60 ) {
+				seconds_to_wait = 7;
 			}
 			else {
-				seconds_to_wait = (now-last_message_time)/6;
-				if( seconds_to_wait > 5*60 ) {
-					seconds_to_wait = 5*60;
+				seconds_to_wait = (now-last_message_time)/20;
+				if( seconds_to_wait > 60 ) {
+					seconds_to_wait = 60;
 				}
 			}
 
 			#ifdef __APPLE__
-			seconds_to_wait = 10; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
+			seconds_to_wait = 7; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
 			#endif
 
 			/* wait */
@@ -1085,15 +1091,15 @@ static void* watch_thread_entry_point(void* entry_arg)
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
 
-					LOCK_HANDLE
+					/*LOCK_HANDLE
 						ths->m_enter_watch_wait_time = time(NULL);
-					UNLOCK_HANDLE
+					UNLOCK_HANDLE*/
 
 					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
 
-					LOCK_HANDLE
+					/*LOCK_HANDLE
 						ths->m_enter_watch_wait_time = 0;
-					UNLOCK_HANDLE
+					UNLOCK_HANDLE*/
 				}
 				ths->m_watch_condflag = 0;
 
@@ -1107,58 +1113,42 @@ static void* watch_thread_entry_point(void* entry_arg)
 	}
 
 exit_:
-	ths->m_enter_watch_wait_time = 0;
-
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
-	mrosnative_unsetup_thread(ths->m_mailbox); /* must be very last */
-	return NULL;
+	mrmailbox_log_info(ths->m_mailbox, 0, "⏹️ IMAP-watch ended.");
+
+	ths->m_watch_thread_running = 0;
+	ths->m_watch_do_exit = 0;
 }
 
 
-void mrimap_heartbeat(mrimap_t* ths)
+void mrimap_interrupt_watch(mrimap_t* ths)
 {
-	/* the function */
 	int handle_locked = 0, idle_blocked = 0;
 
-	if( ths == NULL ) {
+	if( ths==NULL || ths->m_hEtpan==NULL || !ths->m_watch_thread_running ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "IMAP-watch not running.");
 		return;
 	}
 
-	LOCK_HANDLE
+	ths->m_watch_do_exit = 1;
 
-		if( ths->m_hEtpan == NULL || ths->m_should_reconnect == 1 ) {
-			goto cleanup;
-		}
-
-		if( ths->m_enter_watch_wait_time != 0
-		 && time(NULL)-ths->m_enter_watch_wait_time > (IDLE_DELAY_SECONDS+60) )
-		{
-			/* force reconnect if the IDLE timeout does not arrive */
-			mrmailbox_log_info(ths->m_mailbox, 0, "Reconnect forced from the heartbeat thread.");
-			ths->m_should_reconnect = 1;
-			ths->m_enter_watch_wait_time = 0;
-			if( ths->m_can_idle )
-			{
-				/* the handle must be LOCKED when calling BLOCK_IDLE */
-				BLOCK_IDLE
-					INTERRUPT_IDLE
-				UNBLOCK_IDLE
-			}
-			else
-			{
-				UNLOCK_HANDLE
-
-				pthread_mutex_lock(&ths->m_watch_condmutex);
-					ths->m_watch_condflag = 1;
-					pthread_cond_signal(&ths->m_watch_cond);
-				pthread_mutex_unlock(&ths->m_watch_condmutex);
-			}
-		}
-
-cleanup:
-	UNLOCK_HANDLE
+	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
+	{
+		LOCK_HANDLE
+		BLOCK_IDLE
+			INTERRUPT_IDLE
+		UNBLOCK_IDLE
+		UNLOCK_HANDLE
+	}
+	else
+	{
+		pthread_mutex_lock(&ths->m_watch_condmutex);
+			ths->m_watch_condflag = 1;
+			pthread_cond_signal(&ths->m_watch_cond);
+		pthread_mutex_unlock(&ths->m_watch_condmutex);
+	}
 }
 
 
@@ -1171,7 +1161,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 {
 	int r, success = 0;
 
-	if( ths==NULL ) {
+	if( ths==NULL || ths->m_connected==0 ) {
 		goto cleanup;
 	}
 
@@ -1195,35 +1185,35 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 
 	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\"...", ths->m_imap_server, (int)ths->m_imap_port);
 		r = mailimap_socket_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\". (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 			goto cleanup;
 		}
 
 		if( ths->m_server_flags&MR_IMAP_SOCKET_STARTTLS )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "Switching to IMAP-STARTTLS.", ths->m_imap_server, (int)ths->m_imap_port);
 			r = mailimap_socket_starttls(ths->m_hEtpan);
 			if( is_error(ths, r) ) {
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using STARTTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i using STARTTLS. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 				goto cleanup;
 			}
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i STARTTLS-connected.", ths->m_imap_server, (int)ths->m_imap_port);
+		}
+		else
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i connected.", ths->m_imap_server, (int)ths->m_imap_port);
 		}
 	}
 	else
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Connecting to IMAP-server \"%s:%i\" via SSL...", ths->m_imap_server, (int)ths->m_imap_port);
 		r = mailimap_ssl_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server \"%s:%i\" using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not connect to IMAP-server %s:%i using SSL. (Error #%i)", ths->m_imap_server, (int)ths->m_imap_port, (int)r);
 			goto cleanup;
 		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-server %s:%i SSL-connected.", ths->m_imap_server, (int)ths->m_imap_port);
 	}
-	mrmailbox_log_info(ths->m_mailbox, 0, "Connection to IMAP-server ok.");
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Login to IMAP-server as \"%s\"...", ths->m_imap_user);
 
 		/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
 		/*if( ths->m_server_flags&MR_AUTH_XOAUTH2 )
@@ -1244,11 +1234,11 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 		}
 
 		if( is_error(ths, r) ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not login: %s (Error #%i)", ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
+			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Could not login as %s: %s (Error #%i)", ths->m_imap_user, ths->m_hEtpan->imap_response? ths->m_hEtpan->imap_response : "Unknown error.", (int)r);
 			goto cleanup;
 		}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-Login ok.");
+	mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-login as %s ok.", ths->m_imap_user);
 
 	success = 1;
 
@@ -1270,8 +1260,6 @@ static void unsetup_handle__(mrimap_t* ths)
 
 	if( ths->m_hEtpan )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Disconnecting...");
-
 			if( ths->m_idle_set_up ) {
 				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
 				ths->m_idle_set_up = 0;
@@ -1285,7 +1273,7 @@ static void unsetup_handle__(mrimap_t* ths)
 			mailimap_free(ths->m_hEtpan);
 			ths->m_hEtpan = NULL;
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Disconnect done.");
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP disconnected.");
 	}
 
 	ths->m_selected_folder[0] = 0;
@@ -1320,11 +1308,11 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
 		                          ths->m_server_flags = lp->m_server_flags;
 
+		ths->m_connected = 1;
 		if( !setup_handle_if_needed__(ths) ) {
+			ths->m_connected = 0;
 			goto cleanup;
 		}
-
-		ths->m_connected = 1;
 
 		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
 		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
@@ -1335,8 +1323,11 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		#endif
 
 
-		if( ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability ) {
+		if( !ths->m_skip_log_capabilities
+		 && ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability )
+		{
 			/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
+			ths->m_skip_log_capabilities = 1;
 			mrstrbuilder_t capinfostr;
 			mrstrbuilder_init(&capinfostr, 0);
 			clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
@@ -1350,7 +1341,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 					}
 				}
 			}
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-Capabilities:%s", capinfostr.m_buf);
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-capabilities:%s", capinfostr.m_buf);
 			free(capinfostr.m_buf);
 		}
 
@@ -1367,86 +1358,28 @@ cleanup:
 }
 
 
-void mrimap_start_watch_thread(mrimap_t* ths)
-{
-	int handle_locked = 0;
-
-	if( ths == NULL ) {
-		goto cleanup;
-	}
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "Starting IMAP-watch-thread...");
-
-	LOCK_HANDLE
-		if( !ths->m_connected || ths->m_watch_thread_started ) {
-			goto cleanup;
-		}
-		ths->m_watch_thread_started = 1;
-		ths->m_watch_do_exit        = 0;
-	UNLOCK_HANDLE
-
-	pthread_create(&ths->m_watch_thread, NULL, watch_thread_entry_point, ths);
-
-cleanup:
-	UNLOCK_HANDLE
-}
-
-
 void mrimap_disconnect(mrimap_t* ths)
 {
-	int handle_locked = 0, connected = 0, watch_thread_started = 0;
+	int handle_locked = 0;
 
 	if( ths==NULL ) {
 		return;
 	}
 
-	LOCK_HANDLE
-		connected = (ths->m_hEtpan && ths->m_connected);
-		watch_thread_started = (ths->m_hEtpan && ths->m_watch_thread_started);
-	UNLOCK_HANDLE
-
-	if( watch_thread_started )
-	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "Stopping IMAP-watch-thread...");
-
-			/* prepare for exit */
-			if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
-			{
-				ths->m_watch_do_exit = 1;
-
-				LOCK_HANDLE
-					mrmailbox_log_info(ths->m_mailbox, 0, "Interrupting IDLE for disconnecting...");
-					mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
-				UNLOCK_HANDLE
-			}
-			else
-			{
-				pthread_mutex_lock(&ths->m_watch_condmutex);
-					ths->m_watch_condflag = 1;
-					ths->m_watch_do_exit  = 1;
-					pthread_cond_signal(&ths->m_watch_cond);
-				pthread_mutex_unlock(&ths->m_watch_condmutex);
-			}
-
-			/* wait for the threads to terminate */
-			pthread_join(ths->m_watch_thread, NULL);
-
-			LOCK_HANDLE
-				ths->m_watch_thread_started = 0;
-			UNLOCK_HANDLE
-
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread stopped.");
+	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot disconnect imap object while watch thread is running.");
+		return;
 	}
 
-	if( connected )
-	{
-		LOCK_HANDLE
+	LOCK_HANDLE
+		if( ths->m_connected )
+		{
 			unsetup_handle__(ths);
 			ths->m_can_idle  = 0;
 			ths->m_has_xlist = 0;
 			ths->m_connected = 0;
-		UNLOCK_HANDLE
-	}
+		}
+	UNLOCK_HANDLE
 }
 
 
@@ -1483,7 +1416,7 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
-	ths->m_enter_watch_wait_time = 0;
+	//ths->m_enter_watch_wait_time = 0;
 
 	ths->m_selected_folder = calloc(1, 1);
 	ths->m_moveto_folder   = NULL;
@@ -1518,6 +1451,11 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 void mrimap_unref(mrimap_t* ths)
 {
 	if( ths==NULL ) {
+		return;
+	}
+
+	if( ths->m_watch_thread_running ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot delete imap object while watch thread is running.");
 		return;
 	}
 

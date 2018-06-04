@@ -21,6 +21,7 @@
 
 
 #include <dirent.h>
+#include <unistd.h>
 #include "mrmailbox_internal.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
@@ -373,16 +374,18 @@ cleanup:
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
  *
+ * - ongoing idle processed will be killed and calling mrimap_idle() while this function
+ *   has not terminated will fail; if needed, call mrimap_idle() when this function succeeds.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
  *
- * @return 1=configured successfully can connect with mrmailbox_connect()
+ * @return 1=configured successfully,
  *     0=configuration failed
  *
  * There is no need to call this every program start, the result is saved in the
- * database. Instead, you can use mrmailbox_connect() which reuses the configuration
- * and is much faster:
+ * database and you can call mrmailbox_poll() or mrmailbox_idle() directly:
  *
  * ```
  * if( !mrmailbox_is_configured(mailbox) ) {
@@ -390,7 +393,7 @@ cleanup:
  *         // show an error and/or try over
  *     }
  * }
- * mrmailbox_connect(mailbox);
+ * mrmailbox_idle(mailbox);
  * ```
  */
 int mrmailbox_configure(mrmailbox_t* mailbox)
@@ -424,7 +427,15 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	/* disconnect */
 	mrjob_stop_thread(mailbox);
 	restart_job_thread = 1;
-	mrmailbox_ll_disconnect(mailbox, NULL);
+
+	mailbox->m_block_idle = 1;
+	mrmailbox_interrupt_idle(mailbox);
+	while( mailbox->m_in_idle ) {
+		usleep(300*1000); // test every 0.3 seconds if idle has finished
+	}
+
+	mrimap_disconnect(mailbox->m_imap);
+	mrsmtp_disconnect(mailbox->m_smtp);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -432,7 +443,7 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
-		mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
+		//mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -690,6 +701,13 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
+	PROGRESS(920)
+
+	// we generate the keypair just now - we could also postpone this until the first message is sent, however,
+	// this may result in a unexpected and annoying delay when the user sends his very first message
+	// (~30 seconds on a Moto G4 play) and might looks as if message sending is always that slow.
+	mrmailbox_ensure_secret_key_exists(mailbox);
+
 	success = 1;
 	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
@@ -707,16 +725,7 @@ cleanup:
 	mrmailbox_free_ongoing(mailbox);
 
 	if( restart_job_thread ) { mrjob_start_thread(mailbox); }
-	return success;
-}
-
-
-int mrmailbox_configure_and_connect(mrmailbox_t* mailbox) // deprecated
-{
-	int success = mrmailbox_configure(mailbox);
-	if( success ) {
-		mrmailbox_connect(mailbox);
-	}
+	mailbox->m_block_idle = 0;
 	return success;
 }
 
@@ -731,7 +740,7 @@ int mrmailbox_configure_and_connect(mrmailbox_t* mailbox) // deprecated
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @return 1=mailbox is configured and mrmailbox_connect() can be called directly as needed,
+ * @return 1=mailbox is configured and mrmailbox_poll() or mrmailbox_idle() will work as expected;
  *     0=mailbox is not configured and a configuration by mrmailbox_configure() is required.
  */
 int mrmailbox_is_configured(mrmailbox_t* mailbox)

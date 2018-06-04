@@ -57,14 +57,15 @@ struct _mrmailbox
 	int              m_job_condflag;          /**< Internal */
 	int              m_job_do_exit;           /**< Internal */
 
+	int              m_in_idle;
+	pthread_mutex_t  m_in_idle_critical;
+	int              m_block_idle;            // if set, mrmailbox_idle() will fail; set during configuration
+
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 
 	char*            m_os_name;               /**< Internal, may be NULL */
 
 	uint32_t         m_cmdline_sel_chat_id;   /**< Internal */
-
-	int              m_wake_lock;             /**< Internal */
-	pthread_mutex_t  m_wake_lock_critical;    /**< Internal */
 
 	int              m_e2ee_enabled;          /**< Internal */
 
@@ -89,10 +90,7 @@ void            mrmailbox_log_info          (mrmailbox_t*, int code, const char*
 /* misc.*/
 void            mrmailbox_receive_imf                             (mrmailbox_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
-void            mrmailbox_ll_connect_to_imap                      (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_ll_disconnect                           (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_wake_lock                               (mrmailbox_t*);
-void            mrmailbox_wake_unlock                             (mrmailbox_t*);
+int             mrmailbox_ll_connect_to_imap                      (mrmailbox_t*, mrjob_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
@@ -129,7 +127,6 @@ int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*,
 void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
 void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
-int             mrmailbox_get_thread_index                        (void);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
 

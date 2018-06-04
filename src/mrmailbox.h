@@ -62,11 +62,10 @@ extern "C" {
  * mrmailbox_set_config(mailbox, "mail_pw", "***");
  *
  * mrmailbox_configure(mailbox);
- * mrmailbox_connect();
  * ```
  *
  * mrmailbox_configure() may take a while and saves the result in
- * the database. On subsequent starts, you can call mrmailbox_connect() directly.
+ * the database. On subsequent starts, calling this function is not needed.
  *
  * However, now you can send your first message:
  *
@@ -81,6 +80,8 @@ extern "C" {
  * Answer this email in any email program with "Got it!" and you will get the message from delta as follows:
  *
  * ```
+ * mrmailbox_poll();
+ *
  * mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, chat_id, 0, 0);
  * for( size_t i = 0; i < mrarray_get_cnt(msglist); i++ )
  * {
@@ -212,9 +213,9 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 int             mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
-void            mrmailbox_connect           (mrmailbox_t*);
-void            mrmailbox_disconnect        (mrmailbox_t*);
 int             mrmailbox_poll              (mrmailbox_t*);
+int             mrmailbox_idle              (mrmailbox_t*);
+int             mrmailbox_interrupt_idle    (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 
@@ -304,7 +305,6 @@ char*           mrmailbox_imex_has_backup   (mrmailbox_t*, const char* dir);
 int             mrmailbox_check_password    (mrmailbox_t*, const char* pw);
 char*           mrmailbox_initiate_key_transfer(mrmailbox_t*);
 int             mrmailbox_continue_key_transfer(mrmailbox_t*, uint32_t msg_id, const char* setup_code);
-void            mrmailbox_heartbeat         (mrmailbox_t*);
 
 
 /* out-of-band verification */
@@ -328,7 +328,7 @@ int             mrchat_set_draft            (mrchat_t*, const char* msg);   /* d
 #define         mrpoortext_unref            mrlot_unref
 #define         mrmailbox_imex_cancel       mrmailbox_stop_ongoing_process
 #define         mrmailbox_configure_cancel  mrmailbox_stop_ongoing_process
-int             mrmailbox_configure_and_connect(mrmailbox_t*);              // deprecated - use mrmailbox_configure() and mrmailbox_connect() instead
+#define         mrmailbox_heartbeat(a)
 
 
 #ifdef __cplusplus
