@@ -207,7 +207,8 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 						err = gethostname(hostname, sizeof(hostname));
 						if (err < 0) {
-							return MAILSMTP_ERROR_MEMORY;
+							mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-Login: Cannot get hostname.");
+							goto cleanup;
 						}
 						r = mailesmtp_auth_sasl(ths->m_hEtpan, "PLAIN", hostname, NULL, NULL, NULL, lp->m_send_user, lp->m_send_pw, NULL);
 					}
