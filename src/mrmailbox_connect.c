@@ -176,6 +176,11 @@ int mrmailbox_idle(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
+	if( mailbox->m_block_idle ) {
+		mrmailbox_log_warning(mailbox, 0, "Idle blocked.");
+		goto cleanup;
+	}
+
 	pthread_mutex_lock(&mailbox->m_in_idle_critical); // the mutex makes sure, m_in_idle can only be set by one thread
 		if( mailbox->m_in_idle ) {
 			mrmailbox_log_info(mailbox, 0, "Already in idle.");

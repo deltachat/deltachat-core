@@ -59,6 +59,7 @@ struct _mrmailbox
 
 	int              m_in_idle;
 	pthread_mutex_t  m_in_idle_critical;
+	int              m_block_idle;            // if set, mrmailbox_idle() will fail; set during configuration
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 

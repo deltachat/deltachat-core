@@ -21,6 +21,7 @@
 
 
 #include <dirent.h>
+#include <unistd.h>
 #include "mrmailbox_internal.h"
 #include "mrloginparam.h"
 #include "mrimap.h"
@@ -373,6 +374,9 @@ cleanup:
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
  *
+ * - ongoing idle processed will be killed and calling mrimap_idle() while this function
+ *   has not terminated will fail; if needed, call mrimap_idle() when this function succeeds.
+ *
  * @memberof mrmailbox_t
  *
  * @param mailbox the mailbox object as created by mrmailbox_new().
@@ -423,6 +427,13 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	/* disconnect */
 	mrjob_stop_thread(mailbox);
 	restart_job_thread = 1;
+
+	mailbox->m_block_idle = 1;
+	mrmailbox_interrupt_idle(mailbox);
+	while( mailbox->m_in_idle ) {
+		usleep(300*1000); // test every 0.3 seconds if idle has finished
+	}
+
 	mrmailbox_ll_disconnect(mailbox, NULL);
 
 	mrsqlite3_lock(mailbox->m_sql);
@@ -713,6 +724,7 @@ cleanup:
 	mrmailbox_free_ongoing(mailbox);
 
 	if( restart_job_thread ) { mrjob_start_thread(mailbox); }
+	mailbox->m_block_idle = 0;
 	return success;
 }
 
