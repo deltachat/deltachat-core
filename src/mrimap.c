@@ -302,7 +302,7 @@ static int init_chat_folders__(mrimap_t* ths)
 	int        success = 0;
 	clist*     folder_list = NULL;
 	clistiter* iter1;
-	char       *normal_folder = NULL, *sent_folder = NULL, *chats_folder = NULL;
+	char       *normal_folder = NULL, *sent_folder = NULL, *chats_folder = NULL, *chats_folder_legacy = NULL;
 
 	if( ths==NULL || ths->m_hEtpan==NULL ) {
 		goto cleanup;
@@ -324,11 +324,17 @@ static int init_chat_folders__(mrimap_t* ths)
 	//as a fallback, the chats_folder is created under INBOX as required e.g. for DomainFactory
 	char fallback_folder[64];
 	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", ths->m_imap_delimiter, MR_CHATS_FOLDER);
-
+        char fallback_folder_legacy[64];
+        snprintf(fallback_folder_legacy, sizeof(fallback_folder_legacy), "INBOX%c%s", ths->m_imap_delimiter, MR_CHATS_FOLDER_LEGACY);
+        
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
 		if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
 			chats_folder = safe_strdup(folder->m_name_to_select);
+			break;
+		}
+                else if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER_LEGACY)==0 || strcmp(folder->m_name_utf8, fallback_folder_legacy)==0 ) {
+			chats_folder_legacy = safe_strdup(folder->m_name_to_select);
 			break;
 		}
 		else if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
@@ -339,24 +345,44 @@ static int init_chat_folders__(mrimap_t* ths)
 		}
 	}
 
-	if( chats_folder == NULL && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 ) {
-		mrmailbox_log_info(ths->m_mailbox, 0, "Creating IMAP-folder \"%s\"...", MR_CHATS_FOLDER);
-		int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
-		if( is_error(ths, r) ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
-			r = mailimap_create(ths->m_hEtpan, fallback_folder);
+	if (chats_folder == NULL && (ths->m_server_flags & MR_NO_MOVE_TO_CHATS) == 0) {
+		if (chats_folder_legacy != NULL) {
+			//we found an old Chats-Folder, so rename
+			mrmailbox_log_info(ths->m_mailbox, 0, "Found Legacy IMAP-folder \"%s\", trying to rename...", chats_folder_legacy);
+			char* new_name = MR_CHATS_FOLDER;
+			if (strcmp(chats_folder_legacy, fallback_folder_legacy) == 0) {
+				//previous folder was under INBOX so the new folder should be also
+				new_name = fallback_folder;
+			}
+			int r = mailimap_rename(ths->m_hEtpan, chats_folder_legacy, new_name);
+			if (is_error(ths, r)) {
+				/* continue on errors, we'll just use the old folder then */
+				chats_folder = safe_strdup(chats_folder_legacy);
+				mrmailbox_log_warning(ths->m_mailbox, 0, "Failed to rename IMAP-folder, using legacy.");
+			} else {
+				chats_folder = safe_strdup(new_name);
+				mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder renamed.");
+			}
+		} 
+		else{ //no old chats folder, so create a new one
+			mrmailbox_log_info(ths->m_mailbox, 0, "Creating IMAP-folder \"%s\"...", MR_CHATS_FOLDER);
+			int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
 			if( is_error(ths, r) ) {
-				/* continue on errors, we'll just use a different folder then */
-				mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using default.");
+				mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
+				r = mailimap_create(ths->m_hEtpan, fallback_folder);
+				if( is_error(ths, r) ) {
+					/* continue on errors, we'll just use a different folder then */
+					mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot create IMAP-folder, using default.");
+				}
+				else {
+					chats_folder = safe_strdup(fallback_folder);
+					mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder created (inbox subfolder).");
+				}
 			}
 			else {
-				chats_folder = safe_strdup(fallback_folder);
-				mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder created (inbox subfolder).");
+				chats_folder = safe_strdup(MR_CHATS_FOLDER);
+				mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder created.");
 			}
-		}
-		else {
-			chats_folder = safe_strdup(MR_CHATS_FOLDER);
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-folder created.");
 		}
 	}
 
