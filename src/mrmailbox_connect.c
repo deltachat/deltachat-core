@@ -124,6 +124,11 @@ int mrmailbox_poll(mrmailbox_t* mailbox)
 		goto cleanup;
 	}
 
+	if( mailbox->m_block_idle ) {
+		mrmailbox_log_info(mailbox, 0, "Idle blocked, won't poll as well.");
+		goto cleanup;
+	}
+
 	if( (connected=mrmailbox_ll_connect_to_imap(mailbox, NULL)) == NOT_CONNECTED ) {
 		goto cleanup;
 	}
@@ -177,7 +182,7 @@ int mrmailbox_idle(mrmailbox_t* mailbox)
 	}
 
 	if( mailbox->m_block_idle ) {
-		mrmailbox_log_warning(mailbox, 0, "Idle blocked.");
+		mrmailbox_log_info(mailbox, 0, "Idle blocked.");
 		goto cleanup;
 	}
 
