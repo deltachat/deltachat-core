@@ -932,8 +932,11 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 						LOCK_HANDLE
 						last_fullread_time = time(NULL);
 					}
-					mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-					ths->m_idle_set_up = 1;
+
+					if( ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { // additional check needed due to the unlock above
+						mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+						ths->m_idle_set_up = 1;
+					}
 				}
 
 				if( select_folder__(ths, "INBOX") )
