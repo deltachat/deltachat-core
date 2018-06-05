@@ -159,6 +159,10 @@ static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flag
 				}
 			}
 		}
+
+		if( ret_meaning == MEANING_NORMAL && strcasecmp(folder_name, "INBOX") == 0 ) {
+			ret_meaning = MEANING_INBOX;
+		}
 	}
 	else
 	{
@@ -264,7 +268,7 @@ static clist* list_folders__(mrimap_t* ths)
 		ret_folder->m_name_utf8      = mr_decode_modified_utf7(imap_folder->mb_name, 0);
 		ret_folder->m_meaning        = get_folder_meaning(ths, imap_folder->mb_flag, ret_folder->m_name_utf8, false);
 
-		if( ret_folder->m_meaning != MEANING_NORMAL ) {
+		if( ret_folder->m_meaning == MEANING_IGNORE || ret_folder->m_meaning == MEANING_SENT_OBJECTS /*MEANING_INBOX is no hint for a working XLIST*/ ) {
 			xlist_works = 1;
 		}
 
