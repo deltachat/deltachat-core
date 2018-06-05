@@ -1331,7 +1331,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
 			}
 
-			mrmailbox_log_info(mailbox, 0, "Message has %i parts and is moved to chat #%i.", icnt, chat_id);
+			mrmailbox_log_info(mailbox, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
 
 			/* check event to send */
 			if( chat_id == MR_CHAT_ID_TRASH )
