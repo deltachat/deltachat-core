@@ -138,7 +138,7 @@ cleanup:
 
 /**
  * Wait for messages.
- * mrmailbox_idle() waits until there are new message.
+ * mrmailbox_idle() waits until there are new messages.
  * If there are new messages, you get them as usual through the event handler given to mrmailbox_new().
  * After that, the function waits for messages again.
  * If the mailbox is not yet configured or the connection is down,
@@ -151,6 +151,7 @@ cleanup:
  *
  * This function MUST be called in a separate thread
  * and MUST NOT run in the UI thread or in the thread that calls mrmailbox_interrupt_idle().
+ * To check if mrmailbox_idle() is runninng, you can use mrmailbox_is_idle().
  *
  * See also: mrmailbox_poll()
  *
@@ -200,13 +201,36 @@ cleanup:
 
 
 /**
- * Interrupt the function that waits for messages.
- * If you have started mrmailbox_idle() in a separate thread to wait for push messages, this function typically runs forever.
+ * Check if the mrmailbox_idle() function is running.
+ * Typically, mrmailbox_idle() is started in a separate thread,
+ * this function may be handy to decide if a new thread should be started or not.
  *
- * To stop waiting for messagees, call mrmailbox_interrupt_idle().
- * mrmailbox_interrupt_idle() signals mrmailbox_idle() stop and returns immediately.
- * You may want to wait for the idle-thread to finish; this is not done by this function.
- * (waiting for a thread can be perfomed eg. by pthread_join() or Thread.join(), depending on your environment)
+ * Independingly of the state returned by this function, mrmailbox_idle() or mrmailbox_interrupt_idle,
+ * however, may or may not succeed.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox The mailbox object.
+ *
+ * @return 0=mrmailbox_idle() is not running;
+ *     1=mrmailbox_idle() is running
+ */
+int mrmailbox_is_idle(mrmailbox_t* mailbox)
+{
+	return (mailbox && mailbox->m_in_idle);
+}
+
+
+/**
+ * Interrupt the function that waits for messages.
+ *
+ * If you have started mrmailbox_idle() in a separate thread to wait for push messages, mrmailbox_idle() typically runs forever.
+ * To stop waiting for messages, call mrmailbox_interrupt_idle().
+ *
+ * mrmailbox_interrupt_idle() signals mrmailbox_idle() stop and returns _immediately_.
+ * You may want to wait for the idle-thread to finish; this is _not_ done by this function.
+ * (waiting for a thread can be perfomed eg. by pthread_join() or Thread.join(), depending on your environment).
+ * To check if the idle thread is ended, you can use mrmailbox_is_idle().
  *
  * @memberof mrmailbox_t
  *
