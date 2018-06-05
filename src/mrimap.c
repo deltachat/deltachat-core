@@ -914,7 +914,7 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 	if( ths->m_watch_thread_running ) {
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
-		goto exit_;
+		return; // no `goto exit_` as this would reset `m_watch_thread_running`
 	}
 
 	ths->m_watch_thread_running = 1;

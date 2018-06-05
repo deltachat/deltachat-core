@@ -187,15 +187,16 @@ int mrmailbox_idle(mrmailbox_t* mailbox)
 
 	if( !mrmailbox_ll_connect_to_imap(mailbox, NULL) ) {
 		mrmailbox_log_info(mailbox, 0, "Cannot idle: Cannot connect.");
+		mailbox->m_in_idle = 0;
 		goto cleanup;
 	}
 
 	mrimap_watch_n_wait(mailbox->m_imap);
 
 	success = 1;
+	mailbox->m_in_idle = 0;
 
 cleanup:
-	mailbox->m_in_idle = 0;
 	return success;
 }
 
