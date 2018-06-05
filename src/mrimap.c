@@ -1367,7 +1367,7 @@ void mrimap_disconnect(mrimap_t* ths)
 	}
 
 	if( ths->m_watch_thread_running ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot disconnect imap object while watch thread is running.");
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot disconnect imap object while watch thread is running.");
 		return;
 	}
 
