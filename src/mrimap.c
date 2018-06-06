@@ -916,12 +916,15 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 	time_t          last_fullread_time = 0;
 
-	if( ths->m_watch_thread_running ) {
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
-		return; // no `goto exit_` as this would reset `m_watch_thread_running`
-	}
+	LOCK_HANDLE
+		if( ths->m_watch_thread_running ) {
+			UNLOCK_HANDLE
+			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
+			return; // no `goto exit_` as this would reset `m_watch_thread_running`
+		}
+		ths->m_watch_thread_running = 1;
+	UNLOCK_HANDLE
 
-	ths->m_watch_thread_running = 1;
 	mrmailbox_log_info(ths->m_mailbox, 0, "▶️ IMAP-watch started.");
 
 	if( ths->m_can_idle )
