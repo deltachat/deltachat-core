@@ -1168,7 +1168,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 {
 	int r, success = 0;
 
-	if( ths==NULL || ths->m_connected==0 ) {
+	if( ths==NULL || ths->m_imap_server==NULL ) {
 		goto cleanup;
 	}
 
@@ -1294,6 +1294,31 @@ static void unsetup_handle__(mrimap_t* ths)
  ******************************************************************************/
 
 
+static void free_connect_param__(mrimap_t* imap)
+{
+	free(imap->m_imap_server);
+	imap->m_imap_server = NULL;
+
+	free(imap->m_imap_user);
+	imap->m_imap_user = NULL;
+
+	free(imap->m_imap_pw);
+	imap->m_imap_pw = NULL;
+
+	imap->m_selected_folder[0] = 0;
+
+	free(imap->m_moveto_folder);
+	imap->m_moveto_folder = NULL;
+
+	free(imap->m_sent_folder);
+	imap->m_sent_folder = NULL;
+
+	imap->m_imap_port = 0;
+	imap->m_can_idle  = 0;
+	imap->m_has_xlist = 0;
+}
+
+
 int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 {
 	int success = 0, handle_locked = 0;
@@ -1309,15 +1334,13 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 			goto cleanup;
 		}
 
-		free(ths->m_imap_server); ths->m_imap_server  = safe_strdup(lp->m_mail_server);
-		                          ths->m_imap_port    = lp->m_mail_port;
-		free(ths->m_imap_user);   ths->m_imap_user    = safe_strdup(lp->m_mail_user);
-		free(ths->m_imap_pw);     ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
-		                          ths->m_server_flags = lp->m_server_flags;
+		ths->m_imap_server  = safe_strdup(lp->m_mail_server);
+		ths->m_imap_port    = lp->m_mail_port;
+		ths->m_imap_user    = safe_strdup(lp->m_mail_user);
+		ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
+		ths->m_server_flags = lp->m_server_flags;
 
-		ths->m_connected = 1;
 		if( !setup_handle_if_needed__(ths) ) {
-			ths->m_connected = 0;
 			goto cleanup;
 		}
 
@@ -1352,13 +1375,13 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 			free(capinfostr.m_buf);
 		}
 
-	UNLOCK_HANDLE
-
+	ths->m_connected = 1;
 	success = 1;
 
 cleanup:
 	if( success == 0 ) {
 		unsetup_handle__(ths);
+		free_connect_param__(ths);
 	}
 	UNLOCK_HANDLE
 	return success;
@@ -1382,8 +1405,7 @@ void mrimap_disconnect(mrimap_t* ths)
 		if( ths->m_connected )
 		{
 			unsetup_handle__(ths);
-			ths->m_can_idle  = 0;
-			ths->m_has_xlist = 0;
+			free_connect_param__(ths);
 			ths->m_connected = 0;
 		}
 	UNLOCK_HANDLE
@@ -1474,12 +1496,7 @@ void mrimap_unref(mrimap_t* ths)
 	pthread_mutex_destroy(&ths->m_idlemutex);
 	pthread_mutex_destroy(&ths->m_hEtpanmutex);
 
-	free(ths->m_imap_server);
-	free(ths->m_imap_user);
-	free(ths->m_imap_pw);
 	free(ths->m_selected_folder);
-	free(ths->m_moveto_folder);
-	free(ths->m_sent_folder);
 
 	if( ths->m_fetch_type_uid )  { mailimap_fetch_type_free(ths->m_fetch_type_uid);  }
 	if( ths->m_fetch_type_body ) { mailimap_fetch_type_free(ths->m_fetch_type_body); }
