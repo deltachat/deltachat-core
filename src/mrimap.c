@@ -1141,7 +1141,7 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 
 	ths->m_watch_do_exit = 1;
 
-	if( ths->m_can_idle && ths->m_hEtpan->imap_stream )
+	if( ths->m_can_idle )
 	{
 		LOCK_HANDLE
 		BLOCK_IDLE
