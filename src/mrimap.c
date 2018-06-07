@@ -1708,9 +1708,23 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 				struct mailimap_set* res_setdest = NULL;
 				r = mailimap_uidplus_uid_move(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag__() above */
 				if( is_error(ths, r) ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "Cannot move message.");
-					goto cleanup;
-				}
+                                    mrmailbox_log_info(ths->m_mailbox, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
+                                    r = mailimap_uidplus_uid_copy(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest);
+                                    if (is_error(ths, r)) {
+                                        mrmailbox_log_info(ths->m_mailbox, 0, "Cannot copy message. Leaving in INBOX");
+                                        goto cleanup;
+                                    }
+                                    else {
+                                        mrmailbox_log_info(ths->m_mailbox, 0, "Deleting msg ...");
+                                        if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
+                                                mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
+                                        }
+
+                                        /* force an EXPUNGE resp. CLOSE for the selected folder */
+                                        ths->m_selected_folder_needs_expunge = 1;
+                                    }
+
+                                }
 
 				if( res_setsrc ) {
 					mailimap_set_free(res_setsrc);
