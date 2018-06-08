@@ -916,14 +916,14 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 	time_t          last_fullread_time = 0;
 
-	LOCK_HANDLE
+	pthread_mutex_lock(&ths->m_watch_thread_running_mutex);
 		if( ths->m_watch_thread_running ) {
-			UNLOCK_HANDLE
+			pthread_mutex_unlock(&ths->m_watch_thread_running_mutex);
 			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
 			return; // no `goto exit_` as this would reset `m_watch_thread_running`
 		}
 		ths->m_watch_thread_running = 1;
-	UNLOCK_HANDLE
+	pthread_mutex_unlock(&ths->m_watch_thread_running_mutex);
 
 	mrmailbox_log_info(ths->m_mailbox, 0, "▶️ IMAP-watch started.");
 
@@ -1442,6 +1442,7 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 	pthread_mutex_init(&ths->m_hEtpanmutex, NULL);
 	pthread_mutex_init(&ths->m_idlemutex, NULL);
 	pthread_mutex_init(&ths->m_inwait_mutex, NULL);
+	pthread_mutex_init(&ths->m_watch_thread_running_mutex, NULL);
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
@@ -1492,6 +1493,7 @@ void mrimap_unref(mrimap_t* ths)
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);
+	pthread_mutex_destroy(&ths->m_watch_thread_running_mutex);
 	pthread_mutex_destroy(&ths->m_inwait_mutex);
 	pthread_mutex_destroy(&ths->m_idlemutex);
 	pthread_mutex_destroy(&ths->m_hEtpanmutex);

@@ -72,6 +72,8 @@ typedef struct mrimap_t
 	pthread_mutex_t       m_inwait_mutex; /* only used to wait for mailstream_wait_idle()/mailimap_idle_done() to terminate. */
 
 	int                   m_watch_thread_running;
+	pthread_mutex_t       m_watch_thread_running_mutex;
+
 	pthread_cond_t        m_watch_cond;
 	pthread_mutex_t       m_watch_condmutex;
 	int                   m_watch_condflag;
