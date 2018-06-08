@@ -683,7 +683,8 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "poll")==0 )
 	{
-		ret = mrmailbox_poll(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		mrmailbox_perform_poll(mailbox);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "info")==0 )
 	{

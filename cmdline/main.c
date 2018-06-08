@@ -131,7 +131,7 @@ int       idle_thread_started = 0;
 static void* idle_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
-	mrmailbox_idle(mailbox); // this may take hours ...
+	//mrmailbox_idle(mailbox); // this may take hours ...
 	idle_thread_started = 0;
 	return NULL;
 }

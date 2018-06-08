@@ -51,16 +51,6 @@ struct _mrmailbox
 	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 
-	pthread_t        m_job_thread;            /**< Internal */
-	pthread_cond_t   m_job_cond;              /**< Internal */
-	pthread_mutex_t  m_job_condmutex;         /**< Internal */
-	int              m_job_condflag;          /**< Internal */
-	int              m_job_do_exit;           /**< Internal */
-
-	int              m_in_idle;
-	pthread_mutex_t  m_in_idle_critical;
-	int              m_block_idle;            // if set, mrmailbox_idle() will fail; set during configuration
-
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 
 	char*            m_os_name;               /**< Internal, may be NULL */

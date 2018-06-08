@@ -30,14 +30,3 @@ and implement the functions as needed, eg. for attaching threads in JNI. */
 #include "mrosnative.h"
 
 
-int mrosnative_setup_thread(mrmailbox_t* mailbox)
-{
-	return 1;
-}
-
-
-void mrosnative_unsetup_thread(mrmailbox_t* mailbox)
-{
-}
-
-

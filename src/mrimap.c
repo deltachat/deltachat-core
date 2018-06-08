@@ -30,6 +30,9 @@
 #include "mrosnative.h"
 #include "mrloginparam.h"
 
+#define FULL_LOCK
+
+#ifdef FULL_LOCK
 #define LOCK_HANDLE   pthread_mutex_lock(&ths->m_hEtpanmutex); handle_locked = 1;
 #define UNLOCK_HANDLE if( handle_locked ) { pthread_mutex_unlock(&ths->m_hEtpanmutex); handle_locked = 0; }
 
@@ -44,6 +47,13 @@
 		} \
 		pthread_mutex_unlock(&ths->m_inwait_mutex); \
 	}
+#else
+#define LOCK_HANDLE    { handle_locked = 1; }
+#define UNLOCK_HANDLE  { handle_locked = 0; }
+#define BLOCK_IDLE     { idle_blocked = 1; }
+#define UNBLOCK_IDLE   { idle_blocked = 0; }
+#define INTERRUPT_IDLE
+#endif // FULL_LOCK
 
 static int  setup_handle_if_needed__ (mrimap_t*);
 static void unsetup_handle__         (mrimap_t*);
@@ -648,14 +658,14 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 }
 
 
-static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int block_idle)
+static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
 {
 	/* the function returns:
 	    0  the caller should try over again later
 	or  1  if the messages should be treated as received, the caller should not try to read the message again (even if no database entries are returned) */
 	char*       msg_content = NULL;
 	size_t      msg_bytes = 0;
-	int         r, retry_later = 0, deleted = 0, handle_locked = 0, idle_blocked = 0;
+	int         r, retry_later = 0, deleted = 0, handle_locked = 0;
 	uint32_t    flags = 0;
 	clist*      fetch_result = NULL;
 	clistiter*  cur;
@@ -670,22 +680,11 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 			goto cleanup;
 		}
 
-		if( block_idle ) {
-			BLOCK_IDLE
-			INTERRUPT_IDLE
-			setup_handle_if_needed__(ths);
-			forget_folder_selection__(ths);
-			select_folder__(ths, folder); /* if we need to block IDLE, we'll also need to select the folder as it may have changed by IDLE */
-		}
 
 		{
 			struct mailimap_set* set = mailimap_set_new_single(server_uid);
 				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
 			mailimap_set_free(set);
-		}
-
-		if( block_idle ) {
-			UNBLOCK_IDLE
 		}
 
 	UNLOCK_HANDLE
@@ -714,9 +713,6 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 	ths->m_receive_imf(ths, msg_content, msg_bytes, folder, server_uid, flags);
 
 cleanup:
-	if( block_idle ) {
-		UNBLOCK_IDLE
-	}
 	UNLOCK_HANDLE
 
 	if( fetch_result ) {
@@ -830,7 +826,7 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		 && cur_uid!=lastseenuid /* `UID FETCH <lastseenuid+1>:*` may include lastseenuid if "*" == lastseenuid */ )
 		{
 			read_cnt++;
-			if( fetch_single_msg(ths, folder, cur_uid, 0) == 0/* 0=try again later*/ ) {
+			if( fetch_single_msg(ths, folder, cur_uid) == 0/* 0=try again later*/ ) {
 				read_errors++;
 			}
 			else if( cur_uid > new_lastseenuid ) {
@@ -915,17 +911,6 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 	#define         FULL_FETCH_EVERY_SECONDS   (IDLE_DELAY_SECONDS-60) // force a full-fetch together with the IDLE delay break
 
 	time_t          last_fullread_time = 0;
-
-	pthread_mutex_lock(&ths->m_watch_thread_running_mutex);
-		if( ths->m_watch_thread_running ) {
-			pthread_mutex_unlock(&ths->m_watch_thread_running_mutex);
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch already started.");
-			return; // no `goto exit_` as this would reset `m_watch_thread_running`
-		}
-		ths->m_watch_thread_running = 1;
-	pthread_mutex_unlock(&ths->m_watch_thread_running_mutex);
-
-	mrmailbox_log_info(ths->m_mailbox, 0, "▶️ IMAP-watch started.");
 
 	if( ths->m_can_idle )
 	{
@@ -1123,9 +1108,6 @@ exit_:
 	UNLOCK_HANDLE
 	UNBLOCK_IDLE
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "⏹️ IMAP-watch ended.");
-
-	ths->m_watch_thread_running = 0;
 	ths->m_watch_do_exit = 0;
 }
 
@@ -1134,7 +1116,7 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 {
 	int handle_locked = 0, idle_blocked = 0;
 
-	if( ths==NULL || ths->m_hEtpan==NULL || !ths->m_watch_thread_running ) {
+	if( ths==NULL || ths->m_hEtpan==NULL ) {
 		mrmailbox_log_warning(ths->m_mailbox, 0, "IMAP-watch not running.");
 		return;
 	}
@@ -1396,11 +1378,6 @@ void mrimap_disconnect(mrimap_t* ths)
 		return;
 	}
 
-	if( ths->m_watch_thread_running ) {
-		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot disconnect imap object while watch thread is running.");
-		return;
-	}
-
 	LOCK_HANDLE
 		if( ths->m_connected )
 		{
@@ -1442,7 +1419,6 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 	pthread_mutex_init(&ths->m_hEtpanmutex, NULL);
 	pthread_mutex_init(&ths->m_idlemutex, NULL);
 	pthread_mutex_init(&ths->m_inwait_mutex, NULL);
-	pthread_mutex_init(&ths->m_watch_thread_running_mutex, NULL);
 	pthread_mutex_init(&ths->m_watch_condmutex, NULL);
 	pthread_cond_init(&ths->m_watch_cond, NULL);
 
@@ -1484,16 +1460,10 @@ void mrimap_unref(mrimap_t* ths)
 		return;
 	}
 
-	if( ths->m_watch_thread_running ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot delete imap object while watch thread is running.");
-		return;
-	}
-
 	mrimap_disconnect(ths);
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);
-	pthread_mutex_destroy(&ths->m_watch_thread_running_mutex);
 	pthread_mutex_destroy(&ths->m_inwait_mutex);
 	pthread_mutex_destroy(&ths->m_idlemutex);
 	pthread_mutex_destroy(&ths->m_hEtpanmutex);

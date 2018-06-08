@@ -32,9 +32,6 @@ extern "C" {
 
 typedef struct _mrmailbox mrmailbox_t;
 
-int  mrosnative_setup_thread   (mrmailbox_t*); /*returns true/false*/
-void mrosnative_unsetup_thread (mrmailbox_t*);
-
 
 #ifdef __cplusplus
 } /* /extern "C" */

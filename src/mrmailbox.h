@@ -213,10 +213,10 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 int             mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
-int             mrmailbox_poll              (mrmailbox_t*);
-int             mrmailbox_idle              (mrmailbox_t*);
-int             mrmailbox_is_idle           (mrmailbox_t*);
-int             mrmailbox_interrupt_idle    (mrmailbox_t*);
+void            mrmailbox_perform_jobs      (mrmailbox_t*);
+void            mrmailbox_perform_poll      (mrmailbox_t*);
+void            mrmailbox_perform_idle      (mrmailbox_t*);
+void            mrmailbox_interrupt_idle    (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 

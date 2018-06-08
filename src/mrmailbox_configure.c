@@ -400,7 +400,6 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0;
-	int             restart_job_thread = 0;
 
 	mrloginparam_t* param = NULL;
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -425,14 +424,8 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	}
 
 	/* disconnect */
-	mrjob_stop_thread(mailbox);
-	restart_job_thread = 1;
 
-	mailbox->m_block_idle = 1;
-	mrmailbox_interrupt_idle(mailbox);
-	while( mailbox->m_in_idle ) {
-		usleep(300*1000); // test every 0.3 seconds if idle has finished
-	}
+	// TODO: this function must be called from the imap thread!
 
 	mrimap_disconnect(mailbox->m_imap);
 	mrsmtp_disconnect(mailbox->m_smtp);
@@ -724,8 +717,6 @@ cleanup:
 
 	mrmailbox_free_ongoing(mailbox);
 
-	if( restart_job_thread ) { mrjob_start_thread(mailbox); }
-	mailbox->m_block_idle = 0;
 	return success;
 }
 
