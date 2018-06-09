@@ -45,7 +45,6 @@ int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NUL
 
 	if( mrimap_is_connected(mailbox->m_imap) ) {
 		ret_connected = ALREADY_CONNECTED;
-		mrmailbox_log_info(mailbox, 0, "IMAP already connected.");
 		goto cleanup;
 	}
 
