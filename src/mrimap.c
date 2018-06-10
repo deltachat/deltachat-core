@@ -429,12 +429,6 @@ static int select_folder__(mrimap_t* ths, const char* folder /*may be NULL*/)
 }
 
 
-static void forget_folder_selection__(mrimap_t* ths)
-{
-	select_folder__(ths, NULL);
-}
-
-
 static uint32_t search_uid__(mrimap_t* imap, const char* message_id)
 {
 	/* Search Message-ID in all folders.
@@ -950,27 +944,22 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), now, seconds_to_wait;
 
-			/* get the latest messages */
+		int do_fake_idle = 1;
+		while( do_fake_idle )
+		{
 			now = time(NULL);
+			setup_handle_if_needed__(ths);
 
-			do_fetch = 1;
 			if( now-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				do_fetch = 2;
-			}
-
-				setup_handle_if_needed__(ths);
-				forget_folder_selection__(ths); /* seems to be needed - otherwise, we'll get a new message only every _twice_ polls. WTF? */
-
-			if( do_fetch == 1 ) {
-				if( fetch_from_single_folder(ths, "INBOX") > 0 ) {
-					last_message_time = now;
-				}
-			}
-			else if( do_fetch == 2 ) {
-				if( fetch_from_all_folders(ths) > 0 ) {
+				if( fetch_from_all_folders(ths) ) {
 					last_message_time = now;
 				}
 				ths->m_last_fullread_time = now;
+			}
+			else {
+				if( fetch_from_single_folder(ths, "INBOX") ) {
+					last_message_time = now;
+				}
 			}
 
 			/* calculate the wait time: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds */
@@ -984,11 +973,6 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 				}
 			}
 
-			#ifdef __APPLE__
-			seconds_to_wait = 7; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
-			#endif
-
-			/* wait */
 			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
 			pthread_mutex_lock(&ths->m_watch_condmutex);
 
@@ -997,19 +981,15 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
 
-					/*LOCK_HANDLE
-						ths->m_enter_watch_wait_time = time(NULL);
-					UNLOCK_HANDLE*/
-
 					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
-
-					/*LOCK_HANDLE
-						ths->m_enter_watch_wait_time = 0;
-					UNLOCK_HANDLE*/
+					if( ths->m_watch_condflag ) {
+						do_fake_idle = 0;
+					}
 				}
 				ths->m_watch_condflag = 0;
 
 			pthread_mutex_unlock(&ths->m_watch_condmutex);
+		}
 	}
 }
 
