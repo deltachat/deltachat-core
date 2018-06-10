@@ -83,9 +83,11 @@ starting from the project's root directory:
 mkdir builddir
 cd builddir
 meson
-# optionally configure some parameters
-# run `meson configure` to see the options, e.g. 
-meson configure -Dlibdir=lib
+# If you do not have a good reason, use static linking
+meson configure --default-library=static
+# Optionally configure some other parameters
+# run `meson configure` to see the options, e.g.
+#    meson configure -Dlibdir=lib
 ninja
 sudo ninja install
 sudo ldconfig
