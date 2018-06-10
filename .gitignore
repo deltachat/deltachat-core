@@ -5,6 +5,10 @@
 *.o
 .deps
 .dirstamp
+.eggs
+__pycache__
+.pytest_cache
+*.egg-info
 
 # ignore Codeblocks temporary files and build directories.
 # Codeblocks project file (*.cbp) is added although it may contain some user preferences (eg. program's arguments), it may be useful for some people
