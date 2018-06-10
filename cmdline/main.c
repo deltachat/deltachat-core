@@ -124,37 +124,47 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
  ******************************************************************************/
 
 
-pthread_t idle_thread;
-int       idle_thread_started = 0;
+pthread_t imap_thread;
+int       imap_thread_started = 0;
+int       imap_foreground = 1;
 
 
-static void* idle_thread_entry_point(void* entry_arg)
+static void* imap_thread_entry_point(void* entry_arg)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
-	//mrmailbox_idle(mailbox); // this may take hours ...
-	idle_thread_started = 0;
+
+	while( 1 ) {
+		// mrmailbox_perform_jobs(), mrmailbox_perform_idle() and mrmailbox_perform_poll()
+		// MUST be called from the same single thread and MUST be called sequentially.
+		mrmailbox_perform_jobs(mailbox);
+		if( imap_foreground ) {
+			mrmailbox_perform_idle(mailbox); // this may take hours ...
+		}
+		else {
+			mrmailbox_perform_poll(mailbox);
+			break;
+		}
+	}
+
+	imap_thread_started = 0;
 	return NULL;
 }
 
 
-static void idle_connect(mrmailbox_t* mailbox)
+static void imap_connect(mrmailbox_t* mailbox)
 {
-	if( !idle_thread_started )
+	if( !imap_thread_started )
 	{
-		idle_thread_started = 1;
-		pthread_create(&idle_thread, NULL, idle_thread_entry_point, mailbox);
+		imap_thread_started = 1;
+		pthread_create(&imap_thread, NULL, imap_thread_entry_point, mailbox);
 	}
 }
 
 
 static void idle_disconnect(mrmailbox_t* mailbox)
 {
-	if( idle_thread_started )
-	{
-		idle_thread_started = 0;
-		mrmailbox_interrupt_idle(mailbox);
-		pthread_join(idle_thread, NULL);
-	}
+	imap_foreground = 0;
+	mrmailbox_interrupt_idle(mailbox);
 }
 
 
@@ -215,11 +225,16 @@ int main(int argc, char ** argv)
 
 		if( strcmp(cmd, "connect")==0 )
 		{
-			idle_connect(mailbox);
+			imap_foreground = 1;
+			imap_connect(mailbox);
 		}
 		else if( strcmp(cmd, "disconnect")==0 )
 		{
 			idle_disconnect(mailbox);
+		}
+		else if( strcmp(cmd, "poll")==0 )
+		{
+			imap_foreground = 1;
 		}
 		else if( strcmp(cmd, "clear")==0 )
 		{
@@ -228,7 +243,8 @@ int main(int argc, char ** argv)
 		}
 		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
-			idle_connect(mailbox);
+			imap_foreground = 1;
+			imap_connect(mailbox);
 			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
