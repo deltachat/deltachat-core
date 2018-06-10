@@ -868,8 +868,13 @@ static int fetch_from_all_folders(mrimap_t* ths)
 void mrimap_watch_n_wait(mrimap_t* ths)
 {
 	int             do_fetch = 0;
-	#define         IDLE_DELAY_SECONDS         (23*60)                 // most servers do not allow more than ~28 minutes; stay below. if the delay is reached, we also check _all_ folders.
-	#define         FULL_FETCH_EVERY_SECONDS   (IDLE_DELAY_SECONDS-60) // force a full-fetch together with the IDLE delay break
+
+	// most servers do not allow more than ~28 minutes; stay clearly below that.
+	// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
+	// we want a shorter timeout to allow the failed-smtp-sending to retry.
+	#define         IDLE_DELAY_SECONDS         (1*60)
+
+	#define         FULL_FETCH_EVERY_SECONDS   (22*60)
 
 	if( ths->m_can_idle )
 	{
