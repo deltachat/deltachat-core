@@ -867,9 +867,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
 
 void mrimap_watch_n_wait(mrimap_t* ths)
 {
-	int             force_sleep = 0, do_fetch = 0;
-	#define         SLEEP_ON_ERROR_SECONDS     10
-	#define         SLEEP_ON_INTERRUPT_SECONDS  2      /* give the job thread a little time before we IDLE again, otherwise there will be many idle-interrupt sequences */
+	int             do_fetch = 0;
 	#define         IDLE_DELAY_SECONDS         (23*60)                 // most servers do not allow more than ~28 minutes; stay below. if the delay is reached, we also check _all_ folders.
 	#define         FULL_FETCH_EVERY_SECONDS   (IDLE_DELAY_SECONDS-60) // force a full-fetch together with the IDLE delay break
 
@@ -880,27 +878,12 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 		int      r, r2;
 
-		while( 1 )
-		{
-			if( ths->m_watch_do_exit ) {
-				goto exit_;
-			}
-
 				do_fetch = 0;
-				force_sleep = SLEEP_ON_ERROR_SECONDS;
 
 				setup_handle_if_needed__(ths);
 				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
-					if( time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-						/* we go here only if we get MAILSTREAM_IDLE_ERROR or MAILSTREAM_IDLE_CANCELLED instead or a proper timeout */
-							fetch_from_all_folders(ths);
-						ths->m_last_fullread_time = time(NULL);
-					}
-
-					if( ths->m_hEtpan && ths->m_hEtpan->imap_stream ) { // additional check needed due to the unlock above
 						mailstream_setup_idle(ths->m_hEtpan->imap_stream);
 						ths->m_idle_set_up = 1;
-					}
 				}
 
 				if( select_folder__(ths, "INBOX") )
@@ -918,16 +901,12 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 									r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
 								}
 
-							force_sleep = 0;
-
 							if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
 								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", (int)r, (int)r2);
-								force_sleep = SLEEP_ON_ERROR_SECONDS;
 								ths->m_should_reconnect = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
 								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE interrupted.");
-								force_sleep = SLEEP_ON_INTERRUPT_SECONDS;
 							}
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE has data.");
@@ -940,10 +919,6 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 							if( is_error(ths, r2) ) {
 								do_fetch = 0;
-							}
-
-							if( ths->m_watch_do_exit ) { /* check after is_error() to allow reconnections on errors */
-								goto exit_;
 							}
 
 						//ths->m_enter_watch_wait_time = 0;
@@ -961,10 +936,6 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 				fetch_from_all_folders(ths);
 				ths->m_last_fullread_time = time(NULL);
 			}
-			else if( force_sleep ) {
-				sleep(force_sleep);
-			}
-		}
 	}
 	else
 	{
@@ -973,8 +944,7 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), now, seconds_to_wait;
-		while( 1 )
-		{
+
 			/* get the latest messages */
 			now = time(NULL);
 
@@ -1034,17 +1004,8 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 				}
 				ths->m_watch_condflag = 0;
 
-				if( ths->m_watch_do_exit ) {
-					pthread_mutex_unlock(&ths->m_watch_condmutex);
-					goto exit_;
-				}
-
 			pthread_mutex_unlock(&ths->m_watch_condmutex);
-		}
 	}
-
-exit_:
-	ths->m_watch_do_exit = 0;
 }
 
 
@@ -1054,8 +1015,6 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 		mrmailbox_log_warning(ths->m_mailbox, 0, "IMAP-watch not running.");
 		return;
 	}
-
-	ths->m_watch_do_exit = 1;
 
 	if( ths->m_can_idle )
 	{

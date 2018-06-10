@@ -74,7 +74,6 @@ typedef struct mrimap_t
 	pthread_cond_t        m_watch_cond;
 	pthread_mutex_t       m_watch_condmutex;
 	int                   m_watch_condflag;
-	int                   m_watch_do_exit;
 
 	//time_t                m_enter_watch_wait_time;
 
