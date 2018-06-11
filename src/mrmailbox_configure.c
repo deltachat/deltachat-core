@@ -689,12 +689,14 @@ cleanup:
 
 /**
  * Configure and connect a mailbox.
+ * For this, the function creates a job that is executed in the IMAP-thread then;
+ * this requires to call mrmailbox_perform_jobs() regulary.
  *
  * - Before your call this function, you should set at least `addr` and `mail_pw`
  *   using mrmailbox_set_config().
  *
- * - mrmailbox_configure() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
- *   to stop the configuration progress, you can use mrmailbox_stop_ongoing_process().
+ * - mrmailbox_configure() may take a while,
+ *   you can use mrmailbox_stop_ongoing_process().
  *
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
