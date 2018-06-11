@@ -644,16 +644,16 @@ static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_u
 		goto cleanup;
 	}
 
-		if( ths->m_hEtpan==NULL ) {
-			goto cleanup;
-		}
+	if( ths->m_hEtpan==NULL ) {
+		goto cleanup;
+	}
 
 
-		{
-			struct mailimap_set* set = mailimap_set_new_single(server_uid);
-				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
-			mailimap_set_free(set);
-		}
+	{
+		struct mailimap_set* set = mailimap_set_new_single(server_uid);
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_body, &fetch_result);
+		mailimap_set_free(set);
+	}
 
 	if( is_error(ths, r) || fetch_result == NULL ) {
 		fetch_result = NULL;
@@ -701,71 +701,71 @@ static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
 		goto cleanup;
 	}
 
-		if( ths->m_hEtpan==NULL ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Cannot fetch from \"%s\" - not connected.", folder);
+	if( ths->m_hEtpan==NULL ) {
+		mrmailbox_log_info(ths->m_mailbox, 0, "Cannot fetch from \"%s\" - not connected.", folder);
+		goto cleanup;
+	}
+
+	if( select_folder__(ths, folder)==0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
+		goto cleanup;
+	}
+
+	/* compare last seen UIDVALIDITY against the current one */
+	get_config_lastseenuid(ths, folder, &uidvalidity, &lastseenuid);
+	if( uidvalidity != ths->m_hEtpan->imap_selection_info->sel_uidvalidity )
+	{
+		/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
+		if( ths->m_hEtpan->imap_selection_info->sel_uidvalidity <= 0 ) {
+			mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
 			goto cleanup;
 		}
 
-		if( select_folder__(ths, folder)==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder);
-			goto cleanup;
-		}
-
-		/* compare last seen UIDVALIDITY against the current one */
-		get_config_lastseenuid(ths, folder, &uidvalidity, &lastseenuid);
-		if( uidvalidity != ths->m_hEtpan->imap_selection_info->sel_uidvalidity )
-		{
-			/* first time this folder is selected or UIDVALIDITY has changed, init lastseenuid and save it to config */
-			if( ths->m_hEtpan->imap_selection_info->sel_uidvalidity <= 0 ) {
-				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get UIDVALIDITY for folder \"%s\".", folder);
+		if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
+			if( ths->m_hEtpan->imap_selection_info->sel_exists <= 0 ) {
+				mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" is empty.", folder);
 				goto cleanup;
 			}
-
-			if( ths->m_hEtpan->imap_selection_info->sel_has_exists ) {
-				if( ths->m_hEtpan->imap_selection_info->sel_exists <= 0 ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "Folder \"%s\" is empty.", folder);
-					goto cleanup;
-				}
-				/* `FETCH <message sequence number> (UID)` */
-				set = mailimap_set_new_single(ths->m_hEtpan->imap_selection_info->sel_exists);
-			}
-			else {
-				/* `FETCH * (UID)` - according to RFC 3501, `*` represents the largest message sequence number; if the mailbox is empty,
-				an error resp. an empty list is returned. */
-                mrmailbox_log_info(ths->m_mailbox, 0, "EXISTS is missing for folder \"%s\", using fallback.", folder);
-				set = mailimap_set_new_single(0);
-			}
-			r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
-			mailimap_set_free(set);
-
-			if( is_error(ths, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL ) {
-				mrmailbox_log_info(ths->m_mailbox, 0, "Empty result returned for folder \"%s\".", folder);
-				goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
-			}
-
-			struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
-			lastseenuid = peek_uid(msg_att);
-			mailimap_fetch_list_free(fetch_result);
-			fetch_result = NULL;
-			if( lastseenuid <= 0 ) {
-				mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get largest UID for folder \"%s\"", folder);
-				goto cleanup;
-			}
-
-			/* if the UIDVALIDITY has _changed_, decrease lastseenuid by one to avoid gaps (well add 1 below) */
-			if( uidvalidity > 0 && lastseenuid > 1 ) {
-				lastseenuid -= 1;
-			}
-
-			/* store calculated uidvalidity/lastseenuid */
-			uidvalidity = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
-			set_config_lastseenuid(ths, folder, uidvalidity, lastseenuid);
+			/* `FETCH <message sequence number> (UID)` */
+			set = mailimap_set_new_single(ths->m_hEtpan->imap_selection_info->sel_exists);
 		}
-
-		/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
-		set = mailimap_set_new_interval(lastseenuid+1, 0);
-			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
+		else {
+			/* `FETCH * (UID)` - according to RFC 3501, `*` represents the largest message sequence number; if the mailbox is empty,
+			an error resp. an empty list is returned. */
+			mrmailbox_log_info(ths->m_mailbox, 0, "EXISTS is missing for folder \"%s\", using fallback.", folder);
+			set = mailimap_set_new_single(0);
+		}
+		r = mailimap_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
 		mailimap_set_free(set);
+
+		if( is_error(ths, r) || fetch_result==NULL || (cur=clist_begin(fetch_result))==NULL ) {
+			mrmailbox_log_info(ths->m_mailbox, 0, "Empty result returned for folder \"%s\".", folder);
+			goto cleanup; /* this might happen if the mailbox is empty an EXISTS does not work */
+		}
+
+		struct mailimap_msg_att* msg_att = (struct mailimap_msg_att*)clist_content(cur);
+		lastseenuid = peek_uid(msg_att);
+		mailimap_fetch_list_free(fetch_result);
+		fetch_result = NULL;
+		if( lastseenuid <= 0 ) {
+			mrmailbox_log_error(ths->m_mailbox, 0, "Cannot get largest UID for folder \"%s\"", folder);
+			goto cleanup;
+		}
+
+		/* if the UIDVALIDITY has _changed_, decrease lastseenuid by one to avoid gaps (well add 1 below) */
+		if( uidvalidity > 0 && lastseenuid > 1 ) {
+			lastseenuid -= 1;
+		}
+
+		/* store calculated uidvalidity/lastseenuid */
+		uidvalidity = ths->m_hEtpan->imap_selection_info->sel_uidvalidity;
+		set_config_lastseenuid(ths, folder, uidvalidity, lastseenuid);
+	}
+
+	/* fetch messages with larger UID than the last one seen (`UID FETCH lastseenuid+1:*)`, see RFC 4549 */
+	set = mailimap_set_new_interval(lastseenuid+1, 0);
+		r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_uid, &fetch_result);
+	mailimap_set_free(set);
 
 	if( is_error(ths, r) || fetch_result == NULL )
 	{
@@ -1134,18 +1134,18 @@ static void unsetup_handle__(mrimap_t* ths)
 
 	if( ths->m_hEtpan )
 	{
-			if( ths->m_idle_set_up ) {
-				mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
-				ths->m_idle_set_up = 0;
-			}
+		if( ths->m_idle_set_up ) {
+			mailstream_unsetup_idle(ths->m_hEtpan->imap_stream);
+			ths->m_idle_set_up = 0;
+		}
 
-			if( ths->m_hEtpan->imap_stream != NULL ) {
-				mailstream_close(ths->m_hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
-				ths->m_hEtpan->imap_stream = NULL;
-			}
+		if( ths->m_hEtpan->imap_stream != NULL ) {
+			mailstream_close(ths->m_hEtpan->imap_stream); /* not sure, if this is really needed, however, mailcore2 does the same */
+			ths->m_hEtpan->imap_stream = NULL;
+		}
 
-			mailimap_free(ths->m_hEtpan);
-			ths->m_hEtpan = NULL;
+		mailimap_free(ths->m_hEtpan);
+		ths->m_hEtpan = NULL;
 
 		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP disconnected.");
 	}
@@ -1194,51 +1194,51 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		return 0;
 	}
 
-		if( ths->m_connected ) {
-			success = 1;
-			goto cleanup;
-		}
+	if( ths->m_connected ) {
+		success = 1;
+		goto cleanup;
+	}
 
-		ths->m_imap_server  = safe_strdup(lp->m_mail_server);
-		ths->m_imap_port    = lp->m_mail_port;
-		ths->m_imap_user    = safe_strdup(lp->m_mail_user);
-		ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
-		ths->m_server_flags = lp->m_server_flags;
+	ths->m_imap_server  = safe_strdup(lp->m_mail_server);
+	ths->m_imap_port    = lp->m_mail_port;
+	ths->m_imap_user    = safe_strdup(lp->m_mail_user);
+	ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
+	ths->m_server_flags = lp->m_server_flags;
 
-		if( !setup_handle_if_needed__(ths) ) {
-			goto cleanup;
-		}
+	if( !setup_handle_if_needed__(ths) ) {
+		goto cleanup;
+	}
 
-		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
-		ths->m_can_idle = 0;//mailimap_has_idle(ths->m_hEtpan);
-		ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
+	/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
+	ths->m_can_idle = 0;//mailimap_has_idle(ths->m_hEtpan);
+	ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
 
-		#ifdef __APPLE__
-		ths->m_can_idle = 0; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
-		#endif
+	#ifdef __APPLE__
+	ths->m_can_idle = 0; // HACK to force iOS not to work IMAP-IDLE which does not work for now, see also (*)
+	#endif
 
 
-		if( !ths->m_skip_log_capabilities
-		 && ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability )
-		{
-			/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
-			ths->m_skip_log_capabilities = 1;
-			mrstrbuilder_t capinfostr;
-			mrstrbuilder_init(&capinfostr, 0);
-			clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
-			if( list ) {
-				clistiter* cur;
-				for(cur = clist_begin(list) ; cur != NULL ; cur = clist_next(cur)) {
-					struct mailimap_capability * cap = clist_content(cur);
-					if( cap && cap->cap_type == MAILIMAP_CAPABILITY_NAME ) {
-						mrstrbuilder_cat(&capinfostr, " ");
-						mrstrbuilder_cat(&capinfostr, cap->cap_data.cap_name);
-					}
+	if( !ths->m_skip_log_capabilities
+	 && ths->m_hEtpan->imap_connection_info && ths->m_hEtpan->imap_connection_info->imap_capability )
+	{
+		/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
+		ths->m_skip_log_capabilities = 1;
+		mrstrbuilder_t capinfostr;
+		mrstrbuilder_init(&capinfostr, 0);
+		clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
+		if( list ) {
+			clistiter* cur;
+			for(cur = clist_begin(list) ; cur != NULL ; cur = clist_next(cur)) {
+				struct mailimap_capability * cap = clist_content(cur);
+				if( cap && cap->cap_type == MAILIMAP_CAPABILITY_NAME ) {
+					mrstrbuilder_cat(&capinfostr, " ");
+					mrstrbuilder_cat(&capinfostr, cap->cap_data.cap_name);
 				}
 			}
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-capabilities:%s", capinfostr.m_buf);
-			free(capinfostr.m_buf);
 		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-capabilities:%s", capinfostr.m_buf);
+		free(capinfostr.m_buf);
+	}
 
 	ths->m_connected = 1;
 	success = 1;
@@ -1258,12 +1258,12 @@ void mrimap_disconnect(mrimap_t* ths)
 		return;
 	}
 
-		if( ths->m_connected )
-		{
-			unsetup_handle__(ths);
-			free_connect_param__(ths);
-			ths->m_connected = 0;
-		}
+	if( ths->m_connected )
+	{
+		unsetup_handle__(ths);
+		free_connect_param__(ths);
+		ths->m_connected = 0;
+	}
 }
 
 
@@ -1367,39 +1367,39 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 		goto cleanup;
 	}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Appending message to IMAP-server...");
+	mrmailbox_log_info(ths->m_mailbox, 0, "Appending message to IMAP-server...");
 
-		if( !init_chat_folders__(ths) ) {
-			mrmailbox_log_error(ths->m_mailbox, 0, "Cannot find out IMAP-sent-folder.");
-			goto cleanup;
-		}
+	if( !init_chat_folders__(ths) ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot find out IMAP-sent-folder.");
+		goto cleanup;
+	}
 
-		if( !select_folder__(ths, ths->m_sent_folder) ) {
-			mrmailbox_log_error(ths->m_mailbox, 0, "Cannot select IMAP-folder \"%s\".", ths->m_sent_folder);
-			ths->m_sent_folder[0] = 0; /* force re-init */
-			goto cleanup;
-		}
+	if( !select_folder__(ths, ths->m_sent_folder) ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot select IMAP-folder \"%s\".", ths->m_sent_folder);
+		ths->m_sent_folder[0] = 0; /* force re-init */
+		goto cleanup;
+	}
 
-		flag_list = mailimap_flag_list_new_empty();
-		mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
+	flag_list = mailimap_flag_list_new_empty();
+	mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
 
-		imap_date = mr_timestamp_to_mailimap_date_time(timestamp);
-		if( imap_date == NULL ) {
-			mrmailbox_log_error(ths->m_mailbox, 0, "Bad date.");
-			goto cleanup;
-		}
+	imap_date = mr_timestamp_to_mailimap_date_time(timestamp);
+	if( imap_date == NULL ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Bad date.");
+		goto cleanup;
+	}
 
-		r = mailimap_uidplus_append(ths->m_hEtpan, ths->m_sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
-		if( is_error(ths, r) ) {
-			mrmailbox_log_error(ths->m_mailbox, 0, "Cannot append message to \"%s\", error #%i.", ths->m_sent_folder, (int)r);
-			goto cleanup;
-		}
+	r = mailimap_uidplus_append(ths->m_hEtpan, ths->m_sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
+	if( is_error(ths, r) ) {
+		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot append message to \"%s\", error #%i.", ths->m_sent_folder, (int)r);
+		goto cleanup;
+	}
 
-		*ret_server_folder = safe_strdup(ths->m_sent_folder);
+	*ret_server_folder = safe_strdup(ths->m_sent_folder);
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Message appended to \"%s\".", ths->m_sent_folder);
+	mrmailbox_log_info(ths->m_mailbox, 0, "Message appended to \"%s\".", ths->m_sent_folder);
 
-		success = 1;
+	success = 1;
 
 cleanup:
 
@@ -1468,127 +1468,127 @@ int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, 
 		goto cleanup;
 	}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message %s/%i as seen...", folder, (int)server_uid);
+	mrmailbox_log_info(ths->m_mailbox, 0, "Marking message %s/%i as seen...", folder, (int)server_uid);
 
-		if( select_folder__(ths, folder)==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder.");
-			goto cleanup;
-		}
+	if( select_folder__(ths, folder)==0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder.");
+		goto cleanup;
+	}
 
-		if( add_flag__(ths, server_uid, mailimap_flag_new_seen())==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as seen.");
-			goto cleanup;
-		}
+	if( add_flag__(ths, server_uid, mailimap_flag_new_seen())==0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as seen.");
+		goto cleanup;
+	}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as seen.");
+	mrmailbox_log_info(ths->m_mailbox, 0, "Message marked as seen.");
 
-		if( (ms_flags&MR_MS_SET_MDNSent_FLAG)
-		 && ths->m_hEtpan->imap_selection_info!=NULL && ths->m_hEtpan->imap_selection_info->sel_perm_flags!=NULL )
+	if( (ms_flags&MR_MS_SET_MDNSent_FLAG)
+	 && ths->m_hEtpan->imap_selection_info!=NULL && ths->m_hEtpan->imap_selection_info->sel_perm_flags!=NULL )
+	{
+		/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
+		If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
+		int can_create_flag = 0;
+		clistiter* iter;
+		for( iter=clist_begin(ths->m_hEtpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter) )
 		{
-			/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
-			If the folder cannot handle the `$MDNSent` flag, we risk duplicated MDNs; it's up to the receiving MUA to handle this then (eg. Delta Chat has no problem with this). */
-			int can_create_flag = 0;
-			clistiter* iter;
-			for( iter=clist_begin(ths->m_hEtpan->imap_selection_info->sel_perm_flags); iter!=NULL; iter=clist_next(iter) )
-			{
-				struct mailimap_flag_perm* fp = (struct mailimap_flag_perm*)clist_content(iter);
-				if( fp ) {
-					if( fp->fl_type==MAILIMAP_FLAG_PERM_ALL ) {
+			struct mailimap_flag_perm* fp = (struct mailimap_flag_perm*)clist_content(iter);
+			if( fp ) {
+				if( fp->fl_type==MAILIMAP_FLAG_PERM_ALL ) {
+					can_create_flag = 1;
+					break;
+				}
+				else if( fp->fl_type==MAILIMAP_FLAG_PERM_FLAG && fp->fl_flag ) {
+					struct mailimap_flag* fl = (struct mailimap_flag*)fp->fl_flag;
+					if( fl->fl_type==MAILIMAP_FLAG_KEYWORD && fl->fl_data.fl_keyword && strcmp(fl->fl_data.fl_keyword, "$MDNSent")==0 ) {
 						can_create_flag = 1;
 						break;
 					}
-					else if( fp->fl_type==MAILIMAP_FLAG_PERM_FLAG && fp->fl_flag ) {
-						struct mailimap_flag* fl = (struct mailimap_flag*)fp->fl_flag;
-						if( fl->fl_type==MAILIMAP_FLAG_KEYWORD && fl->fl_data.fl_keyword && strcmp(fl->fl_data.fl_keyword, "$MDNSent")==0 ) {
-							can_create_flag = 1;
-							break;
-						}
-					}
 				}
-			}
-
-			if( can_create_flag )
-			{
-				clist* fetch_result = NULL;
-				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_flags, &fetch_result);
-				if( !is_error(ths, r) && fetch_result ) {
-					clistiter* cur=clist_begin(fetch_result);
-					if( cur ) {
-						if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
-							add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
-							*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
-						}
-					}
-					mailimap_fetch_list_free(fetch_result);
-				}
-				mrmailbox_log_info(ths->m_mailbox, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
-			}
-			else
-			{
-				*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
-				mrmailbox_log_info(ths->m_mailbox, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
 			}
 		}
 
-		if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
+		if( can_create_flag )
 		{
-			init_chat_folders__(ths);
-			if( ths->m_moveto_folder && strcmp(folder, ths->m_moveto_folder)==0 )
-			{
-				mrmailbox_log_info(ths->m_mailbox, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, ths->m_moveto_folder);
-				/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
-				we will catch these messages again on the next poll, try to move them away and so on, see also (***) in mrmailbox.c */
-			}
-			else if( ths->m_moveto_folder )
-			{
-				mrmailbox_log_info(ths->m_mailbox, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
-
-				/* TODO/TOCHECK: MOVE may not be supported on servers, if this is often the case, we should fallback to a COPY/DELETE implementation.
-				Same for the UIDPLUS extension (if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then). */
-				uint32_t             res_uid = 0;
-				struct mailimap_set* res_setsrc = NULL;
-				struct mailimap_set* res_setdest = NULL;
-				r = mailimap_uidplus_uid_move(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag__() above */
-				if( is_error(ths, r) ) {
-                                    mrmailbox_log_info(ths->m_mailbox, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
-                                    r = mailimap_uidplus_uid_copy(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest);
-                                    if (is_error(ths, r)) {
-                                        mrmailbox_log_info(ths->m_mailbox, 0, "Cannot copy message. Leaving in INBOX");
-                                        goto cleanup;
-                                    }
-                                    else {
-                                        mrmailbox_log_info(ths->m_mailbox, 0, "Deleting msg ...");
-                                        if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
-                                                mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
-                                        }
-
-                                        /* force an EXPUNGE resp. CLOSE for the selected folder */
-                                        ths->m_selected_folder_needs_expunge = 1;
-                                    }
-
-                                }
-
-				if( res_setsrc ) {
-					mailimap_set_free(res_setsrc);
-				}
-
-				if( res_setdest ) {
-					clistiter* cur = clist_begin(res_setdest->set_list);
-					if (cur != NULL) {
-						struct mailimap_set_item* item;
-						item = clist_content(cur);
-						*ret_server_uid = item->set_first;
-						*ret_server_folder = safe_strdup(ths->m_moveto_folder);
+			clist* fetch_result = NULL;
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_flags, &fetch_result);
+			if( !is_error(ths, r) && fetch_result ) {
+				clistiter* cur=clist_begin(fetch_result);
+				if( cur ) {
+					if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
+						add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
+						*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
 					}
-					mailimap_set_free(res_setdest);
 				}
-
-				// TODO: If the new UID is equal to lastuid.Chats, we should increase lastuid.Chats by one
-				// (otherwise, we'll download the mail in moment again from the chats folder ...)
-
-				mrmailbox_log_info(ths->m_mailbox, 0, "Message moved.");
+				mailimap_fetch_list_free(fetch_result);
 			}
+			mrmailbox_log_info(ths->m_mailbox, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
 		}
+		else
+		{
+			*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
+			mrmailbox_log_info(ths->m_mailbox, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
+		}
+	}
+
+	if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
+	{
+		init_chat_folders__(ths);
+		if( ths->m_moveto_folder && strcmp(folder, ths->m_moveto_folder)==0 )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, ths->m_moveto_folder);
+			/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
+			we will catch these messages again on the next poll, try to move them away and so on, see also (***) in mrmailbox.c */
+		}
+		else if( ths->m_moveto_folder )
+		{
+			mrmailbox_log_info(ths->m_mailbox, 0, "Moving message %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
+
+			/* TODO/TOCHECK: MOVE may not be supported on servers, if this is often the case, we should fallback to a COPY/DELETE implementation.
+			Same for the UIDPLUS extension (if in doubt, we can find out the resulting UID using "imap_selection_info->sel_uidnext" then). */
+			uint32_t             res_uid = 0;
+			struct mailimap_set* res_setsrc = NULL;
+			struct mailimap_set* res_setdest = NULL;
+			r = mailimap_uidplus_uid_move(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag__() above */
+			if( is_error(ths, r) ) {
+								mrmailbox_log_info(ths->m_mailbox, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, ths->m_moveto_folder);
+								r = mailimap_uidplus_uid_copy(ths->m_hEtpan, set, ths->m_moveto_folder, &res_uid, &res_setsrc, &res_setdest);
+								if (is_error(ths, r)) {
+									mrmailbox_log_info(ths->m_mailbox, 0, "Cannot copy message. Leaving in INBOX");
+									goto cleanup;
+								}
+								else {
+									mrmailbox_log_info(ths->m_mailbox, 0, "Deleting msg ...");
+									if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
+											mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
+									}
+
+									/* force an EXPUNGE resp. CLOSE for the selected folder */
+									ths->m_selected_folder_needs_expunge = 1;
+								}
+
+							}
+
+			if( res_setsrc ) {
+				mailimap_set_free(res_setsrc);
+			}
+
+			if( res_setdest ) {
+				clistiter* cur = clist_begin(res_setdest->set_list);
+				if (cur != NULL) {
+					struct mailimap_set_item* item;
+					item = clist_content(cur);
+					*ret_server_uid = item->set_first;
+					*ret_server_folder = safe_strdup(ths->m_moveto_folder);
+				}
+				mailimap_set_free(res_setdest);
+			}
+
+			// TODO: If the new UID is equal to lastuid.Chats, we should increase lastuid.Chats by one
+			// (otherwise, we'll download the mail in moment again from the chats folder ...)
+
+			mrmailbox_log_info(ths->m_mailbox, 0, "Message moved.");
+		}
+	}
 
 cleanup:
 	if( set ) {
@@ -1610,57 +1610,57 @@ int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder,
 		goto cleanup;
 	}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "Marking message \"%s\", %s/%i for deletion...", rfc724_mid, folder, (int)server_uid);
+	mrmailbox_log_info(ths->m_mailbox, 0, "Marking message \"%s\", %s/%i for deletion...", rfc724_mid, folder, (int)server_uid);
 
-		if( select_folder__(ths, folder)==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder); /* maybe the folder does no longer exist */
-			goto cleanup;
-		}
+	if( select_folder__(ths, folder)==0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot select folder \"%s\".", folder); /* maybe the folder does no longer exist */
+		goto cleanup;
+	}
 
-		/* check if Folder+UID matches the Message-ID (to detect if the messages
-		was moved around by other MUAs and in place of an UIDVALIDITY check)
-		(we also detect messages moved around when we do a fetch-all, see
-		mrmailbox_update_server_uid__() in receive_imf(), however this may take a while) */
-		if( server_uid )
+	/* check if Folder+UID matches the Message-ID (to detect if the messages
+	was moved around by other MUAs and in place of an UIDVALIDITY check)
+	(we also detect messages moved around when we do a fetch-all, see
+	mrmailbox_update_server_uid__() in receive_imf(), however this may take a while) */
+	if( server_uid )
+	{
+		clistiter* cur = NULL;
+		const char* is_quoted_rfc724_mid = NULL;
+		struct mailimap_set* set = mailimap_set_new_single(server_uid);
+			r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_message_id, &fetch_result);
+		mailimap_set_free(set);
+		if( is_error(ths, r) || fetch_result == NULL
+		 || (cur=clist_begin(fetch_result)) == NULL
+		 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
+		 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL
+		 || strcmp(is_rfc724_mid, rfc724_mid)!=0 )
 		{
-			clistiter* cur = NULL;
-			const char* is_quoted_rfc724_mid = NULL;
-			struct mailimap_set* set = mailimap_set_new_single(server_uid);
-				r = mailimap_uid_fetch(ths->m_hEtpan, set, ths->m_fetch_type_message_id, &fetch_result);
-			mailimap_set_free(set);
-			if( is_error(ths, r) || fetch_result == NULL
-			 || (cur=clist_begin(fetch_result)) == NULL
-			 || (is_quoted_rfc724_mid=peek_rfc724_mid((struct mailimap_msg_att*)clist_content(cur)))==NULL
-			 || (is_rfc724_mid=unquote_rfc724_mid(is_quoted_rfc724_mid))==NULL
-			 || strcmp(is_rfc724_mid, rfc724_mid)!=0 )
-			{
-				mrmailbox_log_warning(ths->m_mailbox, 0, "UID not found in the given folder or does not match Message-ID.");
-				server_uid = 0;
-			}
+			mrmailbox_log_warning(ths->m_mailbox, 0, "UID not found in the given folder or does not match Message-ID.");
+			server_uid = 0;
 		}
+	}
 
-		/* server_uid is 0 now if it was not given or if it does not match the given message id;
-		try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
-		if( server_uid == 0 ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
-			if( (server_uid=search_uid__(ths, rfc724_mid))==0 ) {
-				mrmailbox_log_warning(ths->m_mailbox, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
-				goto cleanup;
-			}
-			mrmailbox_log_info(ths->m_mailbox, 0, "Message-ID \"%s\" found in %s/%i", rfc724_mid, ths->m_selected_folder, server_uid);
-		}
-
-
-		/* mark the message for deletion */
-		if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
-			mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
+	/* server_uid is 0 now if it was not given or if it does not match the given message id;
+	try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
+	if( server_uid == 0 ) {
+		mrmailbox_log_info(ths->m_mailbox, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
+		if( (server_uid=search_uid__(ths, rfc724_mid))==0 ) {
+			mrmailbox_log_warning(ths->m_mailbox, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
 			goto cleanup;
 		}
+		mrmailbox_log_info(ths->m_mailbox, 0, "Message-ID \"%s\" found in %s/%i", rfc724_mid, ths->m_selected_folder, server_uid);
+	}
 
-		/* force an EXPUNGE resp. CLOSE for the selected folder */
-		ths->m_selected_folder_needs_expunge = 1;
 
-		success = 1;
+	/* mark the message for deletion */
+	if( add_flag__(ths, server_uid, mailimap_flag_new_deleted())==0 ) {
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
+		goto cleanup;
+	}
+
+	/* force an EXPUNGE resp. CLOSE for the selected folder */
+	ths->m_selected_folder_needs_expunge = 1;
+
+	success = 1;
 
 cleanup:
 
