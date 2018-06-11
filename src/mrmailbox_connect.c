@@ -103,7 +103,7 @@ void mrmailbox_perform_jobs(mrmailbox_t* mailbox)
  * @param mailbox The mailbox object.
  * @return None.
  */
-void mrmailbox_perform_poll(mrmailbox_t* mailbox)
+void mrmailbox_fetch(mrmailbox_t* mailbox)
 {
 	clock_t         start = clock();
 
@@ -115,11 +115,11 @@ void mrmailbox_perform_poll(mrmailbox_t* mailbox)
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, ">>>>> perform-poll started.");
+	mrmailbox_log_info(mailbox, 0, ">>>>> fetch started.");
 
 	mrimap_fetch(mailbox->m_imap);
 
-	mrmailbox_log_info(mailbox, 0, "<<<<< perform-poll done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	mrmailbox_log_info(mailbox, 0, "<<<<< fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 }
 
 
@@ -130,7 +130,7 @@ void mrmailbox_perform_poll(mrmailbox_t* mailbox)
  * @param mailbox The mailbox object.
  * @return None.
  */
-void mrmailbox_perform_idle(mrmailbox_t* mailbox)
+void mrmailbox_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot idle: Bad parameters.");
@@ -142,11 +142,11 @@ void mrmailbox_perform_idle(mrmailbox_t* mailbox)
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, ">>>>> perform-idle started.");
+	mrmailbox_log_info(mailbox, 0, ">>>>> idle started.");
 
 	mrimap_watch_n_wait(mailbox->m_imap);
 
-	mrmailbox_log_info(mailbox, 0, "<<<<< perform-idle ended.");
+	mrmailbox_log_info(mailbox, 0, "<<<<< idle ended.");
 }
 
 

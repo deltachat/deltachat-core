@@ -134,14 +134,14 @@ static void* imap_thread_entry_point(void* entry_arg)
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
 
 	while( 1 ) {
-		// mrmailbox_perform_jobs(), mrmailbox_perform_idle() and mrmailbox_perform_poll()
+		// dc_perform_jobs(), dc_fetch() and dc_idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
 		mrmailbox_perform_jobs(mailbox);
+		mrmailbox_fetch(mailbox);
 		if( imap_foreground ) {
-			mrmailbox_perform_idle(mailbox); // this may take hours ...
+			mrmailbox_idle(mailbox); // this may take hours ...
 		}
 		else {
-			mrmailbox_perform_poll(mailbox);
 			break;
 		}
 	}

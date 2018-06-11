@@ -859,6 +859,32 @@ static int fetch_from_all_folders(mrimap_t* ths)
  ******************************************************************************/
 
 
+int mrimap_fetch(mrimap_t* imap)
+{
+	if( imap==NULL || !imap->m_connected ) {
+		return 0;
+	}
+
+	setup_handle_if_needed__(imap);
+
+	#define FULL_FETCH_EVERY_SECONDS (22*60)
+
+	if( time(NULL) - imap->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+		fetch_from_all_folders(imap);
+		imap->m_last_fullread_time = time(NULL);
+	}
+
+	// as during the fetch commands, new messages may arrive, we fetch until we do not
+	// get any more. if IDLE is called directly after, there is only a small chance that
+	// messages are missed and delayed until the next IDLE call
+	while( fetch_from_single_folder(imap, "INBOX") > 0 ) {
+		;
+	}
+
+	return 1;
+}
+
+
 void mrimap_watch_n_wait(mrimap_t* ths)
 {
 	// most servers do not allow more than ~28 minutes; stay clearly below that.
@@ -866,61 +892,46 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 	// we want a shorter timeout to allow the failed-smtp-sending to retry.
 	#define         IDLE_DELAY_SECONDS         (1*60)
 
-	#define         FULL_FETCH_EVERY_SECONDS   (22*60)
 
 	if( ths->m_can_idle )
 	{
 		/* watch using IDLE
 		 **********************************************************************/
 
-		int      r, r2;
+		setup_handle_if_needed__(ths);
+		if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
+			mailstream_setup_idle(ths->m_hEtpan->imap_stream);
+			ths->m_idle_set_up = 1;
+		}
 
-				setup_handle_if_needed__(ths);
-				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
-						mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-						ths->m_idle_set_up = 1;
+		if( select_folder__(ths, "INBOX") )
+		{
+			int r = mailimap_idle(ths->m_hEtpan), r2;
+			if( !is_error(ths, r) )
+			{
+				mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
+
+				r = 0; r2 = 0;
+				if( ths->m_hEtpan ) {
+					r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+					r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
 				}
 
-				if( select_folder__(ths, "INBOX") )
-				{
-					if( time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-						while( fetch_from_all_folders(ths) > 0 ) {}
-						ths->m_last_fullread_time = time(NULL);
-					}
-					else {
-						while( fetch_from_single_folder(ths, "INBOX") > 0 ) {}
-					}
-
-					r = mailimap_idle(ths->m_hEtpan);
-					if( !is_error(ths, r) )
-					{
-						mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
-
-						//ths->m_enter_watch_wait_time = time(NULL);
-
-								r = 0; r2 = 0;
-								if( ths->m_hEtpan ) {
-									r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
-									r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
-								}
-
-							if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
-								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", (int)r, (int)r2);
-								ths->m_should_reconnect = 1;
-							}
-							else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
-								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE interrupted.");
-							}
-							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
-								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE has data.");
-							}
-							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
-								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE timeout.");
-							}
-
-						//ths->m_enter_watch_wait_time = 0;
-					}
+				if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
+					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", (int)r, (int)r2);
+					ths->m_should_reconnect = 1;
 				}
+				else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
+					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE interrupted.");
+				}
+				else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
+					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE has data.");
+				}
+				else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
+					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE timeout.");
+				}
+			}
+		}
 	}
 	else
 	{
@@ -1324,18 +1335,6 @@ void mrimap_unref(mrimap_t* ths)
 	if( ths->m_fetch_type_flags ){ mailimap_fetch_type_free(ths->m_fetch_type_flags);}
 
 	free(ths);
-}
-
-
-int mrimap_fetch(mrimap_t* ths)
-{
-	if( ths==NULL || !ths->m_connected ) {
-		return 0;
-	}
-
-	fetch_from_single_folder(ths, "INBOX");
-
-	return 1;
 }
 
 

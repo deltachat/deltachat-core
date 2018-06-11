@@ -80,7 +80,7 @@ extern "C" {
  * Answer this email in any email program with "Got it!" and you will get the message from delta as follows:
  *
  * ```
- * mrmailbox_poll();
+ * mrmailbox_fetch();
  *
  * mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, chat_id, 0, 0);
  * for( size_t i = 0; i < mrarray_get_cnt(msglist); i++ )
@@ -214,8 +214,8 @@ int             mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_perform_jobs      (mrmailbox_t*);
-void            mrmailbox_perform_poll      (mrmailbox_t*);
-void            mrmailbox_perform_idle      (mrmailbox_t*);
+void            mrmailbox_fetch             (mrmailbox_t*);
+void            mrmailbox_idle              (mrmailbox_t*);
 void            mrmailbox_interrupt_idle    (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
