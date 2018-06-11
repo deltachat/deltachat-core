@@ -236,6 +236,12 @@ int main(int argc, char ** argv)
 		{
 			imap_foreground = 1;
 		}
+		else if( strcmp(cmd, "configure")==0 )
+		{
+			imap_foreground = 1;
+			imap_connect(mailbox);
+			mrmailbox_configure(mailbox);
+		}
 		else if( strcmp(cmd, "clear")==0 )
 		{
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */

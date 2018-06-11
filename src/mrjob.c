@@ -66,6 +66,7 @@ void mrjob_perform(mrmailbox_t* mailbox)
                 case MRJ_MARKSEEN_MSG_ON_IMAP: mrmailbox_markseen_msg_on_imap (mailbox, &job); break;
                 case MRJ_MARKSEEN_MDN_ON_IMAP: mrmailbox_markseen_mdn_on_imap (mailbox, &job); break;
                 case MRJ_SEND_MDN:             mrmailbox_send_mdn             (mailbox, &job); break;
+                case MRJ_CONFIGURE_IMAP:       mrmailbox_configure_imap       (mailbox, &job); break;
 			}
 
 			/* delete job or execute job later again */

@@ -362,44 +362,10 @@ cleanup:
  ******************************************************************************/
 
 
-/**
- * Configure and connect a mailbox.
- *
- * - Before your call this function, you should set at least `addr` and `mail_pw`
- *   using mrmailbox_set_config().
- *
- * - mrmailbox_configure() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
- *   to stop the configuration progress, you can use mrmailbox_stop_ongoing_process().
- *
- * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
- *   a progress bar or stuff like that.
- *
- * - ongoing idle processed will be killed and calling mrimap_idle() while this function
- *   has not terminated will fail; if needed, call mrimap_idle() when this function succeeds.
- *
- * @memberof mrmailbox_t
- *
- * @param mailbox the mailbox object as created by mrmailbox_new().
- *
- * @return 1=configured successfully,
- *     0=configuration failed
- *
- * There is no need to call this every program start, the result is saved in the
- * database and you can call mrmailbox_poll() or mrmailbox_idle() directly:
- *
- * ```
- * if( !mrmailbox_is_configured(mailbox) ) {
- *     if( !mrmailbox_configure(mailbox) ) {
- *         // show an error and/or try over
- *     }
- * }
- * mrmailbox_idle(mailbox);
- * ```
- */
-int mrmailbox_configure(mrmailbox_t* mailbox)
+void mrmailbox_configure_imap(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	int             success = 0, locked = 0, i;
-	int             imap_connected_here = 0, smtp_connected_here = 0;
+	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;
 
 	mrloginparam_t* param = NULL;
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
@@ -407,16 +373,17 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	mrloginparam_t* param_autoconfig = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
-		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+		goto cleanup;
 	}
+	ongoing_allocated_here = 1;
 
 	#define PROGRESS(p) \
 				if( mr_shall_stop_ongoing ) { goto cleanup; } \
-				mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, (p), 0);
+				mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
 	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
 		mrmailbox_log_error(mailbox, 0, "Cannot configure, database not opened.");
@@ -424,8 +391,6 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 	}
 
 	/* disconnect */
-
-	// TODO: this function must be called from the imap thread!
 
 	mrimap_disconnect(mailbox->m_imap);
 	mrsmtp_disconnect(mailbox->m_smtp);
@@ -436,7 +401,6 @@ int mrmailbox_configure(mrmailbox_t* mailbox)
 		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
-		//mrjob_kill_actions__(mailbox, MRJ_CONNECT_TO_IMAP, MRJ_DISCONNECT);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -715,9 +679,49 @@ cleanup:
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 
-	mrmailbox_free_ongoing(mailbox);
+	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
 
-	return success;
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
+}
+
+
+/**
+ * Configure and connect a mailbox.
+ *
+ * - Before your call this function, you should set at least `addr` and `mail_pw`
+ *   using mrmailbox_set_config().
+ *
+ * - mrmailbox_configure() may take a while, so it might be a good idea to let it run in a non-GUI-thread;
+ *   to stop the configuration progress, you can use mrmailbox_stop_ongoing_process().
+ *
+ * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
+ *   a progress bar or stuff like that.
+ *
+ * - ongoing idle processed will be killed and calling mrimap_idle() while this function
+ *   has not terminated will fail; if needed, call mrimap_idle() when this function succeeds.
+ *
+ * @memberof mrmailbox_t
+ *
+ * @param mailbox the mailbox object as created by mrmailbox_new().
+ *
+ * @return None.
+ *
+ * There is no need to call this every program start, the result is saved in the
+ * database and you can call mrmailbox_poll() or mrmailbox_idle() directly:
+ *
+ * ```
+ * if( !mrmailbox_is_configured(mailbox) ) {
+ *     if( !mrmailbox_configure(mailbox) ) {
+ *         // show an error and/or try over
+ *     }
+ * }
+ * mrmailbox_idle(mailbox);
+ * ```
+ */
+void mrmailbox_configure(mrmailbox_t* mailbox)
+{
+	mrjob_kill_actions__(mailbox, MRJ_CONFIGURE_IMAP, 0);
+	mrjob_add__(mailbox, MRJ_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
 }
 
 

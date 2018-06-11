@@ -677,10 +677,6 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			ret = safe_strdup("ERROR: Argument <key> missing.");
 		}
 	}
-	else if( strcmp(cmd, "configure")==0 )
-	{
-		ret = mrmailbox_configure(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
-	}
 	else if( strcmp(cmd, "info")==0 )
 	{
 		ret = mrmailbox_get_info(mailbox);

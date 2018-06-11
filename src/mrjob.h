@@ -32,6 +32,7 @@ extern "C" {
 #define MRJ_MARKSEEN_MSG_ON_IMAP   110
 #define MRJ_SEND_MSG_TO_IMAP       700
 #define MRJ_SEND_MSG_TO_SMTP       800    /* ... high priority*/
+#define MRJ_CONFIGURE_IMAP         900
 
 
 /**

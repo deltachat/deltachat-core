@@ -179,7 +179,7 @@ extern "C" {
 /**
  * Inform about the configuration progress started by mrmailbox_configure().
  *
- * @param data1 Permille
+ * @param data1 0=error, 0-999=progress in permille, 1000=success and done
  *
  * @param data2 0
  *

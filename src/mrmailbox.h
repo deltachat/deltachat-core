@@ -210,7 +210,7 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 
 
 // connect
-int             mrmailbox_configure         (mrmailbox_t*);
+void            mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
 void            mrmailbox_perform_jobs      (mrmailbox_t*);
