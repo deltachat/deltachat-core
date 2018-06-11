@@ -138,8 +138,7 @@ void mrmailbox_idle(mrmailbox_t* mailbox)
 	}
 
 	if( !mrmailbox_ll_connect_to_imap(mailbox, NULL) ) {
-		mrmailbox_log_info(mailbox, 0, "Cannot idle: Cannot connect.");
-		return;
+		mrmailbox_log_info(mailbox, 0, "Cannot connect, idle anyway and waiting for configure.");
 	}
 
 	mrmailbox_log_info(mailbox, 0, ">>>>> idle started.");

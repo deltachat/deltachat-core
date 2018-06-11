@@ -376,6 +376,8 @@ void mrmailbox_configure_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup;
 	}
 
+	mrjob_kill_actions__(mailbox, MRJ_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
+
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
 		goto cleanup;
 	}

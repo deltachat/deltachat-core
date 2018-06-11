@@ -891,9 +891,6 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 
 	if( imap->m_can_idle )
 	{
-		/* watch using IDLE
-		 **********************************************************************/
-
 		setup_handle_if_needed__(imap);
 
 		if( imap->m_idle_set_up==0 && imap->m_hEtpan && imap->m_hEtpan->imap_stream ) {
@@ -945,8 +942,8 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 	}
 	else
 	{
-		/* watch using POLL
-		 **********************************************************************/
+		/* Idle using timeouts. This is also needed if we're not yet configured -
+		in this case, we're waiting for a configure job */
 
 		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t fake_idle_start_time = time(NULL), seconds_to_wait;
@@ -990,10 +987,10 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 			// are also downloaded, however, typically this would take place in the FETCH command
 			// following IDLE otherwise, so this seems okay here - the fake-poll is only a fallback
 			// and we're not even sure if it is needed.
-			setup_handle_if_needed__(imap);
-
-			if( fetch_from_single_folder(imap, "INBOX") ) {
-				do_fake_idle = 0;
+			if( setup_handle_if_needed__(imap) ) { // the handle may not be set up if configure is not yet done
+				if( fetch_from_single_folder(imap, "INBOX") ) {
+					do_fake_idle = 0;
+				}
 			}
 		}
 	}
@@ -1005,8 +1002,8 @@ cleanup:
 
 void mrimap_interrupt_watch(mrimap_t* ths)
 {
-	if( ths==NULL || ths->m_hEtpan==NULL ) {
-		mrmailbox_log_warning(ths->m_mailbox, 0, "IMAP-watch not running.");
+	if( ths==NULL ) { // ths->m_hEtPan may be NULL
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Interrupt IDLE: Bad parameter.");
 		return;
 	}
 
