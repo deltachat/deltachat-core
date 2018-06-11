@@ -949,34 +949,17 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 		 **********************************************************************/
 
 		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
-		time_t last_message_time=time(NULL), now, seconds_to_wait;
+		time_t fake_idle_start_time = time(NULL), seconds_to_wait;
 
 		int do_fake_idle = 1;
 		while( do_fake_idle )
 		{
-			now = time(NULL);
-			setup_handle_if_needed__(imap);
-
-			// TODO: we should not fetch here but return if there are messages detected
-			// fetching is done by the caller using mrmailbox_fetch() using eg. wakelocks etc.
-			if( now-imap->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				if( fetch_from_all_folders(imap) ) {
-					last_message_time = now;
-				}
-				imap->m_last_fullread_time = now;
-			}
-			else {
-				if( fetch_from_single_folder(imap, "INBOX") ) {
-					last_message_time = now;
-				}
-			}
-
-			/* calculate the wait time: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds */
-			if( now-last_message_time < 3*60 ) {
+			// wait a moment: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds
+			if( time(NULL)-fake_idle_start_time < 3*60 ) {
 				seconds_to_wait = 7;
 			}
 			else {
-				seconds_to_wait = (now-last_message_time)/20;
+				seconds_to_wait = (time(NULL)-fake_idle_start_time)/20;
 				if( seconds_to_wait > 60 ) {
 					seconds_to_wait = 60;
 				}
@@ -998,6 +981,20 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 				imap->m_watch_condflag = 0;
 
 			pthread_mutex_unlock(&imap->m_watch_condmutex);
+
+			if( do_fake_idle == 0 ) {
+				goto cleanup;
+			}
+
+			// check for new messages. fetch_from_single_folder() has the side-effect that messages
+			// are also downloaded, however, typically this would take place in the FETCH command
+			// following IDLE otherwise, so this seems okay here - the fake-poll is only a fallback
+			// and we're not even sure if it is needed.
+			setup_handle_if_needed__(imap);
+
+			if( fetch_from_single_folder(imap, "INBOX") ) {
+				do_fake_idle = 0;
+			}
 		}
 	}
 
@@ -1213,7 +1210,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 		}
 
 		/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
-		ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
+		ths->m_can_idle = 0;//mailimap_has_idle(ths->m_hEtpan);
 		ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
 
 		#ifdef __APPLE__
