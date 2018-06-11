@@ -104,7 +104,6 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	pthread_mutex_init(&ths->m_in_idle_critical, NULL);
 	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
 
 	ths->m_magic    = MR_MAILBOX_MAGIC;
@@ -114,9 +113,6 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 	ths->m_imap     = mrimap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
 	ths->m_smtp     = mrsmtp_new(ths);
 	ths->m_os_name  = strdup_keep_null(os_name);
-
-	mrjob_init(ths);
-	mrjob_start_thread(ths);
 
 	mrpgp_init(ths);
 
@@ -158,15 +154,7 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 		return;
 	}
 
-	if( mailbox->m_in_idle ) {
-		mrmailbox_log_error(mailbox, 0, "Interrupt idle before destroying the mailbox object.");
-		return;
-	}
-
 	mrpgp_exit(mailbox);
-
-	mrjob_stop_thread(mailbox);
-	mrjob_exit(mailbox);
 
 	if( mrmailbox_is_open(mailbox) ) {
 		mrmailbox_close(mailbox);
@@ -176,7 +164,6 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	mrsmtp_unref(mailbox->m_smtp);
 	mrsqlite3_unref(mailbox->m_sql);
 
-	pthread_mutex_destroy(&mailbox->m_in_idle_critical);
 	pthread_mutex_destroy(&mailbox->m_log_ringbuf_critical);
 	for( int i = 0; i < MR_LOG_RINGBUF_SIZE; i++ ) {
 		free(mailbox->m_log_ringbuf[i]);
@@ -301,11 +288,6 @@ cleanup:
 void mrmailbox_close(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
-	if( mailbox->m_in_idle ) {
-		mrmailbox_log_error(mailbox, 0, "Interrupt idle before closing the mailbox object.");
 		return;
 	}
 

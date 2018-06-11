@@ -30,88 +30,18 @@
  ******************************************************************************/
 
 
-static int get_wait_seconds(mrmailbox_t* mailbox) // >0: wait seconds, =0: do not wait, <0: wait until signal
+void mrjob_perform(mrmailbox_t* mailbox)
 {
-	int           ret = -1;
-	sqlite3_stmt* stmt;
-
-	// do not call mrsqlite3_lock() here as this is already locked by the caller of mrjob_add__()
-	// this avoids letting mrjob_add__() having sqlite3mutex allocated while waiting for condmutex - and the jobthreads has condmutex and waits for sqlite3mutex
-	// (a lock is not required as sqlite3 is opened in serialized mode and we use SELECT_MIN_d_FROM_jobs only from the same thread)
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MIN_d_FROM_jobs,
-			"SELECT MIN(desired_timestamp) FROM jobs;");
-		if( stmt && sqlite3_step(stmt) == SQLITE_ROW )
-		{
-			if( sqlite3_column_type(stmt, 0)!=SQLITE_NULL )
-			{
-				time_t min_desired_timestamp = (time_t)sqlite3_column_int64(stmt, 0);
-				time_t now = time(NULL);
-				if( min_desired_timestamp <= now ) {
-					ret = 0;
-				}
-				else {
-					ret = (int)(min_desired_timestamp-now) + 1 /*wait a second longer, pthread_cond_timedwait() is not _that_ exact and we want to be sure to catch the jobs in the first try*/;
-				}
-			}
-		}
-	// /lock not required
-
-	return ret;
-}
-
-
-static void* job_thread_entry_point(void* entry_arg)
-{
-	mrmailbox_t*  mailbox = (mrmailbox_t*)entry_arg;
-	mrosnative_setup_thread(mailbox); /* must be very first */
-
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
-	int           seconds_to_wait;
 
 	memset(&job, 0, sizeof(mrjob_t));
 	job.m_param = mrparam_new();
 
-	/* init thread */
-	mrmailbox_log_info(mailbox, 0, "Job thread entered.");
-
-	while( 1 )
-	{
-		/* wait for condition */
-		pthread_mutex_lock(&mailbox->m_job_condmutex);
-			seconds_to_wait = get_wait_seconds(mailbox);
-			if( seconds_to_wait > 0 ) {
-				mrmailbox_log_info(mailbox, 0, "Job thread waiting for %i seconds or signal...", seconds_to_wait);
-				if( mailbox->m_job_condflag == 0 ) {
-					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
-					timeToWait.tv_nsec = 0;
-					pthread_cond_timedwait(&mailbox->m_job_cond, &mailbox->m_job_condmutex, &timeToWait);
-				}
-			}
-			else if( seconds_to_wait < 0 ) {
-				mrmailbox_log_info(mailbox, 0, "Job thread waiting for signal...");
-				while( mailbox->m_job_condflag == 0 ) {
-					pthread_cond_wait(&mailbox->m_job_cond, &mailbox->m_job_condmutex); /* wait unlocks the mutex and waits for signal; if it returns, the mutex is locked again */
-				}
-			}
-			mailbox->m_job_condflag = 0;
-		pthread_mutex_unlock(&mailbox->m_job_condmutex);
-
-		/* do all waiting jobs */
-		mrmailbox_log_info(mailbox, 0, "Job thread checks for pending jobs...");
 		while( 1 )
 		{
-			pthread_mutex_lock(&mailbox->m_job_condmutex);
-				if( mailbox->m_job_do_exit ) {
-					pthread_mutex_unlock(&mailbox->m_job_condmutex);
-					goto exit_;
-				}
-			pthread_mutex_unlock(&mailbox->m_job_condmutex);
-
 			/* get next waiting job */
 			job.m_job_id = 0;
-			mrsqlite3_lock(mailbox->m_sql);
 				stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_iafp_FROM_jobs,
 					"SELECT id, action, foreign_id, param FROM jobs WHERE desired_timestamp<=? ORDER BY action DESC, id LIMIT 1;");
 				sqlite3_bind_int64(stmt, 1, time(NULL));
@@ -121,7 +51,6 @@ static void* job_thread_entry_point(void* entry_arg)
 					job.m_foreign_id                     = sqlite3_column_int (stmt, 2);
 					mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(stmt, 3));
 				}
-			mrsqlite3_unlock(mailbox->m_sql);
 
 			if( job.m_job_id == 0 ) {
 				break;
@@ -162,54 +91,14 @@ static void* job_thread_entry_point(void* entry_arg)
 			}
 		}
 
-	}
 
-	/* exit thread */
-exit_:
 	mrparam_unref(job.m_param);
-	mrmailbox_log_info(mailbox, 0, "Exit job thread.");
-	mrosnative_unsetup_thread(mailbox); /* must be very last */
-	return NULL;
 }
 
 
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
-
-
-void mrjob_init(mrmailbox_t* mailbox)
-{
-	pthread_mutex_init(&mailbox->m_job_condmutex, NULL);
-	pthread_cond_init(&mailbox->m_job_cond, NULL);
-}
-
-
-void mrjob_start_thread(mrmailbox_t* mailbox)
-{
-	mailbox->m_job_condflag = 0;
-	mailbox->m_job_do_exit = 0;
-	pthread_create(&mailbox->m_job_thread, NULL, job_thread_entry_point, mailbox);
-}
-
-
-void mrjob_stop_thread(mrmailbox_t* mailbox)
-{
-	pthread_mutex_lock(&mailbox->m_job_condmutex);
-		mailbox->m_job_condflag = 1;
-		mailbox->m_job_do_exit = 1;
-		pthread_cond_signal(&mailbox->m_job_cond);
-	pthread_mutex_unlock(&mailbox->m_job_condmutex);
-
-	pthread_join(mailbox->m_job_thread, NULL);
-}
-
-
-void mrjob_exit(mrmailbox_t* mailbox)
-{
-	pthread_cond_destroy(&mailbox->m_job_cond);
-	pthread_mutex_destroy(&mailbox->m_job_condmutex);
-}
 
 
 uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
@@ -231,13 +120,7 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 	job_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
 
-	pthread_mutex_lock(&mailbox->m_job_condmutex);
-		if( !mailbox->m_job_do_exit ) {
-			mrmailbox_log_info(mailbox, 0, "Signal job thread to wake up...");
-			mailbox->m_job_condflag = 1;
-			pthread_cond_signal(&mailbox->m_job_cond);
-		}
-	pthread_mutex_unlock(&mailbox->m_job_condmutex);
+    mrmailbox_interrupt_idle(mailbox);
 
 	return job_id;
 }

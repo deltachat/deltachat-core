@@ -57,7 +57,9 @@ typedef struct mrimap_t
 
 	int                   m_connected;
 	mailimap*             m_hEtpan;   /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
-	pthread_mutex_t       m_hEtpanmutex;
+
+	time_t                m_last_fullread_time;
+
 	int                   m_idle_set_up;
 	char*                 m_selected_folder;
 	int                   m_selected_folder_needs_expunge;
@@ -68,16 +70,10 @@ typedef struct mrimap_t
 	char*                 m_moveto_folder;// Folder, where reveived chat messages should go to.  Normally MR_CHATS_FOLDER, may be NULL to leave them in the INBOX
 	char*                 m_sent_folder;  // Folder, where send messages should go to.  Normally MR_CHATS_FOLDER.
 	char                  m_imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
-	pthread_mutex_t       m_idlemutex;    /* set, if idle is not possible; morover, the interrupted IDLE thread waits a second before IDLEing again; this allows several jobs to be executed */
-	pthread_mutex_t       m_inwait_mutex; /* only used to wait for mailstream_wait_idle()/mailimap_idle_done() to terminate. */
-
-	int                   m_watch_thread_running;
-	pthread_mutex_t       m_watch_thread_running_mutex;
 
 	pthread_cond_t        m_watch_cond;
 	pthread_mutex_t       m_watch_condmutex;
 	int                   m_watch_condflag;
-	int                   m_watch_do_exit;
 
 	//time_t                m_enter_watch_wait_time;
 
