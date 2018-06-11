@@ -885,52 +885,62 @@ int mrimap_fetch(mrimap_t* imap)
 }
 
 
-void mrimap_watch_n_wait(mrimap_t* ths)
+void mrimap_watch_n_wait(mrimap_t* imap)
 {
-	// most servers do not allow more than ~28 minutes; stay clearly below that.
-	// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
-	// we want a shorter timeout to allow the failed-smtp-sending to retry.
-	#define         IDLE_DELAY_SECONDS         (1*60)
+	int r, r2;
 
-
-	if( ths->m_can_idle )
+	if( imap->m_can_idle )
 	{
 		/* watch using IDLE
 		 **********************************************************************/
 
-		setup_handle_if_needed__(ths);
-		if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
-			mailstream_setup_idle(ths->m_hEtpan->imap_stream);
-			ths->m_idle_set_up = 1;
+		setup_handle_if_needed__(imap);
+
+		if( imap->m_idle_set_up==0 && imap->m_hEtpan && imap->m_hEtpan->imap_stream ) {
+			r = mailstream_setup_idle(imap->m_hEtpan->imap_stream);
+			if( is_error(imap, r) ) {
+				mrmailbox_log_error(imap->m_mailbox, 0, "Cannot setup IDLE.");
+				goto cleanup;
+			}
+			imap->m_idle_set_up = 1;
 		}
 
-		if( select_folder__(ths, "INBOX") )
-		{
-			int r = mailimap_idle(ths->m_hEtpan), r2;
-			if( !is_error(ths, r) )
-			{
-				mrmailbox_log_info(ths->m_mailbox, 0, "IDLE start...");
+		if( !imap->m_idle_set_up || !select_folder__(imap, "INBOX") ) {
+			mrmailbox_log_error(imap->m_mailbox, 0, "IDLE not setup.");
+			goto cleanup;
+		}
 
-				r = 0; r2 = 0;
-				if( ths->m_hEtpan ) {
-					r = mailstream_wait_idle(ths->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
-					r2 = mailimap_idle_done(ths->m_hEtpan); /* it's okay to use the handle without locking as we're inwait */
-				}
+		r = mailimap_idle(imap->m_hEtpan);
+		if( is_error(imap, r) ) {
+			mrmailbox_log_error(imap->m_mailbox, 0, "Cannot start IDLE.");
+			goto cleanup;
+		}
 
-				if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", (int)r, (int)r2);
-					ths->m_should_reconnect = 1;
-				}
-				else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE interrupted.");
-				}
-				else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE has data.");
-				}
-				else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
-					mrmailbox_log_info(ths->m_mailbox, 0, "IDLE timeout.");
-				}
-			}
+		mrmailbox_log_info(imap->m_mailbox, 0, "IDLE start...");
+
+		// most servers do not allow more than ~28 minutes; stay clearly below that.
+		// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
+		// we want a shorter timeout to allow the failed-smtp-sending to retry.
+		#define IDLE_DELAY_SECONDS (1*60)
+
+		r = mailstream_wait_idle(imap->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
+		r2 = mailimap_idle_done(imap->m_hEtpan);
+
+		if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
+			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", r, r2);
+			imap->m_should_reconnect = 1;
+		}
+		else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
+			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE interrupted.");
+		}
+		else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
+			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE has data.");
+		}
+		else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
+			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE timeout.");
+		}
+		else {
+			mrmailbox_log_warning(imap->m_mailbox, 0, "IDLE returns unknown value r=%i, r2=%i.", r, r2);
 		}
 	}
 	else
@@ -938,23 +948,25 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 		/* watch using POLL
 		 **********************************************************************/
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
+		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 		time_t last_message_time=time(NULL), now, seconds_to_wait;
 
 		int do_fake_idle = 1;
 		while( do_fake_idle )
 		{
 			now = time(NULL);
-			setup_handle_if_needed__(ths);
+			setup_handle_if_needed__(imap);
 
-			if( now-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				if( fetch_from_all_folders(ths) ) {
+			// TODO: we should not fetch here but return if there are messages detected
+			// fetching is done by the caller using mrmailbox_fetch() using eg. wakelocks etc.
+			if( now-imap->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+				if( fetch_from_all_folders(imap) ) {
 					last_message_time = now;
 				}
-				ths->m_last_fullread_time = now;
+				imap->m_last_fullread_time = now;
 			}
 			else {
-				if( fetch_from_single_folder(ths, "INBOX") ) {
+				if( fetch_from_single_folder(imap, "INBOX") ) {
 					last_message_time = now;
 				}
 			}
@@ -970,24 +982,27 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 				}
 			}
 
-			mrmailbox_log_info(ths->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
-			pthread_mutex_lock(&ths->m_watch_condmutex);
+			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
+			pthread_mutex_lock(&imap->m_watch_condmutex);
 
-				if( ths->m_watch_condflag == 0 ) {
+				if( imap->m_watch_condflag == 0 ) {
 					struct timespec timeToWait;
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
 
-					pthread_cond_timedwait(&ths->m_watch_cond, &ths->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
-					if( ths->m_watch_condflag ) {
+					pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+					if( imap->m_watch_condflag ) {
 						do_fake_idle = 0;
 					}
 				}
-				ths->m_watch_condflag = 0;
+				imap->m_watch_condflag = 0;
 
-			pthread_mutex_unlock(&ths->m_watch_condmutex);
+			pthread_mutex_unlock(&imap->m_watch_condmutex);
 		}
 	}
+
+cleanup:
+	;
 }
 
 
