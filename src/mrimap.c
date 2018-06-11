@@ -861,8 +861,6 @@ static int fetch_from_all_folders(mrimap_t* ths)
 
 void mrimap_watch_n_wait(mrimap_t* ths)
 {
-	int             do_fetch = 0;
-
 	// most servers do not allow more than ~28 minutes; stay clearly below that.
 	// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
 	// we want a shorter timeout to allow the failed-smtp-sending to retry.
@@ -877,8 +875,6 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 		int      r, r2;
 
-				do_fetch = 0;
-
 				setup_handle_if_needed__(ths);
 				if( ths->m_idle_set_up==0 && ths->m_hEtpan && ths->m_hEtpan->imap_stream ) {
 						mailstream_setup_idle(ths->m_hEtpan->imap_stream);
@@ -887,6 +883,14 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 
 				if( select_folder__(ths, "INBOX") )
 				{
+					if( time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
+						while( fetch_from_all_folders(ths) > 0 ) {}
+						ths->m_last_fullread_time = time(NULL);
+					}
+					else {
+						while( fetch_from_single_folder(ths, "INBOX") > 0 ) {}
+					}
+
 					r = mailimap_idle(ths->m_hEtpan);
 					if( !is_error(ths, r) )
 					{
@@ -909,32 +913,14 @@ void mrimap_watch_n_wait(mrimap_t* ths)
 							}
 							else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
 								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE has data.");
-								do_fetch = 1;
 							}
 							else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
 								mrmailbox_log_info(ths->m_mailbox, 0, "IDLE timeout.");
-								do_fetch = 1;
-							}
-
-							if( is_error(ths, r2) ) {
-								do_fetch = 0;
 							}
 
 						//ths->m_enter_watch_wait_time = 0;
 					}
 				}
-
-			if( do_fetch == 1 && time(NULL)-ths->m_last_fullread_time > FULL_FETCH_EVERY_SECONDS ) {
-				do_fetch = 2;
-			}
-
-			if( do_fetch == 1 ) {
-				fetch_from_single_folder(ths, "INBOX");
-			}
-			else if( do_fetch == 2 ) {
-				fetch_from_all_folders(ths);
-				ths->m_last_fullread_time = time(NULL);
-			}
 	}
 	else
 	{
