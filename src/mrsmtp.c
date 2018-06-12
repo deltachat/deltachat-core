@@ -30,10 +30,6 @@
 #endif
 
 
-#define LOCK_SMTP   pthread_mutex_lock(&ths->m_mutex); smtp_locked = 1;
-#define UNLOCK_SMTP if( smtp_locked ) { pthread_mutex_unlock(&ths->m_mutex); smtp_locked = 0; }
-
-
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
@@ -49,7 +45,6 @@ mrsmtp_t* mrsmtp_new(mrmailbox_t* mailbox)
 	ths->m_log_connect_errors = 1;
 
 	ths->m_mailbox = mailbox; /* should be used for logging only */
-	pthread_mutex_init(&ths->m_mutex, NULL);
 	return ths;
 }
 
@@ -60,7 +55,6 @@ void mrsmtp_unref(mrsmtp_t* ths)
 		return;
 	}
 	mrsmtp_disconnect(ths);
-	pthread_mutex_destroy(&ths->m_mutex);
 	free(ths->m_from);
 	free(ths);
 }
@@ -98,14 +92,12 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 
 int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 {
-	int         success = 0, smtp_locked = 0;
+	int         success = 0;
 	int         r, try_esmtp;
 
 	if( ths == NULL || lp == NULL ) {
 		return 0;
 	}
-
-	LOCK_SMTP
 
 		if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
 			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, MR_ERR_NONETWORK, NULL);
@@ -199,7 +191,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		if( lp->m_send_user )
 		{
 				if((r=mailsmtp_auth(ths->m_hEtpan, lp->m_send_user, lp->m_send_pw))!=MAILSMTP_NO_ERROR ) {
-					/* 
+					/*
 					 * There are some Mailservers which do not correclty implement PLAIN auth (hMail)
 					 * So here we try a workaround. See https://github.com/deltachat/deltachat-android/issues/67
 					 */
@@ -235,29 +227,21 @@ cleanup:
 			}
 		}
 
-	UNLOCK_SMTP
-
 	return success;
 }
 
 
 void mrsmtp_disconnect(mrsmtp_t* ths)
 {
-	int smtp_locked = 0;
-
 	if( ths == NULL ) {
 		return;
 	}
-
-	LOCK_SMTP
 
 		if( ths->m_hEtpan ) {
 			//mailsmtp_quit(ths->m_hEtpan); -- ?
 			mailsmtp_free(ths->m_hEtpan);
 			ths->m_hEtpan = NULL;
 		}
-
-	UNLOCK_SMTP
 }
 
 
@@ -268,7 +252,7 @@ void mrsmtp_disconnect(mrsmtp_t* ths)
 
 int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not_terminated, size_t data_bytes)
 {
-	int           success = 0, r, smtp_locked = 0;
+	int           success = 0, r;
 	clistiter*    iter;
 
 	if( ths == NULL ) {
@@ -278,8 +262,6 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 	if( recipients == NULL || clist_count(recipients)==0 || data_not_terminated == NULL || data_bytes == 0 ) {
 		return 1; /* "null message" send */
 	}
-
-	LOCK_SMTP
 
 		if( ths->m_hEtpan==NULL ) {
 			goto cleanup;
@@ -324,8 +306,6 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		success = 1;
 
 cleanup:
-
-	UNLOCK_SMTP
 
 	return success;
 }
