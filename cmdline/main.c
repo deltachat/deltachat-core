@@ -29,6 +29,7 @@ all further options can be set using the set-command (type ? for help). */
 
 
 #include <string.h>
+#include <unistd.h>
 #include "../src/mrmailbox.h"
 #include "../src/mrmailbox_internal.h"
 #include "cmdline.h"
@@ -120,21 +121,18 @@ static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1,
 
 
 /*******************************************************************************
- * The idle thread - wait for push messages
+ * Threads for waiting for messages and for jobs
  ******************************************************************************/
 
 
-pthread_t imap_thread;
-int       imap_thread_started = 0;
-int       imap_foreground = 1;
-
-
-static void* imap_thread_entry_point(void* entry_arg)
+static pthread_t imap_thread     = 0;
+static int       imap_foreground = 1;
+static void* imap_thread_entry_point (void* entry_arg)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
 
 	while( 1 ) {
-		// dc_perform_jobs(), dc_fetch() and dc_idle()
+		// perform_jobs(), fetch() and idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
 		mrmailbox_perform_jobs(mailbox);
 		mrmailbox_fetch(mailbox);
@@ -146,22 +144,21 @@ static void* imap_thread_entry_point(void* entry_arg)
 		}
 	}
 
-	imap_thread_started = 0;
+	imap_thread = 0;
 	return NULL;
 }
 
 
-static void imap_connect(mrmailbox_t* mailbox)
+static void start_threads(mrmailbox_t* mailbox)
 {
-	if( !imap_thread_started )
+	if( !imap_thread )
 	{
-		imap_thread_started = 1;
 		pthread_create(&imap_thread, NULL, imap_thread_entry_point, mailbox);
 	}
 }
 
 
-static void idle_disconnect(mrmailbox_t* mailbox)
+static void stop_threads(mrmailbox_t* mailbox)
 {
 	imap_foreground = 0;
 	mrmailbox_interrupt_idle(mailbox);
@@ -226,11 +223,11 @@ int main(int argc, char ** argv)
 		if( strcmp(cmd, "connect")==0 )
 		{
 			imap_foreground = 1;
-			imap_connect(mailbox);
+			start_threads(mailbox);
 		}
 		else if( strcmp(cmd, "disconnect")==0 )
 		{
-			idle_disconnect(mailbox);
+			stop_threads(mailbox);
 		}
 		else if( strcmp(cmd, "poll")==0 )
 		{
@@ -239,7 +236,7 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "configure")==0 )
 		{
 			imap_foreground = 1;
-			imap_connect(mailbox);
+			start_threads(mailbox);
 			mrmailbox_configure(mailbox);
 		}
 		else if( strcmp(cmd, "clear")==0 )
@@ -250,7 +247,7 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
 			imap_foreground = 1;
-			imap_connect(mailbox);
+			start_threads(mailbox);
 			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
@@ -282,7 +279,7 @@ int main(int argc, char ** argv)
 	}
 
 	free(cmd);
-	idle_disconnect(mailbox);
+	stop_threads(mailbox);
 	mrmailbox_close(mailbox);
 	mrmailbox_unref(mailbox);
 	mailbox = NULL;
