@@ -1207,7 +1207,7 @@ int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
 	}
 
 	/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
-	ths->m_can_idle = 0;//mailimap_has_idle(ths->m_hEtpan);
+	ths->m_can_idle = mailimap_has_idle(ths->m_hEtpan);
 	ths->m_has_xlist = mailimap_has_xlist(ths->m_hEtpan);
 
 	#ifdef __APPLE__
