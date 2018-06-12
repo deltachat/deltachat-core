@@ -951,17 +951,8 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 		int do_fake_idle = 1;
 		while( do_fake_idle )
 		{
-			// wait a moment: every 7 seconds in the first 3 minutes after a new message, after that growing up to 60 seconds
-			if( time(NULL)-fake_idle_start_time < 3*60 ) {
-				seconds_to_wait = 7;
-			}
-			else {
-				seconds_to_wait = (time(NULL)-fake_idle_start_time)/20;
-				if( seconds_to_wait > 60 ) {
-					seconds_to_wait = 60;
-				}
-			}
-
+			// wait a moment: every 5 seconds in the first 3 minutes after a new message, after that every 60 seconds
+			seconds_to_wait = (time(NULL)-fake_idle_start_time < 3*60)? 5 : 60;
 			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
 			pthread_mutex_lock(&imap->m_watch_condmutex);
 
