@@ -956,7 +956,7 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
 			pthread_mutex_lock(&imap->m_watch_condmutex);
 
-				while( imap->m_watch_condflag == 0 ) {
+				if( imap->m_watch_condflag == 0 ) {
 					struct timespec timeToWait;
 					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
 					timeToWait.tv_nsec = 0;
