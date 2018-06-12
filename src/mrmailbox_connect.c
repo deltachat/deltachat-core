@@ -27,6 +27,12 @@
 #include "mrjob.h"
 #include "mrimap.h"
 #include "mrsmtp.h"
+#include "mrmimefactory.h"
+
+
+/*******************************************************************************
+ * High-level IMAP-thread functions
+ ******************************************************************************/
 
 
 int mrmailbox_ll_connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
@@ -88,11 +94,11 @@ void mrmailbox_perform_jobs(mrmailbox_t* mailbox)
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, ">>>>> perform-jobs started.");
+	mrmailbox_log_info(mailbox, 0, ">>>>> perform-IMAP-jobs started.");
 
-	mrjob_perform(mailbox);
+	mrjob_perform(mailbox, MR_IMAP_THREAD);
 
-	mrmailbox_log_info(mailbox, 0, "<<<<< perform-jobs ended.");
+	mrmailbox_log_info(mailbox, 0, "<<<<< perform-IMAP-jobs ended.");
 }
 
 
