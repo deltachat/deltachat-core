@@ -30,6 +30,10 @@ void mrjob_perform(mrmailbox_t* mailbox, int thread)
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
 
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		return;
+	}
+
 	memset(&job, 0, sizeof(mrjob_t));
 	job.m_param = mrparam_new();
 
@@ -127,7 +131,12 @@ uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const cha
 
 	job_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
 
-    mrmailbox_interrupt_idle(mailbox);
+	if( thread == MR_IMAP_THREAD ) {
+		mrmailbox_interrupt_idle(mailbox);
+	}
+	else {
+		mrmailbox_interrupt_smtp_idle(mailbox);
+	}
 
 	return job_id;
 }

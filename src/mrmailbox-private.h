@@ -51,6 +51,10 @@ struct _mrmailbox
 	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 
+	pthread_cond_t   m_smtpidle_cond;
+	pthread_mutex_t  m_smtpidle_condmutex;
+	int              m_smtpidle_condflag;
+
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 
 	char*            m_os_name;               /**< Internal, may be NULL */
