@@ -376,6 +376,7 @@ void mrmailbox_configure_imap(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup;
 	}
 
+	mrmailbox_suspend_smtp_thread(mailbox, 1);
 	mrjob_kill_actions__(mailbox, MRJ_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
@@ -680,8 +681,8 @@ cleanup:
 	mrloginparam_unref(param);
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
-
 	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
+	mrmailbox_suspend_smtp_thread(mailbox, 0);
 
 	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }

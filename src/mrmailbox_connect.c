@@ -376,7 +376,8 @@ void mrmailbox_interrupt_smtp_idle(mrmailbox_t* mailbox)
 
 void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
 {
-	// suspend the SMTP thread by
+	// TODO: wait until the SMTP-thread is really in idle
+
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
 		mailbox->m_smtpidle_suspend = suspend;
