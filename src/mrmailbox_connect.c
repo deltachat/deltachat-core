@@ -346,6 +346,8 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
+		mailbox->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
+
 		int r = 0;
 		struct timespec timeToWait;
 		timeToWait.tv_sec  = time(NULL)+60;
@@ -354,6 +356,8 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 			r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
 		}
 		mailbox->m_smtpidle_condflag = 0;
+
+		mailbox->m_smtpidle_in_idleing = 0;
 
 	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 
@@ -376,12 +380,24 @@ void mrmailbox_interrupt_smtp_idle(mrmailbox_t* mailbox)
 
 void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
 {
-	// TODO: wait until the SMTP-thread is really in idle
-
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
-
 		mailbox->m_smtpidle_suspend = suspend;
-
 	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+
+	// the smtp-thread may be in perform_jobs() when this function is called,
+	// wait until we arrive in idle(). for simplicity, we do this by polling a variable
+	// (in fact, this is only needed when calling configure() is called)
+	if( suspend )
+	{
+		while( 1 ) {
+			pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+				if( mailbox->m_smtpidle_in_idleing ) {
+					pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+					return;
+				}
+			pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+			usleep(300*1000);
+		}
+	}
 }
 
