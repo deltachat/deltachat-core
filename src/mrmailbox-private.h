@@ -54,6 +54,7 @@ struct _mrmailbox
 	pthread_cond_t   m_smtpidle_cond;
 	pthread_mutex_t  m_smtpidle_condmutex;
 	int              m_smtpidle_condflag;
+	int              m_smtpidle_suspend;
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 

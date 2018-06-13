@@ -956,12 +956,12 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
 			pthread_mutex_lock(&imap->m_watch_condmutex);
 
-				if( imap->m_watch_condflag == 0 ) {
-					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
-					timeToWait.tv_nsec = 0;
-
-					pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+				r = 0;
+				struct timespec timeToWait;
+				timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
+				timeToWait.tv_nsec = 0;
+				while( imap->m_watch_condflag == 0 && r == 0 ) {
+					r = pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
 					if( imap->m_watch_condflag ) {
 						do_fake_idle = 0;
 					}
