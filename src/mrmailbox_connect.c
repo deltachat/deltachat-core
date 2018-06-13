@@ -346,11 +346,12 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
-		while( mailbox->m_smtpidle_condflag == 0 ) { // no while() as otherwise the timeout has no effect; spurious wakeups are acceptable
-			struct timespec timeToWait;
-			timeToWait.tv_sec  = time(NULL)+60;
-			timeToWait.tv_nsec = 0;
-			pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+		int r = 0;
+		struct timespec timeToWait;
+		timeToWait.tv_sec  = time(NULL)+60;
+		timeToWait.tv_nsec = 0;
+		while( mailbox->m_smtpidle_condflag == 0 && mailbox->m_smtpidle_suspend == 0 && r == 0 ) {
+			r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
 		}
 		mailbox->m_smtpidle_condflag = 0;
 
