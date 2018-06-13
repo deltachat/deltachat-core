@@ -218,6 +218,10 @@ void            mrmailbox_fetch             (mrmailbox_t*);
 void            mrmailbox_idle              (mrmailbox_t*);
 void            mrmailbox_interrupt_idle    (mrmailbox_t*);
 
+void            mrmailbox_perform_smtp_jobs  (mrmailbox_t*);
+void            mrmailbox_perform_smtp_idle  (mrmailbox_t*);
+void            mrmailbox_interrupt_smtp_idle(mrmailbox_t*);
+
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 
 

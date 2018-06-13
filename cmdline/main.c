@@ -149,11 +149,34 @@ static void* imap_thread_entry_point (void* entry_arg)
 }
 
 
+static pthread_t smtp_thread = 0;
+static void* smtp_thread_entry_point (void* entry_arg)
+{
+	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
+
+	while( 1 ) {
+		mrmailbox_perform_smtp_jobs(mailbox);
+		if( imap_foreground ) {
+			mrmailbox_perform_smtp_idle(mailbox); // this may take hours ...
+		}
+		else {
+			break;
+		}
+	}
+
+	smtp_thread = 0;
+	return NULL;
+}
+
+
 static void start_threads(mrmailbox_t* mailbox)
 {
-	if( !imap_thread )
-	{
+	if( !imap_thread ) {
 		pthread_create(&imap_thread, NULL, imap_thread_entry_point, mailbox);
+	}
+
+	if( !smtp_thread ) {
+		pthread_create(&smtp_thread, NULL, smtp_thread_entry_point, mailbox);
 	}
 }
 
@@ -162,6 +185,7 @@ static void stop_threads(mrmailbox_t* mailbox)
 {
 	imap_foreground = 0;
 	mrmailbox_interrupt_idle(mailbox);
+	mrmailbox_interrupt_smtp_idle(mailbox);
 }
 
 

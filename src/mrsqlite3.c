@@ -421,6 +421,16 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 			}
 		#undef NEW_DB_VERSION
 
+		#define NEW_DB_VERSION 40
+			if( dbversion < NEW_DB_VERSION )
+			{
+				mrsqlite3_execute__(ths, "ALTER TABLE jobs ADD COLUMN thread INTEGER DEFAULT 0;");
+
+				dbversion = NEW_DB_VERSION;
+				mrsqlite3_set_config_int__(ths, "dbversion", NEW_DB_VERSION);
+			}
+		#undef NEW_DB_VERSION
+
 		// (2) updates that require high-level objects (the structure is complete now and all objects are usable)
 		if( recalc_fingerprints )
 		{

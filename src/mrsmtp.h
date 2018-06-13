@@ -37,7 +37,6 @@ typedef struct mrsmtp_t
 	mailsmtp*       m_hEtpan;
 	char*           m_from;
 	int             m_esmtp;
-	pthread_mutex_t m_mutex;
 
 	int             m_log_connect_errors;
 	int             m_log_usual_error;

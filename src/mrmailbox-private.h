@@ -51,6 +51,12 @@ struct _mrmailbox
 	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 
+	pthread_cond_t   m_smtpidle_cond;
+	pthread_mutex_t  m_smtpidle_condmutex;
+	int              m_smtpidle_condflag;
+	int              m_smtpidle_suspend;
+	int              m_smtpidle_in_idleing;
+
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 
 	char*            m_os_name;               /**< Internal, may be NULL */
@@ -120,6 +126,7 @@ void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* 
 void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
+void            mrmailbox_suspend_smtp_thread                     (mrmailbox_t*, int suspend);
 
 #define         MR_FROM_HANDSHAKE                                 0x01
 int             mrmailbox_add_contact_to_chat_ex                  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id, int flags);

@@ -26,13 +26,22 @@ extern "C" {
 #endif
 
 
-#define MRJ_DELETE_MSG_ON_IMAP     100    /* low priority ... */
-#define MRJ_MARKSEEN_MDN_ON_IMAP   102
-#define MRJ_SEND_MDN               105
-#define MRJ_MARKSEEN_MSG_ON_IMAP   110
+// thread IDs
+#define MR_IMAP_THREAD             100
+#define MR_SMTP_THREAD            5000
+
+
+// jobs in the IMAP-thread
+#define MRJ_DELETE_MSG_ON_IMAP     110    // low priority ...
+#define MRJ_MARKSEEN_MDN_ON_IMAP   120
+#define MRJ_MARKSEEN_MSG_ON_IMAP   130
 #define MRJ_SEND_MSG_TO_IMAP       700
-#define MRJ_SEND_MSG_TO_SMTP       800    /* ... high priority*/
-#define MRJ_CONFIGURE_IMAP         900
+#define MRJ_CONFIGURE_IMAP         900    // ... high priority
+
+
+// jobs in the SMTP-thread
+#define MRJ_SEND_MDN              5010    // low priority ...
+#define MRJ_SEND_MSG_TO_SMTP      5900    // ... high priority
 
 
 /**
@@ -50,7 +59,7 @@ typedef struct mrjob_t
 	time_t     m_start_again_at; /* 1=on next loop, >1=on timestamp, 0=delete job (default) */
 } mrjob_t;
 
-void     mrjob_perform         (mrmailbox_t*);
+void     mrjob_perform         (mrmailbox_t*, int thread);
 
 uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const char* param, int delay); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
 void     mrjob_kill_actions__  (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
