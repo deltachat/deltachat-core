@@ -896,20 +896,20 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 		if( imap->m_idle_set_up==0 && imap->m_hEtpan && imap->m_hEtpan->imap_stream ) {
 			r = mailstream_setup_idle(imap->m_hEtpan->imap_stream);
 			if( is_error(imap, r) ) {
-				mrmailbox_log_error(imap->m_mailbox, 0, "Cannot setup IDLE.");
+				mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot setup IDLE.");
 				goto cleanup;
 			}
 			imap->m_idle_set_up = 1;
 		}
 
 		if( !imap->m_idle_set_up || !select_folder__(imap, "INBOX") ) {
-			mrmailbox_log_error(imap->m_mailbox, 0, "IDLE not setup.");
+			mrmailbox_log_warning(imap->m_mailbox, 0, "IDLE not setup.");
 			goto cleanup;
 		}
 
 		r = mailimap_idle(imap->m_hEtpan);
 		if( is_error(imap, r) ) {
-			mrmailbox_log_error(imap->m_mailbox, 0, "Cannot start IDLE.");
+			mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot start IDLE.");
 			goto cleanup;
 		}
 
