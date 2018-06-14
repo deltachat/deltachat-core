@@ -64,7 +64,6 @@ typedef struct mrparam_t
 #define MRP_SERVER_FOLDER     'Z'  /* for jobs */
 #define MRP_SERVER_UID        'z'  /* for jobs */
 #define MRP_TIMES             't'  /* for jobs: times a job was tried */
-#define MRP_TIMES_INCREATION  'T'  /* for jobs: times a job was tried, used for increation */
 
 #define MRP_REFERENCES        'R'  /* for groups and chats: References-header last used for a chat */
 #define MRP_UNPROMOTED        'U'  /* for groups */
