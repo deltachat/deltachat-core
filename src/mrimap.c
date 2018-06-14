@@ -1358,12 +1358,12 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 	mrmailbox_log_info(ths->m_mailbox, 0, "Appending message to IMAP-server...");
 
 	if( !init_chat_folders__(ths) ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot find out IMAP-sent-folder.");
+		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot find out IMAP-sent-folder.");
 		goto cleanup;
 	}
 
 	if( !select_folder__(ths, ths->m_sent_folder) ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot select IMAP-folder \"%s\".", ths->m_sent_folder);
+		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot select IMAP-folder \"%s\".", ths->m_sent_folder);
 		ths->m_sent_folder[0] = 0; /* force re-init */
 		goto cleanup;
 	}
@@ -1379,7 +1379,7 @@ int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_term
 
 	r = mailimap_uidplus_append(ths->m_hEtpan, ths->m_sent_folder, flag_list, imap_date, data_not_terminated, data_bytes, &ret_uidvalidity, ret_server_uid);
 	if( is_error(ths, r) ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot append message to \"%s\", error #%i.", ths->m_sent_folder, (int)r);
+		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "Cannot append message to \"%s\", error #%i.", ths->m_sent_folder, (int)r);
 		goto cleanup;
 	}
 
