@@ -2064,7 +2064,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 	mrmailbox_update_msg_chat_id__(mailbox, msg_id, chat->m_id);
-	mrjob_add__(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
+	mrjob_add(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(rfc724_mid);
@@ -4554,7 +4554,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			mrmailbox_update_msg_chat_id__(mailbox, msg_ids[i], MR_CHAT_ID_TRASH);
-			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
+			mrjob_add(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
@@ -4616,7 +4616,7 @@ void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int 
 				if( curr_state == MR_STATE_IN_FRESH || curr_state == MR_STATE_IN_NOTICED ) {
 					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_SEEN);
 					mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
-					mrjob_add__(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+					mrjob_add(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 					send_event = 1;
 				}
 			}

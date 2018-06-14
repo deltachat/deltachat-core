@@ -813,7 +813,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 			if( fld_message_id && fld_message_id->mid_value ) {
-				mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 20);
+				mrjob_add(mailbox, MRJ_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 20);
 			}
 		}
 	}

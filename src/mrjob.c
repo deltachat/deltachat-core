@@ -277,7 +277,7 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 
 				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
 				{
-					mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL, 0);
+					mrjob_add(mailbox, MRJ_SEND_MDN, msg->m_id, NULL, 0);
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -422,7 +422,7 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
 		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
-			mrjob_add__(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
+			mrjob_add(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 
 		// TODO: add to keyhistory
@@ -509,7 +509,7 @@ void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
  ******************************************************************************/
 
 
-uint32_t mrjob_add__(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
+uint32_t mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt;
@@ -586,7 +586,7 @@ void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
 }
 
 
-void mrjob_kill_actions__(mrmailbox_t* mailbox, int action1, int action2)
+void mrjob_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
 {
 	if( mailbox == NULL ) {
 		return;
@@ -613,60 +613,59 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 	memset(&job, 0, sizeof(mrjob_t));
 	job.m_param = mrparam_new();
 
-		while( 1 )
-		{
-			// get next waiting job
-			job.m_job_id = 0;
-			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-				"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, id LIMIT 1;");
-			sqlite3_bind_int64(stmt, 1, thread);
-			sqlite3_bind_int64(stmt, 2, time(NULL));
-			if( sqlite3_step(stmt) == SQLITE_ROW ) {
-				job.m_job_id                         = sqlite3_column_int (stmt, 0);
-				job.m_action                         = sqlite3_column_int (stmt, 1);
-				job.m_foreign_id                     = sqlite3_column_int (stmt, 2);
-				mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(stmt, 3));
-			}
-			sqlite3_finalize(stmt);
+	while( 1 )
+	{
+		// get next waiting job
+		job.m_job_id = 0;
+		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+			"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, id LIMIT 1;");
+		sqlite3_bind_int64(stmt, 1, thread);
+		sqlite3_bind_int64(stmt, 2, time(NULL));
+		if( sqlite3_step(stmt) == SQLITE_ROW ) {
+			job.m_job_id                         = sqlite3_column_int (stmt, 0);
+			job.m_action                         = sqlite3_column_int (stmt, 1);
+			job.m_foreign_id                     = sqlite3_column_int (stmt, 2);
+			mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(stmt, 3));
+		}
+		sqlite3_finalize(stmt);
 
-			if( job.m_job_id == 0 ) {
-				break;
-			}
-
-			// execute job
-			mrmailbox_log_info(mailbox, 0, "Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
-			job.m_start_again_at = 0;
-			switch( job.m_action ) {
-                case MRJ_SEND_MSG_TO_SMTP:     mrjob_do_MRJ_SEND_MSG_TO_SMTP     (mailbox, &job); break;
-                case MRJ_SEND_MSG_TO_IMAP:     mrjob_do_MRJ_SEND_MSG_TO_IMAP     (mailbox, &job); break;
-                case MRJ_DELETE_MSG_ON_IMAP:   mrjob_do_MRJ_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
-                case MRJ_MARKSEEN_MSG_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
-                case MRJ_MARKSEEN_MDN_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
-                case MRJ_SEND_MDN:             mrjob_do_MRJ_SEND_MDN             (mailbox, &job); break;
-                case MRJ_CONFIGURE_IMAP:       mrjob_do_MRJ_CONFIGURE_IMAP       (mailbox, &job); break;
-			}
-
-			// delete job or execute job later again
-			if( job.m_start_again_at ) {
-				stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-					"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
-				sqlite3_bind_int64(stmt, 1, job.m_start_again_at);
-				sqlite3_bind_text (stmt, 2, job.m_param->m_packed, -1, SQLITE_STATIC);
-				sqlite3_bind_int  (stmt, 3, job.m_job_id);
-				sqlite3_step(stmt);
-				sqlite3_finalize(stmt);
-				mrmailbox_log_info(mailbox, 0, "Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
-			}
-			else {
-				stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-					"DELETE FROM jobs WHERE id=?;");
-				sqlite3_bind_int(stmt, 1, job.m_job_id);
-				sqlite3_step(stmt);
-				sqlite3_finalize(stmt);
-				mrmailbox_log_info(mailbox, 0, "Job #%i done and deleted from database", (int)job.m_job_id);
-			}
+		if( job.m_job_id == 0 ) {
+			break;
 		}
 
+		// execute job
+		mrmailbox_log_info(mailbox, 0, "Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
+		job.m_start_again_at = 0;
+		switch( job.m_action ) {
+			case MRJ_SEND_MSG_TO_SMTP:     mrjob_do_MRJ_SEND_MSG_TO_SMTP     (mailbox, &job); break;
+			case MRJ_SEND_MSG_TO_IMAP:     mrjob_do_MRJ_SEND_MSG_TO_IMAP     (mailbox, &job); break;
+			case MRJ_DELETE_MSG_ON_IMAP:   mrjob_do_MRJ_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
+			case MRJ_MARKSEEN_MSG_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
+			case MRJ_MARKSEEN_MDN_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
+			case MRJ_SEND_MDN:             mrjob_do_MRJ_SEND_MDN             (mailbox, &job); break;
+			case MRJ_CONFIGURE_IMAP:       mrjob_do_MRJ_CONFIGURE_IMAP       (mailbox, &job); break;
+		}
+
+		// delete job or execute job later again
+		if( job.m_start_again_at ) {
+			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+				"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
+			sqlite3_bind_int64(stmt, 1, job.m_start_again_at);
+			sqlite3_bind_text (stmt, 2, job.m_param->m_packed, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (stmt, 3, job.m_job_id);
+			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
+			mrmailbox_log_info(mailbox, 0, "Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
+		}
+		else {
+			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+				"DELETE FROM jobs WHERE id=?;");
+			sqlite3_bind_int(stmt, 1, job.m_job_id);
+			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
+			mrmailbox_log_info(mailbox, 0, "Job #%i done and deleted from database", (int)job.m_job_id);
+		}
+	}
 
 	mrparam_unref(job.m_param);
 }

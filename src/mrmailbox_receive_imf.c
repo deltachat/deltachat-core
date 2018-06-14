@@ -1444,7 +1444,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 					a classical deadlock, see also (***) in mrimap.c */
 					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
 						char* jobparam = mr_mprintf("%c=%s\n%c=%lu", MRP_SERVER_FOLDER, server_folder, MRP_SERVER_UID, server_uid);
-							mrjob_add__(mailbox, MRJ_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
+							mrjob_add(mailbox, MRJ_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
 						free(jobparam);
 					}
 				}

@@ -377,7 +377,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	mrmailbox_suspend_smtp_thread(mailbox, 1);
-	mrjob_kill_actions__(mailbox, MRJ_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
+	mrjob_kill_actions(mailbox, MRJ_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
 		goto cleanup;
@@ -725,8 +725,8 @@ cleanup:
  */
 void mrmailbox_configure(mrmailbox_t* mailbox)
 {
-	mrjob_kill_actions__(mailbox, MRJ_CONFIGURE_IMAP, 0);
-	mrjob_add__(mailbox, MRJ_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
+	mrjob_kill_actions(mailbox, MRJ_CONFIGURE_IMAP, 0);
+	mrjob_add(mailbox, MRJ_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
 }
 
 
