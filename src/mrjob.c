@@ -598,12 +598,12 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 	sqlite3_stmt* stmt;
 	mrjob_t       job;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		return;
-	}
-
 	memset(&job, 0, sizeof(mrjob_t));
 	job.m_param = mrparam_new();
+
+	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+		goto cleanup;
+	}
 
 	while( 1 )
 	{
@@ -659,6 +659,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 		}
 	}
 
+cleanup:
 	mrparam_unref(job.m_param);
 }
 
