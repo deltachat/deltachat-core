@@ -105,6 +105,7 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
 	}
 
 	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
+	pthread_mutex_init(&ths->m_imapidle_condmutex, NULL);
 	pthread_mutex_init(&ths->m_smtpidle_condmutex, NULL);
 	pthread_cond_init(&ths->m_smtpidle_cond, NULL);
 
@@ -167,6 +168,7 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 	mrsqlite3_unref(mailbox->m_sql);
 
 	pthread_mutex_destroy(&mailbox->m_log_ringbuf_critical);
+	pthread_mutex_destroy(&mailbox->m_imapidle_condmutex);
 	pthread_cond_destroy(&mailbox->m_smtpidle_cond);
 	pthread_mutex_destroy(&mailbox->m_smtpidle_condmutex);
 

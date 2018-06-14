@@ -48,14 +48,18 @@ struct _mrmailbox
 	char*            m_blobdir;               /**< Full path of the blob directory. This is the directory given to mrmailbox_new() or a directory in the same directory as mrmailbox_t::m_dbfile. */
 
 	mrsqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
-	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
-	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 
+	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
+	pthread_mutex_t  m_imapidle_condmutex;
+	int              m_perform_imap_jobs_needed;
+
+	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   m_smtpidle_cond;
 	pthread_mutex_t  m_smtpidle_condmutex;
 	int              m_smtpidle_condflag;
 	int              m_smtpidle_suspend;
 	int              m_smtpidle_in_idleing;
+	int              m_perform_smtp_jobs_needed;
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */
 

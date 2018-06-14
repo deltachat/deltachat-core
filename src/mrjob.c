@@ -680,6 +680,10 @@ void mrmailbox_perform_jobs(mrmailbox_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, ">>>>> IMAP-jobs started.");
 
+	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
+		mailbox->m_perform_imap_jobs_needed = 0;
+	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+
 	mrjob_perform(mailbox, MR_IMAP_THREAD);
 
 	mrmailbox_log_info(mailbox, 0, "<<<<< IMAP-jobs ended.");
@@ -723,6 +727,14 @@ void mrmailbox_idle(mrmailbox_t* mailbox)
 		// no return!
 	}
 
+	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
+		if( mailbox->m_perform_imap_jobs_needed ) {
+			mrmailbox_log_info(mailbox, 0, "IMAP-IDLE skipped.");
+			pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+			return;
+		}
+	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+
 	mrmailbox_log_info(mailbox, 0, ">>>>> IMAP-IDLE started.");
 
 	mrimap_watch_n_wait(mailbox->m_imap);
@@ -747,6 +759,13 @@ void mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
 
 	mrmailbox_log_info(mailbox, 0, "> > > interrupt IMAP-IDLE.");
 
+	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
+		// when this function is called, it might be that the idle-thread is in
+		// perform_idle_jobs() instead of idle(). if so, added jobs will be performed after the _next_ idle-jobs loop.
+		// setting the flag perform_imap_jobs_needed makes sure, idle() returns immediately in this case.
+		mailbox->m_perform_imap_jobs_needed = 1;
+	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+
 	mrimap_interrupt_watch(mailbox->m_imap);
 }
 
@@ -759,6 +778,10 @@ void mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
 void mrmailbox_perform_smtp_jobs(mrmailbox_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, ">>>>> SMTP-jobs started.");
+
+	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+		mailbox->m_perform_smtp_jobs_needed = 0;
+	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 
 	mrjob_perform(mailbox, MR_SMTP_THREAD);
 
@@ -777,18 +800,25 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
-		mailbox->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
-
-		int r = 0;
-		struct timespec timeToWait;
-		timeToWait.tv_sec  = time(NULL)+60;
-		timeToWait.tv_nsec = 0;
-		while( mailbox->m_smtpidle_condflag == 0 && mailbox->m_smtpidle_suspend == 0 && r == 0 ) {
-			r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+		if( mailbox->m_perform_smtp_jobs_needed )
+		{
+			mrmailbox_log_info(mailbox, 0, "SMTP-idle skipped.");
 		}
-		mailbox->m_smtpidle_condflag = 0;
+		else
+		{
+			mailbox->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
 
-		mailbox->m_smtpidle_in_idleing = 0;
+				int r = 0;
+				struct timespec timeToWait;
+				timeToWait.tv_sec  = time(NULL)+60;
+				timeToWait.tv_nsec = 0;
+				while( mailbox->m_smtpidle_condflag == 0 && mailbox->m_smtpidle_suspend == 0 && r == 0 ) {
+					r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+				}
+				mailbox->m_smtpidle_condflag = 0;
+
+			mailbox->m_smtpidle_in_idleing = 0;
+		}
 
 	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 
@@ -806,6 +836,11 @@ void mrmailbox_interrupt_smtp_idle(mrmailbox_t* mailbox)
 	mrmailbox_log_info(mailbox, 0, "> > > interrupt SMTP-idle.");
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+
+		// when this function is called, it might be that the smtp-thread is in
+		// perform_smtp_jobs(). if so, added jobs will be performed after the _next_ idle-jobs loop.
+		// setting the flag perform_smtp_jobs_needed makes sure, idle() returns immediately in this case.
+		mailbox->m_perform_smtp_jobs_needed = 1;
 
 		mailbox->m_smtpidle_condflag = 1;
 		pthread_cond_signal(&mailbox->m_smtpidle_cond);
