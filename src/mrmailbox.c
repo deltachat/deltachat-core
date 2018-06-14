@@ -1929,49 +1929,6 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_send_msg_to_imap(mrmailbox_t* mailbox, mrjob_t* job)
-{
-	mrmimefactory_t  mimefactory;
-	char*            server_folder = NULL;
-	uint32_t         server_uid = 0;
-
-	mrmimefactory_init(&mimefactory, mailbox);
-
-	/* connect to IMAP-server */
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_ll_connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
-			goto cleanup;
-		}
-	}
-
-	/* create message */
-	if( mrmimefactory_load_msg(&mimefactory, job->m_foreign_id)==0
-	 || mimefactory.m_from_addr == NULL ) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if( !mrmimefactory_render(&mimefactory) ) {
-		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
-	}
-
-	if( !mrimap_append_msg(mailbox->m_imap, mimefactory.m_msg->m_timestamp, mimefactory.m_out->str, mimefactory.m_out->len, &server_folder, &server_uid) ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
-		goto cleanup;
-	}
-	else {
-		mrsqlite3_lock(mailbox->m_sql);
-			mrmailbox_update_server_uid__(mailbox, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
-		mrsqlite3_unlock(mailbox->m_sql);
-	}
-
-cleanup:
-	mrmimefactory_empty(&mimefactory);
-	free(server_folder);
-}
-
-
 static int last_msg_in_chat_encrypted(mrsqlite3_t* sql, uint32_t chat_id)
 {
 	int last_is_encrypted = 0;
@@ -2107,7 +2064,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 	mrmailbox_update_msg_chat_id__(mailbox, msg_id, chat->m_id);
-	mrjob_add__(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0); /* resuts on an asynchronous call to mrmailbox_send_msg_to_smtp()  */
+	mrjob_add__(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(rfc724_mid);
@@ -4569,109 +4526,6 @@ void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_
  ******************************************************************************/
 
 
-/* internal function */
-void mrmailbox_delete_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
-{
-	int      locked = 0, delete_from_server = 1;
-	mrmsg_t* msg = mrmsg_new();
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id)
-		 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
-			goto cleanup;
-		}
-
-		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
-			mrmailbox_log_info(mailbox, 0, "The message is deleted from the server when all parts are deleted.");
-			delete_from_server = 0;
-		}
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
-	/* if this is the last existing part of the message, we delete the message from the server */
-	if( delete_from_server )
-	{
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrmailbox_ll_connect_to_imap(mailbox, NULL);
-			if( !mrimap_is_connected(mailbox->m_imap) ) {
-				mrjob_try_again_later(job, MR_STANDARD_DELAY);
-				goto cleanup;
-			}
-		}
-
-		if( !mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
-		{
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
-			goto cleanup;
-		}
-	}
-
-	/* we delete the database entry ...
-	- if the message is successfully removed from the server
-	- or if there are other parts of the message in the database (in this case we have not deleted if from the server)
-	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id,
-			"DELETE FROM msgs WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, msg->m_id);
-		sqlite3_step(stmt);
-
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m,
-			"DELETE FROM msgs_mdns WHERE msg_id=?;");
-		sqlite3_bind_int(stmt, 1, msg->m_id);
-		sqlite3_step(stmt);
-
-		char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
-		if( pathNfilename ) {
-			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
-			{
-				char* strLikeFilename = mr_mprintf("%%f=%s%%", pathNfilename);
-				sqlite3_stmt* stmt2 = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
-				sqlite3_bind_int (stmt2, 1, MR_MSG_TEXT);
-				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
-				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
-				free(strLikeFilename);
-				sqlite3_finalize(stmt2);
-
-				if( !file_used_by_other_msgs )
-				{
-					mr_delete_file(pathNfilename, mailbox);
-
-					char* increation_file = mr_mprintf("%s.increation", pathNfilename);
-					mr_delete_file(increation_file, mailbox);
-					free(increation_file);
-
-					char* filenameOnly = mr_get_filename(pathNfilename);
-					if( msg->m_type==MR_MSG_VOICE ) {
-						char* waveform_file = mr_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(waveform_file, mailbox);
-						free(waveform_file);
-					}
-					else if( msg->m_type==MR_MSG_VIDEO ) {
-						char* preview_file = mr_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(preview_file, mailbox);
-						free(preview_file);
-					}
-					free(filenameOnly);
-				}
-			}
-			free(pathNfilename);
-		}
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrmsg_unref(msg);
-}
-
-
 /**
  * Delete messages. The messages are deleted on the current device and
  * on the IMAP server.
@@ -4700,7 +4554,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			mrmailbox_update_msg_chat_id__(mailbox, msg_ids[i], MR_CHAT_ID_TRASH);
-			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_delete_msg_on_imap() */
+			mrjob_add__(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
@@ -4711,102 +4565,6 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 /*******************************************************************************
  * mark message as seen
  ******************************************************************************/
-
-
-void mrmailbox_markseen_msg_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
-{
-	int      locked = 0;
-	mrmsg_t* msg = mrmsg_new();
-	char*    new_server_folder = NULL;
-	uint32_t new_server_uid = 0;
-	int      in_ms_flags = 0, out_ms_flags = 0;
-
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_ll_connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
-			goto cleanup;
-		}
-	}
-
-	mrsqlite3_lock(mailbox->m_sql);
-	locked = 1;
-
-		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
-			goto cleanup;
-		}
-
-		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
-		if( mrparam_get_int(msg->m_param, MRP_WANTS_MDN, 0) /* MRP_WANTS_MDN is set only for one part of a multipart-message */
-		 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
-			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
-		}
-
-	mrsqlite3_unlock(mailbox->m_sql);
-	locked = 0;
-
-	if( msg->m_is_msgrmsg ) {
-		in_ms_flags |= MR_MS_ALSO_MOVE;
-	}
-
-	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
-		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0 )
-	{
-		if( (new_server_folder && new_server_uid) || out_ms_flags&MR_MS_MDNSent_JUST_SET )
-		{
-			mrsqlite3_lock(mailbox->m_sql);
-			locked = 1;
-
-				if( new_server_folder && new_server_uid )
-				{
-					mrmailbox_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
-				}
-
-				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
-				{
-					mrjob_add__(mailbox, MRJ_SEND_MDN, msg->m_id, NULL, 0); /* results in a call to mrmailbox_send_mdn() */
-				}
-
-			mrsqlite3_unlock(mailbox->m_sql);
-			locked = 0;
-		}
-	}
-	else
-	{
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
-	}
-
-cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrmsg_unref(msg);
-	free(new_server_folder);
-}
-
-
-void mrmailbox_markseen_mdn_on_imap(mrmailbox_t* mailbox, mrjob_t* job)
-{
-	char*    server_folder = mrparam_get    (job->m_param, MRP_SERVER_FOLDER, NULL);
-	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
-	char*    new_server_folder = NULL;
-	uint32_t new_server_uid    = 0;
-	int      out_ms_flags = 0;
-
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
-		mrmailbox_ll_connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
-			goto cleanup;
-		}
-	}
-
-	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
-	}
-
-cleanup:
-	free(server_folder);
-	free(new_server_folder);
-}
 
 
 /**

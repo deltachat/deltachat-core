@@ -473,9 +473,6 @@
 		<Unit filename="src/mrmailbox_configure.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/mrmailbox_connect.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="src/mrmailbox_e2ee.c">
 			<Option compilerVar="CC" />
 		</Unit>

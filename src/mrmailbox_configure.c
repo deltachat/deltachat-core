@@ -362,7 +362,7 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_configure_imap(mrmailbox_t* mailbox, mrjob_t* job)
+void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;

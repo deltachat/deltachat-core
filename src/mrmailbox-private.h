@@ -86,7 +86,6 @@ void            mrmailbox_log_info          (mrmailbox_t*, int code, const char*
 /* misc.*/
 void            mrmailbox_receive_imf                             (mrmailbox_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
-int             mrmailbox_ll_connect_to_imap                      (mrmailbox_t*, mrjob_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
@@ -104,9 +103,6 @@ void            mrmailbox_lookup_real_nchat_by_contact_id__       (mrmailbox_t*,
 int             mrmailbox_get_total_msg_count__                   (mrmailbox_t*, uint32_t chat_id);
 int             mrmailbox_get_fresh_msg_count__                   (mrmailbox_t*, uint32_t chat_id);
 uint32_t        mrmailbox_get_last_deaddrop_fresh_msg__           (mrmailbox_t*);
-void            mrmailbox_send_msg_to_smtp                        (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_send_msg_to_imap                        (mrmailbox_t*, mrjob_t*);
-void            mrmailbox_configure_imap                          (mrmailbox_t*, mrjob_t*);
 int             mrmailbox_add_to_chat_contacts_table__            (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_is_contact_in_chat__                    (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id);
 int             mrmailbox_get_chat_contact_count__                (mrmailbox_t*, uint32_t chat_id);
@@ -119,11 +115,7 @@ uint32_t        mrmailbox_rfc724_mid_exists__                     (mrmailbox_t*,
 void            mrmailbox_update_server_uid__                     (mrmailbox_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 void            mrmailbox_update_msg_chat_id__                    (mrmailbox_t*, uint32_t msg_id, uint32_t chat_id);
 void            mrmailbox_update_msg_state__                      (mrmailbox_t*, uint32_t msg_id, int state);
-void            mrmailbox_delete_msg_on_imap                      (mrmailbox_t* mailbox, mrjob_t* job);
 int             mrmailbox_mdn_from_ext__                          (mrmailbox_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
-void            mrmailbox_send_mdn                                (mrmailbox_t*, mrjob_t* job);
-void            mrmailbox_markseen_msg_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
-void            mrmailbox_markseen_mdn_on_imap                    (mrmailbox_t* mailbox, mrjob_t* job);
 uint32_t        mrmailbox_add_device_msg                          (mrmailbox_t*, uint32_t chat_id, const char* text);
 uint32_t        mrmailbox_add_device_msg__                        (mrmailbox_t*, uint32_t chat_id, const char* text, time_t timestamp);
 void            mrmailbox_suspend_smtp_thread                     (mrmailbox_t*, int suspend);

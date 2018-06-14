@@ -59,15 +59,18 @@ typedef struct mrjob_t
 	time_t     m_start_again_at; /* 1=on next loop, >1=on timestamp, 0=delete job (default) */
 } mrjob_t;
 
-void     mrjob_perform         (mrmailbox_t*, int thread);
 
 uint32_t mrjob_add__           (mrmailbox_t*, int action, int foreign_id, const char* param, int delay); /* returns the job_id or 0 on errors. the job may or may not be done if the function returns. */
 void     mrjob_kill_actions__  (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
 
-#define  MR_AT_ONCE            0
-#define  MR_INCREATION_POLL    2 /* this value does not increase the number of tries */
-#define  MR_STANDARD_DELAY     3
-void     mrjob_try_again_later (mrjob_t*, int initial_delay_seconds);
+#define  MR_AT_ONCE                  0
+#define  MR_INCREATION_POLL          2 // this value does not increase the number of tries
+#define  MR_STANDARD_DELAY           3
+void     mrjob_try_again_later       (mrjob_t*, int initial_delay_seconds);
+
+
+// the other mrjob_do_MRJ_*() functions are declared static in the c-file
+void     mrjob_do_MRJ_CONFIGURE_IMAP (mrmailbox_t*, mrjob_t*);
 
 
 #ifdef __cplusplus
