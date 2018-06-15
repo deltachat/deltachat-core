@@ -786,7 +786,6 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dir_name==NULL ) {
 		goto cleanup;
 	}
-
 	if( (dir_handle=opendir(dir_name))==NULL ) {
 		mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
 		goto cleanup;
@@ -815,7 +814,17 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 		buf2 = safe_strdup(buf);
 		if( mr_split_armored_data(buf2, &buf2_headerline, NULL, NULL, NULL)
 		 && strcmp(buf2_headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
-			continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
+			/* This file starts with a Public Key.
+			 * However some programs (Thunderbird/Enigmail) put public and private key
+			 * in the same file, so we check if there is a private key following */
+			char* following_private_key = strstr(buf, "-----BEGIN PGP PRIVATE KEY BLOCK");
+			if (following_private_key == NULL) {
+				continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
+			}
+			/*
+			 * If so, we point the buffer to that private key
+			 */
+			buf = following_private_key;
 		}
 
 		set_default = 1;
