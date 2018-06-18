@@ -89,7 +89,7 @@ void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 The given buffer is modified and the returned pointers are just point inside the modified buffer,
 no additional data to free therefore.
 (NB: netpgp allows only parsing of Version, Comment, MessageID, Hash and Charset) */
-int mr_split_armored_data(char* buf, char** ret_headerline, char** ret_setupcodebegin, char** ret_preferencrypt, char** ret_base64)
+int mr_split_armored_data(char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64)
 {
 	int    success = 0;
 	size_t line_chars = 0;

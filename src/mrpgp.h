@@ -40,7 +40,7 @@ typedef struct mrkeyring_t mrkeyring_t;
 void mrpgp_init             (mrmailbox_t*);
 void mrpgp_exit             (mrmailbox_t*);
 void mrpgp_rand_seed        (mrmailbox_t*, const void* buf, size_t bytes);
-int  mr_split_armored_data  (char* buf, char** ret_headerline, char** ret_setupcodebegin, char** ret_preferencrypt, char** ret_base64);
+int  mr_split_armored_data  (char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64);
 
 /* public key encryption */
 int  mrpgp_create_keypair   (mrmailbox_t*, const char* addr, mrkey_t* public_key, mrkey_t* private_key);

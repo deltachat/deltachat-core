@@ -627,7 +627,8 @@ void stress_functions(mrmailbox_t* mailbox)
 
 	{
 		int ok;
-		char *buf, *headerline, *setupcodebegin, *preferencrypt, *base64;
+		char *buf;
+		const char *headerline, *setupcodebegin, *preferencrypt, *base64;
 
 		buf = strdup("-----BEGIN PGP MESSAGE-----\nNoVal:\n\ndata\n-----END PGP MESSAGE-----");
 		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
@@ -687,7 +688,8 @@ void stress_functions(mrmailbox_t* mailbox)
 	}
 
 	{
-		char* buf = NULL, *headerline = NULL, *setupcodebegin, *preferencrypt = NULL;
+		char* buf = NULL;
+		const char *headerline = NULL, *setupcodebegin = NULL, *preferencrypt = NULL;
 
 		buf = strdup(s_em_setupfile);
 			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
@@ -715,7 +717,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( (setupfile=mrmailbox_render_setup_file(mailbox, setupcode)) != NULL );
 
 		{
-			char *buf = safe_strdup(setupfile), *headerline = NULL, *setupcodebegin = NULL;
+			char *buf = safe_strdup(setupfile);
+			const char *headerline = NULL, *setupcodebegin = NULL;
 			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 			assert( setupcodebegin && strlen(setupcodebegin)==2 && strncmp(setupcodebegin, setupcode, 2)==0 );
@@ -723,7 +726,8 @@ void stress_functions(mrmailbox_t* mailbox)
 		}
 
 		{
-			char *payload = NULL, *headerline = NULL;
+			char *payload = NULL;
+			const char *headerline = NULL;
 			assert( (payload=mrmailbox_decrypt_setup_file(mailbox, setupcode, setupfile))!=NULL );
 			assert( mr_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );

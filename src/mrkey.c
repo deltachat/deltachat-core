@@ -161,10 +161,10 @@ int mrkey_set_from_base64(mrkey_t* ths, const char* base64, int type)
 
 int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* mailbox)
 {
-	char*   buf = NULL;
-	char    *headerline, *base64; /* just pointers inside buf, must not be freed */
-	size_t  buf_bytes;
-	int     type = -1, success = 0;
+	char*      buf = NULL;
+	const char *headerline, *base64; // just pointers inside buf, must not be freed
+	size_t     buf_bytes;
+	int        type = -1, success = 0;
 
 	mrkey_empty(ths);
 

@@ -312,7 +312,8 @@ cleanup:
  */
 char* mrmailbox_decrypt_setup_file(mrmailbox_t* mailbox, const char* passphrase, const char* filecontent)
 {
-	char*         fc_buf = NULL, *fc_headerline = NULL, *fc_base64 = NULL;
+	char*         fc_buf = NULL;
+	const char    *fc_headerline = NULL, *fc_base64 = NULL;
 	char*         binary = NULL;
 	size_t        binary_bytes = 0, indx = 0;
 	pgp_io_t      io;
@@ -558,7 +559,7 @@ static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_defau
 	int            success      = 0;
 	int            locked       = 0;
 	char*          buf          = NULL;
-	char*          buf_headerline, *buf_preferencrypt, *buf_base64; /* pointers inside buf, MUST NOT be free()'d */
+	const char*    buf_headerline, *buf_preferencrypt, *buf_base64; // pointers inside buf, MUST NOT be free()'d
 	mrkey_t*       private_key  = mrkey_new();
 	mrkey_t*       public_key   = mrkey_new();
 	sqlite3_stmt*  stmt         = NULL;
@@ -782,7 +783,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	size_t         buf_bytes = 0;
 	const char*    private_key; // a pointer inside buf, MUST NOT be free()'d
 	char*          buf2 = NULL;
-	char*          buf2_headerline; /* a pointer inside buf2, MUST NOT be free()'d */
+	const char*    buf2_headerline; // a pointer inside buf2, MUST NOT be free()'d
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dir_name==NULL ) {
 		goto cleanup;

@@ -839,12 +839,12 @@ int mrmsg_is_setupmessage(const mrmsg_t* msg)
  */
 char* mrmsg_get_setupcodebegin(const mrmsg_t* msg)
 {
-	char*  filename = NULL;
-	char*  buf = NULL;
-	size_t buf_bytes = 0;
-	char*  buf_headerline = NULL; /* just a pointer inside buf, MUST NOT be free()'d */
-	char*  buf_setupcodebegin = NULL; /* just a pointer inside buf, MUST NOT be free()'d */
-	char*  ret = NULL;
+	char*        filename = NULL;
+	char*        buf = NULL;
+	size_t       buf_bytes = 0;
+	const char*  buf_headerline = NULL; // just a pointer inside buf, MUST NOT be free()'d
+	const char*  buf_setupcodebegin = NULL; // just a pointer inside buf, MUST NOT be free()'d
+	char*        ret = NULL;
 
 	if( !mrmsg_is_setupmessage(msg) ) {
 		goto cleanup;
