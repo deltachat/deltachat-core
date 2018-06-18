@@ -885,6 +885,53 @@ int mrimap_fetch(mrimap_t* imap)
 }
 
 
+static void fake_idle(mrimap_t* imap)
+{
+	/* Idle using timeouts. This is also needed if we're not yet configured -
+	in this case, we're waiting for a configure job */
+
+	mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
+	time_t fake_idle_start_time = time(NULL), seconds_to_wait;
+
+	int do_fake_idle = 1;
+	while( do_fake_idle )
+	{
+		// wait a moment: every 5 seconds in the first 3 minutes after a new message, after that every 60 seconds
+		seconds_to_wait = (time(NULL)-fake_idle_start_time < 3*60)? 5 : 60;
+		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
+		pthread_mutex_lock(&imap->m_watch_condmutex);
+
+			int r = 0;
+			struct timespec timeToWait;
+			timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
+			timeToWait.tv_nsec = 0;
+			while( imap->m_watch_condflag == 0 && r == 0 ) {
+				r = pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+				if( imap->m_watch_condflag ) {
+					do_fake_idle = 0;
+				}
+			}
+			imap->m_watch_condflag = 0;
+
+		pthread_mutex_unlock(&imap->m_watch_condmutex);
+
+		if( do_fake_idle == 0 ) {
+			return;
+		}
+
+		// check for new messages. fetch_from_single_folder() has the side-effect that messages
+		// are also downloaded, however, typically this would take place in the FETCH command
+		// following IDLE otherwise, so this seems okay here - the fake-poll is only a fallback
+		// and we're not even sure if it is needed.
+		if( setup_handle_if_needed__(imap) ) { // the handle may not be set up if configure is not yet done
+			if( fetch_from_single_folder(imap, "INBOX") ) {
+				do_fake_idle = 0;
+			}
+		}
+	}
+}
+
+
 void mrimap_watch_n_wait(mrimap_t* imap)
 {
 	int r, r2;
@@ -897,20 +944,23 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 			r = mailstream_setup_idle(imap->m_hEtpan->imap_stream);
 			if( is_error(imap, r) ) {
 				mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot setup IDLE.");
-				goto cleanup;
+				fake_idle(imap);
+				return;
 			}
 			imap->m_idle_set_up = 1;
 		}
 
 		if( !imap->m_idle_set_up || !select_folder__(imap, "INBOX") ) {
 			mrmailbox_log_warning(imap->m_mailbox, 0, "IDLE not setup.");
-			goto cleanup;
+			fake_idle(imap);
+			return;
 		}
 
 		r = mailimap_idle(imap->m_hEtpan);
 		if( is_error(imap, r) ) {
 			mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot start IDLE.");
-			goto cleanup;
+			fake_idle(imap);
+			return;
 		}
 
 		mrmailbox_log_info(imap->m_mailbox, 0, "IDLE start...");
@@ -942,52 +992,8 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 	}
 	else
 	{
-		/* Idle using timeouts. This is also needed if we're not yet configured -
-		in this case, we're waiting for a configure job */
-
-		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
-		time_t fake_idle_start_time = time(NULL), seconds_to_wait;
-
-		int do_fake_idle = 1;
-		while( do_fake_idle )
-		{
-			// wait a moment: every 5 seconds in the first 3 minutes after a new message, after that every 60 seconds
-			seconds_to_wait = (time(NULL)-fake_idle_start_time < 3*60)? 5 : 60;
-			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
-			pthread_mutex_lock(&imap->m_watch_condmutex);
-
-				r = 0;
-				struct timespec timeToWait;
-				timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
-				timeToWait.tv_nsec = 0;
-				while( imap->m_watch_condflag == 0 && r == 0 ) {
-					r = pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
-					if( imap->m_watch_condflag ) {
-						do_fake_idle = 0;
-					}
-				}
-				imap->m_watch_condflag = 0;
-
-			pthread_mutex_unlock(&imap->m_watch_condmutex);
-
-			if( do_fake_idle == 0 ) {
-				goto cleanup;
-			}
-
-			// check for new messages. fetch_from_single_folder() has the side-effect that messages
-			// are also downloaded, however, typically this would take place in the FETCH command
-			// following IDLE otherwise, so this seems okay here - the fake-poll is only a fallback
-			// and we're not even sure if it is needed.
-			if( setup_handle_if_needed__(imap) ) { // the handle may not be set up if configure is not yet done
-				if( fetch_from_single_folder(imap, "INBOX") ) {
-					do_fake_idle = 0;
-				}
-			}
-		}
+		fake_idle(imap);
 	}
-
-cleanup:
-	;
 }
 
 
@@ -1004,13 +1010,12 @@ void mrimap_interrupt_watch(mrimap_t* ths)
 			mailstream_interrupt_idle(ths->m_hEtpan->imap_stream);
 		}
 	}
-	else
-	{
-		pthread_mutex_lock(&ths->m_watch_condmutex);
-			ths->m_watch_condflag = 1;
-			pthread_cond_signal(&ths->m_watch_cond);
-		pthread_mutex_unlock(&ths->m_watch_condmutex);
-	}
+
+	// always signal the fake-idle as it may be used if the real-idle is not available for any reasons (no network ...)
+	pthread_mutex_lock(&ths->m_watch_condmutex);
+		ths->m_watch_condflag = 1;
+		pthread_cond_signal(&ths->m_watch_cond);
+	pthread_mutex_unlock(&ths->m_watch_condmutex);
 }
 
 
