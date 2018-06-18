@@ -306,7 +306,7 @@ mrmailbox_t* mrchatlist_get_mailbox(mrchatlist_t* chatlist)
  */
 int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
 {
-	clock_t       start = clock();
+	//clock_t       start = clock();
 
 	int           success = 0;
 	int           add_archived_link_item = 0;
@@ -391,7 +391,7 @@ int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* quer
 	success = 1;
 
 cleanup:
-	mrmailbox_log_info(ths->m_mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//mrmailbox_log_info(ths->m_mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	free(query);
 	free(strLikeCmd);
