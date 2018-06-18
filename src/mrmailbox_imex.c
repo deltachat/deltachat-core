@@ -780,6 +780,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	int            set_default = 0;
 	char*          buf = NULL;
 	size_t         buf_bytes = 0;
+	const char*    private_key; // a pointer inside buf, MUST NOT be free()'d
 	char*          buf2 = NULL;
 	char*          buf2_headerline; /* a pointer inside buf2, MUST NOT be free()'d */
 
@@ -809,6 +810,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 		 || buf_bytes < 50 ) {
 			continue;
 		}
+		private_key = buf;
 
 		free(buf2);
 		buf2 = safe_strdup(buf);
@@ -817,14 +819,10 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			/* This file starts with a Public Key.
 			 * However some programs (Thunderbird/Enigmail) put public and private key
 			 * in the same file, so we check if there is a private key following */
-			char* following_private_key = strstr(buf, "-----BEGIN PGP PRIVATE KEY BLOCK");
-			if (following_private_key == NULL) {
+			private_key = strstr(buf, "-----BEGIN PGP PRIVATE KEY BLOCK");
+			if (private_key == NULL) {
 				continue; /* this is no error but quite normal as we always export the public keys together with the private ones */
 			}
-			/*
-			 * If so, we point the buffer to that private key
-			 */
-			buf = following_private_key;
 		}
 
 		set_default = 1;
@@ -833,7 +831,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
-		if( !set_self_key(mailbox, buf, set_default) ) {
+		if( !set_self_key(mailbox, private_key, set_default) ) {
 			continue;
 		}
 
