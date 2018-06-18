@@ -545,31 +545,13 @@ void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* par
 }
 
 
-void mrjob_try_again_later(mrjob_t* ths, int initial_delay_seconds)
+void mrjob_try_again_later(mrjob_t* job, int try_again)
 {
-	if( ths == NULL ) {
+	if( job == NULL ) {
 		return;
 	}
 
-	if( initial_delay_seconds == MR_INCREATION_POLL )
-	{
-		ths->m_start_again_at = time(NULL)+3;
-	}
-	else
-	{
-		int tries = mrparam_get_int(ths->m_param, MRP_TIMES, 0) + 1;
-		mrparam_set_int(ths->m_param, MRP_TIMES, tries);
-
-		if( tries == 1 ) {
-			ths->m_start_again_at = time(NULL)+initial_delay_seconds;
-		}
-		else if( tries < 5 ) {
-			ths->m_start_again_at = time(NULL)+60;
-		}
-		else {
-			ths->m_start_again_at = time(NULL)+600;
-		}
-	}
+	job->m_try_again = try_again;
 }
 
 
@@ -612,28 +594,47 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 		mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(select_stmt, 3));
 
 		mrmailbox_log_info(mailbox, 0, "Executing job #%i, action %i...", (int)job.m_job_id, (int)job.m_action);
-		job.m_start_again_at = 0;
-		switch( job.m_action ) {
-			case MRJ_SEND_MSG_TO_SMTP:     mrjob_do_MRJ_SEND_MSG_TO_SMTP     (mailbox, &job); break;
-			case MRJ_SEND_MSG_TO_IMAP:     mrjob_do_MRJ_SEND_MSG_TO_IMAP     (mailbox, &job); break;
-			case MRJ_DELETE_MSG_ON_IMAP:   mrjob_do_MRJ_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
-			case MRJ_MARKSEEN_MSG_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
-			case MRJ_MARKSEEN_MDN_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
-			case MRJ_SEND_MDN:             mrjob_do_MRJ_SEND_MDN             (mailbox, &job); break;
-			case MRJ_CONFIGURE_IMAP:       mrjob_do_MRJ_CONFIGURE_IMAP       (mailbox, &job); break;
+
+		for( int tries = 0; tries <= 1; tries++ )
+		{
+			job.m_try_again = MR_DONT_TRY_AGAIN; // this can be modified by a job using mrjob_try_again_later()
+
+			switch( job.m_action ) {
+				case MRJ_SEND_MSG_TO_SMTP:     mrjob_do_MRJ_SEND_MSG_TO_SMTP     (mailbox, &job); break;
+				case MRJ_SEND_MSG_TO_IMAP:     mrjob_do_MRJ_SEND_MSG_TO_IMAP     (mailbox, &job); break;
+				case MRJ_DELETE_MSG_ON_IMAP:   mrjob_do_MRJ_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
+				case MRJ_MARKSEEN_MSG_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
+				case MRJ_MARKSEEN_MDN_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
+				case MRJ_SEND_MDN:             mrjob_do_MRJ_SEND_MDN             (mailbox, &job); break;
+				case MRJ_CONFIGURE_IMAP:       mrjob_do_MRJ_CONFIGURE_IMAP       (mailbox, &job); break;
+			}
+
+			if( job.m_try_again != MR_AT_ONCE ) {
+				break;
+			}
 		}
 
-		if( job.m_start_again_at ) {
+
+		if( job.m_try_again == MR_INCREATION_POLL )
+		{
+			// just try over next loop unconditionally, the ui typically interrupts idle when the file (video) is ready
+			;
+		}
+		else if( job.m_try_again == MR_AT_ONCE || job.m_try_again == MR_STANDARD_DELAY )
+		{
+			int tries = mrparam_get_int(job.m_param, MRP_TIMES, 0) + 1;
+			mrparam_set_int(job.m_param, MRP_TIMES, tries);
+
 			sqlite3_stmt* update_stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
-				"UPDATE jobs SET desired_timestamp=?, param=? WHERE id=?;");
-			sqlite3_bind_int64(update_stmt, 1, job.m_start_again_at);
-			sqlite3_bind_text (update_stmt, 2, job.m_param->m_packed, -1, SQLITE_STATIC);
-			sqlite3_bind_int  (update_stmt, 3, job.m_job_id);
+				"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
+			sqlite3_bind_text (update_stmt, 1, job.m_param->m_packed, -1, SQLITE_STATIC);
+			sqlite3_bind_int  (update_stmt, 2, job.m_job_id);
 			sqlite3_step(update_stmt);
 			sqlite3_finalize(update_stmt);
-			mrmailbox_log_info(mailbox, 0, "Job #%i delayed for %i seconds", (int)job.m_job_id, (int)(job.m_start_again_at-time(NULL)));
+			mrmailbox_log_info(mailbox, 0, "Job #%i not succeeded, trying again asap.", (int)job.m_job_id);
 		}
-		else {
+		else
+		{
 			sqlite3_stmt* delete_stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
 				"DELETE FROM jobs WHERE id=?;");
 			sqlite3_bind_int(delete_stmt, 1, job.m_job_id);
@@ -799,6 +800,7 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 				timeToWait.tv_nsec = 0;
 				while( (mailbox->m_smtpidle_condflag == 0 && r == 0) || mailbox->m_smtpidle_suspend ) {
 					r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+					mrmailbox_log_info(mailbox, 0, "SMTP: m_smtpidle_condflag=%i r=%i m_smtpidle_suspend=%i", mailbox->m_smtpidle_condflag, r, mailbox->m_smtpidle_suspend);
 				}
 				mailbox->m_smtpidle_condflag = 0;
 
