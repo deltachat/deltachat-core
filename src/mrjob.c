@@ -509,11 +509,10 @@ void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
  ******************************************************************************/
 
 
-uint32_t mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
+void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt;
-	uint32_t      job_id = 0;
 	int           thread;
 
 	if( action >= MR_IMAP_THREAD && action < MR_IMAP_THREAD+1000 ) {
@@ -523,7 +522,7 @@ uint32_t mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char*
 		thread = MR_SMTP_THREAD;
 	}
 	else {
-		return 0;
+		return;
 	}
 
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
@@ -537,16 +536,12 @@ uint32_t mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char*
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 
-	job_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
-
 	if( thread == MR_IMAP_THREAD ) {
 		mrmailbox_interrupt_idle(mailbox);
 	}
 	else {
 		mrmailbox_interrupt_smtp_idle(mailbox);
 	}
-
-	return job_id;
 }
 
 
