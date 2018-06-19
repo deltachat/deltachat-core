@@ -893,12 +893,13 @@ static void fake_idle(mrimap_t* imap)
 
 	time_t fake_idle_start_time = time(NULL), seconds_to_wait;
 
+	mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-fake-IDLEing...");
+
 	int do_fake_idle = 1;
 	while( do_fake_idle )
 	{
 		// wait a moment: every 5 seconds in the first 3 minutes after a new message, after that every 60 seconds
 		seconds_to_wait = (time(NULL)-fake_idle_start_time < 3*60)? 5 : 60;
-		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-fake-idle waits %i seconds.", (int)seconds_to_wait);
 		pthread_mutex_lock(&imap->m_watch_condmutex);
 
 			int r = 0;
@@ -927,6 +928,12 @@ static void fake_idle(mrimap_t* imap)
 				do_fake_idle = 0;
 			}
 		}
+		else {
+			// if we cannot connect, set the starting time to a small value which will
+			// result in larger timeouts (60 instead of 5 seconds) for re-checking the availablility of network.
+			// to get the _exact_ moment of re-available network, the ui should call interrupt_idle()
+			fake_idle_start_time = 0;
+		}
 	}
 }
 
@@ -942,7 +949,7 @@ void mrimap_idle(mrimap_t* imap)
 		if( imap->m_idle_set_up==0 && imap->m_hEtpan && imap->m_hEtpan->imap_stream ) {
 			r = mailstream_setup_idle(imap->m_hEtpan->imap_stream);
 			if( is_error(imap, r) ) {
-				mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot setup IDLE.");
+				mrmailbox_log_warning(imap->m_mailbox, 0, "IMAP-IDLE: Cannot setup.");
 				fake_idle(imap);
 				return;
 			}
@@ -950,14 +957,14 @@ void mrimap_idle(mrimap_t* imap)
 		}
 
 		if( !imap->m_idle_set_up || !select_folder__(imap, "INBOX") ) {
-			mrmailbox_log_warning(imap->m_mailbox, 0, "IDLE not setup.");
+			mrmailbox_log_warning(imap->m_mailbox, 0, "IMAP-IDLE not setup.");
 			fake_idle(imap);
 			return;
 		}
 
 		r = mailimap_idle(imap->m_hEtpan);
 		if( is_error(imap, r) ) {
-			mrmailbox_log_warning(imap->m_mailbox, 0, "Cannot start IDLE.");
+			mrmailbox_log_warning(imap->m_mailbox, 0, "IMAP-IDLE: Cannot start.");
 			fake_idle(imap);
 			return;
 		}
@@ -971,20 +978,20 @@ void mrimap_idle(mrimap_t* imap)
 		r2 = mailimap_idle_done(imap->m_hEtpan);
 
 		if( r == MAILSTREAM_IDLE_ERROR /*0*/ || r==MAILSTREAM_IDLE_CANCELLED /*4*/ ) {
-			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", r, r2);
+			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-IDLE wait cancelled, r=%i, r2=%i; we'll reconnect soon.", r, r2);
 			imap->m_should_reconnect = 1;
 		}
 		else if( r == MAILSTREAM_IDLE_INTERRUPTED /*1*/ ) {
-			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE interrupted.");
+			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-IDLE interrupted.");
 		}
 		else if( r ==  MAILSTREAM_IDLE_HASDATA /*2*/ ) {
-			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE has data.");
+			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-IDLE has data.");
 		}
 		else if( r == MAILSTREAM_IDLE_TIMEOUT /*3*/ ) {
-			mrmailbox_log_info(imap->m_mailbox, 0, "IDLE timeout.");
+			mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-IDLE timeout.");
 		}
 		else {
-			mrmailbox_log_warning(imap->m_mailbox, 0, "IDLE returns unknown value r=%i, r2=%i.", r, r2);
+			mrmailbox_log_warning(imap->m_mailbox, 0, "IMAP-IDLE returns unknown value r=%i, r2=%i.", r, r2);
 		}
 	}
 	else
@@ -997,7 +1004,7 @@ void mrimap_idle(mrimap_t* imap)
 void mrimap_interrupt_idle(mrimap_t* ths)
 {
 	if( ths==NULL ) { // ths->m_hEtPan may be NULL
-		mrmailbox_log_warning(ths->m_mailbox, 0, "Interrupt IDLE: Bad parameter.");
+		mrmailbox_log_warning(ths->m_mailbox, 0, "Interrupt IMAP-IDLE: Bad parameter.");
 		return;
 	}
 
