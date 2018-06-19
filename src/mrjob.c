@@ -109,7 +109,7 @@ static void mrjob_do_MRJ_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	if( !mrimap_append_msg(mailbox->m_imap, mimefactory.m_msg->m_timestamp, mimefactory.m_out->str, mimefactory.m_out->len, &server_folder, &server_uid) ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		mrjob_try_again_later(job, MR_AT_ONCE);
 		goto cleanup;
 	}
 	else {
@@ -158,7 +158,7 @@ static void mrjob_do_MRJ_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 
 		if( !mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
 		{
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			mrjob_try_again_later(job, MR_AT_ONCE);
 			goto cleanup;
 		}
 	}
@@ -286,7 +286,7 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 	}
 	else
 	{
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		mrjob_try_again_later(job, MR_AT_ONCE);
 	}
 
 cleanup:
@@ -313,7 +313,7 @@ static void mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 	}
 
 	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		mrjob_try_again_later(job, MR_AT_ONCE);
 	}
 
 cleanup:
@@ -694,6 +694,13 @@ void mrmailbox_fetch(mrmailbox_t* mailbox)
 	mrmailbox_log_info(mailbox, 0, "IMAP-fetch started...");
 
 	mrimap_fetch(mailbox->m_imap);
+
+	if( mailbox->m_imap->m_should_reconnect
+	 && mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)==0 )
+	{
+		mrmailbox_log_info(mailbox, 0, "IMAP-fetch aborted, starting over...");
+		mrimap_fetch(mailbox->m_imap);
+	}
 
 	mrmailbox_log_info(mailbox, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 }
