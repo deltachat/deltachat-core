@@ -47,8 +47,8 @@ extern "C" {
 // timeouts until actions are aborted.
 // this may also affects IDLE to return, so a re-connect may take this time.
 // mailcore2 uses 30 seconds, k-9 uses 10 seconds
-#define MR_IMAP_TIMEOUT_SEC       15
-#define MR_SMTP_TIMEOUT_SEC       15
+#define MR_IMAP_TIMEOUT_SEC       10
+#define MR_SMTP_TIMEOUT_SEC       10
 
 
 /**
