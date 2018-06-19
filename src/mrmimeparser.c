@@ -1241,9 +1241,9 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 		if( ths->m_header_protected==NULL ) { /* use the most outer protected header - this is typically created in sync with the normal, unprotected header */
 			size_t dummy = 0;
-			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &ths->m_header_protected)==MAILIMF_NO_ERROR // what is the difference between mailimf_envelope_and_optional_fields_parse() mailimf_fields_parse()
-			 && ths->m_header_protected!=NULL ) {
-				mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be used.");
+			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &ths->m_header_protected)!=MAILIMF_NO_ERROR
+			 || ths->m_header_protected==NULL ) {
+				mrmailbox_log_warning(ths->m_mailbox, 0, "Protected headers parsing error.");
 			}
 		}
 		else {
@@ -1446,7 +1446,7 @@ static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbo
 				if( field->fld_type!=MAILIMF_FIELD_OPTIONAL_FIELD
 				 || (key_len>5 && strncasecmp(key, "Chat-", 5)==0) )
 				{
-					mrmailbox_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
+					//mrmailbox_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
 					mrhash_insert(out, key, key_len, field);
 				}
 			}

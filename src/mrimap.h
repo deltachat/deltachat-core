@@ -102,8 +102,8 @@ void      mrimap_disconnect        (mrimap_t*);
 int       mrimap_is_connected      (mrimap_t*);
 int       mrimap_fetch             (mrimap_t*);
 
-void      mrimap_watch_n_wait      (mrimap_t*);
-void      mrimap_interrupt_watch   (mrimap_t*);
+void      mrimap_idle              (mrimap_t*);
+void      mrimap_interrupt_idle    (mrimap_t*);
 
 int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 

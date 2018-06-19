@@ -890,7 +890,6 @@ static void fake_idle(mrimap_t* imap)
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
 
-	mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread will poll for messages.");
 	time_t fake_idle_start_time = time(NULL), seconds_to_wait;
 
 	int do_fake_idle = 1;
@@ -898,7 +897,7 @@ static void fake_idle(mrimap_t* imap)
 	{
 		// wait a moment: every 5 seconds in the first 3 minutes after a new message, after that every 60 seconds
 		seconds_to_wait = (time(NULL)-fake_idle_start_time < 3*60)? 5 : 60;
-		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-watch-thread waits %i seconds.", (int)seconds_to_wait);
+		mrmailbox_log_info(imap->m_mailbox, 0, "IMAP-fake-idle waits %i seconds.", (int)seconds_to_wait);
 		pthread_mutex_lock(&imap->m_watch_condmutex);
 
 			int r = 0;
@@ -921,8 +920,7 @@ static void fake_idle(mrimap_t* imap)
 
 		// check for new messages. fetch_from_single_folder() has the side-effect that messages
 		// are also downloaded, however, typically this would take place in the FETCH command
-		// following IDLE otherwise, so this seems okay here - the fake-poll is only a fallback
-		// and we're not even sure if it is needed.
+		// following IDLE otherwise, so this seems okay here.
 		if( setup_handle_if_needed__(imap) ) { // the handle may not be set up if configure is not yet done
 			if( fetch_from_single_folder(imap, "INBOX") ) {
 				do_fake_idle = 0;
@@ -932,7 +930,7 @@ static void fake_idle(mrimap_t* imap)
 }
 
 
-void mrimap_watch_n_wait(mrimap_t* imap)
+void mrimap_idle(mrimap_t* imap)
 {
 	int r, r2;
 
@@ -962,8 +960,6 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 			fake_idle(imap);
 			return;
 		}
-
-		mrmailbox_log_info(imap->m_mailbox, 0, "IDLE start...");
 
 		// most servers do not allow more than ~28 minutes; stay clearly below that.
 		// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
@@ -997,7 +993,7 @@ void mrimap_watch_n_wait(mrimap_t* imap)
 }
 
 
-void mrimap_interrupt_watch(mrimap_t* ths)
+void mrimap_interrupt_idle(mrimap_t* ths)
 {
 	if( ths==NULL ) { // ths->m_hEtPan may be NULL
 		mrmailbox_log_warning(ths->m_mailbox, 0, "Interrupt IDLE: Bad parameter.");
