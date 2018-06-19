@@ -23,6 +23,7 @@
 #include <libetpan/libetpan.h>
 #include "mrmailbox_internal.h"
 #include "mrsmtp.h"
+#include "mrjob.h"
 
 
 #ifndef DEBUG_SMTP
@@ -123,7 +124,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-object creation failed.");
 		goto cleanup;
 	}
-	mailsmtp_set_timeout(ths->m_hEtpan, 30); // 30 seconds until actions are aborted, this is also used in mailcore2
+	mailsmtp_set_timeout(ths->m_hEtpan, MR_SMTP_TIMEOUT_SEC);
 	mailsmtp_set_progress_callback(ths->m_hEtpan, body_progress, ths);
 	#if DEBUG_SMTP
 		mailsmtp_set_logger(ths->m_hEtpan, logger, ths);

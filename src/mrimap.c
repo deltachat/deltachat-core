@@ -27,6 +27,7 @@
 #include <unistd.h> /* for sleep() */
 #include "mrmailbox_internal.h"
 #include "mrimap.h"
+#include "mrjob.h"
 #include "mrosnative.h"
 #include "mrloginparam.h"
 
@@ -1044,7 +1045,7 @@ static int setup_handle_if_needed__(mrimap_t* ths)
 
 	ths->m_hEtpan = mailimap_new(0, NULL);
 
-	mailimap_set_timeout(ths->m_hEtpan, 30); /* 30 seconds until actions are aborted, this is also used in mailcore2 */
+	mailimap_set_timeout(ths->m_hEtpan, MR_IMAP_TIMEOUT_SEC);
 
 	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
 	{

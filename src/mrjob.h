@@ -44,6 +44,13 @@ extern "C" {
 #define MRJ_SEND_MSG_TO_SMTP      5900    // ... high priority
 
 
+// timeouts until actions are aborted.
+// this may also affects IDLE to return, so a re-connect may take this time.
+// mailcore2 uses 30 seconds, k-9 uses 10 seconds
+#define MR_IMAP_TIMEOUT_SEC       30
+#define MR_SMTP_TIMEOUT_SEC       30
+
+
 /**
  * Library-internal.
  */
