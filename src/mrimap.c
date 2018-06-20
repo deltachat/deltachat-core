@@ -970,8 +970,8 @@ void mrimap_idle(mrimap_t* imap)
 		}
 
 		// most servers do not allow more than ~28 minutes; stay clearly below that.
-		// a good value is 23 minutes.  however, as currently, we do smtp and imap in the same thread,
-		// we want a shorter timeout to allow the failed-smtp-sending to retry.
+		// a good value is 23 minutes.  however, as we do all imap in the same thread,
+		// we use a shorter delay to let failed jobs run again from time to time.
 		#define IDLE_DELAY_SECONDS (1*60)
 
 		r = mailstream_wait_idle(imap->m_hEtpan->imap_stream, IDLE_DELAY_SECONDS);
