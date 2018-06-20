@@ -537,10 +537,10 @@ void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* par
 	sqlite3_finalize(stmt);
 
 	if( thread == MR_IMAP_THREAD ) {
-		mrmailbox_interrupt_idle(mailbox);
+		dc_interrupt_imap_idle(mailbox);
 	}
 	else {
-		mrmailbox_interrupt_smtp_idle(mailbox);
+		dc_interrupt_smtp_idle(mailbox);
 	}
 }
 
@@ -662,7 +662,7 @@ cleanup:
  * @param mailbox The mailbox object.
  * @return None
  */
-void mrmailbox_perform_jobs(mrmailbox_t* mailbox)
+void dc_perform_imap_jobs(mrmailbox_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, "IMAP-jobs started...");
 
@@ -683,7 +683,7 @@ void mrmailbox_perform_jobs(mrmailbox_t* mailbox)
  * @param mailbox The mailbox object.
  * @return None.
  */
-void mrmailbox_fetch(mrmailbox_t* mailbox)
+void dc_perform_imap_fetch(mrmailbox_t* mailbox)
 {
 	clock_t start = clock();
 
@@ -713,7 +713,7 @@ void mrmailbox_fetch(mrmailbox_t* mailbox)
  * @param mailbox The mailbox object.
  * @return None.
  */
-void mrmailbox_idle(mrmailbox_t* mailbox)
+void dc_perform_imap_idle(mrmailbox_t* mailbox)
 {
 	connect_to_imap(mailbox, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
 
@@ -740,7 +740,7 @@ void mrmailbox_idle(mrmailbox_t* mailbox)
  * @param mailbox The mailbox object.
  * @return None
  */
-void mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
+void dc_interrupt_imap_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");
@@ -765,7 +765,7 @@ void mrmailbox_interrupt_idle(mrmailbox_t* mailbox)
  ******************************************************************************/
 
 
-void mrmailbox_perform_smtp_jobs(mrmailbox_t* mailbox)
+void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, "SMTP-jobs started...");
 
@@ -779,7 +779,7 @@ void mrmailbox_perform_smtp_jobs(mrmailbox_t* mailbox)
 }
 
 
-void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
+void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		mrmailbox_log_warning(mailbox, 0, "Cannot perform SMTP-idle: Bad parameters.");
@@ -816,7 +816,7 @@ void mrmailbox_perform_smtp_idle(mrmailbox_t* mailbox)
 }
 
 
-void mrmailbox_interrupt_smtp_idle(mrmailbox_t* mailbox)
+void dc_interrupt_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		mrmailbox_log_warning(mailbox, 0, "Interrupt SMTP-idle: Bad parameters.");

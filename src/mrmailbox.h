@@ -213,14 +213,14 @@ char*           mrmailbox_get_info          (mrmailbox_t*);
 void            mrmailbox_configure         (mrmailbox_t*);
 int             mrmailbox_is_configured     (mrmailbox_t*);
 
-void            mrmailbox_perform_jobs      (mrmailbox_t*);
-void            mrmailbox_fetch             (mrmailbox_t*);
-void            mrmailbox_idle              (mrmailbox_t*);
-void            mrmailbox_interrupt_idle    (mrmailbox_t*);
+void            dc_perform_imap_jobs        (mrmailbox_t*);
+void            dc_perform_imap_fetch       (mrmailbox_t*);
+void            dc_perform_imap_idle        (mrmailbox_t*);
+void            dc_interrupt_imap_idle      (mrmailbox_t*);
 
-void            mrmailbox_perform_smtp_jobs  (mrmailbox_t*);
-void            mrmailbox_perform_smtp_idle  (mrmailbox_t*);
-void            mrmailbox_interrupt_smtp_idle(mrmailbox_t*);
+void            dc_perform_smtp_jobs        (mrmailbox_t*);
+void            dc_perform_smtp_idle        (mrmailbox_t*);
+void            dc_interrupt_smtp_idle      (mrmailbox_t*);
 
 void            mrmailbox_stop_ongoing_process(mrmailbox_t*);
 

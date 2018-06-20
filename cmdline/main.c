@@ -134,10 +134,10 @@ static void* imap_thread_entry_point (void* entry_arg)
 	while( 1 ) {
 		// perform_jobs(), fetch() and idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
-		mrmailbox_perform_jobs(mailbox);
-		mrmailbox_fetch(mailbox);
+		dc_perform_imap_jobs(mailbox);
+		dc_perform_imap_fetch(mailbox);
 		if( imap_foreground ) {
-			mrmailbox_idle(mailbox); // this may take hours ...
+			dc_perform_imap_idle(mailbox); // this may take hours ...
 		}
 		else {
 			break;
@@ -155,9 +155,9 @@ static void* smtp_thread_entry_point (void* entry_arg)
 	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
 
 	while( 1 ) {
-		mrmailbox_perform_smtp_jobs(mailbox);
+		dc_perform_smtp_jobs(mailbox);
 		if( imap_foreground ) {
-			mrmailbox_perform_smtp_idle(mailbox); // this may take hours ...
+			dc_perform_smtp_idle(mailbox); // this may take hours ...
 		}
 		else {
 			break;
@@ -184,8 +184,8 @@ static void start_threads(mrmailbox_t* mailbox)
 static void stop_threads(mrmailbox_t* mailbox)
 {
 	imap_foreground = 0;
-	mrmailbox_interrupt_idle(mailbox);
-	mrmailbox_interrupt_smtp_idle(mailbox);
+	dc_interrupt_imap_idle(mailbox);
+	dc_interrupt_smtp_idle(mailbox);
 }
 
 
