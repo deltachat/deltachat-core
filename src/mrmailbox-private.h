@@ -59,6 +59,8 @@ struct _mrmailbox
 	int              m_smtpidle_condflag;
 	int              m_smtpidle_suspend;
 	int              m_smtpidle_in_idleing;
+	#define          MR_JOBS_NEEDED_AT_ONCE   1
+	#define          MR_JOBS_NEEDED_AVOID_DOS 2
 	int              m_perform_smtp_jobs_needed;
 
 	mrmailboxcb_t    m_cb;                    /**< Internal */

@@ -633,6 +633,17 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 			sqlite3_step(update_stmt);
 			sqlite3_finalize(update_stmt);
 			mrmailbox_log_info(mailbox, 0, "%s-job #%i not succeeded, trying again asap.", THREAD_STR, (int)job.m_job_id);
+
+			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
+			// if we're not online, the ui calls interrupt idle as soon as we're online again.
+			// if nothing of this happens, after MR_SMTP_IDLE_SEC (60) we try again.
+			if( thread == MR_SMTP_THREAD
+			 && dc_is_online(mailbox) )
+			{
+				pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+					mailbox->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AVOID_DOS;
+				pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+			}
 		}
 		else
 		{
@@ -790,7 +801,7 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
-		if( mailbox->m_perform_smtp_jobs_needed )
+		if( mailbox->m_perform_smtp_jobs_needed == MR_JOBS_NEEDED_AT_ONCE )
 		{
 			mrmailbox_log_info(mailbox, 0, "SMTP-idle will not be started because of waiting jobs.");
 		}
@@ -800,7 +811,7 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 
 				int r = 0;
 				struct timespec timeToWait;
-				timeToWait.tv_sec  = time(NULL)+60;
+				timeToWait.tv_sec  = time(NULL) + ((mailbox->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
 				timeToWait.tv_nsec = 0;
 				while( (mailbox->m_smtpidle_condflag == 0 && r == 0) || mailbox->m_smtpidle_suspend ) {
 					r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
@@ -830,7 +841,7 @@ void dc_interrupt_smtp_idle(mrmailbox_t* mailbox)
 		// when this function is called, it might be that the smtp-thread is in
 		// perform_smtp_jobs(). if so, added jobs will be performed after the _next_ idle-jobs loop.
 		// setting the flag perform_smtp_jobs_needed makes sure, idle() returns immediately in this case.
-		mailbox->m_perform_smtp_jobs_needed = 1;
+		mailbox->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AT_ONCE;
 
 		mailbox->m_smtpidle_condflag = 1;
 		pthread_cond_signal(&mailbox->m_smtpidle_cond);

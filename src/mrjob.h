@@ -51,6 +51,12 @@ extern "C" {
 #define MR_SMTP_TIMEOUT_SEC       10
 
 
+// this is the timeout after which dc_perform_smtp_idle() returns at last.
+// this timeout should not be too large as this might be the only option to perform
+// jobs that failed on the first execution.
+#define MR_SMTP_IDLE_SEC          60
+
+
 /**
  * Library-internal.
  */
