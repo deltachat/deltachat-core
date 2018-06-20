@@ -159,6 +159,9 @@ extern int      mr_shall_stop_ongoing;
 int             mrmailbox_alloc_ongoing     (mrmailbox_t*);
 void            mrmailbox_free_ongoing      (mrmailbox_t*);
 
+#define         dc_is_online(m)             ((m)->m_cb((m), MR_EVENT_IS_OFFLINE, 0, 0)==0)
+#define         dc_is_offline(m)            ((m)->m_cb((m), MR_EVENT_IS_OFFLINE, 0, 0)!=0)
+
 
 /* library private: secure-join */
 #define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
