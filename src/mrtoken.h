@@ -27,9 +27,6 @@ extern "C" {
 #endif
 
 
-typedef struct _mrmailbox mrmailbox_t;
-
-
 // Token namespaces
 typedef enum {
 	MRT_INVITENUMBER = 100,

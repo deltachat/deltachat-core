@@ -31,8 +31,8 @@ typedef struct mrparam_t   mrparam_t;
 typedef struct sqlite3_stmt sqlite3_stmt;
 
 
-/** the structure behind mrmsg_t */
-struct _mrmsg
+/** the structure behind dc_msg_t */
+struct _dc_msg
 {
 	/** @privatesection */
 

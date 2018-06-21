@@ -35,8 +35,8 @@ typedef struct mrmimeparser_t mrmimeparser_t;
 typedef struct mrhash_t       mrhash_t;
 
 
-/** Structure behind mrmailbox_t */
-struct _mrmailbox
+/** Structure behind dc_context_t */
+struct _dc_context
 {
 	/** @privatesection */
 	#define          MR_MAILBOX_MAGIC         0x11a11807

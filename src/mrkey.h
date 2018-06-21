@@ -27,7 +27,6 @@ extern "C" {
 #endif
 
 
-typedef struct _mrmailbox mrmailbox_t;
 typedef struct sqlite3_stmt sqlite3_stmt;
 
 

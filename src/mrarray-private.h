@@ -27,8 +27,8 @@ extern "C" {
 #endif
 
 
-/** the structure behind mrarray_t */
-struct _mrarray
+/** the structure behind dc_array_t */
+struct _dc_array
 {
 	/** @privatesection */
 
