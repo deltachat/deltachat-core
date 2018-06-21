@@ -167,16 +167,23 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		goto cleanup;
 	}
 
-	// Note: from 5/2018 we force serialized mode (SQLITE_OPEN_FULLMUTEX) explicitly.
+	// Force serialized mode (SQLITE_OPEN_FULLMUTEX) explicitly.
 	// So, most of the explicit lock/unlocks on mrsqlite3_t object are no longer needed.
 	// However, locking is _also_ used for mrmailbox_t which _is_ still needed, so, we
-	// should remove locks only if we're really sure. If in doubt, leave the locking.
+	// should remove locks only if we're really sure.
 	if( sqlite3_open_v2(dbfile, &ths->m_cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&MR_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
 			NULL) != SQLITE_OK ) {
 		mrsqlite3_log_error(ths, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by mrsqlite3_log_error()) */
 		goto cleanup;
 	}
+
+	// Only one process can make changes to the database at one time.
+	// busy_timeout defines, that if a seconds process wants write access, this second process will wait some milliseconds
+	// and try over until it gets write access or the given timeout is elapsed.
+	// If the second process does not get write access within the given timeout, sqlite3_step() will return the error SQLITE_BUSY.
+	// (without a busy_timeout, sqlite3_step() would return SQLITE_BUSY at once)
+	sqlite3_busy_timeout(ths->m_cobj, 10*1000);
 
 	if( !(flags&MR_OPEN_READONLY) )
 	{
