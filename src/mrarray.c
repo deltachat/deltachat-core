@@ -29,18 +29,18 @@
 /**
  * Create an array object in memory.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param mailbox The mailbox object that should be stored in the array object. May be NULL.
  * @param initsize Initial maximal size of the array. If you add more items, the internal data pointer is reallocated.
  *
  * @return New array object of the requested size, the data should be set directly.
  */
-mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
+dc_array_t* dc_array_new(mrmailbox_t* mailbox, size_t initsize)
 {
-	mrarray_t* array;
+	dc_array_t* array;
 
-	array = (mrarray_t*) malloc(sizeof(mrarray_t));
+	array = (dc_array_t*) malloc(sizeof(dc_array_t));
 	if( array==NULL ) {
 		exit(47);
 	}
@@ -61,14 +61,14 @@ mrarray_t* mrarray_new(mrmailbox_t* mailbox, size_t initsize)
 /**
  * Free an array object. Does not free any data items.
  *
- * @memberof mrarray_t
+ * @memberof dc_array_t
  *
  * @param array The array object to free, created eg. by mrmailbox_get_chatlist(), mrmailbox_get_contacts() and so on.
  *
  * @return None.
  *
  */
-void mrarray_unref(mrarray_t* array)
+void dc_array_unref(dc_array_t* array)
 {
 	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
@@ -84,14 +84,14 @@ void mrarray_unref(mrarray_t* array)
  * Calls free() for each item and sets the item to 0 afterwards.
  * The array object itself is not deleted and the size of the array stays the same.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object.
  *
  * @return None.
  *
  */
-void mrarray_free_ptr(mrarray_t* array)
+void dc_array_free_ptr(dc_array_t* array)
 {
 	size_t i;
 
@@ -110,22 +110,22 @@ void mrarray_free_ptr(mrarray_t* array)
  * Duplicates the array, take care if the array contains pointers to objects, take care to free them only once afterwards!
  * If the array only contains integers, you are always save.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object.
  *
  * @return The duplicated array.
  *
  */
-mrarray_t* mrarray_duplicate(const mrarray_t* array)
+dc_array_t* dc_array_duplicate(const dc_array_t* array)
 {
-	mrarray_t* ret = NULL;
+	dc_array_t* ret = NULL;
 
 	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return NULL;
 	}
 
-	ret = mrarray_new(array->m_mailbox, array->m_allocated);
+	ret = dc_array_new(array->m_mailbox, array->m_allocated);
 	ret->m_count = array->m_count;
 	memcpy(ret->m_array, array->m_array, array->m_count * sizeof(uintptr_t));
 
@@ -143,14 +143,14 @@ static int cmp_intptr_t(const void* p1, const void* p2)
 /**
  * Sort the array, assuming it contains unsigned integers.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object.
  *
  * @return The duplicated array.
  *
  */
-void mrarray_sort_ids(mrarray_t* array)
+void dc_array_sort_ids(dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
@@ -170,14 +170,14 @@ static int cmp_strings_t(const void* p1, const void* p2)
 /**
  * Sort the array, assuming it contains pointers to strings.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object.
  *
  * @return The duplicated array.
  *
  */
-void mrarray_sort_strings(mrarray_t* array)
+void dc_array_sort_strings(dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
@@ -189,13 +189,13 @@ void mrarray_sort_strings(mrarray_t* array)
 /**
  * Empty an array object. Allocated data is not freed by this function, only the count is set to null.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object to empty.
  *
  * @return None.
  */
-void mrarray_empty(mrarray_t* array)
+void dc_array_empty(dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
@@ -216,7 +216,7 @@ void mrarray_empty(mrarray_t* array)
  *
  * @return None.
  */
-void mrarray_add_uint(mrarray_t* array, uintptr_t item)
+void dc_array_add_uint(dc_array_t* array, uintptr_t item)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return;
@@ -246,9 +246,9 @@ void mrarray_add_uint(mrarray_t* array, uintptr_t item)
  *
  * @return None.
  */
-void mrarray_add_id(mrarray_t* array, uint32_t item)
+void dc_array_add_id(dc_array_t* array, uint32_t item)
 {
-	mrarray_add_uint(array, item);
+	dc_array_add_uint(array, item);
 }
 
 
@@ -263,22 +263,22 @@ void mrarray_add_id(mrarray_t* array, uint32_t item)
  *
  * @return None.
  */
-void mrarray_add_ptr(mrarray_t* array, void* item)
+void dc_array_add_ptr(dc_array_t* array, void* item)
 {
-	mrarray_add_uint(array, (uintptr_t)item);
+	dc_array_add_uint(array, (uintptr_t)item);
 }
 
 
 /**
  * Find out the number of items in an array.
  *
- * @memberof mrarray_t
+ * @memberof dc_array_t
  *
  * @param array The array object.
  *
- * @return Returns the number of items in a mrarray_t object. 0 on errors or if the array is empty.
+ * @return Returns the number of items in a dc_array_t object. 0 on errors or if the array is empty.
  */
-size_t mrarray_get_cnt(const mrarray_t* array)
+size_t dc_array_get_cnt(const dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return 0;
@@ -292,14 +292,14 @@ size_t mrarray_get_cnt(const mrarray_t* array)
  * Get the item at the given index as an unsigned integer.
  * The size of the integer is always larget enough to hold a pointer.
  *
- * @memberof mrarray_t
+ * @memberof dc_array_t
  *
  * @param array The array object.
- * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
  *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
-uintptr_t mrarray_get_uint(const mrarray_t* array, size_t index)
+uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
@@ -312,14 +312,14 @@ uintptr_t mrarray_get_uint(const mrarray_t* array, size_t index)
 /**
  * Get the item at the given index as an ID.
  *
- * @memberof mrarray_t
+ * @memberof dc_array_t
  *
  * @param array The array object.
- * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
  *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
-uint32_t mrarray_get_id(const mrarray_t* array, size_t index)
+uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
@@ -332,14 +332,14 @@ uint32_t mrarray_get_id(const mrarray_t* array, size_t index)
 /**
  * Get the item at the given index as an ID.
  *
- * @memberof mrarray_t
+ * @memberof dc_array_t
  *
  * @param array The array object.
- * @param index Index of the item to get. Must be between 0 and mrarray_get_cnt()-1.
+ * @param index Index of the item to get. Must be between 0 and dc_array_get_cnt()-1.
  *
  * @return Returns the item at the given index. Returns 0 on errors or if the array is empty.
  */
-void* mrarray_get_ptr(const mrarray_t* array, size_t index)
+void* dc_array_get_ptr(const dc_array_t* array, size_t index)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
@@ -352,7 +352,7 @@ void* mrarray_get_ptr(const mrarray_t* array, size_t index)
 /**
  * Check if a given ID is present in an array.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object to search in.
  * @param needle The ID to search for.
@@ -360,7 +360,7 @@ void* mrarray_get_ptr(const mrarray_t* array, size_t index)
  *
  * @return 1=ID is present in array, 0=ID not found.
  */
-int mrarray_search_id(const mrarray_t* array, uint32_t needle, size_t* ret_index)
+int dc_array_search_id(const dc_array_t* array, uint32_t needle, size_t* ret_index)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return 0;
@@ -385,14 +385,14 @@ int mrarray_search_id(const mrarray_t* array, uint32_t needle, size_t* ret_index
 /**
  * Get raw pointer to the data.
  *
- * @private @memberof mrarray_t
+ * @private @memberof dc_array_t
  *
  * @param array The array object.
  *
  * @return Raw pointer to the array. You MUST NOT free the data. You MUST NOT access the data beyond the current item count.
- *     It is not possible to enlarge the array this way.  Calling any other mrarray-function may discard the returned pointer.
+ *     It is not possible to enlarge the array this way.  Calling any other dc_array-function may discard the returned pointer.
  */
-const uintptr_t* mrarray_get_raw(const mrarray_t* array)
+const uintptr_t* dc_array_get_raw(const dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return NULL;
@@ -401,7 +401,7 @@ const uintptr_t* mrarray_get_raw(const mrarray_t* array)
 }
 
 
-char* mr_arr_to_string(const uint32_t* arr, int cnt)
+char* dc_arr_to_string(const uint32_t* arr, int cnt)
 {
 	/* return comma-separated value-string from integer array */
 	char*       ret = NULL;
@@ -431,7 +431,7 @@ char* mr_arr_to_string(const uint32_t* arr, int cnt)
 }
 
 
-char* mrarray_get_string(const mrarray_t* array, const char* sep)
+char* dc_array_get_string(const dc_array_t* array, const char* sep)
 {
 	char* ret = NULL;
 

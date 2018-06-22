@@ -894,7 +894,7 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 }
 
 
-char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, mrarray_t* contact_ids_to)
+char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, dc_array_t* contact_ids_to)
 {
 	/* Function generates a Message-ID for incoming messages that lacks one.
 	- normally, this function is not needed as incoming messages already have an ID
@@ -902,15 +902,15 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || mrarray_get_cnt(contact_ids_to)==0 ) {
+	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0 ) {
 		return NULL;
 	}
 
 	/* find out the largest receiver ID (we could also take the smallest, but it should be unique) */
-	size_t   i, icnt = mrarray_get_cnt(contact_ids_to);
+	size_t   i, icnt = dc_array_get_cnt(contact_ids_to);
 	uint32_t largest_id_to = 0;
 	for( i = 0; i < icnt; i++ ) {
-		uint32_t cur_id = mrarray_get_id(contact_ids_to, i);
+		uint32_t cur_id = dc_array_get_id(contact_ids_to, i);
 		if( cur_id > largest_id_to ) {
 			largest_id_to = cur_id;
 		}

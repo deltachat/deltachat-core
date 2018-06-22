@@ -148,17 +148,17 @@ cleanup:
 
 static uint32_t chat_id_2_contact_id(mrmailbox_t* mailbox, uint32_t contact_chat_id)
 {
-	uint32_t   contact_id = 0;
-	mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	uint32_t    contact_id = 0;
+	dc_array_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
 
-	if( mrarray_get_cnt(contacts) != 1 ) {
+	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
 	}
 
-	contact_id = mrarray_get_id(contacts, 0);
+	contact_id = dc_array_get_id(contacts, 0);
 
 cleanup:
-	mrarray_unref(contacts);
+	dc_array_unref(contacts);
 	return contact_id;
 }
 
@@ -167,19 +167,19 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 {
 	int             fingerprint_equal      = 0;
 	int             locked                 = 0;
-	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	dc_array_t*     contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
 	mrcontact_t*    contact                = mrcontact_new(mailbox);
 	mrapeerstate_t* peerstate              = mrapeerstate_new(mailbox);
 	char*           fingerprint_normalized = NULL;
 
-	if( mrarray_get_cnt(contacts) != 1 ) {
+	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
 	}
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, mrarray_get_id(contacts, 0))
+		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, dc_array_get_id(contacts, 0))
 		 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
@@ -197,7 +197,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(fingerprint_normalized);
 	mrcontact_unref(contact);
-	mrarray_unref(contacts);
+	dc_array_unref(contacts);
 	return fingerprint_equal;
 }
 
