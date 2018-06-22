@@ -671,18 +671,26 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	success = 1;
 	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
 
-	PROGRESS(950)
+	PROGRESS(940)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
 	if( imap_connected_here ) { mrimap_disconnect(mailbox->m_imap); }
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 960, 0);
+
 	if( smtp_connected_here ) { mrsmtp_disconnect(mailbox->m_smtp); }
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 970, 0);
+
 	mrloginparam_unref(param);
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 980, 0);
+
 	mrmailbox_suspend_smtp_thread(mailbox, 0);
+	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 990, 0);
 
 	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }
