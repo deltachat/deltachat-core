@@ -1186,10 +1186,10 @@ cleanup:
  * The function may take a long time until it finishes, so it might be a good idea to start it in a
  * separate thread. During its execution, the function sends out some events:
  *
- * - A number of #MR_EVENT_IMEX_PROGRESS events are sent and may be used to create
+ * - A number of #DC_EVENT_IMEX_PROGRESS events are sent and may be used to create
  *   a progress bar or stuff like that.
  *
- * - For each file written on export, the function sends #MR_EVENT_IMEX_FILE_WRITTEN
+ * - For each file written on export, the function sends #DC_EVENT_IMEX_FILE_WRITTEN
  *
  * Only one import-/export-progress can run at the same time.
  * To cancel an import-/export-progress, use dc_stop_ongoing_process().
@@ -1199,7 +1199,7 @@ cleanup:
  * @param mailbox Mailbox object as created by dc_context_new().
  * @param what One of the DC_IMEX_* constants.
  * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
- *     a slash (otherwise you'll get double slashes when receiving #MR_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
+ *     a slash (otherwise you'll get double slashes when receiving #DC_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
  * @param param2 Meaning depends on the DC_IMEX_* constants. Set to NULL if not used.
  *
  * @return 1=success, 0=error or progress canceled.

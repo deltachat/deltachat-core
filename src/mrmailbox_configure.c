@@ -699,7 +699,7 @@ cleanup:
  * - While dc_configure() returns immediately, the started configuration-job may take a while,
  *   you can stop it using dc_stop_ongoing_process().
  *
- * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
+ * - The function sends out a number of #DC_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
  *
  * @memberof dc_context_t
@@ -807,7 +807,7 @@ void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
  * The ongoing process will return ASAP then, however, it may
  * still take a moment.  If in doubt, the caller may also decide to kill the
  * thread after a few seconds; eg. the process may hang in a
- * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
+ * function not under the control of the core (eg. #DC_EVENT_HTTP_GET). Another
  * reason for dc_stop_ongoing_process() not to wait is that otherwise it
  * would be GUI-blocking and should be started in another thread then; this
  * would make things even more complicated.

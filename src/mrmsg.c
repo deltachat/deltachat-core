@@ -213,9 +213,9 @@ int dc_msg_get_type(const dc_msg_t* msg)
  *   message is not yet sent and is pending in some way. Maybe we're offline (no checkmark).
  * - DC_STATE_OUT_ERROR (24) - _Unrecoverable_ error (_recoverable_ errors result in pending messages)
  * - DC_STATE_OUT_DELIVERED (26) - Outgoing message successfully delivered to server (one checkmark). Note, that already delivered messages may get into the state DC_STATE_OUT_ERROR if we get such a hint from the server.
- *   If a sent message changes to this state, you'll receive the event #MR_EVENT_MSG_DELIVERED.
+ *   If a sent message changes to this state, you'll receive the event #DC_EVENT_MSG_DELIVERED.
  * - DC_STATE_OUT_MDN_RCVD (28) - Outgoing message read by the recipient (two checkmarks; this requires goodwill on the receiver's side)
- *   If a sent message changes to this state, you'll receive the event #MR_EVENT_MSG_READ.
+ *   If a sent message changes to this state, you'll receive the event #DC_EVENT_MSG_READ.
  *
  * If you just want to check if a message is sent or not, please use dc_msg_is_sent() which regards all states accordingly.
  *

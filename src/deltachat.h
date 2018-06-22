@@ -534,8 +534,8 @@ uint32_t        dc_lot_get_id            (dc_lot_t*);
 time_t          dc_lot_get_timestamp     (dc_lot_t*);
 
 
-#include "mrevent.h"
-#include "mrerror.h"
+#include "dc_event.h"
+#include "dc_error.h"
 
 
 #ifdef __cplusplus

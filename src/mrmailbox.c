@@ -77,7 +77,7 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  * @param cb a callback function that is called for events (update,
  *     state changes etc.) and to get some information form the client (eg. translation
  *     for a given string).
- *     See mrevent.h for a list of possible events that may be passed to the callback.
+ *     See dc_event.h for a list of possible events that may be passed to the callback.
  *     - The callback MAY be called from _any_ thread, not only the main/GUI thread!
  *     - The callback MUST NOT call any dc_* and related functions unless stated
  *       otherwise!
@@ -1793,7 +1793,7 @@ int dc_get_fresh_msg_count(dc_context_t* mailbox, uint32_t chat_id)
  *
  * To find out the archived state of a given chat, use dc_chat_get_archived()
  *
- * Calling this function usually results in the event #MR_EVENT_MSGS_CHANGED
+ * Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED
  *
  * @memberof dc_context_t
  *
@@ -1832,7 +1832,7 @@ void dc_archive_chat(dc_context_t* mailbox, uint32_t chat_id, int archive)
  * Delete a chat.
  *
  * Messages are deleted from the device and the chat database entry is deleted.
- * After that, the event #MR_EVENT_MSGS_CHANGED is posted.
+ * After that, the event #DC_EVENT_MSGS_CHANGED is posted.
  *
  * Things that are _not_ done implicitly:
  *
@@ -2076,7 +2076,7 @@ cleanup:
  * Send a message of any type to a chat. The given message object is not unref'd
  * by the function but some fields are set up.
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2220,7 +2220,7 @@ cleanup:
 /**
  * Send a simple text message a given chat.
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2258,7 +2258,7 @@ cleanup:
 /**
  * Send an image to a chat.
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2302,7 +2302,7 @@ cleanup:
 /**
  * Send a video to a chat.
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2350,7 +2350,7 @@ cleanup:
  * Send a voice message to a chat.  Voice messages are messages just recorded though the device microphone.
  * For sending music or other audio data, use dc_send_audio_msg().
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2391,7 +2391,7 @@ cleanup:
  * Send an audio file to a chat.  Audio messages are eg. music tracks.
  * For voice messages just recorded though the device microphone, use dc_send_voice_msg().
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2436,7 +2436,7 @@ cleanup:
  * Send a document to a chat. Use this function to send any document or file to
  * a chat.
  *
- * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
+ * Sends the event #DC_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
@@ -2731,7 +2731,7 @@ cleanup:
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special status message that is sent automatically by this function.
  *
- * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
  *
@@ -2809,7 +2809,7 @@ cleanup:
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special status message that is sent automatically by this function.
  *
- * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * To find out the profile image of a chat, use dc_chat_get_profile_image()
  *
@@ -3032,7 +3032,7 @@ cleanup:
  *
  * If the group is a verified group, only verified contacts can be added to the group.
  *
- * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
  *
@@ -3056,7 +3056,7 @@ int dc_add_contact_to_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_t con
  * If the group is already _promoted_ (any message was sent to the group),
  * all group members are informed by a special status message that is sent automatically by this function.
  *
- * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
+ * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
  *
@@ -3370,7 +3370,7 @@ cleanup:
  * To add a number of contacts, see dc_add_address_book() which is much faster for adding
  * a bunch of addresses.
  *
- * May result in a #MR_EVENT_CONTACTS_CHANGED event.
+ * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
  *
@@ -3737,7 +3737,7 @@ void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
 /**
  * Block or unblock a contact.
  *
- * May result in a #MR_EVENT_CONTACTS_CHANGED event.
+ * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
  *
@@ -3941,7 +3941,7 @@ cleanup:
  * Delete a contact.  The contact is deleted from the local device.  It may happen that this is not
  * possible as the contact is in use.  In this case, the contact can be blocked.
  *
- * May result in a #MR_EVENT_CONTACTS_CHANGED event.
+ * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
  *
