@@ -33,17 +33,17 @@
 /**
  * Create a chat object in memory.
  *
- * @private @memberof mrchat_t
+ * @private @memberof dc_chat_t
  *
  * @param mailbox The mailbox object that should be stored in the chat object.
  *
- * @return New and empty chat object, must be freed using mrchat_unref().
+ * @return New and empty chat object, must be freed using dc_chat_unref().
  */
-mrchat_t* mrchat_new(mrmailbox_t* mailbox)
+dc_chat_t* dc_chat_new(dc_context_t* mailbox)
 {
-	mrchat_t* ths = NULL;
+	dc_chat_t* ths = NULL;
 
-	if( mailbox == NULL || (ths=calloc(1, sizeof(mrchat_t)))==NULL ) {
+	if( mailbox == NULL || (ths=calloc(1, sizeof(dc_chat_t)))==NULL ) {
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -59,13 +59,13 @@ mrchat_t* mrchat_new(mrmailbox_t* mailbox)
 /**
  * Free a chat object.
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
- * @param chat Chat object are returned eg. by mrmailbox_get_chat().
+ * @param chat Chat object are returned eg. by dc_get_chat().
  *
  * @return None.
  */
-void mrchat_unref(mrchat_t* chat)
+void dc_chat_unref(dc_chat_t* chat)
 {
 	if( chat==NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return;
@@ -81,13 +81,13 @@ void mrchat_unref(mrchat_t* chat)
 /**
  * Empty a chat object.
  *
- * @private @memberof mrchat_t
+ * @private @memberof dc_chat_t
  *
  * @param chat The chat object to empty.
  *
  * @return None.
  */
-void mrchat_empty(mrchat_t* chat)
+void dc_chat_empty(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return;
@@ -122,19 +122,19 @@ void mrchat_empty(mrchat_t* chat)
  * Get chat ID. The chat ID is the ID under which the chat is filed in the database.
  *
  * Special IDs:
- * - MR_CHAT_ID_DEADDROP         (1) - Virtual chat containing messages which senders are not confirmed by the user.
- * - MR_CHAT_ID_STARRED          (5) - Virtual chat containing all starred messages-
- * - MR_CHAT_ID_ARCHIVED_LINK    (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-
+ * - DC_CHAT_ID_DEADDROP         (1) - Virtual chat containing messages which senders are not confirmed by the user.
+ * - DC_CHAT_ID_STARRED          (5) - Virtual chat containing all starred messages-
+ * - DC_CHAT_ID_ARCHIVED_LINK    (6) - A link at the end of the chatlist, if present the UI should show the button "Archived chats"-
  *
- * "Normal" chat IDs are larger than these special IDs (larger than MR_CHAT_ID_LAST_SPECIAL).
+ * "Normal" chat IDs are larger than these special IDs (larger than DC_CHAT_ID_LAST_SPECIAL).
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Chat ID. 0 on errors.
  */
-uint32_t mrchat_get_id(mrchat_t* chat)
+uint32_t dc_chat_get_id(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -149,24 +149,23 @@ uint32_t mrchat_get_id(mrchat_t* chat)
  *
  * Currently, there are two chat types:
  *
- * - MR_CHAT_TYPE_SINGLE (100) - a normal chat is a chat with a single contact,
- *   chats_contacts contains one record for the user.  MR_CONTACT_ID_SELF
- *   (see mrcontact_t::m_id) is added _only_ for a self talk; in addition to
- *   this, for self talks also the flag MRP_SELFTALK is set.
+ * - DC_CHAT_TYPE_SINGLE (100) - a normal chat is a chat with a single contact,
+ *   chats_contacts contains one record for the user.  DC_CONTACT_ID_SELF
+ *   (see dc_contact_t::m_id) is added _only_ for a self talk.
  *
- * - MR_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
- *   members, incl. MR_CONTACT_ID_SELF
+ * - DC_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
+ *   members, incl. DC_CONTACT_ID_SELF
  *
- * - MR_CHAT_TYPE_VERIFIED_GROUP  (130) - a verified group chat. In verified groups,
+ * - DC_CHAT_TYPE_VERIFIED_GROUP  (130) - a verified group chat. In verified groups,
  *   all members are verified and encryption is always active and cannot be disabled.
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Chat type.
  */
-int mrchat_get_type(mrchat_t* chat)
+int dc_chat_get_type(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return MR_CHAT_TYPE_UNDEFINED;
@@ -177,20 +176,20 @@ int mrchat_get_type(mrchat_t* chat)
 
 /**
  * Get name of a chat. For one-to-one chats, this is the name of the contact.
- * For group chats, this is the name given eg. to mrmailbox_create_group_chat() or
+ * For group chats, this is the name given eg. to dc_create_group_chat() or
  * received by a group-creation message.
  *
- * To change the name, use mrmailbox_set_chat_name()
+ * To change the name, use dc_set_chat_name()
  *
- * See also: mrchat_get_subtitle()
+ * See also: dc_chat_get_subtitle()
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Chat name as a string. Must be free()'d after usage. Never NULL.
  */
-char* mrchat_get_name(mrchat_t* chat)
+char* dc_chat_get_name(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return safe_strdup("Err");
@@ -204,15 +203,15 @@ char* mrchat_get_name(mrchat_t* chat)
  * Get a subtitle for a chat.  The subtitle is eg. the email-address or the
  * number of group members.
  *
- * See also: mrchat_get_name()
+ * See also: dc_chat_get_name()
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object to calulate the subtitle for.
  *
  * @return Subtitle as a string. Must be free()'d after usage. Never NULL.
  */
-char* mrchat_get_subtitle(mrchat_t* chat)
+char* dc_chat_get_subtitle(dc_chat_t* chat)
 {
 	/* returns either the address or the number of chat members */
 	char* ret = NULL;
@@ -268,17 +267,17 @@ char* mrchat_get_subtitle(mrchat_t* chat)
 
 /**
  * Get the chat's profile image.
- * The profile image is set using mrmailbox_set_chat_profile_image() for groups.
- * For normal chats, the profile image is set using mrmailbox_set_contact_profile_image() (not yet implemented).
+ * The profile image is set using dc_set_chat_profile_image() for groups.
+ * For normal chats, the profile image is set using dc_set_contact_profile_image() (not yet implemented).
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Path and file if the profile image, if any.  NULL otherwise.
  *     Must be free()'d after usage.
  */
-char* mrchat_get_profile_image(mrchat_t* chat)
+char* dc_chat_get_profile_image(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return NULL;
@@ -290,18 +289,18 @@ char* mrchat_get_profile_image(mrchat_t* chat)
 
 /**
  * Get draft for the chat, if any. A draft is a message that the user started to
- * compose but that is not sent yet. You can save a draft for a chat using mrmailbox_set_draft().
+ * compose but that is not sent yet. You can save a draft for a chat using dc_set_draft().
  *
  * Drafts are considered when sorting messages and are also returned eg.
- * by mrchatlist_get_summary().
+ * by dc_chatlist_get_summary().
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Draft text, must be free()'d. Returns NULL if there is no draft.
  */
-char* mrchat_get_draft(mrchat_t* chat)
+char* dc_chat_get_draft(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return NULL;
@@ -314,15 +313,15 @@ char* mrchat_get_draft(mrchat_t* chat)
 /**
  * Get timestamp of the draft.
  *
- * The draft itself can be get using mrchat_get_draft().
+ * The draft itself can be get using dc_chat_get_draft().
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Timestamp of the draft. 0 if there is no draft.
  */
-time_t mrchat_get_draft_timestamp(mrchat_t* chat)
+time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -338,17 +337,17 @@ time_t mrchat_get_draft_timestamp(mrchat_t* chat)
  * - 1 = chat archived
  * - 2 = chat sticky (reserved for future use, if you do not support this value, just treat the chat as a normal one)
  *
- * To archive or unarchive chats, use mrmailbox_archive_chat().
+ * To archive or unarchive chats, use dc_archive_chat().
  * If chats are archived, this should be shown in the UI by a little icon or text,
  * eg. the search will also return archived chats.
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return Archived state.
  */
-int mrchat_get_archived(mrchat_t* chat)
+int dc_chat_get_archived(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -362,17 +361,17 @@ int mrchat_get_archived(mrchat_t* chat)
  * message is sent.  With unpromoted chats, members can be sent, settings can be
  * modified without the need of special status messages being sent.
  *
- * After the creation with mrmailbox_create_group_chat() the chat is usuall  unpromoted
- * until the first call to mrmailbox_send_msg() or mrmailbox_send_text_msg().
+ * After the creation with dc_create_group_chat() the chat is usuall  unpromoted
+ * until the first call to dc_send_msg() or dc_send_text_msg().
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return 1=chat is still unpromoted, no message was ever send to the chat,
  *     0=chat is not unpromoted, messages were send and/or received
  */
-int mrchat_is_unpromoted(mrchat_t* chat)
+int dc_chat_is_unpromoted(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -384,15 +383,15 @@ int mrchat_is_unpromoted(mrchat_t* chat)
 /**
  * Check if a chat is verified.  Verified chats contain only verified members
  * and encryption is alwasy enabled.  Verified chats are created using
- * mrmailbox_create_group_chat() by setting the 'verified' parameter to true.
+ * dc_create_group_chat() by setting the 'verified' parameter to true.
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return 1=chat verified, 0=chat is not verified
  */
-int mrchat_is_verified(mrchat_t* chat)
+int dc_chat_is_verified(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -401,7 +400,7 @@ int mrchat_is_verified(mrchat_t* chat)
 }
 
 
-int mrchat_are_all_members_verified__(mrchat_t* chat)
+int mrchat_are_all_members_verified__(dc_chat_t* chat)
 {
 	int           chat_verified = 0;
 	sqlite3_stmt* stmt;
@@ -441,15 +440,15 @@ cleanup:
 
 /**
  * Check if a chat is a self talk.  Self talks are normal chats with
- * the only contact MR_CONTACT_ID_SELF.
+ * the only contact DC_CONTACT_ID_SELF.
  *
- * @memberof mrchat_t
+ * @memberof dc_chat_t
  *
  * @param chat The chat object.
  *
  * @return 1=chat is self talk, 0=chat is no self talk
  */
-int mrchat_is_self_talk(mrchat_t* chat)
+int dc_chat_is_self_talk(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
@@ -463,7 +462,7 @@ int mrchat_is_self_talk(mrchat_t* chat)
  ******************************************************************************/
 
 
-int mrchat_update_param__(mrchat_t* ths)
+int mrchat_update_param__(dc_chat_t* ths)
 {
 	int success = 0;
 	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
@@ -475,7 +474,7 @@ int mrchat_update_param__(mrchat_t* ths)
 }
 
 
-static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
+static int mrchat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 {
 	int row_offset = 0;
 	const char* draft_text;
@@ -535,16 +534,16 @@ static int mrchat_set_from_stmt__(mrchat_t* ths, sqlite3_stmt* row)
  *
  * Calling this function is not thread-safe, locking is up to the caller.
  *
- * @private @memberof mrchat_t
+ * @private @memberof dc_chat_t
  *
  * @param chat The chat object that should be filled with the data from the database.
- *     Existing data are free()'d before using mrchat_empty().
+ *     Existing data are free()'d before using dc_chat_empty().
  *
  * @param chat_id Chat ID that should be loaded from the database.
  *
  * @return 1=success, 0=error.
  */
-int mrchat_load_from_db__(mrchat_t* chat, uint32_t chat_id)
+int mrchat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt;
 

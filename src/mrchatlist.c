@@ -28,17 +28,17 @@
 /**
  * Create a chatlist object in memory.
  *
- * @private @memberof mrchatlist_t
+ * @private @memberof dc_chatlist_t
  *
  * @param mailbox The mailbox object that should be stored in the chatlist object.
  *
- * @return New and empty chatlist object, must be freed using mrchatlist_unref().
+ * @return New and empty chatlist object, must be freed using dc_chatlist_unref().
  */
-mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
+dc_chatlist_t* dc_chatlist_new(dc_context_t* mailbox)
 {
-	mrchatlist_t* ths = NULL;
+	dc_chatlist_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrchatlist_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_chatlist_t)))==NULL ) {
 		exit(20);
 	}
 
@@ -55,14 +55,14 @@ mrchatlist_t* mrchatlist_new(mrmailbox_t* mailbox)
 /**
  * Free a chatlist object.
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
- * @param chatlist The chatlist object to free, created eg. by mrmailbox_get_chatlist(), mrmailbox_search_msgs().
+ * @param chatlist The chatlist object to free, created eg. by dc_get_chatlist(), dc_search_msgs().
  *
  * @return None.
  *
  */
-void mrchatlist_unref(mrchatlist_t* chatlist)
+void dc_chatlist_unref(dc_chatlist_t* chatlist)
 {
 	if( chatlist==NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return;
@@ -78,13 +78,13 @@ void mrchatlist_unref(mrchatlist_t* chatlist)
 /**
  * Empty a chatlist object.
  *
- * @private @memberof mrchatlist_t
+ * @private @memberof dc_chatlist_t
  *
  * @param chatlist The chatlist object to empty.
  *
  * @return None.
  */
-void mrchatlist_empty(mrchatlist_t* chatlist)
+void dc_chatlist_empty(dc_chatlist_t* chatlist)
 {
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return;
@@ -98,13 +98,13 @@ void mrchatlist_empty(mrchatlist_t* chatlist)
 /**
  * Find out the number of chats in a chatlist.
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
- * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
+ * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
  *
- * @return Returns the number of items in a mrchatlist_t object. 0 on errors or if the list is empty.
+ * @return Returns the number of items in a dc_chatlist_t object. 0 on errors or if the list is empty.
  */
-size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
+size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
 {
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return 0;
@@ -117,18 +117,18 @@ size_t mrchatlist_get_cnt(mrchatlist_t* chatlist)
 /**
  * Get a single chat ID of a chatlist.
  *
- * To get the message object from the message ID, use mrmailbox_get_chat().
+ * To get the message object from the message ID, use dc_get_chat().
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
- * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
+ * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
  *
  * @param index The index to get the chat ID for.
  *
  * @return Returns the chat_id of the item at the given index.  Index must be between
- *     0 and mrchatlist_get_cnt()-1.
+ *     0 and dc_chatlist_get_cnt()-1.
  */
-uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
+uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
 {
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
@@ -141,18 +141,18 @@ uint32_t mrchatlist_get_chat_id(mrchatlist_t* chatlist, size_t index)
 /**
  * Get a single message ID of a chatlist.
  *
- * To get the message object from the message ID, use mrmailbox_get_msg().
+ * To get the message object from the message ID, use dc_get_msg().
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
- * @param chatlist The chatlist object as created eg. by mrmailbox_get_chatlist().
+ * @param chatlist The chatlist object as created eg. by dc_get_chatlist().
  *
  * @param index The index to get the chat ID for.
  *
  * @return Returns the message_id of the item at the given index.  Index must be between
- *     0 and mrchatlist_get_cnt()-1.  If there is no message at the given index (eg. the chat may be empty), 0 is returned.
+ *     0 and dc_chatlist_get_cnt()-1.  If there is no message at the given index (eg. the chat may be empty), 0 is returned.
  */
-uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
+uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
 {
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
@@ -165,32 +165,32 @@ uint32_t mrchatlist_get_msg_id(mrchatlist_t* chatlist, size_t index)
 /**
  * Get a summary for a chatlist index.
  *
- * The summary is returned by a mrlot_t object with the following fields:
+ * The summary is returned by a dc_lot_t object with the following fields:
  *
- * - mrlot_t::m_text1: contains the username or the strings "Me", "Draft" and so on.
+ * - dc_lot_t::m_text1: contains the username or the strings "Me", "Draft" and so on.
  *   The string may be colored by having a look at m_text1_meaning.
  *   If there is no such name or it should not be displayed, the element is NULL.
  *
- * - mrlot_t::m_text1_meaning: one of MR_TEXT1_USERNAME, MR_TEXT1_SELF or MR_TEXT1_DRAFT.
- *   Typically used to show mrlot_t::m_text1 with different colors. 0 if not applicable.
+ * - dc_lot_t::m_text1_meaning: one of DC_TEXT1_USERNAME, DC_TEXT1_SELF or DC_TEXT1_DRAFT.
+ *   Typically used to show dc_lot_t::m_text1 with different colors. 0 if not applicable.
  *
- * - mrlot_t::m_text2: contains an excerpt of the message text or strings as
+ * - dc_lot_t::m_text2: contains an excerpt of the message text or strings as
  *   "No messages".  May be NULL of there is no such text (eg. for the archive link)
  *
- * - mrlot_t::m_timestamp: the timestamp of the message.  0 if not applicable.
+ * - dc_lot_t::m_timestamp: the timestamp of the message.  0 if not applicable.
  *
- * - mrlot_t::m_state: The state of the message as one of the MR_STATE_* constants (see #mrmsg_get_state()).  0 if not applicable.
+ * - dc_lot_t::m_state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).  0 if not applicable.
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
- * @param chatlist The chatlist to query as returned eg. from mrmailbox_get_chatlist().
+ * @param chatlist The chatlist to query as returned eg. from dc_get_chatlist().
  * @param index The index to query in the chatlist.
  * @param chat To speed up things, pass an already available chat object here.
  *     If the chat object is not yet available, it is faster to pass NULL.
  *
- * @return The summary as an mrlot_t object. Must be freed using mrlot_unref().  NULL is never returned.
+ * @return The summary as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
  */
-mrlot_t* mrchatlist_get_summary(mrchatlist_t* chatlist, size_t index, mrchat_t* chat /*may be NULL*/)
+dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat_t* chat /*may be NULL*/)
 {
 	/* The summary is created by the chat, not by the last message.
 	This is because we may want to display drafts here or stuff as
@@ -282,13 +282,13 @@ cleanup:
 /**
  * Helper function to get the associated mailbox object.
  *
- * @memberof mrchatlist_t
+ * @memberof dc_chatlist_t
  *
  * @param chatlist The chatlist object to empty.
  *
  * @return Mailbox object associated with the chatlist. NULL if none or on errors.
  */
-mrmailbox_t* mrchatlist_get_mailbox(mrchatlist_t* chatlist)
+dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 {
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
 		return NULL;
@@ -302,9 +302,9 @@ mrmailbox_t* mrchatlist_get_mailbox(mrchatlist_t* chatlist)
  *
  * Calling this function is not thread-safe, locking is up to the caller.
  *
- * @private @memberof mrchatlist_t
+ * @private @memberof dc_chatlist_t
  */
-int mrchatlist_load_from_db__(mrchatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
+int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	//clock_t       start = clock();
 

@@ -173,7 +173,7 @@ typedef struct _dc_lot      dc_lot_t;
  *
  * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as returned by dc_context_new().
+ * @param context The context object as returned by dc_context_new().
  *
  * @param event one of the DC_EVENT_* constants as defined in dc_event.h
  *
@@ -366,7 +366,7 @@ size_t           dc_chatlist_get_cnt         (dc_chatlist_t*);
 uint32_t         dc_chatlist_get_chat_id     (dc_chatlist_t*, size_t index);
 uint32_t         dc_chatlist_get_msg_id      (dc_chatlist_t*, size_t index);
 dc_lot_t*        dc_chatlist_get_summary     (dc_chatlist_t*, size_t index, dc_chat_t*);
-dc_context_t*    dc_chatlist_get_mailbox     (dc_chatlist_t*);
+dc_context_t*    dc_chatlist_get_context     (dc_chatlist_t*);
 
 
 /**
@@ -511,7 +511,7 @@ int             dc_contact_is_verified       (const dc_contact_t*);
  * @class dc_lot_t
  *
  * An object containing a set of values.  The meaning of the values is defined by the function returning the set object.
- * Set objects are created eg. by mrchatlist_get_summary(), mrmsg_get_summary() or by mrmsg_get_mediainfo().
+ * Set objects are created eg. by dc_chatlist_get_summary(), dc_msg_get_summary() or by dc_msg_get_mediainfo().
  *
  * NB: _Lot_ is used in the meaning _heap_ here.
  */

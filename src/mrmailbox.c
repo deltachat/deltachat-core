@@ -70,23 +70,23 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
 /**
  * Create a new mailbox object.  After creation it is usually
  * opened, connected and mails are fetched.
- * After usage, the object should be deleted using mrmailbox_unref().
+ * After usage, the object should be deleted using dc_context_unref().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param cb a callback function that is called for events (update,
  *     state changes etc.) and to get some information form the client (eg. translation
  *     for a given string).
  *     See mrevent.h for a list of possible events that may be passed to the callback.
  *     - The callback MAY be called from _any_ thread, not only the main/GUI thread!
- *     - The callback MUST NOT call any mrmailbox_* and related functions unless stated
+ *     - The callback MUST NOT call any dc_* and related functions unless stated
  *       otherwise!
  *     - The callback SHOULD return _fast_, for GUI updates etc. you should
  *       post yourself an asynchronous message to your GUI thread, if needed.
  *     - If not mentioned otherweise, the callback should return 0.
  *
  * @param userdata can be used by the client for any purpuse.  He finds it
- *     later in mrmailbox_get_userdata().
+ *     later in dc_get_userdata().
  *
  * @param os_name is only for decorative use and is shown eg. in the `X-Mailer:` header
  *     in the form "Delta Chat <version> for <os_name>".
@@ -94,9 +94,9 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  *     It is okay to give NULL, in this case `X-Mailer:` header is set to "Delta Chat <version>".
  *
  * @return a mailbox object with some public members the object must be passed to the other mailbox functions
- *     and the object must be freed using mrmailbox_unref() after usage.
+ *     and the object must be freed using dc_context_unref() after usage.
  */
-mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name)
+dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)
 {
 	mrmailbox_t* ths = NULL;
 
@@ -145,13 +145,13 @@ mrmailbox_t* mrmailbox_new(mrmailboxcb_t cb, void* userdata, const char* os_name
  * Free a mailbox object.
  * If app runs can only be terminated by a forced kill, this may be superfluous.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @return none
  */
-void mrmailbox_unref(mrmailbox_t* mailbox)
+void dc_context_unref(dc_context_t* mailbox)
 {
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
@@ -189,13 +189,13 @@ void mrmailbox_unref(mrmailbox_t* mailbox)
 /**
  * Get user data associated with a mailbox object.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
- * @return User data, this is the second parameter given to mrmailbox_new().
+ * @return User data, this is the second parameter given to dc_context_new().
  */
-void* mrmailbox_get_userdata(mrmailbox_t* mailbox)
+void* dc_get_userdata(dc_context_t* mailbox)
 {
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return NULL;
@@ -204,7 +204,7 @@ void* mrmailbox_get_userdata(mrmailbox_t* mailbox)
 }
 
 
-static void update_config_cache__(mrmailbox_t* ths, const char* key)
+static void update_config_cache__(dc_context_t* ths, const char* key)
 {
 	if( key==NULL || strcmp(key, "e2ee_enabled")==0 ) {
 		ths->m_e2ee_enabled = mrsqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
@@ -214,25 +214,23 @@ static void update_config_cache__(mrmailbox_t* ths, const char* key)
 
 /**
  * Open mailbox database.  If the given file does not exist, it is
- * created and can be set up using mrmailbox_set_config() afterwards.
+ * created and can be set up using dc_set_config() afterwards.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox: the mailbox object as created by mrmailbox_new
+ * @param mailbox: the mailbox object as created by dc_context_new()
  *
  * @param dbfile the file to use to store the database, sth. like "~/file" won't
  *     work on all systems, if in doubt, use absolute paths.
- *     You can find the file path later in mrmailbox_t::m_dbfile
  *
  * @param blobdir a directory to store the blobs in, the trailing slash is added
  *     by us, so if you want to avoid double slashes, do not add one. If you
  *     give NULL as blobdir, `dbfile-blobs` is used in the same directory as
  *     _dbfile_ will be created in.
- *     You can find the path to the blob direcrory later in mrmailbox_t::m_blobdir
  *
  * @return 1 on success, 0 on failure
  */
-int mrmailbox_open(mrmailbox_t* mailbox, const char* dbfile, const char* blobdir)
+int dc_open(dc_context_t* mailbox, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -285,13 +283,13 @@ cleanup:
 /**
  * Close mailbox database.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new()
+ * @param mailbox the mailbox object as created by dc_context_new()
  *
  * @return none
  */
-void mrmailbox_close(mrmailbox_t* mailbox)
+void dc_close(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
@@ -319,13 +317,13 @@ void mrmailbox_close(mrmailbox_t* mailbox)
 /**
  * Check if the mailbox database is open.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @return 0=mailbox is not open, 1=mailbox is open.
  */
-int mrmailbox_is_open(const mrmailbox_t* mailbox)
+int dc_is_open(const dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0; /* error - database not opened */
@@ -338,14 +336,14 @@ int mrmailbox_is_open(const mrmailbox_t* mailbox)
 /**
  * Get the blob directory.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @return Blob directory associated with the mailbox object, empty string if unset or on errors. NULL is never returned.
  *     The returned string must be free()'d.
  */
-char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
+char* dc_get_blobdir(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return safe_strdup(NULL);
@@ -376,7 +374,7 @@ char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
  * - selfstatus   = Own status to display eg. in email footers, defaults to a standard text
  * - e2ee_enabled = 0=no e2ee, 1=prefer encryption (default)
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param ths the mailbox object
  *
@@ -386,7 +384,7 @@ char* mrmailbox_get_blobdir(mrmailbox_t* mailbox)
  *
  * @return 0=failure, 1=success
  */
-int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
+int dc_set_config(dc_context_t* ths, const char* key, const char* value)
 {
 	int ret;
 
@@ -406,11 +404,11 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
 
 
 /**
- * Get a configuration option.  The configuration option is typically set by mrmailbox_set_config() or by the library itself.
+ * Get a configuration option.  The configuration option is typically set by dc_set_config() or by the library itself.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param ths the mailbox object as created by mrmmailbox_new()
+ * @param ths the mailbox object as created by dc_context_new()
  *
  * @param key the key to query
  *
@@ -419,7 +417,7 @@ int mrmailbox_set_config(mrmailbox_t* ths, const char* key, const char* value)
  * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
  *     If the returned values is not NULL, the return value must be free()'d,
  */
-char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
+char* dc_get_config(dc_context_t* ths, const char* key, const char* def)
 {
 	char* ret;
 
@@ -438,12 +436,12 @@ char* mrmailbox_get_config(mrmailbox_t* ths, const char* key, const char* def)
 
 
 /**
- * Configure the mailbox.  Similar to mrmailbox_set_config() but sets an integer instead of a string.
+ * Configure the mailbox.  Similar to dc_set_config() but sets an integer instead of a string.
  * If there is already a key with a string set, this is overwritten by the given integer value.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  */
-int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
+int dc_set_config_int(dc_context_t* ths, const char* key, int32_t value)
 {
 	int ret;
 
@@ -463,11 +461,11 @@ int mrmailbox_set_config_int(mrmailbox_t* ths, const char* key, int32_t value)
 
 
 /**
- * Get a configuration option. Similar as mrmailbox_get_config() but gets the value as an integer instead of a string.
+ * Get a configuration option. Similar as dc_get_config() but gets the value as an integer instead of a string.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  */
-int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
+int32_t dc_get_config_int(dc_context_t* ths, const char* key, int32_t def)
 {
 	int32_t ret;
 
@@ -488,11 +486,11 @@ int32_t mrmailbox_get_config_int(mrmailbox_t* ths, const char* key, int32_t def)
 /**
  * Find out the version of the Delta Chat core library.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @return String with version number as `major.minor.revision`. The return value must be free()'d.
  */
-char* mrmailbox_get_version_str(void)
+char* dc_get_version_str(void)
 {
 	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
 }
@@ -502,13 +500,13 @@ char* mrmailbox_get_version_str(void)
  * Get information about the mailbox.  The information is returned by a multi-line string and contains information about the current
  * configuration and the last log entries.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as returned by mrmailbox_new().
+ * @param mailbox Mailbox object as returned by dc_context_new().
  *
  * @return String which must be free()'d after usage.  Never returns NULL.
  */
-char* mrmailbox_get_info(mrmailbox_t* mailbox)
+char* dc_get_info(dc_context_t* mailbox)
 {
 	const char* unset = "0";
 	char *displayname = NULL, *temp = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
@@ -661,20 +659,20 @@ int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
 
 /**
  * Get a list of chats. The list can be filtered by query parameters.
- * To get the chat messages, use mrmailbox_get_chat_msgs().
+ * To get the chat messages, use dc_get_chat_msgs().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned by mrmailbox_new()
+ * @param mailbox The mailbox object as returned by dc_context_new()
  *
  * @param listflags A combination of flags:
- *     - if the flag MR_GCL_ARCHIVED_ONLY is set, only archived chats are returned.
- *       if MR_GCL_ARCHIVED_ONLY is not set, only unarchived chats are returned and
- *       the pseudo-chat MR_CHAT_ID_ARCHIVED_LINK is added if there are _any_ archived
+ *     - if the flag DC_GCL_ARCHIVED_ONLY is set, only archived chats are returned.
+ *       if DC_GCL_ARCHIVED_ONLY is not set, only unarchived chats are returned and
+ *       the pseudo-chat DC_CHAT_ID_ARCHIVED_LINK is added if there are _any_ archived
  *       chats
- *     - if the flag MR_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
+ *     - if the flag DC_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
  *       to the list (may be used eg. for selecting chats on forwarding, the flag is
- *       not needed when MR_GCL_ARCHIVED_ONLY is already set)
+ *       not needed when DC_GCL_ARCHIVED_ONLY is already set)
  *
  * @param query_str An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
@@ -682,10 +680,10 @@ int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
  * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
  *     are returned.  Give 0 for no filtering.
  *
- * @return A chatlist as an mrchatlist_t object. Must be freed using
- *     mrchatlist_unref() when no longer used
+ * @return A chatlist as an dc_chatlist_t object. Must be freed using
+ *     dc_chatlist_unref() when no longer used
  */
-mrchatlist_t* mrmailbox_get_chatlist(mrmailbox_t* mailbox, int listflags, const char* query_str, uint32_t query_id)
+dc_chatlist_t* dc_get_chatlist(dc_context_t* mailbox, int listflags, const char* query_str, uint32_t query_id)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -725,15 +723,15 @@ cleanup:
 /**
  * Get chat object by a chat ID.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The ID of the chat to get the chat object for.
  *
- * @return A chat object of the type mrchat_t, must be freed using mrchat_unref() when done.
+ * @return A chat object of the type dc_chat_t, must be freed using dc_chat_unref() when done.
  */
-mrchat_t* mrmailbox_get_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+dc_chat_t* dc_get_chat(dc_context_t* mailbox, uint32_t chat_id)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -768,21 +766,21 @@ cleanup:
 /**
  * Mark all messages in a chat as _noticed_.
  * _Noticed_ messages are no longer _fresh_ and do not count as being unseen.
- * IMAP/MDNs is not done for noticed messages.  See also mrmailbox_marknoticed_contact()
- * and mrmailbox_markseen_msgs()
+ * IMAP/MDNs is not done for noticed messages.  See also dc_marknoticed_contact()
+ * and dc_markseen_msgs()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The chat ID of which all messages should be marked as being noticed.
  *
  * @return None.
  */
-void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+void dc_marknoticed_chat(dc_context_t* mailbox, uint32_t chat_id)
 {
 	/* marking a chat as "seen" is done by marking all fresh chat messages as "noticed" -
-	"noticed" messages are not counted as being unread but are still waiting for being marked as "seen" using mrmailbox_markseen_msgs() */
+	"noticed" messages are not counted as being unread but are still waiting for being marked as "seen" using dc_markseen_msgs() */
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -802,11 +800,11 @@ void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
 
 /**
  * Check, if there is a normal chat with a given contact.
- * To get the chat messages, use mrmailbox_get_chat_msgs().
+ * To get the chat messages, use dc_get_chat_msgs().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param contact_id The contact ID to check.
  *
@@ -814,7 +812,7 @@ void mrmailbox_marknoticed_chat(mrmailbox_t* mailbox, uint32_t chat_id)
  *     returned.  If there is no normal chat with the contact_id, the function
  *     returns 0.
  */
-uint32_t mrmailbox_get_chat_id_by_contact_id(mrmailbox_t* mailbox, uint32_t contact_id)
+uint32_t dc_get_chat_id_by_contact_id(dc_context_t* mailbox, uint32_t contact_id)
 {
 	uint32_t chat_id = 0;
 	int      chat_id_blocked = 0;
@@ -861,23 +859,23 @@ cleanup:
 
 /**
  * Create a normal chat with a single user.  To create group chats,
- * see mrmailbox_create_group_chat().
+ * see dc_create_group_chat().
  *
  * If there is already an exitant chat, this ID is returned and no new chat is
  * crated.  If there is no existant chat with the user, a new chat is created;
  * this new chat may already contain messages, eg. from the deaddrop, to get the
- * chat messages, use mrmailbox_get_chat_msgs().
+ * chat messages, use dc_get_chat_msgs().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param contact_id The contact ID to create the chat for.  If there is already
  *     a chat with this contact, the already existing ID is returned.
  *
  * @return The created or reused chat ID on success. 0 on errors.
  */
-uint32_t mrmailbox_create_chat_by_contact_id(mrmailbox_t* mailbox, uint32_t contact_id)
+uint32_t dc_create_chat_by_contact_id(dc_context_t* mailbox, uint32_t contact_id)
 {
 	uint32_t      chat_id = 0;
 	int           chat_blocked = 0;
@@ -924,13 +922,13 @@ cleanup:
 
 /**
  * Create a normal chat or a group chat by a messages ID that comes typically
- * from the deaddrop, MR_CHAT_ID_DEADDROP (1).
+ * from the deaddrop, DC_CHAT_ID_DEADDROP (1).
  *
  * If the given message ID already belongs to a normal chat or to a group chat,
  * the chat ID of this chat is returned and no new chat is created.
  * If a new chat is created, the given message ID is moved to this chat, however,
  * there may be more messages moved to the chat from the deaddrop. To get the
- * chat messages, use mrmailbox_get_chat_msgs().
+ * chat messages, use dc_get_chat_msgs().
  *
  * If the user should be start asked the chat is created, he should just be
  * asked whether he wants to chat with the _contact_ belonging to the message;
@@ -942,15 +940,15 @@ cleanup:
  * same group may be shown or not - so, all in all, it is fine to show the
  * contact name only.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param msg_id The message ID to create the chat for.
  *
  * @return The created or reused chat ID on success. 0 on errors.
  */
-uint32_t mrmailbox_create_chat_by_msg_id(mrmailbox_t* mailbox, uint32_t msg_id)
+uint32_t dc_create_chat_by_msg_id(dc_context_t* mailbox, uint32_t msg_id)
 {
 	int       locked     = 0;
 	uint32_t  chat_id    = 0;
@@ -1010,22 +1008,22 @@ static mrarray_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat
 
 /**
  * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be mrarray_unref()'d
+ * a gallery.  The result must be dc_array_unref()'d
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The chat ID to get all messages with media from.
  *
- * @param msg_type Specify a message type to query here, one of the MR_MSG_* constats.
+ * @param msg_type Specify a message type to query here, one of the DC_MSG_* constats.
  *
- * @param or_msg_type Another message type to return, one of the MR_MSG_* constats.
+ * @param or_msg_type Another message type to return, one of the DC_MSG_* constats.
  *     The function will return both types then.  0 if you need only one.
  *
  * @return An array with messages from the given chat ID that have the wanted message types.
  */
-mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+dc_array_t* dc_get_chat_media(dc_context_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
 	mrarray_t* ret = NULL;
 
@@ -1048,9 +1046,9 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
  * Typically used to implement the "next" and "previous" buttons on a media
  * player playing eg. voice messages.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param curr_msg_id  This is the current (image) message displayed.
  *
@@ -1058,10 +1056,10 @@ mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int 
  *
  * @return Returns the message ID that should be played next. The
  *     returned message is in the same chat as the given one and has the same type.
- *     Typically, this result is passed again to mrmailbox_get_next_media()
+ *     Typically, this result is passed again to dc_get_next_media()
  *     later on the next swipe. If there is not next/previous message, the function returns 0.
  */
-uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, int dir)
+uint32_t dc_get_next_media(dc_context_t* mailbox, uint32_t curr_msg_id, int dir)
 {
 	uint32_t ret_msg_id = 0;
 	mrmsg_t* msg = mrmsg_new();
@@ -1120,23 +1118,23 @@ cleanup:
  * Get contact IDs belonging to a chat.
  *
  * - for normal chats, the function always returns exactly one contact,
- *   MR_CONTACT_ID_SELF is _not_ returned.
+ *   DC_CONTACT_ID_SELF is _not_ returned.
  *
- * - for group chats all members are returned, MR_CONTACT_ID_SELF is returned
+ * - for group chats all members are returned, DC_CONTACT_ID_SELF is returned
  *   explicitly as it may happen that oneself gets removed from a still existing
  *   group
  *
- * - for the deaddrop, all contacts are returned, MR_CONTACT_ID_SELF is not
+ * - for the deaddrop, all contacts are returned, DC_CONTACT_ID_SELF is not
  *   added
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to get the belonging contact IDs for.
  *
- * @return an array of contact IDs belonging to the chat; must be freed using mrarray_unref() when done.
+ * @return an array of contact IDs belonging to the chat; must be freed using dc_array_unref() when done.
  */
-mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
+dc_array_t* dc_get_chat_contacts(dc_context_t* mailbox, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
@@ -1176,11 +1174,11 @@ cleanup:
  * Returns the message IDs of all _fresh_ messages of any chat. Typically used for implementing
  * notification summaries.  The result must be free()'d.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  */
-mrarray_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
+dc_array_t* dc_get_fresh_msgs(dc_context_t* mailbox)
 {
 	int           show_deaddrop, success = 0, locked = 0;
 	mrarray_t*    ret = mrarray_new(mailbox, 128);
@@ -1233,21 +1231,21 @@ cleanup:
  * Optionally, some special markers added to the ID-array may help to
  * implement virtual lists.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The chat ID of which the messages IDs should be queried.
  *
- * @param flags If set to MR_GCM_ADD_DAY_MARKER, the marker MR_MSG_ID_DAYMARKER will
+ * @param flags If set to DC_GCM_ADD_DAY_MARKER, the marker DC_MSG_ID_DAYMARKER will
  *     be added before each day (regarding the local timezone).  Set this to 0 if you do not want this behaviour.
  *
- * @param marker1before An optional message ID.  If set, the id MR_MSG_ID_MARKER1 will be added just
+ * @param marker1before An optional message ID.  If set, the id DC_MSG_ID_MARKER1 will be added just
  *   before the given ID in the returned array.  Set this to 0 if you do not want this behaviour.
  *
- * @return Array of message IDs, must be mrarray_unref()'d when no longer used.
+ * @return Array of message IDs, must be dc_array_unref()'d when no longer used.
  */
-mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
+dc_array_t* dc_get_chat_msgs(dc_context_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
 {
 	//clock_t       start = clock();
 
@@ -1354,23 +1352,23 @@ cleanup:
  * Searching can be done globally (chat_id=0) or in a specified chat only (chat_id
  * set).
  *
- * Global chat results are typically displayed using mrmsg_get_summary(), chat
+ * Global chat results are typically displayed using dc_msg_get_summary(), chat
  * search results may just hilite the corresponding messages and present a
  * prev/next button.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id ID of the chat to search messages in.
  *     Set this to 0 for a global search.
  *
  * @param query The query to search for.
  *
- * @return An array of message IDs. Must be freed using mrarray_unref() when no longer needed.
+ * @return An array of message IDs. Must be freed using dc_array_unref() when no longer needed.
  *     If nothing can be found, the function returns NULL.
  */
-mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
+dc_array_t* dc_search_msgs(dc_context_t* mailbox, uint32_t chat_id, const char* query)
 {
 	//clock_t       start = clock();
 
@@ -1460,7 +1458,7 @@ cleanup:
 }
 
 
-static void set_draft_int(mrmailbox_t* mailbox, mrchat_t* chat, uint32_t chat_id, const char* msg)
+static void set_draft_int(dc_context_t* mailbox, mrchat_t* chat, uint32_t chat_id, const char* msg)
 {
 	sqlite3_stmt* stmt;
 	mrchat_t*     chat_to_delete = NULL;
@@ -1517,11 +1515,11 @@ cleanup:
 /**
  * Save a draft for a chat.
  *
- * To get the draft for a given chat ID, use mrchat_t::m_draft_text
+ * To get the draft for a given chat ID, use dc_chat_get_draft()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The chat ID to save the draft for.
  *
@@ -1529,7 +1527,7 @@ cleanup:
  *
  * @return None.
  */
-void mrmailbox_set_draft(mrmailbox_t* mailbox, uint32_t chat_id, const char* msg)
+void dc_set_draft(dc_context_t* mailbox, uint32_t chat_id, const char* msg)
 {
 	set_draft_int(mailbox, NULL, chat_id, msg);
 }
@@ -1731,15 +1729,15 @@ void mrmailbox_unarchive_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
 /**
  * Get the total number of messages in a chat.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The ID of the chat to count the messages for.
  *
  * @return Number of total messages in the given chat. 0 for errors or empty chats.
  */
-int mrmailbox_get_total_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
+int dc_get_total_msg_count(dc_context_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
@@ -1759,15 +1757,15 @@ int mrmailbox_get_total_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  * Get the number of _fresh_ messages in a chat.  Typically used to implement
  * a badge with a number in the chatlist.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The ID of the chat to count the messages for.
  *
  * @return Number of fresh messages in the given chat. 0 for errors or if there are no fresh messages.
  */
-int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
+int dc_get_fresh_msg_count(dc_context_t* mailbox, uint32_t chat_id)
 {
 	int ret;
 
@@ -1787,19 +1785,19 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  * Archive or unarchive a chat.
  *
  * Archived chats are not included in the default chatlist returned
- * by mrmailbox_get_chatlist().  Instead, if there are _any_ archived chats,
- * the pseudo-chat with the chat_id MR_CHAT_ID_ARCHIVED_LINK will be added the the
+ * by dc_get_chatlist().  Instead, if there are _any_ archived chats,
+ * the pseudo-chat with the chat_id DC_CHAT_ID_ARCHIVED_LINK will be added the the
  * end of the chatlist.
  *
- * To get a list of archived chats, use mrmailbox_get_chatlist() with the flag MR_GCL_ARCHIVED_ONLY.
+ * To get a list of archived chats, use dc_get_chatlist() with the flag DC_GCL_ARCHIVED_ONLY.
  *
- * To find out the archived state of a given chat, use mrchat_t::m_archived
+ * To find out the archived state of a given chat, use dc_chat_get_archived()
  *
  * Calling this function usually results in the event #MR_EVENT_MSGS_CHANGED
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The ID of the chat to archive or unarchive.
  *
@@ -1807,7 +1805,7 @@ int mrmailbox_get_fresh_msg_count(mrmailbox_t* mailbox, uint32_t chat_id)
  *
  * @return None
  */
-void mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
+void dc_archive_chat(dc_context_t* mailbox, uint32_t chat_id, int archive)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || chat_id <= MR_CHAT_ID_LAST_SPECIAL || (archive!=0 && archive!=1) ) {
 		return;
@@ -1850,18 +1848,18 @@ void mrmailbox_archive_chat(mrmailbox_t* mailbox, uint32_t chat_id, int archive)
  *   really unexpected when deletion results in contacting all members again,
  *   (3) only leaving groups is also a valid usecase.
  *
- * To leave a chat explicitly, use mrmailbox_remove_contact_from_chat() with
- * chat_id=MR_CONTACT_ID_SELF)
+ * To leave a chat explicitly, use dc_remove_contact_from_chat() with
+ * chat_id=DC_CONTACT_ID_SELF)
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id The ID of the chat to delete.
  *
  * @return None
  */
-void mrmailbox_delete_chat(mrmailbox_t* mailbox, uint32_t chat_id)
+void dc_delete_chat(dc_context_t* mailbox, uint32_t chat_id)
 {
 	/* Up to 2017-11-02 deleting a group also implied leaving it, see above why we have changed this. */
 	int       locked = 0, pending_transaction = 0;
@@ -2083,38 +2081,22 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * To send a simple text message, you can also use mrmailbox_send_text_msg()
+ * To send a simple text message, you can also use dc_send_text_msg()
  * which is easier to use.
  *
- * @private @memberof mrmailbox_t
+ * @private @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  *
  * @param chat_id Chat ID to send the message to.
  *
  * @param msg Message object to send to the chat defined by the chat ID.
  *     The function does not take ownership of the object, so you have to
- *     free it using mrmsg_unref() as usual.
+ *     free it using dc_msg_unref() as usual.
  *
  * @return The ID of the message that is about being sent.
- *
- * Examples:
- *
- * ```
- * mrmsg_t* msg1 = mrmsg_new();
- *    mrmsg_set_type(msg1, MR_MSG_TEXT);
- *    mrmsg_set_text(msg1, "Hi there!");
- *    mrmailbox_send_msg(mailbox, chat_id, msg1); // send a simple text message
- * mrmsg_unref(msg1);
- *
- * mrmsg_t* msg2 = mrmsg_new();
- *    mrmsg_set_type(msg2, MR_MSG_IMAGE);
- *    mrmsg_set_file(msg2, "/path/to/image.jpg");
- *    mrmailbox_send_msg(mailbox, chat_id, msg2); // send a simple text message
- * mrmsg_unref(msg1);
- * ```
  */
-uint32_t mrmailbox_send_msg_object(mrmailbox_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
+uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, mrmsg_t* msg)
 {
 	int   locked = 0, transaction_pending = 0;
 	char* pathNfilename = NULL;
@@ -2243,17 +2225,17 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * See also mrmailbox_send_image_msg().
+ * See also dc_send_image_msg().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the text message to.
  * @param text_to_send Text to send to the chat defined by the chat ID.
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_text_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text_to_send)
+uint32_t dc_send_text_msg(dc_context_t* mailbox, uint32_t chat_id, const char* text_to_send)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2281,11 +2263,11 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * See also mrmailbox_send_text_msg().
+ * See also dc_send_text_msg().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the image to.
  * @param file Full path of the image file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
@@ -2294,7 +2276,7 @@ cleanup:
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_image_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
+uint32_t dc_send_image_msg(dc_context_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2325,11 +2307,11 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * See also mrmailbox_send_image_msg().
+ * See also dc_send_image_msg().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the video to.
  * @param file Full path of the video file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
@@ -2339,7 +2321,7 @@ cleanup:
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_video_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
+uint32_t dc_send_video_msg(dc_context_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2366,16 +2348,16 @@ cleanup:
 
 /**
  * Send a voice message to a chat.  Voice messages are messages just recorded though the device microphone.
- * For sending music or other audio data, use mrmailbox_send_audio_msg().
+ * For sending music or other audio data, use dc_send_audio_msg().
  *
  * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the voice message to.
  * @param file Full path of the file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
@@ -2383,7 +2365,7 @@ cleanup:
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_voice_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration)
+uint32_t dc_send_voice_msg(dc_context_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2407,16 +2389,16 @@ cleanup:
 
 /**
  * Send an audio file to a chat.  Audio messages are eg. music tracks.
- * For voice messages just recorded though the device microphone, use mrmailbox_send_voice_msg().
+ * For voice messages just recorded though the device microphone, use dc_send_voice_msg().
  *
  * Sends the event #MR_EVENT_MSGS_CHANGED on succcess.
  * However, this does not imply, the message really reached the recipient -
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the audio to.
  * @param file Full path of the file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
@@ -2426,7 +2408,7 @@ cleanup:
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_audio_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
+uint32_t dc_send_audio_msg(dc_context_t* mailbox, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2459,16 +2441,16 @@ cleanup:
  * sending may be delayed eg. due to network problems. However, from your
  * view, you're done with the message. Sooner or later it will find its way.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as returned from mrmailbox_new().
+ * @param mailbox The mailbox object as returned from dc_context_new().
  * @param chat_id Chat ID to send the document to.
  * @param file Full path of the file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
  *
  * @return The ID of the message that is about being sent.
  */
-uint32_t mrmailbox_send_file_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* file, const char* filemime)
+uint32_t dc_send_file_msg(dc_context_t* mailbox, uint32_t chat_id, const char* file, const char* filemime)
 {
 	mrmsg_t* msg = mrmsg_new();
 	uint32_t ret = 0;
@@ -2498,12 +2480,12 @@ cleanup:
  * Typically used to share a contact to another member or to a group of members.
  *
  * Internally, the function just creates an appropriate text message and sends it
- * using mrmailbox_send_text_msg().
+ * using dc_send_text_msg().
  *
  * NB: The "vcard" in the function name is just an abbreviation of "visiting card" and
  * is not related to the VCARD data format.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  *
@@ -2513,7 +2495,7 @@ cleanup:
  *
  * @return Returns the ID of the message sent.
  */
-uint32_t mrmailbox_send_vcard_msg(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+uint32_t dc_send_vcard_msg(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	uint32_t     ret = 0;
 	mrmsg_t*     msg = mrmsg_new();
@@ -2672,7 +2654,7 @@ int mrmailbox_add_to_chat_contacts_table__(mrmailbox_t* mailbox, uint32_t chat_i
  * Create a new group chat.
  *
  * After creation, the group has one member with the
- * ID MR_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
+ * ID DC_CONTACT_ID_SELF and is in _unpromoted_ state.  This means, you can
  * add or remove members, change the name, the group image and so on without
  * messages being sent to all group members.
  *
@@ -2680,20 +2662,20 @@ int mrmailbox_add_to_chat_contacts_table__(mrmailbox_t* mailbox, uint32_t chat_i
  * the group becomes _promoted_.  After that, all changes are synced with all
  * group members by sending status message.
  *
- * To check, if a chat is still unpromoted, you mrchat_is_unpromoted()
+ * To check, if a chat is still unpromoted, you dc_chat_is_unpromoted()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  * @param verified If set to 1 the function creates a secure verfied group.
  *     Only secure-verified members are allowd in these groups and end-to-end-encryption is always enabled.
  * @param chat_name The name of the group chat to create.
- *     The name may be changed later using mrmailbox_set_chat_name().
- *     To find out the name of a group later, see mrchat_t::m_name
+ *     The name may be changed later using dc_set_chat_name().
+ *     To find out the name of a group later, see dc_chat_get_name()
  *
  * @return The chat ID of the new group chat, 0 on errors.
  */
-uint32_t mrmailbox_create_group_chat(mrmailbox_t* mailbox, int verified, const char* chat_name)
+uint32_t dc_create_group_chat(dc_context_t* mailbox, int verified, const char* chat_name)
 {
 	uint32_t      chat_id = 0;
 	int           locked = 0;
@@ -2751,17 +2733,17 @@ cleanup:
  *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param chat_id The chat ID to set the name for.  Must be a group chat.
  *
  * @param new_name New name of the group.
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @return 1=success, 0=error
  */
-int mrmailbox_set_chat_name(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_name)
+int dc_set_chat_name(dc_context_t* mailbox, uint32_t chat_id, const char* new_name)
 {
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
 	int       success = 0, locked = 0;
@@ -2829,11 +2811,11 @@ cleanup:
  *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
- * To find out the profile image of a chat, use mrchat_get_profile_image()
+ * To find out the profile image of a chat, use dc_chat_get_profile_image()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @param chat_id The chat ID to set the image for.
  *
@@ -2842,7 +2824,7 @@ cleanup:
  *
  * @return 1=success, 0=error
  */
-int mrmailbox_set_chat_profile_image(mrmailbox_t* mailbox, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
+int dc_set_chat_profile_image(dc_context_t* mailbox, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
 {
 	int       success = 0, locked = 0;;
 	mrchat_t* chat = mrchat_new(mailbox);
@@ -2920,18 +2902,18 @@ int mrmailbox_is_contact_in_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint3
 /**
  * Check if a given contact ID is a member of a group chat.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @param chat_id The chat ID to check.
  *
  * @param contact_id The contact ID to check.  To check if yourself is member
- *     of the chat, pass MR_CONTACT_ID_SELF (1) here.
+ *     of the chat, pass DC_CONTACT_ID_SELF (1) here.
  *
  * @return 1=contact ID is member of chat ID, 0=contact is not in chat
  */
-int mrmailbox_is_contact_in_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int dc_is_contact_in_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	/* this function works for group and for normal chats, however, it is more useful for group chats.
 	MR_CONTACT_ID_SELF may be used to check, if the user itself is in a group chat (MR_CONTACT_ID_SELF is not added to normal chats) */
@@ -3052,9 +3034,9 @@ cleanup:
  *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @param chat_id The chat ID to add the contact to.  Must be a group chat.
  *
@@ -3062,7 +3044,7 @@ cleanup:
  *
  * @return 1=member added to group, 0=error
  */
-int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+int dc_add_contact_to_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	return mrmailbox_add_contact_to_chat_ex(mailbox, chat_id, contact_id, 0);
 }
@@ -3076,9 +3058,9 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
  *
  * Sends out #MR_EVENT_CHAT_MODIFIED and #MR_EVENT_MSGS_CHANGED if a status message was sent.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @param chat_id The chat ID to remove the contact from.  Must be a group chat.
  *
@@ -3086,7 +3068,7 @@ int mrmailbox_add_contact_to_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32
  *
  * @return 1=member removed from group, 0=error
  */
-int mrmailbox_remove_contact_from_chat(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
+int dc_remove_contact_from_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id /*may be MR_CONTACT_ID_SELF*/)
 {
 	int          success = 0, locked = 0;
 	mrcontact_t* contact = mrmailbox_get_contact(mailbox, contact_id);
@@ -3383,16 +3365,16 @@ cleanup:
  * Add a single contact as a result of an _explicit_ user action.
  *
  * We assume, the contact name, if any, is entered by the user and is used "as is" therefore,
- * mr_normalize_name() is _not_ called for the name. If the contact is blocked, it is unblocked.
+ * normalize() is _not_ called for the name. If the contact is blocked, it is unblocked.
  *
- * To add a number of contacts, see mrmailbox_add_address_book() which is much faster for adding
+ * To add a number of contacts, see dc_add_address_book() which is much faster for adding
  * a bunch of addresses.
  *
  * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param name Name of the contact to add. If you do not know the name belonging
  *     to the address, you can give NULL here.
@@ -3403,7 +3385,7 @@ cleanup:
  *
  * @return Contact ID of the created or reused contact.
  */
-uint32_t mrmailbox_create_contact(mrmailbox_t* mailbox, const char* name, const char* addr)
+uint32_t dc_create_contact(dc_context_t* mailbox, const char* name, const char* addr)
 {
 	uint32_t contact_id = 0;
 	int      sth_modified = 0;
@@ -3436,16 +3418,16 @@ cleanup:
  * Add a number of contacts.
  *
  * Typically used to add the whole address book from the OS. As names here are typically not
- * well formatted, we call mr_normalize_name() for each name given.
+ * well formatted, we call normalize() for each name given.
  *
- * To add a single contact entered by the user, you should prefer mrmailbox_create_contact(),
+ * To add a single contact entered by the user, you should prefer dc_create_contact(),
  * however, for adding a bunch of addresses, this function is _much_ faster.
  *
- * The function takes are of not overwriting names manually added or edited by mrmailbox_create_contact().
+ * The function takes are of not overwriting names manually added or edited by dc_create_contact().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @param adr_book A multi-line string in the format in the format
  *     `Name one\nAddress one\nName two\Address two`.  If an email address
@@ -3454,7 +3436,7 @@ cleanup:
  *
  * @return The number of modified or added contacts.
  */
-int mrmailbox_add_address_book(mrmailbox_t* mailbox, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
+int dc_add_address_book(dc_context_t* mailbox, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
 {
 	carray* lines = NULL;
 	size_t  i, iCnt;
@@ -3497,23 +3479,23 @@ cleanup:
 /**
  * Returns known and unblocked contacts.
  *
- * To get information about a single contact, see mrmailbox_get_contact().
+ * To get information about a single contact, see dc_get_contact().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param listflags A combination of flags:
- *     - if the flag MR_GCL_ADD_SELF is set, SELF is added to the list unless filtered by other parameters
- *     - if the flag MR_GCL_VERIFIED_ONLY is set, only verified contacts are returned.
- *       if MR_GCL_VERIFIED_ONLY is not set, verified and unverified contacts are returned.
+ *     - if the flag DC_GCL_ADD_SELF is set, SELF is added to the list unless filtered by other parameters
+ *     - if the flag DC_GCL_VERIFIED_ONLY is set, only verified contacts are returned.
+ *       if DC_GCL_VERIFIED_ONLY is not set, verified and unverified contacts are returned.
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
  *
- * @return An array containing all contact IDs.  Must be mrarray_unref()'d
+ * @return An array containing all contact IDs.  Must be dc_array_unref()'d
  *     after usage.
  */
-mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, const char* query)
+dc_array_t* dc_get_contacts(dc_context_t* mailbox, uint32_t listflags, const char* query)
 {
 	int           locked = 0;
 	char*         self_addr = NULL;
@@ -3591,14 +3573,14 @@ cleanup:
 /**
  * Get blocked contacts.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
- * @return An array containing all blocked contact IDs.  Must be mrarray_unref()'d
+ * @return An array containing all blocked contact IDs.  Must be dc_array_unref()'d
  *     after usage.
  */
-mrarray_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
+dc_array_t* dc_get_blocked_contacts(dc_context_t* mailbox)
 {
 	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
@@ -3628,11 +3610,11 @@ cleanup:
 /**
  * Get the number of blocked contacts.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  */
-int mrmailbox_get_blocked_count(mrmailbox_t* mailbox)
+int dc_get_blocked_count(dc_context_t* mailbox)
 {
 	int           ret = 0, locked = 0;
 	sqlite3_stmt* stmt;
@@ -3663,22 +3645,22 @@ cleanup:
 
 
 /**
- * Get a single contact object.  For a list, see eg. mrmailbox_get_contacts().
+ * Get a single contact object.  For a list, see eg. dc_get_contacts().
  *
- * For contact MR_CONTACT_ID_SELF (1), the function returns the name
- * MR_STR_SELF (typically "Me" in the selected language) and the email address
- * defined by mrmailbox_set_config().
+ * For contact DC_CONTACT_ID_SELF (1), the function returns sth.
+ * like "Me" in the selected language and the email address
+ * defined by dc_set_config().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param contact_id ID of the contact to get the object for.
  *
- * @return The contact object, must be freed using mrcontact_unref() when no
+ * @return The contact object, must be freed using dc_contact_unref() when no
  *     longer used.  NULL on errors.
  */
-mrcontact_t* mrmailbox_get_contact(mrmailbox_t* mailbox, uint32_t contact_id)
+dc_contact_t* dc_get_contact(dc_context_t* mailbox, uint32_t contact_id)
 {
 	mrcontact_t* ret = mrcontact_new(mailbox);
 
@@ -3706,18 +3688,18 @@ static void marknoticed_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
 
 /**
  * Mark all messages sent by the given contact
- * as _noticed_.  See also mrmailbox_marknoticed_chat() and
- * mrmailbox_markseen_msgs()
+ * as _noticed_.  See also dc_marknoticed_chat() and
+ * dc_markseen_msgs()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmmailbox_new()
+ * @param mailbox The mailbox object as created by dc_context_new()
  *
  * @param contact_id The contact ID of which all messages should be marked as noticed.
  *
  * @return none
  */
-void mrmailbox_marknoticed_contact(mrmailbox_t* mailbox, uint32_t contact_id)
+void dc_marknoticed_contact(dc_context_t* mailbox, uint32_t contact_id)
 {
     if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
@@ -3757,9 +3739,9 @@ void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
  *
  * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param contact_id The ID of the contact to block or unblock.
  *
@@ -3767,7 +3749,7 @@ void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
  *
  * @return None.
  */
-void mrmailbox_block_contact(mrmailbox_t* mailbox, uint32_t contact_id, int new_blocking)
+void dc_block_contact(dc_context_t* mailbox, uint32_t contact_id, int new_blocking)
 {
 	int locked = 0, send_event = 0, transaction_pending = 0;
 	mrcontact_t*  contact = mrcontact_new(mailbox);
@@ -3855,15 +3837,15 @@ static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* f
  * Get a multi-line encryption info, containing your fingerprint and the
  * fingerprint of the contact, used eg. to compare the fingerprints for a simple out-of-band verification.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param contact_id ID of the contact to get the encryption info for.
  *
  * @return multi-line text, must be free()'d after usage.
  */
-char* mrmailbox_get_contact_encrinfo(mrmailbox_t* mailbox, uint32_t contact_id)
+char* dc_get_contact_encrinfo(dc_context_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
 	mrloginparam_t* loginparam = mrloginparam_new();
@@ -3961,15 +3943,15 @@ cleanup:
  *
  * May result in a #MR_EVENT_CONTACTS_CHANGED event.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
  * @param contact_id ID of the contact to delete.
  *
  * @return 1=success, 0=error
  */
-int mrmailbox_delete_contact(mrmailbox_t* mailbox, uint32_t contact_id)
+int dc_delete_contact(dc_context_t* mailbox, uint32_t contact_id)
 {
 	int           locked = 0, success = 0;
 	sqlite3_stmt* stmt;
@@ -4148,19 +4130,19 @@ void mrmailbox_update_server_uid__(mrmailbox_t* mailbox, const char* rfc724_mid,
 
 
 /**
- * Get a single message object of the type mrmsg_t.
- * For a list of messages in a chat, see mrmailbox_get_chat_msgs()
- * For a list or chats, see mrmailbox_get_chatlist()
+ * Get a single message object of the type dc_msg_t.
+ * For a list of messages in a chat, see dc_get_chat_msgs()
+ * For a list or chats, see dc_get_chatlist()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new()
+ * @param mailbox Mailbox object as created by dc_context_new()
  *
  * @param msg_id The message ID for which the message object should be created.
  *
- * @return A mrmsg_t message object. When done, the object must be freed using mrmsg_unref()
+ * @return A dc_msg_t message object. When done, the object must be freed using dc_msg_unref()
  */
-mrmsg_t* mrmailbox_get_msg(mrmailbox_t* mailbox, uint32_t msg_id)
+dc_msg_t* dc_get_msg(dc_context_t* mailbox, uint32_t msg_id)
 {
 	int success = 0;
 	int db_locked = 0;
@@ -4197,22 +4179,22 @@ cleanup:
  * contain eg. the raw text of the message.
  *
  * The max. text returned is typically longer (about 100000 characters) than the
- * max. text returned by mrmsg_get_text() (about 30000 characters).
+ * max. text returned by dc_msg_get_text() (about 30000 characters).
  *
  * If the library is compiled for andoid, some basic html-formatting for he
  * subject and the footer is added. However we should change this function so
  * that it returns eg. an array of pairwise key-value strings and the caller
  * can show the whole stuff eg. in a table.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @param msg_id the message id for which information should be generated
  *
  * @return text string, must be free()'d after usage
  */
-char* mrmailbox_get_msg_info(mrmailbox_t* mailbox, uint32_t msg_id)
+char* dc_get_msg_info(dc_context_t* mailbox, uint32_t msg_id)
 {
 	mrstrbuilder_t ret;
 	int            locked = 0;
@@ -4398,9 +4380,9 @@ cleanup:
 /**
  * Forward messages to another chat.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new()
+ * @param mailbox the mailbox object as created by dc_context_new()
  *
  * @param msg_ids an array of uint32_t containing all message IDs that should be forwarded
  *
@@ -4410,7 +4392,7 @@ cleanup:
  *
  * @return none
  */
-void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
+void dc_forward_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
 {
 	mrmsg_t*      msg = mrmsg_new();
 	mrchat_t*     chat = mrchat_new(mailbox);
@@ -4484,11 +4466,11 @@ cleanup:
 /**
  * Star/unstar messages by setting the last parameter to 0 (unstar) or 1 (star).
  * Starred messages are collected in a virtual chat that can be shown using
- * mrmailbox_get_chat_msgs() using the chat_id MR_CHAT_ID_STARRED.
+ * dc_get_chat_msgs() using the chat_id DC_CHAT_ID_STARRED.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new()
+ * @param mailbox The mailbox object as created by dc_context_new()
  *
  * @param msg_ids An array of uint32_t message IDs defining the messages to star or unstar
  *
@@ -4498,7 +4480,7 @@ cleanup:
  *
  * @return none
  */
-void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt, int star)
+void dc_star_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cnt, int star)
 {
 	int i;
 
@@ -4532,9 +4514,9 @@ void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_
  * Delete messages. The messages are deleted on the current device and
  * on the IMAP server.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by mrmailbox_new()
+ * @param mailbox the mailbox object as created by dc_context_new()
  *
  * @param msg_ids an array of uint32_t containing all message IDs that should be deleted
  *
@@ -4542,7 +4524,7 @@ void mrmailbox_star_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_
  *
  * @return none
  */
-void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
+void dc_delete_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
 	int i;
 
@@ -4571,11 +4553,11 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
 
 /**
  * Mark a message as _seen_, updates the IMAP state and
- * sends MDNs. if the message is not in a real chat (eg. a contact request), the
+ * sends MDNs. If the message is not in a real chat (eg. a contact request), the
  * message is only marked as NOTICED and no IMAP/MDNs is done.  See also
- * mrmailbox_marknoticed_chat() and mrmailbox_marknoticed_contact()
+ * dc_marknoticed_chat() and dc_marknoticed_contact()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  *
@@ -4585,7 +4567,7 @@ void mrmailbox_delete_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int ms
  *
  * @return none
  */
-void mrmailbox_markseen_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
+void dc_markseen_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 {
 	int locked = 0, transaction_pending = 0;
 	int i, send_event = 0;

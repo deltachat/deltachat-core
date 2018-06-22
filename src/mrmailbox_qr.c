@@ -37,14 +37,14 @@
  * The function should be called after a QR code is scanned.
  * The function takes the raw text scanned and checks what can be done with it.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  * @param qr The text of the scanned QR code.
  *
- * @return Parsed QR code as an mrlot_t object.
+ * @return Parsed QR code as an dc_lot_t object.
  */
-mrlot_t* mrmailbox_check_qr(mrmailbox_t* mailbox, const char* qr)
+dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 {
 	int             locked        = 0;
 	char*           payload       = NULL;

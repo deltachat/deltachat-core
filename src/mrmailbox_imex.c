@@ -92,7 +92,7 @@
  * mrmailbox_render_setup_file() renders the body after the second
  * `-==break1==` in this example.
  *
- * @private @memberof mrmailbox_t
+ * @private @memberof dc_context_t
  *
  * @param mailbox The mailbox object
  * @param passphrase The setup code that shall be used to encrypt the message.
@@ -100,7 +100,7 @@
  * @return String with the HTML-code of the message on success, NULL on errors.
  *     The returned value must be free()'d
  */
-char* mrmailbox_render_setup_file(mrmailbox_t* mailbox, const char* passphrase)
+char* mrmailbox_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 {
 	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
@@ -298,7 +298,7 @@ cleanup:
 /**
  * Parse the given file content and extract the private key.
  *
- * @private @memberof mrmailbox_t
+ * @private @memberof dc_context_t
  *
  * @param mailbox The mailbox object
  * @param passphrase The setup code that shall be used to decrypt the message.
@@ -310,7 +310,7 @@ cleanup:
  * @return The decrypted private key as armored-ascii-data or NULL on errors.
  *     Must be mrkey_unref()'d.
  */
-char* mrmailbox_decrypt_setup_file(mrmailbox_t* mailbox, const char* passphrase, const char* filecontent)
+char* mrmailbox_decrypt_setup_file(dc_context_t* mailbox, const char* passphrase, const char* filecontent)
 {
 	char*         fc_buf = NULL;
 	const char    *fc_headerline = NULL, *fc_base64 = NULL;
@@ -360,13 +360,13 @@ cleanup:
  *
  * A higher-level function to initiate the key transfer is mrmailbox_initiate_key_transfer().
  *
- * @private @memberof mrmailbox_t
+ * @private @memberof dc_context_t
  *
  * @param mailbox Mailbox object as created by mrmailbox_new().
  *
  * @return Setup code, must be free()'d after usage. NULL on errors.
  */
-char* mrmailbox_create_setup_code(mrmailbox_t* mailbox)
+char* mrmailbox_create_setup_code(dc_context_t* mailbox)
 {
 	#define        CODE_ELEMS 9
 	uint16_t       random_val;
@@ -425,7 +425,7 @@ char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
 /**
  * Initiate Autocrypt Key Transfer.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  *
@@ -442,7 +442,7 @@ char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
  * After that, this function should be called to send the Autocrypt setup message.
  * The function creates the setup message and waits until it is really sent.
  * As this may take a while, it is recommended to start the function in a separate thread;
- * to interrupt it, you can use mrmailbox_stop_ongoing_process().
+ * to interrupt it, you can use dc_stop_ongoing_process().
  *
  *
  * After everything succeeded, the required setup code is returned in the following format:
@@ -465,13 +465,13 @@ char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
  * Once you're done, your other device will be ready to use Autocrypt."
  * ```
  *
- * On the _other device_ you will call mrmailbox_continue_key_transfer() then
- * for setup messages identified by mrmsg_is_setupmessage().
+ * On the _other device_ you will call dc_continue_key_transfer() then
+ * for setup messages identified by dc_msg_is_setupmessage().
  *
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
  */
-char* mrmailbox_initiate_key_transfer(mrmailbox_t* mailbox)
+char* dc_initiate_key_transfer(dc_context_t* mailbox)
 {
 	int      success = 0;
 	char*    setup_code = NULL;
@@ -629,26 +629,26 @@ cleanup:
 /**
  * Continue the Autocrypt Key Transfer on another device.
  *
- * If you have started the key transfer on another device using mrmailbox_initiate_key_transfer()
- * and you've detected a setup message with mrmsg_is_setupmessage(), you should prompt the
+ * If you have started the key transfer on another device using dc_initiate_key_transfer()
+ * and you've detected a setup message with dc_msg_is_setupmessage(), you should prompt the
  * user for the setup code and call this function then.
  *
- * You can use mrmsg_get_setupcodebegin() to give the user a hint about the code (useful if the user
+ * You can use dc_msg_get_setupcodebegin() to give the user a hint about the code (useful if the user
  * has created several messages and should not enter the wrong code).
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  * @param msg_id ID of the setup message to decrypt.
  * @param setup_code Setup code entered by the user. This is the same setup code as returned from
- *     mrmailbox_initiate_key_transfer() on the other device.
+ *     dc_initiate_key_transfer() on the other device.
  *     There is no need to format the string correctly, the function will remove all spaces and other characters and
  *     insert the `-` characters at the correct places.
  *
  * @return 1=key successfully decrypted and imported; both devices will use the same key now;
  *     0=key transfer failed eg. due to a bad setup code.
  */
-int mrmailbox_continue_key_transfer(mrmailbox_t* mailbox, uint32_t msg_id, const char* setup_code)
+int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char* setup_code)
 {
 	int      success     = 0;
 	mrmsg_t* msg         = NULL;
@@ -1165,22 +1165,22 @@ cleanup:
  *
  * What to do is defined by the _what_ parameter which may be one of the following:
  *
- * - **MR_IMEX_EXPORT_BACKUP** (11) - Export a backup to the directory given as `param1`.
+ * - **DC_IMEX_EXPORT_BACKUP** (11) - Export a backup to the directory given as `param1`.
  *   The backup contains all contacts, chats, images and other data and device independent settings.
  *   The backup does not contain device dependent settings as ringtones or LED notification settings.
  *   The name of the backup is typically `delta-chat.<day>.bak`, if more than one backup is create on a day,
  *   the format is `delta-chat.<day>-<number>.bak`
  *
- * - **MR_IMEX_IMPORT_BACKUP** (12) - `param1` is the file (not: directory) to import. The file is normally
- *   created by MR_IMEX_EXPORT_BACKUP and detected by mrmailbox_imex_has_backup(). Importing a backup
+ * - **DC_IMEX_IMPORT_BACKUP** (12) - `param1` is the file (not: directory) to import. The file is normally
+ *   created by DC_IMEX_EXPORT_BACKUP and detected by dc_imex_has_backup(). Importing a backup
  *   is only possible as long as the mailbox is not configured or used in another way.
  *
- * - **MR_IMEX_EXPORT_SELF_KEYS** (1) - Export all private keys and all public keys of the user to the
+ * - **DC_IMEX_EXPORT_SELF_KEYS** (1) - Export all private keys and all public keys of the user to the
  *   directory given as `param1`.  The default key is written to the files `public-key-default.asc`
  *   and `private-key-default.asc`, if there are more keys, they are written to files as
  *   `public-key-<id>.asc` and `private-key-<id>.asc`
  *
- * - **MR_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
+ * - **DC_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
  *   The last imported key is made the default keys unless its name contains the string `legacy`.  Public keys are not imported.
  *
  * The function may take a long time until it finishes, so it might be a good idea to start it in a
@@ -1192,19 +1192,19 @@ cleanup:
  * - For each file written on export, the function sends #MR_EVENT_IMEX_FILE_WRITTEN
  *
  * Only one import-/export-progress can run at the same time.
- * To cancel an import-/export-progress, use mrmailbox_stop_ongoing_process().
+ * To cancel an import-/export-progress, use dc_stop_ongoing_process().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
- * @param what One of the MR_IMEX_* constants.
- * @param param1 Meaning depends on the MR_IMEX_* constants. If this parameter is a directory, it should not end with
+ * @param mailbox Mailbox object as created by dc_context_new().
+ * @param what One of the DC_IMEX_* constants.
+ * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
  *     a slash (otherwise you'll get double slashes when receiving #MR_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
- * @param param2 Meaning depends on the MR_IMEX_* constants. Set to NULL if not used.
+ * @param param2 Meaning depends on the DC_IMEX_* constants. Set to NULL if not used.
  *
  * @return 1=success, 0=error or progress canceled.
  */
-int mrmailbox_imex(mrmailbox_t* mailbox, int what, const char* param1, const char* param2)
+int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* param2)
 {
 	int success = 0;
 
@@ -1282,14 +1282,14 @@ cleanup:
 /**
  * Check if there is a backup file.
  *
- * May only be used on fresh installations (eg. mrmailbox_is_configured() returns 0).
+ * May only be used on fresh installations (eg. dc_is_configured() returns 0).
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  * @param dir_name Directory to search backups in.
  *
- * @return String with the backup file, typically given to mrmailbox_imex(), returned strings must be free()'d.
+ * @return String with the backup file, typically given to dc_imex(), returned strings must be free()'d.
  *     The function returns NULL if no backup was found.
  *
  * Example:
@@ -1300,7 +1300,7 @@ cleanup:
  * void ask_user_for_credentials()
  * {
  *     // - ask the user for email and password
- *     // - save them using mrmailbox_set_config()
+ *     // - save them using dc_set_config()
  * }
  *
  * int ask_user_whether_to_import()
@@ -1311,26 +1311,26 @@ cleanup:
  *     return 1;
  * }
  *
- * if( !mrmailbox_is_configured(mailbox) )
+ * if( !dc_is_configured(mailbox) )
  * {
  *     char* file = NULL;
- *     if( (file=mrmailbox_imex_has_backup(mailbox, dir))!=NULL && ask_user_whether_to_import() )
+ *     if( (file=dc_imex_has_backup(mailbox, dir))!=NULL && ask_user_whether_to_import() )
  *     {
- *         mrmailbox_imex(mailbox, MR_IMEX_IMPORT_BACKUP, file, NULL);
- *         mrmailbox_connect(mailbox);
+ *         dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, file, NULL);
+ *         // connect
  *     }
  *     else
  *     {
  *         do {
  *             ask_user_for_credentials();
  *         }
- *         while( !mrmailbox_configure(mailbox) )
+ *         while( !configure_succeeded() )
  *     }
  *     free(file);
  * }
  * ```
  */
-char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
+char* dc_imex_has_backup(dc_context_t* mailbox, const char* dir_name)
 {
 	char*          ret = NULL;
 	time_t         ret_backup_time = 0;
@@ -1389,14 +1389,14 @@ cleanup:
  * Check if the user is authorized by the given password in some way.
  * This is to promt for the password eg. before exporting keys/backup.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  * @param test_pw Password to check.
  *
  * @return 1=user is authorized, 0=user is not authorized.
  */
-int mrmailbox_check_password(mrmailbox_t* mailbox, const char* test_pw)
+int dc_check_password(dc_context_t* mailbox, const char* test_pw)
 {
 	/* Check if the given password matches the configured mail_pw.
 	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.

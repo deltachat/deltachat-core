@@ -691,39 +691,34 @@ cleanup:
 /**
  * Configure and connect a mailbox.
  * For this, the function creates a job that is executed in the IMAP-thread then;
- * this requires to call mrmailbox_perform_jobs() regulary.
+ * this requires to call dc_perform_imap_jobs() regulary.
  *
  * - Before your call this function, you should set at least `addr` and `mail_pw`
- *   using mrmailbox_set_config().
+ *   using dc_set_config().
  *
- * - mrmailbox_configure() may take a while,
- *   you can use mrmailbox_stop_ongoing_process().
+ * - While dc_configure() returns immediately, the started configuration-job may take a while,
+ *   you can stop it using dc_stop_ongoing_process().
  *
  * - The function sends out a number of #MR_EVENT_CONFIGURE_PROGRESS events that may be used to create
  *   a progress bar or stuff like that.
  *
- * - ongoing idle processed will be killed and calling mrimap_idle() while this function
- *   has not terminated will fail; if needed, call mrimap_idle() when this function succeeds.
+ * @memberof dc_context_t
  *
- * @memberof mrmailbox_t
- *
- * @param mailbox the mailbox object as created by mrmailbox_new().
+ * @param mailbox the mailbox object as created by dc_context_new().
  *
  * @return None.
  *
  * There is no need to call this every program start, the result is saved in the
- * database and you can call mrmailbox_poll() or mrmailbox_idle() directly:
+ * database and you can call use the connection directly:
  *
  * ```
- * if( !mrmailbox_is_configured(mailbox) ) {
- *     if( !mrmailbox_configure(mailbox) ) {
- *         // show an error and/or try over
- *     }
+ * if( !dc_is_configured(context) ) {
+ *     dc_configure(context);
+ *     // wait for progress events
  * }
- * mrmailbox_idle(mailbox);
  * ```
  */
-void mrmailbox_configure(mrmailbox_t* mailbox)
+void dc_configure(dc_context_t* mailbox)
 {
 	mrjob_kill_actions(mailbox, MRJ_CONFIGURE_IMAP, 0);
 	mrjob_add(mailbox, MRJ_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
@@ -734,16 +729,16 @@ void mrmailbox_configure(mrmailbox_t* mailbox)
  * Check if the mailbox is already configured.
  *
  * Typically, for unconfigured mailboxes, the user is prompeted for
- * to enter some settings and mrmailbox_configure() is called in a thread then.
+ * to enter some settings and dc_configure() is called in a thread then.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
- * @param mailbox The mailbox object as created by mrmailbox_new().
+ * @param mailbox The mailbox object as created by dc_context_new().
  *
- * @return 1=mailbox is configured and mrmailbox_poll() or mrmailbox_idle() will work as expected;
- *     0=mailbox is not configured and a configuration by mrmailbox_configure() is required.
+ * @return 1=context is configuredc can be used;
+ *     0=context is not configured and a configuration by dc_configure() is required.
  */
-int mrmailbox_is_configured(mrmailbox_t* mailbox)
+int dc_is_configured(dc_context_t* mailbox)
 {
 	int is_configured;
 
@@ -806,28 +801,28 @@ void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
 /**
  * Signal an ongoing process to stop.
  *
- * After that, mrmailbox_stop_ongoing_process() returns _without_ waiting
+ * After that, dc_stop_ongoing_process() returns _without_ waiting
  * for the ongoing process to return.
  *
  * The ongoing process will return ASAP then, however, it may
  * still take a moment.  If in doubt, the caller may also decide to kill the
  * thread after a few seconds; eg. the process may hang in a
  * function not under the control of the core (eg. #MR_EVENT_HTTP_GET). Another
- * reason for mrmailbox_stop_ongoing_process() not to wait is that otherwise it
+ * reason for dc_stop_ongoing_process() not to wait is that otherwise it
  * would be GUI-blocking and should be started in another thread then; this
  * would make things even more complicated.
  *
- * Typical ongoing processes are started by mrmailbox_configure(),
- * mrmailbox_initiate_key_transfer() or mrmailbox_imex(). As there is always at most only
+ * Typical ongoing processes are started by dc_configure(),
+ * dc_initiate_key_transfer() or dc_imex(). As there is always at most only
  * one onging process at the same time, there is no need to define _which_ process to exit.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  *
  * @return None
  */
-void mrmailbox_stop_ongoing_process(mrmailbox_t* mailbox)
+void dc_stop_ongoing_process(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;

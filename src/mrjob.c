@@ -669,11 +669,11 @@ cleanup:
 /**
  * Execute pending jobs.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None
  */
-void dc_perform_imap_jobs(mrmailbox_t* mailbox)
+void dc_perform_imap_jobs(dc_context_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, "IMAP-jobs started...");
 
@@ -690,11 +690,11 @@ void dc_perform_imap_jobs(mrmailbox_t* mailbox)
 /**
  * Poll for new messages.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None.
  */
-void dc_perform_imap_fetch(mrmailbox_t* mailbox)
+void dc_perform_imap_fetch(dc_context_t* mailbox)
 {
 	clock_t start = clock();
 
@@ -720,11 +720,11 @@ void dc_perform_imap_fetch(mrmailbox_t* mailbox)
 /**
  * Wait for messages.
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None.
  */
-void dc_perform_imap_idle(mrmailbox_t* mailbox)
+void dc_perform_imap_idle(dc_context_t* mailbox)
 {
 	connect_to_imap(mailbox, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
 
@@ -745,13 +745,13 @@ void dc_perform_imap_idle(mrmailbox_t* mailbox)
 
 
 /**
- * Interrupt the mrmailbox_perform_imap_idle().
+ * Interrupt dc_perform_imap_idle().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None
  */
-void dc_interrupt_imap_idle(mrmailbox_t* mailbox)
+void dc_interrupt_imap_idle(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");

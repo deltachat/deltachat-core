@@ -135,7 +135,7 @@ extern "C" {
 #define mrchatlist_get_chat_id              dc_chatlist_get_chat_id
 #define mrchatlist_get_msg_id               dc_chatlist_get_msg_id
 #define mrchatlist_get_summary              dc_chatlist_get_summary
-#define mrchatlist_get_mailbox              dc_chatlist_get_mailbox
+#define mrchatlist_get_mailbox              dc_chatlist_get_context
 
 // chat functions
 #define MR_CHAT_ID_DEADDROP                 DC_CHAT_ID_DEADDROP

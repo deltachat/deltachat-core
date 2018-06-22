@@ -30,17 +30,17 @@
 /**
  * Create a new contact object in memory.
  * Typically the user does not call this function directly but gets contact
- * objects using mrmailbox_get_contact().
+ * objects using dc_get_contact().
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  *
- * @return The contact object. Must be freed using mrcontact_unref() when done.
+ * @return The contact object. Must be freed using dc_contact_unref() when done.
  */
-mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
+dc_contact_t* dc_contact_new(dc_context_t* mailbox)
 {
-	mrcontact_t* ths = NULL;
+	dc_contact_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrcontact_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_contact_t)))==NULL ) {
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -54,13 +54,13 @@ mrcontact_t* mrcontact_new(mrmailbox_t* mailbox)
 /**
  * Free a contact object.
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
- * @param contact The contact object as created eg. by mrmailbox_get_contact().
+ * @param contact The contact object as created eg. by dc_get_contact().
  *
  * @return None.
  */
-void mrcontact_unref(mrcontact_t* contact)
+void dc_contact_unref(dc_contact_t* contact)
 {
 	if( contact==NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return;
@@ -75,15 +75,15 @@ void mrcontact_unref(mrcontact_t* contact)
 /**
  * Empty a contact object.
  * Typically not needed by the user of the library. To free a contact object,
- * use mrcontact_unref().
+ * use dc_contact_unref().
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  *
  * @param contact The contact object to free.
  *
  * @return None.
  */
-void mrcontact_empty(mrcontact_t* contact)
+void dc_contact_empty(dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return;
@@ -113,13 +113,13 @@ void mrcontact_empty(mrcontact_t* contact)
 /**
  * Get the ID of the contact.
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return the ID of the contact, 0 on errors.
  */
-uint32_t mrcontact_get_id(const mrcontact_t* contact)
+uint32_t dc_contact_get_id(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
@@ -131,13 +131,13 @@ uint32_t mrcontact_get_id(const mrcontact_t* contact)
 /**
  * Get email address.  The email address is always set for a contact.
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return String with the email address, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_addr(const mrcontact_t* contact)
+char* dc_contact_get_addr(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -153,15 +153,15 @@ char* mrcontact_get_addr(const mrcontact_t* contact)
  *
  * This name is typically used in a form where the user can edit the name of a contact.
  * This name must not be spreaded via mail (To:, CC: ...) as it as it may be sth. like "Daddy".
- * To get a fine name to display in lists etc., use mrcontact_get_display_name() or mrcontact_get_name_n_addr().
+ * To get a fine name to display in lists etc., use dc_contact_get_display_name() or dc_contact_get_name_n_addr().
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return String with the name to display, must be free()'d. Empty string if unset, never returns NULL.
  */
-char* mrcontact_get_name(const mrcontact_t* contact)
+char* dc_contact_get_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -176,15 +176,15 @@ char* mrcontact_get_name(const mrcontact_t* contact)
  * modified by the user or, if both are unset, the email address.
  *
  * This name is typically used in lists and must not be speaded via mail (To:, CC: ...).
- * To get the name editable in a formular, use mrcontact_get_name().
+ * To get the name editable in a formular, use dc_contact_get_name().
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_display_name(const mrcontact_t* contact)
+char* dc_contact_get_display_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -209,13 +209,13 @@ char* mrcontact_get_display_name(const mrcontact_t* contact)
  *
  * The summary must not be spreaded via mail (To:, CC: ...) as it as it may contain sth. like "Daddy".
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return Summary string, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_name_n_addr(const mrcontact_t* contact)
+char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -234,13 +234,13 @@ char* mrcontact_get_name_n_addr(const mrcontact_t* contact)
  * the prename. If there is no space, the full display name is returned.
  * If the display name is not set, the e-mail address is returned.
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return String with the name to display, must be free()'d. Never returns NULL.
  */
-char* mrcontact_get_first_name(const mrcontact_t* contact)
+char* dc_contact_get_first_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return safe_strdup(NULL);
@@ -257,15 +257,15 @@ char* mrcontact_get_first_name(const mrcontact_t* contact)
 /**
  * Check if a contact is blocked.
  *
- * To block or unblock a contact, use mrmailbox_block_contact().
+ * To block or unblock a contact, use dc_block_contact().
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
  * @return 1=contact is blocked, 0=contact is not blocked.
  */
-int mrcontact_is_blocked(const mrcontact_t* contact)
+int dc_contact_is_blocked(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		return 0;
@@ -274,7 +274,7 @@ int mrcontact_is_blocked(const mrcontact_t* contact)
 }
 
 
-int mrcontact_is_verified__(const mrcontact_t* contact, const mrapeerstate_t* peerstate)
+int mrcontact_is_verified__(const dc_contact_t* contact, const mrapeerstate_t* peerstate)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 
@@ -300,14 +300,14 @@ cleanup:
  *
  * The UI may draw a checkbox or sth. like that beside verified contacts.
  *
- * @memberof mrcontact_t
+ * @memberof dc_contact_t
  *
  * @param contact The contact object.
  *
- * @return MRV_NOT_VERIFIED (0): contact is not verified.
- *    MRV_BIDIRECTIONAL (2): SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
+ * @return 0: contact is not verified.
+ *    2: SELF and contact have verified their fingerprints in both directions; in the UI typically checkmarks are shown.
  */
-int mrcontact_is_verified(const mrcontact_t* contact)
+int dc_contact_is_verified(const dc_contact_t* contact)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 	int             locked           = 0;
@@ -341,7 +341,7 @@ cleanup:
  * In a string, get the part before the first space.
  * If there is no space in the string, the whole string is returned.
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  *
  * @param full_name Full name of the contact.
  *
@@ -378,7 +378,7 @@ char* mr_get_first_name(const char* full_name)
  *
  * Typically, this function is not needed as it is called implicitly by mrmailbox_add_address_book()
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  *
  * @param full_name Buffer with the name, is modified during processing; the
  *     resulting string may be shorter but never longer.
@@ -431,7 +431,7 @@ void mr_normalize_name(char* full_name)
  * Not sure if we should also unifiy international characters before the @,
  * see also https://autocrypt.readthedocs.io/en/latest/address-canonicalization.html
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  *
  * @param email_addr__ The email address to normalize.
  *
@@ -456,9 +456,9 @@ char* mr_normalize_addr(const char* email_addr__)
  *
  * Calling this function is not thread-safe, locking is up to the caller.
  *
- * @private @memberof mrcontact_t
+ * @private @memberof dc_contact_t
  */
-int mrcontact_load_from_db__(mrcontact_t* ths, mrsqlite3_t* sql, uint32_t contact_id)
+int mrcontact_load_from_db__(dc_contact_t* ths, mrsqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
