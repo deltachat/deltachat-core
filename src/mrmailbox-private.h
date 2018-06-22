@@ -131,6 +131,9 @@ int             mrmailbox_add_contact_to_chat_ex                  (mrmailbox_t*,
 
 uint32_t        mrmailbox_get_chat_id_by_grpid__                  (mrmailbox_t*, const char* grpid, int* ret_blocked, int* ret_verified);
 
+#define         DC_BAK_PREFIX                "delta-chat"
+#define         DC_BAK_SUFFIX                "bak"
+
 
 /* library private: end-to-end-encryption */
 #define MR_E2EE_DEFAULT_ENABLED  1

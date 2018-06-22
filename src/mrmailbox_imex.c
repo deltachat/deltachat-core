@@ -877,8 +877,8 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	time_t         now = time(NULL);
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry;
-	int            prefix_len = strlen(MR_BAK_PREFIX);
-	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	int            prefix_len = strlen(DC_BAK_PREFIX);
+	int            suffix_len = strlen(DC_BAK_SUFFIX);
 	char*          curr_pathNfilename = NULL;
 	void*          buf = NULL;
 	size_t         buf_bytes = 0;
@@ -892,7 +892,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		struct tm* timeinfo;
 		char buffer[256];
 		timeinfo = localtime(&now);
-		strftime(buffer, 256, MR_BAK_PREFIX "-%Y-%m-%d." MR_BAK_SUFFIX, timeinfo);
+		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
 		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
 			mrmailbox_log_error(mailbox, 0, "Cannot get backup file name.");
 			goto cleanup;
@@ -965,7 +965,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 			int name_len = strlen(name);
 			if( (name_len==1 && name[0]=='.')
 			 || (name_len==2 && name[0]=='.' && name[1]=='.')
-			 || (name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0) ) {
+			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0) ) {
 				//mrmailbox_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
 				continue;
 			}
@@ -1336,8 +1336,8 @@ char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
 	time_t         ret_backup_time = 0;
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry;
-	int            prefix_len = strlen(MR_BAK_PREFIX);
-	int            suffix_len = strlen(MR_BAK_SUFFIX);
+	int            prefix_len = strlen(DC_BAK_PREFIX);
+	int            suffix_len = strlen(DC_BAK_SUFFIX);
 	char*          curr_pathNfilename = NULL;
 	mrsqlite3_t*   test_sql = NULL;
 
@@ -1353,8 +1353,8 @@ char* mrmailbox_imex_has_backup(mrmailbox_t* mailbox, const char* dir_name)
 	while( (dir_entry=readdir(dir_handle))!=NULL ) {
 		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 		int name_len = strlen(name);
-		if( name_len > prefix_len && strncmp(name, MR_BAK_PREFIX, prefix_len)==0
-		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." MR_BAK_SUFFIX, suffix_len)==0 )
+		if( name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0
+		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0 )
 		{
 			free(curr_pathNfilename);
 			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);

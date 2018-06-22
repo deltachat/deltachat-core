@@ -296,8 +296,6 @@ dc_contact_t*   dc_get_contact               (dc_context_t*, uint32_t contact_id
 #define         DC_IMEX_IMPORT_SELF_KEYS      2 // param1 is a directory where the keys are searched in and read from
 #define         DC_IMEX_EXPORT_BACKUP        11 // param1 is a directory where the backup is written to
 #define         DC_IMEX_IMPORT_BACKUP        12 // param1 is the file with the backup to import
-#define         DC_BAK_PREFIX                "delta-chat"
-#define         DC_BAK_SUFFIX                "bak"
 int             dc_imex                      (dc_context_t*, int what, const char* param1, const char* param2);
 char*           dc_imex_has_backup           (dc_context_t*, const char* dir);
 int             dc_check_password            (dc_context_t*, const char* pw);

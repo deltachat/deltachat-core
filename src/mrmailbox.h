@@ -29,8 +29,6 @@ extern "C" {
 #define MR_IMEX_IMPORT_SELF_KEYS            DC_IMEX_IMPORT_SELF_KEYS
 #define MR_IMEX_EXPORT_BACKUP               DC_IMEX_EXPORT_BACKUP
 #define MR_IMEX_IMPORT_BACKUP               DC_IMEX_IMPORT_BACKUP
-#define MR_BAK_PREFIX                       DC_BAK_PREFIX
-#define MR_BAK_SUFFIX                       DC_BAK_SUFFIX
 #define MR_QR_ASK_VERIFYCONTACT             DC_QR_ASK_VERIFYCONTACT
 #define MR_QR_ASK_VERIFYGROUP               DC_QR_ASK_VERIFYGROUP
 #define MR_QR_FPR_OK                        DC_QR_FPR_OK
