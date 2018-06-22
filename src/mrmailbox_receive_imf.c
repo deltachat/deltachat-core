@@ -36,7 +36,7 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
+static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, mrarray_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
 	int dummy;
@@ -70,14 +70,14 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 	free(display_name_dec);
 
 	if( row_id ) {
-		if( !dc_array_search_id(ids, row_id, NULL) ) {
-			dc_array_add_id(ids, row_id);
+		if( !mrarray_search_id(ids, row_id, NULL) ) {
+			mrarray_add_id(ids, row_id);
 		}
 	}
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -94,7 +94,7 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mail
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -323,13 +323,13 @@ static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, 
 }
 
 
-static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc_array_t* unsorted_contact_ids)
+static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* unsorted_contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
 	sqlite3_stmt* stmt = NULL;
-	dc_array_t*   contact_ids = dc_array_new(mailbox, 23);
+	mrarray_t*    contact_ids = mrarray_new(mailbox, 23);
 	char*         contact_ids_str = NULL, *q3 = NULL;
-	dc_array_t*   chat_ids = dc_array_new(mailbox, 23);
+	mrarray_t*    chat_ids = mrarray_new(mailbox, 23);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC  ) {
 		goto cleanup;
@@ -337,27 +337,27 @@ static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc
 
 	/* copy array, remove duplicates and SELF, sort by ID */
 	{
-		int i, iCnt = dc_array_get_cnt(unsorted_contact_ids);
+		int i, iCnt = mrarray_get_cnt(unsorted_contact_ids);
 		if( iCnt <= 0 ) {
 			goto cleanup;
 		}
 
 		for( i = 0; i < iCnt; i++ ) {
-			uint32_t curr_id = dc_array_get_id(unsorted_contact_ids, i);
-			if( curr_id != MR_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL) ) {
-				dc_array_add_id(contact_ids, curr_id);
+			uint32_t curr_id = mrarray_get_id(unsorted_contact_ids, i);
+			if( curr_id != MR_CONTACT_ID_SELF && !mrarray_search_id(contact_ids, curr_id, NULL) ) {
+				mrarray_add_id(contact_ids, curr_id);
 			}
 		}
 
-		if( dc_array_get_cnt(contact_ids)==0 ) {
+		if( mrarray_get_cnt(contact_ids)==0 ) {
 			goto cleanup;
 		}
 
-		dc_array_sort_ids(contact_ids); /* for easy comparison, we also sort the sql result below */
+		mrarray_sort_ids(contact_ids); /* for easy comparison, we also sort the sql result below */
 	}
 
 	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
-	contact_ids_str = dc_array_get_string(contact_ids, ",");
+	contact_ids_str = mrarray_get_string(contact_ids, ",");
 	q3 = sqlite3_mprintf("SELECT DISTINCT cc.chat_id, cc.contact_id "
 	                     " FROM chats_contacts cc "
 	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
@@ -376,15 +376,15 @@ static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc
 			uint32_t contact_id = sqlite3_column_int(stmt, 1);
 
 			if( chat_id != last_chat_id ) {
-				if( matches == dc_array_get_cnt(contact_ids) && mismatches == 0 ) {
-					dc_array_add_id(chat_ids, last_chat_id);
+				if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
+					mrarray_add_id(chat_ids, last_chat_id);
 				}
 				last_chat_id = chat_id;
 				matches = 0;
 				mismatches = 0;
 			}
 
-			if( contact_id == dc_array_get_id(contact_ids, matches) ) {
+			if( contact_id == mrarray_get_id(contact_ids, matches) ) {
 				matches++;
 			}
 			else {
@@ -392,21 +392,21 @@ static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc
 			}
 		}
 
-		if( matches == dc_array_get_cnt(contact_ids) && mismatches == 0 ) {
-			dc_array_add_id(chat_ids, last_chat_id);
+		if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
+			mrarray_add_id(chat_ids, last_chat_id);
 		}
 	}
 
 cleanup:
 	if( stmt ) { sqlite3_finalize(stmt); }
 	free(contact_ids_str);
-	dc_array_unref(contact_ids);
+	mrarray_unref(contact_ids);
 	if( q3 ) { sqlite3_free(q3); }
 	return chat_ids;
 }
 
 
-static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids /*including SELF*/)
+static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /*including SELF*/)
 {
 	/* algorithm:
 	- sort normalized, lowercased, e-mail addresses alphabetically
@@ -414,8 +414,8 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids 
 	- sha-256 this string (without possibly terminating null-characters)
 	- encode the first 64 bits of the sha-256 output as lowercase hex (results in 16 characters from the set [0-9a-f])
 	 */
-	dc_array_t*    member_addrs = dc_array_new(mailbox, 23);
-	char*          member_ids_str = dc_array_get_string(member_ids, ",");
+	mrarray_t*     member_addrs = mrarray_new(mailbox, 23);
+	char*          member_ids_str = mrarray_get_string(member_ids, ",");
 	mrstrbuilder_t member_cs;
 	sqlite3_stmt*  stmt = NULL;
 	char*          q3 = NULL, *addr;
@@ -430,19 +430,19 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids 
 	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 	addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
 	mr_strlower_in_place(addr);
-	dc_array_add_ptr(member_addrs, addr);
+	mrarray_add_ptr(member_addrs, addr);
 	while( sqlite3_step(stmt)==SQLITE_ROW ) {
 		addr = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
 		mr_strlower_in_place(addr);
-		dc_array_add_ptr(member_addrs, addr);
+		mrarray_add_ptr(member_addrs, addr);
 	}
-	dc_array_sort_strings(member_addrs);
+	mrarray_sort_strings(member_addrs);
 
 	/* build a single, comma-separated (cs) string from all addresses */
-	iCnt = dc_array_get_cnt(member_addrs);
+	iCnt = mrarray_get_cnt(member_addrs);
 	for( i = 0; i < iCnt; i++ ) {
 		if( i ) { mrstrbuilder_cat(&member_cs, ","); }
-		mrstrbuilder_cat(&member_cs, (const char*)dc_array_get_ptr(member_addrs, i));
+		mrstrbuilder_cat(&member_cs, (const char*)mrarray_get_ptr(member_addrs, i));
 	}
 
 	/* make sha-256 from the string */
@@ -462,8 +462,8 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids 
 	}
 
 	/* cleanup */
-	dc_array_free_ptr(member_addrs);
-	dc_array_unref(member_addrs);
+	mrarray_free_ptr(member_addrs);
+	mrarray_unref(member_addrs);
 	free(member_ids_str);
 	free(binary_hash);
 	if( stmt ) { sqlite3_finalize(stmt); }
@@ -501,35 +501,35 @@ cleanup:
 
 
 static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                           int32_t from_id, const dc_array_t* to_ids,/*does not contain SELF*/
+                                           int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
 	/* if we're here, no grpid was found, check there is an existing ad-hoc
 	group matching the to-list or if we can create one */
-	dc_array_t*    member_ids      = NULL;
+	mrarray_t*    member_ids      = NULL;
 	uint32_t      chat_id         = 0;
 	int           chat_id_blocked = 0, i;
-	dc_array_t*    chat_ids        = NULL;
+	mrarray_t*    chat_ids        = NULL;
 	char*         chat_ids_str    = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt            = NULL;
 	char*         grpid           = NULL;
 	char*         grpname         = NULL;
 
 	/* build member list from the given ids */
-	if( dc_array_get_cnt(to_ids)==0 || mrmimeparser_is_mailinglist_message(mime_parser) ) {
+	if( mrarray_get_cnt(to_ids)==0 || mrmimeparser_is_mailinglist_message(mime_parser) ) {
 		goto cleanup; /* too few contacts or a mailinglist */
 	}
-	member_ids = dc_array_duplicate(to_ids);
-	if( !dc_array_search_id(member_ids, from_id, NULL) )            { dc_array_add_id(member_ids, from_id); }
-	if( !dc_array_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { dc_array_add_id(member_ids, MR_CONTACT_ID_SELF); }
-	if( dc_array_get_cnt(member_ids) < 3 ) {
+	member_ids = mrarray_duplicate(to_ids);
+	if( !mrarray_search_id(member_ids, from_id, NULL) )            { mrarray_add_id(member_ids, from_id); }
+	if( !mrarray_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { mrarray_add_id(member_ids, MR_CONTACT_ID_SELF); }
+	if( mrarray_get_cnt(member_ids) < 3 ) {
 		goto cleanup; /* too few contacts given */
 	}
 
 	/* check if the member list matches other chats, if so, choose the one with the most recent activity */
 	chat_ids = search_chat_ids_by_contact_ids(mailbox, member_ids);
-	if( dc_array_get_cnt(chat_ids)>0 ) {
-		chat_ids_str = dc_array_get_string(chat_ids, ",");
+	if( mrarray_get_cnt(chat_ids)>0 ) {
+		chat_ids_str = mrarray_get_string(chat_ids, ",");
 		q3 = sqlite3_mprintf("SELECT c.id, c.blocked "
 							 " FROM chats c "
 							 " LEFT JOIN msgs m ON m.chat_id=c.id "
@@ -559,21 +559,21 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 		grpname = safe_strdup(mime_parser->m_subject);
 	}
 	else {
-		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  dc_array_get_cnt(member_ids));
+		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  mrarray_get_cnt(member_ids));
 	}
 
 	/* create group record */
 	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
-	for( i = 0; i < dc_array_get_cnt(member_ids); i++ ) {
-		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, dc_array_get_id(member_ids, i));
+	for( i = 0; i < mrarray_get_cnt(member_ids); i++ ) {
+		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, mrarray_get_id(member_ids, i));
 	}
 
 	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 cleanup:
-	dc_array_unref(member_ids);
-	dc_array_unref(chat_ids);
+	mrarray_unref(member_ids);
+	mrarray_unref(chat_ids);
 	free(chat_ids_str);
 	free(grpid);
 	free(grpname);
@@ -585,7 +585,7 @@ cleanup:
 
 
 static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser,
-                                       uint32_t from_id, const dc_array_t* to_ids)
+                                       uint32_t from_id, const mrarray_t* to_ids)
 {
 	int             everythings_okay = 0;
 	mrcontact_t*    contact          = mrcontact_new(mailbox);
@@ -616,7 +616,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 
 	// check that all members are verified.
 	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.
-	to_ids_str = dc_array_get_string(to_ids, ",");
+	to_ids_str = mrarray_get_string(to_ids, ",");
 	q3 = sqlite3_mprintf("SELECT c.addr, LENGTH(ps.verified_key_fingerprint) "
 						 " FROM contacts c "
 						 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
@@ -681,7 +681,7 @@ which tries to create or find out the chat_id by:
 So when the function returns, the caller has the group id matching the current
 state of the group. */
 static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                     int32_t from_id, const dc_array_t* to_ids,
+                                     int32_t from_id, const mrarray_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
 	uint32_t              chat_id          = 0;
@@ -690,7 +690,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	char*                 grpid            = NULL;
 	char*                 grpname          = NULL;
 	sqlite3_stmt*         stmt;
-	int                   i, to_ids_cnt = dc_array_get_cnt(to_ids);
+	int                   i, to_ids_cnt = mrarray_get_cnt(to_ids);
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
 	int                   send_EVENT_CHAT_MODIFIED = 0;
@@ -897,7 +897,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 		for( i = 0; i < to_ids_cnt; i++ )
 		{
-			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
+			uint32_t to_id = mrarray_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
 				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, to_id);
@@ -943,7 +943,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	int              incoming_origin = 0;
 	#define          outgoing (!incoming)
 
-	dc_array_t*       to_ids = NULL;
+	mrarray_t*       to_ids = NULL;
 	int              to_self = 0;
 
 	uint32_t         from_id = 0;
@@ -975,7 +975,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
-	to_ids = dc_array_new(mailbox, 16);
+	to_ids = mrarray_new(mailbox, 16);
 	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
 		mrmailbox_log_info(mailbox, 0, "Bad param.");
 		goto cleanup;
@@ -1030,7 +1030,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			if( fld_from )
 			{
 				int check_self;
-				dc_array_t* from_list = dc_array_new(mailbox, 16);
+				mrarray_t* from_list = mrarray_new(mailbox, 16);
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
@@ -1043,13 +1043,13 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 				else
 				{
-					if( dc_array_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
+					if( mrarray_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
-						from_id = dc_array_get_id(from_list, 0);
+						from_id = mrarray_get_id(from_list, 0);
 						incoming_origin = mrmailbox_get_contact_origin__(mailbox, from_id, &from_id_blocked);
 					}
 				}
-				dc_array_unref(from_list);
+				mrarray_unref(from_list);
 			}
 		}
 
@@ -1213,8 +1213,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			{
 				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also delivered.  We cannot recreate other states (read, error). */
 				from_id = MR_CONTACT_ID_SELF;
-				if( dc_array_get_cnt(to_ids) >= 1 ) {
-					to_id   = dc_array_get_id(to_ids, 0);
+				if( mrarray_get_cnt(to_ids) >= 1 ) {
+					to_id   = mrarray_get_id(to_ids, 0);
 
 					if( chat_id == 0 )
 					{
@@ -1237,7 +1237,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 
 				if( chat_id == 0 ) {
-					if( dc_array_get_cnt(to_ids) == 0 && to_self ) {
+					if( mrarray_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
 						mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
@@ -1474,7 +1474,7 @@ cleanup:
 
 	mrmimeparser_unref(mime_parser);
 	free(rfc724_mid);
-	dc_array_unref(to_ids);
+	mrarray_unref(to_ids);
 
 	if( created_db_entries ) {
 		if( create_event_to_send ) {

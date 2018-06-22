@@ -35,7 +35,7 @@ struct _dc_chatlist
 	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
 	#define         MR_CHATLIST_IDS_PER_RESULT 2
 	size_t          m_cnt;
-	dc_array_t*     m_chatNlastmsg_ids;
+	mrarray_t*      m_chatNlastmsg_ids;
 };
 
 

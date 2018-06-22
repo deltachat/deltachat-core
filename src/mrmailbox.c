@@ -991,9 +991,9 @@ cleanup:
 }
 
 
-static dc_array_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+static mrarray_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	dc_array_t* ret = dc_array_new(mailbox, 100);
+	mrarray_t* ret = mrarray_new(mailbox, 100);
 
 	sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
 		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
@@ -1001,7 +1001,7 @@ static dc_array_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t cha
 	sqlite3_bind_int(stmt, 2, msg_type);
 	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+		mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 	}
 
 	return ret;
@@ -1010,7 +1010,7 @@ static dc_array_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t cha
 
 /**
  * Returns all message IDs of the given types in a chat.  Typically used to show
- * a gallery.  The result must be dc_array_unref()'d
+ * a gallery.  The result must be mrarray_unref()'d
  *
  * @memberof mrmailbox_t
  *
@@ -1025,9 +1025,9 @@ static dc_array_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t cha
  *
  * @return An array with messages from the given chat ID that have the wanted message types.
  */
-dc_array_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+mrarray_t* mrmailbox_get_chat_media(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	dc_array_t* ret = NULL;
+	mrarray_t* ret = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return NULL;
@@ -1066,7 +1066,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 	uint32_t ret_msg_id = 0;
 	mrmsg_t* msg = mrmsg_new();
 	int      locked = 0;
-	dc_array_t* list = NULL;
+	mrarray_t* list = NULL;
 	int      i, cnt;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1087,20 +1087,20 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	cnt = dc_array_get_cnt(list);
+	cnt = mrarray_get_cnt(list);
 	for( i = 0; i < cnt; i++ ) {
-		if( curr_msg_id == dc_array_get_id(list, i) )
+		if( curr_msg_id == mrarray_get_id(list, i) )
 		{
 			if( dir > 0 ) {
 				/* get the next message from the current position */
 				if( i+1 < cnt ) {
-					ret_msg_id = dc_array_get_id(list, i+1);
+					ret_msg_id = mrarray_get_id(list, i+1);
 				}
 			}
 			else if( dir < 0 ) {
 				/* get the previous message from the current position */
 				if( i-1 >= 0 ) {
-					ret_msg_id = dc_array_get_id(list, i-1);
+					ret_msg_id = mrarray_get_id(list, i-1);
 				}
 			}
 			break;
@@ -1110,7 +1110,7 @@ uint32_t mrmailbox_get_next_media(mrmailbox_t* mailbox, uint32_t curr_msg_id, in
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	dc_array_unref(list);
+	mrarray_unref(list);
 	mrmsg_unref(msg);
 	return ret_msg_id;
 }
@@ -1134,14 +1134,14 @@ cleanup:
  * @param mailbox The mailbox object as returned from mrmailbox_new().
  * @param chat_id Chat ID to get the belonging contact IDs for.
  *
- * @return an array of contact IDs belonging to the chat; must be freed using dc_array_unref() when done.
+ * @return an array of contact IDs belonging to the chat; must be freed using mrarray_unref() when done.
  */
-dc_array_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
+mrarray_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
 	int           locked = 0;
-	dc_array_t*   ret = dc_array_new(mailbox, 100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1163,7 +1163,7 @@ dc_array_t* mrmailbox_get_chat_contacts(mrmailbox_t* mailbox, uint32_t chat_id)
 		sqlite3_bind_int(stmt, 1, chat_id);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 cleanup:
@@ -1180,10 +1180,10 @@ cleanup:
  *
  * @param mailbox The mailbox object as returned from mrmailbox_new().
  */
-dc_array_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
+mrarray_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 {
 	int           show_deaddrop, success = 0, locked = 0;
-	dc_array_t*   ret = dc_array_new(mailbox, 128);
+	mrarray_t*    ret = mrarray_new(mailbox, 128);
 	sqlite3_stmt* stmt = NULL;
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || ret == NULL ) {
@@ -1205,7 +1205,7 @@ dc_array_t* mrmailbox_get_fresh_msgs(mrmailbox_t* mailbox)
 		sqlite3_bind_int(stmt, 1, show_deaddrop? MR_CHAT_DEADDROP_BLOCKED : 0);
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -1221,7 +1221,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			dc_array_unref(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -1245,14 +1245,14 @@ cleanup:
  * @param marker1before An optional message ID.  If set, the id MR_MSG_ID_MARKER1 will be added just
  *   before the given ID in the returned array.  Set this to 0 if you do not want this behaviour.
  *
- * @return Array of message IDs, must be dc_array_unref()'d when no longer used.
+ * @return Array of message IDs, must be mrarray_unref()'d when no longer used.
  */
-dc_array_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
+mrarray_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
 {
 	//clock_t       start = clock();
 
 	int           success = 0, locked = 0;
-	dc_array_t*   ret = dc_array_new(mailbox, 512);
+	mrarray_t*    ret = mrarray_new(mailbox, 512);
 	sqlite3_stmt* stmt = NULL;
 
 	uint32_t      curr_id;
@@ -1311,7 +1311,7 @@ dc_array_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint
 
 			/* add user marker */
 			if( curr_id == marker1before ) {
-				dc_array_add_id(ret, MR_MSG_ID_MARKER1);
+				mrarray_add_id(ret, MR_MSG_ID_MARKER1);
 			}
 
 			/* add daymarker, if needed */
@@ -1319,12 +1319,12 @@ dc_array_t* mrmailbox_get_chat_msgs(mrmailbox_t* mailbox, uint32_t chat_id, uint
 				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
 				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
 				if( curr_day != last_day ) {
-					dc_array_add_id(ret, MR_MSG_ID_DAYMARKER);
+					mrarray_add_id(ret, MR_MSG_ID_DAYMARKER);
 					last_day = curr_day;
 				}
 			}
 
-			dc_array_add_id(ret, curr_id);
+			mrarray_add_id(ret, curr_id);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -1342,7 +1342,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			dc_array_unref(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -1367,15 +1367,15 @@ cleanup:
  *
  * @param query The query to search for.
  *
- * @return An array of message IDs. Must be freed using dc_array_unref() when no longer needed.
+ * @return An array of message IDs. Must be freed using mrarray_unref() when no longer needed.
  *     If nothing can be found, the function returns NULL.
  */
-dc_array_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
+mrarray_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const char* query)
 {
 	//clock_t       start = clock();
 
 	int           success = 0, locked = 0;
-	dc_array_t*   ret = dc_array_new(mailbox, 100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
@@ -1431,7 +1431,7 @@ dc_array_t* mrmailbox_search_msgs(mrmailbox_t* mailbox, uint32_t chat_id, const 
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -1453,7 +1453,7 @@ cleanup:
 	}
 	else {
 		if( ret ) {
-			dc_array_unref(ret);
+			mrarray_unref(ret);
 		}
 		return NULL;
 	}
@@ -3510,17 +3510,17 @@ cleanup:
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
  *
- * @return An array containing all contact IDs.  Must be dc_array_unref()'d
+ * @return An array containing all contact IDs.  Must be mrarray_unref()'d
  *     after usage.
  */
-dc_array_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, const char* query)
+mrarray_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, const char* query)
 {
 	int           locked = 0;
 	char*         self_addr = NULL;
 	char*         self_name = NULL;
 	char*         self_name2 = NULL;
 	int           add_self = 0;
-	dc_array_t*   ret = dc_array_new(mailbox, 100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	char*         s3strLikeCmd = NULL;
 	sqlite3_stmt* stmt;
 
@@ -3567,7 +3567,7 @@ dc_array_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, con
 		}
 
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -3575,7 +3575,7 @@ dc_array_t* mrmailbox_get_contacts(mrmailbox_t* mailbox, uint32_t listflags, con
 
 	/* to the end of the list, add self - this is to be in sync with member lists and to allow the user to start a self talk */
 	if( (listflags&MR_GCL_ADD_SELF) && add_self ) {
-		dc_array_add_id(ret, MR_CONTACT_ID_SELF);
+		mrarray_add_id(ret, MR_CONTACT_ID_SELF);
 	}
 
 cleanup:
@@ -3595,12 +3595,12 @@ cleanup:
  *
  * @param mailbox The mailbox object as created by mrmailbox_new().
  *
- * @return An array containing all blocked contact IDs.  Must be dc_array_unref()'d
+ * @return An array containing all blocked contact IDs.  Must be mrarray_unref()'d
  *     after usage.
  */
-dc_array_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
+mrarray_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
 {
-	dc_array_t*   ret = dc_array_new(mailbox, 100);
+	mrarray_t*    ret = mrarray_new(mailbox, 100);
 	sqlite3_stmt* stmt;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -3615,7 +3615,7 @@ dc_array_t* mrmailbox_get_blocked_contacts(mrmailbox_t* mailbox)
 				" ORDER BY LOWER(name||addr),id;");
 		sqlite3_bind_int(stmt, 1, MR_CONTACT_ID_LAST_SPECIAL);
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+			mrarray_add_id(ret, sqlite3_column_int(stmt, 0));
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -4440,7 +4440,7 @@ void mrmailbox_forward_msgs(mrmailbox_t* mailbox, const uint32_t* msg_ids, int m
 
 		curr_timestamp = mr_create_smeared_timestamps__(msg_cnt);
 
-		idsstr = dc_arr_to_string(msg_ids, msg_cnt);
+		idsstr = mr_arr_to_string(msg_ids, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);
 		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
 		while( sqlite3_step(stmt)==SQLITE_ROW )

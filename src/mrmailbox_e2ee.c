@@ -331,7 +331,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	MMAPString*            plain = mmap_string_new("");
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
-	dc_array_t*            peerstates = dc_array_new(NULL, 10);
+	mrarray_t*             peerstates = mrarray_new(NULL, 10);
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
@@ -377,7 +377,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				      && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					mrkeyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
-					dc_array_add_ptr(peerstates, peerstate);
+					mrarray_add_ptr(peerstates, peerstate);
 				}
 				else
 				{
@@ -419,10 +419,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			mailmime_get_content_message(), NULL, NULL, NULL, NULL, imffields_encrypted, part_to_encrypt);
 
 		/* gossip keys */
-		int iCnt = dc_array_get_cnt(peerstates);
+		int iCnt = mrarray_get_cnt(peerstates);
 		if( iCnt > 1 ) {
 			for( int i = 0; i < iCnt; i++ ) {
-				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)dc_array_get_ptr(peerstates, i), min_verified);
+				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)mrarray_get_ptr(peerstates, i), min_verified);
 				if( p ) {
 					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
 				}
@@ -514,8 +514,8 @@ cleanup:
 	mrkey_unref(sign_key);
 	if( plain ) { mmap_string_free(plain); }
 
-	for( int i=dc_array_get_cnt(peerstates)-1; i>=0; i-- ) { mrapeerstate_unref((mrapeerstate_t*)dc_array_get_ptr(peerstates, i)); }
-	dc_array_unref(peerstates);
+	for( int i=mrarray_get_cnt(peerstates)-1; i>=0; i-- ) { mrapeerstate_unref((mrapeerstate_t*)mrarray_get_ptr(peerstates, i)); }
+	mrarray_unref(peerstates);
 }
 
 

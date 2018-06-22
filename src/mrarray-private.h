@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __DC_ARRAY_PRIVATE_H__
-#define __DC_ARRAY_PRIVATE_H__
+#ifndef __MRARRAY_PRIVATE_H__
+#define __MRARRAY_PRIVATE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,22 +33,22 @@ struct _dc_array
 	/** @privatesection */
 
 	uint32_t        m_magic;
-	mrmailbox_t*    m_mailbox;     /**< The mailbox the array belongs to. May be NULL when NULL is given to dc_array_new(). */
+	mrmailbox_t*    m_mailbox;     /**< The mailbox the array belongs to. May be NULL when NULL is given to mrarray_new(). */
 	size_t          m_allocated;   /**< The number of allocated items. Initially ~ 200. */
 	size_t          m_count;       /**< The number of used items. Initially 0. */
 	uintptr_t*      m_array;       /**< The data items, can be used between m_data[0] and m_data[m_cnt-1]. Never NULL. */
 };
 
 
-void             dc_array_free_ptr           (dc_array_t*);
-dc_array_t*      dc_array_duplicate          (const dc_array_t*);
-void             dc_array_sort_ids           (dc_array_t*);
-void             dc_array_sort_strings       (dc_array_t*);
-char*            dc_array_get_string         (const dc_array_t*, const char* sep);
-char*            dc_arr_to_string            (const uint32_t* arr, int cnt);
+void             mrarray_free_ptr            (mrarray_t*);
+mrarray_t*       mrarray_duplicate           (const mrarray_t*);
+void             mrarray_sort_ids            (mrarray_t*);
+void             mrarray_sort_strings        (mrarray_t*);
+char*            mrarray_get_string          (const mrarray_t*, const char* sep);
+char*            mr_arr_to_string            (const uint32_t* arr, int cnt);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __DC_ARRAY_PRIVATE_H__ */
+#endif /* __MRARRAY_PRIVATE_H__ */
