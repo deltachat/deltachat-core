@@ -494,6 +494,7 @@ void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
 		while( 1 ) {
 			pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 				if( mailbox->m_smtpidle_in_idleing ) {
+					mailbox->m_perform_smtp_jobs_needed = 0;
 					pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 					return;
 				}
@@ -872,13 +873,15 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 		{
 			mailbox->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
 
-				int r = 0;
-				struct timespec timeToWait;
-				timeToWait.tv_sec  = time(NULL) + ((mailbox->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
-				timeToWait.tv_nsec = 0;
-				while( (mailbox->m_smtpidle_condflag == 0 && r == 0) || mailbox->m_smtpidle_suspend ) {
-					r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
-				}
+				do {
+					int r = 0;
+					struct timespec timeToWait;
+					timeToWait.tv_sec  = time(NULL) + ((mailbox->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
+					timeToWait.tv_nsec = 0;
+					while (mailbox->m_smtpidle_condflag==0 && r==0) {
+						r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+					}
+				} while (mailbox->m_smtpidle_suspend);
 				mailbox->m_smtpidle_condflag = 0;
 
 			mailbox->m_smtpidle_in_idleing = 0;
