@@ -77,7 +77,7 @@ static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, s
  * @param cb a callback function that is called for events (update,
  *     state changes etc.) and to get some information form the client (eg. translation
  *     for a given string).
- *     See dc_event.h for a list of possible events that may be passed to the callback.
+ *     See @ref DC_EVENT for a list of possible events that may be passed to the callback.
  *     - The callback MAY be called from _any_ thread, not only the main/GUI thread!
  *     - The callback MUST NOT call any dc_* and related functions unless stated
  *       otherwise!

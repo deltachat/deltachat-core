@@ -267,9 +267,9 @@ extern "C" {
 #define MR_EVENT_HTTP_GET                    DC_EVENT_HTTP_GET
 
 // errors
-#define MR_ERR_SEE_STRING        DC_ERR_SEE_STRING
-#define MR_ERR_SELF_NOT_IN_GROUP DC_ERR_SELF_NOT_IN_GROUP
-#define MR_ERR_NONETWORK         DC_ERR_NONETWORK
+#define MR_ERR_SEE_STRING                    DC_ERROR_SEE_STRING
+#define MR_ERR_SELF_NOT_IN_GROUP             DC_ERROR_SELF_NOT_IN_GROUP
+#define MR_ERR_NONETWORK                     DC_ERROR_NO_NETWORK
 
 
 #ifdef __cplusplus
