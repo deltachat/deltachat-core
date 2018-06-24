@@ -275,7 +275,7 @@ char* mrmailbox_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 	}
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( payload_output ) { pgp_output_delete(payload_output); }
@@ -616,7 +616,7 @@ static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_defau
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	free(buf);
 	free(self_addr);
 	mrkey_unref(private_key);
@@ -751,7 +751,7 @@ static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	mrkey_unref(public_key);
 	mrkey_unref(private_key);
 	return success;
@@ -1003,7 +1003,7 @@ cleanup:
 	if( closed ) { mrsqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	mrsqlite3_close__(dest_sql);
 	mrsqlite3_unref(dest_sql);
 	if( delete_dest_file ) { mr_delete_file(dest_pathNfilename, mailbox); }
@@ -1148,7 +1148,7 @@ cleanup:
 	free(pathNfilename);
 	free(repl_from);
 	free(repl_to);
-	if( stmt )  { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	return success;
 }

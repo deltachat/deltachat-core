@@ -398,10 +398,10 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 	}
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	free(contact_ids_str);
 	mrarray_unref(contact_ids);
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 	return chat_ids;
 }
 
@@ -466,8 +466,8 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 	mrarray_unref(member_addrs);
 	free(member_ids_str);
 	free(binary_hash);
-	if( stmt ) { sqlite3_finalize(stmt); }
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_finalize(stmt);
+	sqlite3_free(q3);
 	free(member_cs.m_buf);
 	return ret;
 }
@@ -490,7 +490,7 @@ static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, c
 	chat_id = sqlite3_last_insert_rowid(mailbox->m_sql->m_cobj);
 
 cleanup:
-	if( stmt) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	return chat_id;
 }
 
@@ -577,8 +577,8 @@ cleanup:
 	free(chat_ids_str);
 	free(grpid);
 	free(grpname);
-	if( stmt ) { sqlite3_finalize(stmt); }
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_finalize(stmt);
+	sqlite3_free(q3);
 	if( ret_chat_id )         { *ret_chat_id         = chat_id; }
 	if( ret_chat_id_blocked ) { *ret_chat_id_blocked = chat_id_blocked; }
 }
@@ -659,11 +659,11 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	everythings_okay = 1;
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	mrcontact_unref(contact);
 	mrapeerstate_unref(peerstate);
 	free(to_ids_str);
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 	return everythings_okay;
 }
 

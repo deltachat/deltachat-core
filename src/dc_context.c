@@ -1709,9 +1709,9 @@ void mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint
 	stmt = NULL;
 
 cleanup:
-	if( q )       { sqlite3_free(q); }
-	if( stmt )    { sqlite3_finalize(stmt); }
-	if( contact ) { mrcontact_unref(contact); }
+	sqlite3_free(q);
+	sqlite3_finalize(stmt);
+	dc_contact_unref(contact);
 
 	if( ret_chat_id )      { *ret_chat_id      = chat_id; }
 	if( ret_chat_blocked ) { *ret_chat_blocked = create_blocked; }
@@ -1920,7 +1920,7 @@ cleanup:
 	if( pending_transaction ) { mrsqlite3_rollback__(mailbox->m_sql); }
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrchat_unref(obj);
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 }
 
 
@@ -2713,7 +2713,7 @@ uint32_t dc_create_group_chat(dc_context_t* mailbox, int verified, const char* c
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( stmt) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	free(draft_txt);
 	free(grpid);
 
@@ -2796,7 +2796,7 @@ int dc_set_chat_name(dc_context_t* mailbox, uint32_t chat_id, const char* new_na
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 	mrchat_unref(chat);
 	mrmsg_unref(msg);
 	return success;
@@ -3134,7 +3134,7 @@ int dc_remove_contact_from_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 	mrchat_unref(chat);
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
@@ -3562,7 +3562,7 @@ dc_array_t* dc_get_contacts(dc_context_t* mailbox, uint32_t listflags, const cha
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	if( s3strLikeCmd ) { sqlite3_free(s3strLikeCmd); }
+	sqlite3_free(s3strLikeCmd);
 	free(self_addr);
 	free(self_name);
 	free(self_name2);
@@ -4457,9 +4457,9 @@ cleanup:
 	mrcontact_unref(contact);
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	free(idsstr);
-	if( q3 ) { sqlite3_free(q3); }
+	sqlite3_free(q3);
 }
 
 

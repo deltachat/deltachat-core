@@ -658,7 +658,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 
 cleanup:
 	mrparam_unref(job.m_param);
-	if( select_stmt ) { sqlite3_finalize(select_stmt); }
+	sqlite3_finalize(select_stmt);
 }
 
 

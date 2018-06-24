@@ -41,7 +41,7 @@ void mrtoken_save__(mrmailbox_t* mailbox, mrtokennamespc_t namespc, uint32_t for
 	sqlite3_step(stmt);
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 }
 
 
@@ -63,7 +63,7 @@ char* mrtoken_lookup__(mrmailbox_t* mailbox, mrtokennamespc_t namespc, uint32_t 
 	token = strdup_keep_null((char*)sqlite3_column_text(stmt, 0));
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	return token;
 }
 
@@ -85,6 +85,6 @@ int mrtoken_exists__(mrmailbox_t* mailbox, mrtokennamespc_t namespc, const char*
 	exists = (sqlite3_step(stmt)!=0);
 
 cleanup:
-	if( stmt ) { sqlite3_finalize(stmt); }
+	sqlite3_finalize(stmt);
 	return exists;
 }
