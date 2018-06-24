@@ -492,7 +492,7 @@ int32_t dc_get_config_int(dc_context_t* ths, const char* key, int32_t def)
  */
 char* dc_get_version_str(void)
 {
-	return mr_mprintf("%i.%i.%i", (int)MR_VERSION_MAJOR, (int)MR_VERSION_MINOR, (int)MR_VERSION_REVISION);
+	return safe_strdup(DC_VERSION_STR);
 }
 
 
@@ -588,7 +588,7 @@ char* dc_get_info(dc_context_t* mailbox)
 		"E2EE_DEFAULT_ENABLED=%i\n"
 		"Private keys=%i, public keys=%i, fingerprint=\n%s\n"
 		"\n"
-		"Using Delta Chat Core v%i.%i.%i, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage.\n\n"
+		"Using Delta Chat Core v%s, SQLite %s-ts%i, libEtPan %i.%i, OpenSSL %i.%i.%i%c. Compiled " __DATE__ ", " __TIME__ " for %i bit usage.\n\n"
 		"Log excerpt:\n"
 		/* In the frontends, additional software hints may follow here. */
 
@@ -605,7 +605,7 @@ char* dc_get_info(dc_context_t* mailbox)
 		, MR_E2EE_DEFAULT_ENABLED
 		, prv_key_count, pub_key_count, fingerprint_str
 
-		, MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION
+		, DC_VERSION_STR
 		, SQLITE_VERSION, sqlite3_threadsafe()   ,  libetpan_get_version_major(), libetpan_get_version_minor()
 		, (int)(OPENSSL_VERSION_NUMBER>>28), (int)(OPENSSL_VERSION_NUMBER>>20)&0xFF, (int)(OPENSSL_VERSION_NUMBER>>12)&0xFF, (char)('a'-1+((OPENSSL_VERSION_NUMBER>>4)&0xFF))
 		, sizeof(void*)*8

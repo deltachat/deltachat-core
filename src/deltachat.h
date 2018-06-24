@@ -31,9 +31,7 @@ extern "C" {
 #include <time.h>
 
 
-#define DC_VERSION_MAJOR    0
-#define DC_VERSION_MINOR    18
-#define DC_VERSION_REVISION 0
+#define DC_VERSION_STR "0.18.2"
 
 
 /**

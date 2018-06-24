@@ -18,9 +18,6 @@ extern "C" {
 #define mrlot_t                             dc_lot_t
 
 // mailbox functions
-#define MR_VERSION_MAJOR                    DC_VERSION_MAJOR
-#define MR_VERSION_MINOR                    DC_VERSION_MINOR
-#define MR_VERSION_REVISION                 DC_VERSION_REVISION
 #define MR_GCL_ARCHIVED_ONLY                DC_GCL_ARCHIVED_ONLY
 #define MR_GCL_NO_SPECIALS                  DC_GCL_NO_SPECIALS
 #define MR_GCL_VERIFIED_ONLY                DC_GCL_VERIFIED_ONLY

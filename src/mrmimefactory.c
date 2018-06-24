@@ -519,8 +519,8 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		/* Add a X-Mailer header. This is only informational for debugging and may be removed in the release.
 		We do not rely on this header as it may be removed by MTAs. */
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"),
-			mr_mprintf("Delta Chat %i.%i.%i%s%s",
-			MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION,
+			mr_mprintf("Delta Chat %s%s%s",
+			DC_VERSION_STR,
 			factory->m_mailbox->m_os_name? " for " : "",
 			factory->m_mailbox->m_os_name? factory->m_mailbox->m_os_name : "")));
 
@@ -740,12 +740,12 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 		/* second body part: machine-readable, always REQUIRED by RFC 6522 */
 		message_text2 = mr_mprintf(
-			"Reporting-UA: Delta Chat %i.%i.%i" LINEEND
+			"Reporting-UA: Delta Chat %s" LINEEND
 			"Original-Recipient: rfc822;%s" LINEEND
 			"Final-Recipient: rfc822;%s" LINEEND
 			"Original-Message-ID: <%s>" LINEEND
 			"Disposition: manual-action/MDN-sent-automatically; displayed" LINEEND, /* manual-action: the user has configured the MUA to send MDNs (automatic-action implies the receipts cannot be disabled) */
-			MR_VERSION_MAJOR, MR_VERSION_MINOR, MR_VERSION_REVISION,
+			DC_VERSION_STR,
 			factory->m_from_addr,
 			factory->m_from_addr,
 			factory->m_msg->m_rfc724_mid);
