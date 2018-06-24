@@ -1,3 +1,0 @@
-// deprecated
-#include "mrmailbox.h"
-

@@ -25,11 +25,11 @@ your library */
 
 
 #include <dirent.h>
-#include "../src/mrmailbox_internal.h"
-#include "../src/mraheader.h"
-#include "../src/mrapeerstate.h"
-#include "../src/mrkey.h"
-#include "../src/mrpgp.h"
+#include "../src/dc_context.h"
+#include "../src/dc_aheader.h"
+#include "../src/dc_apeerstate.h"
+#include "../src/dc_key.h"
+#include "../src/dc_pgp.h"
 
 
 
