@@ -392,7 +392,7 @@ int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* que
 	success = 1;
 
 cleanup:
-	//mrmailbox_log_info(ths->m_mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//dc_log_info(ths->m_mailbox, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	free(query);
 	free(strLikeCmd);

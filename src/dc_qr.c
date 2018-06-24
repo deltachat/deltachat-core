@@ -66,7 +66,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 		goto cleanup;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Scanned QR code: %s", qr);
+	dc_log_info(mailbox, 0, "Scanned QR code: %s", qr);
 
 	/* split parameters from the qr code
 	 ------------------------------------ */

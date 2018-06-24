@@ -1065,7 +1065,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						mrmailbox_log_warning(ths->m_mailbox, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
+						dc_log_warning(ths->m_mailbox, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
@@ -1235,7 +1235,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 		 && mime->mm_content_type->ct_type->tp_data.tp_discrete_type->dt_type==MAILMIME_DISCRETE_TYPE_TEXT
 		 && mime->mm_content_type->ct_subtype
 		 && strcmp(mime->mm_content_type->ct_subtype, "rfc822-headers")==0 ) {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
+			dc_log_info(ths->m_mailbox, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
 			return 0;
 		}
 
@@ -1243,11 +1243,11 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 			size_t dummy = 0;
 			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &ths->m_header_protected)!=MAILIMF_NO_ERROR
 			 || ths->m_header_protected==NULL ) {
-				mrmailbox_log_warning(ths->m_mailbox, 0, "Protected headers parsing error.");
+				dc_log_warning(ths->m_mailbox, 0, "Protected headers parsing error.");
 			}
 		}
 		else {
-			mrmailbox_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
+			dc_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
 		}
 	}
 
@@ -1365,7 +1365,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 								}
 							}
 							if( plain_cnt==1 && html_cnt==1 )  {
-								mrmailbox_log_warning(ths->m_mailbox, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
+								dc_log_warning(ths->m_mailbox, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
 								skip_part = html_part;
 							}
 						}
@@ -1446,7 +1446,7 @@ static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbo
 				if( field->fld_type!=MAILIMF_FIELD_OPTIONAL_FIELD
 				 || (key_len>5 && strncasecmp(key, "Chat-", 5)==0) )
 				{
-					//mrmailbox_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
+					//dc_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
 					mrhash_insert(out, key, key_len, field);
 				}
 			}

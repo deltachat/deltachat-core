@@ -379,7 +379,7 @@ char* mrmailbox_create_setup_code(dc_context_t* mailbox)
 		do
 		{
 			if( !RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t)) ) {
-				mrmailbox_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
+				dc_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
 				RAND_pseudo_bytes((unsigned char*)&random_val, sizeof(uint16_t));
 			}
 		}
@@ -523,7 +523,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 	msg = NULL;
 
 	/* wait until the message is really sent */
-	mrmailbox_log_info(mailbox, 0, "Wait for setup message being sent ...");
+	dc_log_info(mailbox, 0, "Wait for setup message being sent ...");
 
 	while( 1 )
 	{
@@ -539,7 +539,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 		msg = NULL;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "... setup message sent.");
+	dc_log_info(mailbox, 0, "... setup message sent.");
 
 	success = 1;
 
@@ -567,14 +567,14 @@ static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_defau
 	buf = safe_strdup(armored);
 	if( !mr_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
 	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
+		dc_log_warning(mailbox, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
 	if( !mrkey_set_from_base64(private_key, buf_base64, MR_PRIVATE)
 	 || !mrpgp_is_valid_key(mailbox, private_key)
 	 || !mrpgp_split_key(mailbox, private_key, public_key) ) {
-		mrmailbox_log_error(mailbox, 0, "File does not contain a valid private key.");
+		dc_log_error(mailbox, 0, "File does not contain a valid private key.");
 		goto cleanup;
 	}
 
@@ -595,7 +595,7 @@ static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_defau
 
 		self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot save keypair.");
+			dc_log_error(mailbox, 0, "Cannot save keypair.");
 			goto cleanup;
 		}
 
@@ -663,22 +663,22 @@ int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char*
 
 	if( (msg=mrmailbox_get_msg(mailbox, msg_id))==NULL || !mrmsg_is_setupmessage(msg)
 	 || (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
-		mrmailbox_log_error(mailbox, 0, "Message is no Autocrypt Setup Message.");
+		dc_log_error(mailbox, 0, "Message is no Autocrypt Setup Message.");
 		goto cleanup;
 	}
 
 	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_mailbox) || filecontent == NULL || filebytes <= 0 ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot read Autocrypt Setup Message file.");
+		dc_log_error(mailbox, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
 
 	if( (norm_sc = mrmailbox_normalize_setup_code(mailbox, setup_code))==NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot normalize Setup Code.");
+		dc_log_warning(mailbox, 0, "Cannot normalize Setup Code.");
 		goto cleanup;
 	}
 
 	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, norm_sc, filecontent)) == NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
+		dc_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
@@ -712,11 +712,11 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 	else {
 		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
 	}
-	mrmailbox_log_info(mailbox, 0, "Exporting key %s", file_name);
+	dc_log_info(mailbox, 0, "Exporting key %s", file_name);
 	mr_delete_file(file_name, mailbox);
 	if( mrkey_render_asc_to_file(key, file_name, mailbox) ) {
-		mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file_name);
+		mailbox->m_cb(mailbox, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+		dc_log_error(mailbox, 0, "Cannot write key to %s", file_name);
 	}
 	free(file_name);
 }
@@ -788,7 +788,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 		goto cleanup;
 	}
 	if( (dir_handle=opendir(dir_name))==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
+		dc_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
 		goto cleanup;
 	}
 
@@ -802,7 +802,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 
 		free(path_plus_name);
 		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
-		mrmailbox_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+		dc_log_info(mailbox, 0, "Checking: %s", path_plus_name);
 
 		free(buf);
 		buf = NULL;
@@ -827,7 +827,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 
 		set_default = 1;
 		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
-			mrmailbox_log_info(mailbox, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
+			dc_log_info(mailbox, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
@@ -839,7 +839,7 @@ static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
 	}
 
 	if( imported_count == 0 ) {
-		mrmailbox_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
+		dc_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
 
@@ -865,7 +865,7 @@ The macro avoids weird values of 0% or 100% while still working. */
 	int permille = (processed_files_count*1000)/total_files_count; \
 	if( permille <  10 ) { permille =  10; } \
 	if( permille > 990 ) { permille = 990; } \
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, permille, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, permille, 0);
 
 
 static int export_backup(mrmailbox_t* mailbox, const char* dir)
@@ -893,7 +893,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
 		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot get backup file name.");
+			dc_log_error(mailbox, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
 	}
@@ -905,7 +905,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	closed = 1;
 
 	/* copy file to backup directory */
-	mrmailbox_log_info(mailbox, 0, "Backup \"%s\" to \"%s\".", mailbox->m_dbfile, dest_pathNfilename);
+	dc_log_info(mailbox, 0, "Backup \"%s\" to \"%s\".", mailbox->m_dbfile, dest_pathNfilename);
 	if( !mr_copy_file(mailbox->m_dbfile, dest_pathNfilename, mailbox) ) {
 		goto cleanup; /* error already logged */
 	}
@@ -931,7 +931,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	/* scan directory, pass 1: collect file info */
 	total_files_count = 0;
 	if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Backup: Cannot get info for blob-directory \"%s\".", mailbox->m_blobdir);
+		dc_log_error(mailbox, 0, "Backup: Cannot get info for blob-directory \"%s\".", mailbox->m_blobdir);
 		goto cleanup;
 	}
 
@@ -946,7 +946,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	{
 		/* scan directory, pass 2: copy files */
 		if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Backup: Cannot copy from blob-directory \"%s\".", mailbox->m_blobdir);
+			dc_log_error(mailbox, 0, "Backup: Cannot copy from blob-directory \"%s\".", mailbox->m_blobdir);
 			goto cleanup;
 		}
 
@@ -965,11 +965,11 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 			if( (name_len==1 && name[0]=='.')
 			 || (name_len==2 && name[0]=='.' && name[1]=='.')
 			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0) ) {
-				//mrmailbox_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
+				//dc_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
 				continue;
 			}
 
-			//mrmailbox_log_info(mailbox, 0, "Backup \"%s\".", name);
+			//dc_log_info(mailbox, 0, "Backup \"%s\".", name);
 			free(curr_pathNfilename);
 			curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
 			free(buf);
@@ -980,7 +980,7 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 			sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 			sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
 			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
-				mrmailbox_log_error(mailbox, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
+				dc_log_error(mailbox, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
 				goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
 			}
 			sqlite3_reset(stmt);
@@ -988,14 +988,14 @@ static int export_backup(mrmailbox_t* mailbox, const char* dir)
 	}
 	else
 	{
-		mrmailbox_log_info(mailbox, 0, "Backup: No files to copy.", mailbox->m_blobdir);
+		dc_log_info(mailbox, 0, "Backup: No files to copy.", mailbox->m_blobdir);
 	}
 
 	/* done - set some special config values (do this last to avoid importing crashed backups) */
 	mrsqlite3_set_config_int__(dest_sql, "backup_time", now);
 	mrsqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
 
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
 	success = 1;
 
 cleanup:
@@ -1046,10 +1046,10 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 	char*         repl_from = NULL;
 	char*         repl_to = NULL;
 
-	mrmailbox_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
+	dc_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
 
 	if( mrmailbox_is_configured(mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot import backups to mailboxes in use.");
+		dc_log_error(mailbox, 0, "Cannot import backups to mailboxes in use.");
 		goto cleanup;
 	}
 
@@ -1064,7 +1064,7 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 	mr_delete_file(mailbox->m_dbfile, mailbox);
 
 	if( mr_file_exist(mailbox->m_dbfile) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot import backups: Cannot delete the old file.");
+		dc_log_error(mailbox, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
@@ -1102,7 +1102,7 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 			free(pathNfilename);
 			pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, file_name);
 			if( !mr_write_file(pathNfilename, file_content, file_bytes, mailbox) ) {
-				mrmailbox_log_error(mailbox, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
+				dc_log_error(mailbox, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
 			}
 		}
@@ -1124,7 +1124,7 @@ static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
 		repl_to = safe_strdup(mailbox->m_blobdir);
 		ensure_no_slash(repl_to);
 
-		mrmailbox_log_info(mailbox, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
+		dc_log_info(mailbox, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
 
 		assert( 'f' == MRP_FILE );
 		assert( 'i' == MRP_PROFILE_IMAGE );
@@ -1216,22 +1216,22 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 	}
 
 	if( param1 == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "No Import/export dir/file given.");
+		dc_log_error(mailbox, 0, "No Import/export dir/file given.");
 		return 0;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Import/export process started.");
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, 0, 0);
+	dc_log_info(mailbox, 0, "Import/export process started.");
+	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, 0, 0);
 
 	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-		mrmailbox_log_error(mailbox, 0, "Import/export: Database not opened.");
+		dc_log_error(mailbox, 0, "Import/export: Database not opened.");
 		goto cleanup;
 	}
 
 	if( what==MR_IMEX_EXPORT_SELF_KEYS || what==MR_IMEX_EXPORT_BACKUP ) {
 		/* before we export anything, make sure the private key exists */
 		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
-			mrmailbox_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
+			dc_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
 		/* also make sure, the directory for exporting exists */
@@ -1269,10 +1269,10 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 	}
 
 	success = 1;
-	mailbox->m_cb(mailbox, MR_EVENT_IMEX_PROGRESS, 1000, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, 1000, 0);
 
 cleanup:
-	mrmailbox_log_info(mailbox, 0, "Import/export process ended.");
+	dc_log_info(mailbox, 0, "Import/export process ended.");
 	mrmailbox_free_ongoing(mailbox);
 	return success;
 }
@@ -1345,7 +1345,7 @@ char* dc_imex_has_backup(dc_context_t* mailbox, const char* dir_name)
 	}
 
 	if( (dir_handle=opendir(dir_name))==NULL ) {
-		mrmailbox_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
+		dc_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
 		goto cleanup;
 	}
 

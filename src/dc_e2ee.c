@@ -233,7 +233,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 		{
 			mrkey_t* private_key = mrkey_new();
 
-			mrmailbox_log_info(mailbox, 0, "Generating keypair ...");
+			dc_log_info(mailbox, 0, "Generating keypair ...");
 
 			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
@@ -249,22 +249,22 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 			mrsqlite3_lock(mailbox->m_sql);
 
 			if( !key_created ) {
-				mrmailbox_log_warning(mailbox, 0, "Cannot create keypair.");
+				dc_log_warning(mailbox, 0, "Cannot create keypair.");
 				goto cleanup;
 			}
 
 			if( !mrpgp_is_valid_key(mailbox, public_key)
 			 || !mrpgp_is_valid_key(mailbox, private_key) ) {
-				mrmailbox_log_warning(mailbox, 0, "Generated keys are not valid.");
+				dc_log_warning(mailbox, 0, "Generated keys are not valid.");
 				goto cleanup;
 			}
 
 			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, mailbox->m_sql) ) {
-				mrmailbox_log_warning(mailbox, 0, "Cannot save keypair.");
+				dc_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
 
-			mrmailbox_log_info(mailbox, 0, "Keypair generated.");
+			dc_log_info(mailbox, 0, "Keypair generated.");
 
 			mrkey_unref(private_key);
 		}
@@ -294,7 +294,7 @@ int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 	locked = 1;
 
 		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
-			mrmailbox_log_warning(mailbox, 0, "Cannot ensure secret key if mailbox is not configured.");
+			dc_log_warning(mailbox, 0, "Cannot ensure secret key if mailbox is not configured.");
 			goto cleanup;
 		}
 
@@ -792,7 +792,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 					}
 					else
 					{
-						mrmailbox_log_info(mailbox, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->m_addr);
+						dc_log_info(mailbox, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->m_addr);
 					}
 				}
 				mraheader_unref(gossip_header);

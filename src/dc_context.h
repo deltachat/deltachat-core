@@ -104,10 +104,10 @@ struct _dc_context
 
 
 /* logging and error handling */
-void            mrmailbox_log_error         (mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_error_if      (int* condition, mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_warning       (mrmailbox_t*, int code, const char* msg, ...);
-void            mrmailbox_log_info          (mrmailbox_t*, int code, const char* msg, ...);
+void            dc_log_error         (dc_context_t*, int code, const char* msg, ...);
+void            dc_log_error_if      (int* condition, dc_context_t*, int code, const char* msg, ...);
+void            dc_log_warning       (dc_context_t*, int code, const char* msg, ...);
+void            dc_log_info          (dc_context_t*, int code, const char* msg, ...);
 
 
 /* misc.*/
@@ -185,8 +185,8 @@ extern int      mr_shall_stop_ongoing;
 int             mrmailbox_alloc_ongoing     (mrmailbox_t*);
 void            mrmailbox_free_ongoing      (mrmailbox_t*);
 
-#define         dc_is_online(m)             ((m)->m_cb((m), MR_EVENT_IS_OFFLINE, 0, 0)==0)
-#define         dc_is_offline(m)            ((m)->m_cb((m), MR_EVENT_IS_OFFLINE, 0, 0)!=0)
+#define         dc_is_online(m)             ((m)->m_cb((m), DC_EVENT_IS_OFFLINE, 0, 0)==0)
+#define         dc_is_offline(m)            ((m)->m_cb((m), DC_EVENT_IS_OFFLINE, 0, 0)!=0)
 
 
 /* library private: secure-join */

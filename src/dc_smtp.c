@@ -100,19 +100,19 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		return 0;
 	}
 
-	if( ths->m_mailbox->m_cb(ths->m_mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, MR_ERR_NONETWORK, NULL);
+	if( ths->m_mailbox->m_cb(ths->m_mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+		dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
 
 	if( ths->m_hEtpan ) {
-		mrmailbox_log_warning(ths->m_mailbox, 0, "SMTP already connected.");
+		dc_log_warning(ths->m_mailbox, 0, "SMTP already connected.");
 		success = 1; /* otherwise, the handle would get deleted */
 		goto cleanup;
 	}
 
 	if( lp->m_addr == NULL || lp->m_send_server == NULL || lp->m_send_port == 0 ) {
-		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP bad parameters.");
+		dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP bad parameters.");
 		goto cleanup;
 	}
 
@@ -121,7 +121,7 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 
 	ths->m_hEtpan = mailsmtp_new(0, NULL);
 	if( ths->m_hEtpan == NULL ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-object creation failed.");
+		dc_log_error(ths->m_mailbox, 0, "SMTP-object creation failed.");
 		goto cleanup;
 	}
 	mailsmtp_set_timeout(ths->m_hEtpan, MR_SMTP_TIMEOUT_SEC);
@@ -134,14 +134,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	if( lp->m_server_flags&(MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_PLAIN) )
 	{
 		if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
+			dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
 	else
 	{
 		if( (r=mailsmtp_ssl_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
+			dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMPT-SSL connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}
@@ -156,14 +156,14 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 	}
 
 	if( r != MAILSMTP_NO_ERROR ) {
-		mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
+		dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
 		goto cleanup;
 	}
 
 	if( lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS )
 	{
 		if( (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
+			dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
 
@@ -176,18 +176,18 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 		}
 
 		if (r != MAILSMTP_NO_ERROR) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
+			dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-helo failed (%s)", mailsmtp_strerror(r));
 			goto cleanup;
 		}
-		mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i STARTTLS-connected.", lp->m_send_server, (int)lp->m_send_port);
+		dc_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i STARTTLS-connected.", lp->m_send_server, (int)lp->m_send_port);
 	}
 	else if( lp->m_server_flags&MR_SMTP_SOCKET_PLAIN )
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i connected.", lp->m_send_server, (int)lp->m_send_port);
+		dc_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i connected.", lp->m_send_server, (int)lp->m_send_port);
 	}
 	else
 	{
-		mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i SSL-connected.", lp->m_send_server, (int)lp->m_send_port);
+		dc_log_info(ths->m_mailbox, 0, "SMTP-server %s:%i SSL-connected.", lp->m_send_server, (int)lp->m_send_port);
 	}
 
 	if( lp->m_send_user )
@@ -198,25 +198,25 @@ int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
 			 * So here we try a workaround. See https://github.com/deltachat/deltachat-android/issues/67
 			 */
 			if (ths->m_hEtpan->auth & MAILSMTP_AUTH_PLAIN) {
-				mrmailbox_log_info(ths->m_mailbox, 0, "Trying SMTP-Login workaround \"%s\"...", lp->m_send_user);
+				dc_log_info(ths->m_mailbox, 0, "Trying SMTP-Login workaround \"%s\"...", lp->m_send_user);
 				int err;
 				char hostname[513];
 
 				err = gethostname(hostname, sizeof(hostname));
 				if (err < 0) {
-					mrmailbox_log_error(ths->m_mailbox, 0, "SMTP-Login: Cannot get hostname.");
+					dc_log_error(ths->m_mailbox, 0, "SMTP-Login: Cannot get hostname.");
 					goto cleanup;
 				}
 				r = mailesmtp_auth_sasl(ths->m_hEtpan, "PLAIN", hostname, NULL, NULL, NULL, lp->m_send_user, lp->m_send_pw, NULL);
 			}
 			if (r != MAILSMTP_NO_ERROR)
 			{
-				mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
+				dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "SMTP-login failed for user %s (%s)", lp->m_send_user, mailsmtp_strerror(r));
 				goto cleanup;
 			}
 		}
 
-		mrmailbox_log_info(ths->m_mailbox, 0, "SMTP-login as %s ok.", lp->m_send_user);
+		dc_log_info(ths->m_mailbox, 0, "SMTP-login as %s ok.", lp->m_send_user);
 	}
 
 	success = 1;
@@ -276,7 +276,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 	{
 		// this error is very usual - we've simply lost the server connection and reconnect as soon as possible.
 		// so, we do not log the first time this happens
-		mrmailbox_log_error_if(&ths->m_log_usual_error, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)", ths->m_from, mailsmtp_strerror(r), (int)r);
+		dc_log_error_if(&ths->m_log_usual_error, ths->m_mailbox, 0, "mailsmtp_mail: %s, %s (%i)", ths->m_from, mailsmtp_strerror(r), (int)r);
 		ths->m_log_usual_error = 1;
 		goto cleanup;
 	}
@@ -289,7 +289,7 @@ int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not
 		if( (r = (ths->m_esmtp?
 				 mailesmtp_rcpt(ths->m_hEtpan, rcpt, MAILSMTP_DSN_NOTIFY_FAILURE|MAILSMTP_DSN_NOTIFY_DELAY, NULL) :
 				  mailsmtp_rcpt(ths->m_hEtpan, rcpt))) != MAILSMTP_NO_ERROR) {
-			mrmailbox_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s", rcpt, mailsmtp_strerror(r));
+			dc_log_error_if(&ths->m_log_connect_errors, ths->m_mailbox, 0, "mailsmtp_rcpt: %s: %s", rcpt, mailsmtp_strerror(r));
 			goto cleanup;
 		}
 	}

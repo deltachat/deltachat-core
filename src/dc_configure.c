@@ -38,10 +38,10 @@
 static char* read_autoconf_file(mrmailbox_t* mailbox, const char* url)
 {
 	char* filecontent = NULL;
-	mrmailbox_log_info(mailbox, 0, "Testing %s ...", url);
-	filecontent = (char*)mailbox->m_cb(mailbox, MR_EVENT_HTTP_GET, (uintptr_t)url, 0);
+	dc_log_info(mailbox, 0, "Testing %s ...", url);
+	filecontent = (char*)mailbox->m_cb(mailbox, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
 	if( filecontent == NULL ) {
-		mrmailbox_log_info(mailbox, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
+		dc_log_info(mailbox, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
 		return NULL;
 	}
 	return filecontent;
@@ -190,7 +190,7 @@ static mrloginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, 
 	 || moz_ac.m_out->m_send_server == NULL
 	 || moz_ac.m_out->m_send_port   == 0 )
 	{
-		{ char* r = mrloginparam_get_readable(moz_ac.m_out); mrmailbox_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = mrloginparam_get_readable(moz_ac.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 
 		mrloginparam_unref(moz_ac.m_out); /* autoconfig failed for the given URL */
 		moz_ac.m_out = NULL;
@@ -342,7 +342,7 @@ static mrloginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url_
 	 || outlk_ad.m_out->m_send_server == NULL
 	 || outlk_ad.m_out->m_send_port   == 0 )
 	{
-		{ char* r = mrloginparam_get_readable(outlk_ad.m_out); mrmailbox_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = mrloginparam_get_readable(outlk_ad.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 		mrloginparam_unref(outlk_ad.m_out); /* autoconfig failed for the given URL */
 		outlk_ad.m_out = NULL;
 		goto cleanup;
@@ -385,10 +385,10 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 
 	#define PROGRESS(p) \
 				if( mr_shall_stop_ongoing ) { goto cleanup; } \
-				mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
+				mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
 	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot configure, database not opened.");
+		dc_log_error(mailbox, 0, "Cannot configure, database not opened.");
 		goto cleanup;
 	}
 
@@ -407,12 +407,12 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mrmailbox_log_info(mailbox, 0, "Configure ...");
+	dc_log_info(mailbox, 0, "Configure ...");
 
 	PROGRESS(0)
 
-	if( mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
+	if( mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+		dc_log_error(mailbox, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
 
@@ -432,14 +432,14 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	locked = 0;
 
 	if( param->m_addr == NULL ) {
-		mrmailbox_log_error(mailbox, 0, "Please enter the email address.");
+		dc_log_error(mailbox, 0, "Please enter the email address.");
 		goto cleanup;
 	}
 	mr_trim(param->m_addr);
 
 	param_domain = strchr(param->m_addr, '@');
 	if( param_domain==NULL || param_domain[0]==0 ) {
-		mrmailbox_log_error(mailbox, 0, "Bad email-address.");
+		dc_log_error(mailbox, 0, "Bad email-address.");
 		goto cleanup;
 	}
 	param_domain++;
@@ -507,7 +507,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		/* C.  Do we have any result? */
 		if( param_autoconfig )
 		{
-			{ char* r = mrloginparam_get_readable(param_autoconfig); mrmailbox_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
+			{ char* r = mrloginparam_get_readable(param_autoconfig); dc_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
 
 			if( param_autoconfig->m_mail_user ) {
 				free(param->m_mail_user);
@@ -611,14 +611,14 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	 || param->m_send_pw      == NULL
 	 || param->m_server_flags == 0 )
 	{
-		mrmailbox_log_error(mailbox, 0, "Account settings incomplete.");
+		dc_log_error(mailbox, 0, "Account settings incomplete.");
 		goto cleanup;
 	}
 
 	PROGRESS(600)
 
 	/* try to connect to IMAP */
-	{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+	{ char* r = mrloginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
 
 	if( !mrimap_connect(mailbox->m_imap, param) ) {
 		goto cleanup;
@@ -639,7 +639,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
 		param->m_server_flags |=  MR_SMTP_SOCKET_STARTTLS;
 		param->m_send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
-		{ char* r = mrloginparam_get_readable(param); mrmailbox_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+		{ char* r = mrloginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
 
 		if( !mrsmtp_connect(mailbox->m_smtp, param) ) {
 			goto cleanup;
@@ -668,30 +668,30 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
 	success = 1;
-	mrmailbox_log_info(mailbox, 0, "Configure completed successfully.");
+	dc_log_info(mailbox, 0, "Configure completed successfully.");
 
 	PROGRESS(940)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 950, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
 	if( imap_connected_here ) { mrimap_disconnect(mailbox->m_imap); }
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 960, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
 
 	if( smtp_connected_here ) { mrsmtp_disconnect(mailbox->m_smtp); }
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 970, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
 
 	mrloginparam_unref(param);
 	mrloginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 980, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
 
 	mrmailbox_suspend_smtp_thread(mailbox, 0);
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, 990, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
 
-	mailbox->m_cb(mailbox, MR_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }
 
 
@@ -780,7 +780,7 @@ int mrmailbox_alloc_ongoing(mrmailbox_t* mailbox)
 	}
 
 	if( s_ongoing_running || mr_shall_stop_ongoing == 0 ) {
-		mrmailbox_log_warning(mailbox, 0, "There is already another ongoing process running.");
+		dc_log_warning(mailbox, 0, "There is already another ongoing process running.");
 		return 0;
 	}
 
@@ -837,11 +837,11 @@ void dc_stop_ongoing_process(dc_context_t* mailbox)
 
 	if( s_ongoing_running && mr_shall_stop_ongoing==0 )
 	{
-		mrmailbox_log_info(mailbox, 0, "Signaling the ongoing process to stop ASAP.");
+		dc_log_info(mailbox, 0, "Signaling the ongoing process to stop ASAP.");
 		mr_shall_stop_ongoing = 1;
 	}
 	else
 	{
-		mrmailbox_log_info(mailbox, 0, "No ongoing process to stop.");
+		dc_log_info(mailbox, 0, "No ongoing process to stop.");
 	}
 }

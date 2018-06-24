@@ -189,12 +189,12 @@ int mrkey_set_from_file(mrkey_t* ths, const char* pathNfilename, mrmailbox_t* ma
 		type = MR_PRIVATE;
 	}
 	else {
-		mrmailbox_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);
+		dc_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
 
 	if( !mrkey_set_from_base64(ths, base64, type) ) {
-		mrmailbox_log_warning(mailbox, 0, "Bad data in key \"%s\".", pathNfilename);
+		dc_log_warning(mailbox, 0, "Bad data in key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
 
@@ -418,7 +418,7 @@ int mrkey_render_asc_to_file(const mrkey_t* key, const char* file, mrmailbox_t* 
 	}
 
 	if( !mr_write_file(file, file_content, strlen(file_content), mailbox) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot write key to %s", file);
+		dc_log_error(mailbox, 0, "Cannot write key to %s", file);
 		goto cleanup;
 	}
 

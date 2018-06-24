@@ -898,7 +898,7 @@ uint32_t dc_create_chat_by_contact_id(dc_context_t* mailbox, uint32_t contact_id
 		}
 
         if( 0==mrmailbox_real_contact_exists__(mailbox, contact_id) && contact_id!=MR_CONTACT_ID_SELF ) {
-			mrmailbox_log_warning(mailbox, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
+			dc_log_warning(mailbox, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
 			goto cleanup;
         }
 
@@ -913,7 +913,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
 
 	return chat_id;
@@ -983,7 +983,7 @@ cleanup:
 	mrmsg_unref(msg);
 	mrchat_unref(chat);
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
 	return chat_id;
 }
@@ -1333,7 +1333,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* mailbox, uint32_t chat_id, uint32_t f
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 
-	//mrmailbox_log_info(mailbox, 0, "Message list for chat #%i created in %.3f ms.", chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//dc_log_info(mailbox, 0, "Message list for chat #%i created in %.3f ms.", chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	if( success ) {
 		return ret;
@@ -1443,7 +1443,7 @@ cleanup:
 	free(strLikeBeg);
 	free(real_query);
 
-	//mrmailbox_log_info(mailbox, 0, "Message list for search \"%s\" in chat #%i created in %.3f ms.", query, chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//dc_log_info(mailbox, 0, "Message list for search \"%s\" in chat #%i created in %.3f ms.", query, chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 
 	if( success ) {
@@ -1505,7 +1505,7 @@ static void set_draft_int(dc_context_t* mailbox, mrchat_t* chat, uint32_t chat_i
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
 	mrchat_unref(chat_to_delete);
@@ -1819,7 +1819,7 @@ void dc_archive_chat(dc_context_t* mailbox, uint32_t chat_id, int archive)
 		sqlite3_finalize(stmt);
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 }
 
 
@@ -1914,7 +1914,7 @@ void dc_delete_chat(dc_context_t* mailbox, uint32_t chat_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
 	if( pending_transaction ) { mrsqlite3_rollback__(mailbox->m_sql); }
@@ -1957,19 +1957,19 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	uint32_t      msg_id = 0, to_id = 0;
 
 	if( !MR_CHAT_TYPE_CAN_SEND(chat->m_type) ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot send to chat type #%i.", chat->m_type);
+		dc_log_error(mailbox, 0, "Cannot send to chat type #%i.", chat->m_type);
 		goto cleanup;
 	}
 
 	if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) && !mrmailbox_is_contact_in_chat__(mailbox, chat->m_id, MR_CONTACT_ID_SELF) ) {
-		mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+		dc_log_error(mailbox, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 		goto cleanup;
 	}
 
 	{
 		char* from = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( from == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot send message, not configured successfully.");
+			dc_log_error(mailbox, 0, "Cannot send message, not configured successfully.");
 			goto cleanup;
 		}
 		rfc724_mid = mr_create_outgoing_rfc724_mid(MR_CHAT_TYPE_IS_MULTI(chat->m_type)? chat->m_grpid : NULL, from);
@@ -1982,7 +1982,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int(stmt, 1, chat->m_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
-			mrmailbox_log_error(mailbox, 0, "Cannot send message, contact for chat #%i not found.", chat->m_id);
+			dc_log_error(mailbox, 0, "Cannot send message, contact for chat #%i not found.", chat->m_id);
 			goto cleanup;
 		}
 		to_id = sqlite3_column_int(stmt, 0);
@@ -2056,7 +2056,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 	sqlite3_bind_text (stmt,  9, msg->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 10, msg->m_hidden);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		mrmailbox_log_error(mailbox, 0, "Cannot send message, cannot insert to database.", chat->m_id);
+		dc_log_error(mailbox, 0, "Cannot send message, cannot insert to database.", chat->m_id);
 		goto cleanup;
 	}
 
@@ -2151,7 +2151,7 @@ uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, mrms
 				free(buf);
 			}
 
-			mrmailbox_log_info(mailbox, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
+			dc_log_info(mailbox, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
 
 			if( msg->m_text ) { free(msg->m_text); }
 			if( msg->m_type == MR_MSG_AUDIO ) {
@@ -2172,13 +2172,13 @@ uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, mrms
 		}
 		else
 		{
-			mrmailbox_log_error(mailbox, 0, "Attachment missing for message of type #%i.", (int)msg->m_type); /* should not happen */
+			dc_log_error(mailbox, 0, "Attachment missing for message of type #%i.", (int)msg->m_type); /* should not happen */
 			goto cleanup;
 		}
 	}
 	else
 	{
-		mrmailbox_log_error(mailbox, 0, "Cannot send messages of type #%i.", (int)msg->m_type); /* should not happen */
+		dc_log_error(mailbox, 0, "Cannot send messages of type #%i.", (int)msg->m_type); /* should not happen */
 		goto cleanup;
 	}
 
@@ -2207,7 +2207,7 @@ uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, mrms
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 
 cleanup:
 	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
@@ -2577,7 +2577,7 @@ uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg_id);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg_id);
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
@@ -2718,7 +2718,7 @@ cleanup:
 	free(grpid);
 
 	if( chat_id ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
 
 	return chat_id;
@@ -2769,7 +2769,7 @@ int dc_set_chat_name(dc_context_t* mailbox, uint32_t chat_id, const char* new_na
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+			dc_log_error(mailbox, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -2788,9 +2788,9 @@ int dc_set_chat_name(dc_context_t* mailbox, uint32_t chat_id, const char* new_na
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
 		mrparam_set_int(msg->m_param, MRP_CMD, MR_CMD_GROUPNAME_CHANGED);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
@@ -2843,7 +2843,7 @@ int dc_set_chat_profile_image(dc_context_t* mailbox, uint32_t chat_id, const cha
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+			dc_log_error(mailbox, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -2863,9 +2863,9 @@ int dc_set_chat_profile_image(dc_context_t* mailbox, uint32_t chat_id, const cha
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
@@ -2956,7 +2956,7 @@ int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uin
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+			dc_log_error(mailbox, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -2985,7 +2985,7 @@ int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uin
 			{
 				if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
 				 || mrcontact_is_verified__(contact, peerstate) != MRV_BIDIRECTIONAL ) {
-					mrmailbox_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
+					dc_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 					goto cleanup;
 				}
 			}
@@ -3007,9 +3007,9 @@ int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uin
 		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
 		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
 		msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
@@ -3089,7 +3089,7 @@ int dc_remove_contact_from_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_
 		}
 
 		if( !IS_SELF_IN_GROUP__ ) {
-			mrmailbox_log_error(mailbox, MR_ERR_SELF_NOT_IN_GROUP, NULL);
+			dc_log_error(mailbox, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
@@ -3113,7 +3113,7 @@ int dc_remove_contact_from_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_
 			mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_REMOVED_FROM_GROUP);
 			mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
 			msg->m_id = mrmailbox_send_msg_object(mailbox, chat_id, msg);
-			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
+			mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
 	}
 
@@ -3128,7 +3128,7 @@ int dc_remove_contact_from_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
@@ -3216,7 +3216,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 
 	/* rough check if email-address is valid */
 	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
+		dc_log_warning(mailbox, 0, "Bad address \"%s\" for contact \"%s\".", addr, name?name:"<unset>");
 		goto cleanup;
 	}
 
@@ -3295,7 +3295,7 @@ uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
 		}
 		else
 		{
-			mrmailbox_log_error(mailbox, 0, "Cannot add contact."); /* should not happen */
+			dc_log_error(mailbox, 0, "Cannot add contact."); /* should not happen */
 		}
 	}
 
@@ -3403,7 +3403,7 @@ uint32_t dc_create_contact(dc_context_t* mailbox, const char* name, const char* 
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, sth_modified==CONTACT_CREATED? contact_id : 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONTACTS_CHANGED, sth_modified==CONTACT_CREATED? contact_id : 0, 0);
 
 	if( blocked ) {
 		mrmailbox_block_contact(mailbox, contact_id, 0);
@@ -3802,7 +3802,7 @@ void dc_block_contact(dc_context_t* mailbox, uint32_t contact_id, int new_blocki
 	locked = 0;
 
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_CONTACTS_CHANGED, 0, 0);
 	}
 
 cleanup:
@@ -3990,7 +3990,7 @@ int dc_delete_contact(dc_context_t* mailbox, uint32_t contact_id)
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CONTACTS_CHANGED, 0, 0);
 
 	success = 1;
 
@@ -4450,7 +4450,7 @@ cleanup:
 	if( created_db_entries ) {
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
+			mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, (uintptr_t)carray_get(created_db_entries, i), (uintptr_t)carray_get(created_db_entries, i+1));
 		}
 		carray_free(created_db_entries);
 	}
@@ -4599,7 +4599,7 @@ void dc_markseen_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cn
 			{
 				if( curr_state == MR_STATE_IN_FRESH || curr_state == MR_STATE_IN_NOTICED ) {
 					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_SEEN);
-					mrmailbox_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
+					dc_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
 					mrjob_add(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 					send_event = 1;
 				}
@@ -4621,7 +4621,7 @@ void dc_markseen_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cn
 
 	/* the event is needed eg. to remove the deaddrop from the chatlist */
 	if( send_event ) {
-		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
 
 cleanup:

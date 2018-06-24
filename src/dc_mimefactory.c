@@ -586,7 +586,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 				}
 
 				if( mrparam_get_int(msg->m_param, MRP_CMD_PARAM2, 0)&MR_FROM_HANDSHAKE ) {
-					mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
+					dc_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
 				}
 			}
@@ -611,7 +611,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		if( command == MR_CMD_SECUREJOIN_MESSAGE ) {
 			char* step = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 			if( step ) {
-				mrmailbox_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
+				dc_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), step/*mailimf takes ownership of string*/));
 
 				char* param2 = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);

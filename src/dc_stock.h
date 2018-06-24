@@ -32,7 +32,7 @@ extern "C" {
 #include <string.h>
 
 
-/* Strings requested by MR_EVENT_GET_STRING and MR_EVENT_GET_QUANTITY_STRING */
+/* Strings requested by DC_EVENT_GET_STRING and DC_EVENT_GET_QUANTITY_STRING */
 #define MR_STR_FREE_                      0
 #define MR_STR_NOMESSAGES                 1
 #define MR_STR_SELF                       2
@@ -76,7 +76,7 @@ extern "C" {
 extern mrmailbox_t* s_localize_mb_obj;
 
 
-/* Return the string with the given ID by calling MR_EVENT_GET_STRING.
+/* Return the string with the given ID by calling DC_EVENT_GET_STRING.
 The result must be free()'d! */
 char* mrstock_str (int id);
 
@@ -92,7 +92,7 @@ The result must be free()'d! */
 char* mrstock_str_repl_string2 (int id, const char*, const char*);
 
 
-/* Return a string with a correct plural form by callint MR_EVENT_GET_QUANTITY_STRING.
+/* Return a string with a correct plural form by callint DC_EVENT_GET_QUANTITY_STRING.
 The result must be free()'d! */
 char* mrstock_str_repl_pl (int id, int cnt);
 

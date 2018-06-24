@@ -1025,7 +1025,7 @@ int mr_delete_file(const char* pathNfilename, mrmailbox_t* log/*may be NULL*/)
 	}
 
 	if( remove(pathNfilename)!=0 ) {
-		mrmailbox_log_warning(log, 0, "Cannot delete \"%s\".", pathNfilename);
+		dc_log_warning(log, 0, "Cannot delete \"%s\".", pathNfilename);
 		return 0;
 	}
 
@@ -1046,18 +1046,18 @@ int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NUL
 	}
 
     if( (fd_src=open(src, O_RDONLY)) < 0 ) {
-		mrmailbox_log_error(log, 0, "Cannot open source file \"%s\".", src);
+		dc_log_error(log, 0, "Cannot open source file \"%s\".", src);
         goto cleanup;
 	}
 
     if( (fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0 ) {
-		mrmailbox_log_error(log, 0, "Cannot open destination file \"%s\".", dest);
+		dc_log_error(log, 0, "Cannot open destination file \"%s\".", dest);
         goto cleanup;
 	}
 
     while( (bytes_read=read(fd_src, buf, MR_COPY_BUF_SIZE)) > 0 ) {
         if (write(fd_dest, buf, bytes_read) != bytes_read) {
-            mrmailbox_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
+            dc_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
 		}
 		anything_copied = 1;
     }
@@ -1067,7 +1067,7 @@ int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NUL
 		close(fd_src);
 		fd_src = -1;
 		if( mr_get_filebytes(src)!=0 ) {
-			mrmailbox_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
+			dc_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
 			goto cleanup;
 		}
     }
@@ -1086,7 +1086,7 @@ int mr_create_folder(const char* pathNfilename, mrmailbox_t* log)
 	struct stat st;
 	if (stat(pathNfilename, &st) == -1) {
 		if( mkdir(pathNfilename, 0755) != 0 ) {
-			mrmailbox_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
+			dc_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
 			return 0;
 		}
 	}
@@ -1188,12 +1188,12 @@ int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, 
 			success = 1;
 		}
 		else {
-			mrmailbox_log_warning(log, 0, "Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
+			dc_log_warning(log, 0, "Cannot write %lu bytes to \"%s\".", (unsigned long)buf_bytes, pathNfilename);
 		}
 		fclose(f);
 	}
 	else {
-		mrmailbox_log_warning(log, 0, "Cannot open \"%s\" for writing.", pathNfilename);
+		dc_log_warning(log, 0, "Cannot open \"%s\" for writing.", pathNfilename);
 	}
 
 	return success;
@@ -1235,7 +1235,7 @@ cleanup:
 		free(*buf);
 		*buf = NULL;
 		*buf_bytes = 0;
-		mrmailbox_log_warning(log, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
+		dc_log_warning(log, 0, "Cannot read \"%s\" or file is empty.", pathNfilename);
 	}
 	return success; /* buf must be free()'d by the caller */
 }

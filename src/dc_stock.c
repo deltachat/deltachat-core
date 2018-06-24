@@ -84,7 +84,7 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 {
 	char* ret = NULL;
 	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
-		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, MR_EVENT_GET_STRING, id, 0);
+		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, DC_EVENT_GET_STRING, id, 0);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, 0);
@@ -123,7 +123,7 @@ char* mrstock_str_repl_pl(int id, int cnt)
 {
 	char* ret = NULL;
 	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
-		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, MR_EVENT_GET_QUANTITY_STRING, id, cnt);
+		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, cnt);

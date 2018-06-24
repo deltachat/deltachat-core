@@ -500,12 +500,12 @@ int mrpgp_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* re
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
 	if( private_in->m_type!=MR_PRIVATE || private_keys->keyc <= 0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Split key: Given key is no private key.");
+		dc_log_warning(mailbox, 0, "Split key: Given key is no private key.");
 		goto cleanup;
 	}
 
 	if( public_keys->keyc <= 0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Split key: Given key does not contain a public key.");
+		dc_log_warning(mailbox, 0, "Split key: Given key does not contain a public key.");
 		goto cleanup;
 	}
 
@@ -567,7 +567,7 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 	}
 
 	if( public_keys->keyc <=0 || private_keys->keyc!=0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
+		dc_log_warning(mailbox, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
@@ -582,7 +582,7 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 			pgp_memory_add(keysmem, raw_private_key_for_signing->m_binary, raw_private_key_for_signing->m_bytes);
 			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
 			if( private_keys->keyc <= 0 ) {
-				mrmailbox_log_warning(mailbox, 0, "No key for signing found.");
+				dc_log_warning(mailbox, 0, "No key for signing found.");
 				goto cleanup;
 			}
 
@@ -590,7 +590,7 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
 				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
 			if( signedmem == NULL ) {
-				mrmailbox_log_warning(mailbox, 0, "Signing failed.");
+				dc_log_warning(mailbox, 0, "Signing failed.");
 				goto cleanup;
 			}
 			signed_text        = signedmem->buf;
@@ -605,7 +605,7 @@ int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
 
 		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
 		if( outmem == NULL ) {
-			mrmailbox_log_warning(mailbox, 0, "Encryption failed.");
+			dc_log_warning(mailbox, 0, "Encryption failed.");
 			goto cleanup;
 		}
 		*ret_ctext       = outmem->buf;
@@ -661,7 +661,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 	}
 
 	if( private_keys->keyc<=0 ) {
-		mrmailbox_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
+		dc_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
@@ -678,7 +678,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
 			use_armor, &recipients_key_ids, &recipients_count);
 		if( outmem == NULL ) {
-			mrmailbox_log_warning(mailbox, 0, "Decryption failed.");
+			dc_log_warning(mailbox, 0, "Decryption failed.");
 			goto cleanup;
 		}
 		*ret_plain       = outmem->buf;

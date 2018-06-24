@@ -569,7 +569,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, mrarray_get_id(member_ids, i));
 	}
 
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 cleanup:
 	mrarray_unref(member_ids);
@@ -598,19 +598,19 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, from_id)
 	 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
 	 || mrcontact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
+		dc_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
 
 	// ensure, the message is encrypted
 	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted properly.");
+		dc_log_warning(mailbox, 0, "Cannot verifiy group; message is not encrypted properly.");
 		goto cleanup;
 	}
 
 	// ensure, the message is signed with a verified key of the sender
 	if( !mrapeerstate_has_verified_key(peerstate, mimeparser->m_e2ee_helper->m_signatures) ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; message is not signed properly.");
+		dc_log_warning(mailbox, 0, "Cannot verifiy group; message is not signed properly.");
 		goto cleanup;
     }
 
@@ -640,7 +640,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 			 ||   (strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_public_key_fingerprint)!=0
 			    && strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_gossip_key_fingerprint)!=0) )
 			{
-				mrmailbox_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
+				dc_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
 				mrapeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
 				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 				is_verified = 1;
@@ -649,7 +649,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 
 		if( !is_verified )
 		{
-			mrmailbox_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
+			dc_log_warning(mailbox, 0, "Cannot verifiy group; recipient %s is not gossipped.", to_addr);
 			goto cleanup;
 		}
 	}
@@ -838,7 +838,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		sqlite3_bind_int (stmt, 2, chat_id);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
-		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
 
 	if( X_MrGrpImageChanged )
@@ -863,7 +863,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 		if( ok ) {
 			mrchat_t* chat = mrchat_new(mailbox);
-				mrmailbox_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
+				dc_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
 				mrchat_load_from_db__(chat, chat_id);
 				mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, grpimage/*may be NULL*/);
 				mrchat_update_param__(chat);
@@ -907,7 +907,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	}
 
 	if( send_EVENT_CHAT_MODIFIED ) {
-		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, chat_id, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 	}
 
 	/* check the number of receivers -
@@ -967,17 +967,17 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	const struct mailimf_field* field;
 
 	carray*          created_db_entries = carray_new(16);
-	int              create_event_to_send = MR_EVENT_MSGS_CHANGED;
+	int              create_event_to_send = DC_EVENT_MSGS_CHANGED;
 
 	carray*          rr_event_to_send = carray_new(16);
 
 	char*            txt_raw = NULL;
 
-	mrmailbox_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
+	dc_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
 	to_ids = mrarray_new(mailbox, 16);
 	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
-		mrmailbox_log_info(mailbox, 0, "Bad param.");
+		dc_log_info(mailbox, 0, "Bad param.");
 		goto cleanup;
 	}
 
@@ -995,7 +995,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	that speaks against this approach yet) */
 	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( mrhash_count(&mime_parser->m_header)==0 ) {
-		mrmailbox_log_info(mailbox, 0, "No header.");
+		dc_log_info(mailbox, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
 
@@ -1097,7 +1097,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			if( rfc724_mid == NULL ) {
 				rfc724_mid = mr_create_incoming_rfc724_mid(sort_timestamp, from_id, to_ids);
 				if( rfc724_mid == NULL ) {
-					mrmailbox_log_info(mailbox, 0, "Cannot create Message-ID.");
+					dc_log_info(mailbox, 0, "Cannot create Message-ID.");
 					goto cleanup;
 				}
 			}
@@ -1114,7 +1114,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 						mrmailbox_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
 					}
 					free(old_server_folder);
-					mrmailbox_log_info(mailbox, 0, "Message already in DB.");
+					dc_log_info(mailbox, 0, "Message already in DB.");
 					goto cleanup;
 				}
 			}
@@ -1165,7 +1165,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 					/* check if the message belongs to a mailing list */
 					if( mrmimeparser_is_mailinglist_message(mime_parser) ) {
 						chat_id = MR_CHAT_ID_TRASH;
-						mrmailbox_log_info(mailbox, 0, "Message belongs to a mailing list and is ignored.");
+						dc_log_info(mailbox, 0, "Message belongs to a mailing list and is ignored.");
 					}
 				}
 
@@ -1188,7 +1188,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 						}
 						else if( mrmailbox_is_reply_to_known_message__(mailbox, mime_parser) ) {
 							mrmailbox_scaleup_contact_origin__(mailbox, from_id, MR_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
-							mrmailbox_log_info(mailbox, 0, "Message is a reply to a known message, mark sender as known.");
+							dc_log_info(mailbox, 0, "Message is a reply to a known message, mark sender as known.");
 							incoming_origin = MR_MAX(incoming_origin, MR_ORIGIN_INCOMING_REPLY_TO);
 						}
 					}
@@ -1265,13 +1265,13 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			int msgrmsg = mime_parser->m_is_send_by_messenger; /* 1 or 0 for yes/no */
 			if( msgrmsg )
 			{
-				mrmailbox_log_info(mailbox, 0, "Message sent by another messenger.");
+				dc_log_info(mailbox, 0, "Message sent by another messenger.");
 			}
 			else
 			{
 				if( mrmailbox_is_reply_to_messenger_message__(mailbox, mime_parser) )
 				{
-					mrmailbox_log_info(mailbox, 0, "Message is a reply to a messenger message.");
+					dc_log_info(mailbox, 0, "Message is a reply to a messenger message.");
 					msgrmsg = 2; /* 2=no, but is reply to messenger message */
 				}
 			}
@@ -1316,7 +1316,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				sqlite3_bind_int  (stmt, 16, part->m_bytes);
 				sqlite3_bind_int  (stmt, 17, hidden);
 				if( sqlite3_step(stmt) != SQLITE_DONE ) {
-					mrmailbox_log_info(mailbox, 0, "Cannot write DB.");
+					dc_log_info(mailbox, 0, "Cannot write DB.");
 					goto cleanup; /* i/o error - there is nothing more we can do - in other cases, we try to write at least an empty record */
 				}
 
@@ -1331,7 +1331,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				carray_add(created_db_entries, (void*)(uintptr_t)first_dblocal_id, NULL);
 			}
 
-			mrmailbox_log_info(mailbox, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
+			dc_log_info(mailbox, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
 
 			/* check event to send */
 			if( chat_id == MR_CHAT_ID_TRASH )
@@ -1344,13 +1344,13 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 					create_event_to_send = 0;
 				}
 				else if( chat_id_blocked ) {
-					create_event_to_send = MR_EVENT_MSGS_CHANGED;
+					create_event_to_send = DC_EVENT_MSGS_CHANGED;
 					/*if( mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0)!=0 ) {
-						create_event_to_send = MR_EVENT_INCOMING_MSG;
+						create_event_to_send = DC_EVENT_INCOMING_MSG;
 					}*/
 				}
 				else {
-					create_event_to_send = MR_EVENT_INCOMING_MSG;
+					create_event_to_send = DC_EVENT_INCOMING_MSG;
 				}
 			}
 		}
@@ -1489,7 +1489,7 @@ cleanup:
 	if( rr_event_to_send ) {
 		size_t i, icnt = carray_count(rr_event_to_send);
 		for( i = 0; i < icnt; i += 2 ) {
-			mailbox->m_cb(mailbox, MR_EVENT_MSG_READ, (uintptr_t)carray_get(rr_event_to_send, i), (uintptr_t)carray_get(rr_event_to_send, i+1));
+			mailbox->m_cb(mailbox, DC_EVENT_MSG_READ, (uintptr_t)carray_get(rr_event_to_send, i), (uintptr_t)carray_get(rr_event_to_send, i+1));
 		}
 		carray_free(rr_event_to_send);
 	}

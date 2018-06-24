@@ -52,8 +52,8 @@ void mrsqlite3_log_error(mrsqlite3_t* ths, const char* msg_format, ...)
 	va_list     va;
 
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { mrmailbox_log_error(ths->m_mailbox, 0, "Bad log format string \"%s\".", msg_format); }
-			mrmailbox_log_error(ths->m_mailbox, 0, "%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(ths->m_mailbox, 0, "Bad log format string \"%s\".", msg_format); }
+			dc_log_error(ths->m_mailbox, 0, "%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
 }
@@ -158,12 +158,12 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 	}
 
 	if( sqlite3_threadsafe() == 0 ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
+		dc_log_error(ths->m_mailbox, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
 		goto cleanup;
 	}
 
 	if( ths->m_cobj ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opened.", dbfile);
+		dc_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
 	}
 
@@ -192,7 +192,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		/* Init tables to dbversion=0 */
 		if( !mrsqlite3_table_exists__(ths, "config") )
 		{
-			mrmailbox_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
+			dc_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
 
 			mrsqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			mrsqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
@@ -454,7 +454,7 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		}
 	}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
+	dc_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
 cleanup:
@@ -484,7 +484,7 @@ void mrsqlite3_close__(mrsqlite3_t* ths)
 		ths->m_cobj = NULL;
 	}
 
-	mrmailbox_log_info(ths->m_mailbox, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
+	dc_log_info(ths->m_mailbox, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
 }
 
 
@@ -550,7 +550,7 @@ int mrsqlite3_table_exists__(mrsqlite3_t* ths, const char* name)
 	int           sqlState;
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
-		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_table_exists_(): Out of memory.");
+		dc_log_error(ths->m_mailbox, 0, "mrsqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
@@ -591,12 +591,12 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 	sqlite3_stmt* stmt;
 
 	if( key == NULL ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Bad parameter.");
+		dc_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
 	if( !mrsqlite3_is_open(ths) ) {
-		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Database not ready.");
+		dc_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
@@ -621,7 +621,7 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 			state=sqlite3_step(stmt);
 		}
 		else {
-			mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot read value.");
+			dc_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot read value.");
 			return 0;
 		}
 	}
@@ -634,7 +634,7 @@ int mrsqlite3_set_config__(mrsqlite3_t* ths, const char* key, const char* value)
 	}
 
 	if( state != SQLITE_DONE )  {
-		mrmailbox_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot change value.");
+		dc_log_error(ths->m_mailbox, 0, "mrsqlite3_set_config(): Cannot change value.");
 		return 0;
 	}
 
@@ -704,13 +704,13 @@ void mrsqlite3_lock(mrsqlite3_t* ths) /* wait and lock */
 {
 	#ifdef MR_USE_LOCK_DEBUG
 		clock_t start = clock();
-		mrmailbox_log_info(ths->m_mailbox, 0, "    waiting for lock at %s#L%i", filename, linenum);
+		dc_log_info(ths->m_mailbox, 0, "    waiting for lock at %s#L%i", filename, linenum);
 	#endif
 
 	pthread_mutex_lock(&ths->m_critical_);
 
 	#ifdef MR_USE_LOCK_DEBUG
-		mrmailbox_log_info(ths->m_mailbox, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+		dc_log_info(ths->m_mailbox, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 	#endif
 }
 
@@ -722,7 +722,7 @@ void mrsqlite3_unlock(mrsqlite3_t* ths)
 #endif
 {
 	#ifdef MR_USE_LOCK_DEBUG
-		mrmailbox_log_info(ths->m_mailbox, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
+		dc_log_info(ths->m_mailbox, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
 	#endif
 
 	pthread_mutex_unlock(&ths->m_critical_);

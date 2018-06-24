@@ -20,13 +20,13 @@
  ******************************************************************************/
 
 
-/* Asynchronous "Thread-errors" are reported by the mrmailbox_log_error()
+/* Asynchronous "Thread-errors" are reported by the dc_log_error()
 function.  These errors must be shown to the user by a bubble or so.
 
 "Normal" errors are usually returned by a special value (null or so) and are
-usually not reported using mrmailbox_log_error() - its up to the caller to
+usually not reported using dc_log_error() - its up to the caller to
 decide, what should be reported or done.  However, these "Normal" errors
-are usually logged by mrmailbox_log_warning(). */
+are usually logged by dc_log_warning(). */
 
 
 #include <stdarg.h>
@@ -39,7 +39,7 @@ are usually logged by mrmailbox_log_warning(). */
  ******************************************************************************/
 
 
-static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* msg_format, va_list va)
+static void log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
 
@@ -48,11 +48,11 @@ static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, con
 	}
 
 	/* format message from variable parameters or translate very comming errors */
-	if( code == MR_ERR_SELF_NOT_IN_GROUP )
+	if( code == DC_ERROR_SELF_NOT_IN_GROUP )
 	{
 		msg = mrstock_str(MR_STR_SELFNOTINGRP);
 	}
-	else if( code == MR_ERR_NONETWORK )
+	else if( code == DC_ERROR_NO_NETWORK )
 	{
 		msg = mrstock_str(MR_STR_NONETWORK);
 	}
@@ -66,8 +66,8 @@ static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, con
 
 	/* if we have still no message, create one based upon  the code */
 	if( msg == NULL ) {
-		     if( event == MR_EVENT_INFO )    { msg = mr_mprintf("Info: %i",    (int)code); }
-		else if( event == MR_EVENT_WARNING ) { msg = mr_mprintf("Warning: %i", (int)code); }
+		     if( event == DC_EVENT_INFO )    { msg = mr_mprintf("Info: %i",    (int)code); }
+		else if( event == DC_EVENT_WARNING ) { msg = mr_mprintf("Warning: %i", (int)code); }
 		else                                 { msg = mr_mprintf("Error: %i",   (int)code); }
 	}
 
@@ -84,35 +84,35 @@ static void mrmailbox_log_vprintf(mrmailbox_t* mailbox, int event, int code, con
 }
 
 
-void mrmailbox_log_info(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_info(mrmailbox_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		mrmailbox_log_vprintf(mailbox, MR_EVENT_INFO, code, msg, va);
+		log_vprintf(mailbox, DC_EVENT_INFO, code, msg, va);
 	va_end(va);
 }
 
 
 
-void mrmailbox_log_warning(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_warning(mrmailbox_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		mrmailbox_log_vprintf(mailbox, MR_EVENT_WARNING, code, msg, va);
+		log_vprintf(mailbox, DC_EVENT_WARNING, code, msg, va);
 	va_end(va);
 }
 
 
-void mrmailbox_log_error(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_error(mrmailbox_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		mrmailbox_log_vprintf(mailbox, MR_EVENT_ERROR, code, msg, va);
+		log_vprintf(mailbox, DC_EVENT_ERROR, code, msg, va);
 	va_end(va);
 }
 
 
-void mrmailbox_log_error_if(int* condition, mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_error_if(int* condition, mrmailbox_t* mailbox, int code, const char* msg, ...)
 {
 	if( condition == NULL || mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
@@ -122,17 +122,17 @@ void mrmailbox_log_error_if(int* condition, mrmailbox_t* mailbox, int code, cons
 	va_start(va, msg);
 		if( *condition ) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
-			if( mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-				mrmailbox_log_vprintf(mailbox, MR_EVENT_ERROR, MR_ERR_NONETWORK, NULL, va);
+			if( mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+				log_vprintf(mailbox, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
 			}
 			else {
-				mrmailbox_log_vprintf(mailbox, MR_EVENT_ERROR, code, msg, va);
+				log_vprintf(mailbox, DC_EVENT_ERROR, code, msg, va);
 			}
 			*condition = 0;
 		}
 		else {
 			/* log a warning only (eg. for subsequent connection errors) */
-			mrmailbox_log_vprintf(mailbox, MR_EVENT_WARNING, code, msg, va);
+			log_vprintf(mailbox, DC_EVENT_WARNING, code, msg, va);
 		}
 	va_end(va);
 }

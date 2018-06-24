@@ -46,23 +46,23 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 		return 0;
 	}
 
-	mrmailbox_log_info(ths, 0, "Resetting tables (%i)...", bits);
+	dc_log_info(ths, 0, "Resetting tables (%i)...", bits);
 
 	mrsqlite3_lock(ths->m_sql);
 
 		if( bits & 1 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
-			mrmailbox_log_info(ths, 0, "(1) Jobs reset.");
+			dc_log_info(ths, 0, "(1) Jobs reset.");
 		}
 
 		if( bits & 2 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
-			mrmailbox_log_info(ths, 0, "(2) Peerstates reset.");
+			dc_log_info(ths, 0, "(2) Peerstates reset.");
 		}
 
 		if( bits & 4 ) {
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
-			mrmailbox_log_info(ths, 0, "(4) Private keypairs reset.");
+			dc_log_info(ths, 0, "(4) Private keypairs reset.");
 		}
 
 		if( bits & 8 ) {
@@ -72,7 +72,7 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
 			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
-			mrmailbox_log_info(ths, 0, "(8) Rest but server config reset.");
+			dc_log_info(ths, 0, "(8) Rest but server config reset.");
 		}
 
 	mrsqlite3_unlock(ths->m_sql);
@@ -99,7 +99,7 @@ static int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
 		return 0;
 	}
 
-	mrmailbox_log_info(ths, 0, "Cleaning up contacts ...");
+	dc_log_info(ths, 0, "Cleaning up contacts ...");
 
 	mrsqlite3_lock(ths->m_sql);
 
@@ -152,7 +152,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	header->m_prefer_encrypt   = MRA_PE_MUTUAL;
 	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
 	 || !mrpgp_is_valid_key(mailbox, header->m_public_key) ) {
-		mrmailbox_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
+		dc_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
 
@@ -207,7 +207,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 	}
 
 	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
-        mrmailbox_log_error(mailbox, 0, "Import: Database not opened.");
+        dc_log_error(mailbox, 0, "Import: Database not opened.");
 		goto cleanup;
 	}
 
@@ -224,7 +224,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 			real_spec = mrsqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
 		mrsqlite3_unlock(mailbox->m_sql);
 		if( real_spec == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: No file or folder given.");
+			dc_log_error(mailbox, 0, "Import: No file or folder given.");
 			goto cleanup;
 		}
 	}
@@ -240,7 +240,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 		/* import a publix key */
 		char* separator = strchr(real_spec, ' ');
 		if( separator==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
+			dc_log_error(mailbox, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
 			goto cleanup;
 		}
 		*separator = 0;
@@ -252,7 +252,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 	else {
 		/* import a directory */
 		if( (dir=opendir(real_spec))==NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", real_spec);
+			dc_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", real_spec);
 			goto cleanup;
 		}
 
@@ -260,7 +260,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = mr_mprintf("%s/%s", real_spec, name);
-				mrmailbox_log_info(mailbox, 0, "Import: %s", path_plus_name);
+				dc_log_info(mailbox, 0, "Import: %s", path_plus_name);
 				if( mrmailbox_poke_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 					read_cnt++;
 				}
@@ -269,7 +269,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 		}
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, real_spec);
+	dc_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, real_spec);
 	if( read_cnt > 0 ) {
 		mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
@@ -291,10 +291,10 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 	{
 		uint32_t msg_id = mrarray_get_id(msglist, i);
 		if( msg_id == MR_MSG_ID_DAYMARKER ) {
-			mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
+			dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
 		}
 		else if( msg_id > 0 ) {
-			if( lines_out==0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
+			if( lines_out==0 ) { dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
 			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
 			mrcontact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
@@ -311,7 +311,7 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 
 			char* temp2 = mr_timestamp_to_str(mrmsg_get_timestamp(msg));
 			char* msgtext = mrmsg_get_text(msg);
-				mrmailbox_log_info(mailbox, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
+				dc_log_info(mailbox, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 					(int)mrmsg_get_id(msg),
 					mrmsg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
 					contact_name,
@@ -331,7 +331,7 @@ static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
 		}
 	}
 
-	if( lines_out > 0 ) { mrmailbox_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); }
+	if( lines_out > 0 ) { dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); }
 }
 
 
@@ -372,7 +372,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 		else {
 			line = safe_strdup("Read error.");
 		}
-		mrmailbox_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
+		dc_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
 		free(line);
 		free(line2);
 	}
@@ -696,14 +696,14 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( chatlist ) {
 			int i, cnt = mrchatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
-				mrmailbox_log_info(mailbox, 0, "================================================================================");
+				dc_log_info(mailbox, 0, "================================================================================");
 				for( i = cnt-1; i >= 0; i-- )
 				{
 					mrchat_t* chat = mrmailbox_get_chat(mailbox, mrchatlist_get_chat_id(chatlist, i));
 
 					char* temp_subtitle = mrchat_get_subtitle(chat);
 					char* temp_name = mrchat_get_name(chat);
-						mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]",
+						dc_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]",
 							chat_prefix(chat),
 							(int)mrchat_get_id(chat), temp_name, temp_subtitle, (int)mrmailbox_get_fresh_msg_count(mailbox, mrchat_get_id(chat)));
 					free(temp_subtitle);
@@ -725,7 +725,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 						char* timestr = mr_timestamp_to_str(mrlot_get_timestamp(lot));
 						char* text1 = mrlot_get_text1(lot);
 						char* text2 = mrlot_get_text2(lot);
-							mrmailbox_log_info(mailbox, 0, "%s%s%s%s [%s]",
+							dc_log_info(mailbox, 0, "%s%s%s%s [%s]",
 								text1? text1 : "",
 								text1? ": " : "",
 								text2? text2 : "",
@@ -739,7 +739,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 
 					mrchat_unref(chat);
 
-					mrmailbox_log_info(mailbox, 0, "================================================================================");
+					dc_log_info(mailbox, 0, "================================================================================");
 				}
 			}
 			ret = mr_mprintf("%i chats.", (int)cnt);
@@ -766,7 +766,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			mrarray_t* msglist = mrmailbox_get_chat_msgs(mailbox, mrchat_get_id(sel_chat), MR_GCM_ADDDAYMARKER, 0);
 			char* temp2 = mrchat_get_subtitle(sel_chat);
 			char* temp_name = mrchat_get_name(sel_chat);
-				mrmailbox_log_info(mailbox, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), mrchat_get_id(sel_chat), temp_name, temp2);
+				dc_log_info(mailbox, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), mrchat_get_id(sel_chat), temp_name, temp2);
 			free(temp_name);
 			free(temp2);
 			if( msglist ) {
@@ -776,7 +776,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 			if( mrchat_get_draft_timestamp(sel_chat) ) {
 				char* timestr = mr_timestamp_to_str(mrchat_get_draft_timestamp(sel_chat));
 				char* drafttext = mrchat_get_draft(sel_chat);
-					mrmailbox_log_info(mailbox, 0, "Draft: %s [%s]", drafttext, timestr);
+					dc_log_info(mailbox, 0, "Draft: %s [%s]", drafttext, timestr);
 				free(drafttext);
 				free(timestr);
 			}
@@ -904,7 +904,7 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, mrchat_get_id(sel_chat));
 			if( contacts ) {
-				mrmailbox_log_info(mailbox, 0, "Memberlist:");
+				dc_log_info(mailbox, 0, "Memberlist:");
 				log_contactlist(mailbox, contacts);
 				ret = mr_mprintf("%i contacts.", (int)mrarray_get_cnt(contacts));
 			}

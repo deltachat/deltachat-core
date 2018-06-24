@@ -45,7 +45,7 @@ static int connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if t
 	mrloginparam_t* param = mrloginparam_new();
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
+		dc_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
@@ -58,7 +58,7 @@ static int connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if t
 	is_locked = 1;
 
 		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
-			mrmailbox_log_warning(mailbox, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
+			dc_log_warning(mailbox, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
 			goto cleanup;
 		}
 
@@ -138,7 +138,7 @@ static void mrjob_do_MRJ_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		}
 
 		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
-			mrmailbox_log_info(mailbox, 0, "The message is deleted from the server when all parts are deleted.");
+			dc_log_info(mailbox, 0, "The message is deleted from the server when all parts are deleted.");
 			delete_from_server = 0;
 		}
 
@@ -336,7 +336,7 @@ static void mark_as_error(mrmailbox_t* mailbox, mrmsg_t* msg)
 	mrsqlite3_lock(mailbox->m_sql);
 		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_STATE_OUT_ERROR);
 	mrsqlite3_unlock(mailbox->m_sql);
-	mailbox->m_cb(mailbox, MR_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
+	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
 
 
@@ -363,13 +363,13 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 	/* load message data */
 	if( !mrmimefactory_load_msg(&mimefactory, job->m_foreign_id)
 	 || mimefactory.m_from_addr == NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
+		dc_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
 	}
 
 	/* check if the message is ready (normally, only video files may be delayed this way) */
 	if( mimefactory.m_increation ) {
-		mrmailbox_log_info(mailbox, 0, "File is in creation, retrying later.");
+		dc_log_info(mailbox, 0, "File is in creation, retrying later.");
 		mrjob_try_again_later(job, MR_INCREATION_POLL);
 		goto cleanup;
 	}
@@ -378,14 +378,14 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 	if( clist_count(mimefactory.m_recipients_addr) > 0 ) {
 		if( !mrmimefactory_render(&mimefactory) ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
-			mrmailbox_log_error(mailbox, 0, "Empty message."); /* should not happen */
+			dc_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
 		if( mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0) && !mimefactory.m_out_encrypted ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
-			mrmailbox_log_error(mailbox, 0, "End-to-end-encryption unavailable unexpectedly.");
+			dc_log_error(mailbox, 0, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
 		}
 
@@ -431,7 +431,7 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_commit__(mailbox->m_sql);
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	mailbox->m_cb(mailbox, MR_EVENT_MSG_DELIVERED, mimefactory.m_msg->m_chat_id, mimefactory.m_msg->m_id);
+	mailbox->m_cb(mailbox, DC_EVENT_MSG_DELIVERED, mimefactory.m_msg->m_chat_id, mimefactory.m_msg->m_id);
 
 cleanup:
 	mrmimefactory_empty(&mimefactory);
@@ -595,7 +595,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 		job.m_foreign_id                     = sqlite3_column_int (select_stmt, 2);
 		mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(select_stmt, 3));
 
-		mrmailbox_log_info(mailbox, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.m_job_id, (int)job.m_action);
+		dc_log_info(mailbox, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.m_job_id, (int)job.m_action);
 
 		for( int tries = 0; tries <= 1; tries++ )
 		{
@@ -620,7 +620,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 		if( job.m_try_again == MR_INCREATION_POLL )
 		{
 			// just try over next loop unconditionally, the ui typically interrupts idle when the file (video) is ready
-			mrmailbox_log_info(mailbox, 0, "%s-job #%i not yet ready and will be delayed.", THREAD_STR, (int)job.m_job_id);
+			dc_log_info(mailbox, 0, "%s-job #%i not yet ready and will be delayed.", THREAD_STR, (int)job.m_job_id);
 		}
 		else if( job.m_try_again == MR_AT_ONCE || job.m_try_again == MR_STANDARD_DELAY )
 		{
@@ -633,7 +633,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 			sqlite3_bind_int  (update_stmt, 2, job.m_job_id);
 			sqlite3_step(update_stmt);
 			sqlite3_finalize(update_stmt);
-			mrmailbox_log_info(mailbox, 0, "%s-job #%i not succeeded, trying again asap.", THREAD_STR, (int)job.m_job_id);
+			dc_log_info(mailbox, 0, "%s-job #%i not succeeded, trying again asap.", THREAD_STR, (int)job.m_job_id);
 
 			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
 			// if we're not online, the ui calls interrupt idle as soon as we're online again.
@@ -680,7 +680,7 @@ cleanup:
  */
 void dc_perform_imap_jobs(dc_context_t* mailbox)
 {
-	mrmailbox_log_info(mailbox, 0, "IMAP-jobs started...");
+	dc_log_info(mailbox, 0, "IMAP-jobs started...");
 
 	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
 		mailbox->m_perform_imap_jobs_needed = 0;
@@ -688,7 +688,7 @@ void dc_perform_imap_jobs(dc_context_t* mailbox)
 
 	mrjob_perform(mailbox, MR_IMAP_THREAD);
 
-	mrmailbox_log_info(mailbox, 0, "IMAP-jobs ended.");
+	dc_log_info(mailbox, 0, "IMAP-jobs ended.");
 }
 
 
@@ -711,18 +711,18 @@ void dc_perform_imap_fetch(dc_context_t* mailbox)
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "IMAP-fetch started...");
+	dc_log_info(mailbox, 0, "IMAP-fetch started...");
 
 	mrimap_fetch(mailbox->m_imap);
 
 	if( mailbox->m_imap->m_should_reconnect
-	 && mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)==0 )
+	 && mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)==0 )
 	{
-		mrmailbox_log_info(mailbox, 0, "IMAP-fetch aborted, starting over...");
+		dc_log_info(mailbox, 0, "IMAP-fetch aborted, starting over...");
 		mrimap_fetch(mailbox->m_imap);
 	}
 
-	mrmailbox_log_info(mailbox, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	dc_log_info(mailbox, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 }
 
 
@@ -745,17 +745,17 @@ void dc_perform_imap_idle(dc_context_t* mailbox)
 
 	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
 		if( mailbox->m_perform_imap_jobs_needed ) {
-			mrmailbox_log_info(mailbox, 0, "IMAP-IDLE will not be started because of waiting jobs.");
+			dc_log_info(mailbox, 0, "IMAP-IDLE will not be started because of waiting jobs.");
 			pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
 			return;
 		}
 	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
 
-	mrmailbox_log_info(mailbox, 0, "IMAP-IDLE started...");
+	dc_log_info(mailbox, 0, "IMAP-IDLE started...");
 
 	mrimap_idle(mailbox->m_imap);
 
-	mrmailbox_log_info(mailbox, 0, "IMAP-IDLE ended.");
+	dc_log_info(mailbox, 0, "IMAP-IDLE ended.");
 }
 
 
@@ -796,11 +796,11 @@ void dc_perform_imap_idle(dc_context_t* mailbox)
 void dc_interrupt_imap_idle(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
-		mrmailbox_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");
+		dc_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Interrupting IMAP-IDLE...");
+	dc_log_info(mailbox, 0, "Interrupting IMAP-IDLE...");
 
 	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
 		// when this function is called, it might be that the idle-thread is in
@@ -831,7 +831,7 @@ void dc_interrupt_imap_idle(dc_context_t* mailbox)
  */
 void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 {
-	mrmailbox_log_info(mailbox, 0, "SMTP-jobs started...");
+	dc_log_info(mailbox, 0, "SMTP-jobs started...");
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 		mailbox->m_perform_smtp_jobs_needed = 0;
@@ -839,7 +839,7 @@ void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 
 	mrjob_perform(mailbox, MR_SMTP_THREAD);
 
-	mrmailbox_log_info(mailbox, 0, "SMTP-jobs ended.");
+	dc_log_info(mailbox, 0, "SMTP-jobs ended.");
 }
 
 
@@ -857,17 +857,17 @@ void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		mrmailbox_log_warning(mailbox, 0, "Cannot perform SMTP-idle: Bad parameters.");
+		dc_log_warning(mailbox, 0, "Cannot perform SMTP-idle: Bad parameters.");
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "SMTP-idle started...");
+	dc_log_info(mailbox, 0, "SMTP-idle started...");
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 
 		if( mailbox->m_perform_smtp_jobs_needed == MR_JOBS_NEEDED_AT_ONCE )
 		{
-			mrmailbox_log_info(mailbox, 0, "SMTP-idle will not be started because of waiting jobs.");
+			dc_log_info(mailbox, 0, "SMTP-idle will not be started because of waiting jobs.");
 		}
 		else
 		{
@@ -889,7 +889,7 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 
 	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 
-	mrmailbox_log_info(mailbox, 0, "SMTP-idle ended.");
+	dc_log_info(mailbox, 0, "SMTP-idle ended.");
 }
 
 
@@ -928,11 +928,11 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 void dc_interrupt_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		mrmailbox_log_warning(mailbox, 0, "Interrupt SMTP-idle: Bad parameters.");
+		dc_log_warning(mailbox, 0, "Interrupt SMTP-idle: Bad parameters.");
 		return;
 	}
 
-	mrmailbox_log_info(mailbox, 0, "Interrupting SMTP-idle...");
+	dc_log_info(mailbox, 0, "Interrupting SMTP-idle...");
 
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 

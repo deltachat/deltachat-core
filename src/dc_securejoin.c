@@ -78,7 +78,7 @@ void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, mrapeerstate_t* peerst
 		char* msg = mr_mprintf("Changed setup for %s", peerstate->m_addr);
 		mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
 		free(msg);
-		mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 	}
 
 cleanup:
@@ -94,22 +94,22 @@ cleanup:
 static int encrypted_and_signed(mrmimeparser_t* mimeparser, const char* expected_fingerprint)
 {
 	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
-		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message not encrypted.");
+		dc_log_warning(mimeparser->m_mailbox, 0, "Message not encrypted.");
 		return 0;
 	}
 
 	if( mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
-		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message not signed.");
+		dc_log_warning(mimeparser->m_mailbox, 0, "Message not signed.");
 		return 0;
 	}
 
 	if( expected_fingerprint == NULL ) {
-		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Fingerprint for comparison missing.");
+		dc_log_warning(mimeparser->m_mailbox, 0, "Fingerprint for comparison missing.");
 		return 0;
 	}
 
 	if( mrhash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
-		mrmailbox_log_warning(mimeparser->m_mailbox, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
+		dc_log_warning(mimeparser->m_mailbox, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
 
@@ -286,7 +286,7 @@ static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t
 
 	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
 
-	mrmailbox_log_error(mailbox, 0, "%s (%s)", msg, details); // additionaly raise an error; this typically results in a toast (inviter side) or a dialog (joiner side)
+	dc_log_error(mailbox, 0, "%s (%s)", msg, details); // additionaly raise an error; this typically results in a toast (inviter side) or a dialog (joiner side)
 
 	free(msg);
 	mrcontact_unref(contact);
@@ -301,8 +301,8 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact
 
 	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
 
-	// in addition to MR_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send MR_EVENT_CHAT_MODIFIED to update all views
-	mailbox->m_cb(mailbox, MR_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
+	// in addition to DC_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send DC_EVENT_CHAT_MODIFIED to update all views
+	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
 	free(msg);
 	mrcontact_unref(contact);
@@ -394,7 +394,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 		}
 
 		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
-			mrmailbox_log_error(mailbox, 0, "Not configured, cannot generate QR code.");
+			dc_log_error(mailbox, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
@@ -415,7 +415,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 		// parameters used: a=g=x=i=s=
 		chat = mrmailbox_get_chat(mailbox, group_chat_id);
 		if( chat == NULL || chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
-			mrmailbox_log_error(mailbox, 0, "Secure join is only available for verified groups.");
+			dc_log_error(mailbox, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
 		group_name = mrchat_get_name(chat);
@@ -483,7 +483,7 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 	mrlot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
 
-	mrmailbox_log_info(mailbox, 0, "Requesting secure-join ...");
+	dc_log_info(mailbox, 0, "Requesting secure-join ...");
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
@@ -493,19 +493,19 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 
 	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL)
 	 || (qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
-		mrmailbox_log_error(mailbox, 0, "Unknown QR code.");
+		dc_log_error(mailbox, 0, "Unknown QR code.");
 		goto cleanup;
 	}
 
 	if( (contact_chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_scan->m_id)) == 0 ) {
-		mrmailbox_log_error(mailbox, 0, "Unknown contact.");
+		dc_log_error(mailbox, 0, "Unknown contact.");
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( mailbox->m_cb(mailbox, MR_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-		mrmailbox_log_error(mailbox, MR_ERR_NONETWORK, NULL);
+	if( mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+		dc_log_error(mailbox, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
 
@@ -520,9 +520,9 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 
 	if( fingerprint_equals_sender(mailbox, qr_scan->m_fingerprint, contact_chat_id) ) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
-		mrmailbox_log_info(mailbox, 0, "Taking protocol shortcut.");
+		dc_log_info(mailbox, 0, "Taking protocol shortcut.");
 		s_bob_expects = VC_CONTACT_CONFIRM;
-		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(mailbox, contact_chat_id), 4);
+		mailbox->m_cb(mailbox, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(mailbox, contact_chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(mailbox);
 		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
 			qr_scan->m_auth, own_fingerprint, join_vg? qr_scan->m_text2 : NULL); // Bob -> Alice
@@ -585,7 +585,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 	if( (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
 		goto cleanup;
 	}
-	mrmailbox_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
+	dc_log_info(mailbox, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
 	LOCK
@@ -612,20 +612,20 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		// verify that the `Secure-Join-Invitenumber:`-header matches invitenumber written to the QR code
 		const char* invitenumber = NULL;
 		if( (invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL ) {
-			mrmailbox_log_warning(mailbox, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
+			dc_log_warning(mailbox, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
 
 		LOCK
 			if( mrtoken_exists__(mailbox, MRT_INVITENUMBER, invitenumber) == 0 ) {
-				mrmailbox_log_warning(mailbox, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
+				dc_log_warning(mailbox, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 				goto cleanup;
 			}
 		UNLOCK
 
-		mrmailbox_log_info(mailbox, 0, "Secure-join requested.");
+		dc_log_info(mailbox, 0, "Secure-join requested.");
 
-		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
+		mailbox->m_cb(mailbox, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
 
 		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required",
 			NULL, NULL, NULL); // Alice -> Bob
@@ -640,7 +640,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		LOCK
 			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
-				mrmailbox_log_warning(mailbox, 0, "auth-required message out of sync.");
+				dc_log_warning(mailbox, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
@@ -663,11 +663,11 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
+		dc_log_info(mailbox, 0, "Fingerprint verified.");
 
 		own_fingerprint = get_self_fingerprint(mailbox);
 
-		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
+		mailbox->m_cb(mailbox, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
 
 		s_bob_expects = VC_CONTACT_CONFIRM;
 		send_handshake_msg(mailbox, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
@@ -699,7 +699,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 			goto cleanup;
 		}
 
-		mrmailbox_log_info(mailbox, 0, "Fingerprint verified.");
+		dc_log_info(mailbox, 0, "Fingerprint verified.");
 
 		// verify that the `Secure-Join-Auth:`-header matches the secret written to the QR code
 		const char* auth = NULL;
@@ -726,12 +726,12 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
 		UNLOCK
 
-		mrmailbox_log_info(mailbox, 0, "Auth verified.");
+		dc_log_info(mailbox, 0, "Auth verified.");
 
 		secure_connection_established(mailbox, contact_chat_id);
 
-		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
-		mailbox->m_cb(mailbox, MR_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
+		mailbox->m_cb(mailbox, DC_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
 		if( join_vg ) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
@@ -741,7 +741,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 				uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
 			UNLOCK
 			if( verified_chat_id == 0 || !is_verified ) {
-				mrmailbox_log_error(mailbox, 0, "Verified chat not found.");
+				dc_log_error(mailbox, 0, "Verified chat not found.");
 				goto cleanup;
 			}
 
@@ -766,17 +766,17 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 
 		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
 			if( join_vg ) {
-				mrmailbox_log_info(mailbox, 0, "vg-member-added received as broadcast.");
+				dc_log_info(mailbox, 0, "vg-member-added received as broadcast.");
 			}
 			else {
-				mrmailbox_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
+				dc_log_warning(mailbox, 0, "Unexpected secure-join mail order.");
 			}
 			goto cleanup;
 		}
 
 		LOCK
 			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
-				mrmailbox_log_warning(mailbox, 0, "Message out of sync or belongs to a different handshake.");
+				dc_log_warning(mailbox, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}
 			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
@@ -801,7 +801,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 
 		secure_connection_established(mailbox, contact_chat_id);
 
-		mailbox->m_cb(mailbox, MR_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
+		mailbox->m_cb(mailbox, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
 		s_bob_expects = 0;
 		end_bobs_joining(mailbox, BOB_SUCCESS);
