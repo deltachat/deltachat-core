@@ -39,61 +39,96 @@ extern "C" {
 /**
  * @mainpage Getting started
  *
- * This document describes how to handle the Delta Chat core library.
- * For general information about Delta Chat itself, see <https://delta.chat> and <https://github.com/deltachat>.
+ * This document describes how to handle the Delta Chat core library. For general
+ * information about Delta Chat itself, see <https://delta.chat> and <https://github.com/deltachat>.
  *
  * Let's start.
  *
- * First of all, you have to define a function that is called by the library on
+ * First of all, you have to **define an event-handler-function** that is called by the library on
  * specific events (eg. when the configuration is done or when fresh messages arrive).
- * Your function should look like the following:
+ * With this function you can create a Delta Chat context then:
  *
  * ```
  * #include <deltachat.h>
  *
- * uintptr_t my_delta_handler(dc_context_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+ * uintptr_t event_handler_func(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
  * {
  *     return 0; // for unhandled events, it is always safe to return 0
  * }
+ *
+ * dc_context_t* context = dc_context_new(event_handler_func, NULL, NULL);
  * ```
  *
- * After that, you can create and configure a dc_context_t object easily as follows:
+ * After that, you should make sure, sending and receiving jobs are processed as needed.
+ * For this purpose, you have to **create two threads:**
  *
  * ```
- * dc_context_t* mailbox = dc_context_new(my_delta_handler, NULL, NULL);
+ * #include <pthread.h>
  *
- * dc_set_config(mailbox, "addr",    "alice@delta.chat"); // use some real test credentials here
- * dc_set_config(mailbox, "mail_pw", "***");
+ * void* imap_thread_func(void* context)
+ * {
+ *     while (true) {
+ *         dc_perform_imap_jobs(context);
+ *         dc_perform_imap_fetch(context);
+ *         dc_perform_imap_idle(context);
+ *     }
+ * }
  *
- * dc_configure(mailbox);
+ * void* smtp_thread_func(void* context)
+ * {
+ *     while (true) {
+ *         dc_perform_smtp_jobs(context);
+ *         dc_perform_smtp_idle(context);
+ *     }
+ * }
+ *
+ * pthread_t imap_thread, smtp_thread;
+ * pthread_create(&imap_thread, NULL, imap_thread_func, context);
+ * pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
  * ```
  *
- * dc_configure() may take a while and saves the result in
- * the database. On subsequent starts, calling this function is not needed.
+ * The example above uses "pthreads", however, you can also use anything else for thread handling.
+ * NB: The deltachat-core library itself does not create any threads on its own, however, functions,
+ * unless stated otherwise, are thread-safe.
  *
- * However, now you can send your first message:
- *
- * ```
- * uint32_t contact_id = dc_create_contact(mailbox, NULL, "bob@delta.chat"); // use a real testing address here
- * uint32_t chat_id    = dc_create_chat_by_contact_id(mailbox, contact_id);
- *
- * dc_send_text_msg(mailbox, chat_id, "Hi, here is my first message!");
- * ```
- *
- * Now, go to the testing address (bob) and you should have received a normal email.
- * Answer this email in any email program with "Got it!" and you will get the message from delta as follows:
+ * Now you can **configure the context:**
  *
  * ```
- * dc_perform_imap_fetch();
+ * dc_set_config(context, "addr", "alice@delta.chat"); // use some real test credentials here
+ * dc_set_config(context, "mail_pw", "***");
+ * dc_configure(context);
+ * ```
  *
- * dc_array_t* msglist = dc_get_chat_msgs(mailbox, chat_id, 0, 0);
- * for( size_t i = 0; i < dc_array_get_cnt(msglist); i++ )
+ * dc_configure() returns immediately, the configuration itself may take a while and is done by a job
+ * in the imap-thread you've defined above. Once done, the #DC_EVENT_CONFIGURE_PROGRESS reports
+ * success to the event_handler_func() that is also defined above.
+ * NB: The configuration resullt is saved in the database, on subsequent starts
+ * it is not needed to call dc_configure() (you can check this using dc_is_configured()).
+ *
+ * Now you can **send the first message:**
+ *
+ * ```
+ * uint32_t contact_id = dc_create_contact(context, NULL, "bob@delta.chat"); // use a real testing address here
+ * uint32_t chat_id    = dc_create_chat_by_contact_id(context, contact_id);
+ *
+ * dc_send_text_msg(context, chat_id, "Hi, here is my first message!");
+ * ```
+ *
+ * dc_send_text_msg() returns immediately and the sending itself is done by a job
+ * in the smtp-thread you've defined above. If you check the testing address (bob) and you should have received a normal email.
+ * Answer this email in any email program with "Got it!" and the imap-thread you've create above will **receive the message**.
+ *
+ * You can then **list all messages** of a chat as follow:
+ *
+ * ```
+ * dc_array_t* msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
+ * for (int i = 0; i < dc_array_get_cnt(msglist); i++)
  * {
  *     uint32_t  msg_id = dc_array_get_id(msglist, i);
- *     dc_msg_t* msg    = dc_get_msg(mailbox, msg_id);
+ *     dc_msg_t* msg    = dc_get_msg(context, msg_id);
  *     char*     text   = dc_msg_get_text(msg);
  *
- *     printf("message %i: %s\n", i+1, text);
+ *     printf("Message %i: %s\n", i+1, text);
  *
  *     free(text);
  *     dc_msg_unref(msg);
@@ -117,19 +152,10 @@ extern "C" {
  * ## Further hints
  *
  * Here are some additional, unsorted hints that may be useful.
- * If you need any further assistance, please do not hesitate to contact us at <r10s@b44t.com>.
- *
- * - Two underscores at the end of a function-name may be a _hint_, that this
- *   function does no resource locking. Such functions must not be used.
- *
- * - For objects, C-structures are used.  If not mentioned otherwise, you can
- *   read the members here directly.
  *
  * - For `get`-functions, you have to unref the return value in some way.
  *
- * - Strings in function arguments or return values are usually UTF-8 encoded
- *
- * - Threads are implemented using POSIX threads (`pthread_*` functions)
+ * - Strings in function arguments or return values are usually UTF-8 encoded.
  *
  * - The issue-tracker for the core library is here: <https://github.com/deltachat/deltachat-core/issues>
  *
@@ -142,6 +168,8 @@ extern "C" {
  *
  * - Source files are encoded as UTF-8 with Unix line endings (a simple `LF`, `0x0A` or
  *   `\n`)
+ *
+ * If you need any further assistance, please do not hesitate to contact us through the channes shown at https://delta.chat
  *
  * Please keep in mind, that your derived work must be released under a
  * **GPL-compatible licence**.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
