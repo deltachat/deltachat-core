@@ -34,7 +34,7 @@ extern "C" {
 
 
 /** the structure behind mrchat_t */
-struct _mrchat
+struct _dc_chat
 {
 	/** @privatesection */
 	uint32_t        m_magic;

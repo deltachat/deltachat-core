@@ -31,8 +31,8 @@ typedef struct mrsqlite3_t mrsqlite3_t;
 typedef struct mrapeerstate_t mrapeerstate_t;
 
 
-/** the structure behind mrcontact_t */
-struct _mrcontact
+/** the structure behind dc_contact_t */
+struct _dc_contact
 {
 	/** @privatesection */
 

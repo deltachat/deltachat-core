@@ -668,13 +668,17 @@ cleanup:
 
 
 /**
- * Execute pending jobs.
+ * Execute pending imap-jobs.
+ * This function and dc_perform_imap_fetch() and dc_perform_imap_idle() must be called from the same thread,
+ * typically in a loop.
  *
- * @memberof mrmailbox_t
+ * See dc_interrupt_imap_idle() for an example.
+ *
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None
  */
-void dc_perform_imap_jobs(mrmailbox_t* mailbox)
+void dc_perform_imap_jobs(dc_context_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, "IMAP-jobs started...");
 
@@ -689,13 +693,17 @@ void dc_perform_imap_jobs(mrmailbox_t* mailbox)
 
 
 /**
- * Poll for new messages.
+ * Fetch new messages, if any.
+ * This function and dc_perform_imap_jobs() and dc_perform_imap_idle() must be called from the same thread,
+ * typically in a loop.
  *
- * @memberof mrmailbox_t
+ * See dc_interrupt_imap_idle() for an example.
+ *
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None.
  */
-void dc_perform_imap_fetch(mrmailbox_t* mailbox)
+void dc_perform_imap_fetch(dc_context_t* mailbox)
 {
 	clock_t start = clock();
 
@@ -719,13 +727,19 @@ void dc_perform_imap_fetch(mrmailbox_t* mailbox)
 
 
 /**
- * Wait for messages.
+ * Wait for messages or jobs.
+ * This function and dc_perform_imap_jobs() and dc_perform_imap_fetch() must be called from the same thread,
+ * typically in a loop.
  *
- * @memberof mrmailbox_t
+ * You should call this function directly after calling dc_perform_imap_fetch().
+ *
+ * See dc_interrupt_imap_idle() for an example.
+ *
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None.
  */
-void dc_perform_imap_idle(mrmailbox_t* mailbox)
+void dc_perform_imap_idle(dc_context_t* mailbox)
 {
 	connect_to_imap(mailbox, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
 
@@ -746,13 +760,40 @@ void dc_perform_imap_idle(mrmailbox_t* mailbox)
 
 
 /**
- * Interrupt the mrmailbox_perform_imap_idle().
+ * Interrupt waiting for imap-jobs.
+ * If dc_perform_imap_jobs(), dc_perform_imap_fetch() and dc_perform_imap_idle() are called in a loop,
+ * calling this function causes imap-jobs to be executed and messages to be fetched.
  *
- * @memberof mrmailbox_t
+ * Internally, this function is called whenever a imap-jobs should be processed (delete message, markseen etc.),
+ * for the UI view it may make sense to call the function eg. on network changes to fetch messages immediately.
+ *
+ * Example:
+ *
+ *     void* imap_thread_func(void* context)
+ *     {
+ *         while( true ) {
+ *             dc_perform_imap_jobs(context);
+ *             dc_perform_imap_fetch(context);
+ *             dc_perform_imap_idle(context);
+ *         }
+ *     }
+ *
+ *     // start imap-thread that runs forever
+ *     pthread_t imap_thread;
+ *     pthread_create(&imap_thread, NULL, imap_thread_func, context);
+ *
+ *     ... program runs ...
+ *
+ *     // network becomes available again - the interrupt causes
+ *     // dc_perform_imap_idle() in the thread to return so that jobs are executed
+ *     // and messages are fetched.
+ *     dc_interrupt_imap_idle(context);
+ *
+ * @memberof dc_context_t
  * @param mailbox The mailbox object.
  * @return None
  */
-void dc_interrupt_imap_idle(mrmailbox_t* mailbox)
+void dc_interrupt_imap_idle(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
 		mrmailbox_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");
@@ -777,6 +818,17 @@ void dc_interrupt_imap_idle(mrmailbox_t* mailbox)
  ******************************************************************************/
 
 
+/**
+ * Execute pending smtp-jobs.
+ * This function and dc_perform_smtp_idle() must be called from the same thread,
+ * typically in a loop.
+ *
+ * See dc_interrupt_smtp_idle() for an example.
+ *
+ * @memberof dc_context_t
+ * @param mailbox The mailbox object.
+ * @return None
+ */
 void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 {
 	mrmailbox_log_info(mailbox, 0, "SMTP-jobs started...");
@@ -791,6 +843,17 @@ void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
 }
 
 
+/**
+ * Wait for smtp-jobs.
+ * This function and dc_perform_smtp_jobs() must be called from the same thread,
+ * typically in a loop.
+ *
+ * See dc_interrupt_smtp_idle() for an example.
+ *
+ * @memberof dc_context_t
+ * @param mailbox The mailbox object.
+ * @return None
+ */
 void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -830,6 +893,38 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
 }
 
 
+/**
+ * Interrupt waiting for smtp-jobs.
+ * If dc_perform_smtp_jobs() and dc_perform_smtp_idle() are called in a loop,
+ * calling this function causes jobs to be executed.
+ *
+ * Internally, this function is called whenever a message is to be send,
+ * for the UI view it may make sense to call the function eg. on network changes.
+ *
+ * Example:
+ *
+ *     void* smtp_thread_func(void* context)
+ *     {
+ *         while( true ) {
+ *             dc_perform_smtp_jobs(context);
+ *             dc_perform_smtp_idle(context);
+ *         }
+ *     }
+ *
+ *     // start smtp-thread that runs forever
+ *     pthread_t smtp_thread;
+ *     pthread_create(&smtp_thread, NULL, smtp_thread_func, context);
+ *
+ *     ... program runs ...
+ *
+ *     // network becomes available again - the interrupt causes
+ *     // dc_perform_smtp_idle() in the thread to return so that jobs are executed
+ *     dc_interrupt_smtp_idle(context);
+ *
+ * @memberof dc_context_t
+ * @param mailbox The mailbox object.
+ * @return None
+ */
 void dc_interrupt_smtp_idle(mrmailbox_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {

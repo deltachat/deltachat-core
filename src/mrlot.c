@@ -43,16 +43,16 @@ mrlot_t* mrlot_new()
 /**
  * Frees an object containing a set of parameters.
  * If the set object contains strings, the strings are also freed with this function.
- * Set objects are created eg. by mrchatlist_get_summary(), mrmsg_get_summary or by
- * mrmsg_get_mediainfo().
+ * Set objects are created eg. by dc_chatlist_get_summary(), dc_msg_get_summary or by
+ * dc_msg_get_mediainfo().
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param set The object to free.
  *
  * @return None
  */
-void mrlot_unref(mrlot_t* set)
+void dc_lot_unref(dc_lot_t* set)
 {
 	if( set==NULL || set->m_magic != MR_LOT_MAGIC ) {
 		return;
@@ -93,15 +93,15 @@ void mrlot_empty(mrlot_t* ths)
 
 
 /**
- * Get first string. The meaning of the string is defined by the creator of the object and may be roughly described by mrlot_get_text1_meaning().
+ * Get first string. The meaning of the string is defined by the creator of the object and may be roughly described by dc_lot_get_text1_meaning().
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return A string, the string may be empty and the returned value must be free()'d. NULL if there is no such string.
  */
-char* mrlot_get_text1(mrlot_t* lot)
+char* dc_lot_get_text1(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return NULL;
@@ -113,13 +113,13 @@ char* mrlot_get_text1(mrlot_t* lot)
 /**
  * Get second string. The meaning of the string is defined by the creator of the object.
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return A string, the string may be empty and the returned value must be free()'d	. NULL if there is no such string.
  */
-char* mrlot_get_text2(mrlot_t* lot)
+char* dc_lot_get_text2(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return NULL;
@@ -130,16 +130,16 @@ char* mrlot_get_text2(mrlot_t* lot)
 
 /**
  * Get the meaning of the first string.  Posssible meanings of the string are defined by the creator of the object and may be returned eg.
- * as MR_TEXT1_DRAFT, MR_TEXT1_USERNAME or MR_TEXT1_SELF.
+ * as DC_TEXT1_DRAFT, DC_TEXT1_USERNAME or DC_TEXT1_SELF.
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return Returns the meaning of the first string, possible meanings are defined by the creator of the object.
  *    0 if there is no concrete meaning or on errors.
  */
-int mrlot_get_text1_meaning(mrlot_t* lot)
+int dc_lot_get_text1_meaning(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return 0;
@@ -151,13 +151,13 @@ int mrlot_get_text1_meaning(mrlot_t* lot)
 /**
  * Get the associated state. The meaning of the state is defined by the creator of the object.
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
  */
-int mrlot_get_state(mrlot_t* lot)
+int dc_lot_get_state(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return 0;
@@ -169,13 +169,13 @@ int mrlot_get_state(mrlot_t* lot)
 /**
  * Get the associated ID. The meaning of the ID is defined by the creator of the object.
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
  */
-uint32_t mrlot_get_id(mrlot_t* lot)
+uint32_t dc_lot_get_id(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return 0;
@@ -187,13 +187,13 @@ uint32_t mrlot_get_id(mrlot_t* lot)
 /**
  * Get the associated timestamp. The meaning of the timestamp is defined by the creator of the object.
  *
- * @memberof mrlot_t
+ * @memberof dc_lot_t
  *
  * @param lot The lot object.
  *
  * @return The timestamp as defined by the creator of the object. 0 if there is not timestamp or on errors.
  */
-time_t mrlot_get_timestamp(mrlot_t* lot)
+time_t dc_lot_get_timestamp(dc_lot_t* lot)
 {
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return 0;

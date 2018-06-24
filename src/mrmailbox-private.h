@@ -35,8 +35,8 @@ typedef struct mrmimeparser_t mrmimeparser_t;
 typedef struct mrhash_t       mrhash_t;
 
 
-/** Structure behind mrmailbox_t */
-struct _mrmailbox
+/** Structure behind dc_context_t */
+struct _dc_context
 {
 	/** @privatesection */
 	#define          MR_MAILBOX_MAGIC         0x11a11807
@@ -130,6 +130,9 @@ void            mrmailbox_suspend_smtp_thread                     (mrmailbox_t*,
 int             mrmailbox_add_contact_to_chat_ex                  (mrmailbox_t*, uint32_t chat_id, uint32_t contact_id, int flags);
 
 uint32_t        mrmailbox_get_chat_id_by_grpid__                  (mrmailbox_t*, const char* grpid, int* ret_blocked, int* ret_verified);
+
+#define         DC_BAK_PREFIX                "delta-chat"
+#define         DC_BAK_SUFFIX                "bak"
 
 
 /* library private: end-to-end-encryption */

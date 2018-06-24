@@ -27,8 +27,8 @@ extern "C" {
 #endif
 
 
-/** Structure behind mrlot_t */
-struct _mrlot
+/** Structure behind dclot_t */
+struct _dc_lot
 {
 	/** @privatesection */
 	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
@@ -44,6 +44,11 @@ struct _mrlot
 	char*           m_invitenumber;    /**< used for qr code scanning only */
 	char*           m_auth;            /**< used for qr code scanning only */
 };
+
+
+/* library-internal */
+#define MR_SUMMARY_CHARACTERS 160 /* in practice, the user additionally cuts the string himself pixel-accurate */
+void            mrlot_fill      (mrlot_t*, const mrmsg_t*, const mrchat_t*, const mrcontact_t*);
 
 
 #ifdef __cplusplus

@@ -27,8 +27,8 @@ extern "C" {
 #endif
 
 
-/** the structure behind mrchatlist_t */
-struct _mrchatlist
+/** the structure behind dc_chatlist_t */
+struct _dc_chatlist
 {
 	/** @privatesection */
 	uint32_t        m_magic;

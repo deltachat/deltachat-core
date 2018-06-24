@@ -28,12 +28,6 @@ extern "C" {
 
 
 
-
-typedef struct _mrmsg mrmsg_t;
-typedef struct _mrchat mrchat_t;
-typedef struct _mrmailbox mrmailbox_t;
-
-
 #define MR_CMD_GROUPNAME_CHANGED           2
 #define MR_CMD_GROUPIMAGE_CHANGED          3
 #define MR_CMD_MEMBER_ADDED_TO_GROUP       4

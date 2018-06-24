@@ -31,6 +31,9 @@ extern "C" {
 #endif
 
 
+#include <libetpan/libetpan.h> // for carray etc.
+
+
 /*** library-private **********************************************************/
 
 /* math tools */

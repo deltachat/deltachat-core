@@ -337,11 +337,11 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  * fingerprint comparison also works eg. with K-9 or OpenKeychain.
  *
  * The scanning Delta Chat device will pass the scanned content to
- * mrmailbox_check_qr() then; if this function returns
- * MR_QR_ASK_VERIFYCONTACT or MR_QR_ASK_VERIFYGROUP an out-of-band-verification
- * can be joined using mrmailbox_join_securejoin()
+ * dc_check_qr() then; if this function returns
+ * DC_QR_ASK_VERIFYCONTACT or DC_QR_ASK_VERIFYGROUP an out-of-band-verification
+ * can be joined using dc_join_securejoin()
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object.
  *
@@ -350,7 +350,7 @@ static void end_bobs_joining(mrmailbox_t* mailbox, int status)
  *
  * @return Text that should go to the qr code.
  */
-char* mrmailbox_get_securejoin_qr(mrmailbox_t* mailbox, uint32_t group_chat_id)
+char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 {
 	/* =========================================================
 	   ====             Alice - the inviter side            ====
@@ -444,19 +444,19 @@ cleanup:
 
 
 /**
- * Join an out-of-band-verification initiated on another device with mrmailbox_get_securejoin_qr().
- * This function is typically called when mrmailbox_check_qr() returns
- * lot.m_state=MR_QR_ASK_VERIFYCONTACT or lot.m_state=MR_QR_ASK_VERIFYGROUP.
+ * Join an out-of-band-verification initiated on another device with dc_get_securejoin_qr().
+ * This function is typically called when dc_check_qr() returns
+ * lot.m_state=DC_QR_ASK_VERIFYCONTACT or lot.m_state=DC_QR_ASK_VERIFYGROUP.
  *
  * This function takes some time and sends and receives several messages.
  * You should call it in a separate thread; if you want to abort it, you should
- * call mrmailbox_stop_ongoing_process().
+ * call dc_stop_ongoing_process().
  *
- * @memberof mrmailbox_t
+ * @memberof dc_context_t
  *
  * @param mailbox The mailbox object
  * @param qr The text of the scanned QR code. Typically, the same string as given
- *     to mrmailbox_check_qr().
+ *     to dc_check_qr().
  *
  * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
  *     verification successfull, the UI may redirect to the corresponding chat
@@ -468,7 +468,7 @@ cleanup:
  *     - for a qr-scan to add a contact (even without handshake), opening the created normal-chat is better
  *     (for vg-request always the new group is shown, this is perfect)
  */
-uint32_t mrmailbox_join_securejoin(mrmailbox_t* mailbox, const char* qr)
+uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 {
 	/* ==========================================================
 	   ====             Bob - the joiner's side             =====

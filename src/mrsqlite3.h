@@ -32,7 +32,6 @@ extern "C" {
 #include <sqlite3.h>
 #include <libetpan/libetpan.h>
 #include <pthread.h>
-typedef struct _mrmailbox mrmailbox_t;
 
 
 /* predefined statements */
