@@ -675,20 +675,20 @@ cleanup:
  * See dc_interrupt_imap_idle() for an example.
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None
  */
-void dc_perform_imap_jobs(dc_context_t* mailbox)
+void dc_perform_imap_jobs(dc_context_t* context)
 {
-	dc_log_info(mailbox, 0, "IMAP-jobs started...");
+	dc_log_info(context, 0, "IMAP-jobs started...");
 
-	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
-		mailbox->m_perform_imap_jobs_needed = 0;
-	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+	pthread_mutex_lock(&context->m_imapidle_condmutex);
+		context->m_perform_imap_jobs_needed = 0;
+	pthread_mutex_unlock(&context->m_imapidle_condmutex);
 
-	mrjob_perform(mailbox, MR_IMAP_THREAD);
+	mrjob_perform(context, MR_IMAP_THREAD);
 
-	dc_log_info(mailbox, 0, "IMAP-jobs ended.");
+	dc_log_info(context, 0, "IMAP-jobs ended.");
 }
 
 
@@ -700,29 +700,29 @@ void dc_perform_imap_jobs(dc_context_t* mailbox)
  * See dc_interrupt_imap_idle() for an example.
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None.
  */
-void dc_perform_imap_fetch(dc_context_t* mailbox)
+void dc_perform_imap_fetch(dc_context_t* context)
 {
 	clock_t start = clock();
 
-	if( !connect_to_imap(mailbox, NULL) ) {
+	if( !connect_to_imap(context, NULL) ) {
 		return;
 	}
 
-	dc_log_info(mailbox, 0, "IMAP-fetch started...");
+	dc_log_info(context, 0, "IMAP-fetch started...");
 
-	mrimap_fetch(mailbox->m_imap);
+	mrimap_fetch(context->m_imap);
 
-	if( mailbox->m_imap->m_should_reconnect
-	 && mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)==0 )
+	if( context->m_imap->m_should_reconnect
+	 && context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)==0 )
 	{
-		dc_log_info(mailbox, 0, "IMAP-fetch aborted, starting over...");
-		mrimap_fetch(mailbox->m_imap);
+		dc_log_info(context, 0, "IMAP-fetch aborted, starting over...");
+		mrimap_fetch(context->m_imap);
 	}
 
-	dc_log_info(mailbox, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	dc_log_info(context, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 }
 
 
@@ -736,26 +736,26 @@ void dc_perform_imap_fetch(dc_context_t* mailbox)
  * See dc_interrupt_imap_idle() for an example.
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None.
  */
-void dc_perform_imap_idle(dc_context_t* mailbox)
+void dc_perform_imap_idle(dc_context_t* context)
 {
-	connect_to_imap(mailbox, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
+	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
 
-	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
-		if( mailbox->m_perform_imap_jobs_needed ) {
-			dc_log_info(mailbox, 0, "IMAP-IDLE will not be started because of waiting jobs.");
-			pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+	pthread_mutex_lock(&context->m_imapidle_condmutex);
+		if( context->m_perform_imap_jobs_needed ) {
+			dc_log_info(context, 0, "IMAP-IDLE will not be started because of waiting jobs.");
+			pthread_mutex_unlock(&context->m_imapidle_condmutex);
 			return;
 		}
-	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+	pthread_mutex_unlock(&context->m_imapidle_condmutex);
 
-	dc_log_info(mailbox, 0, "IMAP-IDLE started...");
+	dc_log_info(context, 0, "IMAP-IDLE started...");
 
-	mrimap_idle(mailbox->m_imap);
+	mrimap_idle(context->m_imap);
 
-	dc_log_info(mailbox, 0, "IMAP-IDLE ended.");
+	dc_log_info(context, 0, "IMAP-IDLE ended.");
 }
 
 
@@ -790,26 +790,26 @@ void dc_perform_imap_idle(dc_context_t* mailbox)
  *     dc_interrupt_imap_idle(context);
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None
  */
-void dc_interrupt_imap_idle(dc_context_t* mailbox)
+void dc_interrupt_imap_idle(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
-		dc_log_warning(mailbox, 0, "Interrupt IMAP-IDLE: Bad parameters.");
+	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC || context->m_imap == NULL ) {
+		dc_log_warning(context, 0, "Interrupt IMAP-IDLE: Bad parameters.");
 		return;
 	}
 
-	dc_log_info(mailbox, 0, "Interrupting IMAP-IDLE...");
+	dc_log_info(context, 0, "Interrupting IMAP-IDLE...");
 
-	pthread_mutex_lock(&mailbox->m_imapidle_condmutex);
+	pthread_mutex_lock(&context->m_imapidle_condmutex);
 		// when this function is called, it might be that the idle-thread is in
 		// perform_idle_jobs() instead of idle(). if so, added jobs will be performed after the _next_ idle-jobs loop.
 		// setting the flag perform_imap_jobs_needed makes sure, idle() returns immediately in this case.
-		mailbox->m_perform_imap_jobs_needed = 1;
-	pthread_mutex_unlock(&mailbox->m_imapidle_condmutex);
+		context->m_perform_imap_jobs_needed = 1;
+	pthread_mutex_unlock(&context->m_imapidle_condmutex);
 
-	mrimap_interrupt_idle(mailbox->m_imap);
+	mrimap_interrupt_idle(context->m_imap);
 }
 
 
@@ -826,20 +826,20 @@ void dc_interrupt_imap_idle(dc_context_t* mailbox)
  * See dc_interrupt_smtp_idle() for an example.
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None
  */
-void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
+void dc_perform_smtp_jobs(dc_context_t* context)
 {
-	dc_log_info(mailbox, 0, "SMTP-jobs started...");
+	dc_log_info(context, 0, "SMTP-jobs started...");
 
-	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
-		mailbox->m_perform_smtp_jobs_needed = 0;
-	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+	pthread_mutex_lock(&context->m_smtpidle_condmutex);
+		context->m_perform_smtp_jobs_needed = 0;
+	pthread_mutex_unlock(&context->m_smtpidle_condmutex);
 
-	mrjob_perform(mailbox, MR_SMTP_THREAD);
+	mrjob_perform(context, MR_SMTP_THREAD);
 
-	dc_log_info(mailbox, 0, "SMTP-jobs ended.");
+	dc_log_info(context, 0, "SMTP-jobs ended.");
 }
 
 
@@ -851,45 +851,45 @@ void dc_perform_smtp_jobs(mrmailbox_t* mailbox)
  * See dc_interrupt_smtp_idle() for an example.
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None
  */
-void dc_perform_smtp_idle(mrmailbox_t* mailbox)
+void dc_perform_smtp_idle(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		dc_log_warning(mailbox, 0, "Cannot perform SMTP-idle: Bad parameters.");
+	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC ) {
+		dc_log_warning(context, 0, "Cannot perform SMTP-idle: Bad parameters.");
 		return;
 	}
 
-	dc_log_info(mailbox, 0, "SMTP-idle started...");
+	dc_log_info(context, 0, "SMTP-idle started...");
 
-	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+	pthread_mutex_lock(&context->m_smtpidle_condmutex);
 
-		if( mailbox->m_perform_smtp_jobs_needed == MR_JOBS_NEEDED_AT_ONCE )
+		if( context->m_perform_smtp_jobs_needed == MR_JOBS_NEEDED_AT_ONCE )
 		{
-			dc_log_info(mailbox, 0, "SMTP-idle will not be started because of waiting jobs.");
+			dc_log_info(context, 0, "SMTP-idle will not be started because of waiting jobs.");
 		}
 		else
 		{
-			mailbox->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
+			context->m_smtpidle_in_idleing = 1; // checked in suspend(), for idle-interruption the pthread-condition below is used
 
 				do {
 					int r = 0;
 					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL) + ((mailbox->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
+					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
 					timeToWait.tv_nsec = 0;
-					while (mailbox->m_smtpidle_condflag==0 && r==0) {
-						r = pthread_cond_timedwait(&mailbox->m_smtpidle_cond, &mailbox->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+					while (context->m_smtpidle_condflag==0 && r==0) {
+						r = pthread_cond_timedwait(&context->m_smtpidle_cond, &context->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
 					}
-				} while (mailbox->m_smtpidle_suspend);
-				mailbox->m_smtpidle_condflag = 0;
+				} while (context->m_smtpidle_suspend);
+				context->m_smtpidle_condflag = 0;
 
-			mailbox->m_smtpidle_in_idleing = 0;
+			context->m_smtpidle_in_idleing = 0;
 		}
 
-	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+	pthread_mutex_unlock(&context->m_smtpidle_condmutex);
 
-	dc_log_info(mailbox, 0, "SMTP-idle ended.");
+	dc_log_info(context, 0, "SMTP-idle ended.");
 }
 
 
@@ -922,27 +922,27 @@ void dc_perform_smtp_idle(mrmailbox_t* mailbox)
  *     dc_interrupt_smtp_idle(context);
  *
  * @memberof dc_context_t
- * @param mailbox The mailbox object.
+ * @param context The context as created by dc_context_new().
  * @return None
  */
-void dc_interrupt_smtp_idle(mrmailbox_t* mailbox)
+void dc_interrupt_smtp_idle(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
-		dc_log_warning(mailbox, 0, "Interrupt SMTP-idle: Bad parameters.");
+	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC ) {
+		dc_log_warning(context, 0, "Interrupt SMTP-idle: Bad parameters.");
 		return;
 	}
 
-	dc_log_info(mailbox, 0, "Interrupting SMTP-idle...");
+	dc_log_info(context, 0, "Interrupting SMTP-idle...");
 
-	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
+	pthread_mutex_lock(&context->m_smtpidle_condmutex);
 
 		// when this function is called, it might be that the smtp-thread is in
 		// perform_smtp_jobs(). if so, added jobs will be performed after the _next_ idle-jobs loop.
 		// setting the flag perform_smtp_jobs_needed makes sure, idle() returns immediately in this case.
-		mailbox->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AT_ONCE;
+		context->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AT_ONCE;
 
-		mailbox->m_smtpidle_condflag = 1;
-		pthread_cond_signal(&mailbox->m_smtpidle_cond);
+		context->m_smtpidle_condflag = 1;
+		pthread_cond_signal(&context->m_smtpidle_cond);
 
-	pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
+	pthread_mutex_unlock(&context->m_smtpidle_condmutex);
 }
