@@ -30,8 +30,8 @@ all further options can be set using the set-command (type ? for help). */
 
 #include <string.h>
 #include <unistd.h>
-#include "../src/mrmailbox.h"
-#include "../src/mrmailbox_internal.h"
+#include "../src/deltachat.h"
+#include "../src/dc_context.h"
 #include "cmdline.h"
 #include "stress.h"
 

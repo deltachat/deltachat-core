@@ -28,14 +28,14 @@ $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
 
 #include <ctype.h>
 #include <assert.h>
-#include "../src/mrmailbox_internal.h"
-#include "../src/mrsimplify.h"
-#include "../src/mrmimeparser.h"
-#include "../src/mrmimefactory.h"
-#include "../src/mrpgp.h"
-#include "../src/mrapeerstate.h"
-#include "../src/mraheader.h"
-#include "../src/mrkeyring.h"
+#include "../src/dc_context.h"
+#include "../src/dc_simplify.h"
+#include "../src/dc_mimeparser.h"
+#include "../src/dc_mimefactory.h"
+#include "../src/dc_pgp.h"
+#include "../src/dc_apeerstate.h"
+#include "../src/dc_aheader.h"
+#include "../src/dc_keyring.h"
 
 
 /* some data used for testing
