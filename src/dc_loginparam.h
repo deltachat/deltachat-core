@@ -72,8 +72,8 @@ typedef struct dc_loginparam_t
 dc_loginparam_t* dc_loginparam_new          ();
 void             dc_loginparam_unref        (dc_loginparam_t*);
 void             dc_loginparam_empty        (dc_loginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
-void             dc_loginparam_read__       (dc_loginparam_t*, mrsqlite3_t*, const char* prefix);
-void             dc_loginparam_write__      (const dc_loginparam_t*, mrsqlite3_t*, const char* prefix);
+void             dc_loginparam_read__       (dc_loginparam_t*, dc_sqlite3_t*, const char* prefix);
+void             dc_loginparam_write__      (const dc_loginparam_t*, dc_sqlite3_t*, const char* prefix);
 char*            dc_loginparam_get_readable (const dc_loginparam_t*);
 
 

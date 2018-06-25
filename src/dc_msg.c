@@ -72,7 +72,7 @@ void dc_msg_unref(dc_msg_t* msg)
 		return;
 	}
 
-	mrmsg_empty(msg);
+	dc_msg_empty(msg);
 	mrparam_unref(msg->m_param);
 	msg->m_magic = 0;
 	free(msg);
@@ -384,7 +384,7 @@ char* dc_msg_get_filemime(const dc_msg_t* msg)
 		if( file == NULL ) {
 			goto cleanup;
 		}
-		mrmsg_guess_msgtype_from_suffix(file, NULL, &ret);
+		dc_msg_guess_msgtype_from_suffix(file, NULL, &ret);
 
 		if( ret == NULL ) {
 			ret = safe_strdup("application/octet-stream");
@@ -453,9 +453,9 @@ cleanup:
  */
 dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 {
-	mrlot_t*   ret = mrlot_new();
+	dc_lot_t*   ret = dc_lot_new();
 	char*        pathNfilename = NULL;
-	mrcontact_t* contact = NULL;
+	dc_contact_t* contact = NULL;
 
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL ) {
 		goto cleanup;
@@ -483,7 +483,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
-		mrmsg_get_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
+		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
 		if( ret->m_text1 == NULL && ret->m_text2 != NULL ) {
 			ret->m_text1 = mrstock_str(MR_STR_AUDIO);
 		}
@@ -491,7 +491,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 
 cleanup:
 	free(pathNfilename);
-	mrcontact_unref(contact);
+	dc_contact_unref(contact);
 	return ret;
 }
 
@@ -590,9 +590,9 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
 		show_encryption_state = 1;
 	}
 	else {
-		mrchat_t* chat = mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id);
-		show_encryption_state = mrchat_is_verified(chat);
-		mrchat_unref(chat);
+		dc_chat_t* chat = mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id);
+		show_encryption_state = dc_chat_is_verified(chat);
+		dc_chat_unref(chat);
 	}
 
 	if( show_encryption_state ) {
@@ -636,9 +636,9 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
  */
 dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 {
-	mrlot_t*      ret = mrlot_new();
-	mrcontact_t*  contact = NULL;
-	mrchat_t*     chat_to_delete = NULL;
+	dc_lot_t*      ret = dc_lot_new();
+	dc_contact_t*  contact = NULL;
+	dc_chat_t*     chat_to_delete = NULL;
 
 	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		goto cleanup;
@@ -655,11 +655,11 @@ dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 		contact = mrmailbox_get_contact(chat->m_mailbox, msg->m_from_id);
 	}
 
-	mrlot_fill(ret, msg, chat, contact);
+	dc_lot_fill(ret, msg, chat, contact);
 
 cleanup:
-	mrcontact_unref(contact);
-	mrchat_unref(chat_to_delete);
+	dc_contact_unref(contact);
+	dc_chat_unref(chat_to_delete);
 	return ret;
 }
 
@@ -683,7 +683,7 @@ char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
 		return safe_strdup(NULL);
 	}
 
-	return mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
+	return dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
 }
 
 
@@ -845,11 +845,11 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 	const char*  buf_setupcodebegin = NULL; // just a pointer inside buf, MUST NOT be free()'d
 	char*        ret = NULL;
 
-	if( !mrmsg_is_setupmessage(msg) ) {
+	if( !dc_msg_is_setupmessage(msg) ) {
 		goto cleanup;
 	}
 
-	if( (filename=mrmsg_get_file(msg))==NULL || filename[0]==0 ) {
+	if( (filename=dc_msg_get_file(msg))==NULL || filename[0]==0 ) {
 		goto cleanup;
 	}
 
@@ -857,7 +857,7 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	if( !mr_split_armored_data(buf, &buf_headerline, &buf_setupcodebegin, NULL, NULL)
+	if( !dc_split_armored_data(buf, &buf_headerline, &buf_setupcodebegin, NULL, NULL)
 	 || strcmp(buf_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || buf_setupcodebegin==NULL ) {
 		goto cleanup;
 	}
@@ -881,9 +881,9 @@ cleanup:
                       " m.param,m.starred,m.hidden,c.blocked "
 
 
-static int mrmsg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
+static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be MR_MSG_FIELDS */
 {
-	mrmsg_empty(ths);
+	dc_msg_empty(ths);
 
 	ths->m_id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_rfc724_mid   =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
@@ -923,7 +923,7 @@ static int mrmsg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offse
  *
  * @private @memberof dc_msg_t
  */
-int mrmsg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
+int dc_msg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
@@ -931,7 +931,7 @@ int mrmsg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " MR_MSG_FIELDS
 		" FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id"
 		" WHERE m.id=?;");
@@ -941,7 +941,7 @@ int mrmsg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 		return 0;
 	}
 
-	if( !mrmsg_set_from_stmt__(ths, stmt, 0) ) { /* also calls mrmsg_empty() */
+	if( !dc_msg_set_from_stmt__(ths, stmt, 0) ) { /* also calls dc_msg_empty() */
 		return 0;
 	}
 
@@ -965,7 +965,7 @@ int mrmsg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
  *
  * @return None. But there are output parameters.
  */
-void mrmsg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtype, char** ret_mime)
+void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtype, char** ret_mime)
 {
 	char* suffix = NULL;
 	int   dummy_msgtype = 0;
@@ -1013,7 +1013,7 @@ cleanup:
 }
 
 
-void mrmsg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
+void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_author, char** ret_title)
 {
 	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
 	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
@@ -1031,7 +1031,7 @@ void mrmsg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret_
 }
 
 
-char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
+char* dc_msg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
@@ -1057,7 +1057,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 		case MR_MSG_AUDIO:
 			if( (value=mrparam_get(param, MRP_TRACKNAME, NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
 				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
-				mrmsg_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
+				dc_msg_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
 			}
 			label = mrstock_str(MR_STR_AUDIO);
 			ret = mr_mprintf("%s: %s", label, value);
@@ -1094,7 +1094,7 @@ char* mrmsg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param,
 }
 
 
-int mrmsg_is_increation__(const dc_msg_t* msg)
+int dc_msg_is_increation__(const dc_msg_t* msg)
 {
 	int is_increation = 0;
 	if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
@@ -1131,7 +1131,7 @@ int mrmsg_is_increation__(const dc_msg_t* msg)
  */
 int dc_msg_is_increation(const dc_msg_t* msg)
 {
-	/* surrounds mrmsg_is_increation__() with locking and error checking */
+	/* surrounds dc_msg_is_increation__() with locking and error checking */
 	int is_increation = 0;
 
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
@@ -1140,24 +1140,24 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 
 	if( msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
 	{
-		mrsqlite3_lock(msg->m_mailbox->m_sql);
+		dc_sqlite3_lock(msg->m_mailbox->m_sql);
 
-			is_increation = mrmsg_is_increation__(msg);
+			is_increation = dc_msg_is_increation__(msg);
 
-		mrsqlite3_unlock(msg->m_mailbox->m_sql);
+		dc_sqlite3_unlock(msg->m_mailbox->m_sql);
 	}
 
 	return is_increation;
 }
 
 
-void mrmsg_save_param_to_disk__(dc_msg_t* msg)
+void dc_msg_save_param_to_disk__(dc_msg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
 		return;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
 		"UPDATE msgs SET param=? WHERE id=?;");
 	sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, msg->m_id);
@@ -1199,7 +1199,7 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(msg->m_mailbox->m_sql);
+	dc_sqlite3_lock(msg->m_mailbox->m_sql);
 	locked = 1;
 
 		if( width > 0 ) {
@@ -1214,11 +1214,11 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 			mrparam_set_int(msg->m_param, MRP_DURATION, duration);
 		}
 
-		mrmsg_save_param_to_disk__(msg);
+		dc_msg_save_param_to_disk__(msg);
 
-	mrsqlite3_unlock(msg->m_mailbox->m_sql);
+	dc_sqlite3_unlock(msg->m_mailbox->m_sql);
 	locked = 0;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(msg->m_mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(msg->m_mailbox->m_sql); }
 }

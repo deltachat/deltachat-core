@@ -54,17 +54,17 @@ static int connect_to_imap(mrmailbox_t* mailbox, dc_job_t* job /*may be NULL if 
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	is_locked = 1;
 
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
+		if( dc_sqlite3_get_config_int__(mailbox->m_sql, "configured", 0) == 0 ) {
 			dc_log_warning(mailbox, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
 			goto cleanup;
 		}
 
 		dc_loginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	is_locked = 0;
 
 	if( !dc_imap_connect(mailbox->m_imap, param) ) {
@@ -75,7 +75,7 @@ static int connect_to_imap(mrmailbox_t* mailbox, dc_job_t* job /*may be NULL if 
 	ret_connected = JUST_CONNECTED;
 
 cleanup:
-	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( is_locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	dc_loginparam_unref(param);
 	return ret_connected;
 }
@@ -83,11 +83,11 @@ cleanup:
 
 static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
-	mrmimefactory_t  mimefactory;
+	dc_mimefactory_t  mimefactory;
 	char*            server_folder = NULL;
 	uint32_t         server_uid = 0;
 
-	mrmimefactory_init(&mimefactory, mailbox);
+	dc_mimefactory_init(&mimefactory, mailbox);
 
 	/* connect to IMAP-server */
 	if( !dc_imap_is_connected(mailbox->m_imap) ) {
@@ -99,12 +99,12 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, dc_job_t* jo
 	}
 
 	/* create message */
-	if( mrmimefactory_load_msg(&mimefactory, job->m_foreign_id)==0
+	if( dc_mimefactory_load_msg(&mimefactory, job->m_foreign_id)==0
 	 || mimefactory.m_from_addr == NULL ) {
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
-	if( !mrmimefactory_render(&mimefactory) ) {
+	if( !dc_mimefactory_render(&mimefactory) ) {
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
@@ -113,13 +113,13 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, dc_job_t* jo
 		goto cleanup;
 	}
 	else {
-		mrsqlite3_lock(mailbox->m_sql);
+		dc_sqlite3_lock(mailbox->m_sql);
 			mrmailbox_update_server_uid__(mailbox, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
-		mrsqlite3_unlock(mailbox->m_sql);
+		dc_sqlite3_unlock(mailbox->m_sql);
 	}
 
 cleanup:
-	mrmimefactory_empty(&mimefactory);
+	dc_mimefactory_empty(&mimefactory);
 	free(server_folder);
 }
 
@@ -127,12 +127,12 @@ cleanup:
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0, delete_from_server = 1;
-	mrmsg_t* msg = mrmsg_new();
+	dc_msg_t* msg = dc_msg_new();
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id)
+		if( !dc_msg_load_from_db__(msg, mailbox, job->m_foreign_id)
 		 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
 			goto cleanup;
 		}
@@ -142,7 +142,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* 
 			delete_from_server = 0;
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	/* if this is the last existing part of the message, we delete the message from the server */
@@ -167,15 +167,15 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* 
 	- if the message is successfully removed from the server
 	- or if there are other parts of the message in the database (in this case we have not deleted if from the server)
 	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id,
+		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_WHERE_id,
 			"DELETE FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
-		stmt = mrsqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m,
+		stmt = dc_sqlite3_predefine__(mailbox->m_sql, DELETE_FROM_msgs_mdns_WHERE_m,
 			"DELETE FROM msgs_mdns WHERE msg_id=?;");
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
@@ -185,7 +185,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* 
 			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
 			{
 				char* strLikeFilename = mr_mprintf("%%f=%s%%", pathNfilename);
-				sqlite3_stmt* stmt2 = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
+				sqlite3_stmt* stmt2 = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
 				sqlite3_bind_int (stmt2, 1, MR_MSG_TEXT);
 				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
 				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
@@ -217,19 +217,19 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* 
 			free(pathNfilename);
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrmsg_unref(msg);
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	dc_msg_unref(msg);
 }
 
 
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0;
-	mrmsg_t* msg = mrmsg_new();
+	dc_msg_t* msg = dc_msg_new();
 	char*    new_server_folder = NULL;
 	uint32_t new_server_uid = 0;
 	int      in_ms_flags = 0, out_ms_flags = 0;
@@ -242,20 +242,20 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t
 		}
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrmsg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
+		if( !dc_msg_load_from_db__(msg, mailbox, job->m_foreign_id) ) {
 			goto cleanup;
 		}
 
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
 		if( mrparam_get_int(msg->m_param, MRP_WANTS_MDN, 0) /* MRP_WANTS_MDN is set only for one part of a multipart-message */
-		 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+		 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( msg->m_is_msgrmsg ) {
@@ -267,7 +267,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t
 	{
 		if( (new_server_folder && new_server_uid) || out_ms_flags&MR_MS_MDNSent_JUST_SET )
 		{
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
 				if( new_server_folder && new_server_uid )
@@ -280,7 +280,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t
 					dc_job_add(mailbox, DC_JOB_SEND_MDN, msg->m_id, NULL, 0);
 				}
 
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			locked = 0;
 		}
 	}
@@ -290,8 +290,8 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrmsg_unref(msg);
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	dc_msg_unref(msg);
 	free(new_server_folder);
 }
 
@@ -327,31 +327,31 @@ cleanup:
  ******************************************************************************/
 
 
-static void mark_as_error(mrmailbox_t* mailbox, mrmsg_t* msg)
+static void mark_as_error(mrmailbox_t* mailbox, dc_msg_t* msg)
 {
 	if( mailbox==NULL || msg==NULL ) {
 		return;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_STATE_OUT_ERROR);
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
 
 
 static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* job)
 {
-	mrmimefactory_t mimefactory;
+	dc_mimefactory_t mimefactory;
 
-	mrmimefactory_init(&mimefactory, mailbox);
+	dc_mimefactory_init(&mimefactory, mailbox);
 
 	/* connect to SMTP server, if not yet done */
 	if( !dc_smtp_is_connected(mailbox->m_smtp) ) {
 		dc_loginparam_t* loginparam = dc_loginparam_new();
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 				dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			int connected = dc_smtp_connect(mailbox->m_smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if( !connected ) {
@@ -361,7 +361,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* jo
 	}
 
 	/* load message data */
-	if( !mrmimefactory_load_msg(&mimefactory, job->m_foreign_id)
+	if( !dc_mimefactory_load_msg(&mimefactory, job->m_foreign_id)
 	 || mimefactory.m_from_addr == NULL ) {
 		dc_log_warning(mailbox, 0, "Cannot load data to send, maybe the message is deleted in between.");
 		goto cleanup; /* no redo, no IMAP - there won't be more recipients next time (as the data does not exist, there is no need in calling mark_as_error()) */
@@ -376,7 +376,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* jo
 
 	/* send message - it's okay if there are no recipients, this is a group with only OURSELF; we only upload to IMAP in this case */
 	if( clist_count(mimefactory.m_recipients_addr) > 0 ) {
-		if( !mrmimefactory_render(&mimefactory) ) {
+		if( !dc_mimefactory_render(&mimefactory) ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
 			dc_log_error(mailbox, 0, "Empty message."); /* should not happen */
 			goto cleanup; /* no redo, no IMAP - there won't be more recipients next time. */
@@ -397,11 +397,11 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* jo
 	}
 
 	/* done */
-	mrsqlite3_lock(mailbox->m_sql);
-	mrsqlite3_begin_transaction__(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_begin_transaction__(mailbox->m_sql);
 
 		/* debug print? */
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
+		if( dc_sqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
 			char* emlname = mr_mprintf("%s/to-smtp-%i.eml", mailbox->m_blobdir, (int)mimefactory.m_msg->m_id);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {
@@ -416,7 +416,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* jo
 		mrmailbox_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_STATE_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0)==0 ) {
 			mrparam_set_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
-			mrmsg_save_param_to_disk__(mimefactory.m_msg);
+			dc_msg_save_param_to_disk__(mimefactory.m_msg);
 		}
 
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
@@ -428,20 +428,20 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* jo
 		// TODO: add to keyhistory
 		mrmailbox_add_to_keyhistory__(mailbox, NULL, 0, NULL, NULL);
 
-	mrsqlite3_commit__(mailbox->m_sql);
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_commit__(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 
 	mailbox->m_cb(mailbox, DC_EVENT_MSG_DELIVERED, mimefactory.m_msg->m_chat_id, mimefactory.m_msg->m_id);
 
 cleanup:
-	mrmimefactory_empty(&mimefactory);
+	dc_mimefactory_empty(&mimefactory);
 }
 
 
 static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
 {
-	mrmimefactory_t mimefactory;
-	mrmimefactory_init(&mimefactory, mailbox);
+	dc_mimefactory_t mimefactory;
+	dc_mimefactory_init(&mimefactory, mailbox);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || job == NULL ) {
 		return;
@@ -451,9 +451,9 @@ static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
 	if( !dc_smtp_is_connected(mailbox->m_smtp) )
 	{
 		dc_loginparam_t* loginparam = dc_loginparam_new();
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 				dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			int connected = dc_smtp_connect(mailbox->m_smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if( !connected ) {
@@ -462,8 +462,8 @@ static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
 		}
 	}
 
-    if( !mrmimefactory_load_mdn(&mimefactory, job->m_foreign_id)
-     || !mrmimefactory_render(&mimefactory) ) {
+    if( !dc_mimefactory_load_mdn(&mimefactory, job->m_foreign_id)
+     || !dc_mimefactory_render(&mimefactory) ) {
 		goto cleanup;
     }
 
@@ -476,7 +476,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
 	}
 
 cleanup:
-	mrmimefactory_empty(&mimefactory);
+	dc_mimefactory_empty(&mimefactory);
 }
 
 
@@ -526,7 +526,7 @@ void dc_job_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* pa
 		return;
 	}
 
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 		"INSERT INTO jobs (added_timestamp, thread, action, foreign_id, param, desired_timestamp) VALUES (?,?,?,?,?,?);");
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, thread);
@@ -562,7 +562,7 @@ void dc_job_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
 		return;
 	}
 
-	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 		"DELETE FROM jobs WHERE action=? OR action=?;");
 	sqlite3_bind_int(stmt, 1, action1);
 	sqlite3_bind_int(stmt, 2, action2);
@@ -584,7 +584,7 @@ static void dc_job_perform(mrmailbox_t* mailbox, int thread)
 		goto cleanup;
 	}
 
-	select_stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+	select_stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 		"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, added_timestamp;");
 	sqlite3_bind_int64(select_stmt, 1, thread);
 	sqlite3_bind_int64(select_stmt, 2, time(NULL));
@@ -627,7 +627,7 @@ static void dc_job_perform(mrmailbox_t* mailbox, int thread)
 			int tries = mrparam_get_int(job.m_param, MRP_TIMES, 0) + 1;
 			mrparam_set_int(job.m_param, MRP_TIMES, tries);
 
-			sqlite3_stmt* update_stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+			sqlite3_stmt* update_stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 				"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
 			sqlite3_bind_text (update_stmt, 1, job.m_param->m_packed, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (update_stmt, 2, job.m_job_id);
@@ -648,7 +648,7 @@ static void dc_job_perform(mrmailbox_t* mailbox, int thread)
 		}
 		else
 		{
-			sqlite3_stmt* delete_stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+			sqlite3_stmt* delete_stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 				"DELETE FROM jobs WHERE id=?;");
 			sqlite3_bind_int(delete_stmt, 1, job.m_job_id);
 			sqlite3_step(delete_stmt);

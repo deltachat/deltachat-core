@@ -155,61 +155,61 @@ enum
  * database is locked as needed.  Of course, the same is true if you call any
  * sqlite3-function directly.
  */
-typedef struct mrsqlite3_t
+typedef struct dc_sqlite3_t
 {
 	/** @privatesection */
 	sqlite3_stmt* m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3*      m_cobj;               /**< is the database given as dbfile to Open() */
 	int           m_transactionCount;   /**< helper for transactions */
-	mrmailbox_t*  m_mailbox;            /**< used for logging and to acquire wakelocks, there may be N mrsqlite3_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
-	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use mrsqlite3_lock() for this purpose */
+	mrmailbox_t*  m_mailbox;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
+	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
-} mrsqlite3_t;
+} dc_sqlite3_t;
 
 
-mrsqlite3_t*  mrsqlite3_new              (mrmailbox_t*);
-void          mrsqlite3_unref            (mrsqlite3_t*);
+dc_sqlite3_t*  dc_sqlite3_new              (mrmailbox_t*);
+void          dc_sqlite3_unref            (dc_sqlite3_t*);
 
 #define       MR_OPEN_READONLY           0x01
-int           mrsqlite3_open__           (mrsqlite3_t*, const char* dbfile, int flags);
+int           dc_sqlite3_open__           (dc_sqlite3_t*, const char* dbfile, int flags);
 
-void          mrsqlite3_close__          (mrsqlite3_t*);
-int           mrsqlite3_is_open          (const mrsqlite3_t*);
+void          dc_sqlite3_close__          (dc_sqlite3_t*);
+int           dc_sqlite3_is_open          (const dc_sqlite3_t*);
 
 /* handle configurations, private */
-int           mrsqlite3_set_config__     (mrsqlite3_t*, const char* key, const char* value);
-int           mrsqlite3_set_config_int__ (mrsqlite3_t*, const char* key, int32_t value);
-char*         mrsqlite3_get_config__     (mrsqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
-int32_t       mrsqlite3_get_config_int__ (mrsqlite3_t*, const char* key, int32_t def);
+int           dc_sqlite3_set_config__     (dc_sqlite3_t*, const char* key, const char* value);
+int           dc_sqlite3_set_config_int__ (dc_sqlite3_t*, const char* key, int32_t value);
+char*         dc_sqlite3_get_config__     (dc_sqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
+int32_t       dc_sqlite3_get_config_int__ (dc_sqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
-sqlite3_stmt* mrsqlite3_predefine__      (mrsqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
-sqlite3_stmt* mrsqlite3_prepare_v2_      (mrsqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
-int           mrsqlite3_execute__        (mrsqlite3_t*, const char* sql);
-int           mrsqlite3_table_exists__   (mrsqlite3_t*, const char* name);
-void          mrsqlite3_log_error        (mrsqlite3_t*, const char* msg, ...);
+sqlite3_stmt* dc_sqlite3_predefine__      (dc_sqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
+sqlite3_stmt* dc_sqlite3_prepare_v2_      (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
+int           dc_sqlite3_execute__        (dc_sqlite3_t*, const char* sql);
+int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
+void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
 
 /* reset all predefined statements, this is needed only in very rare cases, eg. when dropping a table and there are pending statements */
-void          mrsqlite3_reset_all_predefinitions(mrsqlite3_t*);
+void          dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t*);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
 the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.
 In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
 Low-level-functions, eg. the MrSqlite3-methods, do not lock. */
 #ifdef MR_USE_LOCK_DEBUG
-#define       mrsqlite3_lock(a)          mrsqlite3_lockNdebug((a), __FILE__, __LINE__)
-#define       mrsqlite3_unlock(a)        mrsqlite3_unlockNdebug((a), __FILE__, __LINE__)
-void          mrsqlite3_lockNdebug       (mrsqlite3_t*, const char* filename, int line);
-void          mrsqlite3_unlockNdebug     (mrsqlite3_t*, const char* filename, int line);
+#define       dc_sqlite3_lock(a)          dc_sqlite3_lockNdebug((a), __FILE__, __LINE__)
+#define       dc_sqlite3_unlock(a)        dc_sqlite3_unlockNdebug((a), __FILE__, __LINE__)
+void          dc_sqlite3_lockNdebug       (dc_sqlite3_t*, const char* filename, int line);
+void          dc_sqlite3_unlockNdebug     (dc_sqlite3_t*, const char* filename, int line);
 #else
-void          mrsqlite3_lock             (mrsqlite3_t*); /* lock or wait; these calls must not be nested in a single thread */
-void          mrsqlite3_unlock           (mrsqlite3_t*);
+void          dc_sqlite3_lock             (dc_sqlite3_t*); /* lock or wait; these calls must not be nested in a single thread */
+void          dc_sqlite3_unlock           (dc_sqlite3_t*);
 #endif
 
 /* nestable transactions, only the outest is really used */
-void          mrsqlite3_begin_transaction__(mrsqlite3_t*);
-void          mrsqlite3_commit__           (mrsqlite3_t*);
-void          mrsqlite3_rollback__         (mrsqlite3_t*);
+void          dc_sqlite3_begin_transaction__(dc_sqlite3_t*);
+void          dc_sqlite3_commit__           (dc_sqlite3_t*);
+void          dc_sqlite3_rollback__         (dc_sqlite3_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

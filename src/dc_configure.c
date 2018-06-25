@@ -387,7 +387,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 				if( mr_shall_stop_ongoing ) { goto cleanup; } \
 				mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
-	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
+	if( !dc_sqlite3_is_open(mailbox->m_sql) ) {
 		dc_log_error(mailbox, 0, "Cannot configure, database not opened.");
 		goto cleanup;
 	}
@@ -397,14 +397,14 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	dc_imap_disconnect(mailbox->m_imap);
 	dc_smtp_disconnect(mailbox->m_smtp);
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		//mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
+		//dc_sqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
 		mailbox->m_smtp->m_log_connect_errors = 1;
 		mailbox->m_imap->m_log_connect_errors = 1;
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	dc_log_info(mailbox, 0, "Configure ...");
@@ -423,12 +423,12 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 
 	param = dc_loginparam_new();
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		dc_loginparam_read__(param, mailbox->m_sql, "");
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( param->m_addr == NULL ) {
@@ -651,13 +651,13 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	PROGRESS(900)
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		dc_loginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
-		mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
+		dc_sqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	PROGRESS(920)
@@ -673,7 +673,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	PROGRESS(940)
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
 	if( imap_connected_here ) { dc_imap_disconnect(mailbox->m_imap); }
@@ -757,11 +757,11 @@ int dc_is_configured(dc_context_t* mailbox)
 		return 1;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 
-		is_configured = mrsqlite3_get_config_int__(mailbox->m_sql, "configured", 0);
+		is_configured = dc_sqlite3_get_config_int__(mailbox->m_sql, "configured", 0);
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 
 	return is_configured? 1 : 0;
 }

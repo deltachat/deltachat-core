@@ -191,7 +191,7 @@ static int contains_report(struct mailmime* mime)
  ******************************************************************************/
 
 
-static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* public_key, const char* self_addr,
+static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, dc_key_t* public_key, const char* self_addr,
                                               struct mailmime* random_data_mime /*for an extra-seed of the random generator. For speed reasons, only give _available_ pointers here, do not create any data - in very most cases, the key is not generated!*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
@@ -202,7 +202,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 		goto cleanup;
 	}
 
-	if( !mrkey_load_self_public__(public_key, self_addr, mailbox->m_sql) )
+	if( !dc_key_load_self_public__(public_key, self_addr, mailbox->m_sql) )
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
 		if( s_in_key_creation ) { goto cleanup; }
@@ -216,7 +216,7 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 			seed[1] = (uintptr_t)seed;           /* stack */
 			seed[2] = (uintptr_t)public_key;     /* heap */
 			seed[3] = (uintptr_t)pthread_self(); /* thread ID */
-			mrpgp_rand_seed(mailbox, seed, sizeof(seed));
+			dc_pgp_rand_seed(mailbox, seed, sizeof(seed));
 
 			if( random_data_mime ) {
 				MMAPString* random_data_mmap = NULL;
@@ -225,17 +225,17 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 					goto cleanup;
 				}
 				mailmime_write_mem(random_data_mmap, &col, random_data_mime);
-				mrpgp_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
+				dc_pgp_rand_seed(mailbox, random_data_mmap->str, random_data_mmap->len);
 				mmap_string_free(random_data_mmap);
 			}
 		}
 
 		{
-			mrkey_t* private_key = mrkey_new();
+			dc_key_t* private_key = dc_key_new();
 
 			dc_log_info(mailbox, 0, "Generating keypair ...");
 
-			mrsqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
+			dc_sqlite3_unlock(mailbox->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
 
 				/* The public key must contain the following:
 				- a signing-capable primary key Kp
@@ -244,29 +244,29 @@ static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, mrkey_t* pub
 				- an encryption-capable subkey Ke
 				- a binding signature over Ke by Kp
 				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
-				key_created = mrpgp_create_keypair(mailbox, self_addr, public_key, private_key);
+				key_created = dc_pgp_create_keypair(mailbox, self_addr, public_key, private_key);
 
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 
 			if( !key_created ) {
 				dc_log_warning(mailbox, 0, "Cannot create keypair.");
 				goto cleanup;
 			}
 
-			if( !mrpgp_is_valid_key(mailbox, public_key)
-			 || !mrpgp_is_valid_key(mailbox, private_key) ) {
+			if( !dc_pgp_is_valid_key(mailbox, public_key)
+			 || !dc_pgp_is_valid_key(mailbox, private_key) ) {
 				dc_log_warning(mailbox, 0, "Generated keys are not valid.");
 				goto cleanup;
 			}
 
-			if( !mrkey_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, mailbox->m_sql) ) {
+			if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, mailbox->m_sql) ) {
 				dc_log_warning(mailbox, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
 
 			dc_log_info(mailbox, 0, "Keypair generated.");
 
-			mrkey_unref(private_key);
+			dc_key_unref(private_key);
 		}
 	}
 
@@ -283,17 +283,17 @@ int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
 	int      success = 0, locked = 0;
-	mrkey_t* public_key = mrkey_new();
+	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
+		if( (self_addr=dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
 			dc_log_warning(mailbox, 0, "Cannot ensure secret key if mailbox is not configured.");
 			goto cleanup;
 		}
@@ -305,8 +305,8 @@ int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
 		success = 1;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrkey_unref(public_key);
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	dc_key_unref(public_key);
 	free(self_addr);
 	return success;
 }
@@ -326,12 +326,12 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	dc_aheader_t*           autocryptheader = dc_aheader_new();
 	struct mailimf_fields* imffields_unprotected = NULL; /*just a pointer into mailmime structure, must not be freed*/
-	mrkeyring_t*           keyring = mrkeyring_new();
-	mrkey_t*               sign_key = mrkey_new();
+	dc_keyring_t*           keyring = dc_keyring_new();
+	dc_key_t*               sign_key = dc_key_new();
 	MMAPString*            plain = mmap_string_new("");
 	char*                  ctext = NULL;
 	size_t                 ctext_bytes = 0;
-	mrarray_t*             peerstates = mrarray_new(NULL, 10);
+	dc_array_t*             peerstates = dc_array_new(NULL, 10);
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
 
@@ -341,7 +341,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		/* init autocrypt header from db */
@@ -350,7 +350,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			autocryptheader->m_prefer_encrypt = MRA_PE_MUTUAL;
 		}
 
-		autocryptheader->m_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
+		autocryptheader->m_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
 		if( autocryptheader->m_addr == NULL ) {
 			goto cleanup;
 		}
@@ -367,7 +367,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
 				const char* recipient_addr = clist_content(iter1);
 				dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
-				mrkey_t* key_to_use = NULL;
+				dc_key_t* key_to_use = NULL;
 				if( strcasecmp(recipient_addr, autocryptheader->m_addr) == 0 )
 				{
 					; // encrypt to SELF, this key is added below
@@ -376,8 +376,8 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
 				      && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
-					mrkeyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
-					mrarray_add_ptr(peerstates, peerstate);
+					dc_keyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
+					dc_array_add_ptr(peerstates, peerstate);
 				}
 				else
 				{
@@ -389,8 +389,8 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 
 		if( do_encrypt ) {
-			mrkeyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !mrkey_load_self_private__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
+			dc_keyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
+			if( !dc_key_load_self_private__(sign_key, autocryptheader->m_addr, mailbox->m_sql) ) {
 				do_encrypt = 0;
 			}
 		}
@@ -399,7 +399,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			do_encrypt = 0;
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
@@ -419,10 +419,10 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			mailmime_get_content_message(), NULL, NULL, NULL, NULL, imffields_encrypted, part_to_encrypt);
 
 		/* gossip keys */
-		int iCnt = mrarray_get_cnt(peerstates);
+		int iCnt = dc_array_get_cnt(peerstates);
 		if( iCnt > 1 ) {
 			for( int i = 0; i < iCnt; i++ ) {
-				char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)mrarray_get_ptr(peerstates, i), min_verified);
+				char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i), min_verified);
 				if( p ) {
 					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
 				}
@@ -473,7 +473,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		}
 		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
-		if( !mrpgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
+		if( !dc_pgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
@@ -508,14 +508,14 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	dc_aheader_unref(autocryptheader);
-	mrkeyring_unref(keyring);
-	mrkey_unref(sign_key);
+	dc_keyring_unref(keyring);
+	dc_key_unref(sign_key);
 	if( plain ) { mmap_string_free(plain); }
 
-	for( int i=mrarray_get_cnt(peerstates)-1; i>=0; i-- ) { dc_apeerstate_unref((dc_apeerstate_t*)mrarray_get_ptr(peerstates, i)); }
-	mrarray_unref(peerstates);
+	for( int i=dc_array_get_cnt(peerstates)-1; i>=0; i-- ) { dc_apeerstate_unref((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i)); }
+	dc_array_unref(peerstates);
 }
 
 
@@ -530,14 +530,14 @@ void mrmailbox_e2ee_thanks(mrmailbox_e2ee_helper_t* helper)
 
 	if( helper->m_gossipped_addr )
 	{
-		mrhash_clear(helper->m_gossipped_addr);
+		dc_hash_clear(helper->m_gossipped_addr);
 		free(helper->m_gossipped_addr);
 		helper->m_gossipped_addr = NULL;
 	}
 
 	if( helper->m_signatures )
 	{
-		mrhash_clear(helper->m_signatures);
+		dc_hash_clear(helper->m_signatures);
 		free(helper->m_signatures);
 		helper->m_signatures = NULL;
 	}
@@ -568,9 +568,9 @@ static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 
 static int decrypt_part(mrmailbox_t*       mailbox,
                         struct mailmime*   mime,
-                        const mrkeyring_t* private_keyring,
-                        const mrkeyring_t* public_keyring_for_validate, /*may be NULL*/
-                        mrhash_t*          ret_valid_signatures,
+                        const dc_keyring_t* private_keyring,
+                        const dc_keyring_t* public_keyring_for_validate, /*may be NULL*/
+                        dc_hash_t*          ret_valid_signatures,
                         struct mailmime**  ret_decrypted_mime)
 {
 	struct mailmime_data*        mime_data;
@@ -634,10 +634,10 @@ static int decrypt_part(mrmailbox_t*       mailbox,
 		goto cleanup;
 	}
 
-	mrhash_t* add_signatures = mrhash_count(ret_valid_signatures)<=0?
+	dc_hash_t* add_signatures = dc_hash_count(ret_valid_signatures)<=0?
 		ret_valid_signatures : NULL; /*if we already have fingerprints, do not add more; this ensures, only the fingerprints from the outer-most part are collected */
 
-	if( !mrpgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, public_keyring_for_validate, 1, &plain_buf, &plain_bytes, add_signatures)
+	if( !dc_pgp_pk_decrypt(mailbox, decoded_data, decoded_data_bytes, private_keyring, public_keyring_for_validate, 1, &plain_buf, &plain_bytes, add_signatures)
 	 || plain_buf==NULL || plain_bytes<=0 ) {
 		goto cleanup;
 	}
@@ -672,9 +672,9 @@ cleanup:
 
 static int decrypt_recursive(mrmailbox_t*            mailbox,
                              struct mailmime*        mime,
-                             const mrkeyring_t*      private_keyring,
-                             const mrkeyring_t*      public_keyring_for_validate,
-                             mrhash_t*               ret_valid_signatures,
+                             const dc_keyring_t*      private_keyring,
+                             const dc_keyring_t*      public_keyring_for_validate,
+                             dc_hash_t*               ret_valid_signatures,
                              struct mailimf_fields** ret_gossip_headers,
                              int*                    ret_has_unencrypted_parts )
 {
@@ -697,7 +697,7 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 				{
 					/* remember the header containing potentially Autocrypt-Gossip */
 					if( *ret_gossip_headers == NULL /* use the outermost decrypted part */
-					 && mrhash_count(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */ )
+					 && dc_hash_count(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */ )
 					{
 						size_t dummy = 0;
 						struct mailimf_fields* test = NULL;
@@ -738,11 +738,11 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 }
 
 
-static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
+static dc_hash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
 {
 	clistiter* cur1;
-	mrhash_t*  recipients = NULL;
-	mrhash_t*  gossipped_addr = NULL;
+	dc_hash_t*  recipients = NULL;
+	dc_hash_t*  gossipped_addr = NULL;
 
 	for( cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 	{
@@ -754,18 +754,18 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 			{
 				dc_aheader_t* gossip_header = dc_aheader_new();
 				if( dc_aheader_set_from_string(gossip_header, optional_field->fld_value)
-				 && mrpgp_is_valid_key(mailbox, gossip_header->m_public_key) )
+				 && dc_pgp_is_valid_key(mailbox, gossip_header->m_public_key) )
 				{
 					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
 					if( recipients == NULL ) {
 						recipients = mailimf_get_recipients(imffields);
 					}
 
-					if( mrhash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
+					if( dc_hash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
 					{
 						/* valid recipient: update peerstate */
 						dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
-						mrsqlite3_lock(mailbox->m_sql);
+						dc_sqlite3_lock(mailbox->m_sql);
 							if( !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
 								dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
 								dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
@@ -774,7 +774,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 								dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
 								dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
 							}
-						mrsqlite3_unlock(mailbox->m_sql);
+						dc_sqlite3_unlock(mailbox->m_sql);
 
 						if( peerstate->m_degrade_event ) {
 							mrmailbox_handle_degrade_event(mailbox, peerstate);
@@ -785,10 +785,10 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 						// collect all gossipped addresses; we need them later to mark them as being
 						// verified when used in a verified group by a verified sender
 						if( gossipped_addr == NULL ) {
-							gossipped_addr = malloc(sizeof(mrhash_t));
-							mrhash_init(gossipped_addr, MRHASH_STRING, 1/*copy key*/);
+							gossipped_addr = malloc(sizeof(dc_hash_t));
+							dc_hash_init(gossipped_addr, MRHASH_STRING, 1/*copy key*/);
 						}
-						mrhash_insert(gossipped_addr, gossip_header->m_addr, strlen(gossip_header->m_addr), (void*)1);
+						dc_hash_insert(gossipped_addr, gossip_header->m_addr, strlen(gossip_header->m_addr), (void*)1);
 					}
 					else
 					{
@@ -801,7 +801,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 	}
 
 	if( recipients ) {
-		mrhash_clear(recipients);
+		dc_hash_clear(recipients);
 		free(recipients);
 	}
 
@@ -820,8 +820,8 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	dc_apeerstate_t*        peerstate = dc_apeerstate_new(mailbox);
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
-	mrkeyring_t*           private_keyring = mrkeyring_new();
-	mrkeyring_t*           public_keyring_for_validate = mrkeyring_new();
+	dc_keyring_t*           private_keyring = dc_keyring_new();
+	dc_keyring_t*           public_keyring_for_validate = dc_keyring_new();
 	struct mailimf_fields* gossip_headers = NULL;
 
 	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
@@ -856,14 +856,14 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 	autocryptheader = dc_aheader_new_from_imffields(from, imffields);
 	if( autocryptheader ) {
-		if( !mrpgp_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
+		if( !dc_pgp_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
 			dc_aheader_unref(autocryptheader);
 			autocryptheader = NULL;
 		}
 	}
 
 	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		/* apply Autocrypt:-header */
@@ -890,11 +890,11 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 		}
 
 		/* load private key for decryption */
-		if( (self_addr=mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
+		if( (self_addr=dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL))==NULL ) {
 			goto cleanup;
 		}
 
-		if( !mrkeyring_load_self_private_for_decrypting__(private_keyring, self_addr, mailbox->m_sql) ) {
+		if( !dc_keyring_load_self_private_for_decrypting__(private_keyring, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 
@@ -903,7 +903,7 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 			dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, from);
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( peerstate->m_degrade_event ) {
@@ -912,12 +912,12 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 	// offer both, gossip and public, for signature validation.
 	// the caller may check the signature fingerprints as needed later.
-	mrkeyring_add(public_keyring_for_validate, peerstate->m_gossip_key);
-	mrkeyring_add(public_keyring_for_validate, peerstate->m_public_key);
+	dc_keyring_add(public_keyring_for_validate, peerstate->m_gossip_key);
+	dc_keyring_add(public_keyring_for_validate, peerstate->m_public_key);
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
-	helper->m_signatures = malloc(sizeof(mrhash_t));
-	mrhash_init(helper->m_signatures, MRHASH_STRING, 1/*copy key*/);
+	helper->m_signatures = malloc(sizeof(dc_hash_t));
+	dc_hash_init(helper->m_signatures, MRHASH_STRING, 1/*copy key*/);
 
 	int iterations = 0;
 	while( iterations < 10 ) {
@@ -947,12 +947,12 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	//mailmime_print(in_out_message);
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
 	dc_aheader_unref(autocryptheader);
 	dc_apeerstate_unref(peerstate);
-	mrkeyring_unref(private_keyring);
-	mrkeyring_unref(public_keyring_for_validate);
+	dc_keyring_unref(private_keyring);
+	dc_keyring_unref(public_keyring_for_validate);
 	free(from);
 	free(self_addr);
 }

@@ -31,8 +31,8 @@
 #include "dc_token.h"
 
 
-#define      LOCK                 { mrsqlite3_lock  (mailbox->m_sql); locked = 1; }
-#define      UNLOCK  if( locked ) { mrsqlite3_unlock(mailbox->m_sql); locked = 0; }
+#define      LOCK                 { dc_sqlite3_lock  (mailbox->m_sql); locked = 1; }
+#define      UNLOCK  if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); locked = 0; }
 
 
 /*******************************************************************************
@@ -61,7 +61,7 @@ void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, dc_apeerstate_t* peers
 	{
 		LOCK
 
-			stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM contacts WHERE addr=?;");
+			stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM contacts WHERE addr=?;");
 				sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
 				sqlite3_step(stmt);
 				contact_id = sqlite3_column_int(stmt, 0);
@@ -91,14 +91,14 @@ cleanup:
  ******************************************************************************/
 
 
-static int encrypted_and_signed(mrmimeparser_t* mimeparser, const char* expected_fingerprint)
+static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expected_fingerprint)
 {
 	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
 		dc_log_warning(mimeparser->m_mailbox, 0, "Message not encrypted.");
 		return 0;
 	}
 
-	if( mrhash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
+	if( dc_hash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
 		dc_log_warning(mimeparser->m_mailbox, 0, "Message not signed.");
 		return 0;
 	}
@@ -108,7 +108,7 @@ static int encrypted_and_signed(mrmimeparser_t* mimeparser, const char* expected
 		return 0;
 	}
 
-	if( mrhash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
+	if( dc_hash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
 		dc_log_warning(mimeparser->m_mailbox, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
@@ -121,28 +121,28 @@ static char* get_self_fingerprint(mrmailbox_t* mailbox)
 {
 	int      locked      = 0;
 	char*    self_addr   = NULL;
-	mrkey_t* self_key    = mrkey_new();
+	dc_key_t* self_key    = dc_key_new();
 	char*    fingerprint = NULL;
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
-		 || !mrkey_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
+		if( (self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL
+		 || !dc_key_load_self_public__(self_key, self_addr, mailbox->m_sql) ) {
 			goto cleanup;
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( (fingerprint=mrkey_get_fingerprint(self_key)) == NULL ) {
+	if( (fingerprint=dc_key_get_fingerprint(self_key)) == NULL ) {
 		goto cleanup;
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	free(self_addr);
-	mrkey_unref(self_key);
+	dc_key_unref(self_key);
 	return fingerprint;
 }
 
@@ -150,16 +150,16 @@ cleanup:
 static uint32_t chat_id_2_contact_id(mrmailbox_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t   contact_id = 0;
-	mrarray_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	dc_array_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
 
-	if( mrarray_get_cnt(contacts) != 1 ) {
+	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
 	}
 
-	contact_id = mrarray_get_id(contacts, 0);
+	contact_id = dc_array_get_id(contacts, 0);
 
 cleanup:
-	mrarray_unref(contacts);
+	dc_array_unref(contacts);
 	return contact_id;
 }
 
@@ -168,24 +168,24 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 {
 	int             fingerprint_equal      = 0;
 	int             locked                 = 0;
-	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
-	mrcontact_t*    contact                = mrcontact_new(mailbox);
+	dc_array_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	dc_contact_t*    contact                = dc_contact_new(mailbox);
 	dc_apeerstate_t* peerstate              = dc_apeerstate_new(mailbox);
 	char*           fingerprint_normalized = NULL;
 
-	if( mrarray_get_cnt(contacts) != 1 ) {
+	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, mrarray_get_id(contacts, 0))
+		if( !dc_contact_load_from_db__(contact, mailbox->m_sql, dc_array_get_id(contacts, 0))
 		 || !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	fingerprint_normalized = mr_normalize_fingerprint(fingerprint);
@@ -195,10 +195,10 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	free(fingerprint_normalized);
-	mrcontact_unref(contact);
-	mrarray_unref(contacts);
+	dc_contact_unref(contact);
+	dc_array_unref(contacts);
 	return fingerprint_equal;
 }
 
@@ -231,10 +231,10 @@ cleanup:
 }
 
 
-static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
+static const char* lookup_field(dc_mimeparser_t* mimeparser, const char* key)
 {
 	const char* value = NULL;
-	struct mailimf_field* field = mrmimeparser_lookup_field(mimeparser, key);
+	struct mailimf_field* field = dc_mimeparser_lookup_field(mimeparser, key);
 	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
 	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL ) {
 		return NULL;
@@ -245,7 +245,7 @@ static const char* lookup_field(mrmimeparser_t* mimeparser, const char* key)
 
 static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint, const char* grpid)
 {
-	mrmsg_t* msg = mrmsg_new();
+	dc_msg_t* msg = dc_msg_new();
 
 	msg->m_type = MR_MSG_TEXT;
 	msg->m_text = mr_mprintf("Secure-Join: %s", step);
@@ -274,14 +274,14 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, c
 
 	mrmailbox_send_msg_object(mailbox, contact_chat_id, msg);
 
-	mrmsg_unref(msg);
+	dc_msg_unref(msg);
 }
 
 
 static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* details)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
-	mrcontact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
 	char*        msg        = mr_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
 
 	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
@@ -289,14 +289,14 @@ static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t
 	dc_log_error(mailbox, 0, "%s (%s)", msg, details); // additionaly raise an error; this typically results in a toast (inviter side) or a dialog (joiner side)
 
 	free(msg);
-	mrcontact_unref(contact);
+	dc_contact_unref(contact);
 }
 
 
 static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
-	mrcontact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
 	char*        msg        = mr_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
 
 	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
@@ -305,7 +305,7 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact
 	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
 	free(msg);
-	mrcontact_unref(contact);
+	dc_contact_unref(contact);
 }
 
 
@@ -313,7 +313,7 @@ static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact
 #define         VC_CONTACT_CONFIRM   6
 static int      s_bob_expects = 0;
 
-static mrlot_t* s_bobs_qr_scan = NULL; // should be surround eg. by mrsqlite3_lock/unlock
+static dc_lot_t* s_bobs_qr_scan = NULL; // should be surround eg. by dc_sqlite3_lock/unlock
 
 #define         BOB_ERROR       0
 #define         BOB_SUCCESS     1
@@ -367,7 +367,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 	char*     fingerprint          = NULL;
 	char*     invitenumber         = NULL;
 	char*     auth                 = NULL;
-	mrchat_t* chat                 = NULL;
+	dc_chat_t* chat                 = NULL;
 	char*     group_name           = NULL;
 	char*     group_name_urlencoded= NULL;
 
@@ -377,7 +377,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 
 	mrmailbox_ensure_secret_key_exists(mailbox);
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
@@ -393,14 +393,14 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 			mrtoken_save__(mailbox, MRT_AUTH, group_chat_id, auth);
 		}
 
-		if( (self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
+		if( (self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL)) == NULL ) {
 			dc_log_error(mailbox, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
-		self_name = mrsqlite3_get_config__(mailbox->m_sql, "displayname", "");
+		self_name = dc_sqlite3_get_config__(mailbox->m_sql, "displayname", "");
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( (fingerprint=get_self_fingerprint(mailbox)) == NULL ) {
@@ -418,7 +418,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 			dc_log_error(mailbox, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
-		group_name = mrchat_get_name(chat);
+		group_name = dc_chat_get_name(chat);
 		group_name_urlencoded = mr_urlencode(group_name);
 		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
 	}
@@ -429,7 +429,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	free(self_addr_urlencoded);
 	free(self_addr);
 	free(self_name);
@@ -437,7 +437,7 @@ cleanup:
 	free(fingerprint);
 	free(invitenumber);
 	free(auth);
-	mrchat_unref(chat);
+	dc_chat_unref(chat);
 	free(group_name);
 	free(group_name_urlencoded);
 	return qr? qr : safe_strdup(NULL);
@@ -480,7 +480,7 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 	int      ongoing_allocated = 0;
 	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t contact_chat_id   = 0;
-	mrlot_t* qr_scan           = NULL;
+	dc_lot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
 
 	dc_log_info(mailbox, 0, "Requesting secure-join ...");
@@ -514,9 +514,9 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 	join_vg = (qr_scan->m_state==MR_QR_ASK_VERIFYGROUP);
 
 	s_bobs_status = 0;
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 		s_bobs_qr_scan = qr_scan;
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 
 	if( fingerprint_equals_sender(mailbox, qr_scan->m_fingerprint, contact_chat_id) ) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
@@ -545,27 +545,27 @@ cleanup:
 
 	if( s_bobs_status == BOB_SUCCESS ) {
 		if( join_vg ) {
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 				ret_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, qr_scan->m_text2, NULL, NULL);
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 		}
 		else {
 			ret_chat_id = contact_chat_id;
 		}
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 		s_bobs_qr_scan = NULL;
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 
-	mrlot_unref(qr_scan);
+	dc_lot_unref(qr_scan);
 
 	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
 	return ret_chat_id;
 }
 
 
-int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser, uint32_t contact_id)
+int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
 	const char*  step   = NULL;
@@ -710,14 +710,14 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 
 		LOCK
 			if( mrtoken_exists__(mailbox, MRT_AUTH, auth) == 0 ) {
-				mrsqlite3_unlock(mailbox->m_sql);
+				dc_sqlite3_unlock(mailbox->m_sql);
 				locked = 0;
 				could_not_establish_secure_connection(mailbox, contact_chat_id, "Auth invalid.");
 				goto cleanup;
 			}
 
 			if( !mark_peer_as_verified__(mailbox, fingerprint) ) {
-				mrsqlite3_unlock(mailbox->m_sql);
+				dc_sqlite3_unlock(mailbox->m_sql);
 				locked = 0;
 				could_not_establish_secure_connection(mailbox, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
 				goto cleanup;
@@ -811,7 +811,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 	// for errors, we do not the corresponding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
 	if( ret == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 		struct mailimf_field* field;
-		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+		if( (field=dc_mimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 			if( fld_message_id && fld_message_id->mid_value ) {
 				dc_job_add(mailbox, DC_JOB_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 0);

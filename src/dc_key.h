@@ -37,42 +37,42 @@ typedef struct sqlite3_stmt sqlite3_stmt;
 /**
  * Library-internal.
  */
-typedef struct mrkey_t
+typedef struct dc_key_t
 {
 	void*          m_binary;
 	int            m_bytes;
 	int            m_type;
 
 	/** @privatesection */
-	int            _m_heap_refcnt; /* !=0 for objects created with mrkey_new(), 0 for stack objects  */
-} mrkey_t;
+	int            _m_heap_refcnt; /* !=0 for objects created with dc_key_new(), 0 for stack objects  */
+} dc_key_t;
 
 
-mrkey_t* mrkey_new           ();
-mrkey_t* mrkey_ref           (mrkey_t*);
-void     mrkey_unref         (mrkey_t*);
+dc_key_t* dc_key_new           ();
+dc_key_t* dc_key_ref           (dc_key_t*);
+void     dc_key_unref         (dc_key_t*);
 
-int   mrkey_set_from_binary  (mrkey_t*, const void* data, int bytes, int type);
-int   mrkey_set_from_key     (mrkey_t*, const mrkey_t*);
-int   mrkey_set_from_stmt    (mrkey_t*, sqlite3_stmt*, int index, int type);
-int   mrkey_set_from_base64  (mrkey_t*, const char* base64, int type);
-int   mrkey_set_from_file    (mrkey_t*, const char* file, mrmailbox_t* mailbox);
+int   dc_key_set_from_binary  (dc_key_t*, const void* data, int bytes, int type);
+int   dc_key_set_from_key     (dc_key_t*, const dc_key_t*);
+int   dc_key_set_from_stmt    (dc_key_t*, sqlite3_stmt*, int index, int type);
+int   dc_key_set_from_base64  (dc_key_t*, const char* base64, int type);
+int   dc_key_set_from_file    (dc_key_t*, const char* file, mrmailbox_t* mailbox);
 
-int   mrkey_equals        (const mrkey_t*, const mrkey_t*);
+int   dc_key_equals        (const dc_key_t*, const dc_key_t*);
 
-int   mrkey_save_self_keypair__(const mrkey_t* public_key, const mrkey_t* private_key, const char* addr, int is_default, mrsqlite3_t* sql);
-int   mrkey_load_self_public__ (mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
-int   mrkey_load_self_private__(mrkey_t*, const char* self_addr, mrsqlite3_t* sql);
+int   dc_key_save_self_keypair__(const dc_key_t* public_key, const dc_key_t* private_key, const char* addr, int is_default, dc_sqlite3_t* sql);
+int   dc_key_load_self_public__ (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
+int   dc_key_load_self_private__(dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
 
 char* mr_render_base64   (const void* buf, size_t buf_bytes, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
-char* mrkey_render_base64(const mrkey_t* ths, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
-char* mrkey_render_asc   (const mrkey_t*, const char* add_header_lines); /* each header line must be terminated by \r\n, the result must be freed */
-int   mrkey_render_asc_to_file(const mrkey_t*, const char* file, mrmailbox_t* mailbox);
+char* dc_key_render_base64(const dc_key_t* ths, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
+char* dc_key_render_asc   (const dc_key_t*, const char* add_header_lines); /* each header line must be terminated by \r\n, the result must be freed */
+int   dc_key_render_asc_to_file(const dc_key_t*, const char* file, mrmailbox_t* mailbox);
 
 char* mr_format_fingerprint          (const char*);
 char* mr_normalize_fingerprint       (const char*);
-char* mrkey_get_fingerprint          (const mrkey_t*);
-char* mrkey_get_formatted_fingerprint(const mrkey_t*);
+char* dc_key_get_fingerprint          (const dc_key_t*);
+char* dc_key_get_formatted_fingerprint(const dc_key_t*);
 
 void  mr_wipe_secret_mem(void* buf, size_t buf_bytes);
 

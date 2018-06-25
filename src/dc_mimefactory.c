@@ -34,18 +34,18 @@
  ******************************************************************************/
 
 
-void mrmimefactory_init(mrmimefactory_t* factory, mrmailbox_t* mailbox)
+void dc_mimefactory_init(dc_mimefactory_t* factory, mrmailbox_t* mailbox)
 {
 	if( factory == NULL || mailbox == NULL ) {
 		return;
 	}
 
-	memset(factory, 0, sizeof(mrmimefactory_t));
+	memset(factory, 0, sizeof(dc_mimefactory_t));
 	factory->m_mailbox = mailbox;
 }
 
 
-void mrmimefactory_empty(mrmimefactory_t* factory)
+void dc_mimefactory_empty(dc_mimefactory_t* factory)
 {
 	if( factory == NULL ) {
 		return;
@@ -72,10 +72,10 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 		factory->m_recipients_addr = NULL;
 	}
 
-	mrmsg_unref(factory->m_msg);
+	dc_msg_unref(factory->m_msg);
 	factory->m_msg = NULL;
 
-	mrchat_unref(factory->m_chat);
+	dc_chat_unref(factory->m_chat);
 	factory->m_chat = NULL;
 
 	if( factory->m_out ) {
@@ -89,19 +89,19 @@ void mrmimefactory_empty(mrmimefactory_t* factory)
 }
 
 
-static void load_from__(mrmimefactory_t* factory)
+static void load_from__(dc_mimefactory_t* factory)
 {
-	factory->m_from_addr        = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
-	factory->m_from_displayname = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
+	factory->m_from_addr        = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
+	factory->m_from_displayname = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
 
-	factory->m_selfstatus       = mrsqlite3_get_config__(factory->m_mailbox->m_sql, "selfstatus", NULL);
+	factory->m_selfstatus       = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "selfstatus", NULL);
 	if( factory->m_selfstatus == NULL ) {
 		factory->m_selfstatus = mrstock_str(MR_STR_STATUSLINE);
 	}
 }
 
 
-int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
+int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 {
 	int success = 0, locked = 0;
 
@@ -115,27 +115,27 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
-	factory->m_msg              = mrmsg_new();
-	factory->m_chat             = mrchat_new(mailbox);
+	factory->m_msg              = dc_msg_new();
+	factory->m_chat             = dc_chat_new(mailbox);
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
-		 && mrchat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
+		if( dc_msg_load_from_db__(factory->m_msg, mailbox, msg_id)
+		 && dc_chat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
 		{
 			load_from__(factory);
 
 			factory->m_req_mdn = 0;
 
-			if( mrchat_is_self_talk(factory->m_chat) )
+			if( dc_chat_is_self_talk(factory->m_chat) )
 			{
 				clist_append(factory->m_recipients_names, (void*)strdup_keep_null(factory->m_from_displayname));
 				clist_append(factory->m_recipients_addr,  (void*)safe_strdup(factory->m_from_addr));
 			}
 			else
 			{
-				sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
+				sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
 					"SELECT c.authname, c.addr "
 					" FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON cc.contact_id=c.id "
@@ -155,7 +155,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 				int command = mrparam_get_int(factory->m_msg->m_param, MRP_CMD, 0);
 				if( command==MR_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 					char* email_to_remove     = mrparam_get(factory->m_msg->m_param, MRP_CMD_PARAM, NULL);
-					char* self_addr           = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+					char* self_addr           = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 					{
 						if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
@@ -169,7 +169,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 				if( command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE
 				 && command!=MR_CMD_SECUREJOIN_MESSAGE
-				 && mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+				 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
 			}
@@ -186,7 +186,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 
 			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
 			or after the sender has changes its email address. */
-			sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
+			sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
 				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
 			sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
@@ -202,7 +202,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			however one could also see this as a feature :) (there may be different contextes on different clients)
 			(also, the References-header is not the most important thing, and, at least for now, we do not want to make things too complicated.  */
 			time_t prev_msg_time = 0;
-			stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_MAX_timestamp_FROM_msgs,
+			stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_MAX_timestamp_FROM_msgs,
 				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
 			sqlite3_bind_int  (stmt, 2, factory->m_msg->m_id);
@@ -218,7 +218,7 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 			if( factory->m_references == NULL ) {
 				factory->m_references = mr_create_dummy_references_mid();
 				mrparam_set(factory->m_chat->m_param, MRP_REFERENCES, factory->m_references);
-				mrchat_update_param__(factory->m_chat);
+				dc_chat_update_param__(factory->m_chat);
 			}
 
 			success = 1;
@@ -228,22 +228,22 @@ int mrmimefactory_load_msg(mrmimefactory_t* factory, uint32_t msg_id)
 		}
 
 		if( success ) {
-			factory->m_increation = mrmsg_is_increation__(factory->m_msg);
+			factory->m_increation = dc_msg_is_increation__(factory->m_msg);
 		}
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	return success;
 }
 
 
-int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
+int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 {
 	int           success = 0, locked = 0;
-	mrcontact_t*  contact = mrcontact_new(factory->m_mailbox);
+	dc_contact_t*  contact = dc_contact_new(factory->m_mailbox);
 
 	if( factory == NULL ) {
 		goto cleanup;
@@ -253,17 +253,17 @@ int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
-	factory->m_msg              = mrmsg_new();
+	factory->m_msg              = dc_msg_new();
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( !mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+		if( !dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
 		}
 
-		if( !mrmsg_load_from_db__(factory->m_msg, mailbox, msg_id)
-		 || !mrcontact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
+		if( !dc_msg_load_from_db__(factory->m_msg, mailbox, msg_id)
+		 || !dc_contact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
 			goto cleanup;
 		}
 
@@ -284,14 +284,14 @@ int mrmimefactory_load_mdn(mrmimefactory_t* factory, uint32_t msg_id)
 		factory->m_timestamp = mr_create_smeared_timestamp__();
 		factory->m_rfc724_mid = mr_create_outgoing_rfc724_mid(NULL, factory->m_from_addr);
 
-	mrsqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	success = 1;
 	factory->m_loaded = MR_MF_MDN_LOADED;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	return success;
 }
 
@@ -319,7 +319,7 @@ static struct mailmime* build_body_text(char* text)
 }
 
 
-static struct mailmime* build_body_file(const mrmsg_t* msg, const char* base_name, char** ret_file_name_as_sent)
+static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_name, char** ret_file_name_as_sent)
 {
 	struct mailmime_fields*  mime_fields;
 	struct mailmime*         mime_sub = NULL;
@@ -440,9 +440,9 @@ cleanup:
 }
 
 
-static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_email)
+static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_email)
 {
-	char *ret, *raw_subject = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
+	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
 	if( mrparam_get_int(msg->m_param, MRP_CMD, 0) == MR_CMD_AUTOCRYPT_SETUP_MESSAGE )
@@ -463,7 +463,7 @@ static char* get_subject(const mrchat_t* chat, const mrmsg_t* msg, int afwd_emai
 }
 
 
-int mrmimefactory_render(mrmimefactory_t* factory)
+int dc_mimefactory_render(dc_mimefactory_t* factory)
 {
 	if( factory == NULL
 	 || factory->m_loaded == MR_MF_NOTHING_LOADED
@@ -544,8 +544,8 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 		/* Render a normal message
 		 *********************************************************************/
 
-		mrchat_t* chat = factory->m_chat;
-		mrmsg_t*  msg  = factory->m_msg;
+		dc_chat_t* chat = factory->m_chat;
+		dc_msg_t*  msg  = factory->m_msg;
 
 		struct mailmime* meta_part = NULL;
 		char* placeholdertext = NULL;
@@ -640,14 +640,14 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 
 		if( grpimage )
 		{
-			mrmsg_t* meta = mrmsg_new();
+			dc_msg_t* meta = dc_msg_new();
 			meta->m_type = MR_MSG_IMAGE;
 			mrparam_set(meta->m_param, MRP_FILE, grpimage);
 			char* filename_as_sent = NULL;
 			if( (meta_part=build_body_file(meta, "group-image", &filename_as_sent))!=NULL ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Image"), filename_as_sent/*takes ownership*/));
 			}
-			mrmsg_unref(meta);
+			dc_msg_unref(meta);
 		}
 
 		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
@@ -728,7 +728,7 @@ int mrmimefactory_render(mrmimefactory_t* factory)
 			p1 = mrstock_str(MR_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
 		}
 		else {
-			p1 = mrmsg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
+			p1 = dc_msg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
 		}
 		p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
 		message_text = mr_mprintf("%s" LINEEND, p2);

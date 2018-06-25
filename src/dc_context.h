@@ -48,12 +48,12 @@ extern "C" {
 #include "dc_contact.h"
 
 
-typedef struct dc_imap_t      dc_imap_t;
-typedef struct dc_smtp_t      dc_smtp_t;
-typedef struct mrsqlite3_t    mrsqlite3_t;
-typedef struct dc_job_t       dc_job_t;
-typedef struct mrmimeparser_t mrmimeparser_t;
-typedef struct mrhash_t       mrhash_t;
+typedef struct dc_imap_t       dc_imap_t;
+typedef struct dc_smtp_t       dc_smtp_t;
+typedef struct dc_sqlite3_t    dc_sqlite3_t;
+typedef struct dc_job_t        dc_job_t;
+typedef struct dc_mimeparser_t dc_mimeparser_t;
+typedef struct dc_hash_t       dc_hash_t;
 
 
 /** Structure behind dc_context_t */
@@ -68,7 +68,7 @@ struct _dc_context
 	char*            m_dbfile;                /**< The database file. This is the file given to mrmailbox_new(). */
 	char*            m_blobdir;               /**< Full path of the blob directory. This is the directory given to mrmailbox_new() or a directory in the same directory as mrmailbox_t::m_dbfile. */
 
-	mrsqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
+	dc_sqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
 
 	dc_imap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	pthread_mutex_t  m_imapidle_condmutex;
@@ -112,7 +112,7 @@ void            dc_log_info          (dc_context_t*, int code, const char* msg, 
 
 /* misc.*/
 void            mrmailbox_receive_imf                             (mrmailbox_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
-uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, mrmsg_t*);
+uint32_t        mrmailbox_send_msg_object                         (mrmailbox_t*, uint32_t chat_id, dc_msg_t*);
 int             mrmailbox_get_archived_count__                    (mrmailbox_t*);
 size_t          mrmailbox_get_real_contact_cnt__                  (mrmailbox_t*);
 uint32_t        mrmailbox_add_or_lookup_contact__                 (mrmailbox_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
@@ -167,8 +167,8 @@ typedef struct mrmailbox_e2ee_helper_t {
 
 	// decryption
 	int       m_encrypted;  // encrypted without problems
-	mrhash_t* m_signatures; // fingerprints of valid signatures
-	mrhash_t* m_gossipped_addr;
+	dc_hash_t* m_signatures; // fingerprints of valid signatures
+	dc_hash_t* m_gossipped_addr;
 
 } mrmailbox_e2ee_helper_t;
 
@@ -192,7 +192,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 /* library private: secure-join */
 #define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
 #define         MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
-int             mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t contact_id);
+int             mrmailbox_handle_securejoin_handshake(mrmailbox_t*, dc_mimeparser_t*, uint32_t contact_id);
 void            mrmailbox_handle_degrade_event       (mrmailbox_t*, dc_apeerstate_t*);
 
 

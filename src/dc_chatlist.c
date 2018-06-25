@@ -45,7 +45,7 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* mailbox)
 
 	ths->m_magic   = MR_CHATLIST_MAGIC;
 	ths->m_mailbox = mailbox;
-	if( (ths->m_chatNlastmsg_ids=mrarray_new(mailbox, 128))==NULL ) {
+	if( (ths->m_chatNlastmsg_ids=dc_array_new(mailbox, 128))==NULL ) {
 		exit(32);
 	}
 
@@ -69,8 +69,8 @@ void dc_chatlist_unref(dc_chatlist_t* chatlist)
 		return;
 	}
 
-	mrchatlist_empty(chatlist);
-	mrarray_unref(chatlist->m_chatNlastmsg_ids);
+	dc_chatlist_empty(chatlist);
+	dc_array_unref(chatlist->m_chatNlastmsg_ids);
 	chatlist->m_magic = 0;
 	free(chatlist);
 }
@@ -92,7 +92,7 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
 	}
 
 	chatlist->m_cnt = 0;
-	mrarray_empty(chatlist->m_chatNlastmsg_ids);
+	dc_array_empty(chatlist->m_chatNlastmsg_ids);
 }
 
 
@@ -135,7 +135,7 @@ uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
 		return 0;
 	}
 
-	return mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
+	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
 }
 
 
@@ -159,7 +159,7 @@ uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
 		return 0;
 	}
 
-	return mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
 }
 
 
@@ -199,28 +199,28 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	Also, sth. as "No messages" would not work if the summary comes from a
 	message. */
 
-	mrlot_t*      ret = mrlot_new(); /* the function never returns NULL */
+	dc_lot_t*      ret = dc_lot_new(); /* the function never returns NULL */
 	int           locked = 0;
 	uint32_t      lastmsg_id = 0;
-	mrmsg_t*      lastmsg = NULL;
-	mrcontact_t*  lastcontact = NULL;
-	mrchat_t*     chat_to_delete = NULL;
+	dc_msg_t*      lastmsg = NULL;
+	dc_contact_t*  lastcontact = NULL;
+	dc_chat_t*     chat_to_delete = NULL;
 
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
 		ret->m_text2 = safe_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
 
-	lastmsg_id = mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	lastmsg_id = dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
 
 	/* load data from database */
-	mrsqlite3_lock(chatlist->m_mailbox->m_sql);
+	dc_sqlite3_lock(chatlist->m_mailbox->m_sql);
 	locked = 1;
 
 		if( chat==NULL ) {
-			chat = mrchat_new(chatlist->m_mailbox);
+			chat = dc_chat_new(chatlist->m_mailbox);
 			chat_to_delete = chat;
-			if( !mrchat_load_from_db__(chat, mrarray_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
+			if( !dc_chat_load_from_db__(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
 				ret->m_text2 = safe_strdup("ErrCannotReadChat");
 				goto cleanup;
 			}
@@ -229,18 +229,18 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 		if( lastmsg_id )
 		{
 
-			lastmsg = mrmsg_new();
-			mrmsg_load_from_db__(lastmsg, chatlist->m_mailbox, lastmsg_id);
+			lastmsg = dc_msg_new();
+			dc_msg_load_from_db__(lastmsg, chatlist->m_mailbox, lastmsg_id);
 
 			if( lastmsg->m_from_id != MR_CONTACT_ID_SELF  &&  MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 			{
-				lastcontact = mrcontact_new(chatlist->m_mailbox);
-				mrcontact_load_from_db__(lastcontact, chatlist->m_mailbox->m_sql, lastmsg->m_from_id);
+				lastcontact = dc_contact_new(chatlist->m_mailbox);
+				dc_contact_load_from_db__(lastcontact, chatlist->m_mailbox->m_sql, lastmsg->m_from_id);
 			}
 
 		}
 
-	mrsqlite3_unlock(chatlist->m_mailbox->m_sql);
+	dc_sqlite3_unlock(chatlist->m_mailbox->m_sql);
 	locked = 0;
 
 	if( chat->m_id == MR_CHAT_ID_ARCHIVED_LINK )
@@ -268,14 +268,14 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	else
 	{
 		/* show the last message */
-		mrlot_fill(ret, lastmsg, chat, lastcontact);
+		dc_lot_fill(ret, lastmsg, chat, lastcontact);
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(chatlist->m_mailbox->m_sql); }
-	mrmsg_unref(lastmsg);
-	mrcontact_unref(lastcontact);
-	mrchat_unref(chat_to_delete);
+	if( locked ) { dc_sqlite3_unlock(chatlist->m_mailbox->m_sql); }
+	dc_msg_unref(lastmsg);
+	dc_contact_unref(lastcontact);
+	dc_chat_unref(chat_to_delete);
 	return ret;
 }
 
@@ -305,7 +305,7 @@ dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
  *
  * @private @memberof dc_chatlist_t
  */
-int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
+int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	//clock_t       start = clock();
 
@@ -318,7 +318,7 @@ int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* que
 		goto cleanup;
 	}
 
-	mrchatlist_empty(ths);
+	dc_chatlist_empty(ths);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
@@ -336,14 +336,14 @@ int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* que
 	if( query_contact_id )
 	{
 		// show chats shared with a given contact
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
+		stmt = dc_sqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
 			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
 		sqlite3_bind_int(stmt, 1, query_contact_id);
 	}
 	else if( listflags & MR_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
+		stmt = dc_sqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
 			QUR1 " AND c.archived=1 " QUR2);
 	}
 	else if( query__==NULL )
@@ -352,13 +352,13 @@ int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* que
 		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
 			uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_mailbox);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
-				mrarray_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
-				mrarray_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
+				dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
+				dc_array_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
 			}
 			add_archived_link_item = 1;
 		}
 
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
+		stmt = dc_sqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
 			QUR1 " AND c.archived=0 " QUR2);
 	}
 	else
@@ -371,24 +371,24 @@ int mrchatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* que
 			goto cleanup;
 		}
 		strLikeCmd = mr_mprintf("%%%s%%", query);
-		stmt = mrsqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
+		stmt = dc_sqlite3_predefine__(ths->m_mailbox->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
-		mrarray_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
-		mrarray_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
+		dc_array_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
+		dc_array_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
     if( add_archived_link_item && mrmailbox_get_archived_count__(ths->m_mailbox)>0 )
     {
-		mrarray_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_ARCHIVED_LINK);
-		mrarray_add_id(ths->m_chatNlastmsg_ids, 0);
+		dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_ARCHIVED_LINK);
+		dc_array_add_id(ths->m_chatNlastmsg_ids, 0);
     }
 
-	ths->m_cnt = mrarray_get_cnt(ths->m_chatNlastmsg_ids)/MR_CHATLIST_IDS_PER_RESULT;
+	ths->m_cnt = dc_array_get_cnt(ths->m_chatNlastmsg_ids)/MR_CHATLIST_IDS_PER_RESULT;
 	success = 1;
 
 cleanup:

@@ -411,22 +411,22 @@ void mailmime_print(struct mailmime* mime)
  ******************************************************************************/
 
 
-static void mailimf_get_recipients__add_addr(mrhash_t* recipients, struct mailimf_mailbox* mb)
+static void mailimf_get_recipients__add_addr(dc_hash_t* recipients, struct mailimf_mailbox* mb)
 {
 	/* only used internally by mailimf_get_recipients() */
 	if( mb )  {
 		char* addr_norm = mr_normalize_addr(mb->mb_addr_spec);
-		mrhash_insert(recipients, addr_norm, strlen(addr_norm), (void*)1);
+		dc_hash_insert(recipients, addr_norm, strlen(addr_norm), (void*)1);
 		free(addr_norm);
 	}
 }
 
 
-mrhash_t* mailimf_get_recipients(struct mailimf_fields* imffields)
+dc_hash_t* mailimf_get_recipients(struct mailimf_fields* imffields)
 {
-	/* the returned value must be mrhash_clear()'d and free()'d. returned addresses are normalized. */
-	mrhash_t* recipients = malloc(sizeof(mrhash_t));
-	mrhash_init(recipients, MRHASH_STRING, 1/*copy key*/);
+	/* the returned value must be dc_hash_clear()'d and free()'d. returned addresses are normalized. */
+	dc_hash_t* recipients = malloc(sizeof(dc_hash_t));
+	dc_hash_init(recipients, MRHASH_STRING, 1/*copy key*/);
 
 	clistiter* cur1;
 	for( cur1 = clist_begin(imffields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
@@ -828,18 +828,18 @@ static void mrmimepart_unref(mrmimepart_t* ths)
 /**
  * Create a new mime parser object.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param blobdir Directrory to write attachments to.
  * @param mailbox Mailbox object, used for logging only.
  *
  * @return The MIME-parser object.
  */
-mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
+dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 {
-	mrmimeparser_t* ths = NULL;
+	dc_mimeparser_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrmimeparser_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_mimeparser_t)))==NULL ) {
 		exit(30);
 	}
 
@@ -849,7 +849,7 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 	ths->m_reports = carray_new(16);
 	ths->m_e2ee_helper = calloc(1, sizeof(mrmailbox_e2ee_helper_t));
 
-	mrhash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
+	dc_hash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
 
 	return ths;
 }
@@ -858,21 +858,21 @@ mrmimeparser_t* mrmimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 /**
  * Free a MIME-parser object.
  *
- * Esp. all data allocated by mrmimeparser_parse() will be free()'d.
+ * Esp. all data allocated by dc_mimeparser_parse() will be free()'d.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param ths The MIME-parser object.
  *
  * @return None.
  */
-void mrmimeparser_unref(mrmimeparser_t* ths)
+void dc_mimeparser_unref(dc_mimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return;
 	}
 
-	mrmimeparser_empty(ths);
+	dc_mimeparser_empty(ths);
 	if( ths->m_parts )   { carray_free(ths->m_parts); }
 	if( ths->m_reports ) { carray_free(ths->m_reports); }
 	free(ths->m_e2ee_helper);
@@ -883,16 +883,16 @@ void mrmimeparser_unref(mrmimeparser_t* ths)
 /**
  * Empty all data in a MIME-parser object.
  *
- * This function is called implicitly by mrmimeparser_parse() to free
+ * This function is called implicitly by dc_mimeparser_parse() to free
  * previously allocated data.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param ths The MIME-parser object.
  *
  * @return None.
  */
-void mrmimeparser_empty(mrmimeparser_t* ths)
+void dc_mimeparser_empty(dc_mimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -911,7 +911,7 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 	}
 
 	ths->m_header_root  = NULL; /* a pointer somewhere to the MIME data, must NOT be freed */
-	mrhash_clear(&ths->m_header);
+	dc_hash_clear(&ths->m_header);
 
 	if( ths->m_header_protected ) {
 		mailimf_fields_free(ths->m_header_protected); /* allocated as needed, MUST be freed */
@@ -942,10 +942,10 @@ void mrmimeparser_empty(mrmimeparser_t* ths)
 }
 
 
-static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
+static void do_add_single_part(dc_mimeparser_t* parser, mrmimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
-	if( parser->m_e2ee_helper->m_encrypted && mrhash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
+	if( parser->m_e2ee_helper->m_encrypted && dc_hash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
 		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
 	}
 	else if( parser->m_e2ee_helper->m_encrypted ) {
@@ -955,7 +955,7 @@ static void do_add_single_part(mrmimeparser_t* parser, mrmimepart_t* part)
 }
 
 
-static void do_add_single_file_part(mrmimeparser_t* parser, int msg_type, int mime_type,
+static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int mime_type,
                                     const char* decoded_data, size_t decoded_data_bytes,
                                     const char* desired_filename)
 {
@@ -995,7 +995,7 @@ static void do_add_single_file_part(mrmimeparser_t* parser, int msg_type, int mi
 	/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by mr_get_fine_pathNfilename()) */
 	if( msg_type == MR_MSG_AUDIO ) {
 		char* author = NULL, *title = NULL;
-		mrmsg_get_authorNtitle_from_filename(desired_filename, &author, &title);
+		dc_msg_get_authorNtitle_from_filename(desired_filename, &author, &title);
 		mrparam_set(part->m_param, MRP_AUTHORNAME, author);
 		mrparam_set(part->m_param, MRP_TRACKNAME, title);
 		free(author);
@@ -1011,7 +1011,7 @@ cleanup:
 }
 
 
-static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mailmime* mime)
+static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct mailmime* mime)
 {
 	mrmimepart_t*                part = NULL;
 	int                          old_part_count = carray_count(ths->m_parts);
@@ -1025,7 +1025,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 	char*                        charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
 	const char*                  decoded_data = NULL; /* must not be free()'d */
 	size_t                       decoded_data_bytes = 0;
-	mrsimplify_t*                simplifier = NULL;
+	dc_simplify_t*                simplifier = NULL;
 
 	if( mime == NULL || mime->mm_data.mm_single == NULL ) {
 		goto cleanup;
@@ -1054,7 +1054,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 		case MR_MIMETYPE_TEXT_HTML:
 			{
 				if( simplifier==NULL ) {
-					simplifier = mrsimplify_new();
+					simplifier = dc_simplify_new();
 					if( simplifier==NULL ) {
 						goto cleanup;
 					}
@@ -1085,7 +1085,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 					int    uu_msg_type = 0, added_uu_parts = 0;
 					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
 					{
-						mrmsg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
+						dc_msg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
 						if( uu_msg_type == 0 ) {
 							uu_msg_type = MR_MSG_FILE;
 						}
@@ -1104,7 +1104,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 				}
 
 				// add text as MR_MSG_TEXT part
-				char* simplified_txt = mrsimplify_simplify(simplifier, txt, strlen(txt), mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+				char* simplified_txt = dc_simplify_simplify(simplifier, txt, strlen(txt), mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
 				free(txt);
 				txt = NULL;
 				if( simplified_txt && simplified_txt[0] )
@@ -1208,7 +1208,7 @@ static int mrmimeparser_add_single_part_if_known(mrmimeparser_t* ths, struct mai
 
 	/* add object? (we do not add all objetcs, eg. signatures etc. are ignored) */
 cleanup:
-	mrsimplify_unref(simplifier);
+	dc_simplify_unref(simplifier);
 	if( charset_buffer ) { charconv_buffer_free(charset_buffer); }
 	if( transfer_decoding_buffer ) { mmap_string_unref(transfer_decoding_buffer); }
 	free(file_suffix);
@@ -1219,7 +1219,7 @@ cleanup:
 }
 
 
-static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmime* mime)
+static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailmime* mime)
 {
 	int        any_part_added = 0;
 	clistiter* cur;
@@ -1254,7 +1254,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 	switch( mime->mm_type )
 	{
 		case MAILMIME_SINGLE:
-			any_part_added = mrmimeparser_add_single_part_if_known(ths, mime);
+			any_part_added = dc_mimeparser_add_single_part_if_known(ths, mime);
 			break;
 
 		case MAILMIME_MULTIPLE:
@@ -1266,7 +1266,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 						struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 						if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_MP_MIXED ) {
-							any_part_added = mrmimeparser_parse_mime_recursive(ths, childmime);
+							any_part_added = dc_mimeparser_parse_mime_recursive(ths, childmime);
 							break;
 						}
 					}
@@ -1277,7 +1277,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
-								any_part_added = mrmimeparser_parse_mime_recursive(ths, childmime);
+								any_part_added = dc_mimeparser_parse_mime_recursive(ths, childmime);
 								break;
 							}
 						}
@@ -1285,7 +1285,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 					if( !any_part_added ) { /* `text/plain` not found - use the first part */
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-							if( mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
+							if( dc_mimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur)) ) {
 								any_part_added = 1;
 								break; /* out of for() */
 							}
@@ -1297,7 +1297,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 				                             /* we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay. */
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
-						any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
+						any_part_added = dc_mimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
@@ -1324,7 +1324,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 					(see https://k9mail.github.io/2016/11/24/OpenPGP-Considerations-Part-I.html for background information why we use encrypted+signed) */
 					if( (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list)) != NULL )
 					{
-						any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
+						any_part_added = dc_mimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(cur));
 					}
 					break;
 
@@ -1340,7 +1340,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						else
 						{
 							/* eg. `report-type=delivery-status`; maybe we should show them as a little error icon */
-							any_part_added = mrmimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(clist_begin(mime->mm_data.mm_multipart.mm_mp_list)));
+							any_part_added = dc_mimeparser_parse_mime_recursive(ths, (struct mailmime*)clist_content(clist_begin(mime->mm_data.mm_multipart.mm_mp_list)));
 						}
 					}
 					break;
@@ -1374,7 +1374,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
 							if( childmime != skip_part ) {
-								if( mrmimeparser_parse_mime_recursive(ths, childmime) ) {
+								if( dc_mimeparser_parse_mime_recursive(ths, childmime) ) {
 									any_part_added = 1;
 								}
 							}
@@ -1392,7 +1392,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
 			{
-				any_part_added = mrmimeparser_parse_mime_recursive(ths, mime->mm_data.mm_message.mm_msg_mime);
+				any_part_added = dc_mimeparser_parse_mime_recursive(ths, mime->mm_data.mm_message.mm_msg_mime);
 			}
 			break;
 	}
@@ -1401,7 +1401,7 @@ static int mrmimeparser_parse_mime_recursive(mrmimeparser_t* ths, struct mailmim
 }
 
 
-static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbox_t* mailbox)
+static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, mrmailbox_t* mailbox)
 {
 	if( in == NULL ) {
 		return;
@@ -1440,20 +1440,20 @@ static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbo
 		{
 			int key_len = strlen(key);
 
-			if( mrhash_find(out, key, key_len) )
+			if( dc_hash_find(out, key, key_len) )
 			{
 				/* key already in hash, do only overwrite known types */
 				if( field->fld_type!=MAILIMF_FIELD_OPTIONAL_FIELD
 				 || (key_len>5 && strncasecmp(key, "Chat-", 5)==0) )
 				{
 					//dc_log_info(mailbox, 0, "Protected headers: Overwriting \"%s\".", key);
-					mrhash_insert(out, key, key_len, field);
+					dc_hash_insert(out, key, key_len, field);
 				}
 			}
 			else
 			{
 				/* key not hashed before */
-				mrhash_insert(out, key, key_len, field);
+				dc_hash_insert(out, key, key_len, field);
 			}
 		}
 	}
@@ -1464,12 +1464,12 @@ static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbo
  * Parse raw MIME-data into a MIME-object.
  *
  * You may call this function several times on the same object; old data are cleared using
- * mrmimeparser_empty() before parsing is started.
+ * dc_mimeparser_empty() before parsing is started.
  *
- * After mrmimeparser_parse() is called successfully, all the functions to get information about the
+ * After dc_mimeparser_parse() is called successfully, all the functions to get information about the
  * MIME-structure will work.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param ths The MIME-parser object.
  * @param body_not_terminated Plain text, no need to be null-terminated.
@@ -1478,12 +1478,12 @@ static void hash_header(mrhash_t* out, const struct mailimf_fields* in, mrmailbo
  *
  * @return None.
  */
-void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
+void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, size_t body_bytes)
 {
 	int r;
 	size_t index = 0;
 
-	mrmimeparser_empty(ths);
+	dc_mimeparser_empty(ths);
 
 	/* parse body */
 	r = mailmime_parse(body_not_terminated, body_bytes, &index, &ths->m_mimeroot);
@@ -1500,7 +1500,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	//printf("after decryption:\n"); mailmime_print(ths->m_mimeroot);
 
 	/* recursively check, whats parsed, this also sets up m_header_old */
-	mrmimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
+	dc_mimeparser_parse_mime_recursive(ths, ths->m_mimeroot);
 
 	// TOCHECK: text parts may be moved to the beginning of the list - either here or in do_add_single_part()
 	//       usecase: eg. the Buchungsbestätigungen of Deutsch Bahn have the PDF before the explaining text.
@@ -1512,17 +1512,17 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* set some basic data */
 	{
-		struct mailimf_field* field = mrmimeparser_lookup_field(ths, "Subject");
+		struct mailimf_field* field = dc_mimeparser_lookup_field(ths, "Subject");
 		if( field && field->fld_type == MAILIMF_FIELD_SUBJECT ) {
 			ths->m_subject = mr_decode_header_words(field->fld_data.fld_subject->sbj_value);
 		}
 	}
 
-	if( mrmimeparser_lookup_optional_field2(ths, "Chat-Version", "X-MrMsg") ) {
+	if( dc_mimeparser_lookup_optional_field2(ths, "Chat-Version", "X-MrMsg") ) {
 		ths->m_is_send_by_messenger = 1;
 	}
 
-	if( mrmimeparser_lookup_field(ths, "Autocrypt-Setup-Message") ) {
+	if( dc_mimeparser_lookup_field(ths, "Autocrypt-Setup-Message") ) {
 		/* Autocrypt-Setup-Message header found - check if there is an application/autocrypt-setup part */
 		int i, has_setup_file = 0;
 		for( i = 0; i < carray_count(ths->m_parts); i++ ) {
@@ -1601,7 +1601,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		and read some additional parameters */
 		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( part->m_type == MR_MSG_AUDIO ) {
-			if( mrmimeparser_lookup_optional_field2(ths, "Chat-Voice-Message", "X-MrVoiceMessage") ) {
+			if( dc_mimeparser_lookup_optional_field2(ths, "Chat-Voice-Message", "X-MrVoiceMessage") ) {
 				free(part->m_msg);
 				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->m_type = MR_MSG_VOICE;
@@ -1611,7 +1611,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 		}
 
 		if( part->m_type == MR_MSG_AUDIO || part->m_type == MR_MSG_VOICE || part->m_type == MR_MSG_VIDEO ) {
-			const struct mailimf_optional_field* field = mrmimeparser_lookup_optional_field2(ths, "Chat-Duration", "X-MrDurationMs");
+			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field2(ths, "Chat-Duration", "X-MrDurationMs");
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
@@ -1622,7 +1622,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	}
 
 	/* some special system message? */
-	if( mrmimeparser_lookup_field(ths, "Chat-Group-Image")
+	if( dc_mimeparser_lookup_field(ths, "Chat-Group-Image")
 	 && carray_count(ths->m_parts)>=1 ) {
 		mrmimepart_t* textpart = (mrmimepart_t*)carray_get(ths->m_parts, 0);
 		if( textpart->m_type == MR_MSG_TEXT ) {
@@ -1639,8 +1639,8 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 	/* check, if the message asks for a MDN */
 	if( !ths->m_decrypting_failed )
 	{
-		const struct mailimf_optional_field* dn_field = mrmimeparser_lookup_optional_field(ths, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
-		if( dn_field && mrmimeparser_get_last_nonmeta(ths)/*just check if the mail is not empty*/ )
+		const struct mailimf_optional_field* dn_field = dc_mimeparser_lookup_optional_field(ths, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
+		if( dn_field && dc_mimeparser_get_last_nonmeta(ths)/*just check if the mail is not empty*/ )
 		{
 			struct mailimf_mailbox_list* mb_list = NULL;
 			size_t index = 0;
@@ -1649,7 +1649,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 				char* dn_to_addr = mailimf_find_first_addr(mb_list);
 				if( dn_to_addr )
 				{
-					struct mailimf_field* from_field = mrmimeparser_lookup_field(ths, "From"); /* we need From: as this MUST match Disposition-Notification-To: */
+					struct mailimf_field* from_field = dc_mimeparser_lookup_field(ths, "From"); /* we need From: as this MUST match Disposition-Notification-To: */
 					if( from_field && from_field->fld_type==MAILIMF_FIELD_FROM && from_field->fld_data.fld_from )
 					{
 						char* from_addr = mailimf_find_first_addr(from_field->fld_data.fld_from->frm_mb_list);
@@ -1660,7 +1660,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 								/* we mark _only_ the _last_ part to send a MDN
 								(this avoids trouble with multi-part-messages who should send only one MDN.
 								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
-								mrmimepart_t* part = mrmimeparser_get_last_nonmeta(ths);
+								mrmimepart_t* part = dc_mimeparser_get_last_nonmeta(ths);
 								if( part ) {
 									mrparam_set_int(part->m_param, MRP_WANTS_MDN, 1);
 								}
@@ -1677,7 +1677,7 @@ void mrmimeparser_parse(mrmimeparser_t* ths, const char* body_not_terminated, si
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
-	if( !mrmimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
+	if( !dc_mimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
 		mrmimepart_t* part = mrmimepart_new();
 		part->m_type = MR_MSG_TEXT;
 		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
@@ -1691,7 +1691,7 @@ cleanup:
  *
  * Typical names are `From`, `To`, `Subject` and so on.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param mimparser The MIME-parser object.
  * @param field_name The name of the field to look for.
@@ -1700,19 +1700,19 @@ cleanup:
  *     Before accessing the mailimf_field::fld_data, please always have a look at mailimf_field::fld_type!
  *     If field_name could not be found, NULL is returned.
  */
-struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, const char* field_name)
+struct mailimf_field* dc_mimeparser_lookup_field(dc_mimeparser_t* mimeparser, const char* field_name)
 {
-	return (struct mailimf_field*)mrhash_find_str(&mimeparser->m_header, field_name);
+	return (struct mailimf_field*)dc_hash_find_str(&mimeparser->m_header, field_name);
 }
 
 
 /**
  * Lookup the given field name.
  *
- * In addition to mrmimeparser_lookup_field, this function also checks the mailimf_field::fld_type
+ * In addition to dc_mimeparser_lookup_field, this function also checks the mailimf_field::fld_type
  * for being MAILIMF_FIELD_OPTIONAL_FIELD.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param mimparser The MIME-parser object.
  * @param field_name The name of the field to look for.
@@ -1720,9 +1720,9 @@ struct mailimf_field* mrmimeparser_lookup_field(mrmimeparser_t* mimeparser, cons
  * @return A pointer to a mailimf_optional_field structure. Must not be freed!
  *     If field_name could not be found or has another type, NULL is returned.
  */
-struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t* mimeparser, const char* field_name)
+struct mailimf_optional_field* dc_mimeparser_lookup_optional_field(dc_mimeparser_t* mimeparser, const char* field_name)
 {
-	struct mailimf_field* field = mrhash_find_str(&mimeparser->m_header, field_name);
+	struct mailimf_field* field = dc_hash_find_str(&mimeparser->m_header, field_name);
 	if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 		return field->fld_data.fld_optional_field;
 	}
@@ -1734,10 +1734,10 @@ struct mailimf_optional_field* mrmimeparser_lookup_optional_field(mrmimeparser_t
  * Lookup the first name and return, if found.
  * If not, try to lookup the second name.
  */
-struct mailimf_optional_field* mrmimeparser_lookup_optional_field2(mrmimeparser_t* mimeparser, const char* field_name, const char* or_field_name)
+struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparser_t* mimeparser, const char* field_name, const char* or_field_name)
 {
-	struct mailimf_optional_field* of = mrmimeparser_lookup_optional_field(mimeparser, field_name);
-	return of? of : mrmimeparser_lookup_optional_field(mimeparser, or_field_name);
+	struct mailimf_optional_field* of = dc_mimeparser_lookup_optional_field(mimeparser, field_name);
+	return of? of : dc_mimeparser_lookup_optional_field(mimeparser, or_field_name);
 }
 
 
@@ -1745,16 +1745,16 @@ struct mailimf_optional_field* mrmimeparser_lookup_optional_field2(mrmimeparser_
  * Gets the _last_ part _not_ flagged with m_is_meta.
  *
  * If you just want to check if there is a non-meta part preset, you can also
- * use the macro mrmimeparser_has_nonmeta().
+ * use the macro dc_mimeparser_has_nonmeta().
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param ths The MIME-parser object.
  *
  * @return The last part that is not flagged with m_is_meta. The returned value
  *     must not be freed.  If there is no such part, NULL is returned.
  */
-mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
+mrmimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* ths)
 {
 	if( ths && ths->m_parts ) {
 		int i, icnt = carray_count(ths->m_parts);
@@ -1772,7 +1772,7 @@ mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
 /**
  * Checks, if the header of the mail looks as if it is a message from a mailing list.
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param ths The MIME-parser object.
  *
@@ -1817,17 +1817,17 @@ mrmimepart_t* mrmimeparser_get_last_nonmeta(mrmimeparser_t* ths)
  * (NB: typical mailing list header: `From: sender@gmx.net To: list@address.net)
  *
  */
-int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
+int dc_mimeparser_is_mailinglist_message(dc_mimeparser_t* ths)
 {
 	if( ths == NULL ) {
 		return 0;
 	}
 
-	if( mrmimeparser_lookup_field(ths, "List-Id") != NULL ) {
+	if( dc_mimeparser_lookup_field(ths, "List-Id") != NULL ) {
 		return 1; /* mailing list identified by the presence of `List-ID` from RFC 2919 */
 	}
 
-	struct mailimf_optional_field* precedence = mrmimeparser_lookup_optional_field(ths, "Precedence");
+	struct mailimf_optional_field* precedence = dc_mimeparser_lookup_optional_field(ths, "Precedence");
 	if( precedence != NULL ) {
 		if( strcasecmp(precedence->fld_value, "list")==0
 		 || strcasecmp(precedence->fld_value, "bulk")==0 ) {
@@ -1849,21 +1849,21 @@ int mrmimeparser_is_mailinglist_message(mrmimeparser_t* ths)
  * only that mailimf_get_recipients() was already there - and does not respect
  * memoryhole as used on a lower level before memoryhole is calculated)
  *
- * @private @memberof mrmimeparser_t
+ * @private @memberof dc_mimeparser_t
  *
  * @param mimeparser The MIME-parser object.
  *
  * @return 1=Sender matches recipient
  *     0=Sender does not match recipient or there are more than one recipients
  */
-int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
+int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 {
 	int                         sender_equals_recipient = 0;
 	const struct mailimf_field* fld;
 	const struct mailimf_from*  fld_from;
 	struct mailimf_mailbox*     mb;
 	char*                       from_addr_norm = NULL;
-	mrhash_t*                   recipients   = NULL;
+	dc_hash_t*                   recipients   = NULL;
 
 	if( mimeparser == NULL || mimeparser->m_header_root == NULL ) {
 		goto cleanup;
@@ -1887,17 +1887,17 @@ int mrmimeparser_sender_equals_recipient(mrmimeparser_t* mimeparser)
 
 	/* get To:/Cc: and check there is exactly one recipent */
 	recipients = mailimf_get_recipients(mimeparser->m_header_root);
-	if( mrhash_count(recipients) != 1 ) {
+	if( dc_hash_count(recipients) != 1 ) {
 		goto cleanup;
 	}
 
 	/* check if From: == To:/Cc: */
-	if( mrhash_find_str(recipients, from_addr_norm) ) {
+	if( dc_hash_find_str(recipients, from_addr_norm) ) {
 		sender_equals_recipient = 1;
 	}
 
 cleanup:
-	mrhash_clear(recipients);
+	dc_hash_clear(recipients);
 	free(recipients);
 	free(from_addr_norm);
 	return sender_equals_recipient;

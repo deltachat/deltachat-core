@@ -21,7 +21,7 @@
 
 
 /* Parse MIME body; this is the text part of an IMF, see https://tools.ietf.org/html/rfc5322
-mrmimeparser_t has no deep dependencies to mrmailbox_t or to the database
+dc_mimeparser_t has no deep dependencies to mrmailbox_t or to the database
 (mrmailbox_t is used for logging only). */
 
 
@@ -53,15 +53,15 @@ typedef struct mrmimepart_t
 } mrmimepart_t;
 
 
-typedef struct mrmimeparser_t
+typedef struct dc_mimeparser_t
 {
 	/** @privatesection */
 
-	/* data, read-only, must not be free()'d (it is free()'d when the mrmimeparser_t object gets destructed) */
+	/* data, read-only, must not be free()'d (it is free()'d when the dc_mimeparser_t object gets destructed) */
 	carray*                m_parts;             /* array of mrmimepart_t objects */
 	struct mailmime*       m_mimeroot;
 
-	mrhash_t               m_header;            /* memoryhole-compliant header */
+	dc_hash_t               m_header;            /* memoryhole-compliant header */
 	struct mailimf_fields* m_header_root;       /* must NOT be freed, do not use for query, merged into m_header, a pointer somewhere to the MIME data*/
 	struct mailimf_fields* m_header_protected;  /* MUST be freed, do not use for query, merged into m_header  */
 
@@ -82,24 +82,24 @@ typedef struct mrmimeparser_t
 
 	int                    m_is_system_message;
 
-} mrmimeparser_t;
+} dc_mimeparser_t;
 
 
-mrmimeparser_t*  mrmimeparser_new                    (const char* blobdir, mrmailbox_t*);
-void             mrmimeparser_unref                  (mrmimeparser_t*);
-void             mrmimeparser_empty                  (mrmimeparser_t*);
+dc_mimeparser_t*  dc_mimeparser_new                    (const char* blobdir, mrmailbox_t*);
+void             dc_mimeparser_unref                  (dc_mimeparser_t*);
+void             dc_mimeparser_empty                  (dc_mimeparser_t*);
 
-void             mrmimeparser_parse                  (mrmimeparser_t*, const char* body_not_terminated, size_t body_bytes);
+void             dc_mimeparser_parse                  (dc_mimeparser_t*, const char* body_not_terminated, size_t body_bytes);
 
 
-/* the following functions can be used only after a call to mrmimeparser_parse() */
-struct mailimf_field*          mrmimeparser_lookup_field           (mrmimeparser_t*, const char* field_name);
-struct mailimf_optional_field* mrmimeparser_lookup_optional_field  (mrmimeparser_t*, const char* field_name);
-struct mailimf_optional_field* mrmimeparser_lookup_optional_field2 (mrmimeparser_t*, const char* field_name, const char* or_field_name);
-mrmimepart_t*                  mrmimeparser_get_last_nonmeta       (mrmimeparser_t*);
-#define                        mrmimeparser_has_nonmeta(a)         (mrmimeparser_get_last_nonmeta((a))!=NULL)
-int                            mrmimeparser_is_mailinglist_message (mrmimeparser_t*);
-int                            mrmimeparser_sender_equals_recipient(mrmimeparser_t*);
+/* the following functions can be used only after a call to dc_mimeparser_parse() */
+struct mailimf_field*          dc_mimeparser_lookup_field           (dc_mimeparser_t*, const char* field_name);
+struct mailimf_optional_field* dc_mimeparser_lookup_optional_field  (dc_mimeparser_t*, const char* field_name);
+struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2 (dc_mimeparser_t*, const char* field_name, const char* or_field_name);
+mrmimepart_t*                  dc_mimeparser_get_last_nonmeta       (dc_mimeparser_t*);
+#define                        dc_mimeparser_has_nonmeta(a)         (dc_mimeparser_get_last_nonmeta((a))!=NULL)
+int                            dc_mimeparser_is_mailinglist_message (dc_mimeparser_t*);
+int                            dc_mimeparser_sender_equals_recipient(dc_mimeparser_t*);
 
 
 
@@ -113,7 +113,7 @@ struct mailimf_fields*         mailmime_find_mailimf_fields  (struct mailmime*);
 char*                          mailimf_find_first_addr       (const struct mailimf_mailbox_list*); /*the result must be freed*/
 struct mailimf_field*          mailimf_find_field            (struct mailimf_fields*, int wanted_fld_type); /*the result is a pointer to mime, must not be freed*/
 struct mailimf_optional_field* mailimf_find_optional_field   (struct mailimf_fields*, const char* wanted_fld_name);
-mrhash_t*                      mailimf_get_recipients        (struct mailimf_fields*);
+dc_hash_t*                      mailimf_get_recipients        (struct mailimf_fields*);
 
 
 #ifdef __cplusplus

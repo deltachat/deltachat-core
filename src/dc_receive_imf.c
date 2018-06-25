@@ -36,7 +36,7 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, mrarray_t* ids, int* check_self)
+static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
 	int dummy;
@@ -48,7 +48,7 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 
 	*check_self = 0;
 
-	char* self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+	char* self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 		if( strcasecmp(self_addr, addr_spec)==0 ) {
 			*check_self = 1;
 		}
@@ -70,14 +70,14 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 	free(display_name_dec);
 
 	if( row_id ) {
-		if( !mrarray_search_id(ids, row_id, NULL) ) {
-			mrarray_add_id(ids, row_id);
+		if( !dc_array_search_id(ids, row_id, NULL) ) {
+			dc_array_add_id(ids, row_id);
 		}
 	}
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, mrarray_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -94,7 +94,7 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mail
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, mrarray_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -130,7 +130,7 @@ static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mail
 static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
+		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
 			"SELECT m.id FROM msgs m "
 			" LEFT JOIN chats c ON m.chat_id=c.id "
 			" WHERE m.rfc724_mid=? "
@@ -160,13 +160,13 @@ static int is_known_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_
 }
 
 
-static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser)
+static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in mrchat.c) */
 
 	struct mailimf_optional_field* optional_field;
-	if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
+	if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
 	{
 		if( is_known_rfc724_mid__(mailbox, optional_field->fld_value) ) {
 			return 1;
@@ -174,7 +174,7 @@ static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimepar
 	}
 
 	struct mailimf_field* field;
-	if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
+	if( (field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
 	 && field->fld_type == MAILIMF_FIELD_IN_REPLY_TO )
 	{
 		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
@@ -185,7 +185,7 @@ static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimepar
 		}
 	}
 
-	if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL
+	if( (field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL
 	 && field->fld_type == MAILIMF_FIELD_REFERENCES )
 	{
 		struct mailimf_references* fld_references = field->fld_data.fld_references;
@@ -208,7 +208,7 @@ static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, mrmimepar
 static int is_msgrmsg_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_mcm,
+		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_mcm,
 			"SELECT id FROM msgs "
 			" WHERE rfc724_mid=? "
 			" AND msgrmsg!=0 "
@@ -237,7 +237,7 @@ static int is_msgrmsg_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mi
 }
 
 
-static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser)
+static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
 
@@ -247,7 +247,7 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmim
 	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
 
 	struct mailimf_field* field;
-	if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
+	if( (field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL
 	 && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO )
 	{
 		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
@@ -258,7 +258,7 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, mrmim
 		}
 	}
 
-	if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL
+	if( (field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL
 	 && field->fld_type==MAILIMF_FIELD_REFERENCES )
 	{
 		struct mailimf_references* fld_references = field->fld_data.fld_references;
@@ -298,7 +298,7 @@ static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, 
 	(we do this check only for fresh messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
 	if( is_fresh_msg )
 	{
-		sqlite3_stmt* stmt = mrsqlite3_predefine__(mailbox->m_sql, SELECT_timestamp_FROM_msgs_WHERE_timestamp,
+		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_timestamp_FROM_msgs_WHERE_timestamp,
 			"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
 		sqlite3_bind_int  (stmt,  1, chat_id);
 		sqlite3_bind_int  (stmt,  2, from_id);
@@ -323,13 +323,13 @@ static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, 
 }
 
 
-static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mrarray_t* unsorted_contact_ids)
+static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc_array_t* unsorted_contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
 	sqlite3_stmt* stmt = NULL;
-	mrarray_t*    contact_ids = mrarray_new(mailbox, 23);
+	dc_array_t*    contact_ids = dc_array_new(mailbox, 23);
 	char*         contact_ids_str = NULL, *q3 = NULL;
-	mrarray_t*    chat_ids = mrarray_new(mailbox, 23);
+	dc_array_t*    chat_ids = dc_array_new(mailbox, 23);
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC  ) {
 		goto cleanup;
@@ -337,27 +337,27 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 
 	/* copy array, remove duplicates and SELF, sort by ID */
 	{
-		int i, iCnt = mrarray_get_cnt(unsorted_contact_ids);
+		int i, iCnt = dc_array_get_cnt(unsorted_contact_ids);
 		if( iCnt <= 0 ) {
 			goto cleanup;
 		}
 
 		for( i = 0; i < iCnt; i++ ) {
-			uint32_t curr_id = mrarray_get_id(unsorted_contact_ids, i);
-			if( curr_id != MR_CONTACT_ID_SELF && !mrarray_search_id(contact_ids, curr_id, NULL) ) {
-				mrarray_add_id(contact_ids, curr_id);
+			uint32_t curr_id = dc_array_get_id(unsorted_contact_ids, i);
+			if( curr_id != MR_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL) ) {
+				dc_array_add_id(contact_ids, curr_id);
 			}
 		}
 
-		if( mrarray_get_cnt(contact_ids)==0 ) {
+		if( dc_array_get_cnt(contact_ids)==0 ) {
 			goto cleanup;
 		}
 
-		mrarray_sort_ids(contact_ids); /* for easy comparison, we also sort the sql result below */
+		dc_array_sort_ids(contact_ids); /* for easy comparison, we also sort the sql result below */
 	}
 
 	/* collect all possible chats with the contact count as the data (as contact_ids have no doubles, this is sufficient) */
-	contact_ids_str = mrarray_get_string(contact_ids, ",");
+	contact_ids_str = dc_array_get_string(contact_ids, ",");
 	q3 = sqlite3_mprintf("SELECT DISTINCT cc.chat_id, cc.contact_id "
 	                     " FROM chats_contacts cc "
 	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
@@ -366,7 +366,7 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 	                     "   AND cc.contact_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
 	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
 	{
 		uint32_t last_chat_id = 0, matches = 0, mismatches = 0;
 
@@ -376,15 +376,15 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 			uint32_t contact_id = sqlite3_column_int(stmt, 1);
 
 			if( chat_id != last_chat_id ) {
-				if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
-					mrarray_add_id(chat_ids, last_chat_id);
+				if( matches == dc_array_get_cnt(contact_ids) && mismatches == 0 ) {
+					dc_array_add_id(chat_ids, last_chat_id);
 				}
 				last_chat_id = chat_id;
 				matches = 0;
 				mismatches = 0;
 			}
 
-			if( contact_id == mrarray_get_id(contact_ids, matches) ) {
+			if( contact_id == dc_array_get_id(contact_ids, matches) ) {
 				matches++;
 			}
 			else {
@@ -392,21 +392,21 @@ static mrarray_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const mra
 			}
 		}
 
-		if( matches == mrarray_get_cnt(contact_ids) && mismatches == 0 ) {
-			mrarray_add_id(chat_ids, last_chat_id);
+		if( matches == dc_array_get_cnt(contact_ids) && mismatches == 0 ) {
+			dc_array_add_id(chat_ids, last_chat_id);
 		}
 	}
 
 cleanup:
 	sqlite3_finalize(stmt);
 	free(contact_ids_str);
-	mrarray_unref(contact_ids);
+	dc_array_unref(contact_ids);
 	sqlite3_free(q3);
 	return chat_ids;
 }
 
 
-static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /*including SELF*/)
+static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids /*including SELF*/)
 {
 	/* algorithm:
 	- sort normalized, lowercased, e-mail addresses alphabetically
@@ -414,8 +414,8 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 	- sha-256 this string (without possibly terminating null-characters)
 	- encode the first 64 bits of the sha-256 output as lowercase hex (results in 16 characters from the set [0-9a-f])
 	 */
-	mrarray_t*     member_addrs = mrarray_new(mailbox, 23);
-	char*          member_ids_str = mrarray_get_string(member_ids, ",");
+	dc_array_t*     member_addrs = dc_array_new(mailbox, 23);
+	char*          member_ids_str = dc_array_get_string(member_ids, ",");
 	mrstrbuilder_t member_cs;
 	sqlite3_stmt*  stmt = NULL;
 	char*          q3 = NULL, *addr;
@@ -427,22 +427,22 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 
 	/* collect all addresses and sort them */
 	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
-	addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
+	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
+	addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
 	mr_strlower_in_place(addr);
-	mrarray_add_ptr(member_addrs, addr);
+	dc_array_add_ptr(member_addrs, addr);
 	while( sqlite3_step(stmt)==SQLITE_ROW ) {
 		addr = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
 		mr_strlower_in_place(addr);
-		mrarray_add_ptr(member_addrs, addr);
+		dc_array_add_ptr(member_addrs, addr);
 	}
-	mrarray_sort_strings(member_addrs);
+	dc_array_sort_strings(member_addrs);
 
 	/* build a single, comma-separated (cs) string from all addresses */
-	iCnt = mrarray_get_cnt(member_addrs);
+	iCnt = dc_array_get_cnt(member_addrs);
 	for( i = 0; i < iCnt; i++ ) {
 		if( i ) { mrstrbuilder_cat(&member_cs, ","); }
-		mrstrbuilder_cat(&member_cs, (const char*)mrarray_get_ptr(member_addrs, i));
+		mrstrbuilder_cat(&member_cs, (const char*)dc_array_get_ptr(member_addrs, i));
 	}
 
 	/* make sha-256 from the string */
@@ -462,8 +462,8 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, mrarray_t* member_ids /
 	}
 
 	/* cleanup */
-	mrarray_free_ptr(member_addrs);
-	mrarray_unref(member_addrs);
+	dc_array_free_ptr(member_addrs);
+	dc_array_unref(member_addrs);
 	free(member_ids_str);
 	free(binary_hash);
 	sqlite3_finalize(stmt);
@@ -478,7 +478,7 @@ static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, c
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql,
+	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 		"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
 	sqlite3_bind_int (stmt, 1, create_verified? MR_CHAT_TYPE_VERIFIED_GROUP : MR_CHAT_TYPE_GROUP);
 	sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
@@ -500,36 +500,36 @@ cleanup:
  ******************************************************************************/
 
 
-static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                           int32_t from_id, const mrarray_t* to_ids,/*does not contain SELF*/
+static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
+                                           int32_t from_id, const dc_array_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
 	/* if we're here, no grpid was found, check there is an existing ad-hoc
 	group matching the to-list or if we can create one */
-	mrarray_t*    member_ids      = NULL;
+	dc_array_t*    member_ids      = NULL;
 	uint32_t      chat_id         = 0;
 	int           chat_id_blocked = 0, i;
-	mrarray_t*    chat_ids        = NULL;
+	dc_array_t*    chat_ids        = NULL;
 	char*         chat_ids_str    = NULL, *q3 = NULL;
 	sqlite3_stmt* stmt            = NULL;
 	char*         grpid           = NULL;
 	char*         grpname         = NULL;
 
 	/* build member list from the given ids */
-	if( mrarray_get_cnt(to_ids)==0 || mrmimeparser_is_mailinglist_message(mime_parser) ) {
+	if( dc_array_get_cnt(to_ids)==0 || dc_mimeparser_is_mailinglist_message(mime_parser) ) {
 		goto cleanup; /* too few contacts or a mailinglist */
 	}
-	member_ids = mrarray_duplicate(to_ids);
-	if( !mrarray_search_id(member_ids, from_id, NULL) )            { mrarray_add_id(member_ids, from_id); }
-	if( !mrarray_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { mrarray_add_id(member_ids, MR_CONTACT_ID_SELF); }
-	if( mrarray_get_cnt(member_ids) < 3 ) {
+	member_ids = dc_array_duplicate(to_ids);
+	if( !dc_array_search_id(member_ids, from_id, NULL) )            { dc_array_add_id(member_ids, from_id); }
+	if( !dc_array_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { dc_array_add_id(member_ids, MR_CONTACT_ID_SELF); }
+	if( dc_array_get_cnt(member_ids) < 3 ) {
 		goto cleanup; /* too few contacts given */
 	}
 
 	/* check if the member list matches other chats, if so, choose the one with the most recent activity */
 	chat_ids = search_chat_ids_by_contact_ids(mailbox, member_ids);
-	if( mrarray_get_cnt(chat_ids)>0 ) {
-		chat_ids_str = mrarray_get_string(chat_ids, ",");
+	if( dc_array_get_cnt(chat_ids)>0 ) {
+		chat_ids_str = dc_array_get_string(chat_ids, ",");
 		q3 = sqlite3_mprintf("SELECT c.id, c.blocked "
 							 " FROM chats c "
 							 " LEFT JOIN msgs m ON m.chat_id=c.id "
@@ -537,7 +537,7 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 							 " ORDER BY m.timestamp DESC, m.id DESC "
 							 " LIMIT 1;",
 							 chat_ids_str);
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+		stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
 		if( sqlite3_step(stmt)==SQLITE_ROW ) {
 			chat_id         = sqlite3_column_int(stmt, 0);
 			chat_id_blocked = sqlite3_column_int(stmt, 1);
@@ -559,21 +559,21 @@ static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, mrmimeparser_t*
 		grpname = safe_strdup(mime_parser->m_subject);
 	}
 	else {
-		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  mrarray_get_cnt(member_ids));
+		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  dc_array_get_cnt(member_ids));
 	}
 
 	/* create group record */
 	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
-	for( i = 0; i < mrarray_get_cnt(member_ids); i++ ) {
-		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, mrarray_get_id(member_ids, i));
+	for( i = 0; i < dc_array_get_cnt(member_ids); i++ ) {
+		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, dc_array_get_id(member_ids, i));
 	}
 
 	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 cleanup:
-	mrarray_unref(member_ids);
-	mrarray_unref(chat_ids);
+	dc_array_unref(member_ids);
+	dc_array_unref(chat_ids);
 	free(chat_ids_str);
 	free(grpid);
 	free(grpname);
@@ -584,20 +584,20 @@ cleanup:
 }
 
 
-static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mimeparser,
-                                       uint32_t from_id, const mrarray_t* to_ids)
+static int check_verified_properties__(mrmailbox_t* mailbox, dc_mimeparser_t* mimeparser,
+                                       uint32_t from_id, const dc_array_t* to_ids)
 {
 	int             everythings_okay = 0;
-	mrcontact_t*    contact          = mrcontact_new(mailbox);
+	dc_contact_t*    contact          = dc_contact_new(mailbox);
 	dc_apeerstate_t* peerstate        = dc_apeerstate_new(mailbox);
 	char*           to_ids_str       = NULL;
 	char*           q3               = NULL;
 	sqlite3_stmt*   stmt             = NULL;
 
 	// ensure, the contact is verified
-	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, from_id)
+	if( !dc_contact_load_from_db__(contact, mailbox->m_sql, from_id)
 	 || !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
-	 || mrcontact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
+	 || dc_contact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
 		dc_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
@@ -616,19 +616,19 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 
 	// check that all members are verified.
 	// if a verification is missing, check if this was just gossiped - as we've verified the sender, we verify the member then.
-	to_ids_str = mrarray_get_string(to_ids, ",");
+	to_ids_str = dc_array_get_string(to_ids, ",");
 	q3 = sqlite3_mprintf("SELECT c.addr, LENGTH(ps.verified_key_fingerprint) "
 						 " FROM contacts c "
 						 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 						 " WHERE c.id IN(%s) ",
 						 to_ids_str);
-	stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, q3);
+	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
 	while( sqlite3_step(stmt)==SQLITE_ROW )
 	{
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
 		int is_verified         =              sqlite3_column_int (stmt, 1);
 
-		if( mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
+		if( dc_hash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
 		 && dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
 			// if we're here, we know the gossip key is verified:
@@ -660,7 +660,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 
 cleanup:
 	sqlite3_finalize(stmt);
-	mrcontact_unref(contact);
+	dc_contact_unref(contact);
 	dc_apeerstate_unref(peerstate);
 	free(to_ids_str);
 	sqlite3_free(q3);
@@ -680,8 +680,8 @@ which tries to create or find out the chat_id by:
 
 So when the function returns, the caller has the group id matching the current
 state of the group. */
-static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_parser, int create_blocked,
-                                     int32_t from_id, const mrarray_t* to_ids,
+static void create_or_lookup_group__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
+                                     int32_t from_id, const dc_array_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
 	uint32_t              chat_id          = 0;
@@ -690,7 +690,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	char*                 grpid            = NULL;
 	char*                 grpname          = NULL;
 	sqlite3_stmt*         stmt;
-	int                   i, to_ids_cnt = mrarray_get_cnt(to_ids);
+	int                   i, to_ids_cnt = dc_array_get_cnt(to_ids);
 	char*                 self_addr = NULL;
 	int                   recreate_member_list = 0;
 	int                   send_EVENT_CHAT_MODIFIED = 0;
@@ -705,13 +705,13 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		struct mailimf_field*          field = NULL;
 		struct mailimf_optional_field* optional_field = NULL;
 
-		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-ID", "X-MrGrpId"))!=NULL ) {
+		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-ID", "X-MrGrpId"))!=NULL ) {
 			grpid = safe_strdup(optional_field->fld_value);
 		}
 
 		if( grpid == NULL )
 		{
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+			if( (field=dc_mimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 				if( fld_message_id ) {
 					grpid = mr_extract_grpid_from_rfc724_mid(fld_message_id->mid_value);
@@ -720,7 +720,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 			if( grpid == NULL )
 			{
-				if( (field=mrmimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO ) {
+				if( (field=dc_mimeparser_lookup_field(mime_parser, "In-Reply-To"))!=NULL && field->fld_type==MAILIMF_FIELD_IN_REPLY_TO ) {
 					struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
 					if( fld_in_reply_to ) {
 						grpid = mr_extract_grpid_from_rfc724_mid_list(fld_in_reply_to->mid_list);
@@ -729,7 +729,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 				if( grpid == NULL )
 				{
-					if( (field=mrmimeparser_lookup_field(mime_parser, "References"))!=NULL && field->fld_type==MAILIMF_FIELD_REFERENCES ) {
+					if( (field=dc_mimeparser_lookup_field(mime_parser, "References"))!=NULL && field->fld_type==MAILIMF_FIELD_REFERENCES ) {
 						struct mailimf_references* fld_references = field->fld_data.fld_references;
 						if( fld_references ) {
 							grpid = mr_extract_grpid_from_rfc724_mid_list(fld_references->mid_list);
@@ -745,23 +745,23 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 			}
 		}
 
-		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL ) {
+		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL ) {
 			grpname = mr_decode_header_words(optional_field->fld_value); /* this is no changed groupname message */
 		}
 
-		if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
+		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
 			X_MrRemoveFromGrp = optional_field->fld_value;
 			mime_parser->m_is_system_message = MR_CMD_MEMBER_REMOVED_FROM_GROUP;
 		}
-		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL ) {
+		else if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL ) {
 			X_MrAddToGrp = optional_field->fld_value;
 			mime_parser->m_is_system_message = MR_CMD_MEMBER_ADDED_TO_GROUP;
 		}
-		else if( (optional_field=mrmimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL ) {
+		else if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL ) {
 			X_MrGrpNameChanged = 1;
 			mime_parser->m_is_system_message = MR_CMD_GROUPNAME_CHANGED;
 		}
-		else if( (optional_field=mrmimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL ) {
+		else if( (optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL ) {
 			X_MrGrpImageChanged = 1;
 			mime_parser->m_is_system_message = MR_CMD_GROUPIMAGE_CHANGED;
 		}
@@ -792,9 +792,9 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	/* check if the group does not exist but should be created */
 	int group_explicitly_left = mrmailbox_is_group_explicitly_left__(mailbox, grpid);
 
-	self_addr = mrsqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+	self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
-	 && !mrmimeparser_is_mailinglist_message(mime_parser)
+	 && !dc_mimeparser_is_mailinglist_message(mime_parser)
 	 && grpid
 	 && grpname
 	 && X_MrRemoveFromGrp==NULL /*otherwise, a pending "quit" message may pop up*/
@@ -802,7 +802,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	 )
 	{
 		int create_verified = 0;
-		if( mrmimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
+		if( dc_mimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
 			if( check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
 				create_verified = 1;
 			}
@@ -833,7 +833,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	}
 	else if( X_MrGrpNameChanged && grpname && strlen(grpname) < 200 )
 	{
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET name=? WHERE id=?;");
+		stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "UPDATE chats SET name=? WHERE id=?;");
 		sqlite3_bind_text(stmt, 1, grpname, -1, SQLITE_STATIC);
 		sqlite3_bind_int (stmt, 2, chat_id);
 		sqlite3_step(stmt);
@@ -862,12 +862,12 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 		}
 
 		if( ok ) {
-			mrchat_t* chat = mrchat_new(mailbox);
+			dc_chat_t* chat = dc_chat_new(mailbox);
 				dc_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
-				mrchat_load_from_db__(chat, chat_id);
+				dc_chat_load_from_db__(chat, chat_id);
 				mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, grpimage/*may be NULL*/);
-				mrchat_update_param__(chat);
-			mrchat_unref(chat);
+				dc_chat_update_param__(chat);
+			dc_chat_unref(chat);
 			free(grpimage);
 			send_EVENT_CHAT_MODIFIED = 1;
 		}
@@ -879,7 +879,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 	{
 		const char* skip = X_MrRemoveFromGrp? X_MrRemoveFromGrp : NULL;
 
-		stmt = mrsqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
+		stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int (stmt, 1, chat_id);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
@@ -897,7 +897,7 @@ static void create_or_lookup_group__(mrmailbox_t* mailbox, mrmimeparser_t* mime_
 
 		for( i = 0; i < to_ids_cnt; i++ )
 		{
-			uint32_t to_id = mrarray_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
+			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
 			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
 				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, to_id);
@@ -943,7 +943,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	int              incoming_origin = 0;
 	#define          outgoing (!incoming)
 
-	mrarray_t*       to_ids = NULL;
+	dc_array_t*       to_ids = NULL;
 	int              to_self = 0;
 
 	uint32_t         from_id = 0;
@@ -961,7 +961,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	time_t           sort_timestamp = MR_INVALID_TIMESTAMP;
 	time_t           sent_timestamp = MR_INVALID_TIMESTAMP;
 	time_t           rcvd_timestamp = MR_INVALID_TIMESTAMP;
-	mrmimeparser_t*  mime_parser = mrmimeparser_new(mailbox->m_blobdir, mailbox);
+	dc_mimeparser_t*  mime_parser = dc_mimeparser_new(mailbox->m_blobdir, mailbox);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	const struct mailimf_field* field;
@@ -975,7 +975,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 	dc_log_info(mailbox, 0, "Receiving message %s/%lu...", server_folder? server_folder:"?", server_uid);
 
-	to_ids = mrarray_new(mailbox, 16);
+	to_ids = dc_array_new(mailbox, 16);
 	if( to_ids==NULL || created_db_entries==NULL || rr_event_to_send==NULL || mime_parser == NULL ) {
 		dc_log_info(mailbox, 0, "Bad param.");
 		goto cleanup;
@@ -993,8 +993,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
 	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
-	mrmimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
-	if( mrhash_count(&mime_parser->m_header)==0 ) {
+	dc_mimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
+	if( dc_hash_count(&mime_parser->m_header)==0 ) {
 		dc_log_info(mailbox, 0, "No header.");
 		goto cleanup; /* Error - even adding an empty record won't help as we do not know the message ID */
 	}
@@ -1004,57 +1004,57 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 	as it may even be confusing when _own_ messages sent from other devices with other e-mail-adresses appear as being sent from SELF
 	we disabled this check for now */
 	#if 0
-	if( !mrmimeparser_lookup_field(mime_parser, "Return-Path") ) {
+	if( !dc_mimeparser_lookup_field(mime_parser, "Return-Path") ) {
 		incoming = 0;
 	}
 	#endif
 
-	if( (field=mrmimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
+	if( (field=dc_mimeparser_lookup_field(mime_parser, "Date"))!=NULL && field->fld_type==MAILIMF_FIELD_ORIG_DATE ) {
 		struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 		if( orig_date ) {
 			sent_timestamp = mr_timestamp_from_date(orig_date->dt_date_time); // is not yet checked against bad times! we do this later if we have the database information.
 		}
 	}
 
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	db_locked = 1;
-	mrsqlite3_begin_transaction__(mailbox->m_sql);
+	dc_sqlite3_begin_transaction__(mailbox->m_sql);
 	transaction_pending = 1;
 
 		/* get From: and check if it is known (for known From:'s we add the other To:/Cc: in the 3rd pass)
 		or if From: is equal to SELF (in this case, it is any outgoing messages, we do not check Return-Path any more as this is unreliable, see issue #150 */
-		if( (field=mrmimeparser_lookup_field(mime_parser, "From"))!=NULL
+		if( (field=dc_mimeparser_lookup_field(mime_parser, "From"))!=NULL
 		 && field->fld_type==MAILIMF_FIELD_FROM)
 		{
 			struct mailimf_from* fld_from = field->fld_data.fld_from;
 			if( fld_from )
 			{
 				int check_self;
-				mrarray_t* from_list = mrarray_new(mailbox, 16);
+				dc_array_t* from_list = dc_array_new(mailbox, 16);
 				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0;
 
-					if( mrmimeparser_sender_equals_recipient(mime_parser) )
+					if( dc_mimeparser_sender_equals_recipient(mime_parser) )
 					{
 						from_id = MR_CONTACT_ID_SELF;
 					}
 				}
 				else
 				{
-					if( mrarray_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
+					if( dc_array_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
-						from_id = mrarray_get_id(from_list, 0);
+						from_id = dc_array_get_id(from_list, 0);
 						incoming_origin = mrmailbox_get_contact_origin__(mailbox, from_id, &from_id_blocked);
 					}
 				}
-				mrarray_unref(from_list);
+				dc_array_unref(from_list);
 			}
 		}
 
 		/* Make sure, to_ids starts with the first To:-address (Cc: is added in the loop below pass) */
-		if( (field=mrmimeparser_lookup_field(mime_parser, "To"))!=NULL
+		if( (field=dc_mimeparser_lookup_field(mime_parser, "To"))!=NULL
 		 && field->fld_type==MAILIMF_FIELD_TO )
 		{
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
@@ -1065,7 +1065,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			}
 		}
 
-		if( mrmimeparser_has_nonmeta(mime_parser) )
+		if( dc_mimeparser_has_nonmeta(mime_parser) )
 		{
 
 			/**********************************************************************
@@ -1075,7 +1075,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			/* collect the rest information, CC: is added to the to-list, BCC: is ignored
 			(we should not add BCC to groups as this would split groups. We could add them as "known contacts",
 			however, the benefit is very small and this may leak data that is expected to be hidden) */
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Cc"))!=NULL && field->fld_type==MAILIMF_FIELD_CC )
+			if( (field=dc_mimeparser_lookup_field(mime_parser, "Cc"))!=NULL && field->fld_type==MAILIMF_FIELD_CC )
 			{
 				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 				if( fld_cc ) {
@@ -1087,7 +1087,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			/* get Message-ID; if the header is lacking one, generate one based on fields that do never change.
 			(missing Message-IDs may come if the mail was set from this account with another client that relies in the SMTP server to generate one.
 			true eg. for the Webmailer used in all-inkl-KAS) */
-			if( (field=mrmimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
+			if( (field=dc_mimeparser_lookup_field(mime_parser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 				struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 				if( fld_message_id ) {
 					rfc724_mid = safe_strdup(fld_message_id->mid_value);
@@ -1109,7 +1109,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				uint32_t old_server_uid = 0;
 				if( mrmailbox_rfc724_mid_exists__(mailbox, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
-						mrsqlite3_rollback__(mailbox->m_sql);
+						dc_sqlite3_rollback__(mailbox->m_sql);
 						transaction_pending = 0;
 						mrmailbox_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
 					}
@@ -1130,15 +1130,15 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 
 				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
 				assert( chat_id == 0 );
-				if( mrmimeparser_lookup_field(mime_parser, "Secure-Join") ) {
-					mrsqlite3_commit__(mailbox->m_sql);
-					mrsqlite3_unlock(mailbox->m_sql);
+				if( dc_mimeparser_lookup_field(mime_parser, "Secure-Join") ) {
+					dc_sqlite3_commit__(mailbox->m_sql);
+					dc_sqlite3_unlock(mailbox->m_sql);
 						if( mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, from_id) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 							hidden = 1;
 							state = MR_STATE_IN_SEEN;
 						}
-					mrsqlite3_lock(mailbox->m_sql);
-					mrsqlite3_begin_transaction__(mailbox->m_sql);
+					dc_sqlite3_lock(mailbox->m_sql);
+					dc_sqlite3_begin_transaction__(mailbox->m_sql);
 				}
 
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
@@ -1163,7 +1163,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				if( chat_id == 0 )
 				{
 					/* check if the message belongs to a mailing list */
-					if( mrmimeparser_is_mailinglist_message(mime_parser) ) {
+					if( dc_mimeparser_is_mailinglist_message(mime_parser) ) {
 						chat_id = MR_CHAT_ID_TRASH;
 						dc_log_info(mailbox, 0, "Message belongs to a mailing list and is ignored.");
 					}
@@ -1213,8 +1213,8 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			{
 				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also delivered.  We cannot recreate other states (read, error). */
 				from_id = MR_CONTACT_ID_SELF;
-				if( mrarray_get_cnt(to_ids) >= 1 ) {
-					to_id   = mrarray_get_id(to_ids, 0);
+				if( dc_array_get_cnt(to_ids) >= 1 ) {
+					to_id   = dc_array_get_id(to_ids, 0);
 
 					if( chat_id == 0 )
 					{
@@ -1237,7 +1237,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 
 				if( chat_id == 0 ) {
-					if( mrarray_get_cnt(to_ids) == 0 && to_self ) {
+					if( dc_array_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
 						mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
@@ -1295,7 +1295,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 					mrparam_set_int(part->m_param, MRP_CMD, mime_parser->m_is_system_message);
 				}
 
-				stmt = mrsqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
+				stmt = dc_sqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
 					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param, bytes,hidden)"
 					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?);");
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
@@ -1345,7 +1345,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 				}
 				else if( chat_id_blocked ) {
 					create_event_to_send = DC_EVENT_MSGS_CHANGED;
-					/*if( mrsqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0)!=0 ) {
+					/*if( dc_sqlite3_get_config_int__(mailbox->m_sql, "show_deaddrop", 0)!=0 ) {
 						create_event_to_send = DC_EVENT_INCOMING_MSG;
 					}*/
 				}
@@ -1369,7 +1369,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 			 * Handle reports (mainly MDNs)
 			 *****************************************************************/
 
-			int mdns_enabled = mrsqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
+			int mdns_enabled = dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
 			icnt = carray_count(mime_parser->m_reports);
 			for( i = 0; i < icnt; i++ )
 			{
@@ -1454,7 +1454,7 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 		}
 
 		/* debug print? */
-		if( mrsqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
+		if( dc_sqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
 			char* emlname = mr_mprintf("%s/%s-%i.eml", mailbox->m_blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {
@@ -1465,16 +1465,16 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 		}
 
 
-	mrsqlite3_commit__(mailbox->m_sql);
+	dc_sqlite3_commit__(mailbox->m_sql);
 	transaction_pending = 0;
 
 cleanup:
-	if( transaction_pending ) { mrsqlite3_rollback__(mailbox->m_sql); }
-	if( db_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback__(mailbox->m_sql); }
+	if( db_locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 
-	mrmimeparser_unref(mime_parser);
+	dc_mimeparser_unref(mime_parser);
 	free(rfc724_mid);
-	mrarray_unref(to_ids);
+	dc_array_unref(to_ids);
 
 	if( created_db_entries ) {
 		if( create_event_to_send ) {

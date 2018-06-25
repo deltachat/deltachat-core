@@ -32,18 +32,18 @@
  ******************************************************************************/
 
 
-mrkeyring_t* mrkeyring_new()
+dc_keyring_t* dc_keyring_new()
 {
-	mrkeyring_t* ths;
+	dc_keyring_t* ths;
 
-	if( (ths=calloc(1, sizeof(mrkeyring_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_keyring_t)))==NULL ) {
 		exit(42); /* cannot allocate little memory, unrecoverable error */
 	}
 	return ths;
 }
 
 
-void mrkeyring_unref(mrkeyring_t* ths)
+void dc_keyring_unref(dc_keyring_t* ths)
 {
 	int i;
 	if( ths == NULL ) {
@@ -51,14 +51,14 @@ void mrkeyring_unref(mrkeyring_t* ths)
 	}
 
 	for( i = 0; i < ths->m_count; i++ ) {
-		mrkey_unref(ths->m_keys[i]);
+		dc_key_unref(ths->m_keys[i]);
 	}
 	free(ths->m_keys);
 	free(ths);
 }
 
 
-void mrkeyring_add(mrkeyring_t* ths, mrkey_t* to_add)
+void dc_keyring_add(dc_keyring_t* ths, dc_key_t* to_add)
 {
 	if( ths==NULL || to_add==NULL ) {
 		return;
@@ -67,35 +67,35 @@ void mrkeyring_add(mrkeyring_t* ths, mrkey_t* to_add)
 	/* expand array, if needed */
 	if( ths->m_count == ths->m_allocated ) {
 		int newsize = (ths->m_allocated * 2) + 10;
-		if( (ths->m_keys=realloc(ths->m_keys, newsize*sizeof(mrkey_t*)))==NULL ) {
+		if( (ths->m_keys=realloc(ths->m_keys, newsize*sizeof(dc_key_t*)))==NULL ) {
 			exit(41);
 		}
 		ths->m_allocated = newsize;
 	}
 
-	ths->m_keys[ths->m_count] = mrkey_ref(to_add);
+	ths->m_keys[ths->m_count] = dc_key_ref(to_add);
 	ths->m_count++;
 }
 
 
-int mrkeyring_load_self_private_for_decrypting__(mrkeyring_t* ths, const char* self_addr, mrsqlite3_t* sql)
+int dc_keyring_load_self_private_for_decrypting__(dc_keyring_t* ths, const char* self_addr, dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
-	mrkey_t*      key;
+	dc_key_t*      key;
 
 	if( ths==NULL || self_addr==NULL || sql==NULL ) {
 		return 0;
 	}
 
-	stmt = mrsqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_ORDER_BY_default,
+	stmt = dc_sqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_ORDER_BY_default,
 		"SELECT private_key FROM keypairs ORDER BY addr=? DESC, is_default DESC;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		key = mrkey_new();
-			if( mrkey_set_from_stmt(key, stmt, 0, MR_PRIVATE) ) {
-				mrkeyring_add(ths, key);
+		key = dc_key_new();
+			if( dc_key_set_from_stmt(key, stmt, 0, MR_PRIVATE) ) {
+				dc_keyring_add(ths, key);
 			}
-		mrkey_unref(key); /* unref in any case, mrkeyring_add() adds its own reference */
+		dc_key_unref(key); /* unref in any case, dc_keyring_add() adds its own reference */
 	}
 
 	return 1;

@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRDEHTML_H__
-#define __MRDEHTML_H__
+#ifndef __DC_DEHTML_H__
+#define __DC_DEHTML_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,11 +29,11 @@ extern "C" {
 
 /*** library-internal *********************************************************/
 
-char* mr_dehtml(char* buf_terminated); /* mr_dehtml() returns way too many lineends; however, an optimisation on this issue is not needed as the lineends are typically remove in further processing by the caller */
+char* dc_dehtml(char* buf_terminated); /* dc_dehtml() returns way too many lineends; however, an optimisation on this issue is not needed as the lineends are typically remove in further processing by the caller */
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRDEHTML_H__ */
+#endif /* __DC_DEHTML_H__ */
 

@@ -55,19 +55,19 @@ static void dc_apeerstate_empty(dc_apeerstate_t* ths)
 	ths->m_verified_key_fingerprint = NULL;
 
 	if( ths->m_public_key ) {
-		mrkey_unref(ths->m_public_key);
+		dc_key_unref(ths->m_public_key);
 		ths->m_public_key = NULL;
 	}
 
 	ths->m_gossip_timestamp = 0;
 
 	if( ths->m_gossip_key ) {
-		mrkey_unref(ths->m_gossip_key);
+		dc_key_unref(ths->m_gossip_key);
 		ths->m_gossip_key = NULL;
 	}
 
 	if( ths->m_verified_key ) {
-		mrkey_unref(ths->m_verified_key);
+		dc_key_unref(ths->m_verified_key);
 		ths->m_verified_key = NULL;
 	}
 
@@ -91,23 +91,23 @@ static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_st
 	peerstate->m_verified_key_fingerprint = safe_strdup((char*)sqlite3_column_text(stmt, 10));
 
 	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
-		peerstate->m_public_key = mrkey_new();
-		mrkey_set_from_stmt(peerstate->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
+		peerstate->m_public_key = dc_key_new();
+		dc_key_set_from_stmt(peerstate->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
 	}
 
 	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
-		peerstate->m_gossip_key = mrkey_new();
-		mrkey_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+		peerstate->m_gossip_key = dc_key_new();
+		dc_key_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
 	}
 
 	if( sqlite3_column_type(stmt, VERIFIED_KEY_COL)!=SQLITE_NULL ) {
-		peerstate->m_verified_key = mrkey_new();
-		mrkey_set_from_stmt(peerstate->m_verified_key, stmt, VERIFIED_KEY_COL, MR_PUBLIC);
+		peerstate->m_verified_key = dc_key_new();
+		dc_key_set_from_stmt(peerstate->m_verified_key, stmt, VERIFIED_KEY_COL, MR_PUBLIC);
 	}
 }
 
 
-int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
+int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -118,7 +118,7 @@ int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, mrsqlite3_t* sql, c
 
 	dc_apeerstate_empty(peerstate);
 
-	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_addr,
+	stmt = dc_sqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_addr,
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE addr=? COLLATE NOCASE;");
@@ -135,7 +135,7 @@ cleanup:
 }
 
 
-int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, mrsqlite3_t* sql, const char* fingerprint)
+int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* fingerprint)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -146,7 +146,7 @@ int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, mrsqlite3_t*
 
 	dc_apeerstate_empty(peerstate);
 
-	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
+	stmt = dc_sqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE public_key_fingerprint=? COLLATE NOCASE "
@@ -167,7 +167,7 @@ cleanup:
 }
 
 
-int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, mrsqlite3_t* sql, int create)
+int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, dc_sqlite3_t* sql, int create)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -177,14 +177,14 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, mrsqlite3_t* sql, int
 	}
 
 	if( create ) {
-		stmt = mrsqlite3_predefine__(sql, INSERT_INTO_acpeerstates_a, "INSERT INTO acpeerstates (addr) VALUES(?);");
+		stmt = dc_sqlite3_predefine__(sql, INSERT_INTO_acpeerstates_a, "INSERT INTO acpeerstates (addr) VALUES(?);");
 		sqlite3_bind_text(stmt, 1, ths->m_addr, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
 	}
 
 	if( (ths->m_to_save&MRA_SAVE_ALL) || create )
 	{
-		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
+		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
 			"UPDATE acpeerstates "
 			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
 			"       public_key=?, gossip_timestamp=?, gossip_key=?, public_key_fingerprint=?, gossip_key_fingerprint=?, verified_key=?, verified_key_fingerprint=? "
@@ -206,7 +206,7 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, mrsqlite3_t* sql, int
 	}
 	else if( ths->m_to_save&MRA_SAVE_TIMESTAMPS )
 	{
-		stmt = mrsqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
+		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
 			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
@@ -250,8 +250,8 @@ void dc_apeerstate_unref(dc_apeerstate_t* ths)
 	}
 
 	free(ths->m_addr);
-	mrkey_unref(ths->m_public_key);
-	mrkey_unref(ths->m_gossip_key);
+	dc_key_unref(ths->m_public_key);
+	dc_key_unref(ths->m_gossip_key);
 	free(ths);
 }
 
@@ -279,7 +279,7 @@ char* dc_apeerstate_render_gossip_header(const dc_apeerstate_t* peerstate, int m
 
 	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
-	autocryptheader->m_public_key     = mrkey_ref(dc_apeerstate_peek_key(peerstate, min_verified)); /* may be NULL */
+	autocryptheader->m_public_key     = dc_key_ref(dc_apeerstate_peek_key(peerstate, min_verified)); /* may be NULL */
 
 	ret = dc_aheader_render(autocryptheader);
 
@@ -307,7 +307,7 @@ cleanup:
  * @return m_public_key or m_gossip_key, NULL if nothing is available.
  *     the returned pointer MUST NOT be unref()'d.
  */
-mrkey_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verified)
+dc_key_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verified)
 {
 	if(  peerstate == NULL
 	 || (peerstate->m_public_key && (peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0))
@@ -348,8 +348,8 @@ int dc_apeerstate_init_from_header(dc_apeerstate_t* ths, const dc_aheader_t* hea
 	ths->m_to_save             = MRA_SAVE_ALL;
 	ths->m_prefer_encrypt      = header->m_prefer_encrypt;
 
-	ths->m_public_key = mrkey_new();
-	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
+	ths->m_public_key = dc_key_new();
+	dc_key_set_from_key(ths->m_public_key, header->m_public_key);
 	dc_apeerstate_recalc_fingerprint(ths);
 
 	return 1;
@@ -367,8 +367,8 @@ int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_
 	peerstate->m_gossip_timestamp    = message_time;
 	peerstate->m_to_save             = MRA_SAVE_ALL;
 
-	peerstate->m_gossip_key = mrkey_new();
-	mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+	peerstate->m_gossip_key = dc_key_new();
+	dc_key_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
 	dc_apeerstate_recalc_fingerprint(peerstate);
 
 	return 1;
@@ -420,12 +420,12 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header
 		}
 
 		if( ths->m_public_key == NULL ) {
-			ths->m_public_key = mrkey_new();
+			ths->m_public_key = dc_key_new();
 		}
 
-		if( !mrkey_equals(ths->m_public_key, header->m_public_key) )
+		if( !dc_key_equals(ths->m_public_key, header->m_public_key) )
 		{
-			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
+			dc_key_set_from_key(ths->m_public_key, header->m_public_key);
 			dc_apeerstate_recalc_fingerprint(ths);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
@@ -448,12 +448,12 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 		peerstate->m_to_save             |= MRA_SAVE_TIMESTAMPS;
 
 		if( peerstate->m_gossip_key == NULL ) {
-			peerstate->m_gossip_key = mrkey_new();
+			peerstate->m_gossip_key = dc_key_new();
 		}
 
-		if( !mrkey_equals(peerstate->m_gossip_key, gossip_header->m_public_key) )
+		if( !dc_key_equals(peerstate->m_gossip_key, gossip_header->m_public_key) )
 		{
-			mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
+			dc_key_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
 			dc_apeerstate_recalc_fingerprint(peerstate);
 			peerstate->m_to_save |= MRA_SAVE_ALL;
 		}
@@ -482,7 +482,7 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 	if( peerstate->m_public_key )
 	{
 		old_public_fingerprint = peerstate->m_public_key_fingerprint;
-		peerstate->m_public_key_fingerprint = mrkey_get_fingerprint(peerstate->m_public_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
+		peerstate->m_public_key_fingerprint = dc_key_get_fingerprint(peerstate->m_public_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
 
 		if( old_public_fingerprint == NULL
 		 || old_public_fingerprint[0] == 0
@@ -501,7 +501,7 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 	if( peerstate->m_gossip_key )
 	{
 		old_gossip_fingerprint = peerstate->m_gossip_key_fingerprint;
-		peerstate->m_gossip_key_fingerprint = mrkey_get_fingerprint(peerstate->m_gossip_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
+		peerstate->m_gossip_key_fingerprint = dc_key_get_fingerprint(peerstate->m_gossip_key); /* returns the empty string for errors, however, this should be saved as well as it represents an erroneous key */
 
 		if( old_gossip_fingerprint == NULL
 		 || old_gossip_fingerprint[0] == 0
@@ -563,7 +563,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 	 && strcasecmp(peerstate->m_public_key_fingerprint, fingerprint) == 0 )
 	{
 		peerstate->m_to_save                 |= MRA_SAVE_ALL;
-		peerstate->m_verified_key             = mrkey_ref(peerstate->m_public_key);
+		peerstate->m_verified_key             = dc_key_ref(peerstate->m_public_key);
 		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_public_key_fingerprint);
 		success                               = 1;
 	}
@@ -575,7 +575,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 	 && strcasecmp(peerstate->m_gossip_key_fingerprint, fingerprint) == 0 )
 	{
 		peerstate->m_to_save                 |= MRA_SAVE_ALL;
-		peerstate->m_verified_key             = mrkey_ref(peerstate->m_gossip_key);
+		peerstate->m_verified_key             = dc_key_ref(peerstate->m_gossip_key);
 		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_gossip_key_fingerprint);
 		success                               = 1;
 	}
@@ -585,7 +585,7 @@ cleanup:
 }
 
 
-int dc_apeerstate_has_verified_key(const dc_apeerstate_t* peerstate, const mrhash_t* fingerprints)
+int dc_apeerstate_has_verified_key(const dc_apeerstate_t* peerstate, const dc_hash_t* fingerprints)
 {
 	if( peerstate == NULL || fingerprints == NULL ) {
 		return 0;
@@ -593,7 +593,7 @@ int dc_apeerstate_has_verified_key(const dc_apeerstate_t* peerstate, const mrhas
 
 	if( peerstate->m_verified_key
 	 && peerstate->m_verified_key_fingerprint
-	 && mrhash_find_str(fingerprints, peerstate->m_verified_key_fingerprint) ) {
+	 && dc_hash_find_str(fingerprints, peerstate->m_verified_key_fingerprint) ) {
 		return 1;
 	}
 

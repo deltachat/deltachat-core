@@ -29,21 +29,21 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct mrsimplify_t
+typedef struct dc_simplify_t
 {
 	int m_is_forwarded;
 	int m_is_cut_at_begin;
 	int m_is_cut_at_end;
-} mrsimplify_t;
+} dc_simplify_t;
 
 
-mrsimplify_t* mrsimplify_new           ();
-void          mrsimplify_unref         (mrsimplify_t*);
+dc_simplify_t* dc_simplify_new           ();
+void          dc_simplify_unref         (dc_simplify_t*);
 
 /* Simplify and normalise text: Remove quotes, signatures, unnecessary
 lineends etc.
 The data returned from Simplify() must be free()'d when no longer used, private */
-char*         mrsimplify_simplify      (mrsimplify_t*, const char* txt_unterminated, int txt_bytes, int is_html);
+char*         dc_simplify_simplify      (dc_simplify_t*, const char* txt_unterminated, int txt_bytes, int is_html);
 
 
 #ifdef __cplusplus

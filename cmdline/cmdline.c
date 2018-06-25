@@ -48,34 +48,34 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 
 	dc_log_info(ths, 0, "Resetting tables (%i)...", bits);
 
-	mrsqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(ths->m_sql);
 
 		if( bits & 1 ) {
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM jobs;");
 			dc_log_info(ths, 0, "(1) Jobs reset.");
 		}
 
 		if( bits & 2 ) {
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM acpeerstates;");
 			dc_log_info(ths, 0, "(2) Peerstates reset.");
 		}
 
 		if( bits & 4 ) {
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM keypairs;");
 			dc_log_info(ths, 0, "(4) Private keypairs reset.");
 		}
 
 		if( bits & 8 ) {
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-			mrsqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM chats_contacts;");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM msgs WHERE id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL) ";");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+			dc_sqlite3_execute__(ths->m_sql, "DELETE FROM leftgrps;");
 			dc_log_info(ths, 0, "(8) Rest but server config reset.");
 		}
 
-	mrsqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(ths->m_sql);
 
 	ths->m_cb(ths, MR_EVENT_MSGS_CHANGED, 0, 0);
 
@@ -101,11 +101,11 @@ static int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
 
 	dc_log_info(ths, 0, "Cleaning up contacts ...");
 
-	mrsqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(ths->m_sql);
 
-		mrsqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
+		dc_sqlite3_execute__(ths->m_sql, "DELETE FROM contacts WHERE id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
 
-	mrsqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(ths->m_sql);
 
 	return 1;
 }
@@ -150,14 +150,14 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	/* create a fake autocrypt header */
 	header->m_addr             = safe_strdup(addr);
 	header->m_prefer_encrypt   = MRA_PE_MUTUAL;
-	if( !mrkey_set_from_file(header->m_public_key, public_key_file, mailbox)
-	 || !mrpgp_is_valid_key(mailbox, header->m_public_key) ) {
+	if( !dc_key_set_from_file(header->m_public_key, public_key_file, mailbox)
+	 || !dc_pgp_is_valid_key(mailbox, header->m_public_key) ) {
 		dc_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
 
 	/* update/create peerstate */
-	mrsqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
 		if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
@@ -172,7 +172,7 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 		success = 1;
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	dc_aheader_unref(header);
 	return success;
@@ -206,7 +206,7 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 		return 0;
 	}
 
-	if( !mrsqlite3_is_open(mailbox->m_sql) ) {
+	if( !dc_sqlite3_is_open(mailbox->m_sql) ) {
         dc_log_error(mailbox, 0, "Import: Database not opened.");
 		goto cleanup;
 	}
@@ -215,14 +215,14 @@ static int poke_spec(mrmailbox_t* mailbox, const char* spec)
 	if( spec )
 	{
 		real_spec = safe_strdup(spec);
-		mrsqlite3_lock(mailbox->m_sql);
-			mrsqlite3_set_config__(mailbox->m_sql, "import_spec", real_spec);
-		mrsqlite3_unlock(mailbox->m_sql);
+		dc_sqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_set_config__(mailbox->m_sql, "import_spec", real_spec);
+		dc_sqlite3_unlock(mailbox->m_sql);
 	}
 	else {
-		mrsqlite3_lock(mailbox->m_sql);
-			real_spec = mrsqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
-		mrsqlite3_unlock(mailbox->m_sql);
+		dc_sqlite3_lock(mailbox->m_sql);
+			real_spec = dc_sqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
+		dc_sqlite3_unlock(mailbox->m_sql);
 		if( real_spec == NULL ) {
 			dc_log_error(mailbox, 0, "Import: No file or folder given.");
 			goto cleanup;
@@ -284,20 +284,20 @@ cleanup:
 }
 
 
-static void log_msglist(mrmailbox_t* mailbox, mrarray_t* msglist)
+static void log_msglist(mrmailbox_t* mailbox, dc_array_t* msglist)
 {
 	int i, cnt = mrarray_get_cnt(msglist), lines_out = 0;
 	for( i = 0; i < cnt; i++ )
 	{
-		uint32_t msg_id = mrarray_get_id(msglist, i);
+		uint32_t msg_id = dc_array_get_id(msglist, i);
 		if( msg_id == MR_MSG_ID_DAYMARKER ) {
 			dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
 		}
 		else if( msg_id > 0 ) {
 			if( lines_out==0 ) { dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
-			mrmsg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
-			mrcontact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
+			dc_msg_t* msg = mrmailbox_get_msg(mailbox, msg_id);
+			dc_contact_t* contact = mrmailbox_get_contact(mailbox, mrmsg_get_from_id(msg));
 			char* contact_name = mrcontact_get_name(contact);
 			int contact_id = mrcontact_get_id(contact);
 
@@ -351,9 +351,9 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 			int verified_state = mrcontact_is_verified(contact);
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = mr_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 				int peerstate_ok = dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
 				char* pe = NULL;
 				switch( peerstate->m_prefer_encrypt ) {

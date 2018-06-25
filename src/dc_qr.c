@@ -54,7 +54,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	char*           invitenumber  = NULL;
 	char*           auth          = NULL;
 	dc_apeerstate_t* peerstate     = dc_apeerstate_new(mailbox);
-	mrlot_t*        qr_parsed     = mrlot_new();
+	dc_lot_t*        qr_parsed     = dc_lot_new();
 	uint32_t        chat_id       = 0;
 	char*           device_msg    = NULL;
 	char*           grpid         = NULL;
@@ -207,7 +207,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 		{
 			// _only_ fingerprint set ...
 			// (we could also do this before/instead of a secure-join, however, this may require complicated questions in the ui)
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
 				if( dc_apeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
@@ -222,7 +222,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 					qr_parsed->m_state = MR_QR_FPR_WITHOUT_ADDR;
 				}
 
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			locked = 0;
 		}
 		else
@@ -230,7 +230,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 			// fingerprint + addr set, secure-join requested
 			// do not comapre the fingerprint already - it may have changed - errors are catched later more proberly.
 			// (theroretically, there is also the state "addr=set, fingerprint=set, invitenumber=0", however, currently, we won't get into this state)
-			mrsqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
 				if( grpid && grpname ) {
@@ -248,7 +248,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 				qr_parsed->m_auth          = safe_strdup(auth);
 
 
-			mrsqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(mailbox->m_sql);
 			locked = 0;
 		}
 	}
@@ -273,7 +273,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	}
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	free(addr);
 	free(fingerprint);
 	dc_apeerstate_unref(peerstate);

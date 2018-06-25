@@ -45,21 +45,21 @@ struct _dc_msg
 
 
 	/**
-	 * Contact ID of the sender.  Never 0. See mrcontact_t::m_id for special IDs.
+	 * Contact ID of the sender.  Never 0. See dc_contact_t::m_id for special IDs.
 	 * Use mrmailbox_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_from_id;
 
 
 	/**
-	 * Contact ID of the recipient. Never 0. See mrcontact_t::m_id for special IDs.
+	 * Contact ID of the recipient. Never 0. See dc_contact_t::m_id for special IDs.
 	 * Use mrmailbox_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_to_id;
 
 
 	/**
-	 * Chat ID the message belongs to. Never 0. See mrchat_t::m_id for special IDs.
+	 * Chat ID the message belongs to. Never 0. See dc_chat_t::m_id for special IDs.
 	 * Use mrmailbox_get_chat() to load details about the chat.
 	 */
 	uint32_t        m_chat_id;
@@ -71,9 +71,9 @@ struct _dc_msg
 	//mrmailbox_t*    m_mailbox;
 
 
-	int             m_type;                   /**< Message type. It is recommended to use mrmsg_set_type() and mrmsg_get_type() to access this field. */
+	int             m_type;                   /**< Message type. It is recommended to use dc_msg_set_type() and dc_msg_get_type() to access this field. */
 
-	int             m_state;                  /**< Message state. It is recommended to use mrmsg_get_state() to access this field. */
+	int             m_state;                  /**< Message state. It is recommended to use dc_msg_get_state() to access this field. */
 
 	int             m_hidden;                 /**< Used eg. for handshaking messages. */
 
@@ -81,7 +81,7 @@ struct _dc_msg
 	time_t          m_timestamp_sent;         /**< Unix time the message was sent. 0 if unset. */
 	time_t          m_timestamp_rcvd;         /**< Unix time the message was recveived. 0 if unset. */
 
-	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use mrmsg_set_text() and mrmsg_get_text() to access this field. */
+	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use dc_msg_set_text() and dc_msg_get_text() to access this field. */
 
 	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */
 	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
@@ -94,12 +94,12 @@ struct _dc_msg
 };
 
 
-int             mrmsg_load_from_db__                 (mrmsg_t*, mrmailbox_t*, uint32_t id);
-int             mrmsg_is_increation__                (const mrmsg_t*);
-char*           mrmsg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
-void            mrmsg_save_param_to_disk__           (mrmsg_t*);
-void            mrmsg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
-void            mrmsg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);
+int             dc_msg_load_from_db__                 (dc_msg_t*, mrmailbox_t*, uint32_t id);
+int             dc_msg_is_increation__                (const dc_msg_t*);
+char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
+void            dc_msg_save_param_to_disk__           (dc_msg_t*);
+void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
+void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);
 
 #define MR_MSG_NEEDS_ATTACHMENT(a)         ((a)==MR_MSG_IMAGE || (a)==MR_MSG_GIF || (a)==MR_MSG_AUDIO || (a)==MR_MSG_VOICE || (a)==MR_MSG_VIDEO || (a)==MR_MSG_FILE)
 #define MR_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==MR_MSG_AUDIO || (a)==MR_MSG_FILE || (a)==MR_MSG_VIDEO ) /* add filename.ext (without path) to m_text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */

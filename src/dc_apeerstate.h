@@ -55,14 +55,14 @@ typedef struct dc_apeerstate_t
 	#define        MRV_NOT_VERIFIED  0
 	#define        MRV_BIDIRECTIONAL 2
 
-	mrkey_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
+	dc_key_t*       m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
 	char*          m_public_key_fingerprint;
 
-	mrkey_t*       m_gossip_key; /* may be NULL */
+	dc_key_t*       m_gossip_key; /* may be NULL */
 	time_t         m_gossip_timestamp;
 	char*          m_gossip_key_fingerprint;
 
-	mrkey_t*       m_verified_key; // may be NULL
+	dc_key_t*       m_verified_key; // may be NULL
 	char*          m_verified_key_fingerprint;
 
 	#define        MRA_SAVE_TIMESTAMPS 0x01
@@ -89,7 +89,7 @@ void            dc_apeerstate_apply_gossip         (dc_apeerstate_t*, const dc_a
 
 char*           dc_apeerstate_render_gossip_header (const dc_apeerstate_t*, int min_verified);
 
-mrkey_t*        dc_apeerstate_peek_key             (const dc_apeerstate_t*, int min_verified);
+dc_key_t*        dc_apeerstate_peek_key             (const dc_apeerstate_t*, int min_verified);
 
 int             dc_apeerstate_recalc_fingerprint   (dc_apeerstate_t*);
 
@@ -97,11 +97,11 @@ int             dc_apeerstate_recalc_fingerprint   (dc_apeerstate_t*);
 #define         MRA_PUBLIC_KEY 1
 int             dc_apeerstate_set_verified         (dc_apeerstate_t*, int which_key, const char* fingerprint, int verfied);
 
-int             dc_apeerstate_load_by_addr__       (dc_apeerstate_t*, mrsqlite3_t*, const char* addr);
-int             dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t*, mrsqlite3_t*, const char* fingerprint);
-int             dc_apeerstate_save_to_db__         (const dc_apeerstate_t*, mrsqlite3_t*, int create);
+int             dc_apeerstate_load_by_addr__       (dc_apeerstate_t*, dc_sqlite3_t*, const char* addr);
+int             dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t*, dc_sqlite3_t*, const char* fingerprint);
+int             dc_apeerstate_save_to_db__         (const dc_apeerstate_t*, dc_sqlite3_t*, int create);
 
-int             dc_apeerstate_has_verified_key     (const dc_apeerstate_t*, const mrhash_t* fingerprints);
+int             dc_apeerstate_has_verified_key     (const dc_apeerstate_t*, const dc_hash_t* fingerprints);
 
 #ifdef __cplusplus
 } /* /extern "C" */

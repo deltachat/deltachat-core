@@ -71,7 +71,7 @@ void dc_chat_unref(dc_chat_t* chat)
 		return;
 	}
 
-	mrchat_empty(chat);
+	dc_chat_empty(chat);
 	mrparam_unref(chat->m_param);
 	chat->m_magic = 0;
 	free(chat);
@@ -228,9 +228,9 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	else if( chat->m_type == MR_CHAT_TYPE_SINGLE )
 	{
 		int r;
-		mrsqlite3_lock(chat->m_mailbox->m_sql);
+		dc_sqlite3_lock(chat->m_mailbox->m_sql);
 
-			stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
+			stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
 				"SELECT c.addr FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON c.id=cc.contact_id "
 					" WHERE cc.chat_id=?;");
@@ -241,7 +241,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 				ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
 			}
 
-		mrsqlite3_unlock(chat->m_mailbox->m_sql);
+		dc_sqlite3_unlock(chat->m_mailbox->m_sql);
 	}
 	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
@@ -252,12 +252,12 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		}
 		else
 		{
-			mrsqlite3_lock(chat->m_mailbox->m_sql);
+			dc_sqlite3_lock(chat->m_mailbox->m_sql);
 
 				cnt = mrmailbox_get_chat_contact_count__(chat->m_mailbox, chat->m_id);
 				ret = mrstock_str_repl_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
-			mrsqlite3_unlock(chat->m_mailbox->m_sql);
+			dc_sqlite3_unlock(chat->m_mailbox->m_sql);
 		}
 	}
 
@@ -400,7 +400,7 @@ int dc_chat_is_verified(dc_chat_t* chat)
 }
 
 
-int mrchat_are_all_members_verified__(dc_chat_t* chat)
+int dc_chat_are_all_members_verified__(dc_chat_t* chat)
 {
 	int           chat_verified = 0;
 	sqlite3_stmt* stmt;
@@ -413,7 +413,7 @@ int mrchat_are_all_members_verified__(dc_chat_t* chat)
 		goto cleanup; // deaddrop & co. are never verified
 	}
 
-	stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
+	stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
 		"SELECT c.id, LENGTH(ps.verified_key_fingerprint) "
 		" FROM chats_contacts cc"
 		" LEFT JOIN contacts c ON c.id=cc.contact_id"
@@ -462,10 +462,10 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
  ******************************************************************************/
 
 
-int mrchat_update_param__(dc_chat_t* ths)
+int dc_chat_update_param__(dc_chat_t* ths)
 {
 	int success = 0;
-	sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
+	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
 	sqlite3_bind_text(stmt, 1, ths->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, ths->m_id);
 	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;
@@ -474,7 +474,7 @@ int mrchat_update_param__(dc_chat_t* ths)
 }
 
 
-static int mrchat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
+static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 {
 	int row_offset = 0;
 	const char* draft_text;
@@ -483,7 +483,7 @@ static int mrchat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 		return 0;
 	}
 
-	mrchat_empty(ths);
+	dc_chat_empty(ths);
 
 	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
 	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
@@ -543,7 +543,7 @@ static int mrchat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
  *
  * @return 1=success, 0=error.
  */
-int mrchat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
+int dc_chat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt;
 
@@ -551,9 +551,9 @@ int mrchat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 		return 0;
 	}
 
-	mrchat_empty(chat);
+	dc_chat_empty(chat);
 
-	stmt = mrsqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
+	stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
 		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 
@@ -561,7 +561,7 @@ int mrchat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 		return 0;
 	}
 
-	if( !mrchat_set_from_stmt__(chat, stmt) ) {
+	if( !dc_chat_set_from_stmt__(chat, stmt) ) {
 		return 0;
 	}
 

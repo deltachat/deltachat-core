@@ -40,17 +40,17 @@ typedef enum {
 	MR_MF_NOTHING_LOADED = 0,
 	MR_MF_MSG_LOADED,
 	MR_MF_MDN_LOADED
-} mrmimefactory_loaded_t;
+} dc_mimefactory_loaded_t;
 
 
 /**
  * Library-internal.
  */
-typedef struct mrmimefactory_t {
+typedef struct dc_mimefactory_t {
 
 	/** @privatesection */
 
-	/* in: parameters, set eg. by mrmimefactory_load_msg() */
+	/* in: parameters, set eg. by dc_mimefactory_load_msg() */
 	char*        m_from_addr;
 	char*        m_from_displayname;
 	char*        m_selfstatus;
@@ -60,30 +60,30 @@ typedef struct mrmimefactory_t {
 	char*        m_rfc724_mid;
 
 	/* what is loaded? */
-	mrmimefactory_loaded_t m_loaded;
+	dc_mimefactory_loaded_t m_loaded;
 
-	mrmsg_t*     m_msg;
-	mrchat_t*    m_chat;
+	dc_msg_t*     m_msg;
+	dc_chat_t*    m_chat;
 	int          m_increation;
 	char*        m_predecessor;
 	char*        m_references;
 	int          m_req_mdn;
 
-	/* out: after a successfull mrmimefactory_render(), here's the data */
+	/* out: after a successfull dc_mimefactory_render(), here's the data */
 	MMAPString*  m_out;
 	int          m_out_encrypted;
 
 	/* private */
 	mrmailbox_t* m_mailbox;
 
-} mrmimefactory_t;
+} dc_mimefactory_t;
 
 
-void        mrmimefactory_init              (mrmimefactory_t*, mrmailbox_t*);
-void        mrmimefactory_empty             (mrmimefactory_t*);
-int         mrmimefactory_load_msg          (mrmimefactory_t*, uint32_t msg_id);
-int         mrmimefactory_load_mdn          (mrmimefactory_t*, uint32_t msg_id);
-int         mrmimefactory_render            (mrmimefactory_t*);
+void        dc_mimefactory_init              (dc_mimefactory_t*, mrmailbox_t*);
+void        dc_mimefactory_empty             (dc_mimefactory_t*);
+int         dc_mimefactory_load_msg          (dc_mimefactory_t*, uint32_t msg_id);
+int         dc_mimefactory_load_mdn          (dc_mimefactory_t*, uint32_t msg_id);
+int         dc_mimefactory_render            (dc_mimefactory_t*);
 
 
 #ifdef __cplusplus

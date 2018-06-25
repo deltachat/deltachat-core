@@ -27,27 +27,27 @@ extern "C" {
 #endif
 
 
-typedef struct mrkey_t mrkey_t;
+typedef struct dc_key_t dc_key_t;
 
 
 /**
  * Library-internal.
  */
-typedef struct mrkeyring_t
+typedef struct dc_keyring_t
 {
 	/** @privatesection */
 
-	mrkey_t** m_keys; /**< Keys in the keyring. Only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid. */
+	dc_key_t** m_keys; /**< Keys in the keyring. Only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid. */
 	int       m_count;
 	int       m_allocated;
-} mrkeyring_t;
+} dc_keyring_t;
 
-mrkeyring_t* mrkeyring_new  ();
-void         mrkeyring_unref();
+dc_keyring_t* dc_keyring_new  ();
+void         dc_keyring_unref();
 
-void         mrkeyring_add  (mrkeyring_t*, mrkey_t*); /* the reference counter of the key is increased by one */
+void         dc_keyring_add  (dc_keyring_t*, dc_key_t*); /* the reference counter of the key is increased by one */
 
-int          mrkeyring_load_self_private_for_decrypting__(mrkeyring_t*, const char* self_addr, mrsqlite3_t* sql);
+int          dc_keyring_load_self_private_for_decrypting__(dc_keyring_t*, const char* self_addr, dc_sqlite3_t* sql);
 
 
 #ifdef __cplusplus

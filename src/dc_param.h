@@ -31,7 +31,7 @@ extern "C" {
  * An object for handling key=value parameter lists; for the key, curently only
  * a single character is allowed.
  *
- * The object is used eg. by mrchat_t or mrmsg_t, for readable paramter names,
+ * The object is used eg. by dc_chat_t or dc_msg_t, for readable paramter names,
  * these classes define some MRP_* constantats.
  *
  * Only for library-internal use.

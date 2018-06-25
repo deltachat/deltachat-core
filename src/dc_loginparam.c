@@ -71,48 +71,48 @@ void dc_loginparam_empty(dc_loginparam_t* ths)
 }
 
 
-void dc_loginparam_read__(dc_loginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
+void dc_loginparam_read__(dc_loginparam_t* ths, dc_sqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 	#define MR_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
 
 	dc_loginparam_empty(ths);
 
-	MR_PREFIX("addr");        ths->m_addr        = mrsqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("addr");        ths->m_addr        = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("mail_server"); ths->m_mail_server = mrsqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("mail_port");   ths->m_mail_port   = mrsqlite3_get_config_int__(sql, key, 0);
-	MR_PREFIX("mail_user");   ths->m_mail_user   = mrsqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("mail_pw");     ths->m_mail_pw     = mrsqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("mail_server"); ths->m_mail_server = dc_sqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("mail_port");   ths->m_mail_port   = dc_sqlite3_get_config_int__(sql, key, 0);
+	MR_PREFIX("mail_user");   ths->m_mail_user   = dc_sqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("mail_pw");     ths->m_mail_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("send_server"); ths->m_send_server = mrsqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("send_port");   ths->m_send_port   = mrsqlite3_get_config_int__(sql, key, 0);
-	MR_PREFIX("send_user");   ths->m_send_user   = mrsqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("send_pw");     ths->m_send_pw     = mrsqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("send_server"); ths->m_send_server = dc_sqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("send_port");   ths->m_send_port   = dc_sqlite3_get_config_int__(sql, key, 0);
+	MR_PREFIX("send_user");   ths->m_send_user   = dc_sqlite3_get_config__    (sql, key, NULL);
+	MR_PREFIX("send_pw");     ths->m_send_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("server_flags");ths->m_server_flags= mrsqlite3_get_config_int__(sql, key, 0);
+	MR_PREFIX("server_flags");ths->m_server_flags= dc_sqlite3_get_config_int__(sql, key, 0);
 
 	sqlite3_free(key);
 }
 
 
-void dc_loginparam_write__(const dc_loginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
+void dc_loginparam_write__(const dc_loginparam_t* ths, dc_sqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 
-	MR_PREFIX("addr");         mrsqlite3_set_config__    (sql, key, ths->m_addr);
+	MR_PREFIX("addr");         dc_sqlite3_set_config__    (sql, key, ths->m_addr);
 
-	MR_PREFIX("mail_server");  mrsqlite3_set_config__    (sql, key, ths->m_mail_server);
-	MR_PREFIX("mail_port");    mrsqlite3_set_config_int__(sql, key, ths->m_mail_port);
-	MR_PREFIX("mail_user");    mrsqlite3_set_config__    (sql, key, ths->m_mail_user);
-	MR_PREFIX("mail_pw");      mrsqlite3_set_config__    (sql, key, ths->m_mail_pw);
+	MR_PREFIX("mail_server");  dc_sqlite3_set_config__    (sql, key, ths->m_mail_server);
+	MR_PREFIX("mail_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_mail_port);
+	MR_PREFIX("mail_user");    dc_sqlite3_set_config__    (sql, key, ths->m_mail_user);
+	MR_PREFIX("mail_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_mail_pw);
 
-	MR_PREFIX("send_server");  mrsqlite3_set_config__    (sql, key, ths->m_send_server);
-	MR_PREFIX("send_port");    mrsqlite3_set_config_int__(sql, key, ths->m_send_port);
-	MR_PREFIX("send_user");    mrsqlite3_set_config__    (sql, key, ths->m_send_user);
-	MR_PREFIX("send_pw");      mrsqlite3_set_config__    (sql, key, ths->m_send_pw);
+	MR_PREFIX("send_server");  dc_sqlite3_set_config__    (sql, key, ths->m_send_server);
+	MR_PREFIX("send_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_send_port);
+	MR_PREFIX("send_user");    dc_sqlite3_set_config__    (sql, key, ths->m_send_user);
+	MR_PREFIX("send_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_send_pw);
 
-	MR_PREFIX("server_flags"); mrsqlite3_set_config_int__(sql, key, ths->m_server_flags);
+	MR_PREFIX("server_flags"); dc_sqlite3_set_config_int__(sql, key, ths->m_server_flags);
 
 	sqlite3_free(key);
 }

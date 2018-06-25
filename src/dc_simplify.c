@@ -85,11 +85,11 @@ static int mr_is_quoted_headline(const char* buf)
  ******************************************************************************/
 
 
-mrsimplify_t* mrsimplify_new()
+dc_simplify_t* dc_simplify_new()
 {
-	mrsimplify_t* ths = NULL;
+	dc_simplify_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrsimplify_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_simplify_t)))==NULL ) {
 		exit(31);
 	}
 
@@ -97,7 +97,7 @@ mrsimplify_t* mrsimplify_new()
 }
 
 
-void mrsimplify_unref(mrsimplify_t* ths)
+void dc_simplify_unref(dc_simplify_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -112,7 +112,7 @@ void mrsimplify_unref(mrsimplify_t* ths)
  ******************************************************************************/
 
 
-static char* mrsimplify_simplify_plain_text(mrsimplify_t* ths, const char* buf_terminated)
+static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf_terminated)
 {
 	/* This function ...
 	... removes all text after the line `-- ` (footer mark)
@@ -300,7 +300,7 @@ static char* mrsimplify_simplify_plain_text(mrsimplify_t* ths, const char* buf_t
  ******************************************************************************/
 
 
-char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in_bytes, int is_html)
+char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int in_bytes, int is_html)
 {
 	/* create a copy of the given buffer */
 	char* out = NULL, *temp = NULL;
@@ -320,7 +320,7 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 
 	/* convert HTML to text, if needed */
 	if( is_html ) {
-		if( (temp = mr_dehtml(out)) != NULL ) { /* mr_dehtml() returns way too much lineends, however they're removed in the simplification below */
+		if( (temp = dc_dehtml(out)) != NULL ) { /* mr_dehtml() returns way too much lineends, however they're removed in the simplification below */
 			free(out);
 			out = temp;
 		}
@@ -328,7 +328,7 @@ char* mrsimplify_simplify(mrsimplify_t* ths, const char* in_unterminated, int in
 
 	/* simplify the text in the buffer (characters to remove may be marked by `\r`) */
 	mr_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
-	if( (temp = mrsimplify_simplify_plain_text(ths, out)) != NULL ) {
+	if( (temp = dc_simplify_simplify_plain_text(ths, out)) != NULL ) {
 		free(out);
 		out = temp;
 	}

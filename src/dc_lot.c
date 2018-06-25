@@ -26,11 +26,11 @@
 #define MR_LOT_MAGIC 0x00107107
 
 
-mrlot_t* mrlot_new()
+dc_lot_t* dc_lot_new()
 {
-	mrlot_t* ths = NULL;
+	dc_lot_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrlot_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_lot_t)))==NULL ) {
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -59,13 +59,13 @@ void dc_lot_unref(dc_lot_t* set)
 		return;
 	}
 
-	mrlot_empty(set);
+	dc_lot_empty(set);
 	set->m_magic = 0;
 	free(set);
 }
 
 
-void mrlot_empty(mrlot_t* ths)
+void dc_lot_empty(dc_lot_t* ths)
 {
 	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC ) {
 		return;
@@ -203,7 +203,7 @@ time_t dc_lot_get_timestamp(dc_lot_t* lot)
 }
 
 
-void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mrcontact_t* contact)
+void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact)
 {
 	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC || msg == NULL ) {
 		return;
@@ -211,7 +211,7 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 
 	if( msg->m_from_id == MR_CONTACT_ID_SELF )
 	{
-		if( mrmsg_is_info(msg) ) {
+		if( dc_msg_is_info(msg) ) {
 			ths->m_text1 = NULL;
 			ths->m_text1_meaning = 0;
 		}
@@ -227,17 +227,17 @@ void mrlot_fill(mrlot_t* ths, const mrmsg_t* msg, const mrchat_t* chat, const mr
 	}
 	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
-		if( mrmsg_is_info(msg) || contact==NULL ) {
+		if( dc_msg_is_info(msg) || contact==NULL ) {
 			ths->m_text1 = NULL;
 			ths->m_text1_meaning = 0;
 		}
 		else {
-			ths->m_text1 = mrcontact_get_first_name(contact);
+			ths->m_text1 = dc_contact_get_first_name(contact);
 			ths->m_text1_meaning = MR_TEXT1_USERNAME;
 		}
 	}
 
-	ths->m_text2     = mrmsg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, MR_SUMMARY_CHARACTERS);
-	ths->m_timestamp = mrmsg_get_timestamp(msg);
+	ths->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, MR_SUMMARY_CHARACTERS);
+	ths->m_timestamp = dc_msg_get_timestamp(msg);
 	ths->m_state     = msg->m_state;
 }

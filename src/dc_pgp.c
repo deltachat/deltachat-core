@@ -51,7 +51,7 @@ one :-) */
 static pgp_io_t s_io;
 
 
-void mrpgp_init(mrmailbox_t* mailbox)
+void dc_pgp_init(mrmailbox_t* mailbox)
 {
 	#ifdef __APPLE__
 		OPENSSL_init();
@@ -70,12 +70,12 @@ void mrpgp_init(mrmailbox_t* mailbox)
 }
 
 
-void mrpgp_exit(mrmailbox_t* mailbox)
+void dc_pgp_exit(mrmailbox_t* mailbox)
 {
 }
 
 
-void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
+void dc_pgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 {
 	if( buf == NULL || bytes <= 0 ) {
 		return;
@@ -89,7 +89,7 @@ void mrpgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
 The given buffer is modified and the returned pointers are just point inside the modified buffer,
 no additional data to free therefore.
 (NB: netpgp allows only parsing of Version, Comment, MessageID, Hash and Charset) */
-int mr_split_armored_data(char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64)
+int dc_split_armored_data(char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64)
 {
 	int    success = 0;
 	size_t line_chars = 0;
@@ -296,7 +296,7 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 }
 
 
-int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_public_key, mrkey_t* ret_private_key)
+int dc_pgp_create_keypair(mrmailbox_t* mailbox, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
 	int              success = 0;
 	pgp_key_t        seckey, pubkey, subkey;
@@ -388,8 +388,8 @@ int mrpgp_create_keypair(mrmailbox_t* mailbox, const char* addr, mrkey_t* ret_pu
 		goto cleanup;
 	}
 
-	mrkey_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
-	mrkey_set_from_binary(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
+	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+	dc_key_set_from_binary(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
 
 	success = 1;
 
@@ -411,7 +411,7 @@ cleanup:
  ******************************************************************************/
 
 
-int mrpgp_is_valid_key(mrmailbox_t* mailbox, const mrkey_t* raw_key)
+int dc_pgp_is_valid_key(mrmailbox_t* mailbox, const dc_key_t* raw_key)
 {
 	int             key_is_valid = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -442,7 +442,7 @@ cleanup:
 }
 
 
-int mrpgp_calc_fingerprint(const mrkey_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
+int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, size_t* ret_fingerprint_bytes)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -482,7 +482,7 @@ cleanup:
 }
 
 
-int mrpgp_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* ret_public_key)
+int dc_pgp_split_key(mrmailbox_t* mailbox, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -515,7 +515,7 @@ int mrpgp_split_key(mrmailbox_t* mailbox, const mrkey_t* private_in, mrkey_t* re
 		goto cleanup;
 	}
 
-	mrkey_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
 
 	success = 1;
 
@@ -534,11 +534,11 @@ cleanup:
  ******************************************************************************/
 
 
-int mrpgp_pk_encrypt(  mrmailbox_t*       mailbox,
+int dc_pgp_pk_encrypt(  mrmailbox_t*       mailbox,
                        const void*        plain_text,
                        size_t             plain_bytes,
-                       const mrkeyring_t* raw_public_keys_for_encryption,
-                       const mrkey_t*     raw_private_key_for_signing,
+                       const dc_keyring_t* raw_public_keys_for_encryption,
+                       const dc_key_t*     raw_private_key_for_signing,
                        int                use_armor,
                        void**             ret_ctext,
                        size_t*            ret_ctext_bytes)
@@ -625,15 +625,15 @@ cleanup:
 }
 
 
-int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
+int dc_pgp_pk_decrypt(  mrmailbox_t*       mailbox,
                        const void*        ctext,
                        size_t             ctext_bytes,
-                       const mrkeyring_t* raw_private_keys_for_decryption,
-                       const mrkeyring_t* raw_public_keys_for_validation,
+                       const dc_keyring_t* raw_private_keys_for_decryption,
+                       const dc_keyring_t* raw_public_keys_for_validation,
                        int                use_armor,
                        void**             ret_plain,
                        size_t*            ret_plain_bytes,
-                       mrhash_t*          ret_signature_fingerprints)
+                       dc_hash_t*          ret_signature_fingerprints)
 {
 	pgp_keyring_t*    public_keys = calloc(1, sizeof(pgp_keyring_t)); /*should be 0 after parsing*/
 	pgp_keyring_t*    private_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -700,7 +700,7 @@ int mrpgp_pk_decrypt(  mrmailbox_t*       mailbox,
 
 					char* fingerprint_hex = mr_binary_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
 					if( fingerprint_hex ) {
-						mrhash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
+						dc_hash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
 					}
 					free(fingerprint_hex);
 				}

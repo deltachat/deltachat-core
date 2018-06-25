@@ -110,7 +110,7 @@ static int sjhashNoCase(const char *z, int n)
  * sense for SJHASH_STRING and SJHASH_BINARY and is ignored
  * for other key classes.
  */
-void mrhash_init(mrhash_t *pNew, int keyClass, int copyKey)
+void dc_hash_init(dc_hash_t *pNew, int keyClass, int copyKey)
 {
 	assert( pNew!=0 );
 	assert( keyClass>=MRHASH_INT && keyClass<=MRHASH_BINARY );
@@ -131,7 +131,7 @@ void mrhash_init(mrhash_t *pNew, int keyClass, int copyKey)
  * Call this routine to delete a hash table or to reset a hash table
  * to the empty state.
  */
-void mrhash_clear(mrhash_t *pH)
+void dc_hash_clear(dc_hash_t *pH)
 {
 	mrhashelem_t *elem;         /* For looping over all elements of the table */
 
@@ -269,7 +269,7 @@ static int (*compareFunction(int keyClass))(const void*,int,const void*,int)
 
 /* Link an element into the hash table
  */
-static void insertElement(mrhash_t *pH,           /* The complete hash table */
+static void insertElement(dc_hash_t *pH,           /* The complete hash table */
                           struct _ht *pEntry,   /* The entry into which pNew is inserted */
                           mrhashelem_t *pNew)     /* The element to be inserted */
 {
@@ -300,7 +300,7 @@ static void insertElement(mrhash_t *pH,           /* The complete hash table */
  * "new_size" must be a power of 2.  The hash table might fail
  * to resize if sjhashMalloc() fails.
  */
-static void rehash(mrhash_t *pH, int new_size)
+static void rehash(dc_hash_t *pH, int new_size)
 {
 	struct _ht *new_ht;            /* The new hash table */
 	mrhashelem_t *elem, *next_elem;    /* For looping over existing elements */
@@ -327,7 +327,7 @@ static void rehash(mrhash_t *pH, int new_size)
  * hash table that matches the given key.  The hash for this key has
  * already been computed and is passed as the 4th parameter.
  */
-static mrhashelem_t *findElementGivenHash(const mrhash_t *pH,   /* The pH to be searched */
+static mrhashelem_t *findElementGivenHash(const dc_hash_t *pH,   /* The pH to be searched */
                                         const void *pKey,   /* The key we are searching for */
                                         int nKey,
                                         int h)              /* The hash for this key. */
@@ -359,7 +359,7 @@ static mrhashelem_t *findElementGivenHash(const mrhash_t *pH,   /* The pH to be 
 /* Remove a single entry from the hash table given a pointer to that
  * element and a hash on the element's key.
  */
-static void removeElementGivenHash(mrhash_t *pH,         /* The pH containing "elem" */
+static void removeElementGivenHash(dc_hash_t *pH,         /* The pH containing "elem" */
                                    mrhashelem_t* elem,   /* The element to be removed from the pH */
                                    int h)              /* Hash value for the element */
 {
@@ -408,7 +408,7 @@ static void removeElementGivenHash(mrhash_t *pH,         /* The pH containing "e
  * that matches pKey,nKey.  Return the data for this element if it is
  * found, or NULL if there is no match.
  */
-void* mrhash_find(const mrhash_t *pH, const void *pKey, int nKey)
+void* dc_hash_find(const dc_hash_t *pH, const void *pKey, int nKey)
 {
 	int h;             /* A hash on key */
 	mrhashelem_t *elem;    /* The element that matches key */
@@ -440,7 +440,7 @@ void* mrhash_find(const mrhash_t *pH, const void *pKey, int nKey)
  * If the "data" parameter to this function is NULL, then the
  * element corresponding to "key" is removed from the hash table.
  */
-void* mrhash_insert(mrhash_t *pH, const void *pKey, int nKey, void *data)
+void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 {
 	int hraw;                       /* Raw hash value of the key */
 	int h;                          /* the hash of the key modulo hash table size */

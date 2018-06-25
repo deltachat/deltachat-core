@@ -67,7 +67,7 @@ void dc_contact_unref(dc_contact_t* contact)
 		return;
 	}
 
-	mrcontact_empty(contact);
+	dc_contact_empty(contact);
 	contact->m_magic = 0;
 	free(contact);
 }
@@ -275,7 +275,7 @@ int dc_contact_is_blocked(const dc_contact_t* contact)
 }
 
 
-int mrcontact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
+int dc_contact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 
@@ -320,17 +320,17 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 
 	peerstate = dc_apeerstate_new(contact->m_mailbox);
 
-	mrsqlite3_lock(contact->m_mailbox->m_sql);
+	dc_sqlite3_lock(contact->m_mailbox->m_sql);
 	locked = 1;
 
 		if( !dc_apeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
-		contact_verified = mrcontact_is_verified__(contact, peerstate);
+		contact_verified = dc_contact_is_verified__(contact, peerstate);
 
 cleanup:
-	if( locked ) { mrsqlite3_unlock(contact->m_mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(contact->m_mailbox->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	return contact_verified;
 }
@@ -459,7 +459,7 @@ char* mr_normalize_addr(const char* email_addr__)
  *
  * @private @memberof dc_contact_t
  */
-int mrcontact_load_from_db__(dc_contact_t* ths, mrsqlite3_t* sql, uint32_t contact_id)
+int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -468,17 +468,17 @@ int mrcontact_load_from_db__(dc_contact_t* ths, mrsqlite3_t* sql, uint32_t conta
 		return 0;
 	}
 
-	mrcontact_empty(ths);
+	dc_contact_empty(ths);
 
 	if( contact_id == MR_CONTACT_ID_SELF )
 	{
 		ths->m_id   = contact_id;
 		ths->m_name = mrstock_str(MR_STR_SELF);
-		ths->m_addr = mrsqlite3_get_config__(sql, "configured_addr", "");
+		ths->m_addr = dc_sqlite3_get_config__(sql, "configured_addr", "");
 	}
 	else
 	{
-		stmt = mrsqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
+		stmt = dc_sqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
 			"SELECT c.name, c.addr, c.origin, c.blocked, c.authname "
 			" FROM contacts c "
 			" WHERE c.id=?;");

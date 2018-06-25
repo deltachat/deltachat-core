@@ -153,7 +153,7 @@ static void dehtml_endtag_cb(void* userdata, const char* tag)
 }
 
 
-char* mr_dehtml(char* buf_terminated)
+char* dc_dehtml(char* buf_terminated)
 {
 	mr_trim(buf_terminated);
 	if( buf_terminated[0] == 0 ) {

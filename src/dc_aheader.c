@@ -48,8 +48,8 @@ void dc_aheader_empty(dc_aheader_t* ths)
 	ths->m_addr = NULL;
 
 	if( ths->m_public_key->m_binary ) {
-		mrkey_unref(ths->m_public_key);
-		ths->m_public_key = mrkey_new();
+		dc_key_unref(ths->m_public_key);
+		ths->m_public_key = dc_key_new();
 	}
 }
 
@@ -85,7 +85,7 @@ char* dc_aheader_render(const dc_aheader_t* ths)
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if( (keybase64_wrapped = mrkey_render_base64(ths->m_public_key, 78, " ", 0/*no checksum*/)) == NULL ) {
+	if( (keybase64_wrapped = dc_key_render_base64(ths->m_public_key, 78, " ", 0/*no checksum*/)) == NULL ) {
 		goto cleanup;
 	}
 
@@ -144,7 +144,7 @@ static int add_attribute(dc_aheader_t* ths, const char* name, const char* value 
 		 || ths->m_public_key->m_binary || ths->m_public_key->m_bytes ) {
 			return 0; /* there is already a k*/
 		}
-		return mrkey_set_from_base64(ths->m_public_key, value, MR_PUBLIC);
+		return dc_key_set_from_base64(ths->m_public_key, value, MR_PUBLIC);
 	}
 	else if( name[0]=='_' )
 	{
@@ -245,7 +245,7 @@ dc_aheader_t* dc_aheader_new()
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_public_key = mrkey_new();
+	ths->m_public_key = dc_key_new();
 
 	return ths;
 }
@@ -261,7 +261,7 @@ void dc_aheader_unref(dc_aheader_t* ths)
 	}
 
 	free(ths->m_addr);
-	mrkey_unref(ths->m_public_key);
+	dc_key_unref(ths->m_public_key);
 	free(ths);
 }
 

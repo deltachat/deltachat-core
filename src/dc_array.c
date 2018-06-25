@@ -38,9 +38,9 @@
  */
 dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
 {
-	mrarray_t* array;
+	dc_array_t* array;
 
-	array = (mrarray_t*) malloc(sizeof(mrarray_t));
+	array = (dc_array_t*) malloc(sizeof(dc_array_t));
 	if( array==NULL ) {
 		exit(47);
 	}
@@ -91,7 +91,7 @@ void dc_array_unref(dc_array_t* array)
  * @return None.
  *
  */
-void mrarray_free_ptr(dc_array_t* array)
+void dc_array_free_ptr(dc_array_t* array)
 {
 	size_t i;
 
@@ -117,15 +117,15 @@ void mrarray_free_ptr(dc_array_t* array)
  * @return The duplicated array.
  *
  */
-mrarray_t* mrarray_duplicate(const dc_array_t* array)
+dc_array_t* dc_array_duplicate(const dc_array_t* array)
 {
-	mrarray_t* ret = NULL;
+	dc_array_t* ret = NULL;
 
 	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
 		return NULL;
 	}
 
-	ret = mrarray_new(array->m_mailbox, array->m_allocated);
+	ret = dc_array_new(array->m_mailbox, array->m_allocated);
 	ret->m_count = array->m_count;
 	memcpy(ret->m_array, array->m_array, array->m_count * sizeof(uintptr_t));
 
@@ -150,7 +150,7 @@ static int cmp_intptr_t(const void* p1, const void* p2)
  * @return The duplicated array.
  *
  */
-void mrarray_sort_ids(dc_array_t* array)
+void dc_array_sort_ids(dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
@@ -177,7 +177,7 @@ static int cmp_strings_t(const void* p1, const void* p2)
  * @return The duplicated array.
  *
  */
-void mrarray_sort_strings(dc_array_t* array)
+void dc_array_sort_strings(dc_array_t* array)
 {
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
@@ -248,7 +248,7 @@ void dc_array_add_uint(dc_array_t* array, uintptr_t item)
  */
 void dc_array_add_id(dc_array_t* array, uint32_t item)
 {
-	mrarray_add_uint(array, item);
+	dc_array_add_uint(array, item);
 }
 
 
@@ -265,7 +265,7 @@ void dc_array_add_id(dc_array_t* array, uint32_t item)
  */
 void dc_array_add_ptr(dc_array_t* array, void* item)
 {
-	mrarray_add_uint(array, (uintptr_t)item);
+	dc_array_add_uint(array, (uintptr_t)item);
 }
 
 
@@ -431,7 +431,7 @@ char* mr_arr_to_string(const uint32_t* arr, int cnt)
 }
 
 
-char* mrarray_get_string(const dc_array_t* array, const char* sep)
+char* dc_array_get_string(const dc_array_t* array, const char* sep)
 {
 	char* ret = NULL;
 

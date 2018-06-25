@@ -178,29 +178,29 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		mrsimplify_t* simplify = mrsimplify_new();
+		dc_simplify_t* simplify = dc_simplify_new();
 
 		const char* html = "\r\r\nline1<br>\r\n\r\n\r\rline2\n\r"; /* check, that `<br>\ntext` does not result in `\n text` */
-		char* plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		char* plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
 		assert( strcmp(plain, "line1\nline2")==0 );
 		free(plain);
 
 		html = "<a href=url>text</a"; /* check unquoted attribute and unclosed end-tag */
-		plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
 		assert( strcmp(plain, "[text](url)")==0 );
 		free(plain);
 
 		html = "<!DOCTYPE name [<!DOCTYPE ...>]><!-- comment -->text <b><?php echo ... ?>bold</b><![CDATA[<>]]>";
-		plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
 		assert( strcmp(plain, "text *bold*<>")==0 );
 		free(plain);
 
 		html = "&lt;&gt;&quot;&apos;&amp; &auml;&Auml;&ouml;&Ouml;&uuml;&Uuml;&szlig; foo&AElig;&ccedil;&Ccedil; &diams;&noent;&lrm;&rlm;&zwnj;&zwj;";
-		plain = mrsimplify_simplify(simplify, html, strlen(html), 1);
+		plain = dc_simplify_simplify(simplify, html, strlen(html), 1);
 		assert( strcmp(plain, "<>\"'& äÄöÖüÜß fooÆçÇ ♦&noent;")==0 );
 		free(plain);
 
-		mrsimplify_unref(simplify);
+		dc_simplify_unref(simplify);
 	}
 
 	/* test mailmime
@@ -237,7 +237,7 @@ void stress_functions(mrmailbox_t* mailbox)
 	**************************************************************************/
 
 	{
-		mrmimeparser_t* mimeparser = mrmimeparser_new(mailbox->m_blobdir, mailbox);
+		dc_mimeparser_t* mimeparser = dc_mimeparser_new(mailbox->m_blobdir, mailbox);
 
 		const char* raw =
 			"Content-Type: multipart/mixed; boundary=\"==break==\";\n"
@@ -258,22 +258,22 @@ void stress_functions(mrmailbox_t* mailbox)
 			"--==break==--\n"
 			"\n";
 
-		mrmimeparser_parse(mimeparser, raw, strlen(raw));
+		dc_mimeparser_parse(mimeparser, raw, strlen(raw));
 
 		assert( strcmp(mimeparser->m_subject, "inner-subject")==0 );
 
-		struct mailimf_optional_field* of = mrmimeparser_lookup_optional_field(mimeparser, "X-Special-A");
+		struct mailimf_optional_field* of = dc_mimeparser_lookup_optional_field(mimeparser, "X-Special-A");
 		assert( strcmp(of->fld_value, "special-a")==0 );
 
-		of = mrmimeparser_lookup_optional_field(mimeparser, "Foo");
+		of = dc_mimeparser_lookup_optional_field(mimeparser, "Foo");
 		assert( strcmp(of->fld_value, "Bar")==0 ); /* completely unknown values are not overwritten */
 
-		of = mrmimeparser_lookup_optional_field(mimeparser, "Chat-Version");
+		of = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Version");
 		assert( strcmp(of->fld_value, "1.0")==0 );
 
 		assert( carray_count(mimeparser->m_parts) == 1 );
 
-		mrmimeparser_unref(mimeparser);
+		dc_mimeparser_unref(mimeparser);
 	}
 
 	/* test message helpers
@@ -282,10 +282,10 @@ void stress_functions(mrmailbox_t* mailbox)
 	{
 		int type;
 		char* mime;
-		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, NULL);
-		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, &mime);
+		dc_msg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, NULL);
+		dc_msg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, &mime);
 		assert( strcmp(mime, "audio/mpeg")==0 );
-		mrmsg_guess_msgtype_from_suffix("foo/bar-sth.mp3", &type, NULL);
+		dc_msg_guess_msgtype_from_suffix("foo/bar-sth.mp3", &type, NULL);
 		assert( type == MR_MSG_AUDIO );
 		free(mime);
 	}
@@ -504,18 +504,18 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( mrarray_get_id(arr, TEST_CNT) == 0 ); /* test out-of-range access */
 		assert( mrarray_get_id(arr, TEST_CNT+1) == 0 ); /* test out-of-range access */
 
-		mrarray_empty(arr);
-		assert( mrarray_get_cnt(arr) == 0 );
+		dc_array_empty(arr);
+		assert( dc_array_get_cnt(arr) == 0 );
 
-		mrarray_add_id(arr, 13);
-		mrarray_add_id(arr, 7);
-		mrarray_add_id(arr, 666);
-		mrarray_add_id(arr, 0);
-		mrarray_add_id(arr, 5000);
-		mrarray_sort_ids(arr);
-		assert( mrarray_get_id(arr, 0)==0 && mrarray_get_id(arr, 1)==7 && mrarray_get_id(arr, 2)==13 && mrarray_get_id(arr, 3)==666 );
+		dc_array_add_id(arr, 13);
+		dc_array_add_id(arr, 7);
+		dc_array_add_id(arr, 666);
+		dc_array_add_id(arr, 0);
+		dc_array_add_id(arr, 5000);
+		dc_array_sort_ids(arr);
+		assert( dc_array_get_id(arr, 0)==0 && dc_array_get_id(arr, 1)==7 && dc_array_get_id(arr, 2)==13 && dc_array_get_id(arr, 3)==666 );
 
-		char* str = mrarray_get_string(arr, "-");
+		char* str = dc_array_get_string(arr, "-");
 		assert( strcmp(str, "0-7-13-666-5000")==0 );
 		free(str);
 
@@ -525,17 +525,17 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(str);
 		mrarray_empty(arr);
 
-		mrarray_add_ptr(arr, "XX");
-		mrarray_add_ptr(arr, "item1");
-		mrarray_add_ptr(arr, "bbb");
-		mrarray_add_ptr(arr, "aaa");
-		mrarray_sort_strings(arr);
-		assert( strcmp("XX",    (char*)mrarray_get_ptr(arr, 0))==0 );
-		assert( strcmp("aaa",   (char*)mrarray_get_ptr(arr, 1))==0 );
-		assert( strcmp("bbb",   (char*)mrarray_get_ptr(arr, 2))==0 );
-		assert( strcmp("item1", (char*)mrarray_get_ptr(arr, 3))==0 );
+		dc_array_add_ptr(arr, "XX");
+		dc_array_add_ptr(arr, "item1");
+		dc_array_add_ptr(arr, "bbb");
+		dc_array_add_ptr(arr, "aaa");
+		dc_array_sort_strings(arr);
+		assert( strcmp("XX",    (char*)dc_array_get_ptr(arr, 0))==0 );
+		assert( strcmp("aaa",   (char*)dc_array_get_ptr(arr, 1))==0 );
+		assert( strcmp("bbb",   (char*)dc_array_get_ptr(arr, 2))==0 );
+		assert( strcmp("item1", (char*)dc_array_get_ptr(arr, 3))==0 );
 
-		mrarray_unref(arr);
+		dc_array_unref(arr);
 	}
 
 	/* test mrparam
@@ -631,21 +631,21 @@ void stress_functions(mrmailbox_t* mailbox)
 		const char *headerline, *setupcodebegin, *preferencrypt, *base64;
 
 		buf = strdup("-----BEGIN PGP MESSAGE-----\nNoVal:\n\ndata\n-----END PGP MESSAGE-----");
-		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		ok = dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 1 );
 		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 		assert( base64 && strcmp(base64, "data") == 0 );
 		free(buf);
 
 		buf = strdup("-----BEGIN PGP MESSAGE-----\n\ndat1\n-----END PGP MESSAGE-----\n-----BEGIN PGP MESSAGE-----\n\ndat2\n-----END PGP MESSAGE-----");
-		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		ok = dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 1 );
 		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 		assert( base64 && strcmp(base64, "dat1") == 0 );
 		free(buf);
 
 		buf = strdup("foo \n -----BEGIN PGP MESSAGE----- \n base64-123 \n  -----END PGP MESSAGE-----");
-		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		ok = dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 1 );
 		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 		assert( setupcodebegin == NULL );
@@ -653,12 +653,12 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf);
 
 		buf = strdup("foo-----BEGIN PGP MESSAGE-----");
-		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		ok = dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 0 );
 		free(buf);
 
 		buf = strdup("foo \n -----BEGIN PGP MESSAGE-----\n  Passphrase-BeGIN  :  23 \n  \n base64-567 \r\n abc \n  -----END PGP MESSAGE-----\n\n\n");
-		ok = mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
+		ok = dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, &base64);
 		assert( ok == 1 );
 		assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 		assert( setupcodebegin && strcmp(setupcodebegin, "23")==0 );
@@ -666,7 +666,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf);
 
 		buf = strdup("-----BEGIN PGP PRIVATE KEY BLOCK-----\n Autocrypt-Prefer-Encrypt :  mutual \n\nbase64\n-----END PGP PRIVATE KEY BLOCK-----");
-		ok = mr_split_armored_data(buf, &headerline, NULL, &preferencrypt, &base64);
+		ok = dc_split_armored_data(buf, &headerline, NULL, &preferencrypt, &base64);
 		assert( ok == 1 );
 		assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
 		assert( preferencrypt && strcmp(preferencrypt, "mutual")==0 );
@@ -692,14 +692,14 @@ void stress_functions(mrmailbox_t* mailbox)
 		const char *headerline = NULL, *setupcodebegin = NULL, *preferencrypt = NULL;
 
 		buf = strdup(s_em_setupfile);
-			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
+			assert( dc_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 			assert( setupcodebegin && strlen(setupcodebegin)<strlen(s_em_setupcode) && strncmp(setupcodebegin, s_em_setupcode, strlen(setupcodebegin))==0 );
 			assert( preferencrypt==NULL );
 		free(buf);
 
 		assert( (buf=mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile)) != NULL );
-			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
+			assert( dc_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
 			assert( setupcodebegin==NULL );
 			assert( preferencrypt && strcmp(preferencrypt, "mutual")==0 );
@@ -719,7 +719,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		{
 			char *buf = safe_strdup(setupfile);
 			const char *headerline = NULL, *setupcodebegin = NULL;
-			assert( mr_split_armored_data(buf, &headerline, &setupcodebegin, NULL, NULL) );
+			assert( dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );
 			assert( setupcodebegin && strlen(setupcodebegin)==2 && strncmp(setupcodebegin, setupcode, 2)==0 );
 			free(buf);
@@ -729,7 +729,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			char *payload = NULL;
 			const char *headerline = NULL;
 			assert( (payload=mrmailbox_decrypt_setup_file(mailbox, setupcode, setupfile))!=NULL );
-			assert( mr_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
+			assert( dc_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
 			free(payload);
 		}
@@ -742,140 +742,140 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		mrkey_t *bad_key = mrkey_new();
+		dc_key_t *bad_key = dc_key_new();
 			#define BAD_DATA_BYTES 4096
 			unsigned char bad_data[BAD_DATA_BYTES];
 			for( int i = 0; i < BAD_DATA_BYTES; i++ ) {
 				bad_data[i] = (unsigned char)(i&0xFF);
 			}
 			for( int j = 0; j < BAD_DATA_BYTES/40; j++ ) {
-				mrkey_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
-				assert( !mrpgp_is_valid_key(mailbox, bad_key) );
+				dc_key_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
+				assert( !dc_pgp_is_valid_key(mailbox, bad_key) );
 			}
-		mrkey_unref(bad_key);
+		dc_key_unref(bad_key);
 	}
 
 	{
-		mrkey_t *public_key = mrkey_new(), *private_key = mrkey_new();
-		mrpgp_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
-		assert( mrpgp_is_valid_key(mailbox, public_key) );
-		assert( mrpgp_is_valid_key(mailbox, private_key) );
+		dc_key_t *public_key = dc_key_new(), *private_key = dc_key_new();
+		dc_pgp_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
+		assert( dc_pgp_is_valid_key(mailbox, public_key) );
+		assert( dc_pgp_is_valid_key(mailbox, private_key) );
 		//{char *t1=mrkey_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
 		//{char *t1=mrkey_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
 
 		{
-			mrkey_t *test_key = mrkey_new();
-			assert( mrpgp_split_key(mailbox, private_key, test_key) );
+			dc_key_t *test_key = dc_key_new();
+			assert( dc_pgp_split_key(mailbox, private_key, test_key) );
 			//assert( mrkey_equals(public_key, test_key) );
-			mrkey_unref(test_key);
+			dc_key_unref(test_key);
 		}
 
-		mrkey_t *public_key2 = mrkey_new(), *private_key2 = mrkey_new();
-		mrpgp_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
+		dc_key_t *public_key2 = dc_key_new(), *private_key2 = dc_key_new();
+		dc_pgp_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
 
-		assert( !mrkey_equals(public_key, public_key2) );
+		assert( !dc_key_equals(public_key, public_key2) );
 
 		const char* original_text = "This is a test";
 		void *ctext_signed = NULL, *ctext_unsigned = NULL;
 		size_t ctext_signed_bytes = 0, ctext_unsigned_bytes, plain_bytes = 0;
 
 		{
-			mrkeyring_t* keyring = mrkeyring_new();
-			mrkeyring_add(keyring, public_key);
-			mrkeyring_add(keyring, public_key2);
-				int ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext_signed, &ctext_signed_bytes);
+			dc_keyring_t* keyring = dc_keyring_new();
+			dc_keyring_add(keyring, public_key);
+			dc_keyring_add(keyring, public_key2);
+				int ok = dc_pgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext_signed, &ctext_signed_bytes);
 				assert( ok && ctext_signed && ctext_signed_bytes>0 );
 				assert( strncmp((char*)ctext_signed, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext_signed)[ctext_signed_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
 				//{char* t3 = mr_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
 
-				ok = mrpgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
+				ok = dc_pgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
 				assert( ok && ctext_unsigned && ctext_unsigned_bytes>0 );
 				assert( strncmp((char*)ctext_unsigned, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ctext_unsigned_bytes < ctext_signed_bytes );
 
-			mrkeyring_unref(keyring);
+			dc_keyring_unref(keyring);
 		}
 
 		{
-			mrkeyring_t* keyring = mrkeyring_new();
-			mrkeyring_add(keyring, private_key);
+			dc_keyring_t* keyring = dc_keyring_new();
+			dc_keyring_add(keyring, private_key);
 
-			mrkeyring_t* public_keyring = mrkeyring_new();
-			mrkeyring_add(public_keyring, public_key);
+			dc_keyring_t* public_keyring = dc_keyring_new();
+			dc_keyring_add(public_keyring, public_key);
 
-			mrkeyring_t* public_keyring2 = mrkeyring_new();
-			mrkeyring_add(public_keyring2, public_key2);
+			dc_keyring_t* public_keyring2 = dc_keyring_new();
+			dc_keyring_add(public_keyring2, public_key2);
 
 			void* plain = NULL;
-			mrhash_t valid_signatures;
-			mrhash_init(&valid_signatures, MRHASH_STRING, 1/*copy key*/);
+			dc_hash_t valid_signatures;
+			dc_hash_init(&valid_signatures, MRHASH_STRING, 1/*copy key*/);
 			int ok;
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( mrhash_count(&valid_signatures) == 1 );
+			assert( dc_hash_count(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
-			mrhash_clear(&valid_signatures);
+			dc_hash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( mrhash_count(&valid_signatures) == 0 );
+			assert( dc_hash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
-			mrhash_clear(&valid_signatures);
+			dc_hash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( mrhash_count(&valid_signatures) == 0 );
+			assert( dc_hash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
-			mrhash_clear(&valid_signatures);
+			dc_hash_clear(&valid_signatures);
 
-			mrkeyring_add(public_keyring2, public_key);
-			ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			dc_keyring_add(public_keyring2, public_key);
+			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( mrhash_count(&valid_signatures) == 1 );
+			assert( dc_hash_count(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
-			mrhash_clear(&valid_signatures);
+			dc_hash_clear(&valid_signatures);
 
-			ok = mrpgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
-			assert( mrhash_count(&valid_signatures) == 0 );
+			assert( dc_hash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
-			mrhash_clear(&valid_signatures);
+			dc_hash_clear(&valid_signatures);
 
-			mrkeyring_unref(keyring);
-			mrkeyring_unref(public_keyring);
-			mrkeyring_unref(public_keyring2);
+			dc_keyring_unref(keyring);
+			dc_keyring_unref(public_keyring);
+			dc_keyring_unref(public_keyring2);
 		}
 
 		{
-			mrkeyring_t* keyring = mrkeyring_new();
-			mrkeyring_add(keyring, private_key2);
+			dc_keyring_t* keyring = dc_keyring_new();
+			dc_keyring_add(keyring, private_key2);
 
-			mrkeyring_t* public_keyring = mrkeyring_new();
-			mrkeyring_add(public_keyring, public_key);
+			dc_keyring_t* public_keyring = dc_keyring_new();
+			dc_keyring_add(public_keyring, public_key);
 
 			void* plain = NULL;
-			int ok = mrpgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, NULL);
+			int ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, NULL);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			free(plain);
 
-			mrkeyring_unref(keyring);
-			mrkeyring_unref(public_keyring);
+			dc_keyring_unref(keyring);
+			dc_keyring_unref(public_keyring);
 		}
 
 		free(ctext_signed);
 		free(ctext_unsigned);
-		mrkey_unref(public_key2);
-		mrkey_unref(private_key2);
-		mrkey_unref(public_key);
-		mrkey_unref(private_key);
+		dc_key_unref(public_key2);
+		dc_key_unref(private_key2);
+		dc_key_unref(public_key);
+		dc_key_unref(private_key);
 	}
 
 

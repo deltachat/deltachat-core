@@ -33,17 +33,17 @@ extern "C" {
 #define         MR_CHAT_DEADDROP_BLOCKED  2
 
 
-/** the structure behind mrchat_t */
+/** the structure behind dc_chat_t */
 struct _dc_chat
 {
 	/** @privatesection */
 	uint32_t        m_magic;
 	uint32_t        m_id;
-	int             m_type;             /**< Chat type. Use mrchat_get_type() to access this field. */
-	char*           m_name;             /**< Name of the chat. Use mrchat_get_name() to access this field. NULL if unset. */
+	int             m_type;             /**< Chat type. Use dc_chat_get_type() to access this field. */
+	char*           m_name;             /**< Name of the chat. Use dc_chat_get_name() to access this field. NULL if unset. */
 	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
 	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
-	int             m_archived;         /**< Archived state. Better use mrchat_get_archived() to access this object. */
+	int             m_archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
 	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	int             m_blocked;          /**< One of MR_CHAT_*_BLOCKED */
@@ -51,9 +51,9 @@ struct _dc_chat
 };
 
 
-int             mrchat_load_from_db__             (mrchat_t*, uint32_t id);
-int             mrchat_update_param__             (mrchat_t*);
-int             mrchat_are_all_members_verified__ (mrchat_t*);
+int             dc_chat_load_from_db__             (dc_chat_t*, uint32_t id);
+int             dc_chat_update_param__             (dc_chat_t*);
+int             dc_chat_are_all_members_verified__ (dc_chat_t*);
 
 
 #define         MR_CHAT_TYPE_IS_MULTI(a)   ((a)==MR_CHAT_TYPE_GROUP || (a)==MR_CHAT_TYPE_VERIFIED_GROUP)

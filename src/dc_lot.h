@@ -33,8 +33,8 @@ struct _dc_lot
 	/** @privatesection */
 	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
 	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
-	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with mrlot_unref(). NULL if not applicable. */
+	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
+	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
 	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
 	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
 
@@ -48,7 +48,7 @@ struct _dc_lot
 
 /* library-internal */
 #define MR_SUMMARY_CHARACTERS 160 /* in practice, the user additionally cuts the string himself pixel-accurate */
-void            mrlot_fill      (mrlot_t*, const mrmsg_t*, const mrchat_t*, const mrcontact_t*);
+void            dc_lot_fill      (dc_lot_t*, const dc_msg_t*, const dc_chat_t*, const dc_contact_t*);
 
 
 #ifdef __cplusplus

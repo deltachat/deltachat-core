@@ -41,7 +41,7 @@ typedef struct mrhashelem_t   mrhashelem_t;
  * accessing this structure are really macros, so we can't really make
  * this structure opaque.
  */
-typedef struct mrhash_t
+typedef struct dc_hash_t
 {
 	char              keyClass;       /* SJHASH_INT, _POINTER, _STRING, _BINARY */
 	char              copyKey;        /* True if copy of key made on insert */
@@ -53,7 +53,7 @@ typedef struct mrhash_t
 		int           count;          /* Number of entries with this hash */
 		mrhashelem_t* chain;          /* Pointer to first entry with this hash */
 	} *ht;
-} mrhash_t;
+} dc_hash_t;
 
 
 /* Each element in the hash table is an instance of the following
@@ -86,7 +86,7 @@ typedef struct mrhashelem_t
  *                      memcmp() is used to compare keys.
  *
  * A copy of the key is made for MRHASH_STRING and MRHASH_BINARY
- * if the copyKey parameter to mrhash_init() is 1.
+ * if the copyKey parameter to dc_hash_init() is 1.
  */
 #define MRHASH_INT       1
 #define MRHASH_POINTER   2
@@ -97,12 +97,12 @@ typedef struct mrhashelem_t
 /*
  * Access routines.  To delete an element, insert a NULL pointer.
  */
-void    mrhash_init     (mrhash_t*, int keytype, int copyKey);
-void*   mrhash_insert   (mrhash_t*, const void *pKey, int nKey, void *pData);
-void*   mrhash_find     (const mrhash_t*, const void *pKey, int nKey);
-void    mrhash_clear    (mrhash_t*);
+void    dc_hash_init     (dc_hash_t*, int keytype, int copyKey);
+void*   dc_hash_insert   (dc_hash_t*, const void *pKey, int nKey, void *pData);
+void*   dc_hash_find     (const dc_hash_t*, const void *pKey, int nKey);
+void    dc_hash_clear    (dc_hash_t*);
 
-#define mrhash_find_str(H, s) mrhash_find((H), (s), strlen((s)))
+#define dc_hash_find_str(H, s) dc_hash_find((H), (s), strlen((s)))
 
 
 /*
@@ -112,22 +112,22 @@ void    mrhash_clear    (mrhash_t*);
  *   SjHash h;
  *   SjHashElem *p;
  *   ...
- *   for(p=mrhash_first(&h); p; p=mrhash_next(p)){
- *     SomeStructure *pData = mrhash_data(p);
+ *   for(p=dc_hash_first(&h); p; p=dc_hash_next(p)){
+ *     SomeStructure *pData = dc_hash_data(p);
  *     // do something with pData
  *   }
  */
-#define mrhash_first(H)      ((H)->first)
-#define mrhash_next(E)       ((E)->next)
-#define mrhash_data(E)       ((E)->data)
-#define mrhash_key(E)        ((E)->pKey)
-#define mrhash_keysize(E)    ((E)->nKey)
+#define dc_hash_first(H)      ((H)->first)
+#define dc_hash_next(E)       ((E)->next)
+#define dc_hash_data(E)       ((E)->data)
+#define dc_hash_key(E)        ((E)->pKey)
+#define dc_hash_keysize(E)    ((E)->nKey)
 
 
 /*
  * Number of entries in a hash table
  */
-#define mrhash_count(H)      ((H)->count)
+#define dc_hash_count(H)      ((H)->count)
 
 
 #ifdef __cplusplus
