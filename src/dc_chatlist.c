@@ -31,25 +31,25 @@
  *
  * @private @memberof dc_chatlist_t
  *
- * @param mailbox The mailbox object that should be stored in the chatlist object.
+ * @param context The context that should be stored in the chatlist object.
  *
  * @return New and empty chatlist object, must be freed using dc_chatlist_unref().
  */
-dc_chatlist_t* dc_chatlist_new(dc_context_t* mailbox)
+dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
 {
-	dc_chatlist_t* ths = NULL;
+	dc_chatlist_t* chatlist = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_chatlist_t)))==NULL ) {
+	if( (chatlist=calloc(1, sizeof(dc_chatlist_t)))==NULL ) {
 		exit(20);
 	}
 
-	ths->m_magic   = DC_CHATLIST_MAGIC;
-	ths->m_context = mailbox;
-	if( (ths->m_chatNlastmsg_ids=dc_array_new(mailbox, 128))==NULL ) {
+	chatlist->m_magic   = DC_CHATLIST_MAGIC;
+	chatlist->m_context = context;
+	if( (chatlist->m_chatNlastmsg_ids=dc_array_new(context, 128))==NULL ) {
 		exit(32);
 	}
 
-	return ths;
+	return chatlist;
 }
 
 
@@ -281,13 +281,13 @@ cleanup:
 
 
 /**
- * Helper function to get the associated mailbox object.
+ * Helper function to get the associated context object.
  *
  * @memberof dc_chatlist_t
  *
  * @param chatlist The chatlist object to empty.
  *
- * @return Mailbox object associated with the chatlist. NULL if none or on errors.
+ * @return Context object associated with the chatlist. NULL if none or on errors.
  */
 dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 {
@@ -305,7 +305,7 @@ dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
  *
  * @private @memberof dc_chatlist_t
  */
-int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* query__, uint32_t query_contact_id)
+int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	//clock_t       start = clock();
 
@@ -314,11 +314,11 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	sqlite3_stmt* stmt = NULL;
 	char*         strLikeCmd = NULL, *query = NULL;
 
-	if( ths == NULL || ths->m_magic != DC_CHATLIST_MAGIC || ths->m_context == NULL ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_context == NULL ) {
 		goto cleanup;
 	}
 
-	dc_chatlist_empty(ths);
+	dc_chatlist_empty(chatlist);
 
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
@@ -336,29 +336,29 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	if( query_contact_id )
 	{
 		// show chats shared with a given contact
-		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
+		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
 			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
 		sqlite3_bind_int(stmt, 1, query_contact_id);
 	}
 	else if( listflags & DC_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
-		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
+		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
 			QUR1 " AND c.archived=1 " QUR2);
 	}
 	else if( query__==NULL )
 	{
 		/* show normal chatlist  */
 		if( !(listflags & DC_GCL_NO_SPECIALS) ) {
-			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(ths->m_context);
+			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(chatlist->m_context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
-				dc_array_add_id(ths->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
-				dc_array_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
+				dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
+				dc_array_add_id(chatlist->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
 			}
 			add_archived_link_item = 1;
 		}
 
-		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
+		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
 			QUR1 " AND c.archived=0 " QUR2);
 	}
 	else
@@ -371,28 +371,28 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 			goto cleanup;
 		}
 		strLikeCmd = dc_mprintf("%%%s%%", query);
-		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
+		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
-		dc_array_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
-		dc_array_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
+		dc_array_add_id(chatlist->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
+		dc_array_add_id(chatlist->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
-    if( add_archived_link_item && dc_get_archived_count__(ths->m_context)>0 )
+    if( add_archived_link_item && dc_get_archived_count__(chatlist->m_context)>0 )
     {
-		dc_array_add_id(ths->m_chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
-		dc_array_add_id(ths->m_chatNlastmsg_ids, 0);
+		dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
+		dc_array_add_id(chatlist->m_chatNlastmsg_ids, 0);
     }
 
-	ths->m_cnt = dc_array_get_cnt(ths->m_chatNlastmsg_ids)/DC_CHATLIST_IDS_PER_RESULT;
+	chatlist->m_cnt = dc_array_get_cnt(chatlist->m_chatNlastmsg_ids)/DC_CHATLIST_IDS_PER_RESULT;
 	success = 1;
 
 cleanup:
-	//dc_log_info(ths->m_context, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//dc_log_info(chatlist->m_context, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
 	free(query);
 	free(strLikeCmd);

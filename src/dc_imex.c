@@ -1049,7 +1049,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->m_dbfile);
 
 	if( dc_is_configured(context) ) {
-		dc_log_error(context, 0, "Cannot import backups to mailboxes in use.");
+		dc_log_error(context, 0, "Cannot import backups to accounts in use.");
 		goto cleanup;
 	}
 

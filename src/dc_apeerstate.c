@@ -31,47 +31,47 @@
  ******************************************************************************/
 
 
-static void dc_apeerstate_empty(dc_apeerstate_t* ths)
+static void dc_apeerstate_empty(dc_apeerstate_t* peerstate)
 {
-	if( ths == NULL ) {
+	if( peerstate == NULL ) {
 		return;
 	}
 
-	ths->m_last_seen           = 0;
-	ths->m_last_seen_autocrypt = 0;
-	ths->m_prefer_encrypt      = 0;
-	ths->m_to_save             = 0;
+	peerstate->m_last_seen           = 0;
+	peerstate->m_last_seen_autocrypt = 0;
+	peerstate->m_prefer_encrypt      = 0;
+	peerstate->m_to_save             = 0;
 
-	free(ths->m_addr);
-	ths->m_addr = NULL;
+	free(peerstate->m_addr);
+	peerstate->m_addr = NULL;
 
-	free(ths->m_public_key_fingerprint);
-	ths->m_public_key_fingerprint = NULL;
+	free(peerstate->m_public_key_fingerprint);
+	peerstate->m_public_key_fingerprint = NULL;
 
-	free(ths->m_gossip_key_fingerprint);
-	ths->m_gossip_key_fingerprint = NULL;
+	free(peerstate->m_gossip_key_fingerprint);
+	peerstate->m_gossip_key_fingerprint = NULL;
 
-	free(ths->m_verified_key_fingerprint);
-	ths->m_verified_key_fingerprint = NULL;
+	free(peerstate->m_verified_key_fingerprint);
+	peerstate->m_verified_key_fingerprint = NULL;
 
-	if( ths->m_public_key ) {
-		dc_key_unref(ths->m_public_key);
-		ths->m_public_key = NULL;
+	if( peerstate->m_public_key ) {
+		dc_key_unref(peerstate->m_public_key);
+		peerstate->m_public_key = NULL;
 	}
 
-	ths->m_gossip_timestamp = 0;
+	peerstate->m_gossip_timestamp = 0;
 
-	if( ths->m_gossip_key ) {
-		dc_key_unref(ths->m_gossip_key);
-		ths->m_gossip_key = NULL;
+	if( peerstate->m_gossip_key ) {
+		dc_key_unref(peerstate->m_gossip_key);
+		peerstate->m_gossip_key = NULL;
 	}
 
-	if( ths->m_verified_key ) {
-		dc_key_unref(ths->m_verified_key);
-		ths->m_verified_key = NULL;
+	if( peerstate->m_verified_key ) {
+		dc_key_unref(peerstate->m_verified_key);
+		peerstate->m_verified_key = NULL;
 	}
 
-	ths->m_degrade_event = 0;
+	peerstate->m_degrade_event = 0;
 }
 
 
@@ -167,51 +167,51 @@ cleanup:
 }
 
 
-int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, dc_sqlite3_t* sql, int create)
+int dc_apeerstate_save_to_db__(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, int create)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || sql==NULL || ths->m_addr==NULL ) {
+	if( peerstate==NULL || sql==NULL || peerstate->m_addr==NULL ) {
 		return 0;
 	}
 
 	if( create ) {
 		stmt = dc_sqlite3_predefine__(sql, INSERT_INTO_acpeerstates_a, "INSERT INTO acpeerstates (addr) VALUES(?);");
-		sqlite3_bind_text(stmt, 1, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
 	}
 
-	if( (ths->m_to_save&DC_SAVE_ALL) || create )
+	if( (peerstate->m_to_save&DC_SAVE_ALL) || create )
 	{
 		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
 			"UPDATE acpeerstates "
 			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
 			"       public_key=?, gossip_timestamp=?, gossip_key=?, public_key_fingerprint=?, gossip_key_fingerprint=?, verified_key=?, verified_key_fingerprint=? "
 			" WHERE addr=?;");
-		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
-		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
-		sqlite3_bind_int64(stmt, 3, ths->m_prefer_encrypt);
-		sqlite3_bind_blob (stmt, 4, ths->m_public_key? ths->m_public_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_public_key? ths->m_public_key->m_bytes : 0, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 5, ths->m_gossip_timestamp);
-		sqlite3_bind_blob (stmt, 6, ths->m_gossip_key? ths->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_gossip_key? ths->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 7, ths->m_public_key_fingerprint, -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 8, ths->m_gossip_key_fingerprint, -1, SQLITE_STATIC);
-		sqlite3_bind_blob (stmt, 9, ths->m_verified_key? ths->m_verified_key->m_binary : NULL/*results in sqlite3_bind_null()*/, ths->m_verified_key? ths->m_verified_key->m_bytes : 0, SQLITE_STATIC);
-		sqlite3_bind_text (stmt,10, ths->m_verified_key_fingerprint, -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt,11, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 1, peerstate->m_last_seen);
+		sqlite3_bind_int64(stmt, 2, peerstate->m_last_seen_autocrypt);
+		sqlite3_bind_int64(stmt, 3, peerstate->m_prefer_encrypt);
+		sqlite3_bind_blob (stmt, 4, peerstate->m_public_key? peerstate->m_public_key->m_binary : NULL/*results in sqlite3_bind_null()*/, peerstate->m_public_key? peerstate->m_public_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 5, peerstate->m_gossip_timestamp);
+		sqlite3_bind_blob (stmt, 6, peerstate->m_gossip_key? peerstate->m_gossip_key->m_binary : NULL/*results in sqlite3_bind_null()*/, peerstate->m_gossip_key? peerstate->m_gossip_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 7, peerstate->m_public_key_fingerprint, -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt, 8, peerstate->m_gossip_key_fingerprint, -1, SQLITE_STATIC);
+		sqlite3_bind_blob (stmt, 9, peerstate->m_verified_key? peerstate->m_verified_key->m_binary : NULL/*results in sqlite3_bind_null()*/, peerstate->m_verified_key? peerstate->m_verified_key->m_bytes : 0, SQLITE_STATIC);
+		sqlite3_bind_text (stmt,10, peerstate->m_verified_key_fingerprint, -1, SQLITE_STATIC);
+		sqlite3_bind_text (stmt,11, peerstate->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
 	}
-	else if( ths->m_to_save&DC_SAVE_TIMESTAMPS )
+	else if( peerstate->m_to_save&DC_SAVE_TIMESTAMPS )
 	{
 		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
 			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
-		sqlite3_bind_int64(stmt, 1, ths->m_last_seen);
-		sqlite3_bind_int64(stmt, 2, ths->m_last_seen_autocrypt);
-		sqlite3_bind_int64(stmt, 3, ths->m_gossip_timestamp);
-		sqlite3_bind_text (stmt, 4, ths->m_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_int64(stmt, 1, peerstate->m_last_seen);
+		sqlite3_bind_int64(stmt, 2, peerstate->m_last_seen_autocrypt);
+		sqlite3_bind_int64(stmt, 3, peerstate->m_gossip_timestamp);
+		sqlite3_bind_text (stmt, 4, peerstate->m_addr, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
@@ -229,30 +229,30 @@ cleanup:
  ******************************************************************************/
 
 
-dc_apeerstate_t* dc_apeerstate_new(dc_context_t* mailbox)
+dc_apeerstate_t* dc_apeerstate_new(dc_context_t* context)
 {
-	dc_apeerstate_t* ths = NULL;
+	dc_apeerstate_t* peerstate = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_apeerstate_t)))==NULL ) {
+	if( (peerstate=calloc(1, sizeof(dc_apeerstate_t)))==NULL ) {
 		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_context = mailbox;
+	peerstate->m_context = context;
 
-	return ths;
+	return peerstate;
 }
 
 
-void dc_apeerstate_unref(dc_apeerstate_t* ths)
+void dc_apeerstate_unref(dc_apeerstate_t* peerstate)
 {
-	if( ths==NULL ) {
+	if( peerstate==NULL ) {
 		return;
 	}
 
-	free(ths->m_addr);
-	dc_key_unref(ths->m_public_key);
-	dc_key_unref(ths->m_gossip_key);
-	free(ths);
+	free(peerstate->m_addr);
+	dc_key_unref(peerstate->m_public_key);
+	dc_key_unref(peerstate->m_gossip_key);
+	free(peerstate);
 }
 
 
@@ -335,22 +335,22 @@ dc_key_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verif
  ******************************************************************************/
 
 
-int dc_apeerstate_init_from_header(dc_apeerstate_t* ths, const dc_aheader_t* header, time_t message_time)
+int dc_apeerstate_init_from_header(dc_apeerstate_t* peerstate, const dc_aheader_t* header, time_t message_time)
 {
-	if( ths == NULL || header == NULL ) {
+	if( peerstate == NULL || header == NULL ) {
 		return 0;
 	}
 
-	dc_apeerstate_empty(ths);
-	ths->m_addr                = dc_strdup(header->m_addr);
-	ths->m_last_seen           = message_time;
-	ths->m_last_seen_autocrypt = message_time;
-	ths->m_to_save             = DC_SAVE_ALL;
-	ths->m_prefer_encrypt      = header->m_prefer_encrypt;
+	dc_apeerstate_empty(peerstate);
+	peerstate->m_addr                = dc_strdup(header->m_addr);
+	peerstate->m_last_seen           = message_time;
+	peerstate->m_last_seen_autocrypt = message_time;
+	peerstate->m_to_save             = DC_SAVE_ALL;
+	peerstate->m_prefer_encrypt      = header->m_prefer_encrypt;
 
-	ths->m_public_key = dc_key_new();
-	dc_key_set_from_key(ths->m_public_key, header->m_public_key);
-	dc_apeerstate_recalc_fingerprint(ths);
+	peerstate->m_public_key = dc_key_new();
+	dc_key_set_from_key(peerstate->m_public_key, header->m_public_key);
+	dc_apeerstate_recalc_fingerprint(peerstate);
 
 	return 1;
 }
@@ -375,59 +375,59 @@ int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_
 }
 
 
-int dc_apeerstate_degrade_encryption(dc_apeerstate_t* ths, time_t message_time)
+int dc_apeerstate_degrade_encryption(dc_apeerstate_t* peerstate, time_t message_time)
 {
-	if( ths==NULL ) {
+	if( peerstate==NULL ) {
 		return 0;
 	}
 
-	if( ths->m_prefer_encrypt == DC_PE_MUTUAL ) {
-		ths->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
+	if( peerstate->m_prefer_encrypt == DC_PE_MUTUAL ) {
+		peerstate->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 	}
 
-	ths->m_prefer_encrypt = DC_PE_RESET;
-	ths->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
-	ths->m_to_save        = DC_SAVE_ALL;
+	peerstate->m_prefer_encrypt = DC_PE_RESET;
+	peerstate->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
+	peerstate->m_to_save        = DC_SAVE_ALL;
 
 	return 1;
 }
 
 
-void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header, time_t message_time)
+void dc_apeerstate_apply_header(dc_apeerstate_t* peerstate, const dc_aheader_t* header, time_t message_time)
 {
-	if( ths==NULL || header==NULL
-	 || ths->m_addr==NULL
+	if( peerstate==NULL || header==NULL
+	 || peerstate->m_addr==NULL
 	 || header->m_addr==NULL || header->m_public_key->m_binary==NULL
-	 || strcasecmp(ths->m_addr, header->m_addr)!=0 ) {
+	 || strcasecmp(peerstate->m_addr, header->m_addr)!=0 ) {
 		return;
 	}
 
-	if( message_time > ths->m_last_seen_autocrypt )
+	if( message_time > peerstate->m_last_seen_autocrypt )
 	{
-		ths->m_last_seen           = message_time;
-		ths->m_last_seen_autocrypt = message_time;
-		ths->m_to_save             |= DC_SAVE_TIMESTAMPS;
+		peerstate->m_last_seen           = message_time;
+		peerstate->m_last_seen_autocrypt = message_time;
+		peerstate->m_to_save             |= DC_SAVE_TIMESTAMPS;
 
 		if( (header->m_prefer_encrypt==DC_PE_MUTUAL || header->m_prefer_encrypt==DC_PE_NOPREFERENCE) /*this also switches from DC_PE_RESET to DC_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
-		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
+		 &&  header->m_prefer_encrypt != peerstate->m_prefer_encrypt )
 		{
-			if( ths->m_prefer_encrypt == DC_PE_MUTUAL && header->m_prefer_encrypt != DC_PE_MUTUAL ) {
-				ths->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
+			if( peerstate->m_prefer_encrypt == DC_PE_MUTUAL && header->m_prefer_encrypt != DC_PE_MUTUAL ) {
+				peerstate->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 			}
 
-			ths->m_prefer_encrypt = header->m_prefer_encrypt;
-			ths->m_to_save |= DC_SAVE_ALL;
+			peerstate->m_prefer_encrypt = header->m_prefer_encrypt;
+			peerstate->m_to_save |= DC_SAVE_ALL;
 		}
 
-		if( ths->m_public_key == NULL ) {
-			ths->m_public_key = dc_key_new();
+		if( peerstate->m_public_key == NULL ) {
+			peerstate->m_public_key = dc_key_new();
 		}
 
-		if( !dc_key_equals(ths->m_public_key, header->m_public_key) )
+		if( !dc_key_equals(peerstate->m_public_key, header->m_public_key) )
 		{
-			dc_key_set_from_key(ths->m_public_key, header->m_public_key);
-			dc_apeerstate_recalc_fingerprint(ths);
-			ths->m_to_save |= DC_SAVE_ALL;
+			dc_key_set_from_key(peerstate->m_public_key, header->m_public_key);
+			dc_apeerstate_recalc_fingerprint(peerstate);
+			peerstate->m_to_save |= DC_SAVE_ALL;
 		}
 	}
 }

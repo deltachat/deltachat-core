@@ -87,23 +87,23 @@ static int is_quoted_headline(const char* buf)
 
 dc_simplify_t* dc_simplify_new()
 {
-	dc_simplify_t* ths = NULL;
+	dc_simplify_t* simplify = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_simplify_t)))==NULL ) {
+	if( (simplify=calloc(1, sizeof(dc_simplify_t)))==NULL ) {
 		exit(31);
 	}
 
-	return ths;
+	return simplify;
 }
 
 
-void dc_simplify_unref(dc_simplify_t* ths)
+void dc_simplify_unref(dc_simplify_t* simplify)
 {
-	if( ths == NULL ) {
+	if( simplify == NULL ) {
 		return;
 	}
 
-	free(ths);
+	free(simplify);
 }
 
 
@@ -112,7 +112,7 @@ void dc_simplify_unref(dc_simplify_t* ths)
  ******************************************************************************/
 
 
-static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf_terminated)
+static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char* buf_terminated)
 {
 	/* This function ...
 	... removes all text after the line `-- ` (footer mark)
@@ -146,7 +146,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 			 || strcmp(line, "---")==0
 			 || strcmp(line, "----")==0 ) {
 				footer_mark = 1;
-				ths->m_is_cut_at_end = 1;
+				simplify->m_is_cut_at_end = 1;
 			}
 
 			if( footer_mark ) {
@@ -165,7 +165,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		 && strncmp(line1, "From: ", 6)==0
 		 && line2[0] == 0 )
 		{
-            ths->m_is_forwarded = 1; /* nothing is cutted, the forward state should displayed explicitly in the ui */
+            simplify->m_is_forwarded = 1; /* nothing is cutted, the forward state should displayed explicitly in the ui */
             l_first += 3;
 		}
 	}
@@ -182,7 +182,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		 || strncmp(line, "~~~~~", 5)==0 )
 		{
 			l_last = l - 1; /* if l_last is -1, there are no lines */
-			ths->m_is_cut_at_end = 1;
+			simplify->m_is_cut_at_end = 1;
 			break; /* done */
 		}
 	}
@@ -204,7 +204,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		if( l_lastQuotedLine != -1 )
 		{
 			l_last = l_lastQuotedLine-1; /* if l_last is -1, there are no lines */
-			ths->m_is_cut_at_end = 1;
+			simplify->m_is_cut_at_end = 1;
 
 			if( l_last > 0 ) {
 				if( is_empty_line((char*)carray_get(lines, l_last)) ) { /* allow one empty line between quote and quote headline (eg. mails from Jürgen) */
@@ -244,7 +244,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		if( l_lastQuotedLine != -1 )
 		{
 			l_first = l_lastQuotedLine + 1;
-			ths->m_is_cut_at_begin = 1;
+			simplify->m_is_cut_at_begin = 1;
 		}
 	}
 
@@ -252,7 +252,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 	dc_strbuilder_t ret;
 	dc_strbuilder_init(&ret, strlen(buf_terminated));
 
-	if( ths->m_is_cut_at_begin ) {
+	if( simplify->m_is_cut_at_begin ) {
 		dc_strbuilder_cat(&ret, DC_EDITORIAL_ELLIPSE " ");
 	}
 
@@ -284,8 +284,8 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		}
 	}
 
-	if( ths->m_is_cut_at_end
-	 && (!ths->m_is_cut_at_begin || content_lines_added) /* avoid two `[...]` without content */ ) {
+	if( simplify->m_is_cut_at_end
+	 && (!simplify->m_is_cut_at_begin || content_lines_added) /* avoid two `[...]` without content */ ) {
 		dc_strbuilder_cat(&ret, " " DC_EDITORIAL_ELLIPSE);
 	}
 
@@ -300,18 +300,18 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
  ******************************************************************************/
 
 
-char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int in_bytes, int is_html)
+char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated, int in_bytes, int is_html)
 {
 	/* create a copy of the given buffer */
 	char* out = NULL, *temp = NULL;
 
-	if( ths == NULL || in_unterminated == NULL || in_bytes <= 0 ) {
+	if( simplify == NULL || in_unterminated == NULL || in_bytes <= 0 ) {
 		return dc_strdup("");
 	}
 
-	ths->m_is_forwarded    = 0;
-	ths->m_is_cut_at_begin = 0;
-	ths->m_is_cut_at_end   = 0;
+	simplify->m_is_forwarded    = 0;
+	simplify->m_is_cut_at_begin = 0;
+	simplify->m_is_cut_at_end   = 0;
 
 	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
 	if( out == NULL ) {
@@ -328,7 +328,7 @@ char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int 
 
 	/* simplify the text in the buffer (characters to remove may be marked by `\r`) */
 	dc_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
-	if( (temp = dc_simplify_simplify_plain_text(ths, out)) != NULL ) {
+	if( (temp = dc_simplify_simplify_plain_text(simplify, out)) != NULL ) {
 		free(out);
 		out = temp;
 	}

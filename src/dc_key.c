@@ -44,106 +44,106 @@ void dc_wipe_secret_mem(void* buf, size_t buf_bytes)
 }
 
 
-static void dc_key_empty(dc_key_t* ths) /* only use before calling setters; take care when using this function together with reference counting, prefer new objects instead */
+static void dc_key_empty(dc_key_t* key) /* only use before calling setters; take care when using this function together with reference counting, prefer new objects instead */
 {
-	if( ths == NULL ) {
+	if( key == NULL ) {
 		return;
 	}
 
-	if( ths->m_type==DC_KEY_PRIVATE ) {
-		dc_wipe_secret_mem(ths->m_binary, ths->m_bytes);
+	if( key->m_type==DC_KEY_PRIVATE ) {
+		dc_wipe_secret_mem(key->m_binary, key->m_bytes);
 	}
 
-	free(ths->m_binary);
-	ths->m_binary = NULL;
-	ths->m_bytes = 0;
-	ths->m_type = DC_KEY_PUBLIC;
+	free(key->m_binary);
+	key->m_binary = NULL;
+	key->m_bytes = 0;
+	key->m_type = DC_KEY_PUBLIC;
 }
 
 
 dc_key_t* dc_key_new()
 {
-	dc_key_t* ths;
+	dc_key_t* key;
 
-	if( (ths=calloc(1, sizeof(dc_key_t)))==NULL ) {
+	if( (key=calloc(1, sizeof(dc_key_t)))==NULL ) {
 		exit(44); /* cannot allocate little memory, unrecoverable error */
 	}
-	ths->_m_heap_refcnt = 1;
-	return ths;
+	key->_m_heap_refcnt = 1;
+	return key;
 }
 
 
-dc_key_t* dc_key_ref(dc_key_t* ths)
+dc_key_t* dc_key_ref(dc_key_t* key)
 {
-	if( ths==NULL ) {
+	if( key==NULL ) {
 		return NULL;
 	}
-	ths->_m_heap_refcnt++;
-	return ths;
+	key->_m_heap_refcnt++;
+	return key;
 }
 
 
-void dc_key_unref(dc_key_t* ths)
+void dc_key_unref(dc_key_t* key)
 {
-	if( ths==NULL ) {
+	if( key==NULL ) {
 		return;
 	}
 
-	ths->_m_heap_refcnt--;
-	if( ths->_m_heap_refcnt != 0 ) {
+	key->_m_heap_refcnt--;
+	if( key->_m_heap_refcnt != 0 ) {
 		return;
 	}
 
-	dc_key_empty(ths);
-	free(ths);
+	dc_key_empty(key);
+	free(key);
 }
 
 
-int dc_key_set_from_binary(dc_key_t* ths, const void* data, int bytes, int type)
+int dc_key_set_from_binary(dc_key_t* key, const void* data, int bytes, int type)
 {
-    dc_key_empty(ths);
-    if( ths==NULL || data==NULL || bytes <= 0 ) {
+    dc_key_empty(key);
+    if( key==NULL || data==NULL || bytes <= 0 ) {
 		return 0;
     }
-    ths->m_binary = malloc(bytes);
-    if( ths->m_binary == NULL ) {
+    key->m_binary = malloc(bytes);
+    if( key->m_binary == NULL ) {
 		exit(40);
     }
-    memcpy(ths->m_binary, data, bytes);
-    ths->m_bytes = bytes;
-    ths->m_type = type;
+    memcpy(key->m_binary, data, bytes);
+    key->m_bytes = bytes;
+    key->m_type = type;
     return 1;
 }
 
 
-int dc_key_set_from_key(dc_key_t* ths, const dc_key_t* o)
+int dc_key_set_from_key(dc_key_t* key, const dc_key_t* o)
 {
-	dc_key_empty(ths);
-	if( ths==NULL || o==NULL ) {
+	dc_key_empty(key);
+	if( key==NULL || o==NULL ) {
 		return 0;
 	}
-	return dc_key_set_from_binary(ths, o->m_binary, o->m_bytes, o->m_type);
+	return dc_key_set_from_binary(key, o->m_binary, o->m_bytes, o->m_type);
 }
 
 
-int dc_key_set_from_stmt(dc_key_t* ths, sqlite3_stmt* stmt, int index, int type)
+int dc_key_set_from_stmt(dc_key_t* key, sqlite3_stmt* stmt, int index, int type)
 {
-	dc_key_empty(ths);
-	if( ths==NULL || stmt==NULL ) {
+	dc_key_empty(key);
+	if( key==NULL || stmt==NULL ) {
 		return 0;
 	}
-	return dc_key_set_from_binary(ths, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
+	return dc_key_set_from_binary(key, (unsigned char*)sqlite3_column_blob(stmt, index), sqlite3_column_bytes(stmt, index), type);
 }
 
 
-int dc_key_set_from_base64(dc_key_t* ths, const char* base64, int type)
+int dc_key_set_from_base64(dc_key_t* key, const char* base64, int type)
 {
 	size_t indx = 0, result_len = 0;
 	char* result = NULL;
 
-	dc_key_empty(ths);
+	dc_key_empty(key);
 
-	if( ths==NULL || base64==NULL ) {
+	if( key==NULL || base64==NULL ) {
 		return 0;
 	}
 
@@ -152,27 +152,27 @@ int dc_key_set_from_base64(dc_key_t* ths, const char* base64, int type)
 		return 0; /* bad key */
 	}
 
-	dc_key_set_from_binary(ths, result, result_len, type);
+	dc_key_set_from_binary(key, result, result_len, type);
 	mmap_string_unref(result);
 
 	return 1;
 }
 
 
-int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, dc_context_t* mailbox)
+int dc_key_set_from_file(dc_key_t* key, const char* pathNfilename, dc_context_t* context)
 {
 	char*      buf = NULL;
 	const char *headerline, *base64; // just pointers inside buf, must not be freed
 	size_t     buf_bytes;
 	int        type = -1, success = 0;
 
-	dc_key_empty(ths);
+	dc_key_empty(key);
 
-	if( ths==NULL || pathNfilename==NULL ) {
+	if( key==NULL || pathNfilename==NULL ) {
 		goto cleanup;
 	}
 
-	if( !dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, mailbox)
+	if( !dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, context)
 	 || buf_bytes < 50 ) {
 		goto cleanup; /* error is already loged */
 	}
@@ -189,12 +189,12 @@ int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, dc_context_t*
 		type = DC_KEY_PRIVATE;
 	}
 	else {
-		dc_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);
+		dc_log_warning(context, 0, "Header missing for key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
 
-	if( !dc_key_set_from_base64(ths, base64, type) ) {
-		dc_log_warning(mailbox, 0, "Bad data in key \"%s\".", pathNfilename);
+	if( !dc_key_set_from_base64(key, base64, type) ) {
+		dc_log_warning(context, 0, "Bad data in key \"%s\".", pathNfilename);
 		goto cleanup;
 	}
 
@@ -206,22 +206,22 @@ cleanup:
 }
 
 
-int dc_key_equals(const dc_key_t* ths, const dc_key_t* o)
+int dc_key_equals(const dc_key_t* key, const dc_key_t* o)
 {
-	if( ths==NULL || o==NULL
-	 || ths->m_binary==NULL || ths->m_bytes<=0 || o->m_binary==NULL || o->m_bytes<=0 ) {
+	if( key==NULL || o==NULL
+	 || key->m_binary==NULL || key->m_bytes<=0 || o->m_binary==NULL || o->m_bytes<=0 ) {
 		return 0; /*error*/
 	}
 
-	if( ths->m_bytes != o->m_bytes ) {
+	if( key->m_bytes != o->m_bytes ) {
 		return 0; /*different size -> the keys cannot be equal*/
 	}
 
-	if( ths->m_type != o->m_type ) {
+	if( key->m_type != o->m_type ) {
 		return 0; /* cannot compare public with private keys */
 	}
 
-	return memcmp(ths->m_binary, o->m_binary, o->m_bytes)==0? 1 : 0;
+	return memcmp(key->m_binary, o->m_binary, o->m_bytes)==0? 1 : 0;
 }
 
 
@@ -254,42 +254,42 @@ int dc_key_save_self_keypair__(const dc_key_t* public_key, const dc_key_t* priva
 }
 
 
-int dc_key_load_self_public__(dc_key_t* ths, const char* self_addr, dc_sqlite3_t* sql)
+int dc_key_load_self_public__(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || self_addr==NULL || sql==NULL ) {
+	if( key==NULL || self_addr==NULL || sql==NULL ) {
 		return 0;
 	}
 
-	dc_key_empty(ths);
+	dc_key_empty(key);
 	stmt = dc_sqlite3_predefine__(sql, SELECT_public_key_FROM_keypairs_WHERE_default,
 		"SELECT public_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
-	dc_key_set_from_stmt(ths, stmt, 0, DC_KEY_PUBLIC);
+	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PUBLIC);
 	return 1;
 }
 
 
-int dc_key_load_self_private__(dc_key_t* ths, const char* self_addr, dc_sqlite3_t* sql)
+int dc_key_load_self_private__(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || self_addr==NULL || sql==NULL ) {
+	if( key==NULL || self_addr==NULL || sql==NULL ) {
 		return 0;
 	}
 
-	dc_key_empty(ths);
+	dc_key_empty(key);
 	stmt = dc_sqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
 		"SELECT private_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
-	dc_key_set_from_stmt(ths, stmt, 0, DC_KEY_PRIVATE);
+	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PRIVATE);
 	return 1;
 }
 
@@ -369,33 +369,33 @@ cleanup:
 }
 
 
-char* dc_key_render_base64(const dc_key_t* ths, int break_every, const char* break_chars, int add_checksum)
+char* dc_key_render_base64(const dc_key_t* key, int break_every, const char* break_chars, int add_checksum)
 {
-	if( ths==NULL ) {
+	if( key==NULL ) {
 		return NULL;
 	}
-	return dc_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars, add_checksum);
+	return dc_render_base64(key->m_binary, key->m_bytes, break_every, break_chars, add_checksum);
 }
 
 
-char* dc_key_render_asc(const dc_key_t* ths, const char* add_header_lines /*must be terminated by \r\n*/)
+char* dc_key_render_asc(const dc_key_t* key, const char* add_header_lines /*must be terminated by \r\n*/)
 {
 	/* see RFC 4880, 6.2.  Forming ASCII Armor, https://tools.ietf.org/html/rfc4880#section-6.2 */
 	char *base64 = NULL, *ret = NULL;
 
-	if( ths==NULL ) {
+	if( key==NULL ) {
 		goto cleanup;
 	}
 
-	if( (base64=dc_key_render_base64(ths, 76, "\r\n", 2/*checksum in new line*/))==NULL ) { /* RFC: The encoded output stream must be represented in lines of no more than 76 characters each. */
+	if( (base64=dc_key_render_base64(key, 76, "\r\n", 2/*checksum in new line*/))==NULL ) { /* RFC: The encoded output stream must be represented in lines of no more than 76 characters each. */
 		goto cleanup;
 	}
 
 	ret = dc_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n%s\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
-		ths->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE",
+		key->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE",
 		add_header_lines? add_header_lines : "",
 		base64,
-		ths->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE");
+		key->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE");
 
 cleanup:
 	free(base64);
@@ -403,12 +403,12 @@ cleanup:
 }
 
 
-int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_t* mailbox /* for logging only */)
+int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_t* context /* for logging only */)
 {
 	int   success = 0;
 	char* file_content = NULL;
 
-	if( key == NULL || file == NULL || mailbox == NULL ) {
+	if( key == NULL || file == NULL || context == NULL ) {
 		goto cleanup;
 	}
 
@@ -417,8 +417,8 @@ int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_
 		goto cleanup;
 	}
 
-	if( !dc_write_file(file, file_content, strlen(file_content), mailbox) ) {
-		dc_log_error(mailbox, 0, "Cannot write key to %s", file);
+	if( !dc_write_file(file, file_content, strlen(file_content), context) ) {
+		dc_log_error(context, 0, "Cannot write key to %s", file);
 		goto cleanup;
 	}
 

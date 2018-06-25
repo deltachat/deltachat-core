@@ -43,7 +43,7 @@ struct _dc_contact
 	 * The contact ID.
 	 *
 	 * Special message IDs:
-	 * - DC_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by dc_set_config() using "addr".
+	 * - DC_CONTACT_ID_SELF (1) - this is the owner of the account with the email-address set by dc_set_config() using "addr".
 	 *
 	 * Normal contact IDs are larger than these special ones (larger than DC_CONTACT_ID_LAST_SPECIAL).
 	 */

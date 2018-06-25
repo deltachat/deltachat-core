@@ -37,18 +37,18 @@
  *
  * @return The contact object. Must be freed using dc_contact_unref() when done.
  */
-dc_contact_t* dc_contact_new(dc_context_t* mailbox)
+dc_contact_t* dc_contact_new(dc_context_t* context)
 {
-	dc_contact_t* ths = NULL;
+	dc_contact_t* contact = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_contact_t)))==NULL ) {
+	if( (contact=calloc(1, sizeof(dc_contact_t)))==NULL ) {
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic   = DC_CONTACT_MAGIC;
-	ths->m_context = mailbox;
+	contact->m_magic   = DC_CONTACT_MAGIC;
+	contact->m_context = context;
 
-	return ths;
+	return contact;
 }
 
 
@@ -459,22 +459,22 @@ char* dc_normalize_addr(const char* email_addr__)
  *
  * @private @memberof dc_contact_t
  */
-int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t contact_id)
+int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths == NULL || ths->m_magic != DC_CONTACT_MAGIC || sql == NULL ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC || sql == NULL ) {
 		return 0;
 	}
 
-	dc_contact_empty(ths);
+	dc_contact_empty(contact);
 
 	if( contact_id == DC_CONTACT_ID_SELF )
 	{
-		ths->m_id   = contact_id;
-		ths->m_name = dc_stock_str(DC_STR_SELF);
-		ths->m_addr = dc_sqlite3_get_config__(sql, "configured_addr", "");
+		contact->m_id   = contact_id;
+		contact->m_name = dc_stock_str(DC_STR_SELF);
+		contact->m_addr = dc_sqlite3_get_config__(sql, "configured_addr", "");
 	}
 	else
 	{
@@ -487,12 +487,12 @@ int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t con
 			goto cleanup;
 		}
 
-		ths->m_id               = contact_id;
-		ths->m_name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
-		ths->m_addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
-		ths->m_origin           =                    sqlite3_column_int  (stmt, 2);
-		ths->m_blocked          =                    sqlite3_column_int  (stmt, 3);
-		ths->m_authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
+		contact->m_id               = contact_id;
+		contact->m_name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
+		contact->m_addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
+		contact->m_origin           =                    sqlite3_column_int  (stmt, 2);
+		contact->m_blocked          =                    sqlite3_column_int  (stmt, 3);
+		contact->m_authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
 	}
 
 	success = 1;

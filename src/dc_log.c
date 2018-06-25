@@ -39,11 +39,11 @@ are usually logged by dc_log_warning(). */
  ******************************************************************************/
 
 
-static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* msg_format, va_list va)
+static void log_vprintf(dc_context_t* context, int event, int code, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
 
-	if( mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -72,49 +72,49 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 	}
 
 	/* finally, log */
-	mailbox->m_cb(mailbox, event, (uintptr_t)code, (uintptr_t)msg);
+	context->m_cb(context, event, (uintptr_t)code, (uintptr_t)msg);
 
 	/* remember the last N log entries */
-	pthread_mutex_lock(&mailbox->m_log_ringbuf_critical);
-		free(mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos]);
-		mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos] = msg;
-		mailbox->m_log_ringbuf_times[mailbox->m_log_ringbuf_pos] = time(NULL);
-		mailbox->m_log_ringbuf_pos = (mailbox->m_log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
-	pthread_mutex_unlock(&mailbox->m_log_ringbuf_critical);
+	pthread_mutex_lock(&context->m_log_ringbuf_critical);
+		free(context->m_log_ringbuf[context->m_log_ringbuf_pos]);
+		context->m_log_ringbuf[context->m_log_ringbuf_pos] = msg;
+		context->m_log_ringbuf_times[context->m_log_ringbuf_pos] = time(NULL);
+		context->m_log_ringbuf_pos = (context->m_log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
+	pthread_mutex_unlock(&context->m_log_ringbuf_critical);
 }
 
 
-void dc_log_info(dc_context_t* mailbox, int code, const char* msg, ...)
+void dc_log_info(dc_context_t* context, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
-		log_vprintf(mailbox, DC_EVENT_INFO, code, msg, va);
+		log_vprintf(context, DC_EVENT_INFO, code, msg, va);
 	va_end(va);
 }
 
 
 
-void dc_log_warning(dc_context_t* mailbox, int code, const char* msg, ...)
+void dc_log_warning(dc_context_t* context, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		log_vprintf(mailbox, DC_EVENT_WARNING, code, msg, va);
+		log_vprintf(context, DC_EVENT_WARNING, code, msg, va);
 	va_end(va);
 }
 
 
-void dc_log_error(dc_context_t* mailbox, int code, const char* msg, ...)
+void dc_log_error(dc_context_t* context, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
-		log_vprintf(mailbox, DC_EVENT_ERROR, code, msg, va);
+		log_vprintf(context, DC_EVENT_ERROR, code, msg, va);
 	va_end(va);
 }
 
 
-void dc_log_error_if(int* condition, dc_context_t* mailbox, int code, const char* msg, ...)
+void dc_log_error_if(int* condition, dc_context_t* context, int code, const char* msg, ...)
 {
-	if( condition == NULL || mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
+	if( condition == NULL || context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -122,17 +122,17 @@ void dc_log_error_if(int* condition, dc_context_t* mailbox, int code, const char
 	va_start(va, msg);
 		if( *condition ) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
-			if( mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-				log_vprintf(mailbox, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
+			if( context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+				log_vprintf(context, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
 			}
 			else {
-				log_vprintf(mailbox, DC_EVENT_ERROR, code, msg, va);
+				log_vprintf(context, DC_EVENT_ERROR, code, msg, va);
 			}
 			*condition = 0;
 		}
 		else {
 			/* log a warning only (eg. for subsequent connection errors) */
-			log_vprintf(mailbox, DC_EVENT_WARNING, code, msg, va);
+			log_vprintf(context, DC_EVENT_WARNING, code, msg, va);
 		}
 	va_end(va);
 }

@@ -34,56 +34,56 @@
 
 dc_keyring_t* dc_keyring_new()
 {
-	dc_keyring_t* ths;
+	dc_keyring_t* keyring;
 
-	if( (ths=calloc(1, sizeof(dc_keyring_t)))==NULL ) {
+	if( (keyring=calloc(1, sizeof(dc_keyring_t)))==NULL ) {
 		exit(42); /* cannot allocate little memory, unrecoverable error */
 	}
-	return ths;
+	return keyring;
 }
 
 
-void dc_keyring_unref(dc_keyring_t* ths)
+void dc_keyring_unref(dc_keyring_t* keyring)
 {
 	int i;
-	if( ths == NULL ) {
+	if( keyring == NULL ) {
 		return;
 	}
 
-	for( i = 0; i < ths->m_count; i++ ) {
-		dc_key_unref(ths->m_keys[i]);
+	for( i = 0; i < keyring->m_count; i++ ) {
+		dc_key_unref(keyring->m_keys[i]);
 	}
-	free(ths->m_keys);
-	free(ths);
+	free(keyring->m_keys);
+	free(keyring);
 }
 
 
-void dc_keyring_add(dc_keyring_t* ths, dc_key_t* to_add)
+void dc_keyring_add(dc_keyring_t* keyring, dc_key_t* to_add)
 {
-	if( ths==NULL || to_add==NULL ) {
+	if( keyring==NULL || to_add==NULL ) {
 		return;
 	}
 
 	/* expand array, if needed */
-	if( ths->m_count == ths->m_allocated ) {
-		int newsize = (ths->m_allocated * 2) + 10;
-		if( (ths->m_keys=realloc(ths->m_keys, newsize*sizeof(dc_key_t*)))==NULL ) {
+	if( keyring->m_count == keyring->m_allocated ) {
+		int newsize = (keyring->m_allocated * 2) + 10;
+		if( (keyring->m_keys=realloc(keyring->m_keys, newsize*sizeof(dc_key_t*)))==NULL ) {
 			exit(41);
 		}
-		ths->m_allocated = newsize;
+		keyring->m_allocated = newsize;
 	}
 
-	ths->m_keys[ths->m_count] = dc_key_ref(to_add);
-	ths->m_count++;
+	keyring->m_keys[keyring->m_count] = dc_key_ref(to_add);
+	keyring->m_count++;
 }
 
 
-int dc_keyring_load_self_private_for_decrypting__(dc_keyring_t* ths, const char* self_addr, dc_sqlite3_t* sql)
+int dc_keyring_load_self_private_for_decrypting__(dc_keyring_t* keyring, const char* self_addr, dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt;
 	dc_key_t*      key;
 
-	if( ths==NULL || self_addr==NULL || sql==NULL ) {
+	if( keyring==NULL || self_addr==NULL || sql==NULL ) {
 		return 0;
 	}
 
@@ -93,7 +93,7 @@ int dc_keyring_load_self_private_for_decrypting__(dc_keyring_t* ths, const char*
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		key = dc_key_new();
 			if( dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PRIVATE) ) {
-				dc_keyring_add(ths, key);
+				dc_keyring_add(keyring, key);
 			}
 		dc_key_unref(key); /* unref in any case, dc_keyring_add() adds its own reference */
 	}

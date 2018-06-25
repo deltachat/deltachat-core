@@ -113,7 +113,7 @@ cleanup:
  ******************************************************************************/
 
 
-dc_sqlite3_t* dc_sqlite3_new(dc_context_t* mailbox)
+dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 {
 	dc_sqlite3_t* ths = NULL;
 	int          i;
@@ -122,7 +122,7 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* mailbox)
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_context          = mailbox;
+	ths->m_context          = context;
 
 	for( i = 0; i < PREDEFINED_CNT; i++ ) {
 		ths->m_pd[i] = NULL;

@@ -22,6 +22,7 @@
 
 /* dc_saxparser_t parses XML and HTML files that may not be wellformed
 and spits out all text and tags found.
+
 - Attributes are recognized with single, double or no quotes
 - Whitespace ignored inside tags
 - Self-closing tags are issued as open-tag plus close-tag
@@ -31,7 +32,9 @@ and spits out all text and tags found.
   done by the user.
 - Input and output strings must be UTF-8 encoded.
 - Tag and attribute names are converted to lower case.
-- Parsing does not stop on errors; instead errors are recovered. */
+- Parsing does not stop on errors; instead errors are recovered.
+
+NB: SAX = Simple API for XML */
 
 
 #include <stdlib.h>
@@ -236,7 +239,7 @@ static void def_endtag_cb   (void* userdata, const char* tag) { }
 static void def_text_cb     (void* userdata, const char* text, int len) { }
 
 
-static void call_text_cb(dc_saxparser_t* ths, char* text, size_t len, char type)
+static void call_text_cb(dc_saxparser_t* saxparser, char* text, size_t len, char type)
 {
 	if( text && len )
 	{
@@ -244,7 +247,7 @@ static void call_text_cb(dc_saxparser_t* ths, char* text, size_t len, char type)
 
 		text[len] = '\0';
 		text_new = xml_decode(text, type);
-		ths->m_text_cb(ths->m_userdata, text_new, len);
+		saxparser->m_text_cb(saxparser->m_userdata, text_new, len);
 		if( text != text_new ) { free(text_new); }
 
 		text[len] = bak;
@@ -289,37 +292,37 @@ const char* dc_attr_find(char** attr, const char* key)
 }
 
 
-void dc_saxparser_init(dc_saxparser_t* ths, void* userdata)
+void dc_saxparser_init(dc_saxparser_t* saxparser, void* userdata)
 {
-	ths->m_userdata    = userdata;
-	ths->m_starttag_cb = def_starttag_cb;
-	ths->m_endtag_cb   = def_endtag_cb;
-	ths->m_text_cb     = def_text_cb;
+	saxparser->m_userdata    = userdata;
+	saxparser->m_starttag_cb = def_starttag_cb;
+	saxparser->m_endtag_cb   = def_endtag_cb;
+	saxparser->m_text_cb     = def_text_cb;
 }
 
 
-void dc_saxparser_set_tag_handler(dc_saxparser_t* ths, dc_saxparser_starttag_cb_t starttag_cb, dc_saxparser_endtag_cb_t endtag_cb)
+void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_starttag_cb_t starttag_cb, dc_saxparser_endtag_cb_t endtag_cb)
 {
-	if( ths == NULL ) {
+	if( saxparser == NULL ) {
 		return;
 	}
 
-	ths->m_starttag_cb = starttag_cb? starttag_cb : def_starttag_cb;
-	ths->m_endtag_cb   = endtag_cb?   endtag_cb   : def_endtag_cb;
+	saxparser->m_starttag_cb = starttag_cb? starttag_cb : def_starttag_cb;
+	saxparser->m_endtag_cb   = endtag_cb?   endtag_cb   : def_endtag_cb;
 }
 
 
-void dc_saxparser_set_text_handler (dc_saxparser_t* ths, dc_saxparser_text_cb_t text_cb)
+void dc_saxparser_set_text_handler (dc_saxparser_t* saxparser, dc_saxparser_text_cb_t text_cb)
 {
-	if( ths == NULL ) {
+	if( saxparser == NULL ) {
 		return;
 	}
 
-	ths->m_text_cb = text_cb? text_cb : def_text_cb;
+	saxparser->m_text_cb = text_cb? text_cb : def_text_cb;
 }
 
 
-void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
+void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 {
 	char bak, *buf_start, *last_text_start, *p;
 
@@ -329,7 +332,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 
 	attr[0] = NULL; /* null-terminate list, this also terminates "free_values" */
 
-	if( ths == NULL ) {
+	if( saxparser == NULL ) {
 		return;
 	}
 
@@ -340,7 +343,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 	{
 		if( *p == '<' )
 		{
-			call_text_cb(ths, last_text_start, p - last_text_start, '&'); /* flush pending text */
+			call_text_cb(saxparser, last_text_start, p - last_text_start, '&'); /* flush pending text */
 
 			p++;
 			if( strncmp(p, "!--", 3) == 0 )
@@ -359,11 +362,11 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 
 				char* text_beg = p + 8;
 				if( (p = strstr(p, "]]>"))!=NULL ) /* `]]>` itself is not allowed in CDATA and must be escaped by dividing into two CDATA parts  */ {
-					call_text_cb(ths, text_beg, p-text_beg, 'c');
+					call_text_cb(saxparser, text_beg, p-text_beg, 'c');
 					p += 3;
 				}
 				else {
-					call_text_cb(ths, text_beg, strlen(text_beg), 'c'); /* CDATA not closed, add all remaining text */
+					call_text_cb(saxparser, text_beg, strlen(text_beg), 'c'); /* CDATA not closed, add all remaining text */
 					goto cleanup;
 				}
 			}
@@ -415,7 +418,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 						bak = *p;
 						*p = '\0'; /* null-terminate tag name temporary, eg. a covered `>` may get important downwards */
 						dc_strlower_in_place(beg_tag_name);
-						ths->m_endtag_cb(ths->m_userdata, beg_tag_name);
+						saxparser->m_endtag_cb(saxparser->m_userdata, beg_tag_name);
 						*p = bak;
 					}
 				}
@@ -512,7 +515,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 						char bak = *after_tag_name; /* backup the character as it may be `/` or `>` which gets important downwards */
 						*after_tag_name = 0;
 						dc_strlower_in_place(beg_tag_name);
-						ths->m_starttag_cb(ths->m_userdata, beg_tag_name, attr);
+						saxparser->m_starttag_cb(saxparser->m_userdata, beg_tag_name, attr);
 						*after_tag_name = bak;
 
 						/* self-closing tag */
@@ -521,7 +524,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 						{
 							p++;
 							*after_tag_name = 0;
-							ths->m_endtag_cb(ths->m_userdata, beg_tag_name); /* already lowercase from starttag_cb()-call */
+							saxparser->m_endtag_cb(saxparser->m_userdata, beg_tag_name); /* already lowercase from starttag_cb()-call */
 						}
 					}
 
@@ -541,7 +544,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 		}
 	}
 
-	call_text_cb(ths, last_text_start, p - last_text_start, '&'); /* flush pending text */
+	call_text_cb(saxparser, last_text_start, p - last_text_start, '&'); /* flush pending text */
 
 cleanup:
 	do_free_attr(attr, free_attr);

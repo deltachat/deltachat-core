@@ -34,14 +34,14 @@
  ******************************************************************************/
 
 
-void dc_mimefactory_init(dc_mimefactory_t* factory, dc_context_t* mailbox)
+void dc_mimefactory_init(dc_mimefactory_t* factory, dc_context_t* context)
 {
-	if( factory == NULL || mailbox == NULL ) {
+	if( factory == NULL || context == NULL ) {
 		return;
 	}
 
 	memset(factory, 0, sizeof(dc_mimefactory_t));
-	factory->m_context = mailbox;
+	factory->m_context = context;
 }
 
 
@@ -111,17 +111,17 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 		goto cleanup;
 	}
 
-	dc_context_t* mailbox = factory->m_context;
+	dc_context_t* context = factory->m_context;
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
 	factory->m_msg              = dc_msg_new();
-	factory->m_chat             = dc_chat_new(mailbox);
+	factory->m_chat             = dc_chat_new(context);
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( dc_msg_load_from_db__(factory->m_msg, mailbox, msg_id)
+		if( dc_msg_load_from_db__(factory->m_msg, context, msg_id)
 		 && dc_chat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
 		{
 			load_from__(factory);
@@ -135,7 +135,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			}
 			else
 			{
-				sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
+				sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc,
 					"SELECT c.authname, c.addr "
 					" FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON cc.contact_id=c.id "
@@ -155,7 +155,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				int command = dc_param_get_int(factory->m_msg->m_param, DC_PARAM_CMD, 0);
 				if( command==DC_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 					char* email_to_remove     = dc_param_get(factory->m_msg->m_param, DC_PARAM_CMD_ARG, NULL);
-					char* self_addr           = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
+					char* self_addr           = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "");
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 					{
 						if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
@@ -169,7 +169,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 				if( command!=DC_CMD_AUTOCRYPT_SETUP_MESSAGE
 				 && command!=DC_CMD_SECUREJOIN_MESSAGE
-				 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+				 && dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
 			}
@@ -186,7 +186,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 			Finally, maybe the Predecessor/In-Reply-To header is not needed for all answers but only to the first ones -
 			or after the sender has changes its email address. */
-			sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
+			sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
 				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
 			sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
@@ -202,7 +202,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			however one could also see this as a feature :) (there may be different contextes on different clients)
 			(also, the References-header is not the most important thing, and, at least for now, we do not want to make things too complicated.  */
 			time_t prev_msg_time = 0;
-			stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_MAX_timestamp_FROM_msgs,
+			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_MAX_timestamp_FROM_msgs,
 				"SELECT max(timestamp) FROM msgs WHERE chat_id=? AND id!=?");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
 			sqlite3_bind_int  (stmt, 2, factory->m_msg->m_id);
@@ -231,11 +231,11 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			factory->m_increation = dc_msg_is_increation__(factory->m_msg);
 		}
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	return success;
 }
 
@@ -249,21 +249,21 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		goto cleanup;
 	}
 
-	dc_context_t* mailbox = factory->m_context;
+	dc_context_t* context = factory->m_context;
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
 	factory->m_msg              = dc_msg_new();
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( !dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+		if( !dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
 		}
 
-		if( !dc_msg_load_from_db__(factory->m_msg, mailbox, msg_id)
-		 || !dc_contact_load_from_db__(contact, mailbox->m_sql, factory->m_msg->m_from_id) ) {
+		if( !dc_msg_load_from_db__(factory->m_msg, context, msg_id)
+		 || !dc_contact_load_from_db__(contact, context->m_sql, factory->m_msg->m_from_id) ) {
 			goto cleanup;
 		}
 
@@ -284,14 +284,14 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		factory->m_timestamp = dc_create_smeared_timestamp__();
 		factory->m_rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, factory->m_from_addr);
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 	success = 1;
 	factory->m_loaded = DC_MF_MDN_LOADED;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	return success;
 }
 

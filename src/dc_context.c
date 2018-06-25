@@ -98,26 +98,26 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  */
 dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)
 {
-	dc_context_t* ths = NULL;
+	dc_context_t* context = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_context_t)))==NULL ) {
+	if( (context=calloc(1, sizeof(dc_context_t)))==NULL ) {
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	pthread_mutex_init(&ths->m_log_ringbuf_critical, NULL);
-	pthread_mutex_init(&ths->m_imapidle_condmutex, NULL);
-	pthread_mutex_init(&ths->m_smtpidle_condmutex, NULL);
-	pthread_cond_init(&ths->m_smtpidle_cond, NULL);
+	pthread_mutex_init(&context->m_log_ringbuf_critical, NULL);
+	pthread_mutex_init(&context->m_imapidle_condmutex, NULL);
+	pthread_mutex_init(&context->m_smtpidle_condmutex, NULL);
+	pthread_cond_init(&context->m_smtpidle_cond, NULL);
 
-	ths->m_magic    = DC_CONTEXT_MAGIC;
-	ths->m_sql      = dc_sqlite3_new(ths);
-	ths->m_cb       = cb? cb : cb_dummy;
-	ths->m_userdata = userdata;
-	ths->m_imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
-	ths->m_smtp     = dc_smtp_new(ths);
-	ths->m_os_name  = dc_strdup_keep_null(os_name);
+	context->m_magic    = DC_CONTEXT_MAGIC;
+	context->m_sql      = dc_sqlite3_new(context);
+	context->m_cb       = cb? cb : cb_dummy;
+	context->m_userdata = userdata;
+	context->m_imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->m_smtp     = dc_smtp_new(context);
+	context->m_os_name  = dc_strdup_keep_null(os_name);
 
-	dc_pgp_init(ths);
+	dc_pgp_init(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
 	(the timespan between this call and the key generation time is typically random.
@@ -127,17 +127,17 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	uintptr_t seed[5];
 	seed[0] = (uintptr_t)time(NULL);     /* time */
 	seed[1] = (uintptr_t)seed;           /* stack */
-	seed[2] = (uintptr_t)ths;            /* heap */
+	seed[2] = (uintptr_t)context;            /* heap */
 	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
 	seed[4] = (uintptr_t)getpid();       /* process ID */
-	dc_pgp_rand_seed(ths, seed, sizeof(seed));
+	dc_pgp_rand_seed(context, seed, sizeof(seed));
 	}
 
 	if( s_localize_mb_obj==NULL ) {
-		s_localize_mb_obj = ths;
+		s_localize_mb_obj = context;
 	}
 
-	return ths;
+	return context;
 }
 
 
@@ -204,10 +204,10 @@ void* dc_get_userdata(dc_context_t* context)
 }
 
 
-static void update_config_cache__(dc_context_t* ths, const char* key)
+static void update_config_cache__(dc_context_t* context, const char* key)
 {
 	if( key==NULL || strcmp(key, "e2ee_enabled")==0 ) {
-		ths->m_e2ee_enabled = dc_sqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+		context->m_e2ee_enabled = dc_sqlite3_get_config_int__(context->m_sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	}
 }
 
@@ -376,7 +376,7 @@ char* dc_get_blobdir(dc_context_t* context)
  *
  * @memberof dc_context_t
  *
- * @param ths the context object
+ * @param context the context object
  *
  * @param key the option to change, typically one of the strings listed above
  *
@@ -384,20 +384,20 @@ char* dc_get_blobdir(dc_context_t* context)
  *
  * @return 0=failure, 1=success
  */
-int dc_set_config(dc_context_t* ths, const char* key, const char* value)
+int dc_set_config(dc_context_t* context, const char* key, const char* value)
 {
 	int ret;
 
-	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "value" may be NULL */
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "value" may be NULL */
 		return 0;
 	}
 
-	dc_sqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		ret = dc_sqlite3_set_config__(ths->m_sql, key, value);
-		update_config_cache__(ths, key);
+		ret = dc_sqlite3_set_config__(context->m_sql, key, value);
+		update_config_cache__(context, key);
 
-	dc_sqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	return ret;
 }
@@ -408,7 +408,7 @@ int dc_set_config(dc_context_t* ths, const char* key, const char* value)
  *
  * @memberof dc_context_t
  *
- * @param ths the context object as created by dc_context_new()
+ * @param context the context object as created by dc_context_new()
  *
  * @param key the key to query
  *
@@ -417,19 +417,19 @@ int dc_set_config(dc_context_t* ths, const char* key, const char* value)
  * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
  *     If the returned values is not NULL, the return value must be free()'d,
  */
-char* dc_get_config(dc_context_t* ths, const char* key, const char* def)
+char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 {
 	char* ret;
 
-	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "def" may be NULL */
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "def" may be NULL */
 		return dc_strdup_keep_null(def);
 	}
 
-	dc_sqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		ret = dc_sqlite3_get_config__(ths->m_sql, key, def);
+		ret = dc_sqlite3_get_config__(context->m_sql, key, def);
 
-	dc_sqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	return ret; /* the returned string must be free()'d, returns NULL only if "def" is NULL and "key" is unset */
 }
@@ -441,20 +441,20 @@ char* dc_get_config(dc_context_t* ths, const char* key, const char* def)
  *
  * @memberof dc_context_t
  */
-int dc_set_config_int(dc_context_t* ths, const char* key, int32_t value)
+int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
 {
 	int ret;
 
-	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC || key == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) {
 		return 0;
 	}
 
-	dc_sqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		ret = dc_sqlite3_set_config_int__(ths->m_sql, key, value);
-		update_config_cache__(ths, key);
+		ret = dc_sqlite3_set_config_int__(context->m_sql, key, value);
+		update_config_cache__(context, key);
 
-	dc_sqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	return ret;
 }
@@ -465,19 +465,19 @@ int dc_set_config_int(dc_context_t* ths, const char* key, int32_t value)
  *
  * @memberof dc_context_t
  */
-int32_t dc_get_config_int(dc_context_t* ths, const char* key, int32_t def)
+int32_t dc_get_config_int(dc_context_t* context, const char* key, int32_t def)
 {
 	int32_t ret;
 
-	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC || key == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) {
 		return def;
 	}
 
-	dc_sqlite3_lock(ths->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		ret = dc_sqlite3_get_config_int__(ths->m_sql, key, def);
+		ret = dc_sqlite3_get_config_int__(context->m_sql, key, def);
 
-	dc_sqlite3_unlock(ths->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	return ret;
 }

@@ -51,7 +51,7 @@ one :-) */
 static pgp_io_t s_io;
 
 
-void dc_pgp_init(dc_context_t* mailbox)
+void dc_pgp_init(dc_context_t* context)
 {
 	#ifdef __APPLE__
 		OPENSSL_init();
@@ -70,12 +70,12 @@ void dc_pgp_init(dc_context_t* mailbox)
 }
 
 
-void dc_pgp_exit(dc_context_t* mailbox)
+void dc_pgp_exit(dc_context_t* context)
 {
 }
 
 
-void dc_pgp_rand_seed(dc_context_t* mailbox, const void* buf, size_t bytes)
+void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 {
 	if( buf == NULL || bytes <= 0 ) {
 		return;
@@ -296,7 +296,7 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 }
 
 
-int dc_pgp_create_keypair(dc_context_t* mailbox, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
+int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
 	int              success = 0;
 	pgp_key_t        seckey, pubkey, subkey;
@@ -309,7 +309,7 @@ int dc_pgp_create_keypair(dc_context_t* mailbox, const char* addr, dc_key_t* ret
 	memset(&pubkey, 0, sizeof(pgp_key_t));
 	memset(&subkey, 0, sizeof(pgp_key_t));
 
-	if( mailbox==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
+	if( context==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
 	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL ) {
 		goto cleanup;
 	}
@@ -411,14 +411,14 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_pgp_is_valid_key(dc_context_t* mailbox, const dc_key_t* raw_key)
+int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 {
 	int             key_is_valid = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
-	if( mailbox==NULL || raw_key==NULL
+	if( context==NULL || raw_key==NULL
 	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
 		goto cleanup;
@@ -482,7 +482,7 @@ cleanup:
 }
 
 
-int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t* ret_public_key)
+int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -491,7 +491,7 @@ int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t
 	pgp_memory_t*   pubmem = pgp_memory_new();
 	pgp_output_t*   pubout = pgp_output_new();
 
-	if( mailbox == NULL || private_in==NULL || ret_public_key==NULL
+	if( context == NULL || private_in==NULL || ret_public_key==NULL
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL || pubmem==NULL || pubout==NULL ) {
 		goto cleanup;
 	}
@@ -500,12 +500,12 @@ int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
 	if( private_in->m_type!=DC_KEY_PRIVATE || private_keys->keyc <= 0 ) {
-		dc_log_warning(mailbox, 0, "Split key: Given key is no private key.");
+		dc_log_warning(context, 0, "Split key: Given key is no private key.");
 		goto cleanup;
 	}
 
 	if( public_keys->keyc <= 0 ) {
-		dc_log_warning(mailbox, 0, "Split key: Given key does not contain a public key.");
+		dc_log_warning(context, 0, "Split key: Given key does not contain a public key.");
 		goto cleanup;
 	}
 
@@ -534,7 +534,7 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
+int dc_pgp_pk_encrypt(  dc_context_t*       context,
                        const void*        plain_text,
                        size_t             plain_bytes,
                        const dc_keyring_t* raw_public_keys_for_encryption,
@@ -550,7 +550,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
 	pgp_memory_t*   signedmem = NULL;
 	int             i, success = 0;
 
-	if( mailbox==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
+	if( context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
 	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->m_count<=0
 	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL ) {
 		goto cleanup;
@@ -567,7 +567,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
 	}
 
 	if( public_keys->keyc <=0 || private_keys->keyc!=0 ) {
-		dc_log_warning(mailbox, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
+		dc_log_warning(context, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
@@ -582,7 +582,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
 			pgp_memory_add(keysmem, raw_private_key_for_signing->m_binary, raw_private_key_for_signing->m_bytes);
 			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
 			if( private_keys->keyc <= 0 ) {
-				dc_log_warning(mailbox, 0, "No key for signing found.");
+				dc_log_warning(context, 0, "No key for signing found.");
 				goto cleanup;
 			}
 
@@ -590,7 +590,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
 			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
 				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
 			if( signedmem == NULL ) {
-				dc_log_warning(mailbox, 0, "Signing failed.");
+				dc_log_warning(context, 0, "Signing failed.");
 				goto cleanup;
 			}
 			signed_text        = signedmem->buf;
@@ -605,7 +605,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
 
 		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
 		if( outmem == NULL ) {
-			dc_log_warning(mailbox, 0, "Encryption failed.");
+			dc_log_warning(context, 0, "Encryption failed.");
 			goto cleanup;
 		}
 		*ret_ctext       = outmem->buf;
@@ -625,7 +625,7 @@ cleanup:
 }
 
 
-int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
+int dc_pgp_pk_decrypt(  dc_context_t*       context,
                        const void*        ctext,
                        size_t             ctext_bytes,
                        const dc_keyring_t* raw_private_keys_for_decryption,
@@ -644,7 +644,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
 	pgp_memory_t*     keysmem = pgp_memory_new();
 	int               i, success = 0;
 
-	if( mailbox==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
+	if( context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
 	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->m_count<=0
 	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
@@ -661,7 +661,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
 	}
 
 	if( private_keys->keyc<=0 ) {
-		dc_log_warning(mailbox, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
+		dc_log_warning(context, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
@@ -678,7 +678,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
 		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
 			use_armor, &recipients_key_ids, &recipients_count);
 		if( outmem == NULL ) {
-			dc_log_warning(mailbox, 0, "Decryption failed.");
+			dc_log_warning(context, 0, "Decryption failed.");
 			goto cleanup;
 		}
 		*ret_plain       = outmem->buf;

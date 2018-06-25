@@ -42,18 +42,18 @@
  */
 dc_msg_t* dc_msg_new()
 {
-	dc_msg_t* ths = NULL;
+	dc_msg_t* msg = NULL;
 
-	if( (ths=calloc(1, sizeof(dc_msg_t)))==NULL ) {
+	if( (msg=calloc(1, sizeof(dc_msg_t)))==NULL ) {
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic     = DC_MSG_MAGIC;
-	ths->m_type      = DC_MSG_UNDEFINED;
-	ths->m_state     = DC_STATE_UNDEFINED;
-	ths->m_param     = dc_param_new();
+	msg->m_magic     = DC_MSG_MAGIC;
+	msg->m_type      = DC_MSG_UNDEFINED;
+	msg->m_state     = DC_STATE_UNDEFINED;
+	msg->m_param     = dc_param_new();
 
-	return ths;
+	return msg;
 }
 
 
@@ -881,34 +881,34 @@ cleanup:
                       " m.param,m.starred,m.hidden,c.blocked "
 
 
-static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offset) /* field order must be DC_MSG_FIELDS */
+static int dc_msg_set_from_stmt__(dc_msg_t* msg, sqlite3_stmt* row, int row_offset) /* field order must be DC_MSG_FIELDS */
 {
-	dc_msg_empty(ths);
+	dc_msg_empty(msg);
 
-	ths->m_id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_rfc724_mid   =  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_server_folder=  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->m_id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->m_rfc724_mid   =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->m_server_folder=    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->m_server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->m_chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 
-	ths->m_from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
-	ths->m_timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
-	ths->m_timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->m_from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->m_to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->m_timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->m_timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->m_timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
 
-	ths->m_type         =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_state        =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_text         =  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->m_type         =                     sqlite3_column_int  (row, row_offset++);
+	msg->m_state        =                     sqlite3_column_int  (row, row_offset++);
+	msg->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
+	msg->m_text         =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 
-	dc_param_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
-	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_hidden       =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
+	dc_param_set_packed( msg->m_param, (char*)sqlite3_column_text (row, row_offset++));
+	msg->m_starred      =                     sqlite3_column_int  (row, row_offset++);
+	msg->m_hidden       =                     sqlite3_column_int  (row, row_offset++);
+	msg->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
-	if( ths->m_chat_blocked == 2 ) {
-		dc_truncate_n_unwrap_str(ths->m_text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
+	if( msg->m_chat_blocked == 2 ) {
+		dc_truncate_n_unwrap_str(msg->m_text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
 			0/*unwrap*/);
 	}
 
@@ -923,15 +923,15 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
  *
  * @private @memberof dc_msg_t
  */
-int dc_msg_load_from_db__(dc_msg_t* ths, dc_context_t* mailbox, uint32_t id)
+int dc_msg_load_from_db__(dc_msg_t* msg, dc_context_t* context, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
-	if( ths==NULL || ths->m_magic != DC_MSG_MAGIC || mailbox==NULL || mailbox->m_sql==NULL ) {
+	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC || context==NULL || context->m_sql==NULL ) {
 		return 0;
 	}
 
-	stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
 		"SELECT " DC_MSG_FIELDS
 		" FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id"
 		" WHERE m.id=?;");
@@ -941,11 +941,11 @@ int dc_msg_load_from_db__(dc_msg_t* ths, dc_context_t* mailbox, uint32_t id)
 		return 0;
 	}
 
-	if( !dc_msg_set_from_stmt__(ths, stmt, 0) ) { /* also calls dc_msg_empty() */
+	if( !dc_msg_set_from_stmt__(msg, stmt, 0) ) { /* also calls dc_msg_empty() */
 		return 0;
 	}
 
-	ths->m_context = mailbox;
+	msg->m_context = context;
 
 	return 1;
 }

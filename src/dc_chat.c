@@ -35,24 +35,24 @@
  *
  * @private @memberof dc_chat_t
  *
- * @param mailbox The mailbox object that should be stored in the chat object.
+ * @param context The context that should be stored in the chat object.
  *
  * @return New and empty chat object, must be freed using dc_chat_unref().
  */
-dc_chat_t* dc_chat_new(dc_context_t* mailbox)
+dc_chat_t* dc_chat_new(dc_context_t* context)
 {
-	dc_chat_t* ths = NULL;
+	dc_chat_t* chat = NULL;
 
-	if( mailbox == NULL || (ths=calloc(1, sizeof(dc_chat_t)))==NULL ) {
+	if( context == NULL || (chat=calloc(1, sizeof(dc_chat_t)))==NULL ) {
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic    = DC_CHAT_MAGIC;
-	ths->m_context  = mailbox;
-	ths->m_type     = DC_CHAT_TYPE_UNDEFINED;
-	ths->m_param    = dc_param_new();
+	chat->m_magic    = DC_CHAT_MAGIC;
+	chat->m_context  = context;
+	chat->m_type     = DC_CHAT_TYPE_UNDEFINED;
+	chat->m_param    = dc_param_new();
 
-    return ths;
+    return chat;
 }
 
 
@@ -462,67 +462,67 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
  ******************************************************************************/
 
 
-int dc_chat_update_param__(dc_chat_t* ths)
+int dc_chat_update_param__(dc_chat_t* chat)
 {
 	int success = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(ths->m_context->m_sql, "UPDATE chats SET param=? WHERE id=?");
-	sqlite3_bind_text(stmt, 1, ths->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int (stmt, 2, ths->m_id);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(chat->m_context->m_sql, "UPDATE chats SET param=? WHERE id=?");
+	sqlite3_bind_text(stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, chat->m_id);
 	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;
 	sqlite3_finalize(stmt);
 	return success;
 }
 
 
-static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
+static int dc_chat_set_from_stmt__(dc_chat_t* chat, sqlite3_stmt* row)
 {
 	int         row_offset = 0;
 	const char* draft_text;
 
-	if( ths == NULL || ths->m_magic != DC_CHAT_MAGIC || row == NULL ) {
+	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC || row == NULL ) {
 		return 0;
 	}
 
-	dc_chat_empty(ths);
+	dc_chat_empty(chat);
 
 	#define CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
-	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
-	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
+	chat->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
+	chat->m_type            =                    sqlite3_column_int  (row, row_offset++);
+	chat->m_name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	chat->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
-	ths->m_grpid           =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	dc_param_set_packed(ths->m_param,    (char*)sqlite3_column_text (row, row_offset++));
-	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
+	chat->m_grpid           =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	dc_param_set_packed(chat->m_param,    (char*)sqlite3_column_text (row, row_offset++));
+	chat->m_archived        =                    sqlite3_column_int  (row, row_offset++);
+	chat->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
 	Also make sure, m_draft_text and m_draft_timestamp are set together */
-	if( ths->m_draft_timestamp && draft_text && draft_text[0] ) {
-		ths->m_draft_text = dc_strdup(draft_text);
+	if( chat->m_draft_timestamp && draft_text && draft_text[0] ) {
+		chat->m_draft_text = dc_strdup(draft_text);
 	}
 	else {
-		ths->m_draft_timestamp = 0;
+		chat->m_draft_timestamp = 0;
 	}
 
 	/* correct the title of some special groups */
-	if( ths->m_id == DC_CHAT_ID_DEADDROP ) {
-		free(ths->m_name);
-		ths->m_name = dc_stock_str(DC_STR_DEADDROP);
+	if( chat->m_id == DC_CHAT_ID_DEADDROP ) {
+		free(chat->m_name);
+		chat->m_name = dc_stock_str(DC_STR_DEADDROP);
 	}
-	else if( ths->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
-		free(ths->m_name);
+	else if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
+		free(chat->m_name);
 		char* tempname = dc_stock_str(DC_STR_ARCHIVEDCHATS);
-			ths->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count__(ths->m_context));
+			chat->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count__(chat->m_context));
 		free(tempname);
 	}
-	else if( ths->m_id == DC_CHAT_ID_STARRED ) {
-		free(ths->m_name);
-		ths->m_name = dc_stock_str(DC_STR_STARREDMSGS);
+	else if( chat->m_id == DC_CHAT_ID_STARRED ) {
+		free(chat->m_name);
+		chat->m_name = dc_stock_str(DC_STR_STARREDMSGS);
 	}
-	else if( dc_param_exists(ths->m_param, DC_PARAM_SELFTALK) ) {
-		free(ths->m_name);
-		ths->m_name = dc_stock_str(DC_STR_SELF);
+	else if( dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) ) {
+		free(chat->m_name);
+		chat->m_name = dc_stock_str(DC_STR_SELF);
 	}
 
 	return row_offset; /* success, return the next row offset */

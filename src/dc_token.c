@@ -24,15 +24,15 @@
 #include "dc_token.h"
 
 
-void dc_token_save__(dc_context_t* mailbox, dc_tokennamespc_t namespc, uint32_t foreign_id, const char* token)
+void dc_token_save__(dc_context_t* context, dc_tokennamespc_t namespc, uint32_t foreign_id, const char* token)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || token == NULL ) { // foreign_id may be 0
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || token == NULL ) { // foreign_id may be 0
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
 		"INSERT INTO tokens (namespc, foreign_id, token, timestamp) VALUES (?, ?, ?, ?);");
 	sqlite3_bind_int  (stmt, 1, (int)namespc);
 	sqlite3_bind_int  (stmt, 2, (int)foreign_id);
@@ -45,16 +45,16 @@ cleanup:
 }
 
 
-char* dc_token_lookup__(dc_context_t* mailbox, dc_tokennamespc_t namespc, uint32_t foreign_id)
+char* dc_token_lookup__(dc_context_t* context, dc_tokennamespc_t namespc, uint32_t foreign_id)
 {
 	char*         token = NULL;
 	sqlite3_stmt* stmt  = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
 		"SELECT token FROM tokens WHERE namespc=? AND foreign_id=?;");
 	sqlite3_bind_int (stmt, 1, (int)namespc);
 	sqlite3_bind_int (stmt, 2, (int)foreign_id);
@@ -68,16 +68,16 @@ cleanup:
 }
 
 
-int dc_token_exists__(dc_context_t* mailbox, dc_tokennamespc_t namespc, const char* token)
+int dc_token_exists__(dc_context_t* context, dc_tokennamespc_t namespc, const char* token)
 {
 	int           exists = 0;
 	sqlite3_stmt* stmt   = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || token == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || token == NULL ) {
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
 		"SELECT id FROM tokens WHERE namespc=? AND token=?;");
 	sqlite3_bind_int (stmt, 1, (int)namespc);
 	sqlite3_bind_text(stmt, 2, token, -1, SQLITE_STATIC);

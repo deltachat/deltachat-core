@@ -27,12 +27,12 @@
 #include "dc_tools.h"
 
 
-static char* find_param(char* ths, int key, char** ret_p2)
+static char* find_param(char* haystack, int key, char** ret_p2)
 {
 	char *p1, *p2;
 
 	/* let p1 point to the start of the */
-	p1 = ths;
+	p1 = haystack;
 	while( 1 ) {
 		if( p1 == NULL || *p1 == 0 ) {
 			return NULL;

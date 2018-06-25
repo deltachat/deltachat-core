@@ -31,12 +31,12 @@
  *
  * @private @memberof dc_array_t
  *
- * @param mailbox The mailbox object that should be stored in the array object. May be NULL.
+ * @param context The context object that should be stored in the array object. May be NULL.
  * @param initsize Initial maximal size of the array. If you add more items, the internal data pointer is reallocated.
  *
  * @return New array object of the requested size, the data should be set directly.
  */
-dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
+dc_array_t* dc_array_new(dc_context_t* context, size_t initsize)
 {
 	dc_array_t* array;
 
@@ -46,7 +46,7 @@ dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
 	}
 
 	array->m_magic     = DC_ARRAY_MAGIC;
-	array->m_context   = mailbox;
+	array->m_context   = context;
 	array->m_count     = 0;
 	array->m_allocated = initsize < 1? 1 : initsize;
 	array->m_array     = malloc(array->m_allocated * sizeof(uintptr_t));

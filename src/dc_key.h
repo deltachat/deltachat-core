@@ -56,7 +56,7 @@ int       dc_key_set_from_binary          (dc_key_t*, const void* data, int byte
 int       dc_key_set_from_key             (dc_key_t*, const dc_key_t*);
 int       dc_key_set_from_stmt            (dc_key_t*, sqlite3_stmt*, int index, int type);
 int       dc_key_set_from_base64          (dc_key_t*, const char* base64, int type);
-int       dc_key_set_from_file            (dc_key_t*, const char* file, dc_context_t* mailbox);
+int       dc_key_set_from_file            (dc_key_t*, const char* file, dc_context_t*);
 
 int       dc_key_equals                   (const dc_key_t*, const dc_key_t*);
 
@@ -65,9 +65,9 @@ int       dc_key_load_self_public__       (dc_key_t*, const char* self_addr, dc_
 int       dc_key_load_self_private__      (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
 
 char*     dc_render_base64                (const void* buf, size_t buf_bytes, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
-char*     dc_key_render_base64            (const dc_key_t* ths, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
+char*     dc_key_render_base64            (const dc_key_t*, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
 char*     dc_key_render_asc               (const dc_key_t*, const char* add_header_lines); /* each header line must be terminated by \r\n, the result must be freed */
-int       dc_key_render_asc_to_file       (const dc_key_t*, const char* file, dc_context_t* mailbox);
+int       dc_key_render_asc_to_file       (const dc_key_t*, const char* file, dc_context_t*);
 
 char*     dc_format_fingerprint           (const char*);
 char*     dc_normalize_fingerprint        (const char*);
