@@ -647,7 +647,7 @@ char* dc_sqlite3_get_config__(dc_sqlite3_t* ths, const char* key, const char* de
 	sqlite3_stmt* stmt;
 
 	if( !dc_sqlite3_is_open(ths) || key == NULL ) {
-		return strdup_keep_null(def);
+		return dc_strdup_keep_null(def);
 	}
 
 	stmt = dc_sqlite3_predefine__(ths, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
@@ -658,12 +658,12 @@ char* dc_sqlite3_get_config__(dc_sqlite3_t* ths, const char* key, const char* de
 		if( ptr )
 		{
 			/* success, fall through below to free objects */
-			return safe_strdup((const char*)ptr);
+			return dc_strdup((const char*)ptr);
 		}
 	}
 
 	/* return the default value */
-	return strdup_keep_null(def);
+	return dc_strdup_keep_null(def);
 }
 
 

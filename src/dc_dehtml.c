@@ -69,7 +69,7 @@ static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
 	else if( strcmp(tag, "a")==0 )
 	{
 		free(dehtml->m_last_href);
-		dehtml->m_last_href = strdup_keep_null(mrattr_find(attr, "href"));
+		dehtml->m_last_href = dc_strdup_keep_null(mrattr_find(attr, "href"));
 		if( dehtml->m_last_href ) {
 			dc_strbuilder_cat(&dehtml->m_strbuilder, "[");
 		}
@@ -155,9 +155,9 @@ static void dehtml_endtag_cb(void* userdata, const char* tag)
 
 char* dc_dehtml(char* buf_terminated)
 {
-	mr_trim(buf_terminated);
+	dc_trim(buf_terminated);
 	if( buf_terminated[0] == 0 ) {
-		return safe_strdup(""); /* support at least empty HTML-messages; for empty messages, we'll replace the message by the subject later */
+		return dc_strdup(""); /* support at least empty HTML-messages; for empty messages, we'll replace the message by the subject later */
 	}
 	else {
 		dehtml_t      dehtml;

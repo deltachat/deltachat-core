@@ -60,7 +60,7 @@ char* mrtoken_lookup__(dc_context_t* mailbox, mrtokennamespc_t namespc, uint32_t
 	sqlite3_bind_int (stmt, 2, (int)foreign_id);
 	sqlite3_step(stmt);
 
-	token = strdup_keep_null((char*)sqlite3_column_text(stmt, 0));
+	token = dc_strdup_keep_null((char*)sqlite3_column_text(stmt, 0));
 
 cleanup:
 	sqlite3_finalize(stmt);

@@ -107,7 +107,7 @@ char* dc_lot_get_text1(dc_lot_t* lot)
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return NULL;
 	}
-	return strdup_keep_null(lot->m_text1);
+	return dc_strdup_keep_null(lot->m_text1);
 }
 
 
@@ -125,7 +125,7 @@ char* dc_lot_get_text2(dc_lot_t* lot)
 	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
 		return NULL;
 	}
-	return strdup_keep_null(lot->m_text2);
+	return dc_strdup_keep_null(lot->m_text2);
 }
 
 

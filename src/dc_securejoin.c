@@ -420,12 +420,12 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 		}
 		group_name = dc_chat_get_name(chat);
 		group_name_urlencoded = dc_urlencode(group_name);
-		qr = dc_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
+		qr = dc_mprintf(DC_OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
 	}
 	else
 	{
 		// parameters used: a=n=i=s=
-		qr = dc_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
+		qr = dc_mprintf(DC_OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
 	}
 
 cleanup:
@@ -440,7 +440,7 @@ cleanup:
 	dc_chat_unref(chat);
 	free(group_name);
 	free(group_name_urlencoded);
-	return qr? qr : safe_strdup(NULL);
+	return qr? qr : dc_strdup(NULL);
 }
 
 
@@ -478,7 +478,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	int      ret_chat_id       = 0;
 	int      ongoing_allocated = 0;
-	#define  CHECK_EXIT        if( mr_shall_stop_ongoing ) { goto cleanup; }
+	#define  CHECK_EXIT        if( dc_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t contact_chat_id   = 0;
 	dc_lot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
@@ -595,7 +595,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 	UNLOCK
 
-	ret = MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
+	ret = DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{
@@ -643,10 +643,10 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				dc_log_warning(context, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
-			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
-			auth = safe_strdup(s_bobs_qr_scan->m_auth);
+			scanned_fingerprint_of_alice = dc_strdup(s_bobs_qr_scan->m_fingerprint);
+			auth = dc_strdup(s_bobs_qr_scan->m_auth);
 			if( join_vg ) {
-				grpid = safe_strdup(s_bobs_qr_scan->m_text2);
+				grpid = dc_strdup(s_bobs_qr_scan->m_text2);
 			}
 		UNLOCK
 
@@ -735,7 +735,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		if( join_vg ) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
-			grpid = safe_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
+			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
 			LOCK
 				uint32_t verified_chat_id = dc_get_chat_id_by_grpid__(context, grpid, NULL, &is_verified);
@@ -745,7 +745,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 
-			dc_add_contact_to_chat_ex(context, verified_chat_id, contact_id, MR_FROM_HANDSHAKE); // Alice -> Bob and all members
+			dc_add_contact_to_chat_ex(context, verified_chat_id, contact_id, DC_FROM_HANDSHAKE); // Alice -> Bob and all members
 		}
 		else {
 			send_handshake_msg(context, contact_chat_id, "vc-contact-confirm",
@@ -761,7 +761,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		if( join_vg ) {
 			// vg-member-added is just part of a Chat-Group-Member-Added which should be kept in any way, eg. for multi-client
-			ret = MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
+			ret = DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
 		}
 
 		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
@@ -779,7 +779,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				dc_log_warning(context, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}
-			scanned_fingerprint_of_alice = safe_strdup(s_bobs_qr_scan->m_fingerprint);
+			scanned_fingerprint_of_alice = dc_strdup(s_bobs_qr_scan->m_fingerprint);
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
@@ -809,7 +809,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 	// delete the message, as SMTP and IMAP is done in separate threads it should be okay to delete the message just now.
 	// for errors, we do not the corresponding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
-	if( ret == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+	if( ret == DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 		struct mailimf_field* field;
 		if( (field=dc_mimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;

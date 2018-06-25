@@ -151,7 +151,7 @@ static char* get_readable_flags(int flags)
 	}
 
 	if( strbuilder.m_buf[0]==0 ) { dc_strbuilder_cat(&strbuilder, "0"); }
-	mr_trim(strbuilder.m_buf);
+	dc_trim(strbuilder.m_buf);
 	return strbuilder.m_buf;
 }
 
@@ -162,7 +162,7 @@ char* dc_loginparam_get_readable(const dc_loginparam_t* ths)
 	const char* pw = "***";
 
 	if( ths==NULL ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
 	char* flags_readable = get_readable_flags(ths->m_server_flags);

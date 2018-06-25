@@ -50,7 +50,7 @@ void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
 		return;
 	}
 
-	strbuilder->m_allocated    = MR_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
+	strbuilder->m_allocated    = DC_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
 	strbuilder->m_buf          = malloc(strbuilder->m_allocated);
 
     if( strbuilder->m_buf==NULL ) {
@@ -89,7 +89,7 @@ char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
 	int len = strlen(text);
 
 	if( len > strbuilder->m_free ) {
-		int add_bytes  = MR_MAX(len, strbuilder->m_allocated);
+		int add_bytes  = DC_MAX(len, strbuilder->m_allocated);
 		int old_offset = (int)(strbuilder->m_eos - strbuilder->m_buf);
 
 		strbuilder->m_allocated = strbuilder->m_allocated + add_bytes;

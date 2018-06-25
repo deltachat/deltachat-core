@@ -333,7 +333,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 		return;
 	}
 
-	buf_start = safe_strdup(buf_start__); /* we make a copy as we can easily null-terminate tag names and attributes "in place" */
+	buf_start = dc_strdup(buf_start__); /* we make a copy as we can easily null-terminate tag names and attributes "in place" */
 	last_text_start = buf_start;
 	p               = buf_start;
 	while( *p )
@@ -414,7 +414,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 					{
 						bak = *p;
 						*p = '\0'; /* null-terminate tag name temporary, eg. a covered `>` may get important downwards */
-						mr_strlower_in_place(beg_tag_name);
+						dc_strlower_in_place(beg_tag_name);
 						ths->m_endtag_cb(ths->m_userdata, beg_tag_name);
 						*p = bak;
 					}
@@ -470,7 +470,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 										p += strcspn(p, XML_WS "/>"); /* get end of attribute value */
 										bak = *p;
 										*p = '\0';
-											char* temp = safe_strdup(beg_attr_value);
+											char* temp = dc_strdup(beg_attr_value);
 											beg_attr_value_new = xml_decode(temp, ' ');
 											if( beg_attr_value_new!=temp ) { free(temp); }
 										*p = bak;
@@ -478,7 +478,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 								}
 								else
 								{
-									beg_attr_value_new = safe_strdup(NULL);
+									beg_attr_value_new = dc_strdup(NULL);
 								}
 
 								/* add attribute */
@@ -490,7 +490,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 										/* take care not to overwrite the current pointer (happens eg. for `<tag attrWithoutValue>` */
 										bak = *after_attr_name;
 										*after_attr_name = '\0';
-										beg_attr_name_new = safe_strdup(beg_attr_name);
+										beg_attr_name_new = dc_strdup(beg_attr_name);
 										*after_attr_name = bak;
 										free_bits |= FREE_KEY;
 									}
@@ -498,7 +498,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 										*after_attr_name = '\0';
 									}
 
-									mr_strlower_in_place(beg_attr_name_new);
+									dc_strlower_in_place(beg_attr_name_new);
 									attr[attr_index]         = beg_attr_name_new;
 									attr[attr_index+1]       = beg_attr_value_new;
 									attr[attr_index+2]       = NULL; /* null-terminate list */
@@ -511,7 +511,7 @@ void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 
 						char bak = *after_tag_name; /* backup the character as it may be `/` or `>` which gets important downwards */
 						*after_tag_name = 0;
-						mr_strlower_in_place(beg_tag_name);
+						dc_strlower_in_place(beg_tag_name);
 						ths->m_starttag_cb(ths->m_userdata, beg_tag_name, attr);
 						*after_tag_name = bak;
 

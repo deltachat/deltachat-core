@@ -207,7 +207,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	dc_chat_t*     chat_to_delete = NULL;
 
 	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
-		ret->m_text2 = safe_strdup("ErrBadChatlistIndex");
+		ret->m_text2 = dc_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
 
@@ -221,7 +221,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 			chat = dc_chat_new(chatlist->m_context);
 			chat_to_delete = chat;
 			if( !dc_chat_load_from_db__(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
-				ret->m_text2 = safe_strdup("ErrCannotReadChat");
+				ret->m_text2 = dc_strdup("ErrCannotReadChat");
 				goto cleanup;
 			}
 		}
@@ -245,7 +245,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 
 	if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK )
 	{
-		ret->m_text2 = safe_strdup(NULL);
+		ret->m_text2 = dc_strdup(NULL);
 	}
 	else if( chat->m_draft_timestamp
 	      && chat->m_draft_text
@@ -255,8 +255,8 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 		ret->m_text1 = dc_stock_str(DC_STR_DRAFT);
 		ret->m_text1_meaning = MR_TEXT1_DRAFT;
 
-		ret->m_text2 = safe_strdup(chat->m_draft_text);
-		mr_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1/*unwrap*/);
+		ret->m_text2 = dc_strdup(chat->m_draft_text);
+		dc_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1/*unwrap*/);
 
 		ret->m_timestamp = chat->m_draft_timestamp;
 	}
@@ -364,8 +364,8 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	else
 	{
 		/* show chatlist filtered by a search string, this includes archived and unarchived */
-		query = safe_strdup(query__);
-		mr_trim(query);
+		query = dc_strdup(query__);
+		dc_trim(query);
 		if( query[0]==0 ) {
 			success = 1; /*empty result*/
 			goto cleanup;

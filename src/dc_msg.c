@@ -286,10 +286,10 @@ char* dc_msg_get_text(const dc_msg_t* msg)
 	char* ret;
 
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
-	ret = safe_strdup(msg->m_text);
+	ret = dc_strdup(msg->m_text);
 	dc_truncate_str(ret, MR_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
 	return ret;
 }
@@ -321,7 +321,7 @@ char* dc_msg_get_file(const dc_msg_t* msg)
 	ret = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 
 cleanup:
-	return ret? ret : safe_strdup(NULL);
+	return ret? ret : dc_strdup(NULL);
 }
 
 
@@ -350,11 +350,11 @@ char* dc_msg_get_filename(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = mr_get_filename(pathNfilename);
+	ret = dc_get_filename(pathNfilename);
 
 cleanup:
 	free(pathNfilename);
-	return ret? ret : safe_strdup(NULL);
+	return ret? ret : dc_strdup(NULL);
 }
 
 
@@ -387,13 +387,13 @@ char* dc_msg_get_filemime(const dc_msg_t* msg)
 		dc_msg_guess_msgtype_from_suffix(file, NULL, &ret);
 
 		if( ret == NULL ) {
-			ret = safe_strdup("application/octet-stream");
+			ret = dc_strdup("application/octet-stream");
 		}
 	}
 
 cleanup:
 	free(file);
-	return ret? ret : safe_strdup(NULL);
+	return ret? ret : dc_strdup(NULL);
 }
 
 
@@ -423,7 +423,7 @@ uint64_t dc_msg_get_filebytes(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = mr_get_filebytes(file);
+	ret = dc_get_filebytes(file);
 
 cleanup:
 	free(file);
@@ -466,7 +466,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 		if( (contact = dc_get_contact(msg->m_context, msg->m_from_id))==NULL ) {
 			goto cleanup;
 		}
-		ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
+		ret->m_text1 = dc_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
 		ret->m_text2 = dc_stock_str(DC_STR_VOICEMESSAGE);
 	}
 	else
@@ -680,7 +680,7 @@ cleanup:
 char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
 {
 	if( msg==NULL || msg->m_magic != MR_MSG_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
 	return dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
@@ -862,12 +862,12 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = safe_strdup(buf_setupcodebegin); /* we need to make a copy as buf_setupcodebegin just points inside buf (which will be free()'d on cleanup) */
+	ret = dc_strdup(buf_setupcodebegin); /* we need to make a copy as buf_setupcodebegin just points inside buf (which will be free()'d on cleanup) */
 
 cleanup:
 	free(filename);
 	free(buf);
-	return ret? ret : safe_strdup(NULL);
+	return ret? ret : dc_strdup(NULL);
 }
 
 
@@ -886,8 +886,8 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
 	dc_msg_empty(ths);
 
 	ths->m_id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	ths->m_rfc724_mid   =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	ths->m_server_folder=  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_rfc724_mid   =  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_server_folder=  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 	ths->m_chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 
@@ -900,7 +900,7 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
 	ths->m_type         =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_state        =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
-	ths->m_text         =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_text         =  dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 
 	dc_param_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
@@ -908,7 +908,7 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
 	ths->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
 	if( ths->m_chat_blocked == 2 ) {
-		mr_truncate_n_unwrap_str(ths->m_text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
+		dc_truncate_n_unwrap_str(ths->m_text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
 			0/*unwrap*/);
 	}
 
@@ -988,23 +988,23 @@ void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtyp
 
 	if( strcmp(suffix, "mp3")==0 ) {
 		*ret_msgtype = MR_MSG_AUDIO;
-		*ret_mime = safe_strdup("audio/mpeg");
+		*ret_mime = dc_strdup("audio/mpeg");
 	}
 	else if( strcmp(suffix, "mp4")==0 ) {
 		*ret_msgtype = MR_MSG_VIDEO;
-		*ret_mime = safe_strdup("video/mp4");
+		*ret_mime = dc_strdup("video/mp4");
 	}
 	else if( strcmp(suffix, "jpg")==0 || strcmp(suffix, "jpeg")==0 ) {
 		*ret_msgtype = MR_MSG_IMAGE;
-		*ret_mime = safe_strdup("image/jpeg");
+		*ret_mime = dc_strdup("image/jpeg");
 	}
 	else if( strcmp(suffix, "png")==0 ) {
 		*ret_msgtype = MR_MSG_IMAGE;
-		*ret_mime = safe_strdup("image/png");
+		*ret_mime = dc_strdup("image/png");
 	}
 	else if( strcmp(suffix, "gif")==0 ) {
 		*ret_msgtype = MR_MSG_GIF;
-		*ret_mime = safe_strdup("image/gif");
+		*ret_mime = dc_strdup("image/gif");
 	}
 
 cleanup:
@@ -1018,12 +1018,12 @@ void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret
 	/* function extracts AUTHOR and TITLE from a path given as `/path/other folder/AUTHOR - TITLE.mp3`
 	if the mark ` - ` is not preset, the whole name (without suffix) is used as the title and the author is NULL. */
 	char *author = NULL, *title = NULL, *p;
-	mr_split_filename(pathNfilename, &title, NULL);
+	dc_split_filename(pathNfilename, &title, NULL);
 	p = strstr(title, " - ");
 	if( p ) {
 		*p = 0;
 		author = title;
-		title  = safe_strdup(&p[3]);
+		title  = dc_strdup(&p[3]);
 	}
 
 	if( ret_author ) { *ret_author = author; } else { free(author); }
@@ -1069,7 +1069,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			}
 			else {
 				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
-				value = mr_get_filename(pathNfilename);
+				value = dc_get_filename(pathNfilename);
 				label = dc_stock_str(DC_STR_FILE);
 				ret = dc_mprintf("%s: %s", label, value);
 			}
@@ -1077,8 +1077,8 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 
 		default:
 			if( text ) {
-				ret = safe_strdup(text);
-				mr_truncate_n_unwrap_str(ret, approx_characters, 1/*unwrap*/);
+				ret = dc_strdup(text);
+				dc_truncate_n_unwrap_str(ret, approx_characters, 1/*unwrap*/);
 			}
 			break;
 	}
@@ -1088,7 +1088,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 	free(label);
 	free(value);
 	if( ret == NULL ) {
-		ret = safe_strdup(NULL);
+		ret = dc_strdup(NULL);
 	}
 	return ret;
 }
@@ -1102,7 +1102,7 @@ int dc_msg_is_increation__(const dc_msg_t* msg)
 		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename ) {
 			char* totest = dc_mprintf("%s.increation", pathNfilename);
-			if( mr_file_exist(totest) ) {
+			if( dc_file_exist(totest) ) {
 				is_increation = 1;
 			}
 			free(totest);

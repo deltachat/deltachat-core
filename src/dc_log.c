@@ -61,7 +61,7 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 		#define BUFSIZE 1024
 		char tempbuf[BUFSIZE+1];
 		vsnprintf(tempbuf, BUFSIZE, msg_format, va);
-		msg = safe_strdup(tempbuf);
+		msg = dc_strdup(tempbuf);
 	}
 
 	/* if we have still no message, create one based upon  the code */

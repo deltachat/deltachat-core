@@ -124,7 +124,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 	however, this adds some additional complexity and seems not to be needed currently */
 
 	/* split the given buffer into lines */
-	carray* lines = mr_split_into_lines(buf_terminated);
+	carray* lines = dc_split_into_lines(buf_terminated);
 	int l, l_first = 0, l_last = carray_count(lines)-1; /* if l_last is -1, there are no lines */
 	char* line;
 
@@ -289,7 +289,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		dc_strbuilder_cat(&ret, " " DC_EDITORIAL_ELLIPSE);
 	}
 
-	mr_free_splitted_lines(lines);
+	dc_free_splitted_lines(lines);
 
 	return ret.m_buf;
 }
@@ -306,7 +306,7 @@ char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int 
 	char* out = NULL, *temp = NULL;
 
 	if( ths == NULL || in_unterminated == NULL || in_bytes <= 0 ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	ths->m_is_forwarded    = 0;
@@ -315,7 +315,7 @@ char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int 
 
 	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
 	if( out == NULL ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	/* convert HTML to text, if needed */
@@ -327,14 +327,14 @@ char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int 
 	}
 
 	/* simplify the text in the buffer (characters to remove may be marked by `\r`) */
-	mr_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
+	dc_remove_cr_chars(out); /* make comparisons easier, eg. for line `-- ` */
 	if( (temp = dc_simplify_simplify_plain_text(ths, out)) != NULL ) {
 		free(out);
 		out = temp;
 	}
 
 	/* remove all `\r` from string */
-	mr_remove_cr_chars(out);
+	dc_remove_cr_chars(out);
 
 	return out;
 }

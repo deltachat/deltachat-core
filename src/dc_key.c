@@ -489,11 +489,11 @@ char* dc_key_get_fingerprint(const dc_key_t* key)
 		goto cleanup;
 	}
 
-	fingerprint_hex = mr_binary_to_uc_hex(fingerprint_buf, fingerprint_bytes);
+	fingerprint_hex = dc_binary_to_uc_hex(fingerprint_buf, fingerprint_bytes);
 
 cleanup:
 	free(fingerprint_buf);
-	return fingerprint_hex? fingerprint_hex : safe_strdup(NULL);
+	return fingerprint_hex? fingerprint_hex : dc_strdup(NULL);
 }
 
 

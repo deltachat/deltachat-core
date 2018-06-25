@@ -115,7 +115,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	ths->m_userdata = userdata;
 	ths->m_imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
 	ths->m_smtp     = dc_smtp_new(ths);
-	ths->m_os_name  = strdup_keep_null(os_name);
+	ths->m_os_name  = dc_strdup_keep_null(os_name);
 
 	dc_pgp_init(ths);
 
@@ -207,7 +207,7 @@ void* dc_get_userdata(dc_context_t* context)
 static void update_config_cache__(dc_context_t* ths, const char* key)
 {
 	if( key==NULL || strcmp(key, "e2ee_enabled")==0 ) {
-		ths->m_e2ee_enabled = dc_sqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", MR_E2EE_DEFAULT_ENABLED);
+		ths->m_e2ee_enabled = dc_sqlite3_get_config_int__(ths->m_sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	}
 }
 
@@ -251,16 +251,16 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 		}
 
 		/* backup dbfile name */
-		context->m_dbfile = safe_strdup(dbfile);
+		context->m_dbfile = dc_strdup(dbfile);
 
 		/* set blob-directory
 		(to avoid double slashed, the given directory should not end with an slash) */
 		if( blobdir && blobdir[0] ) {
-			context->m_blobdir = safe_strdup(blobdir);
+			context->m_blobdir = dc_strdup(blobdir);
 		}
 		else {
 			context->m_blobdir = dc_mprintf("%s-blobs", dbfile);
-			mr_create_folder(context->m_blobdir, context);
+			dc_create_folder(context->m_blobdir, context);
 		}
 
 		update_config_cache__(context, NULL);
@@ -346,9 +346,9 @@ int dc_is_open(const dc_context_t* context)
 char* dc_get_blobdir(dc_context_t* context)
 {
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
-	return safe_strdup(context->m_blobdir);
+	return dc_strdup(context->m_blobdir);
 }
 
 
@@ -422,7 +422,7 @@ char* dc_get_config(dc_context_t* ths, const char* key, const char* def)
 	char* ret;
 
 	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "def" may be NULL */
-		return strdup_keep_null(def);
+		return dc_strdup_keep_null(def);
 	}
 
 	dc_sqlite3_lock(ths->m_sql);
@@ -491,7 +491,7 @@ int32_t dc_get_config_int(dc_context_t* ths, const char* key, int32_t def)
  */
 char* dc_get_version_str(void)
 {
-	return safe_strdup(DC_VERSION_STR);
+	return dc_strdup(DC_VERSION_STR);
 }
 
 
@@ -515,7 +515,7 @@ char* dc_get_info(dc_context_t* context)
 	dc_strbuilder_init(&ret, 0);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return safe_strdup("ErrBadPtr");
+		return dc_strdup("ErrBadPtr");
 	}
 
 	/* read data (all pointers may be NULL!) */
@@ -540,7 +540,7 @@ char* dc_get_info(dc_context_t* context)
 
 		e2ee_enabled    = context->m_e2ee_enabled;
 
-		mdns_enabled    = dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED);
+		mdns_enabled    = dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
 		sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
 		sqlite3_step(stmt);
@@ -556,7 +556,7 @@ char* dc_get_info(dc_context_t* context)
 			fingerprint_str = dc_key_get_formatted_fingerprint(self_public);
 		}
 		else {
-			fingerprint_str = safe_strdup("<Not yet calculated>");
+			fingerprint_str = dc_strdup("<Not yet calculated>");
 		}
 
 	dc_sqlite3_unlock(context->m_sql);
@@ -599,7 +599,7 @@ char* dc_get_info(dc_context_t* context)
 		, mdns_enabled
 
 		, e2ee_enabled
-		, MR_E2EE_DEFAULT_ENABLED
+		, DC_E2EE_DEFAULT_ENABLED
 		, prv_key_count, pub_key_count, fingerprint_str
 
 		, DC_VERSION_STR
@@ -1253,7 +1253,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 	uint32_t      curr_id;
 	time_t        curr_local_timestamp;
 	int           curr_day, last_day = 0;
-	long          cnv_to_local = mr_gm2local_offset();
+	long          cnv_to_local = dc_gm2local_offset();
 	#define       SECONDS_PER_DAY 86400
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || ret == NULL ) {
@@ -1378,8 +1378,8 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	real_query = safe_strdup(query);
-	mr_trim(real_query);
+	real_query = dc_strdup(query);
+	dc_trim(real_query);
 	if( real_query[0]==0 ) {
 		success = 1; /*empty result*/
 		goto cleanup;
@@ -1494,7 +1494,7 @@ void dc_set_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 
 	// save draft in object - NULL or empty: clear draft
 	free(chat->m_draft_text);
-	chat->m_draft_text      = msg? safe_strdup(msg) : NULL;
+	chat->m_draft_text      = msg? dc_strdup(msg) : NULL;
 	chat->m_draft_timestamp = msg? time(NULL) : 0;
 
 	// save draft in database
@@ -1945,7 +1945,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 			dc_log_error(context, 0, "Cannot send message, not configured successfully.");
 			goto cleanup;
 		}
-		rfc724_mid = mr_create_outgoing_rfc724_mid(DC_CHAT_TYPE_IS_MULTI(chat->m_type)? chat->m_grpid : NULL, from);
+		rfc724_mid = dc_create_outgoing_rfc724_mid(DC_CHAT_TYPE_IS_MULTI(chat->m_type)? chat->m_grpid : NULL, from);
 		free(from);
 	}
 
@@ -2128,7 +2128,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 
 			if( msg->m_text ) { free(msg->m_text); }
 			if( msg->m_type == MR_MSG_AUDIO ) {
-				char* filename = mr_get_filename(pathNfilename);
+				char* filename = dc_get_filename(pathNfilename);
 				char* author = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, "");
 				char* title = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, "");
 				msg->m_text = dc_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
@@ -2137,7 +2137,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 				free(title);
 			}
 			else if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
-				msg->m_text = mr_get_filename(pathNfilename);
+				msg->m_text = dc_get_filename(pathNfilename);
 			}
 			else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg->m_type) ) {
 				msg->m_text = dc_get_filesuffix_lc(pathNfilename);
@@ -2167,7 +2167,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 		{
 			dc_chat_t* chat = dc_chat_new(context);
 			if( dc_chat_load_from_db__(chat, chat_id) ) {
-				msg->m_id = dc_send_msg_i__(context, chat, msg, mr_create_smeared_timestamp__());
+				msg->m_id = dc_send_msg_i__(context, chat, msg, dc_create_smeared_timestamp__());
 				if( msg ->m_id == 0 ) {
 					goto cleanup; /* error already logged */
 				}
@@ -2218,7 +2218,7 @@ uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* t
 	}
 
 	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = safe_strdup(text_to_send);
+	msg->m_text = dc_strdup(text_to_send);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2487,7 +2487,7 @@ uint32_t dc_send_vcard_msg(dc_context_t* context, uint32_t chat_id, uint32_t con
 		text_to_send = dc_mprintf("%s: %s", contact->m_authname, contact->m_addr);
 	}
 	else {
-		text_to_send = safe_strdup(contact->m_addr);
+		text_to_send = dc_strdup(contact->m_addr);
 	}
 
 	ret = dc_send_text_msg(context, chat_id, text_to_send);
@@ -2545,7 +2545,7 @@ uint32_t dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		dc_add_device_msg__(context, chat_id, text, mr_create_smeared_timestamp__());
+		dc_add_device_msg__(context, chat_id, text, dc_create_smeared_timestamp__());
 
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
@@ -2933,7 +2933,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
-		if( (flags&MR_FROM_HANDSHAKE) && dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
+		if( (flags&DC_FROM_HANDSHAKE) && dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
 			// after a handshake, force sending the `Chat-Group-Member-Added` message
 			dc_param_set(chat->m_param, DC_PARAM_UNPROMOTED, NULL);
 			dc_chat_update_param__(chat);
@@ -2946,7 +2946,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 
 		if( dc_is_contact_in_chat__(context, chat_id, contact_id) )
 		{
-			if( !(flags&MR_FROM_HANDSHAKE) ) {
+			if( !(flags&DC_FROM_HANDSHAKE) ) {
 				success = 1;
 				goto cleanup;
 			}
@@ -3419,7 +3419,7 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 		goto cleanup;
 	}
 
-	if( (lines=mr_split_into_lines(adr_book))==NULL ) {
+	if( (lines=dc_split_into_lines(adr_book))==NULL ) {
 		goto cleanup;
 	}
 
@@ -3443,7 +3443,7 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 	dc_sqlite3_unlock(context->m_sql);
 
 cleanup:
-	mr_free_splitted_lines(lines);
+	dc_free_splitted_lines(lines);
 
 	return modify_cnt;
 }
@@ -3506,7 +3506,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 
 			self_name  = dc_sqlite3_get_config__(context->m_sql, "displayname", "");
 			self_name2 = dc_stock_str(DC_STR_SELF);
-			if( query==NULL || mr_str_contains(self_addr, query) || mr_str_contains(self_name, query) || mr_str_contains(self_name2, query) ) {
+			if( query==NULL || dc_str_contains(self_addr, query) || dc_str_contains(self_name, query) || dc_str_contains(self_name2, query) ) {
 				add_self = 1;
 			}
 		}
@@ -4030,7 +4030,7 @@ size_t dc_get_real_msg_cnt__(dc_context_t* context)
 		" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
 		" AND c.blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		dc_sqlite3_log_error(context->m_sql, "mr_get_assigned_msg_cnt_() failed.");
+		dc_sqlite3_log_error(context->m_sql, "dc_get_real_msg_cnt__() failed.");
 		return 0;
 	}
 
@@ -4085,7 +4085,7 @@ uint32_t dc_rfc724_mid_exists__(dc_context_t* context, const char* rfc724_mid, c
 		return 0;
 	}
 
-	if( ret_server_folder ) { *ret_server_folder = safe_strdup((char*)sqlite3_column_text(stmt, 0)); }
+	if( ret_server_folder ) { *ret_server_folder = dc_strdup((char*)sqlite3_column_text(stmt, 0)); }
 	if( ret_server_uid )    { *ret_server_uid = sqlite3_column_int(stmt, 1); /* may be 0 */ }
 	return sqlite3_column_int(stmt, 2);
 }
@@ -4193,7 +4193,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 			goto cleanup;
 		}
 
-		rawtxt = safe_strdup((char*)sqlite3_column_text(stmt, 0));
+		rawtxt = dc_strdup((char*)sqlite3_column_text(stmt, 0));
 
 		#ifdef __ANDROID__
 			p = strchr(rawtxt, '\n');
@@ -4206,7 +4206,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 			}
 		#endif
 
-		mr_trim(rawtxt);
+		dc_trim(rawtxt);
 		dc_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
 		/* add time */
@@ -4247,13 +4247,13 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	/* add state */
 	p = NULL;
 	switch( msg->m_state ) {
-		case DC_STATE_IN_FRESH:      p = safe_strdup("Fresh");           break;
-		case DC_STATE_IN_NOTICED:    p = safe_strdup("Noticed");         break;
-		case DC_STATE_IN_SEEN:       p = safe_strdup("Seen");            break;
-		case DC_STATE_OUT_DELIVERED: p = safe_strdup("Delivered");       break;
-		case DC_STATE_OUT_ERROR:     p = safe_strdup("Error");           break;
-		case DC_STATE_OUT_MDN_RCVD:  p = safe_strdup("Read");            break;
-		case DC_STATE_OUT_PENDING:   p = safe_strdup("Pending");         break;
+		case DC_STATE_IN_FRESH:      p = dc_strdup("Fresh");           break;
+		case DC_STATE_IN_NOTICED:    p = dc_strdup("Noticed");         break;
+		case DC_STATE_IN_SEEN:       p = dc_strdup("Seen");            break;
+		case DC_STATE_OUT_DELIVERED: p = dc_strdup("Delivered");       break;
+		case DC_STATE_OUT_ERROR:     p = dc_strdup("Error");           break;
+		case DC_STATE_OUT_MDN_RCVD:  p = dc_strdup("Read");            break;
+		case DC_STATE_OUT_PENDING:   p = dc_strdup("Pending");         break;
 		default:                     p = dc_mprintf("%i", msg->m_state); break;
 	}
 	dc_strbuilder_catf(&ret, "State: %s", p);
@@ -4263,11 +4263,11 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	int e2ee_errors;
 	if( (e2ee_errors=dc_param_get_int(msg->m_param, DC_PARAM_ERRONEOUS_E2EE, 0)) ) {
 		if( e2ee_errors&MRE2EE_NO_VALID_SIGNATURE ) {
-			p = safe_strdup("Encrypted, no valid signature");
+			p = dc_strdup("Encrypted, no valid signature");
 		}
 	}
 	else if( dc_param_get_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) ) {
-		p = safe_strdup("Encrypted");
+		p = dc_strdup("Encrypted");
 	}
 
 	if( p ) {
@@ -4286,18 +4286,18 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	/* add file info */
 	char* file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 	if( file ) {
-		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
+		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)dc_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
 	}
 
 	if( msg->m_type != MR_MSG_TEXT ) {
 		p = NULL;
 		switch( msg->m_type )  {
-			case MR_MSG_AUDIO: p = safe_strdup("Audio");          break;
-			case MR_MSG_FILE:  p = safe_strdup("File");           break;
-			case MR_MSG_GIF:   p = safe_strdup("GIF");            break;
-			case MR_MSG_IMAGE: p = safe_strdup("Image");          break;
-			case MR_MSG_VIDEO: p = safe_strdup("Video");          break;
-			case MR_MSG_VOICE: p = safe_strdup("Voice");          break;
+			case MR_MSG_AUDIO: p = dc_strdup("Audio");          break;
+			case MR_MSG_FILE:  p = dc_strdup("File");           break;
+			case MR_MSG_GIF:   p = dc_strdup("GIF");            break;
+			case MR_MSG_IMAGE: p = dc_strdup("Image");          break;
+			case MR_MSG_VIDEO: p = dc_strdup("Video");          break;
+			case MR_MSG_VOICE: p = dc_strdup("Voice");          break;
 			default:           p = dc_mprintf("%i", msg->m_type); break;
 		}
 		dc_strbuilder_catf(&ret, "Type: %s\n", p);
@@ -4390,7 +4390,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			goto cleanup;
 		}
 
-		curr_timestamp = mr_create_smeared_timestamps__(msg_cnt);
+		curr_timestamp = dc_create_smeared_timestamps__(msg_cnt);
 
 		idsstr = dc_arr_to_string(msg_ids, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);

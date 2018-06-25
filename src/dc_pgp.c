@@ -108,14 +108,14 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 		goto cleanup;
 	}
 
-	mr_remove_cr_chars(buf);
+	dc_remove_cr_chars(buf);
 	while( *p1 ) {
 		if( *p1  == '\n' ) {
 			/* line found ... */
 			line[line_chars] = 0;
 			if( headerline == NULL ) {
 				/* ... headerline */
-				mr_trim(line);
+				dc_trim(line);
 				if( strncmp(line, "-----BEGIN ", 11)==0 && strncmp(&line[strlen(line)-5], "-----", 5)==0 ) {
 					headerline = line;
 					if( ret_headerline ) {
@@ -137,17 +137,17 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 			else {
 				/* header line */
 				*p2 = 0;
-				mr_trim(line);
+				dc_trim(line);
 				if( strcasecmp(line, "Passphrase-Begin")==0 ) {
 					p2++;
-					mr_trim(p2);
+					dc_trim(p2);
 					if( ret_setupcodebegin ) {
 						*ret_setupcodebegin = p2;
 					}
 				}
 				else if( strcasecmp(line, "Autocrypt-Prefer-Encrypt")==0 ) {
 					p2++;
-					mr_trim(p2);
+					dc_trim(p2);
 					if( ret_preferencrypt ) {
 						*ret_preferencrypt = p2;
 					}
@@ -176,7 +176,7 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 	}
 
 	*p1 = 0;
-	mr_trim(base64);
+	dc_trim(base64);
 
 	if( ret_base64 ) {
 		*ret_base64 = base64;
@@ -698,7 +698,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
 						goto cleanup;
 					}
 
-					char* fingerprint_hex = mr_binary_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
+					char* fingerprint_hex = dc_binary_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
 					if( fingerprint_hex ) {
 						dc_hash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
 					}

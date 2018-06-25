@@ -194,21 +194,21 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 
 				if( !file_used_by_other_msgs )
 				{
-					mr_delete_file(pathNfilename, mailbox);
+					dc_delete_file(pathNfilename, mailbox);
 
 					char* increation_file = dc_mprintf("%s.increation", pathNfilename);
-					mr_delete_file(increation_file, mailbox);
+					dc_delete_file(increation_file, mailbox);
 					free(increation_file);
 
-					char* filenameOnly = mr_get_filename(pathNfilename);
+					char* filenameOnly = dc_get_filename(pathNfilename);
 					if( msg->m_type==MR_MSG_VOICE ) {
 						char* waveform_file = dc_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(waveform_file, mailbox);
+						dc_delete_file(waveform_file, mailbox);
 						free(waveform_file);
 					}
 					else if( msg->m_type==MR_MSG_VIDEO ) {
 						char* preview_file = dc_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
-						mr_delete_file(preview_file, mailbox);
+						dc_delete_file(preview_file, mailbox);
 						free(preview_file);
 					}
 					free(filenameOnly);
@@ -251,7 +251,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_
 
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
 		if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
-		 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
+		 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
 		}
 
@@ -642,7 +642,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 			 && dc_is_online(mailbox) )
 			{
 				pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
-					mailbox->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AVOID_DOS;
+					mailbox->m_perform_smtp_jobs_needed = DC_JOBS_NEEDED_AVOID_DOS;
 				pthread_mutex_unlock(&mailbox->m_smtpidle_condmutex);
 			}
 		}
@@ -865,7 +865,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
 
 	pthread_mutex_lock(&context->m_smtpidle_condmutex);
 
-		if( context->m_perform_smtp_jobs_needed == MR_JOBS_NEEDED_AT_ONCE )
+		if( context->m_perform_smtp_jobs_needed == DC_JOBS_NEEDED_AT_ONCE )
 		{
 			dc_log_info(context, 0, "SMTP-idle will not be started because of waiting jobs.");
 		}
@@ -876,7 +876,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
 				do {
 					int r = 0;
 					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==MR_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
+					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
 					timeToWait.tv_nsec = 0;
 					while (context->m_smtpidle_condflag==0 && r==0) {
 						r = pthread_cond_timedwait(&context->m_smtpidle_cond, &context->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
@@ -939,7 +939,7 @@ void dc_interrupt_smtp_idle(dc_context_t* context)
 		// when this function is called, it might be that the smtp-thread is in
 		// perform_smtp_jobs(). if so, added jobs will be performed after the _next_ idle-jobs loop.
 		// setting the flag perform_smtp_jobs_needed makes sure, idle() returns immediately in this case.
-		context->m_perform_smtp_jobs_needed = MR_JOBS_NEEDED_AT_ONCE;
+		context->m_perform_smtp_jobs_needed = DC_JOBS_NEEDED_AT_ONCE;
 
 		context->m_smtpidle_condflag = 1;
 		pthread_cond_signal(&context->m_smtpidle_cond);

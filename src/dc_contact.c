@@ -141,10 +141,10 @@ uint32_t dc_contact_get_id(const dc_contact_t* contact)
 char* dc_contact_get_addr(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
-	return safe_strdup(contact->m_addr);
+	return dc_strdup(contact->m_addr);
 }
 
 
@@ -165,10 +165,10 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
 char* dc_contact_get_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
-	return safe_strdup(contact->m_name);
+	return dc_strdup(contact->m_name);
 }
 
 
@@ -188,14 +188,14 @@ char* dc_contact_get_name(const dc_contact_t* contact)
 char* dc_contact_get_display_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
 	if( contact->m_name && contact->m_name[0] ) {
-		return safe_strdup(contact->m_name);
+		return dc_strdup(contact->m_name);
 	}
 
-	return safe_strdup(contact->m_addr);
+	return dc_strdup(contact->m_addr);
 }
 
 
@@ -219,14 +219,14 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
 char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
 	if( contact->m_name && contact->m_name[0] ) {
 		return dc_mprintf("%s (%s)", contact->m_name, contact->m_addr);
 	}
 
-	return safe_strdup(contact->m_addr);
+	return dc_strdup(contact->m_addr);
 }
 
 
@@ -244,14 +244,14 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 char* dc_contact_get_first_name(const dc_contact_t* contact)
 {
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
-		return safe_strdup(NULL);
+		return dc_strdup(NULL);
 	}
 
 	if( contact->m_name && contact->m_name[0] ) {
 		return mr_get_first_name(contact->m_name);
 	}
 
-	return safe_strdup(contact->m_addr);
+	return dc_strdup(contact->m_addr);
 }
 
 
@@ -350,14 +350,14 @@ cleanup:
  */
 char* mr_get_first_name(const char* full_name)
 {
-	char* first_name = safe_strdup(full_name);
+	char* first_name = dc_strdup(full_name);
 	char* p1 = strchr(first_name, ' ');
 	if( p1 ) {
 		*p1 = 0;
-		mr_rtrim(first_name);
+		dc_rtrim(first_name);
 		if( first_name[0]  == 0 ) { /*empty result? use the original string in this case */
 			free(first_name);
-			first_name = safe_strdup(full_name);
+			first_name = dc_strdup(full_name);
 		}
 	}
 
@@ -392,7 +392,7 @@ void mr_normalize_name(char* full_name)
 		return; /* error, however, this can be treated as documented behaviour */
 	}
 
-	mr_trim(full_name); /* remove spaces around possible quotes */
+	dc_trim(full_name); /* remove spaces around possible quotes */
 	int len = strlen(full_name);
 	if( len > 0 ) {
 		char firstchar = full_name[0], lastchar = full_name[len-1];
@@ -407,10 +407,10 @@ void mr_normalize_name(char* full_name)
 	char* p1 = strchr(full_name, ',');
 	if( p1 ) {
 		*p1 = 0;
-		char* last_name  = safe_strdup(full_name);
-		char* first_name = safe_strdup(p1+1);
-		mr_trim(last_name);
-		mr_trim(first_name);
+		char* last_name  = dc_strdup(full_name);
+		char* first_name = dc_strdup(p1+1);
+		dc_trim(last_name);
+		dc_trim(first_name);
 		strcpy(full_name, first_name);
 		strcat(full_name, " ");
 		strcat(full_name, last_name);
@@ -418,7 +418,7 @@ void mr_normalize_name(char* full_name)
 		free(first_name);
 	}
 	else {
-		mr_trim(full_name);
+		dc_trim(full_name);
 	}
 }
 
@@ -440,13 +440,13 @@ void mr_normalize_name(char* full_name)
  */
 char* mr_normalize_addr(const char* email_addr__)
 {
-	char* addr = safe_strdup(email_addr__);
-	mr_trim(addr);
+	char* addr = dc_strdup(email_addr__);
+	dc_trim(addr);
 	if( strncmp(addr, "mailto:", 7)==0 ) {
 		char* old = addr;
-		addr = safe_strdup(&old[7]);
+		addr = dc_strdup(&old[7]);
 		free(old);
-		mr_trim(addr);
+		dc_trim(addr);
 	}
 	return addr;
 }
@@ -488,11 +488,11 @@ int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t con
 		}
 
 		ths->m_id               = contact_id;
-		ths->m_name             = safe_strdup((char*)sqlite3_column_text (stmt, 0));
-		ths->m_addr             = safe_strdup((char*)sqlite3_column_text (stmt, 1));
+		ths->m_name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
+		ths->m_addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
 		ths->m_origin           =                    sqlite3_column_int  (stmt, 2);
 		ths->m_blocked          =                    sqlite3_column_int  (stmt, 3);
-		ths->m_authname         = safe_strdup((char*)sqlite3_column_text (stmt, 4));
+		ths->m_authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
 	}
 
 	success = 1;

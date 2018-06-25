@@ -978,7 +978,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	part->m_bytes = decoded_data_bytes;
 	dc_param_set(part->m_param, DC_PARAM_FILE, pathNfilename);
 	if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
-		part->m_msg = mr_get_filename(pathNfilename);
+		part->m_msg = dc_get_filename(pathNfilename);
 	}
 	else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
 		part->m_msg = dc_get_filesuffix_lc(pathNfilename);
@@ -1182,7 +1182,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 				if( desired_filename==NULL ) {
 					struct mailmime_parameter* param = mailmime_find_ct_parameter(mime, "name");
 					if( param && param->pa_value && param->pa_value[0] ) {
-						desired_filename = safe_strdup(param->pa_value);// is already decoded, see #162
+						desired_filename = dc_strdup(param->pa_value);// is already decoded, see #162
 					}
 				}
 
@@ -1563,12 +1563,12 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 
 		if( prepend_subject )
 		{
-			char* subj = safe_strdup(ths->m_subject);
+			char* subj = dc_strdup(ths->m_subject);
 			char* p = strchr(subj, '['); /* do not add any tags as "[checked by XYZ]" */
 			if( p ) {
 				*p = 0;
 			}
-			mr_trim(subj);
+			dc_trim(subj);
 			if( subj[0] ) {
 				int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 				for( i = 0; i < icnt; i++ ) {
@@ -1680,7 +1680,7 @@ cleanup:
 	if( !dc_mimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
 		dc_mimepart_t* part = mrmimepart_new();
 		part->m_type = MR_MSG_TEXT;
-		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
+		part->m_msg = dc_strdup(ths->m_subject? ths->m_subject : "Empty message");
 		carray_add(ths->m_parts, (void*)part, NULL);
 	}
 }

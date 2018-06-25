@@ -320,7 +320,7 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	char*         payload = NULL;
 
 	/* extract base64 from filecontent */
-	fc_buf = safe_strdup(filecontent);
+	fc_buf = dc_strdup(filecontent);
 	if( !dc_split_armored_data(fc_buf, &fc_headerline, NULL, NULL, &fc_base64)
 	 || fc_headerline==NULL || strcmp(fc_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || fc_base64==NULL ) {
 		goto cleanup;
@@ -483,7 +483,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	if( !dc_alloc_ongoing(context) ) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
-	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
+	#define CHECK_EXIT if( dc_shall_stop_ongoing ) { goto cleanup; }
 
 	if( (setup_code=dc_create_setup_code(context)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
@@ -564,7 +564,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	sqlite3_stmt*  stmt         = NULL;
 	char*          self_addr    = NULL;
 
-	buf = safe_strdup(armored);
+	buf = dc_strdup(armored);
 	if( !dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
 	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
 		dc_log_warning(context, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
@@ -713,7 +713,7 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 		file_name = dc_mprintf("%s/%s-key-%i.asc", dir, key->m_type==DC_KEY_PUBLIC? "public" : "private", id);
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
-	mr_delete_file(file_name, context);
+	dc_delete_file(file_name, context);
 	if( dc_key_render_asc_to_file(key, file_name, context) ) {
 		context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
@@ -813,7 +813,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 		private_key = buf;
 
 		free(buf2);
-		buf2 = safe_strdup(buf);
+		buf2 = dc_strdup(buf);
 		if( dc_split_armored_data(buf2, &buf2_headerline, NULL, NULL, NULL)
 		 && strcmp(buf2_headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
 			/* This file starts with a Public Key.
@@ -906,7 +906,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 	/* copy file to backup directory */
 	dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
-	if( !mr_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
+	if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -953,7 +953,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 		stmt = dc_sqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
-			if( mr_shall_stop_ongoing ) {
+			if( dc_shall_stop_ongoing ) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -1006,7 +1006,7 @@ cleanup:
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
 	dc_sqlite3_unref(dest_sql);
-	if( delete_dest_file ) { mr_delete_file(dest_pathNfilename, context); }
+	if( delete_dest_file ) { dc_delete_file(dest_pathNfilename, context); }
 	free(dest_pathNfilename);
 
 	free(curr_pathNfilename);
@@ -1061,15 +1061,15 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 		dc_sqlite3_close__(context->m_sql);
 	}
 
-	mr_delete_file(context->m_dbfile, context);
+	dc_delete_file(context->m_dbfile, context);
 
-	if( mr_file_exist(context->m_dbfile) ) {
+	if( dc_file_exist(context->m_dbfile) ) {
 		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
 	/* copy the database file */
-	if( !mr_copy_file(backup_to_import, context->m_dbfile, context) ) {
+	if( !dc_copy_file(backup_to_import, context->m_dbfile, context) ) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -1088,7 +1088,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		if( mr_shall_stop_ongoing ) {
+		if( dc_shall_stop_ongoing ) {
 			goto cleanup;
 		}
 
@@ -1121,7 +1121,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	if( repl_from && strlen(repl_from)>1 && context->m_blobdir && strlen(context->m_blobdir)>1 )
 	{
 		ensure_no_slash(repl_from);
-		repl_to = safe_strdup(context->m_blobdir);
+		repl_to = dc_strdup(context->m_blobdir);
 		ensure_no_slash(repl_to);
 
 		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
@@ -1235,7 +1235,7 @@ int dc_imex(dc_context_t* context, int what, const char* param1, const char* par
 			goto cleanup;
 		}
 		/* also make sure, the directory for exporting exists */
-		mr_create_folder(param1, context);
+		dc_create_folder(param1, context);
 	}
 
 	switch( what )

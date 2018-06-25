@@ -846,8 +846,8 @@ void dc_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
 		if( field && field->fld_data.fld_orig_date ) {
 			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
 			if( orig_date ) {
-				message_time = mr_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-				if( message_time != MR_INVALID_TIMESTAMP && message_time > time(NULL) ) {
+				message_time = dc_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
+				if( message_time != DC_INVALID_TIMESTAMP && message_time > time(NULL) ) {
 					message_time = time(NULL);
 				}
 			}

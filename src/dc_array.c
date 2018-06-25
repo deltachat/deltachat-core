@@ -408,7 +408,7 @@ char* dc_arr_to_string(const uint32_t* arr, int cnt)
 	const char* sep = ",";
 
 	if( arr==NULL || cnt <= 0 ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	/* use a macro to allow using integers of different bitwidths */
@@ -436,7 +436,7 @@ char* dc_array_get_string(const dc_array_t* array, const char* sep)
 	char* ret = NULL;
 
 	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || sep==NULL ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	INT_ARR_TO_STR(array->m_array, array->m_count);

@@ -117,7 +117,7 @@ int dc_smtp_connect(dc_smtp_t* ths, const dc_loginparam_t* lp)
 	}
 
 	free(ths->m_from);
-	ths->m_from = safe_strdup(lp->m_addr);
+	ths->m_from = dc_strdup(lp->m_addr);
 
 	ths->m_hEtpan = mailsmtp_new(0, NULL);
 	if( ths->m_hEtpan == NULL ) {

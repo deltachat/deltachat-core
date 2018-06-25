@@ -180,7 +180,7 @@ int dc_aheader_set_from_string(dc_aheader_t* ths, const char* header_str__)
 
 	ths->m_prefer_encrypt = DC_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
 
-	header_str = safe_strdup(header_str__);
+	header_str = dc_strdup(header_str__);
 	p = header_str;
 	while( *p )
 	{
@@ -204,7 +204,7 @@ int dc_aheader_set_from_string(dc_aheader_t* ths, const char* header_str__)
 					*p = '\0';
 					p++;
 				}
-				mr_trim(beg_attr_value);
+				dc_trim(beg_attr_value);
 			}
 			else
 			{

@@ -192,10 +192,10 @@ int dc_chat_get_type(dc_chat_t* chat)
 char* dc_chat_get_name(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return safe_strdup("Err");
+		return dc_strdup("Err");
 	}
 
-	return safe_strdup(chat->m_name);
+	return dc_strdup(chat->m_name);
 }
 
 
@@ -218,7 +218,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	sqlite3_stmt* stmt;
 
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return safe_strdup("Err");
+		return dc_strdup("Err");
 	}
 
 	if( chat->m_type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
@@ -238,7 +238,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 
 			r = sqlite3_step(stmt);
 			if( r == SQLITE_ROW ) {
-				ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
+				ret = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
 			}
 
 		dc_sqlite3_unlock(chat->m_context->m_sql);
@@ -261,7 +261,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		}
 	}
 
-	return ret? ret : safe_strdup("Err");
+	return ret? ret : dc_strdup("Err");
 }
 
 
@@ -305,7 +305,7 @@ char* dc_chat_get_draft(dc_chat_t* chat)
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return NULL;
 	}
-	return strdup_keep_null(chat->m_draft_text); /* may be NULL */
+	return dc_strdup_keep_null(chat->m_draft_text); /* may be NULL */
 }
 
 
@@ -488,10 +488,10 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	#define MR_CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
 	ths->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in MR_CHAT_FIELDS */
 	ths->m_type            =                    sqlite3_column_int  (row, row_offset++);
-	ths->m_name            = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_name            = dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
-	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
+	ths->m_grpid           = dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 	dc_param_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
@@ -499,7 +499,7 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
 	Also make sure, m_draft_text and m_draft_timestamp are set together */
 	if( ths->m_draft_timestamp && draft_text && draft_text[0] ) {
-		ths->m_draft_text = safe_strdup(draft_text);
+		ths->m_draft_text = dc_strdup(draft_text);
 	}
 	else {
 		ths->m_draft_timestamp = 0;

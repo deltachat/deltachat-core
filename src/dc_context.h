@@ -80,11 +80,11 @@ struct _dc_context
 	int              m_smtpidle_condflag;
 	int              m_smtpidle_suspend;
 	int              m_smtpidle_in_idleing;
-	#define          MR_JOBS_NEEDED_AT_ONCE   1
-	#define          MR_JOBS_NEEDED_AVOID_DOS 2
+	#define          DC_JOBS_NEEDED_AT_ONCE   1
+	#define          DC_JOBS_NEEDED_AVOID_DOS 2
 	int              m_perform_smtp_jobs_needed;
 
-	mrmailboxcb_t    m_cb;                    /**< Internal */
+	dc_callback_t    m_cb;                    /**< Internal */
 
 	char*            m_os_name;               /**< Internal, may be NULL */
 
@@ -147,7 +147,7 @@ uint32_t        dc_add_device_msg                          (dc_context_t*, uint3
 uint32_t        dc_add_device_msg__                        (dc_context_t*, uint32_t chat_id, const char* text, time_t timestamp);
 void            dc_suspend_smtp_thread                     (dc_context_t*, int suspend);
 
-#define         MR_FROM_HANDSHAKE                                 0x01
+#define         DC_FROM_HANDSHAKE                          0x01
 int             dc_add_contact_to_chat_ex                  (dc_context_t*, uint32_t chat_id, uint32_t contact_id, int flags);
 
 uint32_t        dc_get_chat_id_by_grpid__                  (dc_context_t*, const char* grpid, int* ret_blocked, int* ret_verified);
@@ -157,8 +157,8 @@ uint32_t        dc_get_chat_id_by_grpid__                  (dc_context_t*, const
 
 
 /* library private: end-to-end-encryption */
-#define MR_E2EE_DEFAULT_ENABLED  1
-#define MR_MDNS_DEFAULT_ENABLED  1
+#define DC_E2EE_DEFAULT_ENABLED  1
+#define DC_MDNS_DEFAULT_ENABLED  1
 
 typedef struct dc_e2ee_helper_t {
 	// encryption
@@ -174,14 +174,14 @@ typedef struct dc_e2ee_helper_t {
 
 void            dc_e2ee_encrypt      (dc_context_t*, const clist* recipients_addr, int force_plaintext, int e2ee_guaranteed, int min_verified, struct mailmime* in_out_message, dc_e2ee_helper_t*);
 void            dc_e2ee_decrypt      (dc_context_t*, struct mailmime* in_out_message, dc_e2ee_helper_t*); /* returns 1 if sth. was decrypted, 0 in other cases */
-void            dc_e2ee_thanks       (dc_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling mre2ee_unhelp(), in_out_message cannot be used any longer! */
+void            dc_e2ee_thanks       (dc_e2ee_helper_t*); /* frees data referenced by "mailmime" but not freed by mailmime_free(). After calling this function, in_out_message cannot be used any longer! */
 int             dc_ensure_secret_key_exists (dc_context_t*); /* makes sure, the private key exists, needed only for exporting keys and the case no message was sent before */
 char*           dc_create_setup_code (dc_context_t*);
 char*           dc_normalize_setup_code(dc_context_t*, const char* passphrase);
 char*           dc_render_setup_file (dc_context_t*, const char* passphrase);
 char*           dc_decrypt_setup_file(dc_context_t*, const char* passphrase, const char* filecontent);
 
-extern int      mr_shall_stop_ongoing;
+extern int      dc_shall_stop_ongoing;
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
 
@@ -190,13 +190,13 @@ void            dc_free_ongoing      (dc_context_t*);
 
 
 /* library private: secure-join */
-#define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
-#define         MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
+#define         DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
+#define         DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
 int             dc_handle_securejoin_handshake(dc_context_t*, dc_mimeparser_t*, uint32_t contact_id);
 void            dc_handle_degrade_event       (dc_context_t*, dc_apeerstate_t*);
 
 
-#define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
+#define DC_OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
 
 
 /* library private: key-history */

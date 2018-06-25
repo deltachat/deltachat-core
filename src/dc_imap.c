@@ -153,7 +153,7 @@ static int get_folder_meaning(const dc_imap_t* ths, struct mailimap_mbx_list_fla
 	else
 	{
 		/* we have no flag list; try some known default names */
-		lower = mr_strlower(folder_name);
+		lower = dc_strlower(folder_name);
 		if( strcmp(lower, "spam") == 0
 		 || strcmp(lower, "junk") == 0
 		 || strcmp(lower, "indésirables") == 0 /* fr */
@@ -245,10 +245,10 @@ static clist* list_folders__(dc_imap_t* ths)
 		if( strcasecmp(imap_folder->mb_name, "INBOX")==0 ) {
 			/* Force upper case INBOX as we also use it directly this way; a unified name is needed as we use the folder name to remember the last uid.
 			Servers may return any case, however, all variants MUST lead to the same INBOX, see RFC 3501 5.1 */
-			ret_folder->m_name_to_select = safe_strdup("INBOX");
+			ret_folder->m_name_to_select = dc_strdup("INBOX");
 		}
 		else {
-			ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
+			ret_folder->m_name_to_select = dc_strdup(imap_folder->mb_name);
 		}
 
 		ret_folder->m_name_utf8      = dc_decode_modified_utf7(imap_folder->mb_name, 0);
@@ -325,14 +325,14 @@ static int init_chat_folders__(dc_imap_t* ths)
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
 		if( strcmp(folder->m_name_utf8, DC_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
-			chats_folder = safe_strdup(folder->m_name_to_select);
+			chats_folder = dc_strdup(folder->m_name_to_select);
 			break;
 		}
 		else if( folder->m_meaning == MEANING_SENT_OBJECTS ) {
-			sent_folder = safe_strdup(folder->m_name_to_select);
+			sent_folder = dc_strdup(folder->m_name_to_select);
 		}
 		else if( folder->m_meaning == MEANING_NORMAL && normal_folder == NULL ) {
-			normal_folder = safe_strdup(folder->m_name_to_select);
+			normal_folder = dc_strdup(folder->m_name_to_select);
 		}
 	}
 
@@ -347,12 +347,12 @@ static int init_chat_folders__(dc_imap_t* ths)
 				dc_log_warning(ths->m_context, 0, "Cannot create IMAP-folder, using default.");
 			}
 			else {
-				chats_folder = safe_strdup(fallback_folder);
+				chats_folder = dc_strdup(fallback_folder);
 				dc_log_info(ths->m_context, 0, "IMAP-folder created (inbox subfolder).");
 			}
 		}
 		else {
-			chats_folder = safe_strdup(DC_CHATS_FOLDER);
+			chats_folder = dc_strdup(DC_CHATS_FOLDER);
 			dc_log_info(ths->m_context, 0, "IMAP-folder created.");
 		}
 	}
@@ -365,16 +365,16 @@ static int init_chat_folders__(dc_imap_t* ths)
 	}
 
 	if( chats_folder ) {
-		ths->m_moveto_folder = safe_strdup(chats_folder);
-		ths->m_sent_folder   = safe_strdup(chats_folder);
+		ths->m_moveto_folder = dc_strdup(chats_folder);
+		ths->m_sent_folder   = dc_strdup(chats_folder);
 		success = 1;
 	}
 	else if( sent_folder ) {
-		ths->m_sent_folder = safe_strdup(sent_folder);
+		ths->m_sent_folder = dc_strdup(sent_folder);
 		success = 1;
 	}
 	else if( normal_folder ) {
-		ths->m_sent_folder = safe_strdup(normal_folder);
+		ths->m_sent_folder = dc_strdup(normal_folder);
 		success = 1;
 	}
 
@@ -424,7 +424,7 @@ static int select_folder__(dc_imap_t* ths, const char* folder /*may be NULL*/)
 	}
 
 	free(ths->m_selected_folder);
-	ths->m_selected_folder = safe_strdup(folder);
+	ths->m_selected_folder = dc_strdup(folder);
 	return 1;
 }
 
@@ -499,12 +499,12 @@ static uint32_t peek_uid(struct mailimap_msg_att* msg_att)
 static char* unquote_rfc724_mid(const char* in)
 {
 	/* remove < and > from the given message id */
-	char* out = safe_strdup(in);
+	char* out = dc_strdup(in);
 	int out_len = strlen(out);
 	if( out_len > 2 ) {
 		if( out[0]         == '<' ) { out[0]         = ' '; }
 		if( out[out_len-1] == '>' ) { out[out_len-1] = ' '; }
-		mr_trim(out);
+		dc_trim(out);
 	}
 	return out;
 }
@@ -1195,10 +1195,10 @@ int dc_imap_connect(dc_imap_t* ths, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
-	ths->m_imap_server  = safe_strdup(lp->m_mail_server);
+	ths->m_imap_server  = dc_strdup(lp->m_mail_server);
 	ths->m_imap_port    = lp->m_mail_port;
-	ths->m_imap_user    = safe_strdup(lp->m_mail_user);
-	ths->m_imap_pw      = safe_strdup(lp->m_mail_pw);
+	ths->m_imap_user    = dc_strdup(lp->m_mail_user);
+	ths->m_imap_pw      = dc_strdup(lp->m_mail_pw);
 	ths->m_server_flags = lp->m_server_flags;
 
 	if( !setup_handle_if_needed__(ths) ) {
@@ -1379,7 +1379,7 @@ int dc_imap_append_msg(dc_imap_t* ths, time_t timestamp, const char* data_not_te
 	flag_list = mailimap_flag_list_new_empty();
 	mailimap_flag_list_add(flag_list, mailimap_flag_new_seen());
 
-	imap_date = mr_timestamp_to_mailimap_date_time(timestamp);
+	imap_date = dc_timestamp_to_mailimap_date_time(timestamp);
 	if( imap_date == NULL ) {
 		dc_log_error(ths->m_context, 0, "Bad date.");
 		goto cleanup;
@@ -1391,7 +1391,7 @@ int dc_imap_append_msg(dc_imap_t* ths, time_t timestamp, const char* data_not_te
 		goto cleanup;
 	}
 
-	*ret_server_folder = safe_strdup(ths->m_sent_folder);
+	*ret_server_folder = dc_strdup(ths->m_sent_folder);
 
 	dc_log_info(ths->m_context, 0, "Message appended to \"%s\".", ths->m_sent_folder);
 
@@ -1511,7 +1511,7 @@ int dc_imap_markseen_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid
 				clistiter* cur=clist_begin(fetch_result);
 				if( cur ) {
 					if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
-						add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(safe_strdup("$MDNSent")));
+						add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")));
 						*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
 					}
 				}
@@ -1574,7 +1574,7 @@ int dc_imap_markseen_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid
 					struct mailimap_set_item* item;
 					item = clist_content(cur);
 					*ret_server_uid = item->set_first;
-					*ret_server_folder = safe_strdup(ths->m_moveto_folder);
+					*ret_server_folder = dc_strdup(ths->m_moveto_folder);
 				}
 				mailimap_set_free(res_setdest);
 			}

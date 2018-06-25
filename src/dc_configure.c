@@ -108,8 +108,8 @@ static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 {
 	moz_autoconfigure_t*   moz_ac = (moz_autoconfigure_t*)userdata;
 
-	char* val = safe_strdup(text);
-	mr_trim(val);
+	char* val = dc_strdup(text);
+	dc_trim(val);
 	dc_str_replace(&val, "%EMAILADDRESS%",   moz_ac->m_in->m_addr);
 	dc_str_replace(&val, "%EMAILLOCALPART%", moz_ac->m_in_emaillocalpart);
 	dc_str_replace(&val, "%EMAILDOMAIN%",    moz_ac->m_in_emaildomain);
@@ -175,8 +175,8 @@ static dc_loginparam_t* moz_autoconfigure(dc_context_t* context, const char* url
 	}
 
 	moz_ac.m_in                = param_in;
-	moz_ac.m_in_emaillocalpart = safe_strdup(param_in->m_addr); char* p = strchr(moz_ac.m_in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
-	moz_ac.m_in_emaildomain    = safe_strdup(p+1);
+	moz_ac.m_in_emaillocalpart = dc_strdup(param_in->m_addr); char* p = strchr(moz_ac.m_in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
+	moz_ac.m_in_emaildomain    = dc_strdup(p+1);
 	moz_ac.m_out               = dc_loginparam_new();
 
 	dc_saxparser_t                saxparser;
@@ -259,8 +259,8 @@ static void outlk_autodiscover_text_cb(void* userdata, const char* text, int len
 {
 	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
 
-	char* val = safe_strdup(text);
-	mr_trim(val);
+	char* val = dc_strdup(text);
+	dc_trim(val);
 
 	free(outlk_ad->m_config[outlk_ad->m_tag_config]);
 	outlk_ad->m_config[outlk_ad->m_tag_config] = val;
@@ -276,19 +276,19 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 		/* copy collected confituration to m_out (we have to delay this as we do not know when the <type> tag appears in the sax-stream) */
 		if( outlk_ad->m_config[OUTLK_TYPE] )
 		{
-			int port    = atoi_null_is_0(outlk_ad->m_config[OUTLK_PORT]),
+			int port    = dc_atoi_null_is_0(outlk_ad->m_config[OUTLK_PORT]),
 			    ssl_on  = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "on" )==0),
 			    ssl_off = (outlk_ad->m_config[OUTLK_SSL] && strcasecmp(outlk_ad->m_config[OUTLK_SSL], "off")==0);
 
 			if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "imap")==0 && outlk_ad->m_out_imap_set==0 ) {
-                outlk_ad->m_out->m_mail_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
+                outlk_ad->m_out->m_mail_server = dc_strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_mail_port   = port;
                      if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_SSL;   }
                 else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_PLAIN; }
                 outlk_ad->m_out_imap_set = 1;
 			}
 			else if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "smtp")==0 && outlk_ad->m_out_smtp_set==0 ) {
-                outlk_ad->m_out->m_send_server = strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
+                outlk_ad->m_out->m_send_server = dc_strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_send_port   = port;
                      if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_SSL;   }
                 else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_PLAIN; }
@@ -304,7 +304,7 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 
 static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* url__, const dc_loginparam_t* param_in)
 {
-	char*                 xml_raw = NULL, *url = safe_strdup(url__);
+	char*                 xml_raw = NULL, *url = dc_strdup(url__);
 	outlk_autodiscover_t  outlk_ad;
 	int                   i;
 
@@ -327,7 +327,7 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* ur
 
 		if( outlk_ad.m_config[OUTLK_REDIRECTURL] && outlk_ad.m_config[OUTLK_REDIRECTURL][0] ) {
 			free(url);
-			url = safe_strdup(outlk_ad.m_config[OUTLK_REDIRECTURL]);
+			url = dc_strdup(outlk_ad.m_config[OUTLK_REDIRECTURL]);
 			dc_loginparam_unref(outlk_ad.m_out);
 			outlk_clean_config(&outlk_ad);
 			free(xml_raw); xml_raw = NULL;
@@ -384,7 +384,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	ongoing_allocated_here = 1;
 
 	#define PROGRESS(p) \
-				if( mr_shall_stop_ongoing ) { goto cleanup; } \
+				if( dc_shall_stop_ongoing ) { goto cleanup; } \
 				context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
 	if( !dc_sqlite3_is_open(context->m_sql) ) {
@@ -435,7 +435,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		dc_log_error(context, 0, "Please enter the email address.");
 		goto cleanup;
 	}
-	mr_trim(param->m_addr);
+	dc_trim(param->m_addr);
 
 	param_domain = strchr(param->m_addr, '@');
 	if( param_domain==NULL || param_domain[0]==0 ) {
@@ -449,7 +449,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/* if no password is given, assume an empty password.
 	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */
 	if( param->m_mail_pw == NULL ) {
-		param->m_mail_pw = safe_strdup(NULL);
+		param->m_mail_pw = dc_strdup(NULL);
 	}
 
 	PROGRESS(200)
@@ -511,13 +511,13 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 			if( param_autoconfig->m_mail_user ) {
 				free(param->m_mail_user);
-				param->m_mail_user= strdup_keep_null(param_autoconfig->m_mail_user);
+				param->m_mail_user= dc_strdup_keep_null(param_autoconfig->m_mail_user);
 			}
-			param->m_mail_server  = strdup_keep_null(param_autoconfig->m_mail_server); /* all other values are always NULL when entering autoconfig */
+			param->m_mail_server  = dc_strdup_keep_null(param_autoconfig->m_mail_server); /* all other values are always NULL when entering autoconfig */
 			param->m_mail_port    =                  param_autoconfig->m_mail_port;
-			param->m_send_server  = strdup_keep_null(param_autoconfig->m_send_server);
+			param->m_send_server  = dc_strdup_keep_null(param_autoconfig->m_send_server);
 			param->m_send_port    =                  param_autoconfig->m_send_port;
-			param->m_send_user    = strdup_keep_null(param_autoconfig->m_send_user);
+			param->m_send_user    = dc_strdup_keep_null(param_autoconfig->m_send_user);
 			param->m_server_flags =                  param_autoconfig->m_server_flags;
 
 			/* althoug param_autoconfig's data are no longer needed from, it is important to keep the object as
@@ -556,11 +556,11 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	if( param->m_mail_user == NULL ) {
-		param->m_mail_user = safe_strdup(param->m_addr);
+		param->m_mail_user = dc_strdup(param->m_addr);
 	}
 
 	if( param->m_send_server == NULL && param->m_mail_server ) {
-		param->m_send_server = safe_strdup(param->m_mail_server);
+		param->m_send_server = dc_strdup(param->m_mail_server);
 		if( strncmp(param->m_send_server, "imap.", 5)==0 ) {
 			memcpy(param->m_send_server, "smtp", 4);
 		}
@@ -572,26 +572,26 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	if( param->m_send_user == NULL && param->m_mail_user ) {
-		param->m_send_user = safe_strdup(param->m_mail_user);
+		param->m_send_user = dc_strdup(param->m_mail_user);
 	}
 
 	if( param->m_send_pw == NULL && param->m_mail_pw ) {
-		param->m_send_pw = safe_strdup(param->m_mail_pw);
+		param->m_send_pw = dc_strdup(param->m_mail_pw);
 	}
 
-	if( !mr_exactly_one_bit_set(param->m_server_flags&MR_AUTH_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_AUTH_FLAGS) )
 	{
 		param->m_server_flags &= ~MR_AUTH_FLAGS;
 		param->m_server_flags |= MR_AUTH_NORMAL;
 	}
 
-	if( !mr_exactly_one_bit_set(param->m_server_flags&MR_IMAP_SOCKET_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_IMAP_SOCKET_FLAGS) )
 	{
 		param->m_server_flags &= ~MR_IMAP_SOCKET_FLAGS;
 		param->m_server_flags |= (param->m_send_port==TYPICAL_IMAP_STARTTLS_PORT?  MR_IMAP_SOCKET_STARTTLS : MR_IMAP_SOCKET_SSL);
 	}
 
-	if( !mr_exactly_one_bit_set(param->m_server_flags&MR_SMTP_SOCKET_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_SMTP_SOCKET_FLAGS) )
 	{
 		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
 		param->m_server_flags |= ( param->m_send_port==TYPICAL_SMTP_STARTTLS_PORT?  MR_SMTP_SOCKET_STARTTLS :
@@ -770,26 +770,26 @@ int dc_is_configured(dc_context_t* context)
  * Returns 0=process started, 1=not started, there is running another process
  */
 static int s_ongoing_running = 0;
-int        mr_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
+int        dc_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
 int dc_alloc_ongoing(dc_context_t* context)
 {
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
-	if( s_ongoing_running || mr_shall_stop_ongoing == 0 ) {
+	if( s_ongoing_running || dc_shall_stop_ongoing == 0 ) {
 		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
 
 	s_ongoing_running     = 1;
-	mr_shall_stop_ongoing = 0;
+	dc_shall_stop_ongoing = 0;
 	return 1;
 }
 
 
 /*
- * Frees the process allocated with dc_alloc_ongoing() - independingly of mr_shall_stop_ongoing.
+ * Frees the process allocated with dc_alloc_ongoing() - independingly of dc_shall_stop_ongoing.
  * If dc_alloc_ongoing() fails, this function MUST NOT be called.
  */
 void dc_free_ongoing(dc_context_t* context)
@@ -799,7 +799,7 @@ void dc_free_ongoing(dc_context_t* context)
 	}
 
 	s_ongoing_running     = 0;
-	mr_shall_stop_ongoing = 1; /* avoids dc_stop_ongoing_process() to stop the thread */
+	dc_shall_stop_ongoing = 1; /* avoids dc_stop_ongoing_process() to stop the thread */
 }
 
 
@@ -833,10 +833,10 @@ void dc_stop_ongoing_process(dc_context_t* context)
 		return;
 	}
 
-	if( s_ongoing_running && mr_shall_stop_ongoing==0 )
+	if( s_ongoing_running && dc_shall_stop_ongoing==0 )
 	{
 		dc_log_info(context, 0, "Signaling the ongoing process to stop ASAP.");
-		mr_shall_stop_ongoing = 1;
+		dc_shall_stop_ongoing = 1;
 	}
 	else
 	{

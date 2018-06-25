@@ -38,7 +38,7 @@
  ******************************************************************************/
 
 
-int mr_exactly_one_bit_set(int v)
+int dc_exactly_one_bit_set(int v)
 {
 	return (v && !(v & (v - 1))); /* via http://www.graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2 */
 }
@@ -49,7 +49,7 @@ int mr_exactly_one_bit_set(int v)
  ******************************************************************************/
 
 
-char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
+char* dc_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
 {
 	char* ret;
 	if( s ) {
@@ -66,19 +66,19 @@ char* safe_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL)
 }
 
 
-char* strdup_keep_null(const char* s) /* strdup(NULL) is undefined, safe_strdup_keep_null(NULL) returns NULL in this case */
+char* dc_strdup_keep_null(const char* s) /* strdup(NULL) is undefined, safe_strdup_keep_null(NULL) returns NULL in this case */
 {
-	return s? safe_strdup(s) : NULL;
+	return s? dc_strdup(s) : NULL;
 }
 
 
-int atoi_null_is_0(const char* s)
+int dc_atoi_null_is_0(const char* s)
 {
 	return s? atoi(s) : 0;
 }
 
 
-void mr_ltrim(char* buf)
+void dc_ltrim(char* buf)
 {
 	size_t len;
 	const unsigned char* cur;
@@ -98,7 +98,7 @@ void mr_ltrim(char* buf)
 }
 
 
-void mr_rtrim(char* buf)
+void dc_rtrim(char* buf)
 {
 	size_t len;
 	unsigned char* cur;
@@ -116,14 +116,14 @@ void mr_rtrim(char* buf)
 }
 
 
-void mr_trim(char* buf)
+void dc_trim(char* buf)
 {
-	mr_ltrim(buf);
-	mr_rtrim(buf);
+	dc_ltrim(buf);
+	dc_rtrim(buf);
 }
 
 
-void mr_strlower_in_place(char* in)
+void dc_strlower_in_place(char* in)
 {
 	char* p = in;
 	for ( ; *p; p++) {
@@ -132,9 +132,9 @@ void mr_strlower_in_place(char* in)
 }
 
 
-char* mr_strlower(const char* in) /* the result must be free()'d */
+char* dc_strlower(const char* in) /* the result must be free()'d */
 {
-	char* out = safe_strdup(in);
+	char* out = dc_strdup(in);
 
 	char* p = out;
 	for ( ; *p; p++) {
@@ -176,7 +176,7 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 }
 
 
-int mr_str_contains(const char* haystack, const const char* needle)
+int dc_str_contains(const char* haystack, const const char* needle)
 {
 	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
 	if( haystack==NULL || needle == NULL ) {
@@ -187,8 +187,8 @@ int mr_str_contains(const char* haystack, const const char* needle)
 		return 1;
 	}
 
-	char* haystack_lower = mr_strlower(haystack);
-	char* needle_lower = mr_strlower(needle);
+	char* haystack_lower = dc_strlower(haystack);
+	char* needle_lower = dc_strlower(needle);
 
 		int ret = strstr(haystack_lower, needle_lower)? 1 : 0;
 
@@ -242,7 +242,7 @@ char* dc_null_terminate(const char* in, int bytes) /* the result must be free()'
  * @return Returns a null-terminated string, must be free()'d when no longer
  *     needed. For errors, NULL is returned.
  */
-char* mr_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
+char* dc_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
 {
 	char* hex = NULL;
 	int   i;
@@ -279,13 +279,13 @@ char* dc_mprintf(const char* format, ...)
 	va_end(argp);
 	if( char_cnt_without_zero < 0) {
 		va_end(argp_copy);
-		return safe_strdup("ErrFmt");
+		return dc_strdup("ErrFmt");
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
 	if( buf == NULL ) {
 		va_end(argp_copy);
-		return safe_strdup("ErrMem");
+		return dc_strdup("ErrMem");
 	}
 
 	vsnprintf(buf, char_cnt_without_zero+1, format, argp_copy);
@@ -301,11 +301,11 @@ char* dc_mprintf(const char* format, ...)
 	va_end(argp);
 
 	if( sqlite_str == NULL ) {
-		return safe_strdup("ErrFmt"); /* error - the result must be free()'d */
+		return dc_strdup("ErrFmt"); /* error - the result must be free()'d */
 	}
 
 	/* as sqlite-strings must be freed using sqlite3_free() instead of a simple free(), convert it to a normal c-string */
-	c_string = safe_strdup(sqlite_str); /* exists on errors */
+	c_string = dc_strdup(sqlite_str); /* exists on errors */
 	sqlite3_free(sqlite_str);
 	return c_string; /* success - the result must be free()'d */
 	#endif /* /old implementation based upon sqlite3 */
@@ -321,7 +321,7 @@ char* dc_mprintf(const char* format, ...)
  *
  * @return None.
  */
-void mr_remove_cr_chars(char* buf)
+void dc_remove_cr_chars(char* buf)
 {
 	const char* p1 = buf; /* search for first `\r` */
 	while( *p1 ) {
@@ -358,11 +358,11 @@ void mr_remove_cr_chars(char* buf)
  *
  * @return None.
  */
-void mr_unify_lineends(char* buf)
+void dc_unify_lineends(char* buf)
 {
 	// this function may be extended to do more linefeed unification, do not mess up
-	// with mr_remove_cr_chars() which does only exactly removing CR.
-	mr_remove_cr_chars(buf);
+	// with dc_remove_cr_chars() which does only exactly removing CR.
+	dc_remove_cr_chars(buf);
 }
 
 
@@ -435,7 +435,7 @@ static size_t mr_utf8_strnlen(const char* s, size_t n)
 }
 
 
-void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
+void dc_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 {
 	/* Function unwraps the given string and removes unnecessary whitespace.
 	Function stops processing after approx_characters are processed.
@@ -473,7 +473,7 @@ void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 	}
 
 	if( do_unwrap ) {
-		mr_remove_cr_chars(buf);
+		dc_remove_cr_chars(buf);
 	}
 }
 
@@ -497,7 +497,7 @@ void dc_truncate_str(char* buf, int approx_chars)
 }
 
 
-carray* mr_split_into_lines(const char* buf_terminated)
+carray* dc_split_into_lines(const char* buf_terminated)
 {
 	carray* lines = carray_new(1024);
 
@@ -519,11 +519,11 @@ carray* mr_split_into_lines(const char* buf_terminated)
 	}
 	carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
 
-	return lines; /* should be freed using mr_free_splitted_lines() */
+	return lines; /* should be freed using dc_free_splitted_lines() */
 }
 
 
-void mr_free_splitted_lines(carray* lines)
+void dc_free_splitted_lines(carray* lines)
 {
 	if( lines ) {
 		int i, cnt = carray_count(lines);
@@ -541,7 +541,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 	this is useful to allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
 
 	if( in == NULL || break_every <= 0 || break_chars == NULL ) {
-		return safe_strdup(in);
+		return dc_strdup(in);
 	}
 
 	int out_len = strlen(in), chars_added = 0;
@@ -642,7 +642,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
         dir = tmcomp(&mytm, &yourtm);
         if (dir != 0) {
             if (bits-- < 0) {
-                return MR_INVALID_TIMESTAMP;
+                return DC_INVALID_TIMESTAMP;
             }
             if (bits < 0)
                 --t;
@@ -658,7 +658,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
 }
 
 
-time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mailcore2 */
+time_t dc_timestamp_from_date(struct mailimf_date_time * date_time) /* from mailcore2 */
 {
     struct tm tmval;
     time_t timeval;
@@ -694,7 +694,7 @@ time_t mr_timestamp_from_date(struct mailimf_date_time * date_time) /* from mail
 }
 
 
-long mr_gm2local_offset(void)
+long dc_gm2local_offset(void)
 {
 	/* returns the offset that must be _added_ to an UTC/GMT-time to create the localtime.
 	the function may return nagative values. */
@@ -723,7 +723,7 @@ char* dc_timestamp_to_str(time_t wanted)
 }
 
 
-struct mailimap_date_time* mr_timestamp_to_mailimap_date_time(time_t timeval)
+struct mailimap_date_time* dc_timestamp_to_mailimap_date_time(time_t timeval)
 {
     struct tm gmt;
     struct tm lt;
@@ -767,7 +767,7 @@ static time_t s_last_smeared_timestamp = 0;
 #define MR_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
 
 
-time_t mr_create_smeared_timestamp__(void)
+time_t dc_create_smeared_timestamp__(void)
 {
 	time_t now = time(NULL);
 	time_t ret = now;
@@ -782,19 +782,19 @@ time_t mr_create_smeared_timestamp__(void)
 }
 
 
-time_t mr_create_smeared_timestamps__(int count)
+time_t dc_create_smeared_timestamps__(int count)
 {
 	/* get a range to timestamps that can be used uniquely */
 	time_t now = time(NULL);
-	time_t start = now + MR_MIN(count, MR_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
-	start = MR_MAX(s_last_smeared_timestamp+1, start);
+	time_t start = now + DC_MIN(count, MR_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
+	start = DC_MAX(s_last_smeared_timestamp+1, start);
 
 	s_last_smeared_timestamp = start+(count-1);
 	return start;
 }
 
 
-time_t mr_smeared_time__(void)
+time_t dc_smeared_time__(void)
 {
 	/* function returns a corrected time(NULL) */
 	time_t now = time(NULL);
@@ -854,7 +854,7 @@ char* dc_create_id(void)
 }
 
 
-char* mr_create_dummy_references_mid()
+char* dc_create_dummy_references_mid()
 {
 	char* msgid = dc_create_id(), *ret = NULL;
 	ret = dc_mprintf("Rf.%s@mr.thread", msgid);
@@ -863,7 +863,7 @@ char* mr_create_dummy_references_mid()
 }
 
 
-char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
+char* dc_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 {
 	/* Function generates a Message-ID that can be used for a new outgoing message.
 	- this function is called for all outgoing messages.
@@ -894,7 +894,7 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 }
 
 
-char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, dc_array_t* contact_ids_to)
+char* dc_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_id_from, dc_array_t* contact_ids_to)
 {
 	/* Function generates a Message-ID for incoming messages that lacks one.
 	- normally, this function is not needed as incoming messages already have an ID
@@ -902,7 +902,7 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if( message_timestamp == MR_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0 ) {
+	if( message_timestamp == DC_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0 ) {
 		return NULL;
 	}
 
@@ -922,7 +922,7 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 }
 
 
-char* mr_extract_grpid_from_rfc724_mid(const char* mid)
+char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 {
 	/* extract our group ID from Message-IDs as `Gr.12345678901.morerandom@domain.de`; "12345678901" is the wanted ID in this example. */
 	int   success = 0;
@@ -933,7 +933,7 @@ char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 		goto cleanup;
 	}
 
-	grpid = safe_strdup(&mid[3]);
+	grpid = dc_strdup(&mid[3]);
 
 	p1 = strchr(grpid, '.');
 	if( p1 == NULL ) {
@@ -955,13 +955,13 @@ cleanup:
 }
 
 
-char* mr_extract_grpid_from_rfc724_mid_list(const clist* list)
+char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
 {
 	clistiter* cur;
 	if( list ) {
 		for( cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur) ) {
 			const char* mid = clist_content(cur);
-			char* grpid = mr_extract_grpid_from_rfc724_mid(mid);
+			char* grpid = dc_extract_grpid_from_rfc724_mid(mid);
 			if( grpid ) {
 				return grpid;
 			}
@@ -977,7 +977,7 @@ char* mr_extract_grpid_from_rfc724_mid_list(const clist* list)
  ******************************************************************************/
 
 
-int mr_file_exist(const char* pathNfilename)
+int dc_file_exist(const char* pathNfilename)
 {
 	struct stat st;
 	if( stat(pathNfilename, &st) == 0 ) {
@@ -989,7 +989,7 @@ int mr_file_exist(const char* pathNfilename)
 }
 
 
-uint64_t mr_get_filebytes(const char* pathNfilename)
+uint64_t dc_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;
 	if( stat(pathNfilename, &st) == 0 ) {
@@ -1001,7 +1001,7 @@ uint64_t mr_get_filebytes(const char* pathNfilename)
 }
 
 
-char* mr_get_filename(const char* pathNfilename)
+char* dc_get_filename(const char* pathNfilename)
 {
 	const char* p = strrchr(pathNfilename, '/');
 	if( p==NULL ) {
@@ -1010,15 +1010,15 @@ char* mr_get_filename(const char* pathNfilename)
 
 	if( p ) {
 		p++;
-		return safe_strdup(p);
+		return dc_strdup(p);
 	}
 	else {
-		return safe_strdup(pathNfilename);
+		return dc_strdup(pathNfilename);
 	}
 }
 
 
-int mr_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
+int dc_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 {
 	if( pathNfilename==NULL ) {
 		return 0;
@@ -1033,7 +1033,7 @@ int mr_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 }
 
 
-int mr_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
+int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
 {
     int     success = 0, fd_src = -1, fd_dest = -1;
     #define MR_COPY_BUF_SIZE 4096
@@ -1066,7 +1066,7 @@ int mr_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NU
 		/* not a single byte copied -> check if the source is empty, too */
 		close(fd_src);
 		fd_src = -1;
-		if( mr_get_filebytes(src)!=0 ) {
+		if( dc_get_filebytes(src)!=0 ) {
 			dc_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
 			goto cleanup;
 		}
@@ -1081,7 +1081,7 @@ cleanup:
 }
 
 
-int mr_create_folder(const char* pathNfilename, dc_context_t* log)
+int dc_create_folder(const char* pathNfilename, dc_context_t* log)
 {
 	struct stat st;
 	if (stat(pathNfilename, &st) == -1) {
@@ -1100,28 +1100,28 @@ char* dc_get_filesuffix_lc(const char* pathNfilename)
 		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
 		if( p ) {
 			p++;
-			return mr_strlower(p); /* in contrast to mr_split_filename() we return the lowercase suffix */
+			return dc_strlower(p); /* in contrast to dc_split_filename() we return the lowercase suffix */
 		}
 	}
 	return NULL;
 }
 
 
-void mr_split_filename(const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot)
+void dc_split_filename(const char* pathNfilename, char** ret_basename, char** ret_all_suffixes_incl_dot)
 {
 	/* splits a filename into basename and all suffixes, eg. "/path/foo.tar.gz" is split into "foo.tar" and ".gz",
 	(we use the _last_ dot which allows the usage inside the filename which are very usual;
 	maybe the detection could be more intelligent, however, for the moment, it is just file)
 	- if there is no suffix, the returned suffix string is empty, eg. "/path/foobar" is split into "foobar" and ""
 	- the case of the returned suffix is preserved; this is to allow reconstruction of (similar) names */
-	char* basename = mr_get_filename(pathNfilename), *suffix;
+	char* basename = dc_get_filename(pathNfilename), *suffix;
 	char* p1 = strrchr(basename, '.');
 	if( p1 ) {
-		suffix = safe_strdup(p1);
+		suffix = dc_strdup(p1);
 		*p1 = 0;
 	}
 	else {
-		suffix = safe_strdup(NULL);
+		suffix = dc_strdup(NULL);
 	}
 
 	/* return the given values */
@@ -1151,9 +1151,9 @@ char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filename
 	struct stat st;
 	int         i;
 
-	filenameNsuffix = safe_strdup(desired_filenameNsuffix__);
+	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
 	mr_validate_filename(filenameNsuffix);
-	mr_split_filename(filenameNsuffix, &basename, &dotNSuffix);
+	dc_split_filename(filenameNsuffix, &basename, &dotNSuffix);
 
 	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
 		if( i ) {

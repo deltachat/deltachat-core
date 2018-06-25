@@ -66,7 +66,7 @@ char* dc_urlencode(const char *to_encode)
 	const char *pstr = to_encode;
 
 	if( to_encode == NULL ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_encode) * 3 + 1), *pbuf = buf;
@@ -112,7 +112,7 @@ char* dc_urldecode(const char* to_decode)
 	const char *pstr = to_decode;
 
 	if( to_decode == NULL ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_decode) + 1), *pbuf = buf;
@@ -465,7 +465,7 @@ char* dc_decode_header_words(const char* in)
 	size_t cur_token = 0;
 	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
 	if( r != MAILIMF_NO_ERROR || out == NULL ) {
-		out = safe_strdup(in); /* error, make a copy of the original string (as we free it later) */
+		out = dc_strdup(in); /* error, make a copy of the original string (as we free it later) */
 	}
 
 	return out; /* must be free()'d by the caller */
@@ -513,7 +513,7 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
 	char          *dst, *res;
 
 	if (!to_encode) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	res = (char*)malloc(2*strlen(to_encode)+1);
@@ -650,7 +650,7 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 	char          *dst, *res;
 
 	if( to_decode == NULL ) {
-		return safe_strdup("");
+		return dc_strdup("");
 	}
 
 	res  = (char*)malloc(4*strlen(to_decode)+1);
@@ -794,7 +794,7 @@ char* dc_encode_ext_header(const char* to_encode)
 	const char *pstr = to_encode;
 
 	if( to_encode == NULL ) {
-		return safe_strdup(PREFIX);
+		return dc_strdup(PREFIX);
 	}
 
 	char *buf = malloc(strlen(PREFIX) + strlen(to_encode) * 3 + 1);
@@ -876,5 +876,5 @@ char* dc_decode_ext_header(const char* to_decode)
 
 cleanup:
 	free(charset);
-	return decoded? decoded : safe_strdup(to_decode);
+	return decoded? decoded : dc_strdup(to_decode);
 }

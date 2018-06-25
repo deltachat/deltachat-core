@@ -71,12 +71,12 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	/* split parameters from the qr code
 	 ------------------------------------ */
 
-	if( strncasecmp(qr, OPENPGP4FPR_SCHEME, strlen(OPENPGP4FPR_SCHEME)) == 0 )
+	if( strncasecmp(qr, DC_OPENPGP4FPR_SCHEME, strlen(DC_OPENPGP4FPR_SCHEME)) == 0 )
 	{
 		/* scheme: OPENPGP4FPR:FINGERPRINT#a=ADDR&n=NAME&i=INVITENUMBER&s=AUTH
 		       or: OPENPGP4FPR:FINGERPRINT#a=ADDR&g=GROUPNAME&x=GROUPID&i=INVITENUMBER&s=AUTH */
 
-		payload  = safe_strdup(&qr[strlen(OPENPGP4FPR_SCHEME)]);
+		payload  = dc_strdup(&qr[strlen(DC_OPENPGP4FPR_SCHEME)]);
 		char* fragment = strchr(payload, '#'); /* must not be freed, only a pointer inside payload */
 		if( fragment )
 		{
@@ -116,44 +116,44 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	else if( strncasecmp(qr, MAILTO_SCHEME, strlen(MAILTO_SCHEME)) == 0 )
 	{
 		/* scheme: mailto:addr...?subject=...&body=... */
-		payload = safe_strdup(&qr[strlen(MAILTO_SCHEME)]);
+		payload = dc_strdup(&qr[strlen(MAILTO_SCHEME)]);
 		char* query = strchr(payload, '?'); /* must not be freed, only a pointer inside payload */
 		if( query ) {
 			*query = 0;
 		}
-		addr = safe_strdup(payload);
+		addr = dc_strdup(payload);
 	}
 	else if( strncasecmp(qr, SMTP_SCHEME, strlen(SMTP_SCHEME)) == 0 )
 	{
 		/* scheme: `SMTP:addr...:subject...:body...` */
-		payload = safe_strdup(&qr[strlen(SMTP_SCHEME)]);
+		payload = dc_strdup(&qr[strlen(SMTP_SCHEME)]);
 		char* colon = strchr(payload, ':'); /* must not be freed, only a pointer inside payload */
 		if( colon ) {
 			*colon = 0;
 		}
-		addr = safe_strdup(payload);
+		addr = dc_strdup(payload);
 	}
 	else if( strncasecmp(qr, MATMSG_SCHEME, strlen(MATMSG_SCHEME)) == 0 )
 	{
 		/* scheme: `MATMSG:TO:addr...;SUB:subject...;BODY:body...;` - there may or may not be linebreaks after the fields */
 		char* to = strstr(qr, "TO:"); /* does not work when the text `TO:` is used in subject/body _and_ TO: is not the first field. we ignore this case. */
 		if( to ) {
-			addr = safe_strdup(&to[3]);
+			addr = dc_strdup(&to[3]);
 			char* semicolon = strchr(addr, ';');
 			if( semicolon ) { *semicolon = 0; }
 		}
 		else {
 			qr_parsed->m_state = MR_QR_ERROR;
-			qr_parsed->m_text1 = safe_strdup("Bad e-mail address.");
+			qr_parsed->m_text1 = dc_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
 	}
 	else if( strncasecmp(qr, VCARD_BEGIN, strlen(VCARD_BEGIN)) == 0 )
 	{
 		/* scheme: `VCARD:BEGIN\nN:last name;first name;...;\nEMAIL:addr...;` */
-		carray* lines = mr_split_into_lines(qr);
+		carray* lines = dc_split_into_lines(qr);
 		for( int i = 0; i < carray_count(lines); i++ ) {
-			char* key   = (char*)carray_get(lines, i); mr_trim(key);
+			char* key   = (char*)carray_get(lines, i); dc_trim(key);
 			char* value = strchr(key, ':');
 			if( value ) {
 				*value = 0;
@@ -161,17 +161,17 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 				char* semicolon = strchr(key, ';'); if( semicolon ) { *semicolon = 0; } /* handle `EMAIL;type=work:` stuff */
 				if( strcasecmp(key, "EMAIL") == 0 ) {
 					semicolon = strchr(value, ';'); if( semicolon ) { *semicolon = 0; } /* use the first EMAIL */
-					addr = safe_strdup(value);
+					addr = dc_strdup(value);
 				}
 				else if( strcasecmp(key, "N") == 0 ) {
 					semicolon = strchr(value, ';'); if( semicolon ) { semicolon = strchr(semicolon+1, ';'); if( semicolon ) { *semicolon = 0; } } /* the N format is `lastname;prename;wtf;title` - skip everything after the second semicolon */
-					name = safe_strdup(value);
+					name = dc_strdup(value);
 					dc_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by mr_normalize_name() */
 					mr_normalize_name(name);
 				}
 			}
 		}
-		mr_free_splitted_lines(lines);
+		dc_free_splitted_lines(lines);
 	}
 
 	/* check the paramters
@@ -183,7 +183,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
 			qr_parsed->m_state = MR_QR_ERROR;
-			qr_parsed->m_text1 = safe_strdup("Bad e-mail address.");
+			qr_parsed->m_text1 = dc_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
 	}
@@ -191,7 +191,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	if( fingerprint ) {
 		if( strlen(fingerprint) != 40 ) {
 			qr_parsed->m_state = MR_QR_ERROR;
-			qr_parsed->m_text1 = safe_strdup("Bad fingerprint length in QR code.");
+			qr_parsed->m_text1 = dc_strdup("Bad fingerprint length in QR code.");
 			goto cleanup;
 		}
 	}
@@ -235,17 +235,17 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 				if( grpid && grpname ) {
 					qr_parsed->m_state = MR_QR_ASK_VERIFYGROUP;
-					qr_parsed->m_text1 = safe_strdup(grpname);
-					qr_parsed->m_text2 = safe_strdup(grpid);
+					qr_parsed->m_text1 = dc_strdup(grpname);
+					qr_parsed->m_text2 = dc_strdup(grpid);
 				}
 				else {
 					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
 				}
 
 				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
-				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
-				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);
-				qr_parsed->m_auth          = safe_strdup(auth);
+				qr_parsed->m_fingerprint   = dc_strdup(fingerprint);
+				qr_parsed->m_invitenumber  = dc_strdup(invitenumber);
+				qr_parsed->m_auth          = dc_strdup(auth);
 
 
 			dc_sqlite3_unlock(context->m_sql);
@@ -260,12 +260,12 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{
 		qr_parsed->m_state = MR_QR_URL;
-		qr_parsed->m_text1 = safe_strdup(qr);
+		qr_parsed->m_text1 = dc_strdup(qr);
 	}
 	else
 	{
         qr_parsed->m_state = MR_QR_TEXT;
-		qr_parsed->m_text1 = safe_strdup(qr);
+		qr_parsed->m_text1 = dc_strdup(qr);
 	}
 
 	if( device_msg ) {

@@ -142,7 +142,7 @@ void dc_param_set_packed(dc_param_t* param, const char* packed)
 
 	if( packed ) {
 		free(param->m_packed);
-		param->m_packed = safe_strdup(packed);
+		param->m_packed = dc_strdup(packed);
 	}
 }
 
@@ -161,7 +161,7 @@ void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
 
 	if( urlencoded ) {
 		free(param->m_packed);
-		param->m_packed = safe_strdup(urlencoded);
+		param->m_packed = dc_strdup(urlencoded);
 		dc_str_replace(&param->m_packed, "&", "\n");
 	}
 }
@@ -208,20 +208,20 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
 	char *p1, *p2, bak, *ret;
 
 	if( param == NULL || key == 0 ) {
-		return def? safe_strdup(def) : NULL;
+		return def? dc_strdup(def) : NULL;
 	}
 
 	p1 = find_param(param->m_packed, key, &p2);
 	if( p1 == NULL ) {
-		return def? safe_strdup(def) : NULL;
+		return def? dc_strdup(def) : NULL;
 	}
 
 	p1 += 2; /* skip key and "=" (safe as find_param checks for its existance) */
 
 	bak = *p2;
 	*p2 = 0;
-	ret = safe_strdup(p1);
-	mr_rtrim(ret); /* to be safe with '\r' characters ... */
+	ret = dc_strdup(p1);
+	dc_rtrim(ret); /* to be safe with '\r' characters ... */
 	*p2 = bak;
 	return ret;
 }
@@ -294,8 +294,8 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 		}
 	}
 
-	mr_rtrim(old1); /* trim functions are null-pointer-safe */
-	mr_ltrim(old2);
+	dc_rtrim(old1); /* trim functions are null-pointer-safe */
+	dc_ltrim(old2);
 
 	if( old1 && old1[0]==0 ) { old1 = NULL; }
 	if( old2 && old2[0]==0 ) { old2 = NULL; }
