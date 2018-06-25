@@ -124,14 +124,14 @@ int dc_smtp_connect(dc_smtp_t* ths, const dc_loginparam_t* lp)
 		dc_log_error(ths->m_context, 0, "SMTP-object creation failed.");
 		goto cleanup;
 	}
-	mailsmtp_set_timeout(ths->m_hEtpan, MR_SMTP_TIMEOUT_SEC);
+	mailsmtp_set_timeout(ths->m_hEtpan, DC_SMTP_TIMEOUT_SEC);
 	mailsmtp_set_progress_callback(ths->m_hEtpan, body_progress, ths);
 	#if DEBUG_SMTP
 		mailsmtp_set_logger(ths->m_hEtpan, logger, ths);
 	#endif
 
 	/* connect to SMTP server */
-	if( lp->m_server_flags&(MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_PLAIN) )
+	if( lp->m_server_flags&(DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_PLAIN) )
 	{
 		if( (r=mailsmtp_socket_connect(ths->m_hEtpan, lp->m_send_server, lp->m_send_port)) != MAILSMTP_NO_ERROR ) {
 			dc_log_error_if(&ths->m_log_connect_errors, ths->m_context, 0, "SMTP-Socket connection to %s:%i failed (%s)", lp->m_send_server, (int)lp->m_send_port, mailsmtp_strerror(r));
@@ -160,7 +160,7 @@ int dc_smtp_connect(dc_smtp_t* ths, const dc_loginparam_t* lp)
 		goto cleanup;
 	}
 
-	if( lp->m_server_flags&MR_SMTP_SOCKET_STARTTLS )
+	if( lp->m_server_flags&DC_LP_SMTP_SOCKET_STARTTLS )
 	{
 		if( (r=mailsmtp_socket_starttls(ths->m_hEtpan)) != MAILSMTP_NO_ERROR ) {
 			dc_log_error_if(&ths->m_log_connect_errors, ths->m_context, 0, "SMTP-STARTTLS failed (%s)", mailsmtp_strerror(r));
@@ -181,7 +181,7 @@ int dc_smtp_connect(dc_smtp_t* ths, const dc_loginparam_t* lp)
 		}
 		dc_log_info(ths->m_context, 0, "SMTP-server %s:%i STARTTLS-connected.", lp->m_send_server, (int)lp->m_send_port);
 	}
-	else if( lp->m_server_flags&MR_SMTP_SOCKET_PLAIN )
+	else if( lp->m_server_flags&DC_LP_SMTP_SOCKET_PLAIN )
 	{
 		dc_log_info(ths->m_context, 0, "SMTP-server %s:%i connected.", lp->m_send_server, (int)lp->m_send_port);
 	}

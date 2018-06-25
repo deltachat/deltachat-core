@@ -19,8 +19,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRJOB_H__
-#define __MRJOB_H__
+#ifndef __DC_JOB_H__
+#define __DC_JOB_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,14 +47,14 @@ extern "C" {
 // timeouts until actions are aborted.
 // this may also affects IDLE to return, so a re-connect may take this time.
 // mailcore2 uses 30 seconds, k-9 uses 10 seconds
-#define MR_IMAP_TIMEOUT_SEC       10
-#define MR_SMTP_TIMEOUT_SEC       10
+#define DC_IMAP_TIMEOUT_SEC       10
+#define DC_SMTP_TIMEOUT_SEC       10
 
 
 // this is the timeout after which dc_perform_smtp_idle() returns at latest.
 // this timeout should not be too large as this might be the only option to perform
 // jobs that failed on the first execution.
-#define MR_SMTP_IDLE_SEC          60
+#define DC_SMTP_IDLE_SEC          60
 
 
 /**
@@ -89,5 +89,5 @@ void     dc_job_do_DC_JOB_CONFIGURE_IMAP (dc_context_t*, dc_job_t*);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRJOB_H__ */
+#endif /* __DC_JOB_H__ */
 

@@ -34,7 +34,7 @@ typedef struct dc_keyring_t dc_keyring_t;
 
 
 /* validation errors */
-#define MRE2EE_NO_VALID_SIGNATURE 0x02
+#define DC_E2EE_NO_VALID_SIGNATURE 0x02
 
 /* misc. */
 void dc_pgp_init             (dc_context_t*);

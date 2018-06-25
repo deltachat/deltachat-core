@@ -410,7 +410,7 @@ error:
 
 
 #if 0 /* not needed at the moment */
-static size_t mr_utf8_strlen(const char* s)
+static size_t dc_utf8_strlen(const char* s)
 {
 	size_t i = 0, j = 0;
 	while( s[i] ) {
@@ -423,7 +423,7 @@ static size_t mr_utf8_strlen(const char* s)
 #endif
 
 
-static size_t mr_utf8_strnlen(const char* s, size_t n)
+static size_t dc_utf8_strnlen(const char* s, size_t n)
 {
 	size_t i = 0, j = 0;
 	while( i < n ) {
@@ -450,7 +450,7 @@ void dc_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 		else {
 			if( lastIsCharacter ) {
 				size_t used_bytes = (size_t)((uintptr_t)p1 - (uintptr_t)buf);
-				if( mr_utf8_strnlen(buf, used_bytes) >= approx_characters ) {
+				if( dc_utf8_strnlen(buf, used_bytes) >= approx_characters ) {
 					size_t      buf_bytes = strlen(buf);
 					if( buf_bytes-used_bytes >= strlen(ellipse_utf8) /* check if we have room for the ellipse */ ) {
 						strcpy((char*)p1, ellipse_utf8);
@@ -764,7 +764,7 @@ struct mailimap_date_time* dc_timestamp_to_mailimap_date_time(time_t timeval)
 
 
 static time_t s_last_smeared_timestamp = 0;
-#define MR_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
+#define DC_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
 
 
 time_t dc_create_smeared_timestamp__(void)
@@ -773,8 +773,8 @@ time_t dc_create_smeared_timestamp__(void)
 	time_t ret = now;
 	if( ret <= s_last_smeared_timestamp ) {
 		ret = s_last_smeared_timestamp+1;
-		if( (ret-now) > MR_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
-			ret = now + MR_MAX_SECONDS_TO_LEND_FROM_FUTURE;
+		if( (ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
+			ret = now + DC_MAX_SECONDS_TO_LEND_FROM_FUTURE;
 		}
 	}
 	s_last_smeared_timestamp = ret;
@@ -786,7 +786,7 @@ time_t dc_create_smeared_timestamps__(int count)
 {
 	/* get a range to timestamps that can be used uniquely */
 	time_t now = time(NULL);
-	time_t start = now + DC_MIN(count, MR_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
+	time_t start = now + DC_MIN(count, DC_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
 	start = DC_MAX(s_last_smeared_timestamp+1, start);
 
 	s_last_smeared_timestamp = start+(count-1);
@@ -941,9 +941,9 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 	}
 	*p1 = 0;
 
-	#define MR_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
+	#define DC_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
 	grpid_len = strlen(grpid);
-	if( grpid_len!=DC_CREATE_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
+	if( grpid_len!=DC_CREATE_ID_LEN && grpid_len!=DC_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;
 	}
 
@@ -1036,8 +1036,8 @@ int dc_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
 {
     int     success = 0, fd_src = -1, fd_dest = -1;
-    #define MR_COPY_BUF_SIZE 4096
-    char    buf[MR_COPY_BUF_SIZE];
+    #define DC_COPY_BUF_SIZE 4096
+    char    buf[DC_COPY_BUF_SIZE];
     size_t  bytes_read;
     int     anything_copied = 0;
 
@@ -1055,7 +1055,7 @@ int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NU
         goto cleanup;
 	}
 
-    while( (bytes_read=read(fd_src, buf, MR_COPY_BUF_SIZE)) > 0 ) {
+    while( (bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0 ) {
         if (write(fd_dest, buf, bytes_read) != bytes_read) {
             dc_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
 		}
@@ -1131,7 +1131,7 @@ void dc_split_filename(const char* pathNfilename, char** ret_basename, char** re
 
 
 
-void mr_validate_filename(char* filename)
+void dc_validate_filename(char* filename)
 {
 	/* function modifies the given buffer and replaces all characters not valid in filenames by a "-" */
 	char* p1 = filename;
@@ -1152,7 +1152,7 @@ char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filename
 	int         i;
 
 	filenameNsuffix = dc_strdup(desired_filenameNsuffix__);
-	mr_validate_filename(filenameNsuffix);
+	dc_validate_filename(filenameNsuffix);
 	dc_split_filename(filenameNsuffix, &basename, &dotNSuffix);
 
 	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {

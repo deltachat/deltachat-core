@@ -720,7 +720,7 @@ void stress_functions(dc_context_t* context)
 		assert( (setupfile=dc_render_setup_file(context, setupcode)) != NULL );
 
 		{
-			char *buf = safe_strdup(setupfile);
+			char *buf = dc_strdup(setupfile);
 			const char *headerline = NULL, *setupcodebegin = NULL;
 			assert( dc_split_armored_data(buf, &headerline, &setupcodebegin, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP MESSAGE-----")==0 );

@@ -3886,8 +3886,8 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	else
 	{
 		// No E2E available
-		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
-		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
+		if( !(loginparam->m_server_flags&DC_LP_IMAP_SOCKET_PLAIN)
+		 && !(loginparam->m_server_flags&DC_LP_SMTP_SOCKET_PLAIN) )
 		{
 			p = dc_stock_str(DC_STR_ENCR_TRANSP); dc_strbuilder_cat(&ret, p); free(p);
 		}
@@ -4207,7 +4207,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		#endif
 
 		dc_trim(rawtxt);
-		dc_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
+		dc_truncate_str(rawtxt, DC_MAX_GET_INFO_LEN);
 
 		/* add time */
 		dc_strbuilder_cat(&ret, "Sent: ");
@@ -4262,7 +4262,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	p = NULL;
 	int e2ee_errors;
 	if( (e2ee_errors=dc_param_get_int(msg->m_param, DC_PARAM_ERRONEOUS_E2EE, 0)) ) {
-		if( e2ee_errors&MRE2EE_NO_VALID_SIGNATURE ) {
+		if( e2ee_errors&DC_E2EE_NO_VALID_SIGNATURE ) {
 			p = dc_strdup("Encrypted, no valid signature");
 		}
 	}

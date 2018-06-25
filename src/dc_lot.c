@@ -23,7 +23,7 @@
 #include "dc_context.h"
 
 
-#define MR_LOT_MAGIC 0x00107107
+#define DC_LOT_MAGIC 0x00107107
 
 
 dc_lot_t* dc_lot_new()
@@ -34,7 +34,7 @@ dc_lot_t* dc_lot_new()
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic = MR_LOT_MAGIC;
+	ths->m_magic = DC_LOT_MAGIC;
 	ths->m_text1_meaning  = 0;
 
     return ths;
@@ -55,7 +55,7 @@ dc_lot_t* dc_lot_new()
  */
 void dc_lot_unref(dc_lot_t* set)
 {
-	if( set==NULL || set->m_magic != MR_LOT_MAGIC ) {
+	if( set==NULL || set->m_magic != DC_LOT_MAGIC ) {
 		return;
 	}
 
@@ -67,7 +67,7 @@ void dc_lot_unref(dc_lot_t* set)
 
 void dc_lot_empty(dc_lot_t* ths)
 {
-	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC ) {
+	if( ths == NULL || ths->m_magic != DC_LOT_MAGIC ) {
 		return;
 	}
 
@@ -104,7 +104,7 @@ void dc_lot_empty(dc_lot_t* ths)
  */
 char* dc_lot_get_text1(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return NULL;
 	}
 	return dc_strdup_keep_null(lot->m_text1);
@@ -122,7 +122,7 @@ char* dc_lot_get_text1(dc_lot_t* lot)
  */
 char* dc_lot_get_text2(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return NULL;
 	}
 	return dc_strdup_keep_null(lot->m_text2);
@@ -142,7 +142,7 @@ char* dc_lot_get_text2(dc_lot_t* lot)
  */
 int dc_lot_get_text1_meaning(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
 	return lot->m_text1_meaning;
@@ -160,7 +160,7 @@ int dc_lot_get_text1_meaning(dc_lot_t* lot)
  */
 int dc_lot_get_state(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
 	return lot->m_state;
@@ -178,7 +178,7 @@ int dc_lot_get_state(dc_lot_t* lot)
  */
 uint32_t dc_lot_get_id(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
 	return lot->m_id;
@@ -196,7 +196,7 @@ uint32_t dc_lot_get_id(dc_lot_t* lot)
  */
 time_t dc_lot_get_timestamp(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != MR_LOT_MAGIC ) {
+	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
 	return lot->m_timestamp;
@@ -205,7 +205,7 @@ time_t dc_lot_get_timestamp(dc_lot_t* lot)
 
 void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact)
 {
-	if( ths == NULL || ths->m_magic != MR_LOT_MAGIC || msg == NULL ) {
+	if( ths == NULL || ths->m_magic != DC_LOT_MAGIC || msg == NULL ) {
 		return;
 	}
 
@@ -217,7 +217,7 @@ void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		}
 		else {
 			ths->m_text1 = dc_stock_str(DC_STR_SELF);
-			ths->m_text1_meaning = MR_TEXT1_SELF;
+			ths->m_text1_meaning = DC_TEXT1_SELF;
 		}
 	}
 	else if( chat == NULL )
@@ -233,11 +233,11 @@ void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		}
 		else {
 			ths->m_text1 = dc_contact_get_first_name(contact);
-			ths->m_text1_meaning = MR_TEXT1_USERNAME;
+			ths->m_text1_meaning = DC_TEXT1_USERNAME;
 		}
 	}
 
-	ths->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, MR_SUMMARY_CHARACTERS);
+	ths->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_SUMMARY_CHARACTERS);
 	ths->m_timestamp = dc_msg_get_timestamp(msg);
 	ths->m_state     = msg->m_state;
 }

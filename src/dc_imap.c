@@ -190,12 +190,12 @@ static int get_folder_meaning(const dc_imap_t* ths, struct mailimap_mbx_list_fla
 }
 
 
-typedef struct mrimapfolder_t
+typedef struct dc_imapfolder_t
 {
 	char* m_name_to_select;
 	char* m_name_utf8;
 	int   m_meaning;
-} mrimapfolder_t;
+} dc_imapfolder_t;
 
 
 static clist* list_folders__(dc_imap_t* ths)
@@ -240,7 +240,7 @@ static clist* list_folders__(dc_imap_t* ths)
 			ths->m_imap_delimiter = imap_folder->mb_delimiter;
 		}
 
-		mrimapfolder_t* ret_folder = calloc(1, sizeof(mrimapfolder_t));
+		dc_imapfolder_t* ret_folder = calloc(1, sizeof(dc_imapfolder_t));
 
 		if( strcasecmp(imap_folder->mb_name, "INBOX")==0 ) {
 			/* Force upper case INBOX as we also use it directly this way; a unified name is needed as we use the folder name to remember the last uid.
@@ -266,7 +266,7 @@ static clist* list_folders__(dc_imap_t* ths)
 	if( !xlist_works ) {
 		for( iter1 = clist_begin(ret_list); iter1 != NULL ; iter1 = clist_next(iter1) )
 		{
-			mrimapfolder_t* ret_folder = (struct mrimapfolder_t*)clist_content(iter1);
+			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
 			ret_folder->m_meaning = get_folder_meaning(ths, NULL, ret_folder->m_name_utf8, true);
 		}
 	}
@@ -284,7 +284,7 @@ static void free_folders(clist* folders)
 	if( folders ) {
 		clistiter* iter1;
 		for( iter1 = clist_begin(folders); iter1 != NULL ; iter1 = clist_next(iter1) ) {
-			mrimapfolder_t* ret_folder = (struct mrimapfolder_t*)clist_content(iter1);
+			dc_imapfolder_t* ret_folder = (struct dc_imapfolder_t*)clist_content(iter1);
 			free(ret_folder->m_name_to_select);
 			free(ret_folder->m_name_utf8);
 			free(ret_folder);
@@ -323,7 +323,7 @@ static int init_chat_folders__(dc_imap_t* ths)
 	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", ths->m_imap_delimiter, DC_CHATS_FOLDER);
 
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
-		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
+		dc_imapfolder_t* folder = (struct dc_imapfolder_t*)clist_content(iter1);
 		if( strcmp(folder->m_name_utf8, DC_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
 			chats_folder = dc_strdup(folder->m_name_to_select);
 			break;
@@ -336,7 +336,7 @@ static int init_chat_folders__(dc_imap_t* ths)
 		}
 	}
 
-	if( chats_folder == NULL && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 ) {
+	if( chats_folder == NULL && (ths->m_server_flags&DC_NO_MOVE_TO_CHATS)==0 ) {
 		dc_log_info(ths->m_context, 0, "Creating IMAP-folder \"%s\"...", DC_CHATS_FOLDER);
 		int r = mailimap_create(ths->m_hEtpan, DC_CHATS_FOLDER);
 		if( is_error(ths, r) ) {
@@ -440,7 +440,7 @@ static uint32_t search_uid__(dc_imap_t* imap, const char* message_id)
 	uint32_t                    uid = 0;
 	for( cur = clist_begin(folders); cur != NULL ; cur = clist_next(cur) )
 	{
-		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
 		if( select_folder__(imap, folder->m_name_to_select) )
 		{
 			int r = mailimap_uid_search(imap->m_hEtpan, "utf-8", key, &search_result);
@@ -605,7 +605,7 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 							if( flag )
 							{
 								if( flag->fl_type == MAILIMAP_FLAG_SEEN ) {
-									*flags |= MR_IMAP_SEEN;
+									*flags |= DC_IMAP_SEEN;
 								}
 								else if( flag->fl_type == MAILIMAP_FLAG_DELETED ) {
 									*deleted = 1;
@@ -831,7 +831,7 @@ static int fetch_from_all_folders(dc_imap_t* ths)
 	has the most recent mails.  Moreover, this is for speed reasons, as the other folders only have few new messages. */
 	for( cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur) )
 	{
-		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
 		if( folder->m_meaning == MEANING_INBOX ) {
 			total_cnt += fetch_from_single_folder(ths, folder->m_name_to_select);
 		}
@@ -839,7 +839,7 @@ static int fetch_from_all_folders(dc_imap_t* ths)
 
 	for( cur = clist_begin(folder_list); cur != NULL ; cur = clist_next(cur) )
 	{
-		mrimapfolder_t* folder = (mrimapfolder_t*)clist_content(cur);
+		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
 		if( folder->m_meaning == MEANING_IGNORE ) {
 			dc_log_info(ths->m_context, 0, "Ignoring \"%s\".", folder->m_name_utf8);
 		}
@@ -1051,9 +1051,9 @@ static int setup_handle_if_needed__(dc_imap_t* ths)
 
 	ths->m_hEtpan = mailimap_new(0, NULL);
 
-	mailimap_set_timeout(ths->m_hEtpan, MR_IMAP_TIMEOUT_SEC);
+	mailimap_set_timeout(ths->m_hEtpan, DC_IMAP_TIMEOUT_SEC);
 
-	if( ths->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN) )
+	if( ths->m_server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN) )
 	{
 		r = mailimap_socket_connect(ths->m_hEtpan, ths->m_imap_server, ths->m_imap_port);
 		if( is_error(ths, r) ) {
@@ -1061,7 +1061,7 @@ static int setup_handle_if_needed__(dc_imap_t* ths)
 			goto cleanup;
 		}
 
-		if( ths->m_server_flags&MR_IMAP_SOCKET_STARTTLS )
+		if( ths->m_server_flags&DC_LP_IMAP_SOCKET_STARTTLS )
 		{
 			r = mailimap_socket_starttls(ths->m_hEtpan);
 			if( is_error(ths, r) ) {
@@ -1086,7 +1086,7 @@ static int setup_handle_if_needed__(dc_imap_t* ths)
 	}
 
 		/* TODO: There are more authorisation types, see mailcore2/MCIMAPSession.cpp, however, I'm not sure of they are really all needed */
-		/*if( ths->m_server_flags&MR_AUTH_XOAUTH2 )
+		/*if( ths->m_server_flags&DC_LP_AUTH_XOAUTH2 )
 		{
 			//TODO: Support XOAUTH2, we "just" need to get the token someway. If we do so, there is no more need for the user to enable
 			//https://www.google.com/settings/security/lesssecureapps - however, maybe this is also not needed if the user had enabled 2-factor-authorisation.
@@ -1099,7 +1099,7 @@ static int setup_handle_if_needed__(dc_imap_t* ths)
 		}
 		else*/
 		{
-			/* MR_AUTH_NORMAL or no auth flag set */
+			/* DC_LP_AUTH_NORMAL or no auth flag set */
 			r = mailimap_login(ths->m_hEtpan, ths->m_imap_user, ths->m_imap_pw);
 		}
 
@@ -1274,7 +1274,7 @@ int dc_imap_is_connected(dc_imap_t* ths)
  ******************************************************************************/
 
 
-dc_imap_t* dc_imap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_receive_imf_t receive_imf, void* userData, dc_context_t* mailbox)
+dc_imap_t* dc_imap_new(dc_get_config_t get_config, dc_set_config_t set_config, dc_receive_imf_t receive_imf, void* userData, dc_context_t* mailbox)
 {
 	dc_imap_t* ths = NULL;
 
@@ -1478,7 +1478,7 @@ int dc_imap_markseen_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid
 
 	dc_log_info(ths->m_context, 0, "Message marked as seen.");
 
-	if( (ms_flags&MR_MS_SET_MDNSent_FLAG)
+	if( (ms_flags&DC_MS_SET_MDNSent_FLAG)
 	 && ths->m_hEtpan->imap_selection_info!=NULL && ths->m_hEtpan->imap_selection_info->sel_perm_flags!=NULL )
 	{
 		/* Check if the folder can handle the `$MDNSent` flag (see RFC 3503).  If so, and not set: set the flags and return this information.
@@ -1512,28 +1512,28 @@ int dc_imap_markseen_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid
 				if( cur ) {
 					if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
 						add_flag__(ths, server_uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")));
-						*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
+						*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
 					}
 				}
 				mailimap_fetch_list_free(fetch_result);
 			}
-			dc_log_info(ths->m_context, 0, ((*ret_ms_flags)&MR_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
+			dc_log_info(ths->m_context, 0, ((*ret_ms_flags)&DC_MS_MDNSent_JUST_SET)? "$MDNSent just set and MDN will be sent." : "$MDNSent already set and MDN already sent.");
 		}
 		else
 		{
-			*ret_ms_flags |= MR_MS_MDNSent_JUST_SET;
+			*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
 			dc_log_info(ths->m_context, 0, "Cannot store $MDNSent flags, risk sending duplicate MDN.");
 		}
 	}
 
-	if( (ms_flags&MR_MS_ALSO_MOVE) && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 )
+	if( (ms_flags&DC_MS_ALSO_MOVE) && (ths->m_server_flags&DC_NO_MOVE_TO_CHATS)==0 )
 	{
 		init_chat_folders__(ths);
 		if( ths->m_moveto_folder && strcmp(folder, ths->m_moveto_folder)==0 )
 		{
 			dc_log_info(ths->m_context, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, ths->m_moveto_folder);
 			/* avoid deadlocks as moving messages in the same folder may be result in a new server_uid and the state "fresh" -
-			we will catch these messages again on the next poll, try to move them away and so on, see also (***) in mrmailbox.c */
+			we will catch these messages again on the next poll, try to move them away and so on, see also (***) in dc_receive_imf.c */
 		}
 		else if( ths->m_moveto_folder )
 		{

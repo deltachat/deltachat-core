@@ -252,20 +252,20 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
 		if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
 		 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
-			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
+			in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
 		}
 
 	dc_sqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
 	if( msg->m_is_msgrmsg ) {
-		in_ms_flags |= MR_MS_ALSO_MOVE;
+		in_ms_flags |= DC_MS_ALSO_MOVE;
 	}
 
 	if( dc_imap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0 )
 	{
-		if( (new_server_folder && new_server_uid) || out_ms_flags&MR_MS_MDNSent_JUST_SET )
+		if( (new_server_folder && new_server_uid) || out_ms_flags&DC_MS_MDNSent_JUST_SET )
 		{
 			dc_sqlite3_lock(mailbox->m_sql);
 			locked = 1;
@@ -275,7 +275,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_
 					dc_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
 				}
 
-				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
+				if( out_ms_flags&DC_MS_MDNSent_JUST_SET )
 				{
 					dc_job_add(mailbox, DC_JOB_SEND_MDN, msg->m_id, NULL, 0);
 				}
@@ -312,7 +312,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* mailbox, dc_job_
 		}
 	}
 
-	if( dc_imap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
+	if( dc_imap_markseen_msg(mailbox->m_imap, server_folder, server_uid, DC_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
 		dc_job_try_again_later(job, DC_AT_ONCE);
 	}
 
@@ -391,7 +391,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 
 		if( !dc_smtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
 			dc_smtp_disconnect(mailbox->m_smtp);
-			dc_job_try_again_later(job, DC_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+			dc_job_try_again_later(job, DC_AT_ONCE); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 			goto cleanup;
 		}
 	}
@@ -419,7 +419,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 			dc_msg_save_param_to_disk__(mimefactory.m_msg);
 		}
 
-		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
+		if( (mailbox->m_imap->m_server_flags&DC_NO_EXTRA_IMAP_UPLOAD)==0
 		 && dc_param_get(mimefactory.m_chat->m_param, DC_PARAM_SELFTALK, 0)==0
 		 && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_CMD, 0)!=DC_CMD_SECUREJOIN_MESSAGE ) {
 			dc_job_add(mailbox, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
@@ -471,7 +471,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* mailbox, dc_job_t* job)
 
 	if( !dc_smtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
 		dc_smtp_disconnect(mailbox->m_smtp);
-		dc_job_try_again_later(job, DC_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+		dc_job_try_again_later(job, DC_AT_ONCE); /* DC_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 		goto cleanup;
 	}
 
@@ -637,7 +637,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 
 			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
 			// if we're not online, the ui calls interrupt idle as soon as we're online again.
-			// if nothing of this happens, after MR_SMTP_IDLE_SEC (60) we try again.
+			// if nothing of this happens, after DC_SMTP_IDLE_SEC (60) we try again.
 			if( thread == DC_SMTP_THREAD
 			 && dc_is_online(mailbox) )
 			{
@@ -876,7 +876,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
 				do {
 					int r = 0;
 					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 1 : MR_SMTP_IDLE_SEC);
+					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 1 : DC_SMTP_IDLE_SEC);
 					timeToWait.tv_nsec = 0;
 					while (context->m_smtpidle_condflag==0 && r==0) {
 						r = pthread_cond_timedwait(&context->m_smtpidle_cond, &context->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex

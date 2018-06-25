@@ -536,7 +536,7 @@ cleanup:
  * @memberof dc_apeerstate_t
  *
  * @param peerstate The peerstate object.
- * @param which_key Which key should be marked as being verified? MRA_GOSSIP_KEY (1) or MRA_PUBLIC_KEY (2)
+ * @param which_key Which key should be marked as being verified? DC_PS_GOSSIP_KEY (1) or DC_PS_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
  * @param verified DC_BIDIRECT_VERIFIED (2): contact verfied in both directions
  *
@@ -551,12 +551,12 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 	int success = 0;
 
 	if( peerstate == NULL
-	 || (which_key!=MRA_GOSSIP_KEY && which_key!=MRA_PUBLIC_KEY)
+	 || (which_key!=DC_PS_GOSSIP_KEY && which_key!=DC_PS_PUBLIC_KEY)
 	 || (verified!=DC_BIDIRECT_VERIFIED) ) {
 		goto cleanup;
 	}
 
-	if( which_key == MRA_PUBLIC_KEY
+	if( which_key == DC_PS_PUBLIC_KEY
 	 && peerstate->m_public_key_fingerprint != NULL
 	 && peerstate->m_public_key_fingerprint[0] != 0
 	 && fingerprint[0] != 0
@@ -568,7 +568,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 		success                               = 1;
 	}
 
-	if( which_key == MRA_GOSSIP_KEY
+	if( which_key == DC_PS_GOSSIP_KEY
 	 && peerstate->m_gossip_key_fingerprint != NULL
 	 && peerstate->m_gossip_key_fingerprint[0] != 0
 	 && fingerprint[0] != 0

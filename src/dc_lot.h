@@ -20,14 +20,14 @@
  ******************************************************************************/
 
 
-#ifndef __MRLOT_PRIVATE_H__
-#define __MRLOT_PRIVATE_H__
+#ifndef __DC_LOT_H__
+#define __DC_LOT_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/** Structure behind dclot_t */
+/** Structure behind dc_lot_t */
 struct _dc_lot
 {
 	/** @privatesection */
@@ -47,11 +47,11 @@ struct _dc_lot
 
 
 /* library-internal */
-#define MR_SUMMARY_CHARACTERS 160 /* in practice, the user additionally cuts the string himself pixel-accurate */
+#define DC_SUMMARY_CHARACTERS 160 /* in practice, the user additionally cuts the string himself pixel-accurate */
 void            dc_lot_fill      (dc_lot_t*, const dc_msg_t*, const dc_chat_t*, const dc_contact_t*);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRLOT_PRIVATE_H__ */
+#endif /* __DC_LOT_H__ */

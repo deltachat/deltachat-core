@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRLOGINPARAM_H__
-#define __MRLOGINPARAM_H__
+#ifndef __DC_LOGINPARAM_H__
+#define __DC_LOGINPARAM_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,22 +48,22 @@ typedef struct dc_loginparam_t
 	int           m_send_port;
 
 	/* Server options*/
-	#define       MR_AUTH_XOAUTH2                 0x2
-	#define       MR_AUTH_NORMAL                  0x4
-	#define       MR_AUTH_FLAGS                  (MR_AUTH_XOAUTH2|MR_AUTH_NORMAL) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+	#define       DC_LP_AUTH_XOAUTH2                 0x2
+	#define       DC_LP_AUTH_NORMAL                  0x4
+	#define       DC_LP_AUTH_FLAGS                  (DC_LP_AUTH_XOAUTH2|DC_LP_AUTH_NORMAL) /* if none of these flags are set, the default is choosen */
 
-	#define       MR_IMAP_SOCKET_STARTTLS       0x100
-	#define       MR_IMAP_SOCKET_SSL            0x200
-	#define       MR_IMAP_SOCKET_PLAIN          0x400
-	#define       MR_IMAP_SOCKET_FLAGS           (MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_SSL|MR_IMAP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+	#define       DC_LP_IMAP_SOCKET_STARTTLS       0x100
+	#define       DC_LP_IMAP_SOCKET_SSL            0x200
+	#define       DC_LP_IMAP_SOCKET_PLAIN          0x400
+	#define       DC_LP_IMAP_SOCKET_FLAGS           (DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_SSL|DC_LP_IMAP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen */
 
-	#define       MR_SMTP_SOCKET_STARTTLS     0x10000
-	#define       MR_SMTP_SOCKET_SSL          0x20000
-	#define       MR_SMTP_SOCKET_PLAIN        0x40000
-	#define       MR_SMTP_SOCKET_FLAGS           (MR_SMTP_SOCKET_STARTTLS|MR_SMTP_SOCKET_SSL|MR_SMTP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen, even if MR_NO_AUTOCONFIG is set */
+	#define       DC_LP_SMTP_SOCKET_STARTTLS     0x10000
+	#define       DC_LP_SMTP_SOCKET_SSL          0x20000
+	#define       DC_LP_SMTP_SOCKET_PLAIN        0x40000
+	#define       DC_LP_SMTP_SOCKET_FLAGS           (DC_LP_SMTP_SOCKET_STARTTLS|DC_LP_SMTP_SOCKET_SSL|DC_LP_SMTP_SOCKET_PLAIN) /* if none of these flags are set, the default is choosen */
 
-	#define       MR_NO_EXTRA_IMAP_UPLOAD   0x2000000
-	#define       MR_NO_MOVE_TO_CHATS       0x4000000
+	#define       DC_NO_EXTRA_IMAP_UPLOAD      0x2000000
+	#define       DC_NO_MOVE_TO_CHATS          0x4000000
 
 	int           m_server_flags;
 } dc_loginparam_t;
@@ -80,5 +80,5 @@ char*            dc_loginparam_get_readable (const dc_loginparam_t*);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRLOGINPARAM_H__ */
+#endif /* __DC_LOGINPARAM_H__ */
 

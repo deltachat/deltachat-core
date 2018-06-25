@@ -35,11 +35,12 @@ extern "C" {
 typedef struct dc_loginparam_t dc_loginparam_t;
 typedef struct dc_imap_t dc_imap_t;
 
-#define MR_IMAP_SEEN 0x0001L
 
-typedef char*    (*mr_get_config_t)    (dc_imap_t*, const char*, const char*);
-typedef void     (*mr_set_config_t)    (dc_imap_t*, const char*, const char*);
-typedef void     (*mr_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
+typedef char*    (*dc_get_config_t)    (dc_imap_t*, const char*, const char*);
+typedef void     (*dc_set_config_t)    (dc_imap_t*, const char*, const char*);
+
+#define DC_IMAP_SEEN 0x0001L
+typedef void     (*dc_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
 
 /**
@@ -82,9 +83,9 @@ typedef struct dc_imap_t
 	struct mailimap_fetch_type* m_fetch_type_body;
 	struct mailimap_fetch_type* m_fetch_type_flags;
 
-	mr_get_config_t       m_get_config;
-	mr_set_config_t       m_set_config;
-	mr_receive_imf_t      m_receive_imf;
+	dc_get_config_t       m_get_config;
+	dc_set_config_t       m_set_config;
+	dc_receive_imf_t      m_receive_imf;
 	void*                 m_userData;
 	dc_context_t*          m_context;
 
@@ -94,7 +95,7 @@ typedef struct dc_imap_t
 } dc_imap_t;
 
 
-dc_imap_t* dc_imap_new               (mr_get_config_t, mr_set_config_t, mr_receive_imf_t, void* userData, dc_context_t*);
+dc_imap_t* dc_imap_new               (dc_get_config_t, dc_set_config_t, dc_receive_imf_t, void* userData, dc_context_t*);
 void       dc_imap_unref             (dc_imap_t*);
 
 int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);
@@ -107,9 +108,9 @@ void       dc_imap_interrupt_idle    (dc_imap_t*);
 
 int        dc_imap_append_msg        (dc_imap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
-#define    MR_MS_ALSO_MOVE          0x01
-#define    MR_MS_SET_MDNSent_FLAG   0x02
-#define    MR_MS_MDNSent_JUST_SET   0x10
+#define    DC_MS_ALSO_MOVE          0x01
+#define    DC_MS_SET_MDNSent_FLAG   0x02
+#define    DC_MS_MDNSent_JUST_SET   0x10
 int        dc_imap_markseen_msg      (dc_imap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
 
 int        dc_imap_delete_msg        (dc_imap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */

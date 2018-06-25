@@ -118,7 +118,7 @@ static int add_attribute(dc_aheader_t* ths, const char* name, const char* value 
 		ths->m_addr = dc_normalize_addr(value);
 		return 1;
 	}
-	#if 0 /* autoctypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
+	#if 0 /* autocrypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
 	else if( strcasecmp(name, "type")==0 )
 	{
 		if( value == NULL ) {

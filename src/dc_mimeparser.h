@@ -25,8 +25,8 @@ dc_mimeparser_t has no deep dependencies to dc_context_t or to the database
 (dc_context_t is used for logging only). */
 
 
-#ifndef __MRMIMEPARSER_H__
-#define __MRMIMEPARSER_H__
+#ifndef __DC_MIMEPARSER_H__
+#define __DC_MIMEPARSER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -104,7 +104,7 @@ int                            dc_mimeparser_sender_equals_recipient(dc_mimepars
 
 
 /* low-level-tools for working with mailmime structures directly */
-#ifdef MR_USE_MIME_DEBUG
+#ifdef DC_USE_MIME_DEBUG
 void                           mailmime_print                (struct mailmime*);
 #endif
 struct mailmime_parameter*     mailmime_find_ct_parameter    (struct mailmime*, const char* name);
@@ -119,5 +119,5 @@ dc_hash_t*                      mailimf_get_recipients        (struct mailimf_fi
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMIMEPARSER_H__ */
+#endif /* __DC_MIMEPARSER_H__ */
 

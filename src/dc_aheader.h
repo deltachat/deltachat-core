@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRAHEADER_H__
-#define __MRAHEADER_H__
+#ifndef __DC_AHEADER_H__
+#define __DC_AHEADER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,7 +36,7 @@ extern "C" {
 typedef struct dc_aheader_t
 {
 	char*          m_addr;
-	dc_key_t*       m_public_key; /* != NULL */
+	dc_key_t*      m_public_key; /* != NULL */
 	int            m_prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
 } dc_aheader_t;
 
@@ -54,4 +54,4 @@ char*         dc_aheader_render            (const dc_aheader_t*);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRAHEADER_H__ */
+#endif /* __DC_AHEADER_H__ */

@@ -141,7 +141,7 @@ void dc_sqlite3_unref(dc_sqlite3_t* ths)
 	}
 
 	if( ths->m_cobj ) {
-		pthread_mutex_lock(&ths->m_critical_); /* as a very exeception, we do the locking inside the mrsqlite3-class - normally, this should be done by the caller! */
+		pthread_mutex_lock(&ths->m_critical_); /* as a very exeception, we do the locking inside the dc_sqlite3-class - normally, this should be done by the caller! */
 			dc_sqlite3_close__(ths);
 		pthread_mutex_unlock(&ths->m_critical_);
 	}
@@ -172,7 +172,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 	// However, locking is _also_ used for dc_context_t which _is_ still needed, so, we
 	// should remove locks only if we're really sure.
 	if( sqlite3_open_v2(dbfile, &ths->m_cobj,
-			SQLITE_OPEN_FULLMUTEX | ((flags&MR_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
+			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
 			NULL) != SQLITE_OK ) {
 		dc_sqlite3_log_error(ths, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by dc_sqlite3_log_error()) */
 		goto cleanup;
@@ -185,7 +185,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 	// (without a busy_timeout, sqlite3_step() would return SQLITE_BUSY at once)
 	sqlite3_busy_timeout(ths->m_cobj, 10*1000);
 
-	if( !(flags&MR_OPEN_READONLY) )
+	if( !(flags&DC_OPEN_READONLY) )
 	{
 		int dbversion_before_update = 0;
 
@@ -217,7 +217,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 						" draft_timestamp INTEGER DEFAULT 0,"
 						" draft_txt TEXT DEFAULT '',"
 						" blocked INTEGER DEFAULT 0,"
-						" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see mrchat.c for details */
+						" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see dc_chat.c for details */
 						" param TEXT DEFAULT '');");
 			dc_sqlite3_execute__(ths, "CREATE INDEX chats_index1 ON chats (grpid);");
 			dc_sqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
@@ -696,32 +696,32 @@ int dc_sqlite3_set_config_int__(dc_sqlite3_t* ths, const char* key, int32_t valu
  ******************************************************************************/
 
 
-#ifdef MR_USE_LOCK_DEBUG
+#ifdef DC_USE_LOCK_DEBUG
 void dc_sqlite3_lockNdebug(dc_sqlite3_t* ths, const char* filename, int linenum) /* wait and lock */
 #else
 void dc_sqlite3_lock(dc_sqlite3_t* ths) /* wait and lock */
 #endif
 {
-	#ifdef MR_USE_LOCK_DEBUG
+	#ifdef DC_USE_LOCK_DEBUG
 		clock_t start = clock();
 		dc_log_info(ths->m_context, 0, "    waiting for lock at %s#L%i", filename, linenum);
 	#endif
 
 	pthread_mutex_lock(&ths->m_critical_);
 
-	#ifdef MR_USE_LOCK_DEBUG
+	#ifdef DC_USE_LOCK_DEBUG
 		dc_log_info(ths->m_context, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 	#endif
 }
 
 
-#ifdef MR_USE_LOCK_DEBUG
+#ifdef DC_USE_LOCK_DEBUG
 void dc_sqlite3_unlockNdebug(dc_sqlite3_t* ths, const char* filename, int linenum)
 #else
 void dc_sqlite3_unlock(dc_sqlite3_t* ths)
 #endif
 {
-	#ifdef MR_USE_LOCK_DEBUG
+	#ifdef DC_USE_LOCK_DEBUG
 		dc_log_info(ths->m_context, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
 	#endif
 

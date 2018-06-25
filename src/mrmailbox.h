@@ -180,8 +180,6 @@ extern "C" {
 #define MR_STATE_OUT_ERROR                  DC_STATE_OUT_ERROR
 #define MR_STATE_OUT_DELIVERED              DC_STATE_OUT_DELIVERED
 #define MR_STATE_OUT_MDN_RCVD               DC_STATE_OUT_MDN_RCVD
-#define MR_MAX_GET_TEXT_LEN                 DC_MAX_GET_TEXT_LEN
-#define MR_MAX_GET_INFO_LEN                 DC_MAX_GET_INFO_LEN
 #define mrmsg_new                           dc_msg_new
 #define mrmsg_unref                         dc_msg_unref
 #define mrmsg_empty                         dc_msg_empty

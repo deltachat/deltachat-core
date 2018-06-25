@@ -74,23 +74,23 @@ void dc_loginparam_empty(dc_loginparam_t* ths)
 void dc_loginparam_read__(dc_loginparam_t* ths, dc_sqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
-	#define MR_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
+	#define LP_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
 
 	dc_loginparam_empty(ths);
 
-	MR_PREFIX("addr");        ths->m_addr        = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("addr");        ths->m_addr        = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("mail_server"); ths->m_mail_server = dc_sqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("mail_port");   ths->m_mail_port   = dc_sqlite3_get_config_int__(sql, key, 0);
-	MR_PREFIX("mail_user");   ths->m_mail_user   = dc_sqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("mail_pw");     ths->m_mail_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("mail_server"); ths->m_mail_server = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("mail_port");   ths->m_mail_port   = dc_sqlite3_get_config_int__(sql, key, 0);
+	LP_PREFIX("mail_user");   ths->m_mail_user   = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("mail_pw");     ths->m_mail_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("send_server"); ths->m_send_server = dc_sqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("send_port");   ths->m_send_port   = dc_sqlite3_get_config_int__(sql, key, 0);
-	MR_PREFIX("send_user");   ths->m_send_user   = dc_sqlite3_get_config__    (sql, key, NULL);
-	MR_PREFIX("send_pw");     ths->m_send_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("send_server"); ths->m_send_server = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("send_port");   ths->m_send_port   = dc_sqlite3_get_config_int__(sql, key, 0);
+	LP_PREFIX("send_user");   ths->m_send_user   = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("send_pw");     ths->m_send_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
 
-	MR_PREFIX("server_flags");ths->m_server_flags= dc_sqlite3_get_config_int__(sql, key, 0);
+	LP_PREFIX("server_flags");ths->m_server_flags= dc_sqlite3_get_config_int__(sql, key, 0);
 
 	sqlite3_free(key);
 }
@@ -100,19 +100,19 @@ void dc_loginparam_write__(const dc_loginparam_t* ths, dc_sqlite3_t* sql, const 
 {
 	char* key = NULL;
 
-	MR_PREFIX("addr");         dc_sqlite3_set_config__    (sql, key, ths->m_addr);
+	LP_PREFIX("addr");         dc_sqlite3_set_config__    (sql, key, ths->m_addr);
 
-	MR_PREFIX("mail_server");  dc_sqlite3_set_config__    (sql, key, ths->m_mail_server);
-	MR_PREFIX("mail_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_mail_port);
-	MR_PREFIX("mail_user");    dc_sqlite3_set_config__    (sql, key, ths->m_mail_user);
-	MR_PREFIX("mail_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_mail_pw);
+	LP_PREFIX("mail_server");  dc_sqlite3_set_config__    (sql, key, ths->m_mail_server);
+	LP_PREFIX("mail_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_mail_port);
+	LP_PREFIX("mail_user");    dc_sqlite3_set_config__    (sql, key, ths->m_mail_user);
+	LP_PREFIX("mail_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_mail_pw);
 
-	MR_PREFIX("send_server");  dc_sqlite3_set_config__    (sql, key, ths->m_send_server);
-	MR_PREFIX("send_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_send_port);
-	MR_PREFIX("send_user");    dc_sqlite3_set_config__    (sql, key, ths->m_send_user);
-	MR_PREFIX("send_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_send_pw);
+	LP_PREFIX("send_server");  dc_sqlite3_set_config__    (sql, key, ths->m_send_server);
+	LP_PREFIX("send_port");    dc_sqlite3_set_config_int__(sql, key, ths->m_send_port);
+	LP_PREFIX("send_user");    dc_sqlite3_set_config__    (sql, key, ths->m_send_user);
+	LP_PREFIX("send_pw");      dc_sqlite3_set_config__    (sql, key, ths->m_send_pw);
 
-	MR_PREFIX("server_flags"); dc_sqlite3_set_config_int__(sql, key, ths->m_server_flags);
+	LP_PREFIX("server_flags"); dc_sqlite3_set_config_int__(sql, key, ths->m_server_flags);
 
 	sqlite3_free(key);
 }
@@ -130,19 +130,19 @@ static char* get_readable_flags(int flags)
 		{
 			int flag_added = 0;
 
-			CAT_FLAG(MR_AUTH_XOAUTH2,         "XOAUTH2 ");
-			CAT_FLAG(MR_AUTH_NORMAL,          "AUTH_NORMAL ");
+			CAT_FLAG(DC_LP_AUTH_XOAUTH2,         "XOAUTH2 ");
+			CAT_FLAG(DC_LP_AUTH_NORMAL,          "AUTH_NORMAL ");
 
-			CAT_FLAG(MR_IMAP_SOCKET_STARTTLS, "IMAP_STARTTLS ");
-			CAT_FLAG(MR_IMAP_SOCKET_SSL,      "IMAP_SSL ");
-			CAT_FLAG(MR_IMAP_SOCKET_PLAIN,    "IMAP_PLAIN ");
+			CAT_FLAG(DC_LP_IMAP_SOCKET_STARTTLS, "IMAP_STARTTLS ");
+			CAT_FLAG(DC_LP_IMAP_SOCKET_SSL,      "IMAP_SSL ");
+			CAT_FLAG(DC_LP_IMAP_SOCKET_PLAIN,    "IMAP_PLAIN ");
 
-			CAT_FLAG(MR_SMTP_SOCKET_STARTTLS, "SMTP_STARTTLS ");
-			CAT_FLAG(MR_SMTP_SOCKET_SSL,      "SMTP_SSL ");
-			CAT_FLAG(MR_SMTP_SOCKET_PLAIN,    "SMTP_PLAIN ");
+			CAT_FLAG(DC_LP_SMTP_SOCKET_STARTTLS, "SMTP_STARTTLS ");
+			CAT_FLAG(DC_LP_SMTP_SOCKET_SSL,      "SMTP_SSL ");
+			CAT_FLAG(DC_LP_SMTP_SOCKET_PLAIN,    "SMTP_PLAIN ");
 
-			CAT_FLAG(MR_NO_EXTRA_IMAP_UPLOAD, "NO_EXTRA_IMAP_UPLOAD ");
-			CAT_FLAG(MR_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
+			CAT_FLAG(DC_NO_EXTRA_IMAP_UPLOAD, "NO_EXTRA_IMAP_UPLOAD ");
+			CAT_FLAG(DC_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
 
 			if( !flag_added ) {
 				char* temp = dc_mprintf("0x%x ", 1<<bit); dc_strbuilder_cat(&strbuilder, temp); free(temp);

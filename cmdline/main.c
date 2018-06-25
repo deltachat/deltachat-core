@@ -240,7 +240,7 @@ int main(int argc, char ** argv)
 		/* read command */
 		const char* cmdline = read_cmd();
 		free(cmd);
-		cmd = safe_strdup(cmdline);
+		cmd = dc_strdup(cmdline);
 		char* arg1 = strchr(cmd, ' ');
 		if( arg1 ) { *arg1 = 0; arg1++; }
 

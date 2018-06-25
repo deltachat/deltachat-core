@@ -90,7 +90,7 @@ static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char*
 	const char*          p1;
 
 	if( strcmp(tag, "incomingserver")==0 ) {
-		moz_ac->m_tag_server = (moz_ac->m_out_imap_set==0 && (p1=mrattr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
+		moz_ac->m_tag_server = (moz_ac->m_out_imap_set==0 && (p1=dc_attr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
 		moz_ac->m_tag_config = 0;
 	}
 	else if( strcmp(tag, "outgoingserver") == 0 ) {
@@ -120,9 +120,9 @@ static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 			case MOZ_PORT:                                         moz_ac->m_out->m_mail_port   = atoi(val);       break;
 			case MOZ_USERNAME: free(moz_ac->m_out->m_mail_user);   moz_ac->m_out->m_mail_user   = val; val = NULL; break;
 			case MOZ_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=MR_IMAP_SOCKET_PLAIN; }
+				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=DC_LP_IMAP_SOCKET_SSL; }
+				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=DC_LP_IMAP_SOCKET_STARTTLS; }
+				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=DC_LP_IMAP_SOCKET_PLAIN; }
 				break;
 		}
 	}
@@ -132,9 +132,9 @@ static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 			case MOZ_PORT:                                         moz_ac->m_out->m_send_port   = atoi(val);       break;
 			case MOZ_USERNAME: free(moz_ac->m_out->m_send_user);   moz_ac->m_out->m_send_user   = val; val = NULL; break;
 			case MOZ_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=MR_SMTP_SOCKET_PLAIN; }
+				if( strcasecmp(val, "ssl")==0 )      { moz_ac->m_out->m_server_flags |=DC_LP_SMTP_SOCKET_SSL; }
+				if( strcasecmp(val, "starttls")==0 ) { moz_ac->m_out->m_server_flags |=DC_LP_SMTP_SOCKET_STARTTLS; }
+				if( strcasecmp(val, "plain")==0 )    { moz_ac->m_out->m_server_flags |=DC_LP_SMTP_SOCKET_PLAIN; }
 				break;
 		}
 	}
@@ -283,15 +283,15 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 			if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "imap")==0 && outlk_ad->m_out_imap_set==0 ) {
                 outlk_ad->m_out->m_mail_server = dc_strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_mail_port   = port;
-                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_SSL;   }
-                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_IMAP_SOCKET_PLAIN; }
+                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= DC_LP_IMAP_SOCKET_SSL;   }
+                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= DC_LP_IMAP_SOCKET_PLAIN; }
                 outlk_ad->m_out_imap_set = 1;
 			}
 			else if( strcasecmp(outlk_ad->m_config[OUTLK_TYPE], "smtp")==0 && outlk_ad->m_out_smtp_set==0 ) {
                 outlk_ad->m_out->m_send_server = dc_strdup_keep_null(outlk_ad->m_config[OUTLK_SERVER]);
                 outlk_ad->m_out->m_send_port   = port;
-                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_SSL;   }
-                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= MR_SMTP_SOCKET_PLAIN; }
+                     if( ssl_on  ) { outlk_ad->m_out->m_server_flags |= DC_LP_SMTP_SOCKET_SSL;   }
+                else if( ssl_off ) { outlk_ad->m_out->m_server_flags |= DC_LP_SMTP_SOCKET_PLAIN; }
                 outlk_ad->m_out_smtp_set = 1;
 			}
 		}
@@ -533,7 +533,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	{
 		/* NB: Checking GMa'l too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
 		Also note https://www.google.com/settings/security/lesssecureapps */
-		param->m_server_flags |= MR_AUTH_XOAUTH2 | MR_NO_EXTRA_IMAP_UPLOAD | MR_NO_MOVE_TO_CHATS;
+		param->m_server_flags |= DC_LP_AUTH_XOAUTH2 | DC_NO_EXTRA_IMAP_UPLOAD | DC_NO_MOVE_TO_CHATS;
 	}
 
 
@@ -552,7 +552,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	if( param->m_mail_port == 0 ) {
-		param->m_mail_port = (param->m_server_flags&(MR_IMAP_SOCKET_STARTTLS|MR_IMAP_SOCKET_PLAIN))?  TYPICAL_IMAP_STARTTLS_PORT : TYPICAL_IMAP_SSL_PORT;
+		param->m_mail_port = (param->m_server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN))?  TYPICAL_IMAP_STARTTLS_PORT : TYPICAL_IMAP_SSL_PORT;
 	}
 
 	if( param->m_mail_user == NULL ) {
@@ -567,8 +567,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	if( param->m_send_port == 0 ) {
-		param->m_send_port = (param->m_server_flags&MR_SMTP_SOCKET_STARTTLS)?  TYPICAL_SMTP_STARTTLS_PORT :
-			((param->m_server_flags&MR_SMTP_SOCKET_PLAIN)? TYPICAL_SMTP_PLAIN_PORT : TYPICAL_SMTP_SSL_PORT);
+		param->m_send_port = (param->m_server_flags&DC_LP_SMTP_SOCKET_STARTTLS)?  TYPICAL_SMTP_STARTTLS_PORT :
+			((param->m_server_flags&DC_LP_SMTP_SOCKET_PLAIN)? TYPICAL_SMTP_PLAIN_PORT : TYPICAL_SMTP_SSL_PORT);
 	}
 
 	if( param->m_send_user == NULL && param->m_mail_user ) {
@@ -579,23 +579,23 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		param->m_send_pw = dc_strdup(param->m_mail_pw);
 	}
 
-	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_AUTH_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&DC_LP_AUTH_FLAGS) )
 	{
-		param->m_server_flags &= ~MR_AUTH_FLAGS;
-		param->m_server_flags |= MR_AUTH_NORMAL;
+		param->m_server_flags &= ~DC_LP_AUTH_FLAGS;
+		param->m_server_flags |= DC_LP_AUTH_NORMAL;
 	}
 
-	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_IMAP_SOCKET_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&DC_LP_IMAP_SOCKET_FLAGS) )
 	{
-		param->m_server_flags &= ~MR_IMAP_SOCKET_FLAGS;
-		param->m_server_flags |= (param->m_send_port==TYPICAL_IMAP_STARTTLS_PORT?  MR_IMAP_SOCKET_STARTTLS : MR_IMAP_SOCKET_SSL);
+		param->m_server_flags &= ~DC_LP_IMAP_SOCKET_FLAGS;
+		param->m_server_flags |= (param->m_send_port==TYPICAL_IMAP_STARTTLS_PORT?  DC_LP_IMAP_SOCKET_STARTTLS : DC_LP_IMAP_SOCKET_SSL);
 	}
 
-	if( !dc_exactly_one_bit_set(param->m_server_flags&MR_SMTP_SOCKET_FLAGS) )
+	if( !dc_exactly_one_bit_set(param->m_server_flags&DC_LP_SMTP_SOCKET_FLAGS) )
 	{
-		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
-		param->m_server_flags |= ( param->m_send_port==TYPICAL_SMTP_STARTTLS_PORT?  MR_SMTP_SOCKET_STARTTLS :
-			(param->m_send_port==TYPICAL_SMTP_PLAIN_PORT? MR_SMTP_SOCKET_PLAIN: MR_SMTP_SOCKET_SSL) );
+		param->m_server_flags &= ~DC_LP_SMTP_SOCKET_FLAGS;
+		param->m_server_flags |= ( param->m_send_port==TYPICAL_SMTP_STARTTLS_PORT?  DC_LP_SMTP_SOCKET_STARTTLS :
+			(param->m_send_port==TYPICAL_SMTP_PLAIN_PORT? DC_LP_SMTP_SOCKET_PLAIN: DC_LP_SMTP_SOCKET_SSL) );
 	}
 
 
@@ -636,8 +636,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		PROGRESS(850)
 
-		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
-		param->m_server_flags |=  MR_SMTP_SOCKET_STARTTLS;
+		param->m_server_flags &= ~DC_LP_SMTP_SOCKET_FLAGS;
+		param->m_server_flags |=  DC_LP_SMTP_SOCKET_STARTTLS;
 		param->m_send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 

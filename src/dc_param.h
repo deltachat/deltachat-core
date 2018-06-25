@@ -52,7 +52,7 @@ typedef struct dc_param_t
 #define DC_PARAM_TRACKNAME         'n'  /* for msgs: name of author or artist */
 #define DC_PARAM_GUARANTEE_E2EE    'c'  /* for msgs: incoming: message is encryoted, outgoing: guarantee E2EE or the message is not send */
 #define DC_PARAM_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
-#define DC_PARAM_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either MRFP_ADD_AUTOCRYPT_HEADER (1), MRFP_NO_AUTOCRYPT_HEADER (2) or 0 */
+#define DC_PARAM_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either DC_FP_ADD_AUTOCRYPT_HEADER (1), DC_FP_NO_AUTOCRYPT_HEADER (2) or 0 */
 #define DC_PARAM_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
 #define DC_PARAM_FORWARDED         'a'  /* for msgs */
 #define DC_PARAM_CMD               'S'  /* for msgs */
@@ -72,8 +72,8 @@ typedef struct dc_param_t
 
 
 // values for DC_PARAM_FORCE_PLAINTEXT
-#define MRFP_ADD_AUTOCRYPT_HEADER 1
-#define MRFP_NO_AUTOCRYPT_HEADER  2
+#define DC_FP_ADD_AUTOCRYPT_HEADER 1
+#define DC_FP_NO_AUTOCRYPT_HEADER  2
 
 
 /* user functions */

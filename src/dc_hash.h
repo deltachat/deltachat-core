@@ -30,7 +30,7 @@ extern "C"
 
 /* Forward declarations of structures.
  */
-typedef struct mrhashelem_t   mrhashelem_t;
+typedef struct dc_hashelem_t   dc_hashelem_t;
 
 
 /* A complete hash table is an instance of the following structure.
@@ -46,12 +46,12 @@ typedef struct dc_hash_t
 	char              keyClass;       /* SJHASH_INT, _POINTER, _STRING, _BINARY */
 	char              copyKey;        /* True if copy of key made on insert */
 	int               count;          /* Number of entries in this table */
-	mrhashelem_t*     first;          /* The first element of the array */
+	dc_hashelem_t     *first;         /* The first element of the array */
 	int               htsize;         /* Number of buckets in the hash table */
 	struct _ht
 	{	/* the hash table */
 		int           count;          /* Number of entries with this hash */
-		mrhashelem_t* chain;          /* Pointer to first entry with this hash */
+		dc_hashelem_t *chain;         /* Pointer to first entry with this hash */
 	} *ht;
 } dc_hash_t;
 
@@ -62,13 +62,13 @@ typedef struct dc_hash_t
  * Again, this structure is intended to be opaque, but it can't really
  * be opaque because it is used by macros.
  */
-typedef struct mrhashelem_t
+typedef struct dc_hashelem_t
 {
-	mrhashelem_t      *next, *prev;   /* Next and previous elements in the table */
+	dc_hashelem_t     *next, *prev;   /* Next and previous elements in the table */
 	void*             data;           /* Data associated with this element */
 	void*             pKey;           /* Key associated with this element */
 	int               nKey;           /* Key associated with this element */
-} mrhashelem_t;
+} dc_hashelem_t;
 
 
 /*

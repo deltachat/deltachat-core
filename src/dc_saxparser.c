@@ -273,7 +273,7 @@ static void do_free_attr(char** attr, int* free_attr)
  ******************************************************************************/
 
 
-const char* mrattr_find(char** attr, const char* key)
+const char* dc_attr_find(char** attr, const char* key)
 {
 	if( attr && key ) {
 		int i = 0;

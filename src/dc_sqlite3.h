@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRSQLITE3_H__
-#define __MRSQLITE3_H__
+#ifndef __DC_SQLITE3_H__
+#define __DC_SQLITE3_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -157,19 +157,19 @@ enum
 typedef struct dc_sqlite3_t
 {
 	/** @privatesection */
-	sqlite3_stmt* m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
-	sqlite3*      m_cobj;               /**< is the database given as dbfile to Open() */
-	int           m_transactionCount;   /**< helper for transactions */
-	dc_context_t*  m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
+	sqlite3_stmt*   m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
+	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
+	int             m_transactionCount;   /**< helper for transactions */
+	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
 	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
 } dc_sqlite3_t;
 
 
-dc_sqlite3_t*  dc_sqlite3_new              (dc_context_t*);
+dc_sqlite3_t* dc_sqlite3_new              (dc_context_t*);
 void          dc_sqlite3_unref            (dc_sqlite3_t*);
 
-#define       MR_OPEN_READONLY           0x01
+#define       DC_OPEN_READONLY           0x01
 int           dc_sqlite3_open__           (dc_sqlite3_t*, const char* dbfile, int flags);
 
 void          dc_sqlite3_close__          (dc_sqlite3_t*);
@@ -192,10 +192,10 @@ void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
 void          dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t*);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
-the user of MrSqlite3 must make sure that the MrSqlite3-object is only used by one thread at the same time.
+the user of dc_sqlite3 must make sure that the dc_sqlite3-object is only used by one thread at the same time.
 In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
-Low-level-functions, eg. the MrSqlite3-methods, do not lock. */
-#ifdef MR_USE_LOCK_DEBUG
+Low-level-functions, eg. the dc_sqlite3-methods, do not lock. */
+#ifdef DC_USE_LOCK_DEBUG
 #define       dc_sqlite3_lock(a)          dc_sqlite3_lockNdebug((a), __FILE__, __LINE__)
 #define       dc_sqlite3_unlock(a)        dc_sqlite3_unlockNdebug((a), __FILE__, __LINE__)
 void          dc_sqlite3_lockNdebug       (dc_sqlite3_t*, const char* filename, int line);
@@ -213,5 +213,5 @@ void          dc_sqlite3_rollback__         (dc_sqlite3_t*);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRSQLITE3_H__ */
+#endif /* __DC_SQLITE3_H__ */
 

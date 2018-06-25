@@ -148,7 +148,7 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	}
 
 	/* create a fake autocrypt header */
-	header->m_addr             = safe_strdup(addr);
+	header->m_addr             = dc_strdup(addr);
 	header->m_prefer_encrypt   = DC_PE_MUTUAL;
 	if( !dc_key_set_from_file(header->m_public_key, public_key_file, mailbox)
 	 || !dc_pgp_is_valid_key(mailbox, header->m_public_key) ) {
@@ -214,7 +214,7 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	/* if `spec` is given, remember it for later usage; if it is not given, try to use the last one */
 	if( spec )
 	{
-		real_spec = safe_strdup(spec);
+		real_spec = dc_strdup(spec);
 		dc_sqlite3_lock(mailbox->m_sql);
 			dc_sqlite3_set_config__(mailbox->m_sql, "import_spec", real_spec);
 		dc_sqlite3_unlock(mailbox->m_sql);
@@ -357,10 +357,10 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 			if( peerstate_ok && contact_id != DC_CONTACT_ID_SELF ) {
 				char* pe = NULL;
 				switch( peerstate->m_prefer_encrypt ) {
-					case DC_PE_MUTUAL:       pe = safe_strdup("mutual");                                         break;
-					case DC_PE_NOPREFERENCE: pe = safe_strdup("no-preference");                                  break;
-					case DC_PE_RESET:        pe = safe_strdup("reset");                                          break;
-					default:                  pe = dc_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
+					case DC_PE_MUTUAL:       pe = dc_strdup("mutual");                                         break;
+					case DC_PE_NOPREFERENCE: pe = dc_strdup("no-preference");                                  break;
+					case DC_PE_RESET:        pe = dc_strdup("reset");                                          break;
+					default:                 pe = dc_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
 				}
 				line2 = dc_mprintf(", prefer-encrypt=%s", pe);
 				free(pe);
@@ -370,7 +370,7 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 			free(addr);
 		}
 		else {
-			line = safe_strdup("Read error.");
+			line = dc_strdup("Read error.");
 		}
 		dc_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
 		free(line);
@@ -417,7 +417,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 
 	/* split commandline into command and first argument
 	(the first argument may contain spaces, if this is undesired we split further arguments form if below. */
-	cmd = safe_strdup(cmdline);
+	cmd = dc_strdup(cmdline);
 	arg1 = strchr(cmd, ' ');
 	if( arg1 ) { *arg1 = 0; arg1++; }
 
@@ -426,7 +426,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 && strcmp(arg1, "imex")==0 )
 		{
-			ret = safe_strdup(
+			ret = dc_strdup(
 				"====================Import/Export commands==\n"
 				"initiate-key-transfer\n"
 				"get-setupcodebegin <msg-id>\n"
@@ -444,7 +444,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		}
 		else
 		{
-			ret = safe_strdup(
+			ret = dc_strdup(
 				"==========================Database commands==\n"
 				"info\n"
 				"open <file to open or create>\n"
@@ -518,12 +518,12 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 		}
 		else {
-			ret = safe_strdup("Please authorize yourself using: auth <password>");
+			ret = dc_strdup("Please authorize yourself using: auth <password>");
 		}
 	}
 	else if( strcmp(cmd, "auth")==0 )
 	{
-		ret = safe_strdup("Already authorized.");
+		ret = dc_strdup("Already authorized.");
 	}
 
 
@@ -538,7 +538,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_open(mailbox, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <file> missing.");
+			ret = dc_strdup("ERROR: Argument <file> missing.");
 		}
 	}
 	else if( strcmp(cmd, "close")==0 )
@@ -568,7 +568,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			dc_msg_unref(msg);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "continue-key-transfer")==0 )
@@ -580,14 +580,14 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_continue_key_transfer(mailbox, atoi(arg1), arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Arguments <msg-id> <setup-code> expected.");
+			ret = dc_strdup("ERROR: Arguments <msg-id> <setup-code> expected.");
 		}
 	}
 	else if( strcmp(cmd, "has-backup")==0 )
 	{
 		ret = dc_imex_has_backup(mailbox, mailbox->m_blobdir);
 		if( ret == NULL ) {
-			ret = safe_strdup("No backup found.");
+			ret = dc_strdup("No backup found.");
 		}
 	}
 	else if( strcmp(cmd, "export-backup")==0 )
@@ -600,7 +600,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <backup-file> missing.");
+			ret = dc_strdup("ERROR: Argument <backup-file> missing.");
 		}
 	}
 	else if( strcmp(cmd, "export-keys")==0 )
@@ -636,14 +636,14 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			int bits = atoi(arg1);
 			if( bits > 15 ) {
-				ret = safe_strdup("ERROR: <bits> must be lower than 16.");
+				ret = dc_strdup("ERROR: <bits> must be lower than 16.");
 			}
 			else {
 				ret = dc_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
+			ret = dc_strdup("ERROR: Argument <bits> missing: 1=jobs, 2=peerstates, 4=private keys, 8=rest but server config");
 		}
 	}
 	else if( strcmp(cmd, "set")==0 )
@@ -657,7 +657,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_set_config(mailbox, arg1, arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <key> missing.");
+			ret = dc_strdup("ERROR: Argument <key> missing.");
 		}
 	}
 	else if( strcmp(cmd, "get")==0 )
@@ -673,7 +673,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <key> missing.");
+			ret = dc_strdup("ERROR: Argument <key> missing.");
 		}
 	}
 	else if( strcmp(cmd, "info")==0 )
@@ -783,7 +783,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			dc_marknoticed_chat(mailbox, dc_chat_get_id(sel_chat));
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "createchat")==0 )
@@ -794,7 +794,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = chat_id!=0? dc_mprintf("Single#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+			ret = dc_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "createchatbymsg")==0 )
@@ -812,7 +812,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "creategroup")==0 )
@@ -822,7 +822,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = chat_id!=0? dc_mprintf("Group#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <name> missing.");
+			ret = dc_strdup("ERROR: Argument <name> missing.");
 		}
 	}
 	else if( strcmp(cmd, "createverified")==0 )
@@ -832,7 +832,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = chat_id!=0? dc_mprintf("VerifiedGroup#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <name> missing.");
+			ret = dc_strdup("ERROR: Argument <name> missing.");
 		}
 	}
 	else if( strcmp(cmd, "addmember")==0 )
@@ -841,18 +841,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
 				if( dc_add_contact_to_chat(mailbox, dc_chat_get_id(sel_chat), contact_id) ) {
-					ret = safe_strdup("Contact added to chat.");
+					ret = dc_strdup("Contact added to chat.");
 				}
 				else {
-					ret = safe_strdup("ERROR: Cannot add contact to chat.");
+					ret = dc_strdup("ERROR: Cannot add contact to chat.");
 				}
 			}
 			else {
-				ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+				ret = dc_strdup("ERROR: Argument <contact-id> missing.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "removemember")==0 )
@@ -861,18 +861,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
 				if( dc_remove_contact_from_chat(mailbox, dc_chat_get_id(sel_chat), contact_id) ) {
-					ret = safe_strdup("Contact added to chat.");
+					ret = dc_strdup("Contact added to chat.");
 				}
 				else {
-					ret = safe_strdup("ERROR: Cannot remove member from chat.");
+					ret = dc_strdup("ERROR: Cannot remove member from chat.");
 				}
 			}
 			else {
-				ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+				ret = dc_strdup("ERROR: Argument <contact-id> missing.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "groupname")==0 )
@@ -882,11 +882,11 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 				ret = dc_set_chat_name(mailbox, dc_chat_get_id(sel_chat), arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else {
-				ret = safe_strdup("ERROR: Argument <name> missing.");
+				ret = dc_strdup("ERROR: Argument <name> missing.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "groupimage")==0 )
@@ -895,7 +895,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_set_chat_profile_image(mailbox, dc_chat_get_id(sel_chat), (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "chatinfo")==0 )
@@ -912,7 +912,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "send")==0 )
@@ -920,18 +920,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
 				if( dc_send_text_msg(mailbox, dc_chat_get_id(sel_chat), arg1) ) {
-					ret = safe_strdup("Message sent.");
+					ret = dc_strdup("Message sent.");
 				}
 				else {
-					ret = safe_strdup("ERROR: Sending failed.");
+					ret = dc_strdup("ERROR: Sending failed.");
 				}
 			}
 			else {
-				ret = safe_strdup("ERROR: No message text given.");
+				ret = dc_strdup("ERROR: No message text given.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "sendimage")==0 )
@@ -939,18 +939,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
 				if( dc_send_image_msg(mailbox, dc_chat_get_id(sel_chat), arg1, NULL, 0, 0) ) {
-					ret = safe_strdup("Image sent.");
+					ret = dc_strdup("Image sent.");
 				}
 				else {
-					ret = safe_strdup("ERROR: Sending image failed.");
+					ret = dc_strdup("ERROR: Sending image failed.");
 				}
 			}
 			else {
-				ret = safe_strdup("ERROR: No image given.");
+				ret = dc_strdup("ERROR: No image given.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "sendfile")==0 )
@@ -958,18 +958,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
 				if( dc_send_file_msg(mailbox, dc_chat_get_id(sel_chat), arg1, NULL) ) {
-					ret = safe_strdup("File sent.");
+					ret = dc_strdup("File sent.");
 				}
 				else {
-					ret = safe_strdup("ERROR: Sending file failed.");
+					ret = dc_strdup("ERROR: Sending file failed.");
 				}
 			}
 			else {
-				ret = safe_strdup("ERROR: No file given.");
+				ret = dc_strdup("ERROR: No file given.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "listmsgs")==0 )
@@ -983,7 +983,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <query> missing.");
+			ret = dc_strdup("ERROR: Argument <query> missing.");
 		}
 	}
 	else if( strcmp(cmd, "draft")==0 )
@@ -991,15 +991,15 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
 				dc_set_draft(mailbox, dc_chat_get_id(sel_chat), arg1);
-				ret = safe_strdup("Draft saved.");
+				ret = dc_strdup("Draft saved.");
 			}
 			else {
 				dc_set_draft(mailbox, dc_chat_get_id(sel_chat), NULL);
-				ret = safe_strdup("Draft deleted.");
+				ret = dc_strdup("Draft deleted.");
 			}
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "listmedia")==0 )
@@ -1016,7 +1016,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			dc_array_unref(images);
 		}
 		else {
-			ret = safe_strdup("No chat selected.");
+			ret = dc_strdup("No chat selected.");
 		}
 	}
 	else if( strcmp(cmd, "archive")==0 || strcmp(cmd, "unarchive")==0 )
@@ -1027,7 +1027,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <chat-id> missing.");
+			ret = dc_strdup("ERROR: Argument <chat-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "delchat")==0 )
@@ -1038,7 +1038,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <chat-id> missing.");
+			ret = dc_strdup("ERROR: Argument <chat-id> missing.");
 		}
 	}
 
@@ -1054,7 +1054,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_get_msg_info(mailbox, id);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "listfresh")==0 )
@@ -1078,7 +1078,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Arguments <msg-id> <chat-id> expected.");
+			ret = dc_strdup("ERROR: Arguments <msg-id> <chat-id> expected.");
 		}
 	}
 	else if( strcmp(cmd, "markseen")==0 )
@@ -1090,7 +1090,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "star")==0 || strcmp(cmd, "unstar")==0 )
@@ -1102,7 +1102,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "delmsg")==0 )
@@ -1114,7 +1114,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <msg-id> missing.");
+			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
 		}
 	}
 
@@ -1150,7 +1150,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_create_contact(mailbox, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Arguments [<name>] <addr> expected.");
+			ret = dc_strdup("ERROR: Arguments [<name>] <addr> expected.");
 		}
 	}
 	else if( strcmp(cmd, "contactinfo")==0 )
@@ -1187,7 +1187,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = strbuilder.m_buf;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+			ret = dc_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "delcontact")==0 )
@@ -1196,7 +1196,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_delete_contact(mailbox, atoi(arg1))? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <contact-id> missing.");
+			ret = dc_strdup("ERROR: Argument <contact-id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "cleanupcontacts")==0 )
@@ -1221,7 +1221,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			dc_lot_unref(res);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <qr-content> missing.");
+			ret = dc_strdup("ERROR: Argument <qr-content> missing.");
 		}
 	}
 	else if( strcmp(cmd, "event")==0 )
@@ -1232,7 +1232,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_mprintf("Sending event %i, received value %i.", (int)event, (int)r);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <id> missing.");
+			ret = dc_strdup("ERROR: Argument <id> missing.");
 		}
 	}
 	else if( strcmp(cmd, "fileinfo")==0 )
@@ -1244,12 +1244,12 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 				ret = dc_mprintf("width=%i, height=%i", (int)w, (int)h);
 			}
 			else {
-				ret = safe_strdup("ERROR: Command failed.");
+				ret = dc_strdup("ERROR: Command failed.");
 			}
 			free(buf);
 		}
 		else {
-			ret = safe_strdup("ERROR: Argument <file> missing.");
+			ret = dc_strdup("ERROR: Argument <file> missing.");
 		}
 	}
 	else
@@ -1259,10 +1259,10 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 
 cleanup:
 	if( ret == COMMAND_SUCCEEDED ) {
-		ret = safe_strdup("Command executed successfully.");
+		ret = dc_strdup("Command executed successfully.");
 	}
 	else if( ret == COMMAND_FAILED ) {
-		ret = safe_strdup("ERROR: Command failed.");
+		ret = dc_strdup("ERROR: Command failed.");
 	}
 	else if( ret == COMMAND_UNKNOWN ) {
 		ret = dc_mprintf("ERROR: Unknown command \"%s\", type ? for help.", cmd);

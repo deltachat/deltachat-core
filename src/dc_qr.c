@@ -143,7 +143,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			if( semicolon ) { *semicolon = 0; }
 		}
 		else {
-			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_state = DC_QR_ERROR;
 			qr_parsed->m_text1 = dc_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
@@ -182,7 +182,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 		      temp = dc_normalize_addr(addr); free(addr); addr = temp;
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
-			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_state = DC_QR_ERROR;
 			qr_parsed->m_text1 = dc_strdup("Bad e-mail address.");
 			goto cleanup;
 		}
@@ -190,7 +190,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 	if( fingerprint ) {
 		if( strlen(fingerprint) != 40 ) {
-			qr_parsed->m_state = MR_QR_ERROR;
+			qr_parsed->m_state = DC_QR_ERROR;
 			qr_parsed->m_text1 = dc_strdup("Bad fingerprint length in QR code.");
 			goto cleanup;
 		}
@@ -211,15 +211,15 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			locked = 1;
 
 				if( dc_apeerstate_load_by_fingerprint__(peerstate, context->m_sql, fingerprint) ) {
-					qr_parsed->m_state = MR_QR_FPR_OK;
+					qr_parsed->m_state = DC_QR_FPR_OK;
 					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
 					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, DC_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
 					device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
-					qr_parsed->m_text1 = mr_format_fingerprint(fingerprint);
-					qr_parsed->m_state = MR_QR_FPR_WITHOUT_ADDR;
+					qr_parsed->m_text1 = dc_format_fingerprint(fingerprint);
+					qr_parsed->m_state = DC_QR_FPR_WITHOUT_ADDR;
 				}
 
 			dc_sqlite3_unlock(context->m_sql);
@@ -234,12 +234,12 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			locked = 1;
 
 				if( grpid && grpname ) {
-					qr_parsed->m_state = MR_QR_ASK_VERIFYGROUP;
+					qr_parsed->m_state = DC_QR_ASK_VERIFYGROUP;
 					qr_parsed->m_text1 = dc_strdup(grpname);
 					qr_parsed->m_text2 = dc_strdup(grpid);
 				}
 				else {
-					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
+					qr_parsed->m_state = DC_QR_ASK_VERIFYCONTACT;
 				}
 
 				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
@@ -254,17 +254,17 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	}
 	else if( addr )
 	{
-        qr_parsed->m_state = MR_QR_ADDR;
+        qr_parsed->m_state = DC_QR_ADDR;
 		qr_parsed->m_id    = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{
-		qr_parsed->m_state = MR_QR_URL;
+		qr_parsed->m_state = DC_QR_URL;
 		qr_parsed->m_text1 = dc_strdup(qr);
 	}
 	else
 	{
-        qr_parsed->m_state = MR_QR_TEXT;
+        qr_parsed->m_state = DC_QR_TEXT;
 		qr_parsed->m_text1 = dc_strdup(qr);
 	}
 

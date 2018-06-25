@@ -69,7 +69,7 @@ static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
 	else if( strcmp(tag, "a")==0 )
 	{
 		free(dehtml->m_last_href);
-		dehtml->m_last_href = dc_strdup_keep_null(mrattr_find(attr, "href"));
+		dehtml->m_last_href = dc_strdup_keep_null(dc_attr_find(attr, "href"));
 		if( dehtml->m_last_href ) {
 			dc_strbuilder_cat(&dehtml->m_strbuilder, "[");
 		}

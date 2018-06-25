@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __DC_CHATLIST_PRIVATE_H__
-#define __DC_CHATLIST_PRIVATE_H__
+#ifndef __DC_CHATLIST_H__
+#define __DC_CHATLIST_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,10 +32,10 @@ struct _dc_chatlist
 {
 	/** @privatesection */
 	uint32_t        m_magic;
-	dc_context_t*    m_context; /**< The mailbox, the chatlist belongs to */
-	#define         MR_CHATLIST_IDS_PER_RESULT 2
+	dc_context_t*   m_context; /**< The mailbox, the chatlist belongs to */
+	#define         DC_CHATLIST_IDS_PER_RESULT 2
 	size_t          m_cnt;
-	dc_array_t*      m_chatNlastmsg_ids;
+	dc_array_t*     m_chatNlastmsg_ids;
 };
 
 
@@ -45,4 +45,4 @@ int             dc_chatlist_load_from_db__   (dc_chatlist_t*, int listflags, con
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __DC_CHATLIST_PRIVATE_H__ */
+#endif /* __DC_CHATLIST_H__ */

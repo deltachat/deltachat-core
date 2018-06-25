@@ -23,7 +23,7 @@
 #include "dc_context.h"
 
 
-#define MR_CHATLIST_MAGIC 0xc4a71157
+#define DC_CHATLIST_MAGIC 0xc4a71157
 
 
 /**
@@ -43,7 +43,7 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* mailbox)
 		exit(20);
 	}
 
-	ths->m_magic   = MR_CHATLIST_MAGIC;
+	ths->m_magic   = DC_CHATLIST_MAGIC;
 	ths->m_context = mailbox;
 	if( (ths->m_chatNlastmsg_ids=dc_array_new(mailbox, 128))==NULL ) {
 		exit(32);
@@ -65,7 +65,7 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* mailbox)
  */
 void dc_chatlist_unref(dc_chatlist_t* chatlist)
 {
-	if( chatlist==NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+	if( chatlist==NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
 		return;
 	}
 
@@ -87,7 +87,7 @@ void dc_chatlist_unref(dc_chatlist_t* chatlist)
  */
 void dc_chatlist_empty(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
 		return;
 	}
 
@@ -107,7 +107,7 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
  */
 size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
 		return 0;
 	}
 
@@ -131,11 +131,11 @@ size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
  */
 uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
-	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT);
+	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT);
 }
 
 
@@ -155,11 +155,11 @@ uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
  */
 uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
 		return 0;
 	}
 
-	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
 }
 
 
@@ -206,12 +206,12 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	dc_contact_t*  lastcontact = NULL;
 	dc_chat_t*     chat_to_delete = NULL;
 
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
 		ret->m_text2 = dc_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
 
-	lastmsg_id = dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT+1);
+	lastmsg_id = dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
 
 	/* load data from database */
 	dc_sqlite3_lock(chatlist->m_context->m_sql);
@@ -220,7 +220,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 		if( chat==NULL ) {
 			chat = dc_chat_new(chatlist->m_context);
 			chat_to_delete = chat;
-			if( !dc_chat_load_from_db__(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*MR_CHATLIST_IDS_PER_RESULT)) ) {
+			if( !dc_chat_load_from_db__(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT)) ) {
 				ret->m_text2 = dc_strdup("ErrCannotReadChat");
 				goto cleanup;
 			}
@@ -253,10 +253,10 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	{
 		/* show the draft as the last message */
 		ret->m_text1 = dc_stock_str(DC_STR_DRAFT);
-		ret->m_text1_meaning = MR_TEXT1_DRAFT;
+		ret->m_text1_meaning = DC_TEXT1_DRAFT;
 
 		ret->m_text2 = dc_strdup(chat->m_draft_text);
-		dc_truncate_n_unwrap_str(ret->m_text2, MR_SUMMARY_CHARACTERS, 1/*unwrap*/);
+		dc_truncate_n_unwrap_str(ret->m_text2, DC_SUMMARY_CHARACTERS, 1/*unwrap*/);
 
 		ret->m_timestamp = chat->m_draft_timestamp;
 	}
@@ -291,7 +291,7 @@ cleanup:
  */
 dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != MR_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
 		return NULL;
 	}
 	return chatlist->m_context;
@@ -314,7 +314,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	sqlite3_stmt* stmt = NULL;
 	char*         strLikeCmd = NULL, *query = NULL;
 
-	if( ths == NULL || ths->m_magic != MR_CHATLIST_MAGIC || ths->m_context == NULL ) {
+	if( ths == NULL || ths->m_magic != DC_CHATLIST_MAGIC || ths->m_context == NULL ) {
 		goto cleanup;
 	}
 
@@ -388,7 +388,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 		dc_array_add_id(ths->m_chatNlastmsg_ids, 0);
     }
 
-	ths->m_cnt = dc_array_get_cnt(ths->m_chatNlastmsg_ids)/MR_CHATLIST_IDS_PER_RESULT;
+	ths->m_cnt = dc_array_get_cnt(ths->m_chatNlastmsg_ids)/DC_CHATLIST_IDS_PER_RESULT;
 	success = 1;
 
 cleanup:

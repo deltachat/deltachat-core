@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRARRAY_PRIVATE_H__
-#define __MRARRAY_PRIVATE_H__
+#ifndef __DC_ARRAY_H__
+#define __DC_ARRAY_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,4 +51,4 @@ char*            dc_arr_to_string             (const uint32_t* arr, int cnt);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRARRAY_PRIVATE_H__ */
+#endif /* __DC_ARRAY_H__ */

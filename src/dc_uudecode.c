@@ -47,11 +47,11 @@
  *
  * @return If uuencoded parts are found in the given text, the function returns the
  *     given text stripped by the first uuencode block.
- *     The caller will call mruudecode_do() again with this remaining text then.
+ *     The caller will call dc_uudecode_do() again with this remaining text then.
  *     This way, multiple uuencoded parts can be stripped from a text.
  *     If no uuencoded parts are found or on errors, NULL is returned.
  */
-char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename)
+char* dc_uudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename)
 {
 	// CAVE: This function may be called in a loop until it returns NULL, so make sure not to create an invinitive look.
 

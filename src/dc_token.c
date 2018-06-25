@@ -24,7 +24,7 @@
 #include "dc_token.h"
 
 
-void mrtoken_save__(dc_context_t* mailbox, mrtokennamespc_t namespc, uint32_t foreign_id, const char* token)
+void dc_token_save__(dc_context_t* mailbox, dc_tokennamespc_t namespc, uint32_t foreign_id, const char* token)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -45,7 +45,7 @@ cleanup:
 }
 
 
-char* mrtoken_lookup__(dc_context_t* mailbox, mrtokennamespc_t namespc, uint32_t foreign_id)
+char* dc_token_lookup__(dc_context_t* mailbox, dc_tokennamespc_t namespc, uint32_t foreign_id)
 {
 	char*         token = NULL;
 	sqlite3_stmt* stmt  = NULL;
@@ -68,7 +68,7 @@ cleanup:
 }
 
 
-int mrtoken_exists__(dc_context_t* mailbox, mrtokennamespc_t namespc, const char* token)
+int dc_token_exists__(dc_context_t* mailbox, dc_tokennamespc_t namespc, const char* token)
 {
 	int           exists = 0;
 	sqlite3_stmt* stmt   = NULL;

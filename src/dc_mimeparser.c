@@ -33,9 +33,9 @@
  ******************************************************************************/
 
 
-#ifdef MR_USE_MIME_DEBUG
+#ifdef DC_USE_MIME_DEBUG
 
-/* if you need this functionality, define MR_USE_MIME_DEBUG in the project,
+/* if you need this functionality, define DC_USE_MIME_DEBUG in the project,
 eg. in Codeblocks at "Project / Build options / <project or target> / Compiler settings / #defines" */
 
 
@@ -661,20 +661,20 @@ static int mailmime_is_attachment_disposition(struct mailmime* mime)
 
 static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 {
-	#define MR_MIMETYPE_MP_ALTERNATIVE      10
-	#define MR_MIMETYPE_MP_RELATED          20
-	#define MR_MIMETYPE_MP_MIXED            30
-	#define MR_MIMETYPE_MP_NOT_DECRYPTABLE  40
-	#define MR_MIMETYPE_MP_REPORT           45
-	#define MR_MIMETYPE_MP_SIGNED           46
-	#define MR_MIMETYPE_MP_OTHER            50
-	#define MR_MIMETYPE_TEXT_PLAIN          60
-	#define MR_MIMETYPE_TEXT_HTML           70
-	#define MR_MIMETYPE_IMAGE               80
-	#define MR_MIMETYPE_AUDIO               90
-	#define MR_MIMETYPE_VIDEO              100
-	#define MR_MIMETYPE_FILE               110
-	#define MR_MIMETYPE_AC_SETUP_FILE      111
+	#define DC_MIMETYPE_MP_ALTERNATIVE      10
+	#define DC_MIMETYPE_MP_RELATED          20
+	#define DC_MIMETYPE_MP_MIXED            30
+	#define DC_MIMETYPE_MP_NOT_DECRYPTABLE  40
+	#define DC_MIMETYPE_MP_REPORT           45
+	#define DC_MIMETYPE_MP_SIGNED           46
+	#define DC_MIMETYPE_MP_OTHER            50
+	#define DC_MIMETYPE_TEXT_PLAIN          60
+	#define DC_MIMETYPE_TEXT_HTML           70
+	#define DC_MIMETYPE_IMAGE               80
+	#define DC_MIMETYPE_AUDIO               90
+	#define DC_MIMETYPE_VIDEO              100
+	#define DC_MIMETYPE_FILE               110
+	#define DC_MIMETYPE_AC_SETUP_FILE      111
 
 	struct mailmime_content* c = mime->mm_content_type;
 	int dummy; if( msg_type == NULL ) { msg_type = &dummy; }
@@ -691,18 +691,18 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 			{
 				case MAILMIME_DISCRETE_TYPE_TEXT:
 					if( mailmime_is_attachment_disposition(mime) ) {
-						; /* MR_MIMETYPE_FILE is returned below - we leave text attachments as attachments as they may be too large to display as a normal message, eg. complete books. */
+						; /* DC_MIMETYPE_FILE is returned below - we leave text attachments as attachments as they may be too large to display as a normal message, eg. complete books. */
 					}
 					else if( strcmp(c->ct_subtype, "plain")==0 ) {
 						*msg_type = DC_MSG_TEXT;
-						return MR_MIMETYPE_TEXT_PLAIN;
+						return DC_MIMETYPE_TEXT_PLAIN;
                     }
 					else if( strcmp(c->ct_subtype, "html")==0 ) {
 						*msg_type = DC_MSG_TEXT;
-						return MR_MIMETYPE_TEXT_HTML;
+						return DC_MIMETYPE_TEXT_HTML;
                     }
 					*msg_type = DC_MSG_FILE;
-					return MR_MIMETYPE_FILE;
+					return DC_MIMETYPE_FILE;
 
 				case MAILMIME_DISCRETE_TYPE_IMAGE:
 					if( strcmp(c->ct_subtype, "gif")==0 ) {
@@ -710,28 +710,28 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 					}
 					else if( strcmp(c->ct_subtype, "svg+xml")==0 ) {
 						*msg_type = DC_MSG_FILE;
-						return MR_MIMETYPE_FILE;
+						return DC_MIMETYPE_FILE;
 					}
 					else {
 						*msg_type = DC_MSG_IMAGE;
 					}
-					return MR_MIMETYPE_IMAGE;
+					return DC_MIMETYPE_IMAGE;
 
 				case MAILMIME_DISCRETE_TYPE_AUDIO:
 					*msg_type = DC_MSG_AUDIO; /* we correct this later to DC_MSG_VOICE, currently, this is not possible as we do not know the main header */
-					return MR_MIMETYPE_AUDIO;
+					return DC_MIMETYPE_AUDIO;
 
 				case MAILMIME_DISCRETE_TYPE_VIDEO:
 					*msg_type = DC_MSG_VIDEO;
-					return MR_MIMETYPE_VIDEO;
+					return DC_MIMETYPE_VIDEO;
 
 				default:
 					*msg_type = DC_MSG_FILE;
 					if( c->ct_type->tp_data.tp_discrete_type->dt_type == MAILMIME_DISCRETE_TYPE_APPLICATION
 					 && strcmp(c->ct_subtype, "autocrypt-setup")==0 ) {
-						return MR_MIMETYPE_AC_SETUP_FILE; /* application/autocrypt-setup */
+						return DC_MIMETYPE_AC_SETUP_FILE; /* application/autocrypt-setup */
 					}
-					return MR_MIMETYPE_FILE;
+					return DC_MIMETYPE_FILE;
 			}
 			break;
 
@@ -739,25 +739,25 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 			if( c->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART )
 			{
 				if( strcmp(c->ct_subtype, "alternative")==0 ) {
-					return MR_MIMETYPE_MP_ALTERNATIVE;
+					return DC_MIMETYPE_MP_ALTERNATIVE;
 				}
 				else if( strcmp(c->ct_subtype, "related")==0 ) {
-					return MR_MIMETYPE_MP_RELATED;
+					return DC_MIMETYPE_MP_RELATED;
 				}
 				else if( strcmp(c->ct_subtype, "encrypted")==0 ) {
-					return MR_MIMETYPE_MP_NOT_DECRYPTABLE; /* decryptable parts are already converted to other mime parts in mre2ee_decrypt()  */
+					return DC_MIMETYPE_MP_NOT_DECRYPTABLE; /* decryptable parts are already converted to other mime parts in dc_e2ee_decrypt()  */
 				}
 				else if( strcmp(c->ct_subtype, "signed")==0 ) {
-					return MR_MIMETYPE_MP_SIGNED;
+					return DC_MIMETYPE_MP_SIGNED;
 				}
 				else if( strcmp(c->ct_subtype, "mixed")==0 ) {
-					return MR_MIMETYPE_MP_MIXED;
+					return DC_MIMETYPE_MP_MIXED;
 				}
 				else if( strcmp(c->ct_subtype, "report")==0 ) {
-					return MR_MIMETYPE_MP_REPORT;
+					return DC_MIMETYPE_MP_REPORT;
 				}
 				else {
-					return MR_MIMETYPE_MP_OTHER;
+					return DC_MIMETYPE_MP_OTHER;
 				}
 			}
 			else if( c->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MESSAGE )
@@ -766,7 +766,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
 				Also used as part "message/disposition-notification" of "multipart/report", which, however, will be handled separatedly.
 				I've not seen any messages using this, so we do not attach these parts (maybe they're used to attach replies, which are unwanted at all).
 
-				For now, we skip these parts at all; if desired, we could return MR_MIMETYPE_FILE/DC_MSG_FILE for selected and known subparts. */
+				For now, we skip these parts at all; if desired, we could return DC_MIMETYPE_FILE/DC_MSG_FILE for selected and known subparts. */
 				return 0;
 			}
 			break;
@@ -784,7 +784,7 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
  ******************************************************************************/
 
 
-static dc_mimepart_t* mrmimepart_new(void)
+static dc_mimepart_t* dc_mimepart_new(void)
 {
 	dc_mimepart_t* ths = NULL;
 
@@ -799,7 +799,7 @@ static dc_mimepart_t* mrmimepart_new(void)
 }
 
 
-static void mrmimepart_unref(dc_mimepart_t* ths)
+static void dc_mimepart_unref(dc_mimepart_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -904,7 +904,7 @@ void dc_mimeparser_empty(dc_mimeparser_t* ths)
 		for( i = 0; i < cnt; i++ ) {
 			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 			if( part ) {
-				mrmimepart_unref(part);
+				dc_mimepart_unref(part);
 			}
 		}
 		carray_set_size(ths->m_parts, 0);
@@ -949,7 +949,7 @@ static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 		dc_param_set_int(part->m_param, DC_PARAM_GUARANTEE_E2EE, 1);
 	}
 	else if( parser->m_e2ee_helper->m_encrypted ) {
-		dc_param_set_int(part->m_param, DC_PARAM_ERRONEOUS_E2EE, MRE2EE_NO_VALID_SIGNATURE);
+		dc_param_set_int(part->m_param, DC_PARAM_ERRONEOUS_E2EE, DC_E2EE_NO_VALID_SIGNATURE);
 	}
 	carray_add(parser->m_parts, (void*)part, NULL);
 }
@@ -972,7 +972,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 		goto cleanup;
 	}
 
-	part = mrmimepart_new();
+	part = dc_mimepart_new();
 	part->m_type  = msg_type;
 	part->m_int_mimetype = mime_type;
 	part->m_bytes = decoded_data_bytes;
@@ -984,7 +984,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 		part->m_msg = dc_get_filesuffix_lc(pathNfilename);
 	}
 
-	if( mime_type == MR_MIMETYPE_IMAGE ) {
+	if( mime_type == DC_MIMETYPE_IMAGE ) {
 		uint32_t w = 0, h = 0;
 		if( dc_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
 			dc_param_set_int(part->m_param, DC_PARAM_WIDTH, w);
@@ -1007,7 +1007,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 
 cleanup:
 	free(pathNfilename);
-	mrmimepart_unref(part);
+	dc_mimepart_unref(part);
 }
 
 
@@ -1050,8 +1050,8 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 
 	switch( mime_type )
 	{
-		case MR_MIMETYPE_TEXT_PLAIN:
-		case MR_MIMETYPE_TEXT_HTML:
+		case DC_MIMETYPE_TEXT_PLAIN:
+		case DC_MIMETYPE_TEXT_HTML:
 			{
 				if( simplifier==NULL ) {
 					simplifier = dc_simplify_new();
@@ -1083,7 +1083,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 					char*  uu_blob = NULL, *uu_filename = NULL, *new_txt = NULL;
 					size_t uu_blob_bytes = 0;
 					int    uu_msg_type = 0, added_uu_parts = 0;
-					while( (new_txt=mruudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
+					while( (new_txt=dc_uudecode_do(txt, &uu_blob, &uu_blob_bytes, &uu_filename)) != NULL )
 					{
 						dc_msg_guess_msgtype_from_suffix(uu_filename, &uu_msg_type, NULL);
 						if( uu_msg_type == 0 ) {
@@ -1104,12 +1104,12 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 				}
 
 				// add text as DC_MSG_TEXT part
-				char* simplified_txt = dc_simplify_simplify(simplifier, txt, strlen(txt), mime_type==MR_MIMETYPE_TEXT_HTML? 1 : 0);
+				char* simplified_txt = dc_simplify_simplify(simplifier, txt, strlen(txt), mime_type==DC_MIMETYPE_TEXT_HTML? 1 : 0);
 				free(txt);
 				txt = NULL;
 				if( simplified_txt && simplified_txt[0] )
 				{
-					part = mrmimepart_new();
+					part = dc_mimepart_new();
 					part->m_type = DC_MSG_TEXT;
 					part->m_int_mimetype = mime_type;
 					part->m_msg = simplified_txt;
@@ -1128,11 +1128,11 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 			}
 			break;
 
-		case MR_MIMETYPE_IMAGE:
-		case MR_MIMETYPE_AUDIO:
-		case MR_MIMETYPE_VIDEO:
-		case MR_MIMETYPE_FILE:
-		case MR_MIMETYPE_AC_SETUP_FILE:
+		case DC_MIMETYPE_IMAGE:
+		case DC_MIMETYPE_AUDIO:
+		case DC_MIMETYPE_VIDEO:
+		case DC_MIMETYPE_FILE:
+		case DC_MIMETYPE_AC_SETUP_FILE:
 			{
 				/* try to get file name from
 				   `Content-Disposition: ... filename*=...`
@@ -1213,7 +1213,7 @@ cleanup:
 	if( transfer_decoding_buffer ) { mmap_string_unref(transfer_decoding_buffer); }
 	free(file_suffix);
 	free(desired_filename);
-	mrmimepart_unref(part);
+	dc_mimepart_unref(part);
 
 	return carray_count(ths->m_parts)>old_part_count? 1 : 0; /* any part added? */
 }
@@ -1260,12 +1260,12 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 		case MAILMIME_MULTIPLE:
 			switch( mailmime_get_mime_type(mime, NULL) )
 			{
-				case MR_MIMETYPE_MP_ALTERNATIVE: /* add "best" part */
+				case DC_MIMETYPE_MP_ALTERNATIVE: /* add "best" part */
 					/* Most times, mutlipart/alternative contains true alternatives as text/plain and text/html.
 					If we find a multipart/mixed inside mutlipart/alternative, we use this (happens eg in apple mail: "plaintext" as an alternative to "html+PDF attachment") */
 					for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 						struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-						if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_MP_MIXED ) {
+						if( mailmime_get_mime_type(childmime, NULL) == DC_MIMETYPE_MP_MIXED ) {
 							any_part_added = dc_mimeparser_parse_mime_recursive(ths, childmime);
 							break;
 						}
@@ -1276,7 +1276,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 						/* search for text/plain and add this */
 						for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 							struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-							if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+							if( mailmime_get_mime_type(childmime, NULL) == DC_MIMETYPE_TEXT_PLAIN ) {
 								any_part_added = dc_mimeparser_parse_mime_recursive(ths, childmime);
 								break;
 							}
@@ -1293,7 +1293,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 					}
 					break;
 
-				case MR_MIMETYPE_MP_RELATED: /* add the "root part" - the other parts may be referenced which is not interesting for us (eg. embedded images) */
+				case DC_MIMETYPE_MP_RELATED: /* add the "root part" - the other parts may be referenced which is not interesting for us (eg. embedded images) */
 				                             /* we assume he "root part" being the first one, which may not be always true ... however, most times it seems okay. */
 					cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list);
 					if( cur ) {
@@ -1301,9 +1301,9 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 					}
 					break;
 
-				case MR_MIMETYPE_MP_NOT_DECRYPTABLE:
+				case DC_MIMETYPE_MP_NOT_DECRYPTABLE:
 					{
-						dc_mimepart_t* part = mrmimepart_new();
+						dc_mimepart_t* part = dc_mimepart_new();
 						part->m_type = DC_MSG_TEXT;
 
 						char* msg_body = dc_stock_str(DC_STR_CANTDECRYPT_MSG_BODY);
@@ -1316,7 +1316,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 					}
 					break;
 
-				case MR_MIMETYPE_MP_SIGNED:
+				case DC_MIMETYPE_MP_SIGNED:
 					/* RFC 1847: "The multipart/signed content type contains exactly two body parts.
 					The first body part is the body part over which the digital signature was created [...]
 					The second body part contains the control information necessary to verify the digital signature."
@@ -1328,7 +1328,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 					}
 					break;
 
-				case MR_MIMETYPE_MP_REPORT:
+				case DC_MIMETYPE_MP_REPORT:
 					if( clist_count(mime->mm_data.mm_multipart.mm_mp_list) >= 2 ) /* RFC 6522: the first part is for humans, the second for machines */
 					{
 						struct mailmime_parameter* report_type = mailmime_find_ct_parameter(mime, "report-type");
@@ -1345,7 +1345,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 					}
 					break;
 
-				default: /* eg. MR_MIME_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
+				default: /* eg. DC_MIMETYPE_MP_MIXED - add all parts (in fact, AddSinglePartIfKnown() later check if the parts are really supported) */
 					{
 						/* HACK: the following lines are a hack for clients who use multipart/mixed instead of multipart/alternative for
 						combined text/html messages (eg. Stock Android "Mail" does so).  So, if I detect such a message below, I skip the HTML part.
@@ -1356,10 +1356,10 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 							int plain_cnt = 0, html_cnt = 0;
 							for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 								struct mailmime* childmime = (struct mailmime*)clist_content(cur);
-								if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_PLAIN ) {
+								if( mailmime_get_mime_type(childmime, NULL) == DC_MIMETYPE_TEXT_PLAIN ) {
 									plain_cnt++;
 								}
-								else if( mailmime_get_mime_type(childmime, NULL) == MR_MIMETYPE_TEXT_HTML ) {
+								else if( mailmime_get_mime_type(childmime, NULL) == DC_MIMETYPE_TEXT_HTML ) {
 									html_part = childmime;
 									html_cnt++;
 								}
@@ -1527,7 +1527,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 		int i, has_setup_file = 0;
 		for( i = 0; i < carray_count(ths->m_parts); i++ ) {
 			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
-			if( part->m_int_mimetype==MR_MIMETYPE_AC_SETUP_FILE ) {
+			if( part->m_int_mimetype==DC_MIMETYPE_AC_SETUP_FILE ) {
 				has_setup_file = 1;
 			}
 		}
@@ -1536,8 +1536,8 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 			ths->m_is_system_message = DC_CMD_AUTOCRYPT_SETUP_MESSAGE;
 			for( i = 0; i < carray_count(ths->m_parts); i++ ) {
 				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
-				if( part->m_int_mimetype!=MR_MIMETYPE_AC_SETUP_FILE ) {
-					mrmimepart_unref(part);
+				if( part->m_int_mimetype!=DC_MIMETYPE_AC_SETUP_FILE ) {
+					dc_mimepart_unref(part);
 					carray_delete_slow(ths->m_parts, i);
 					i--; /* start over with the same index */
 				}
@@ -1574,8 +1574,8 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 				for( i = 0; i < icnt; i++ ) {
 					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 					if( part->m_type == DC_MSG_TEXT ) {
-						#define MR_NDASH "\xE2\x80\x93"
-						char* new_txt = dc_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
+						#define DC_NDASH "\xE2\x80\x93"
+						char* new_txt = dc_mprintf("%s " DC_NDASH " %s", subj, part->m_msg);
 						free(part->m_msg);
 						part->m_msg = new_txt;
 						break;
@@ -1678,7 +1678,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
 	if( !dc_mimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
-		dc_mimepart_t* part = mrmimepart_new();
+		dc_mimepart_t* part = dc_mimepart_new();
 		part->m_type = DC_MSG_TEXT;
 		part->m_msg = dc_strdup(ths->m_subject? ths->m_subject : "Empty message");
 		carray_add(ths->m_parts, (void*)part, NULL);

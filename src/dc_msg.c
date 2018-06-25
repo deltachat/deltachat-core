@@ -50,7 +50,7 @@ dc_msg_t* dc_msg_new()
 
 	ths->m_magic     = DC_MSG_MAGIC;
 	ths->m_type      = DC_MSG_UNDEFINED;
-	ths->m_state     = MR_STATE_UNDEFINED;
+	ths->m_state     = DC_STATE_UNDEFINED;
 	ths->m_param     = dc_param_new();
 
 	return ths;
@@ -232,7 +232,7 @@ int dc_msg_get_type(const dc_msg_t* msg)
 int dc_msg_get_state(const dc_msg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
-		return MR_STATE_UNDEFINED;
+		return DC_STATE_UNDEFINED;
 	}
 	return msg->m_state;
 }
@@ -290,7 +290,7 @@ char* dc_msg_get_text(const dc_msg_t* msg)
 	}
 
 	ret = dc_strdup(msg->m_text);
-	dc_truncate_str(ret, MR_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
+	dc_truncate_str(ret, DC_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
 	return ret;
 }
 

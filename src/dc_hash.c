@@ -133,7 +133,7 @@ void dc_hash_init(dc_hash_t *pNew, int keyClass, int copyKey)
  */
 void dc_hash_clear(dc_hash_t *pH)
 {
-	mrhashelem_t *elem;         /* For looping over all elements of the table */
+	dc_hashelem_t *elem;         /* For looping over all elements of the table */
 
 	if( pH == NULL ) {
 		return;
@@ -146,7 +146,7 @@ void dc_hash_clear(dc_hash_t *pH)
 	pH->htsize = 0;
 	while( elem )
 	{
-		mrhashelem_t *next_elem = elem->next;
+		dc_hashelem_t *next_elem = elem->next;
 		if( pH->copyKey && elem->pKey )
 		{
 			sjhashFree(elem->pKey);
@@ -271,9 +271,9 @@ static int (*compareFunction(int keyClass))(const void*,int,const void*,int)
  */
 static void insertElement(dc_hash_t *pH,           /* The complete hash table */
                           struct _ht *pEntry,   /* The entry into which pNew is inserted */
-                          mrhashelem_t *pNew)     /* The element to be inserted */
+                          dc_hashelem_t *pNew)     /* The element to be inserted */
 {
-	mrhashelem_t *pHead; /* First element already in pEntry */
+	dc_hashelem_t *pHead; /* First element already in pEntry */
 	pHead = pEntry->chain;
 	if( pHead )
 	{
@@ -303,7 +303,7 @@ static void insertElement(dc_hash_t *pH,           /* The complete hash table */
 static void rehash(dc_hash_t *pH, int new_size)
 {
 	struct _ht *new_ht;            /* The new hash table */
-	mrhashelem_t *elem, *next_elem;    /* For looping over existing elements */
+	dc_hashelem_t *elem, *next_elem;    /* For looping over existing elements */
 	int (*xHash)(const void*,int); /* The hash function */
 
 	assert( (new_size & (new_size-1))==0 );
@@ -327,12 +327,12 @@ static void rehash(dc_hash_t *pH, int new_size)
  * hash table that matches the given key.  The hash for this key has
  * already been computed and is passed as the 4th parameter.
  */
-static mrhashelem_t *findElementGivenHash(const dc_hash_t *pH,   /* The pH to be searched */
+static dc_hashelem_t *findElementGivenHash(const dc_hash_t *pH,   /* The pH to be searched */
                                         const void *pKey,   /* The key we are searching for */
                                         int nKey,
                                         int h)              /* The hash for this key. */
 {
-	mrhashelem_t *elem; /* Used to loop thru the element list */
+	dc_hashelem_t *elem; /* Used to loop thru the element list */
 	int count; /* Number of elements left to test */
 	int (*xCompare)(const void*,int,const void*,int);  /* comparison function */
 
@@ -360,7 +360,7 @@ static mrhashelem_t *findElementGivenHash(const dc_hash_t *pH,   /* The pH to be
  * element and a hash on the element's key.
  */
 static void removeElementGivenHash(dc_hash_t *pH,         /* The pH containing "elem" */
-                                   mrhashelem_t* elem,   /* The element to be removed from the pH */
+                                   dc_hashelem_t* elem,   /* The element to be removed from the pH */
                                    int h)              /* Hash value for the element */
 {
 	struct _ht *pEntry;
@@ -411,7 +411,7 @@ static void removeElementGivenHash(dc_hash_t *pH,         /* The pH containing "
 void* dc_hash_find(const dc_hash_t *pH, const void *pKey, int nKey)
 {
 	int h;             /* A hash on key */
-	mrhashelem_t *elem;    /* The element that matches key */
+	dc_hashelem_t *elem;    /* The element that matches key */
 	int (*xHash)(const void*,int);  /* The hash function */
 
 	if( pH==0 || pH->ht==0 ) return 0;
@@ -444,8 +444,8 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 {
 	int hraw;                       /* Raw hash value of the key */
 	int h;                          /* the hash of the key modulo hash table size */
-	mrhashelem_t *elem;               /* Used to loop thru the element list */
-	mrhashelem_t *new_elem;           /* New element added to the pH */
+	dc_hashelem_t *elem;               /* Used to loop thru the element list */
+	dc_hashelem_t *new_elem;           /* New element added to the pH */
 	int (*xHash)(const void*,int);  /* The hash function */
 
 	assert( pH!=0 );
@@ -472,7 +472,7 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 
 	if( data==0 ) return 0;
 
-	new_elem = (mrhashelem_t*)sjhashMalloc( sizeof(mrhashelem_t) );
+	new_elem = (dc_hashelem_t*)sjhashMalloc( sizeof(dc_hashelem_t) );
 
 	if( new_elem==0 ) return data;
 

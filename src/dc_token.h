@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRTOKEN_H__
-#define __MRTOKEN_H__
+#ifndef __DC_TOKEN_H__
+#define __DC_TOKEN_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,19 +29,19 @@ extern "C" {
 
 // Token namespaces
 typedef enum {
-	MRT_INVITENUMBER = 100,
-	MRT_AUTH = 110
-} mrtokennamespc_t;
+	DC_TOKEN_INVITENUMBER = 100,
+	DC_TOKEN_AUTH = 110
+} dc_tokennamespc_t;
 
 
 // Functions to read/write token from/to the database. A token is any string associated with a key.
-void     mrtoken_save__                 (dc_context_t*, mrtokennamespc_t, uint32_t foreign_id, const char* token);
-char*    mrtoken_lookup__               (dc_context_t*, mrtokennamespc_t, uint32_t foreign_id);
-int      mrtoken_exists__               (dc_context_t*, mrtokennamespc_t, const char* token);
+void     dc_token_save__                 (dc_context_t*, dc_tokennamespc_t, uint32_t foreign_id, const char* token);
+char*    dc_token_lookup__               (dc_context_t*, dc_tokennamespc_t, uint32_t foreign_id);
+int      dc_token_exists__               (dc_context_t*, dc_tokennamespc_t, const char* token);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRTOKEN_H__ */
+#endif /* __DC_TOKEN_H__ */
 

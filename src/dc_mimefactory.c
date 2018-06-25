@@ -766,7 +766,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		- in older versions, we did not encrypt messages to ourself when they to to SMTP - however, if these messages
 		  are forwarded for any reasons (eg. gmail always forwards to IMAP), we have no chance to decrypt them;
 		  this issue is fixed with 0.9.4 */
-		force_plaintext = MRFP_NO_AUTOCRYPT_HEADER;
+		force_plaintext = DC_FP_NO_AUTOCRYPT_HEADER;
 	}
 	else
 	{
@@ -787,7 +787,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	struct mailimf_subject* subject = mailimf_subject_new(dc_encode_header_words(subject_str));
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
-	if( force_plaintext != MRFP_NO_AUTOCRYPT_HEADER ) {
+	if( force_plaintext != DC_FP_NO_AUTOCRYPT_HEADER ) {
 		dc_e2ee_encrypt(factory->m_context, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 

@@ -33,7 +33,7 @@
  ******************************************************************************/
 
 
-void mr_wipe_secret_mem(void* buf, size_t buf_bytes)
+void dc_wipe_secret_mem(void* buf, size_t buf_bytes)
 {
 	/* wipe private keys or othere secrets with zeros so that secrets are no longer in RAM */
 	if( buf == NULL || buf_bytes <= 0 ) {
@@ -51,7 +51,7 @@ static void dc_key_empty(dc_key_t* ths) /* only use before calling setters; take
 	}
 
 	if( ths->m_type==DC_KEY_PRIVATE ) {
-		mr_wipe_secret_mem(ths->m_binary, ths->m_bytes);
+		dc_wipe_secret_mem(ths->m_binary, ths->m_bytes);
 	}
 
 	free(ths->m_binary);
@@ -317,7 +317,7 @@ static long crc_octets(const unsigned char *octets, size_t len)
 }
 
 
-char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const char* break_chars,
+char* dc_render_base64(const void* buf, size_t buf_bytes, int break_every, const char* break_chars,
                        int add_checksum /*0=no checksum, 1=add without break, 2=add with break_chars*/)
 {
 	char* ret = NULL;
@@ -374,7 +374,7 @@ char* dc_key_render_base64(const dc_key_t* ths, int break_every, const char* bre
 	if( ths==NULL ) {
 		return NULL;
 	}
-	return mr_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars, add_checksum);
+	return dc_render_base64(ths->m_binary, ths->m_bytes, break_every, break_chars, add_checksum);
 }
 
 
@@ -429,7 +429,7 @@ cleanup:
 
 
 /* make a fingerprint human-readable */
-char* mr_format_fingerprint(const char* fingerprint)
+char* dc_format_fingerprint(const char* fingerprint)
 {
 	int i = 0, fingerprint_len = strlen(fingerprint);
 	dc_strbuilder_t ret;
@@ -466,7 +466,7 @@ char* dc_normalize_fingerprint(const char* in)
 	const char* p1 = in;
 	while( *p1 ) {
 		if( (*p1 >= '0' && *p1 <= '9') || (*p1 >= 'A' && *p1 <= 'F') || (*p1 >= 'a' && *p1 <= 'f') ) {
-			dc_strbuilder_catf(&out, "%c", toupper(*p1)); /* make uppercase which is needed as we do not search case-insensitive, see comment in mrsqlite3.c */
+			dc_strbuilder_catf(&out, "%c", toupper(*p1)); /* make uppercase which is needed as we do not search case-insensitive, see comment in dc_sqlite3.c */
 		}
 		p1++;
 	}
@@ -500,7 +500,7 @@ cleanup:
 char* dc_key_get_formatted_fingerprint(const dc_key_t* key)
 {
 	char* rawhex = dc_key_get_fingerprint(key);
-	char* formatted = mr_format_fingerprint(rawhex);
+	char* formatted = dc_format_fingerprint(rawhex);
 	free(rawhex);
 	return formatted;
 }

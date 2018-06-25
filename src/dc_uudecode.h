@@ -20,18 +20,18 @@
  ******************************************************************************/
 
 
-#ifndef __MRUUDECODE_H__
-#define __MRUUDECODE_H__
+#ifndef __DC_UUDECODE_H__
+#define __DC_UUDECODE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-char* mruudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename);
+char* dc_uudecode_do(const char* text, char** ret_binary, size_t* ret_binary_bytes, char** ret_filename);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRUUDECODE_H__ */
+#endif /* __DC_UUDECODE_H__ */
 

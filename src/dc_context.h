@@ -33,7 +33,6 @@ extern "C" {
 #include <pthread.h>
 #include <libetpan/libetpan.h>
 #include "deltachat.h"
-#include "mrmailbox.h"
 #include "dc_sqlite3.h"
 #include "dc_tools.h"
 #include "dc_strbuilder.h"

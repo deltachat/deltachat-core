@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRSMTP_H__
-#define __MRSMTP_H__
+#ifndef __DC_SMTP_H__
+#define __DC_SMTP_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,5 +55,5 @@ int          dc_smtp_send_msg     (dc_smtp_t*, const clist* recipients, const ch
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRPARAM_H__ */
+#endif /* __DC_SMTP_H__ */
 

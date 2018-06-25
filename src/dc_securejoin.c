@@ -212,7 +212,7 @@ static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprin
 		goto cleanup;
 	}
 
-	if( !dc_apeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, DC_BIDIRECT_VERIFIED) ) {
+	if( !dc_apeerstate_set_verified(peerstate, DC_PS_PUBLIC_KEY, fingerprint, DC_BIDIRECT_VERIFIED) ) {
 		goto cleanup;
 	}
 
@@ -266,7 +266,7 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 	}
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
-		dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, MRFP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
+		dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, DC_FP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
 		dc_param_set_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
@@ -381,16 +381,16 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	locked = 1;
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
-		invitenumber = mrtoken_lookup__(context, MRT_INVITENUMBER, group_chat_id);
+		invitenumber = dc_token_lookup__(context, DC_TOKEN_INVITENUMBER, group_chat_id);
 		if( invitenumber == NULL ) {
 			invitenumber = dc_create_id();
-			mrtoken_save__(context, MRT_INVITENUMBER, group_chat_id, invitenumber);
+			dc_token_save__(context, DC_TOKEN_INVITENUMBER, group_chat_id, invitenumber);
 		}
 
-		auth = mrtoken_lookup__(context, MRT_AUTH, group_chat_id);
+		auth = dc_token_lookup__(context, DC_TOKEN_AUTH, group_chat_id);
 		if( auth == NULL ) {
 			auth = dc_create_id();
-			mrtoken_save__(context, MRT_AUTH, group_chat_id, auth);
+			dc_token_save__(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
 		if( (self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL)) == NULL ) {
@@ -492,7 +492,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	}
 
 	if( ((qr_scan=dc_check_qr(context, qr))==NULL)
-	 || (qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
+	 || (qr_scan->m_state!=DC_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
 		dc_log_error(context, 0, "Unknown QR code.");
 		goto cleanup;
 	}
@@ -511,7 +511,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	CHECK_EXIT
 
-	join_vg = (qr_scan->m_state==MR_QR_ASK_VERIFYGROUP);
+	join_vg = (qr_scan->m_state==DC_QR_ASK_VERIFYGROUP);
 
 	s_bobs_status = 0;
 	dc_sqlite3_lock(context->m_sql);
@@ -617,7 +617,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		LOCK
-			if( mrtoken_exists__(context, MRT_INVITENUMBER, invitenumber) == 0 ) {
+			if( dc_token_exists__(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
 				dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 				goto cleanup;
 			}
@@ -639,7 +639,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		LOCK
-			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
+			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED || (join_vg && s_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
 				dc_log_warning(context, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
@@ -709,7 +709,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		LOCK
-			if( mrtoken_exists__(context, MRT_AUTH, auth) == 0 ) {
+			if( dc_token_exists__(context, DC_TOKEN_AUTH, auth) == 0 ) {
 				dc_sqlite3_unlock(context->m_sql);
 				locked = 0;
 				could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
@@ -775,7 +775,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		LOCK
-			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
+			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
 				dc_log_warning(context, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}

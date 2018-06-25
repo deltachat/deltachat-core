@@ -23,7 +23,7 @@
 #include "dc_context.h"
 #include "dc_array.h"
 
-#define MR_ARRAY_MAGIC 0x000a11aa
+#define DC_ARRAY_MAGIC 0x000a11aa
 
 
 /**
@@ -45,7 +45,7 @@ dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
 		exit(47);
 	}
 
-	array->m_magic     = MR_ARRAY_MAGIC;
+	array->m_magic     = DC_ARRAY_MAGIC;
 	array->m_context   = mailbox;
 	array->m_count     = 0;
 	array->m_allocated = initsize < 1? 1 : initsize;
@@ -70,7 +70,7 @@ dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
  */
 void dc_array_unref(dc_array_t* array)
 {
-	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array==NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -95,7 +95,7 @@ void dc_array_free_ptr(dc_array_t* array)
 {
 	size_t i;
 
-	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array==NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -121,7 +121,7 @@ dc_array_t* dc_array_duplicate(const dc_array_t* array)
 {
 	dc_array_t* ret = NULL;
 
-	if( array==NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array==NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return NULL;
 	}
 
@@ -152,7 +152,7 @@ static int cmp_intptr_t(const void* p1, const void* p2)
  */
 void dc_array_sort_ids(dc_array_t* array)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
 	}
 	qsort(array->m_array, array->m_count, sizeof(uintptr_t), cmp_intptr_t);
@@ -179,7 +179,7 @@ static int cmp_strings_t(const void* p1, const void* p2)
  */
 void dc_array_sort_strings(dc_array_t* array)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || array->m_count <= 1 ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || array->m_count <= 1 ) {
 		return;
 	}
 	qsort(array->m_array, array->m_count, sizeof(char*), cmp_strings_t);
@@ -197,7 +197,7 @@ void dc_array_sort_strings(dc_array_t* array)
  */
 void dc_array_empty(dc_array_t* array)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -218,7 +218,7 @@ void dc_array_empty(dc_array_t* array)
  */
 void dc_array_add_uint(dc_array_t* array, uintptr_t item)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return;
 	}
 
@@ -280,7 +280,7 @@ void dc_array_add_ptr(dc_array_t* array, void* item)
  */
 size_t dc_array_get_cnt(const dc_array_t* array)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return 0;
 	}
 
@@ -301,7 +301,7 @@ size_t dc_array_get_cnt(const dc_array_t* array)
  */
 uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
 	}
 
@@ -321,7 +321,7 @@ uintptr_t dc_array_get_uint(const dc_array_t* array, size_t index)
  */
 uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
 	}
 
@@ -341,7 +341,7 @@ uint32_t dc_array_get_id(const dc_array_t* array, size_t index)
  */
 void* dc_array_get_ptr(const dc_array_t* array, size_t index)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || index < 0 || index >= array->m_count ) {
 		return 0;
 	}
 
@@ -362,7 +362,7 @@ void* dc_array_get_ptr(const dc_array_t* array, size_t index)
  */
 int dc_array_search_id(const dc_array_t* array, uint32_t needle, size_t* ret_index)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return 0;
 	}
 
@@ -394,7 +394,7 @@ int dc_array_search_id(const dc_array_t* array, uint32_t needle, size_t* ret_ind
  */
 const uintptr_t* dc_array_get_raw(const dc_array_t* array)
 {
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC ) {
 		return NULL;
 	}
 	return array->m_array;
@@ -435,7 +435,7 @@ char* dc_array_get_string(const dc_array_t* array, const char* sep)
 {
 	char* ret = NULL;
 
-	if( array == NULL || array->m_magic != MR_ARRAY_MAGIC || sep==NULL ) {
+	if( array == NULL || array->m_magic != DC_ARRAY_MAGIC || sep==NULL ) {
 		return dc_strdup("");
 	}
 

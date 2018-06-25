@@ -511,7 +511,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	dc_param_set    (msg->m_param, DC_PARAM_FILE,              setup_file_name);
 	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE,          "application/autocrypt-setup");
 	dc_param_set_int(msg->m_param, DC_PARAM_CMD,               DC_CMD_AUTOCRYPT_SETUP_MESSAGE);
-	dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT,   MRFP_NO_AUTOCRYPT_HEADER);
+	dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT,   DC_FP_NO_AUTOCRYPT_HEADER);
 
 	CHECK_EXIT
 
@@ -1228,7 +1228,7 @@ int dc_imex(dc_context_t* context, int what, const char* param1, const char* par
 		goto cleanup;
 	}
 
-	if( what==MR_IMEX_EXPORT_SELF_KEYS || what==MR_IMEX_EXPORT_BACKUP ) {
+	if( what==DC_IMEX_EXPORT_SELF_KEYS || what==DC_IMEX_EXPORT_BACKUP ) {
 		/* before we export anything, make sure the private key exists */
 		if( !dc_ensure_secret_key_exists(context) ) {
 			dc_log_error(context, 0, "Import/export: Cannot create private key or private key not available.");
@@ -1240,25 +1240,25 @@ int dc_imex(dc_context_t* context, int what, const char* param1, const char* par
 
 	switch( what )
 	{
-		case MR_IMEX_EXPORT_SELF_KEYS:
+		case DC_IMEX_EXPORT_SELF_KEYS:
 			if( !export_self_keys(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
-		case MR_IMEX_IMPORT_SELF_KEYS:
+		case DC_IMEX_IMPORT_SELF_KEYS:
 			if( !import_self_keys(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
-		case MR_IMEX_EXPORT_BACKUP:
+		case DC_IMEX_EXPORT_BACKUP:
 			if( !export_backup(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
-		case MR_IMEX_IMPORT_BACKUP:
+		case DC_IMEX_IMPORT_BACKUP:
 			if( !import_backup(context, param1) ) {
 				goto cleanup;
 			}
@@ -1360,7 +1360,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 
 			dc_sqlite3_unref(test_sql);
 			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
-			 && dc_sqlite3_open__(test_sql, curr_pathNfilename, MR_OPEN_READONLY) )
+			 && dc_sqlite3_open__(test_sql, curr_pathNfilename, DC_OPEN_READONLY) )
 			{
 				time_t curr_backup_time = dc_sqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
 				if( curr_backup_time > 0

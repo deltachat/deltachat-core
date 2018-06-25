@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRSAXPARSER_H__
-#define __MRSAXPARSER_H__
+#ifndef __DC_SAXPARSER_H__
+#define __DC_SAXPARSER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,7 +37,7 @@ typedef struct dc_saxparser_t
 	dc_saxparser_starttag_cb_t m_starttag_cb;
 	dc_saxparser_endtag_cb_t   m_endtag_cb;
 	dc_saxparser_text_cb_t     m_text_cb;
-	void*                     m_userdata;
+	void*                      m_userdata;
 } dc_saxparser_t;
 
 
@@ -47,7 +47,7 @@ void           dc_saxparser_set_text_handler (dc_saxparser_t*, dc_saxparser_text
 
 void           dc_saxparser_parse            (dc_saxparser_t*, const char* text);
 
-const char*    mrattr_find                  (char** attr, const char* key);
+const char*    dc_attr_find                  (char** attr, const char* key);
 
 
 /*** library-private **********************************************************/
@@ -56,5 +56,5 @@ const char*    mrattr_find                  (char** attr, const char* key);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRSAXPARSER_H__ */
+#endif /* __DC_SAXPARSER_H__ */
 

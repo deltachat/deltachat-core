@@ -35,7 +35,7 @@
  ******************************************************************************/
 
 
-static int mr_is_empty_line(const char* buf)
+static int is_empty_line(const char* buf)
 {
 	const unsigned char* p1 = (const unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	while( *p1 ) {
@@ -48,7 +48,7 @@ static int mr_is_empty_line(const char* buf)
 }
 
 
-static int mr_is_plain_quote(const char* buf)
+static int is_plain_quote(const char* buf)
 {
 	if( buf[0] == '>' ) {
 		return 1;
@@ -57,7 +57,7 @@ static int mr_is_plain_quote(const char* buf)
 }
 
 
-static int mr_is_quoted_headline(const char* buf)
+static int is_quoted_headline(const char* buf)
 {
 	/* This function may be called for the line _directly_ before a quote.
 	The function checks if the line contains sth. like "On 01.02.2016, xy@z wrote:" in various languages.
@@ -161,7 +161,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 		char* line0 = (char*)carray_get(lines, l_first);
 		char* line1 = (char*)carray_get(lines, l_first+1);
 		char* line2 = (char*)carray_get(lines, l_first+2);
-		if( strcmp(line0, "---------- Forwarded message ----------")==0 /* do not chage this! sent exactly in this form in mrchat.c! */
+		if( strcmp(line0, "---------- Forwarded message ----------")==0 /* do not chage this! sent exactly in this form in dc_chat.c! */
 		 && strncmp(line1, "From: ", 6)==0
 		 && line2[0] == 0 )
 		{
@@ -193,10 +193,10 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 
 		for( l = l_last; l >= l_first; l-- ) {
 			line = (char*)carray_get(lines, l);
-			if( mr_is_plain_quote(line) ) {
+			if( is_plain_quote(line) ) {
 				l_lastQuotedLine = l;
 			}
-			else if( !mr_is_empty_line(line) ) {
+			else if( !is_empty_line(line) ) {
 				break;
 			}
 		}
@@ -207,14 +207,14 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 			ths->m_is_cut_at_end = 1;
 
 			if( l_last > 0 ) {
-				if( mr_is_empty_line((char*)carray_get(lines, l_last)) ) { /* allow one empty line between quote and quote headline (eg. mails from Jürgen) */
+				if( is_empty_line((char*)carray_get(lines, l_last)) ) { /* allow one empty line between quote and quote headline (eg. mails from Jürgen) */
 					l_last--;
 				}
 			}
 
 			if( l_last > 0 ) {
 				line = (char*)carray_get(lines, l_last);
-				if( mr_is_quoted_headline(line) ) {
+				if( is_quoted_headline(line) ) {
 					l_last--;
 				}
 			}
@@ -228,11 +228,11 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 
 		for( l = l_first; l <= l_last; l++ ) {
 			line = (char*)carray_get(lines, l);
-			if( mr_is_plain_quote(line) ) {
+			if( is_plain_quote(line) ) {
 				l_lastQuotedLine = l;
 			}
-			else if( !mr_is_empty_line(line) ) {
-				if( mr_is_quoted_headline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1 ) {
+			else if( !is_empty_line(line) ) {
+				if( is_quoted_headline(line) && !hasQuotedHeadline && l_lastQuotedLine == -1 ) {
 					hasQuotedHeadline = 1; /* continue, the line may be a headline */
 				}
 				else {
@@ -263,7 +263,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 	{
 		line = (char*)carray_get(lines, l);
 
-		if( mr_is_empty_line(line) )
+		if( is_empty_line(line) )
 		{
 			pending_linebreaks++;
 		}
@@ -320,7 +320,7 @@ char* dc_simplify_simplify(dc_simplify_t* ths, const char* in_unterminated, int 
 
 	/* convert HTML to text, if needed */
 	if( is_html ) {
-		if( (temp = dc_dehtml(out)) != NULL ) { /* mr_dehtml() returns way too much lineends, however they're removed in the simplification below */
+		if( (temp = dc_dehtml(out)) != NULL ) { /* dc_dehtml() returns way too much lineends, however they're removed in the simplification below */
 			free(out);
 			out = temp;
 		}

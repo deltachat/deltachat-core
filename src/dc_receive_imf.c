@@ -163,7 +163,7 @@ static int is_known_rfc724_mid_in_list__(dc_context_t* mailbox, const clist* mid
 static int dc_is_reply_to_known_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
-	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in mrchat.c) */
+	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in dc_chat.c) */
 
 	struct mailimf_optional_field* optional_field;
 	if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
@@ -641,7 +641,7 @@ static int check_verified_properties__(dc_context_t* mailbox, dc_mimeparser_t* m
 			    && strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_gossip_key_fingerprint)!=0) )
 			{
 				dc_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
-				dc_apeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
+				dc_apeerstate_set_verified(peerstate, DC_PS_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
 				dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 				is_verified = 1;
 			}
@@ -943,7 +943,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 	int              incoming_origin = 0;
 	#define          outgoing (!incoming)
 
-	dc_array_t*       to_ids = NULL;
+	dc_array_t*      to_ids = NULL;
 	int              to_self = 0;
 
 	uint32_t         from_id = 0;
@@ -951,7 +951,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 	uint32_t         to_id   = 0;
 	uint32_t         chat_id = 0;
 	int              chat_id_blocked = 0;
-	int              state   = MR_STATE_UNDEFINED;
+	int              state   = DC_STATE_UNDEFINED;
 	int              hidden = 0;
 
 	sqlite3_stmt*    stmt;
@@ -961,7 +961,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 	time_t           sort_timestamp = DC_INVALID_TIMESTAMP;
 	time_t           sent_timestamp = DC_INVALID_TIMESTAMP;
 	time_t           rcvd_timestamp = DC_INVALID_TIMESTAMP;
-	dc_mimeparser_t*  mime_parser = dc_mimeparser_new(mailbox->m_blobdir, mailbox);
+	dc_mimeparser_t* mime_parser = dc_mimeparser_new(mailbox->m_blobdir, mailbox);
 	int              db_locked = 0;
 	int              transaction_pending = 0;
 	const struct mailimf_field* field;
@@ -991,7 +991,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 	        }
 	   };
 	normally, this is done by mailimf_message_parse(), however, as we also need the MIME data,
-	we use mailmime_parse() through MrMimeParser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
+	we use mailmime_parse() through dc_mimeparser (both call mailimf_struct_multiple_parse() somewhen, I did not found out anything
 	that speaks against this approach yet) */
 	dc_mimeparser_parse(mime_parser, imf_raw_not_terminated, imf_raw_bytes);
 	if( dc_hash_count(&mime_parser->m_header)==0 ) {
@@ -1125,7 +1125,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			(of course, the user can add other chats manually later) */
 			if( incoming )
 			{
-				state = (flags&MR_IMAP_SEEN)? DC_STATE_IN_SEEN : DC_STATE_IN_FRESH;
+				state = (flags&DC_IMAP_SEEN)? DC_STATE_IN_SEEN : DC_STATE_IN_FRESH;
 				to_id = DC_CONTACT_ID_SELF;
 
 				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
@@ -1254,7 +1254,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */
-			dc_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
+			dc_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&DC_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
 				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
 			/* unarchive chat */
@@ -1441,7 +1441,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 
 					CAVE: we rely on dc_imap_markseen_msg() not to move messages that are already in the correct folder.
 					otherwise, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
-					a classical deadlock, see also (***) in mrimap.c */
+					a classical deadlock, see also (***) in dc_imap.c */
 					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
 						char* jobparam = dc_mprintf("%c=%s\n%c=%lu", DC_PARAM_SERVER_FOLDER, server_folder, DC_PARAM_SERVER_UID, server_uid);
 							dc_job_add(mailbox, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);

@@ -25,7 +25,7 @@
 #include "dc_apeerstate.h"
 
 
-#define MR_CONTACT_MAGIC 0x0c047ac7
+#define DC_CONTACT_MAGIC 0x0c047ac7
 
 
 /**
@@ -45,7 +45,7 @@ dc_contact_t* dc_contact_new(dc_context_t* mailbox)
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_magic   = MR_CONTACT_MAGIC;
+	ths->m_magic   = DC_CONTACT_MAGIC;
 	ths->m_context = mailbox;
 
 	return ths;
@@ -63,7 +63,7 @@ dc_contact_t* dc_contact_new(dc_context_t* mailbox)
  */
 void dc_contact_unref(dc_contact_t* contact)
 {
-	if( contact==NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact==NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return;
 	}
 
@@ -86,7 +86,7 @@ void dc_contact_unref(dc_contact_t* contact)
  */
 void dc_contact_empty(dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return;
 	}
 
@@ -122,7 +122,7 @@ void dc_contact_empty(dc_contact_t* contact)
  */
 uint32_t dc_contact_get_id(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return 0;
 	}
 	return contact->m_id;
@@ -140,7 +140,7 @@ uint32_t dc_contact_get_id(const dc_contact_t* contact)
  */
 char* dc_contact_get_addr(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
@@ -164,7 +164,7 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
@@ -187,7 +187,7 @@ char* dc_contact_get_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_display_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
@@ -218,7 +218,7 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
@@ -243,7 +243,7 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_first_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
@@ -268,7 +268,7 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
  */
 int dc_contact_is_blocked(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		return 0;
 	}
 	return contact->m_blocked;
@@ -279,7 +279,7 @@ int dc_contact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t*
 {
 	int             contact_verified = DC_NOT_VERIFIED;
 
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -314,7 +314,7 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 	int             locked           = 0;
 	dc_apeerstate_t* peerstate        = NULL;
 
-	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -464,7 +464,7 @@ int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t con
 	int           success = 0;
 	sqlite3_stmt* stmt;
 
-	if( ths == NULL || ths->m_magic != MR_CONTACT_MAGIC || sql == NULL ) {
+	if( ths == NULL || ths->m_magic != DC_CONTACT_MAGIC || sql == NULL ) {
 		return 0;
 	}
 
