@@ -125,7 +125,7 @@ static int mrmailbox_poke_eml_file(mrmailbox_t* ths, const char* filename)
 		goto cleanup;
 	}
 
-	mrmailbox_receive_imf(ths, data, data_bytes, "import", 0, 0); /* this static function is the reason why this function is not moved to mrmailbox_imex.c */
+	dc_receive_imf(ths, data, data_bytes, "import", 0, 0); /* this static function is the reason why this function is not moved to mrmailbox_imex.c */
 	success = 1;
 
 cleanup:
@@ -614,10 +614,10 @@ char* mrmailbox_cmdline(mrmailbox_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
-		char* setup_code = mrmailbox_create_setup_code(mailbox);
+		char* setup_code = dc_create_setup_code(mailbox);
 		char* file_name = mr_mprintf("%s/autocrypt-setup-message.html", mailbox->m_blobdir);
 		char* file_content = NULL;
-			if( (file_content=mrmailbox_render_setup_file(mailbox, setup_code)) != NULL
+			if( (file_content=dc_render_setup_file(mailbox, setup_code)) != NULL
 			 && mr_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
 				ret = mr_mprintf("Setup message written to: %s\nSetup code: %s", file_name, setup_code);
 			}

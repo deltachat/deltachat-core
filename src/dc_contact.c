@@ -377,7 +377,7 @@ char* mr_get_first_name(const char* full_name)
  * - Convert names as "Petersen, Björn" to "Björn Petersen"
  * - Trims the resulting string
  *
- * Typically, this function is not needed as it is called implicitly by mrmailbox_add_address_book()
+ * Typically, this function is not needed as it is called implicitly by dc_add_address_book()
  *
  * @private @memberof dc_contact_t
  *

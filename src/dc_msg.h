@@ -46,21 +46,21 @@ struct _dc_msg
 
 	/**
 	 * Contact ID of the sender.  Never 0. See dc_contact_t::m_id for special IDs.
-	 * Use mrmailbox_get_contact() to load details about this contact.
+	 * Use dc_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_from_id;
 
 
 	/**
 	 * Contact ID of the recipient. Never 0. See dc_contact_t::m_id for special IDs.
-	 * Use mrmailbox_get_contact() to load details about this contact.
+	 * Use dc_get_contact() to load details about this contact.
 	 */
 	uint32_t        m_to_id;
 
 
 	/**
 	 * Chat ID the message belongs to. Never 0. See dc_chat_t::m_id for special IDs.
-	 * Use mrmailbox_get_chat() to load details about the chat.
+	 * Use dc_get_chat() to load details about the chat.
 	 */
 	uint32_t        m_chat_id;
 

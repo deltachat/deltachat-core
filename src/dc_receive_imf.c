@@ -65,7 +65,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* d
 		mr_normalize_name(display_name_dec);
 	}
 
-	uint32_t row_id = mrmailbox_add_or_lookup_contact__(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
+	uint32_t row_id = dc_add_or_lookup_contact__(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
 
 	free(display_name_dec);
 
@@ -77,7 +77,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* d
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
+static void dc_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -94,7 +94,7 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* mai
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_address_list__(dc_context_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
+static void dc_add_or_lookup_contacts_by_address_list__(dc_context_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -114,7 +114,7 @@ static void mrmailbox_add_or_lookup_contacts_by_address_list__(dc_context_t* mai
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mailbox, group->grp_mb_list, origin, ids, check_self);
+					dc_add_or_lookup_contacts_by_mailbox_list__(mailbox, group->grp_mb_list, origin, ids, check_self);
 				}
 			}
 		}
@@ -160,7 +160,7 @@ static int is_known_rfc724_mid_in_list__(dc_context_t* mailbox, const clist* mid
 }
 
 
-static int mrmailbox_is_reply_to_known_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
+static int dc_is_reply_to_known_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in mrchat.c) */
@@ -237,7 +237,7 @@ static int is_msgrmsg_rfc724_mid_in_list__(dc_context_t* mailbox, const clist* m
 }
 
 
-static int mrmailbox_is_reply_to_messenger_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
+static int dc_is_reply_to_messenger_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
 
@@ -281,7 +281,7 @@ static int mrmailbox_is_reply_to_messenger_message__(dc_context_t* mailbox, dc_m
 
 
 
-static void mrmailbox_calc_timestamps__(dc_context_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
+static void dc_calc_timestamps__(dc_context_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
                                         time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
 	*rcvd_timestamp = time(NULL);
@@ -566,7 +566,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* mailbox, dc_mimeparser_
 	chat_id = create_group_record__(mailbox, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
 	for( i = 0; i < dc_array_get_cnt(member_ids); i++ ) {
-		mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, dc_array_get_id(member_ids, i));
+		dc_add_to_chat_contacts_table__(mailbox, chat_id, dc_array_get_id(member_ids, i));
 	}
 
 	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -768,7 +768,7 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 	}
 
 	/* check, if we have a chat with this group ID */
-	if( (chat_id=mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
+	if( (chat_id=dc_get_chat_id_by_grpid__(mailbox, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
 		if( chat_id_verified
 		 && !check_verified_properties__(mailbox, mime_parser, from_id, to_ids) ) {
 			chat_id          = 0; // force the creation of an unverified ad-hoc group.
@@ -783,14 +783,14 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 
 	/* check if the sender is a member of the existing group -
 	if not, the message does not go to the group chat but to the normal chat with the sender */
-	if( chat_id!=0 && !mrmailbox_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
+	if( chat_id!=0 && !dc_is_contact_in_chat__(mailbox, chat_id, from_id) ) {
 		chat_id = 0;
 		create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		goto cleanup;
 	}
 
 	/* check if the group does not exist but should be created */
-	int group_explicitly_left = mrmailbox_is_group_explicitly_left__(mailbox, grpid);
+	int group_explicitly_left = dc_is_group_explicitly_left__(mailbox, grpid);
 
 	self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 	if( chat_id == 0
@@ -885,22 +885,22 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 		sqlite3_finalize(stmt);
 
 		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
-			mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, MR_CONTACT_ID_SELF);
+			dc_add_to_chat_contacts_table__(mailbox, chat_id, MR_CONTACT_ID_SELF);
 		}
 
 		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
-			if( mrmailbox_contact_addr_equals__(mailbox, from_id, self_addr)==0
-			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, from_id, skip)==0) ) {
-				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, from_id);
+			if( dc_contact_addr_equals__(mailbox, from_id, self_addr)==0
+			 && (skip==NULL || dc_contact_addr_equals__(mailbox, from_id, skip)==0) ) {
+				dc_add_to_chat_contacts_table__(mailbox, chat_id, from_id);
 			}
 		}
 
 		for( i = 0; i < to_ids_cnt; i++ )
 		{
 			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
-			if( mrmailbox_contact_addr_equals__(mailbox, to_id, self_addr)==0
-			 && (skip==NULL || mrmailbox_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
-				mrmailbox_add_to_chat_contacts_table__(mailbox, chat_id, to_id);
+			if( dc_contact_addr_equals__(mailbox, to_id, self_addr)==0
+			 && (skip==NULL || dc_contact_addr_equals__(mailbox, to_id, skip)==0) ) {
+				dc_add_to_chat_contacts_table__(mailbox, chat_id, to_id);
 			}
 		}
 		send_EVENT_CHAT_MODIFIED = 1;
@@ -913,7 +913,7 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 	/* check the number of receivers -
 	the only critical situation is if the user hits "Reply" instead of "Reply all" in a non-messenger-client */
 	if( to_ids_cnt == 1 && mime_parser->m_is_send_by_messenger==0 ) {
-		int is_contact_cnt = mrmailbox_get_chat_contact_count__(mailbox, chat_id);
+		int is_contact_cnt = dc_get_chat_contact_count__(mailbox, chat_id);
 		if( is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */ ) {
 			chat_id = 0;
 			create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
@@ -935,7 +935,7 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
+void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
                            const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */
@@ -1031,7 +1031,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 			{
 				int check_self;
 				dc_array_t* from_list = dc_array_new(mailbox, 16);
-				mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				dc_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0;
@@ -1046,7 +1046,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 					if( dc_array_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = dc_array_get_id(from_list, 0);
-						incoming_origin = mrmailbox_get_contact_origin__(mailbox, from_id, &from_id_blocked);
+						incoming_origin = dc_get_contact_origin__(mailbox, from_id, &from_id_blocked);
 					}
 				}
 				dc_array_unref(from_list);
@@ -1060,7 +1060,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
 			{
-				mrmailbox_add_or_lookup_contacts_by_address_list__(mailbox, fld_to->to_addr_list /*!= NULL*/,
+				dc_add_or_lookup_contacts_by_address_list__(mailbox, fld_to->to_addr_list /*!= NULL*/,
 					outgoing? MR_ORIGIN_OUTGOING_TO : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_TO : MR_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, &to_self);
 			}
 		}
@@ -1079,7 +1079,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 			{
 				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 				if( fld_cc ) {
-					mrmailbox_add_or_lookup_contacts_by_address_list__(mailbox, fld_cc->cc_addr_list,
+					dc_add_or_lookup_contacts_by_address_list__(mailbox, fld_cc->cc_addr_list,
 						outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
 				}
 			}
@@ -1107,11 +1107,11 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 			{
 				char*    old_server_folder = NULL;
 				uint32_t old_server_uid = 0;
-				if( mrmailbox_rfc724_mid_exists__(mailbox, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+				if( dc_rfc724_mid_exists__(mailbox, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 						dc_sqlite3_rollback__(mailbox->m_sql);
 						transaction_pending = 0;
-						mrmailbox_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
+						dc_update_server_uid__(mailbox, rfc724_mid, server_folder, server_uid);
 					}
 					free(old_server_folder);
 					dc_log_info(mailbox, 0, "Message already in DB.");
@@ -1133,7 +1133,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 				if( dc_mimeparser_lookup_field(mime_parser, "Secure-Join") ) {
 					dc_sqlite3_commit__(mailbox->m_sql);
 					dc_sqlite3_unlock(mailbox->m_sql);
-						if( mrmailbox_handle_securejoin_handshake(mailbox, mime_parser, from_id) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+						if( dc_handle_securejoin_handshake(mailbox, mime_parser, from_id) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 							hidden = 1;
 							state = MR_STATE_IN_SEEN;
 						}
@@ -1144,7 +1144,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
 				uint32_t test_normal_chat_id = 0;
 				int      test_normal_chat_id_blocked = 0;
-				mrmailbox_lookup_real_nchat_by_contact_id__(mailbox, from_id, &test_normal_chat_id, &test_normal_chat_id_blocked);
+				dc_lookup_real_nchat_by_contact_id__(mailbox, from_id, &test_normal_chat_id, &test_normal_chat_id_blocked);
 
 				/* get the chat_id - a chat_id here is no indicator that the chat is displayed in the normal list, it might also be
 				blocked and displayed in the deaddrop as a result */
@@ -1155,7 +1155,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==MR_CHAT_NOT_BLOCKED) || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
 					create_or_lookup_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 					if( chat_id && chat_id_blocked && !create_blocked ) {
-						mrmailbox_unblock_chat__(mailbox, chat_id);
+						dc_unblock_chat__(mailbox, chat_id);
 						chat_id_blocked = 0;
 					}
 				}
@@ -1178,16 +1178,16 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 						chat_id_blocked = test_normal_chat_id_blocked;
 					}
 					else {
-						mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, from_id, create_blocked, &chat_id, &chat_id_blocked);
+						dc_create_or_lookup_nchat_by_contact_id__(mailbox, from_id, create_blocked, &chat_id, &chat_id_blocked);
 					}
 
 					if( chat_id && chat_id_blocked ) {
 						if( !create_blocked ) {
-							mrmailbox_unblock_chat__(mailbox, chat_id);
+							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
 						}
-						else if( mrmailbox_is_reply_to_known_message__(mailbox, mime_parser) ) {
-							mrmailbox_scaleup_contact_origin__(mailbox, from_id, MR_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
+						else if( dc_is_reply_to_known_message__(mailbox, mime_parser) ) {
+							dc_scaleup_contact_origin__(mailbox, from_id, MR_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
 							dc_log_info(mailbox, 0, "Message is a reply to a known message, mark sender as known.");
 							incoming_origin = MR_MAX(incoming_origin, MR_ORIGIN_INCOMING_REPLY_TO);
 						}
@@ -1220,17 +1220,17 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 					{
 						create_or_lookup_group__(mailbox, mime_parser, MR_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
-							mrmailbox_unblock_chat__(mailbox, chat_id);
+							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
 
 					if( chat_id == 0 )
 					{
-						int create_blocked = (mime_parser->m_is_send_by_messenger && !mrmailbox_is_contact_blocked__(mailbox, to_id))? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
-						mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, to_id, create_blocked, &chat_id, &chat_id_blocked);
+						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked__(mailbox, to_id))? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+						dc_create_or_lookup_nchat_by_contact_id__(mailbox, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked && !create_blocked ) {
-							mrmailbox_unblock_chat__(mailbox, chat_id);
+							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
@@ -1239,9 +1239,9 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 				if( chat_id == 0 ) {
 					if( dc_array_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
-						mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
+						dc_create_or_lookup_nchat_by_contact_id__(mailbox, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
-							mrmailbox_unblock_chat__(mailbox, chat_id);
+							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
@@ -1254,11 +1254,11 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */
-			mrmailbox_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
+			dc_calc_timestamps__(mailbox, chat_id, from_id, sent_timestamp, (flags&MR_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
 				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
 			/* unarchive chat */
-			mrmailbox_unarchive_chat__(mailbox, chat_id);
+			dc_unarchive_chat__(mailbox, chat_id);
 
 			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
 			(later, we move these replies to the folder used for DeltaChat messages) */
@@ -1269,7 +1269,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 			}
 			else
 			{
-				if( mrmailbox_is_reply_to_messenger_message__(mailbox, mime_parser) )
+				if( dc_is_reply_to_messenger_message__(mailbox, mime_parser) )
 				{
 					dc_log_info(mailbox, 0, "Message is a reply to a messenger message.");
 					msgrmsg = 2; /* 2=no, but is reply to messenger message */
@@ -1416,7 +1416,7 @@ void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_termin
 											{
 												uint32_t chat_id = 0;
 												uint32_t msg_id = 0;
-												if( mrmailbox_mdn_from_ext__(mailbox, from_id, rfc724_mid, sent_timestamp, &chat_id, &msg_id) ) {
+												if( dc_mdn_from_ext__(mailbox, from_id, rfc724_mid, sent_timestamp, &chat_id, &msg_id) ) {
 													carray_add(rr_event_to_send, (void*)(uintptr_t)chat_id, NULL);
 													carray_add(rr_event_to_send, (void*)(uintptr_t)msg_id, NULL);
 												}

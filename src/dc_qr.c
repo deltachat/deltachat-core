@@ -212,9 +212,9 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 
 				if( dc_apeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
 					qr_parsed->m_state = MR_QR_FPR_OK;
-					qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					qr_parsed->m_id    = dc_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
-					mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
+					dc_create_or_lookup_nchat_by_contact_id__(mailbox, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
 					device_msg = mr_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
@@ -242,7 +242,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
 				}
 
-				qr_parsed->m_id            = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+				qr_parsed->m_id            = dc_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);
 				qr_parsed->m_auth          = safe_strdup(auth);
@@ -255,7 +255,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	else if( addr )
 	{
         qr_parsed->m_state = MR_QR_ADDR;
-		qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+		qr_parsed->m_id    = dc_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{
@@ -269,7 +269,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	}
 
 	if( device_msg ) {
-		mrmailbox_add_device_msg(mailbox, chat_id, device_msg);
+		dc_add_device_msg(mailbox, chat_id, device_msg);
 	}
 
 cleanup:

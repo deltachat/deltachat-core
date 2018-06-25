@@ -1616,7 +1616,7 @@ int dc_imap_delete_msg(dc_imap_t* ths, const char* rfc724_mid, const char* folde
 	/* check if Folder+UID matches the Message-ID (to detect if the messages
 	was moved around by other MUAs and in place of an UIDVALIDITY check)
 	(we also detect messages moved around when we do a fetch-all, see
-	mrmailbox_update_server_uid__() in receive_imf(), however this may take a while) */
+	dc_update_server_uid__() in receive_imf(), however this may take a while) */
 	if( server_uid )
 	{
 		clistiter* cur = NULL;

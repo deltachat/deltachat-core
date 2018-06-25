@@ -268,7 +268,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		}
 
 		if( contact->m_blocked
-		 || factory->m_msg->m_chat_id<=MR_CHAT_ID_LAST_SPECIAL/* Do not send MDNs trash etc.; chats.blocked is already checked by the caller in mrmailbox_markseen_msgs() */ ) {
+		 || factory->m_msg->m_chat_id<=MR_CHAT_ID_LAST_SPECIAL/* Do not send MDNs trash etc.; chats.blocked is already checked by the caller in dc_markseen_msgs() */ ) {
 			goto cleanup;
 		}
 
@@ -788,7 +788,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if( force_plaintext != MRFP_NO_AUTOCRYPT_HEADER ) {
-		mrmailbox_e2ee_encrypt(factory->m_context, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
+		dc_e2ee_encrypt(factory->m_context, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 
 	if( e2ee_helper.m_encryption_successfull ) {
@@ -807,7 +807,7 @@ cleanup:
 	if( message ) {
 		mailmime_free(message);
 	}
-	mrmailbox_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
+	dc_e2ee_thanks(&e2ee_helper); /* frees data referenced by "mailmime" but not freed by mailmime_free() */
 	free(message_text); free(message_text2); /* mailmime_set_body_text() does not take ownership of "text" */
 	free(subject_str);
 	free(grpimage);

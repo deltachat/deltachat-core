@@ -463,7 +463,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 
 	if( msg->m_type == MR_MSG_VOICE )
 	{
-		if( (contact = mrmailbox_get_contact(msg->m_context, msg->m_from_id))==NULL ) {
+		if( (contact = dc_get_contact(msg->m_context, msg->m_from_id))==NULL ) {
 			goto cleanup;
 		}
 		ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
@@ -590,7 +590,7 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
 		show_encryption_state = 1;
 	}
 	else {
-		dc_chat_t* chat = mrmailbox_get_chat(msg->m_context, msg->m_chat_id);
+		dc_chat_t* chat = dc_get_chat(msg->m_context, msg->m_chat_id);
 		show_encryption_state = dc_chat_is_verified(chat);
 		dc_chat_unref(chat);
 	}
@@ -645,14 +645,14 @@ dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 	}
 
 	if( chat == NULL ) {
-		if( (chat_to_delete=mrmailbox_get_chat(msg->m_context, msg->m_chat_id)) == NULL ) {
+		if( (chat_to_delete=dc_get_chat(msg->m_context, msg->m_chat_id)) == NULL ) {
 			goto cleanup;
 		}
 		chat = chat_to_delete;
 	}
 
 	if( msg->m_from_id != MR_CONTACT_ID_SELF && MR_CHAT_TYPE_IS_MULTI(chat->m_type) ) {
-		contact = mrmailbox_get_contact(chat->m_context, msg->m_from_id);
+		contact = dc_get_contact(chat->m_context, msg->m_from_id);
 	}
 
 	dc_lot_fill(ret, msg, chat, contact);

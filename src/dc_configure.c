@@ -375,10 +375,10 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		goto cleanup;
 	}
 
-	mrmailbox_suspend_smtp_thread(mailbox, 1);
+	dc_suspend_smtp_thread(mailbox, 1);
 	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
-	if( !mrmailbox_alloc_ongoing(mailbox) ) {
+	if( !dc_alloc_ongoing(mailbox) ) {
 		goto cleanup;
 	}
 	ongoing_allocated_here = 1;
@@ -665,7 +665,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	// we generate the keypair just now - we could also postpone this until the first message is sent, however,
 	// this may result in a unexpected and annoying delay when the user sends his very first message
 	// (~30 seconds on a Moto G4 play) and might looks as if message sending is always that slow.
-	mrmailbox_ensure_secret_key_exists(mailbox);
+	dc_ensure_secret_key_exists(mailbox);
 
 	success = 1;
 	dc_log_info(mailbox, 0, "Configure completed successfully.");
@@ -685,10 +685,10 @@ cleanup:
 	dc_loginparam_unref(param);
 	dc_loginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
-	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
+	if( ongoing_allocated_here ) { dc_free_ongoing(mailbox); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
 
-	mrmailbox_suspend_smtp_thread(mailbox, 0);
+	dc_suspend_smtp_thread(mailbox, 0);
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
 
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
@@ -728,7 +728,7 @@ cleanup:
 void dc_configure(dc_context_t* mailbox)
 {
 	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0);
-	dc_job_add(mailbox, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
+	dc_job_add(mailbox, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
 }
 
 
@@ -772,8 +772,8 @@ int dc_is_configured(dc_context_t* mailbox)
  * Returns 0=process started, 1=not started, there is running another process
  */
 static int s_ongoing_running = 0;
-int        mr_shall_stop_ongoing = 1; /* the value 1 avoids mrmailbox_stop_ongoing_process() from stopping already stopped threads */
-int mrmailbox_alloc_ongoing(dc_context_t* mailbox)
+int        mr_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
+int dc_alloc_ongoing(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
@@ -791,17 +791,17 @@ int mrmailbox_alloc_ongoing(dc_context_t* mailbox)
 
 
 /*
- * Frees the process allocated with mrmailbox_alloc_ongoing() - independingly of mr_shall_stop_ongoing.
- * If mrmailbox_alloc_ongoing() fails, this function MUST NOT be called.
+ * Frees the process allocated with dc_alloc_ongoing() - independingly of mr_shall_stop_ongoing.
+ * If dc_alloc_ongoing() fails, this function MUST NOT be called.
  */
-void mrmailbox_free_ongoing(dc_context_t* mailbox)
+void dc_free_ongoing(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
 	}
 
 	s_ongoing_running     = 0;
-	mr_shall_stop_ongoing = 1; /* avoids mrmailbox_stop_ongoing_process() to stop the thread */
+	mr_shall_stop_ongoing = 1; /* avoids dc_stop_ongoing_process() to stop the thread */
 }
 
 

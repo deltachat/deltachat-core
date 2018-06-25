@@ -114,7 +114,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* mailbox, dc_job_t* j
 	}
 	else {
 		dc_sqlite3_lock(mailbox->m_sql);
-			mrmailbox_update_server_uid__(mailbox, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
+			dc_update_server_uid__(mailbox, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
 		dc_sqlite3_unlock(mailbox->m_sql);
 	}
 
@@ -137,7 +137,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 			goto cleanup;
 		}
 
-		if( mrmailbox_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
+		if( dc_rfc724_mid_cnt__(mailbox, msg->m_rfc724_mid) != 1 ) {
 			dc_log_info(mailbox, 0, "The message is deleted from the server when all parts are deleted.");
 			delete_from_server = 0;
 		}
@@ -272,7 +272,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_
 
 				if( new_server_folder && new_server_uid )
 				{
-					mrmailbox_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
+					dc_update_server_uid__(mailbox, msg->m_rfc724_mid, new_server_folder, new_server_uid);
 				}
 
 				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
@@ -334,7 +334,7 @@ static void mark_as_error(dc_context_t* mailbox, dc_msg_t* msg)
 	}
 
 	dc_sqlite3_lock(mailbox->m_sql);
-		mrmailbox_update_msg_state__(mailbox, msg->m_id, MR_STATE_OUT_ERROR);
+		dc_update_msg_state__(mailbox, msg->m_id, MR_STATE_OUT_ERROR);
 	dc_sqlite3_unlock(mailbox->m_sql);
 	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
@@ -413,7 +413,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 			free(emlname);
 		}
 
-		mrmailbox_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_STATE_OUT_DELIVERED);
+		dc_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_STATE_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0)==0 ) {
 			mrparam_set_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk__(mimefactory.m_msg);
@@ -426,7 +426,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 		}
 
 		// TODO: add to keyhistory
-		mrmailbox_add_to_keyhistory__(mailbox, NULL, 0, NULL, NULL);
+		dc_add_to_keyhistory__(mailbox, NULL, 0, NULL, NULL);
 
 	dc_sqlite3_commit__(mailbox->m_sql);
 	dc_sqlite3_unlock(mailbox->m_sql);
@@ -480,7 +480,7 @@ cleanup:
 }
 
 
-void mrmailbox_suspend_smtp_thread(dc_context_t* mailbox, int suspend)
+void dc_suspend_smtp_thread(dc_context_t* mailbox, int suspend)
 {
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 		mailbox->m_smtpidle_suspend = suspend;

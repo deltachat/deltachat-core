@@ -254,7 +254,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		{
 			dc_sqlite3_lock(chat->m_context->m_sql);
 
-				cnt = mrmailbox_get_chat_contact_count__(chat->m_context, chat->m_id);
+				cnt = dc_get_chat_contact_count__(chat->m_context, chat->m_id);
 				ret = mrstock_str_repl_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
 			dc_sqlite3_unlock(chat->m_context->m_sql);
@@ -513,7 +513,7 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
 		free(ths->m_name);
 		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
-			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_context));
+			ths->m_name = mr_mprintf("%s (%i)", tempname, dc_get_archived_count__(ths->m_context));
 		free(tempname);
 	}
 	else if( ths->m_id == MR_CHAT_ID_STARRED ) {

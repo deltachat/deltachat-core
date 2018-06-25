@@ -938,7 +938,7 @@ void dc_mimeparser_empty(dc_mimeparser_t* ths)
 
 	ths->m_decrypting_failed = 0;
 
-	mrmailbox_e2ee_thanks(ths->m_e2ee_helper);
+	dc_e2ee_thanks(ths->m_e2ee_helper);
 }
 
 
@@ -1495,7 +1495,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	mrmailbox_e2ee_decrypt(ths->m_context, ths->m_mimeroot, ths->m_e2ee_helper);
+	dc_e2ee_decrypt(ths->m_context, ths->m_mimeroot, ths->m_e2ee_helper);
 
 	//printf("after decryption:\n"); mailmime_print(ths->m_mimeroot);
 

@@ -278,7 +278,7 @@ cleanup:
 }
 
 
-int mrmailbox_ensure_secret_key_exists(dc_context_t* mailbox)
+int dc_ensure_secret_key_exists(dc_context_t* mailbox)
 {
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
@@ -317,7 +317,7 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
+void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
                     int force_unencrypted,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     int min_verified,
@@ -519,7 +519,7 @@ cleanup:
 }
 
 
-void mrmailbox_e2ee_thanks(dc_e2ee_helper_t* helper)
+void dc_e2ee_thanks(dc_e2ee_helper_t* helper)
 {
 	if( helper == NULL ) {
 		return;
@@ -777,7 +777,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* mailbox, time_t message
 						dc_sqlite3_unlock(mailbox->m_sql);
 
 						if( peerstate->m_degrade_event ) {
-							mrmailbox_handle_degrade_event(mailbox, peerstate);
+							dc_handle_degrade_event(mailbox, peerstate);
 						}
 
 						dc_apeerstate_unref(peerstate);
@@ -809,7 +809,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* mailbox, time_t message
 }
 
 
-void mrmailbox_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
+void dc_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
                            dc_e2ee_helper_t* helper)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
@@ -907,7 +907,7 @@ void mrmailbox_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_messa
 	locked = 0;
 
 	if( peerstate->m_degrade_event ) {
-		mrmailbox_handle_degrade_event(mailbox, peerstate);
+		dc_handle_degrade_event(mailbox, peerstate);
 	}
 
 	// offer both, gossip and public, for signature validation.

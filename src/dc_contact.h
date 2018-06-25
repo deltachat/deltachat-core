@@ -43,7 +43,7 @@ struct _dc_contact
 	 * The contact ID.
 	 *
 	 * Special message IDs:
-	 * - MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by mrmailbox_set_config() using "addr".
+	 * - MR_CONTACT_ID_SELF (1) - this is the owner of the mailbox with the email-address set by dc_set_config() using "addr".
 	 *
 	 * Normal contact IDs are larger than these special ones (larger than MR_CONTACT_ID_LAST_SPECIAL).
 	 */
@@ -72,7 +72,7 @@ struct _dc_contact
 #define MR_ORIGIN_ADRESS_BOOK             0x80000 /* address is in our address book */
 #define MR_ORIGIN_SECUREJOIN_INVITED    0x1000000 /* set on Alice's side for contacts like Bob that have scanned the QR code offered by her. Only means the contact has once been established using the "securejoin" procedure in the past, getting the current key verification status requires calling dc_contact_is_verfied() ! */
 #define MR_ORIGIN_SECUREJOIN_JOINED     0x2000000 /* set on Bob's side for contacts scanned and verified from a QR code. Only means the contact has once been established using the "securejoin" procedure in the past, getting the current key verification status requires calling dc_contact_is_verfied() ! */
-#define MR_ORIGIN_MANUALLY_CREATED      0x4000000 /* contact added mannually by mrmailbox_create_contact(), this should be the largets origin as otherwise the user cannot modify the names */
+#define MR_ORIGIN_MANUALLY_CREATED      0x4000000 /* contact added mannually by dc_create_contact(), this should be the largets origin as otherwise the user cannot modify the names */
 
 #define MR_ORIGIN_MIN_CONTACT_LIST    (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are shown in the contact list */
 #define MR_ORIGIN_MIN_VERIFIED        (MR_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */

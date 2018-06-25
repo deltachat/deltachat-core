@@ -328,7 +328,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
 	// nb: the query currently shows messages from blocked contacts in groups.
-	// however, for normal-groups, this is okay as the message is also returned by mrmailbox_get_chat_msgs()
+	// however, for normal-groups, this is okay as the message is also returned by dc_get_chat_msgs()
 	// (otherwise it would be hard to follow conversations, wa and tg do the same)
 	// for the deaddrop, however, they should really be hidden, however, _currently_ the deaddrop is not
 	// shown at all permanent in the chatlist.
@@ -350,7 +350,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	{
 		/* show normal chatlist  */
 		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
-			uint32_t last_deaddrop_fresh_msg_id = mrmailbox_get_last_deaddrop_fresh_msg__(ths->m_context);
+			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(ths->m_context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
 				dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
 				dc_array_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
@@ -382,7 +382,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 		dc_array_add_id(ths->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
-    if( add_archived_link_item && mrmailbox_get_archived_count__(ths->m_context)>0 )
+    if( add_archived_link_item && dc_get_archived_count__(ths->m_context)>0 )
     {
 		dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_ARCHIVED_LINK);
 		dc_array_add_id(ths->m_chatNlastmsg_ids, 0);

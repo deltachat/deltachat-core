@@ -172,7 +172,7 @@ static const char* s_em_setupfile =
 "-----END PGP MESSAGE-----\n";
 
 
-void stress_functions(mrmailbox_t* mailbox)
+void stress_functions(dc_context_t* context)
 {
 	/* test mrsimplify and mrsaxparser (indirectly used by mrsimplify)
 	 **************************************************************************/
@@ -237,7 +237,7 @@ void stress_functions(mrmailbox_t* mailbox)
 	**************************************************************************/
 
 	{
-		dc_mimeparser_t* mimeparser = dc_mimeparser_new(mailbox->m_blobdir, mailbox);
+		dc_mimeparser_t* mimeparser = dc_mimeparser_new(context->m_blobdir, context);
 
 		const char* raw =
 			"Content-Type: multipart/mixed; boundary=\"==break==\";\n"
@@ -678,11 +678,11 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		char* norm = mrmailbox_normalize_setup_code(mailbox, "123422343234423452346234723482349234");
+		char* norm = dc_normalize_setup_code(context, "123422343234423452346234723482349234");
 		assert( norm );
 		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
 
-		norm = mrmailbox_normalize_setup_code(mailbox, "\t1 2 3422343234- foo bar-- 423-45 2 34 6234723482349234      ");
+		norm = dc_normalize_setup_code(context, "\t1 2 3422343234- foo bar-- 423-45 2 34 6234723482349234      ");
 		assert( norm );
 		assert( strcmp(norm, "1234-2234-3234-4234-5234-6234-7234-8234-9234") == 0 );
 	}
@@ -698,7 +698,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			assert( preferencrypt==NULL );
 		free(buf);
 
-		assert( (buf=mrmailbox_decrypt_setup_file(mailbox, s_em_setupcode, s_em_setupfile)) != NULL );
+		assert( (buf=dc_decrypt_setup_file(context, s_em_setupcode, s_em_setupfile)) != NULL );
 			assert( dc_split_armored_data(buf, &headerline, &setupcodebegin, &preferencrypt, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
 			assert( setupcodebegin==NULL );
@@ -706,15 +706,15 @@ void stress_functions(mrmailbox_t* mailbox)
 		free(buf);
 	}
 
-	if( mrmailbox_is_configured(mailbox) )
+	if( dc_is_configured(context) )
 	{
 		char *setupcode = NULL, *setupfile = NULL;
 
-		assert( (setupcode=mrmailbox_create_setup_code(mailbox)) != NULL );
+		assert( (setupcode=dc_create_setup_code(context)) != NULL );
 		assert( strlen(setupcode) == 44 );
 		assert( setupcode[4]=='-' && setupcode[9]=='-' && setupcode[14]=='-' && setupcode[19]=='-' && setupcode[24]=='-' && setupcode[29]=='-' && setupcode[34]=='-' && setupcode[39]=='-' );
 
-		assert( (setupfile=mrmailbox_render_setup_file(mailbox, setupcode)) != NULL );
+		assert( (setupfile=dc_render_setup_file(context, setupcode)) != NULL );
 
 		{
 			char *buf = safe_strdup(setupfile);
@@ -728,7 +728,7 @@ void stress_functions(mrmailbox_t* mailbox)
 		{
 			char *payload = NULL;
 			const char *headerline = NULL;
-			assert( (payload=mrmailbox_decrypt_setup_file(mailbox, setupcode, setupfile))!=NULL );
+			assert( (payload=dc_decrypt_setup_file(context, setupcode, setupfile))!=NULL );
 			assert( dc_split_armored_data(payload, &headerline, NULL, NULL, NULL) );
 			assert( headerline && strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 );
 			free(payload);
@@ -750,28 +750,28 @@ void stress_functions(mrmailbox_t* mailbox)
 			}
 			for( int j = 0; j < BAD_DATA_BYTES/40; j++ ) {
 				dc_key_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
-				assert( !dc_pgp_is_valid_key(mailbox, bad_key) );
+				assert( !dc_pgp_is_valid_key(context, bad_key) );
 			}
 		dc_key_unref(bad_key);
 	}
 
 	{
 		dc_key_t *public_key = dc_key_new(), *private_key = dc_key_new();
-		dc_pgp_create_keypair(mailbox, "foo@bar.de", public_key, private_key);
-		assert( dc_pgp_is_valid_key(mailbox, public_key) );
-		assert( dc_pgp_is_valid_key(mailbox, private_key) );
-		//{char *t1=mrkey_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
-		//{char *t1=mrkey_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
+		dc_pgp_create_keypair(context, "foo@bar.de", public_key, private_key);
+		assert( dc_pgp_is_valid_key(context, public_key) );
+		assert( dc_pgp_is_valid_key(context, private_key) );
+		//{char *t1=dc_key_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
+		//{char *t1=dc_key_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
 
 		{
 			dc_key_t *test_key = dc_key_new();
-			assert( dc_pgp_split_key(mailbox, private_key, test_key) );
-			//assert( mrkey_equals(public_key, test_key) );
+			assert( dc_pgp_split_key(context, private_key, test_key) );
+			//assert( dc_key_equals(public_key, test_key) );
 			dc_key_unref(test_key);
 		}
 
 		dc_key_t *public_key2 = dc_key_new(), *private_key2 = dc_key_new();
-		dc_pgp_create_keypair(mailbox, "two@zwo.de", public_key2, private_key2);
+		dc_pgp_create_keypair(context, "two@zwo.de", public_key2, private_key2);
 
 		assert( !dc_key_equals(public_key, public_key2) );
 
@@ -783,13 +783,13 @@ void stress_functions(mrmailbox_t* mailbox)
 			dc_keyring_t* keyring = dc_keyring_new();
 			dc_keyring_add(keyring, public_key);
 			dc_keyring_add(keyring, public_key2);
-				int ok = dc_pgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext_signed, &ctext_signed_bytes);
+				int ok = dc_pgp_pk_encrypt(context, original_text, strlen(original_text), keyring, private_key, 1, (void**)&ctext_signed, &ctext_signed_bytes);
 				assert( ok && ctext_signed && ctext_signed_bytes>0 );
 				assert( strncmp((char*)ctext_signed, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext_signed)[ctext_signed_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
 				//{char* t3 = mr_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
 
-				ok = dc_pgp_pk_encrypt(mailbox, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
+				ok = dc_pgp_pk_encrypt(context, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
 				assert( ok && ctext_unsigned && ctext_unsigned_bytes>0 );
 				assert( strncmp((char*)ctext_unsigned, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ctext_unsigned_bytes < ctext_signed_bytes );
@@ -812,21 +812,21 @@ void stress_functions(mrmailbox_t* mailbox)
 			dc_hash_init(&valid_signatures, MRHASH_STRING, 1/*copy key*/);
 			int ok;
 
-			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			assert( dc_hash_count(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
-			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, NULL/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			assert( dc_hash_count(&valid_signatures) == 0 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
-			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			assert( dc_hash_count(&valid_signatures) == 0 );
@@ -834,14 +834,14 @@ void stress_functions(mrmailbox_t* mailbox)
 			dc_hash_clear(&valid_signatures);
 
 			dc_keyring_add(public_keyring2, public_key);
-			ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring2/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			assert( dc_hash_count(&valid_signatures) == 1 );
 			free(plain); plain = NULL;
 			dc_hash_clear(&valid_signatures);
 
-			ok = dc_pgp_pk_decrypt(mailbox, ctext_unsigned, ctext_unsigned_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
+			ok = dc_pgp_pk_decrypt(context, ctext_unsigned, ctext_unsigned_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strncmp((char*)plain, original_text, strlen(original_text))==0 );
 			assert( dc_hash_count(&valid_signatures) == 0 );
@@ -861,7 +861,7 @@ void stress_functions(mrmailbox_t* mailbox)
 			dc_keyring_add(public_keyring, public_key);
 
 			void* plain = NULL;
-			int ok = dc_pgp_pk_decrypt(mailbox, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, NULL);
+			int ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, NULL);
 			assert( ok && plain && plain_bytes>0 );
 			assert( strcmp(plain, original_text)==0 );
 			free(plain);
@@ -888,22 +888,22 @@ void stress_functions(mrmailbox_t* mailbox)
 		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
 	}
 
-	if( mrmailbox_is_configured(mailbox) )
+	if( dc_is_configured(context) )
 	{
-		char* qr = mrmailbox_get_securejoin_qr(mailbox, 0);
+		char* qr = dc_get_securejoin_qr(context, 0);
 		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#a=", 3)==0 );
 
-		mrlot_t* res = mrmailbox_check_qr(mailbox, qr);
+		dc_lot_t* res = dc_check_qr(context, qr);
 		assert( res );
 		assert( res->m_state == MR_QR_ASK_VERIFYCONTACT || res->m_state == MR_QR_FPR_MISMATCH || res->m_state == MR_QR_FPR_WITHOUT_ADDR );
 
-		mrlot_unref(res);
+		dc_lot_unref(res);
 		free(qr);
 
-		res = mrmailbox_check_qr(mailbox, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
+		res = dc_check_qr(context, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
 		assert( res );
 		assert( res->m_state == MR_QR_ADDR );
 		assert( res->m_id != 0 );
-		mrlot_unref(res);
+		dc_lot_unref(res);
 	}
 }

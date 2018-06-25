@@ -88,18 +88,18 @@
  *     .....
  *     -----END PGP PRIVATE KEY BLOCK-----
  *
- * mrmailbox_render_setup_file() renders the body after the second
+ * dc_render_setup_file() renders the body after the second
  * `-==break1==` in this example.
  *
  * @private @memberof dc_context_t
  *
  * @param mailbox The mailbox object
  * @param passphrase The setup code that shall be used to encrypt the message.
- *     Typically created by mrmailbox_create_setup_code().
+ *     Typically created by dc_create_setup_code().
  * @return String with the HTML-code of the message on success, NULL on errors.
  *     The returned value must be free()'d
  */
-char* mrmailbox_render_setup_file(dc_context_t* mailbox, const char* passphrase)
+char* dc_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 {
 	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
@@ -130,7 +130,7 @@ char* mrmailbox_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 
 	/* create the payload */
 
-	if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
+	if( !dc_ensure_secret_key_exists(mailbox) ) {
 		goto cleanup;
 	}
 
@@ -301,15 +301,15 @@ cleanup:
  *
  * @param mailbox The mailbox object
  * @param passphrase The setup code that shall be used to decrypt the message.
- *     May be created by mrmailbox_create_setup_code() on another device or by
+ *     May be created by dc_create_setup_code() on another device or by
  *     a completely different app as Thunderbird/Enigmail or K-9.
  * @param filecontent The file content of the setup message, may be HTML.
- *     May be created by mrmailbox_render_setup_code() on another device or by
+ *     May be created by dc_render_setup_code() on another device or by
  *     a completely different app as Thunderbird/Enigmail or K-9.
  * @return The decrypted private key as armored-ascii-data or NULL on errors.
  *     Must be dc_key_unref()'d.
  */
-char* mrmailbox_decrypt_setup_file(dc_context_t* mailbox, const char* passphrase, const char* filecontent)
+char* dc_decrypt_setup_file(dc_context_t* mailbox, const char* passphrase, const char* filecontent)
 {
 	char*         fc_buf = NULL;
 	const char    *fc_headerline = NULL, *fc_base64 = NULL;
@@ -355,9 +355,9 @@ cleanup:
  *
  * The created "Autocrypt Level 1" setup code has the form `1234-1234-1234-1234-1234-1234-1234-1234-1234`.
  * Linebreaks and spaces are not added to the setup code, but the `-` are.
- * The setup code is typically given to mrmailbox_render_setup_file().
+ * The setup code is typically given to dc_render_setup_file().
  *
- * A higher-level function to initiate the key transfer is mrmailbox_initiate_key_transfer().
+ * A higher-level function to initiate the key transfer is dc_initiate_key_transfer().
  *
  * @private @memberof dc_context_t
  *
@@ -365,7 +365,7 @@ cleanup:
  *
  * @return Setup code, must be free()'d after usage. NULL on errors.
  */
-char* mrmailbox_create_setup_code(dc_context_t* mailbox)
+char* dc_create_setup_code(dc_context_t* mailbox)
 {
 	#define        CODE_ELEMS 9
 	uint16_t       random_val;
@@ -395,7 +395,7 @@ char* mrmailbox_create_setup_code(dc_context_t* mailbox)
 
 
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
-char* mrmailbox_normalize_setup_code(dc_context_t* mailbox, const char* in)
+char* dc_normalize_setup_code(dc_context_t* mailbox, const char* in)
 {
 	if( in == NULL ) {
 		return NULL;
@@ -480,18 +480,18 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 	dc_msg_t* msg = NULL;
 	uint32_t msg_id = 0;
 
-	if( !mrmailbox_alloc_ongoing(mailbox) ) {
-		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	if( !dc_alloc_ongoing(mailbox) ) {
+		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
 	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
 
-	if( (setup_code=mrmailbox_create_setup_code(mailbox)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
+	if( (setup_code=dc_create_setup_code(mailbox)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( (setup_file_content=mrmailbox_render_setup_file(mailbox, setup_code))==NULL ) { /* encrypting may also take a while ... */
+	if( (setup_file_content=dc_render_setup_file(mailbox, setup_code))==NULL ) { /* encrypting may also take a while ... */
 		goto cleanup;
 	}
 
@@ -502,7 +502,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 		goto cleanup;
 	}
 
-	if( (chat_id=mrmailbox_create_chat_by_contact_id(mailbox, MR_CONTACT_ID_SELF))==0 ) {
+	if( (chat_id=dc_create_chat_by_contact_id(mailbox, MR_CONTACT_ID_SELF))==0 ) {
 		goto cleanup;
 	}
 
@@ -515,7 +515,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 
 	CHECK_EXIT
 
-	if( (msg_id = mrmailbox_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
+	if( (msg_id = dc_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -531,7 +531,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 
 		sleep(1);
 
-		msg = mrmailbox_get_msg(mailbox, msg_id);
+		msg = dc_get_msg(mailbox, msg_id);
 		if( dc_msg_is_sent(msg) ) {
 			break;
 		}
@@ -548,7 +548,7 @@ cleanup:
 	free(setup_file_name);
 	free(setup_file_content);
 	dc_msg_unref(msg);
-	mrmailbox_free_ongoing(mailbox);
+	dc_free_ongoing(mailbox);
 	return setup_code;
 }
 
@@ -605,10 +605,10 @@ static int set_self_key(dc_context_t* mailbox, const char* armored, int set_defa
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if( buf_preferencrypt ) {
 		if( strcmp(buf_preferencrypt, "nopreference")==0 ) {
-			mrmailbox_set_config_int(mailbox, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
+			dc_set_config_int(mailbox, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
 		}
 		else if( strcmp(buf_preferencrypt, "mutual")==0 ) {
-			mrmailbox_set_config_int(mailbox, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
+			dc_set_config_int(mailbox, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
 		}
 	}
 
@@ -661,7 +661,7 @@ int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if( (msg=mrmailbox_get_msg(mailbox, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
+	if( (msg=dc_get_msg(mailbox, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
 	 || (filename=dc_msg_get_file(msg))==NULL || filename[0]==0 ) {
 		dc_log_error(mailbox, 0, "Message is no Autocrypt Setup Message.");
 		goto cleanup;
@@ -672,12 +672,12 @@ int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if( (norm_sc = mrmailbox_normalize_setup_code(mailbox, setup_code))==NULL ) {
+	if( (norm_sc = dc_normalize_setup_code(mailbox, setup_code))==NULL ) {
 		dc_log_warning(mailbox, 0, "Cannot normalize Setup Code.");
 		goto cleanup;
 	}
 
-	if( (armored_key=mrmailbox_decrypt_setup_file(mailbox, norm_sc, filecontent)) == NULL ) {
+	if( (armored_key=dc_decrypt_setup_file(mailbox, norm_sc, filecontent)) == NULL ) {
 		dc_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
@@ -1048,7 +1048,7 @@ static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
 
 	dc_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
 
-	if( mrmailbox_is_configured(mailbox) ) {
+	if( dc_is_configured(mailbox) ) {
 		dc_log_error(mailbox, 0, "Cannot import backups to mailboxes in use.");
 		goto cleanup;
 	}
@@ -1211,8 +1211,8 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 		return 0;
 	}
 
-	if( !mrmailbox_alloc_ongoing(mailbox) ) {
-		return 0; /* no cleanup as this would call mrmailbox_free_ongoing() */
+	if( !dc_alloc_ongoing(mailbox) ) {
+		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
 
 	if( param1 == NULL ) {
@@ -1230,7 +1230,7 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 
 	if( what==MR_IMEX_EXPORT_SELF_KEYS || what==MR_IMEX_EXPORT_BACKUP ) {
 		/* before we export anything, make sure the private key exists */
-		if( !mrmailbox_ensure_secret_key_exists(mailbox) ) {
+		if( !dc_ensure_secret_key_exists(mailbox) ) {
 			dc_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
@@ -1273,7 +1273,7 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 
 cleanup:
 	dc_log_info(mailbox, 0, "Import/export process ended.");
-	mrmailbox_free_ongoing(mailbox);
+	dc_free_ongoing(mailbox);
 	return success;
 }
 

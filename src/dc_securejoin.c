@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-void mrmailbox_handle_degrade_event(dc_context_t* mailbox, dc_apeerstate_t* peerstate)
+void dc_handle_degrade_event(dc_context_t* mailbox, dc_apeerstate_t* peerstate)
 {
 	sqlite3_stmt* stmt            = NULL;
 	int           locked          = 0;
@@ -71,12 +71,12 @@ void mrmailbox_handle_degrade_event(dc_context_t* mailbox, dc_apeerstate_t* peer
 				goto cleanup;
 			}
 
-			mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
+			dc_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
 
 		UNLOCK
 
 		char* msg = mr_mprintf("Changed setup for %s", peerstate->m_addr);
-		mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
+		dc_add_device_msg(mailbox, contact_chat_id, msg);
 		free(msg);
 		mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 	}
@@ -150,7 +150,7 @@ cleanup:
 static uint32_t chat_id_2_contact_id(dc_context_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t   contact_id = 0;
-	dc_array_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	dc_array_t* contacts = dc_get_chat_contacts(mailbox, contact_chat_id);
 
 	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
@@ -168,7 +168,7 @@ static int fingerprint_equals_sender(dc_context_t* mailbox, const char* fingerpr
 {
 	int             fingerprint_equal      = 0;
 	int             locked                 = 0;
-	dc_array_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
+	dc_array_t*      contacts               = dc_get_chat_contacts(mailbox, contact_chat_id);
 	dc_contact_t*    contact                = dc_contact_new(mailbox);
 	dc_apeerstate_t* peerstate              = dc_apeerstate_new(mailbox);
 	char*           fingerprint_normalized = NULL;
@@ -272,7 +272,7 @@ static void send_handshake_msg(dc_context_t* mailbox, uint32_t contact_chat_id, 
 		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
-	mrmailbox_send_msg_object(mailbox, contact_chat_id, msg);
+	dc_send_msg_object(mailbox, contact_chat_id, msg);
 
 	dc_msg_unref(msg);
 }
@@ -281,10 +281,10 @@ static void send_handshake_msg(dc_context_t* mailbox, uint32_t contact_chat_id, 
 static void could_not_establish_secure_connection(dc_context_t* mailbox, uint32_t contact_chat_id, const char* details)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
-	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	dc_contact_t* contact    = dc_get_contact(mailbox, contact_id);
 	char*        msg        = mr_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
 
-	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
+	dc_add_device_msg(mailbox, contact_chat_id, msg);
 
 	dc_log_error(mailbox, 0, "%s (%s)", msg, details); // additionaly raise an error; this typically results in a toast (inviter side) or a dialog (joiner side)
 
@@ -296,12 +296,12 @@ static void could_not_establish_secure_connection(dc_context_t* mailbox, uint32_
 static void secure_connection_established(dc_context_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
-	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
+	dc_contact_t* contact    = dc_get_contact(mailbox, contact_id);
 	char*        msg        = mr_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
 
-	mrmailbox_add_device_msg(mailbox, contact_chat_id, msg);
+	dc_add_device_msg(mailbox, contact_chat_id, msg);
 
-	// in addition to DC_EVENT_MSGS_CHANGED (sent by mrmailbox_add_device_msg()), also send DC_EVENT_CHAT_MODIFIED to update all views
+	// in addition to DC_EVENT_MSGS_CHANGED (sent by dc_add_device_msg()), also send DC_EVENT_CHAT_MODIFIED to update all views
 	mailbox->m_cb(mailbox, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
 	free(msg);
@@ -323,7 +323,7 @@ static int      s_bobs_status = 0;
 static void end_bobs_joining(dc_context_t* mailbox, int status)
 {
 	s_bobs_status = status;
-	mrmailbox_stop_ongoing_process(mailbox);
+	dc_stop_ongoing_process(mailbox);
 }
 
 
@@ -375,7 +375,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 		goto cleanup;
 	}
 
-	mrmailbox_ensure_secret_key_exists(mailbox);
+	dc_ensure_secret_key_exists(mailbox);
 
 	dc_sqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -413,7 +413,7 @@ char* dc_get_securejoin_qr(dc_context_t* mailbox, uint32_t group_chat_id)
 	if( group_chat_id )
 	{
 		// parameters used: a=g=x=i=s=
-		chat = mrmailbox_get_chat(mailbox, group_chat_id);
+		chat = dc_get_chat(mailbox, group_chat_id);
 		if( chat == NULL || chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
 			dc_log_error(mailbox, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
@@ -485,19 +485,19 @@ uint32_t dc_join_securejoin(dc_context_t* mailbox, const char* qr)
 
 	dc_log_info(mailbox, 0, "Requesting secure-join ...");
 
-	mrmailbox_ensure_secret_key_exists(mailbox);
+	dc_ensure_secret_key_exists(mailbox);
 
-	if( (ongoing_allocated=mrmailbox_alloc_ongoing(mailbox)) == 0 ) {
+	if( (ongoing_allocated=dc_alloc_ongoing(mailbox)) == 0 ) {
 		goto cleanup;
 	}
 
-	if( ((qr_scan=mrmailbox_check_qr(mailbox, qr))==NULL)
+	if( ((qr_scan=dc_check_qr(mailbox, qr))==NULL)
 	 || (qr_scan->m_state!=MR_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=MR_QR_ASK_VERIFYGROUP) ) {
 		dc_log_error(mailbox, 0, "Unknown QR code.");
 		goto cleanup;
 	}
 
-	if( (contact_chat_id=mrmailbox_create_chat_by_contact_id(mailbox, qr_scan->m_id)) == 0 ) {
+	if( (contact_chat_id=dc_create_chat_by_contact_id(mailbox, qr_scan->m_id)) == 0 ) {
 		dc_log_error(mailbox, 0, "Unknown contact.");
 		goto cleanup;
 	}
@@ -546,7 +546,7 @@ cleanup:
 	if( s_bobs_status == BOB_SUCCESS ) {
 		if( join_vg ) {
 			dc_sqlite3_lock(mailbox->m_sql);
-				ret_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, qr_scan->m_text2, NULL, NULL);
+				ret_chat_id = dc_get_chat_id_by_grpid__(mailbox, qr_scan->m_text2, NULL, NULL);
 			dc_sqlite3_unlock(mailbox->m_sql);
 		}
 		else {
@@ -560,12 +560,12 @@ cleanup:
 
 	dc_lot_unref(qr_scan);
 
-	if( ongoing_allocated ) { mrmailbox_free_ongoing(mailbox); }
+	if( ongoing_allocated ) { dc_free_ongoing(mailbox); }
 	return ret_chat_id;
 }
 
 
-int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t* mimeparser, uint32_t contact_id)
+int dc_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
 	const char*  step   = NULL;
@@ -589,9 +589,9 @@ int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
 	LOCK
-		mrmailbox_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
+		dc_create_or_lookup_nchat_by_contact_id__(mailbox, contact_id, MR_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
 		if( contact_chat_id_blocked ) {
-			mrmailbox_unblock_chat__(mailbox, contact_chat_id);
+			dc_unblock_chat__(mailbox, contact_chat_id);
 		}
 	UNLOCK
 
@@ -723,7 +723,7 @@ int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t
 				goto cleanup;
 			}
 
-			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
+			dc_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
 		UNLOCK
 
 		dc_log_info(mailbox, 0, "Auth verified.");
@@ -738,14 +738,14 @@ int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t
 			grpid = safe_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
 			LOCK
-				uint32_t verified_chat_id = mrmailbox_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
+				uint32_t verified_chat_id = dc_get_chat_id_by_grpid__(mailbox, grpid, NULL, &is_verified);
 			UNLOCK
 			if( verified_chat_id == 0 || !is_verified ) {
 				dc_log_error(mailbox, 0, "Verified chat not found.");
 				goto cleanup;
 			}
 
-			mrmailbox_add_contact_to_chat_ex(mailbox, verified_chat_id, contact_id, MR_FROM_HANDSHAKE); // Alice -> Bob and all members
+			dc_add_contact_to_chat_ex(mailbox, verified_chat_id, contact_id, MR_FROM_HANDSHAKE); // Alice -> Bob and all members
 		}
 		else {
 			send_handshake_msg(mailbox, contact_chat_id, "vc-contact-confirm",
@@ -796,7 +796,7 @@ int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t
 				goto cleanup;
 			}
 
-			mrmailbox_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
+			dc_scaleup_contact_origin__(mailbox, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
 		UNLOCK
 
 		secure_connection_established(mailbox, contact_chat_id);
@@ -814,7 +814,7 @@ int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t
 		if( (field=dc_mimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 			if( fld_message_id && fld_message_id->mid_value ) {
-				dc_job_add(mailbox, DC_JOB_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 0);
+				dc_job_add(mailbox, DC_JOB_DELETE_MSG_ON_IMAP, dc_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 0);
 			}
 		}
 	}
