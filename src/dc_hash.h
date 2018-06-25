@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRHASH_H__
-#define __MRHASH_H__
+#ifndef __DC_HASH_H__
+#define __DC_HASH_H__
 #ifdef __cplusplus
 extern "C"
 {
@@ -74,24 +74,24 @@ typedef struct mrhashelem_t
 /*
  * There are 4 different modes of operation for a hash table:
  *
- *   MRHASH_INT         nKey is used as the key and pKey is ignored.
+ *   DC_HASH_INT         nKey is used as the key and pKey is ignored.
  *
- *   MRHASH_POINTER     pKey is used as the key and nKey is ignored.
+ *   DC_HASH_POINTER     pKey is used as the key and nKey is ignored.
  *
- *   MRHASH_STRING      pKey points to a string that is nKey bytes long
+ *   DC_HASH_STRING      pKey points to a string that is nKey bytes long
  *                      (including the null-terminator, if any).  Case
  *                      is ignored in comparisons.
  *
- *   MRHASH_BINARY      pKey points to binary data nKey bytes long.
+ *   DC_HASH_BINARY      pKey points to binary data nKey bytes long.
  *                      memcmp() is used to compare keys.
  *
- * A copy of the key is made for MRHASH_STRING and MRHASH_BINARY
+ * A copy of the key is made for DC_HASH_STRING and DC_HASH_BINARY
  * if the copyKey parameter to dc_hash_init() is 1.
  */
-#define MRHASH_INT       1
-#define MRHASH_POINTER   2
-#define MRHASH_STRING    3
-#define MRHASH_BINARY    4
+#define DC_HASH_INT       1
+#define DC_HASH_POINTER   2
+#define DC_HASH_STRING    3
+#define DC_HASH_BINARY    4
 
 
 /*
@@ -133,4 +133,4 @@ void    dc_hash_clear    (dc_hash_t*);
 #ifdef __cplusplus
 };  /* /extern "C" */
 #endif
-#endif /* __MRHASH_H__ */
+#endif /* __DC_HASH_H__ */

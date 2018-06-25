@@ -20,26 +20,26 @@
  ******************************************************************************/
 
 
-#ifndef __MRMIMEFACTORY_H__
-#define __MRMIMEFACTORY_H__
+#ifndef __DC_MIMEFACTORY_H__
+#define __DC_MIMEFACTORY_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
 
-#define MR_CMD_GROUPNAME_CHANGED           2
-#define MR_CMD_GROUPIMAGE_CHANGED          3
-#define MR_CMD_MEMBER_ADDED_TO_GROUP       4
-#define MR_CMD_MEMBER_REMOVED_FROM_GROUP   5
-#define MR_CMD_AUTOCRYPT_SETUP_MESSAGE     6
-#define MR_CMD_SECUREJOIN_MESSAGE          7
+#define DC_CMD_GROUPNAME_CHANGED           2
+#define DC_CMD_GROUPIMAGE_CHANGED          3
+#define DC_CMD_MEMBER_ADDED_TO_GROUP       4
+#define DC_CMD_MEMBER_REMOVED_FROM_GROUP   5
+#define DC_CMD_AUTOCRYPT_SETUP_MESSAGE     6
+#define DC_CMD_SECUREJOIN_MESSAGE          7
 
 
 typedef enum {
-	MR_MF_NOTHING_LOADED = 0,
-	MR_MF_MSG_LOADED,
-	MR_MF_MDN_LOADED
+	DC_MF_NOTHING_LOADED = 0,
+	DC_MF_MSG_LOADED,
+	DC_MF_MDN_LOADED
 } dc_mimefactory_loaded_t;
 
 
@@ -89,5 +89,5 @@ int         dc_mimefactory_render            (dc_mimefactory_t*);
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMIMEFACTORY_H__ */
+#endif /* __DC_MIMEFACTORY_H__ */
 

@@ -302,7 +302,7 @@ void stress_functions(dc_context_t* context)
 
 		str = strdup("this is a little test string");
 			dc_truncate_str(str, 16);
-			assert( strcmp(str, "this is a " MR_EDITORIAL_ELLIPSE)==0 );
+			assert( strcmp(str, "this is a " DC_EDITORIAL_ELLIPSE)==0 );
 		free(str);
 
 		str = strdup("1234");
@@ -371,10 +371,10 @@ void stress_functions(dc_context_t* context)
 		assert( strcmp("self="         DC_STRINGIFY(DC_CONTACT_ID_SELF),          "self=1")==0 );
 		assert( strcmp("spcl_contact=" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL),  "spcl_contact=9")==0 );
 
-		assert( strcmp("grpimg="    DC_STRINGIFY(MR_CMD_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
+		assert( strcmp("grpimg="    DC_STRINGIFY(DC_CMD_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
 
-		assert( strcmp("notverified="    DC_STRINGIFY(MRV_NOT_VERIFIED),  "notverified=0")==0 );
-		assert( strcmp("bidirectional="  DC_STRINGIFY(MRV_BIDIRECTIONAL), "bidirectional=2")==0 );
+		assert( strcmp("notverified="    DC_STRINGIFY(DC_NOT_VERIFIED),  "notverified=0")==0 );
+		assert( strcmp("bidirectional="  DC_STRINGIFY(DC_BIDIRECT_VERIFIED), "bidirectional=2")==0 );
 
 		assert( strcmp("public="  DC_STRINGIFY(DC_KEY_PUBLIC), "public=0")==0 );
 		assert( strcmp("private="  DC_STRINGIFY(DC_KEY_PRIVATE), "private=1")==0 );
@@ -812,7 +812,7 @@ void stress_functions(dc_context_t* context)
 
 			void* plain = NULL;
 			dc_hash_t valid_signatures;
-			dc_hash_init(&valid_signatures, MRHASH_STRING, 1/*copy key*/);
+			dc_hash_init(&valid_signatures, DC_HASH_STRING, 1/*copy key*/);
 			int ok;
 
 			ok = dc_pgp_pk_decrypt(context, ctext_signed, ctext_signed_bytes, keyring, public_keyring/*for validate*/, 1, &plain, &plain_bytes, &valid_signatures);

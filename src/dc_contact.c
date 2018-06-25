@@ -277,18 +277,18 @@ int dc_contact_is_blocked(const dc_contact_t* contact)
 
 int dc_contact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
 {
-	int             contact_verified = MRV_NOT_VERIFIED;
+	int             contact_verified = DC_NOT_VERIFIED;
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
 	if( contact->m_id == MR_CONTACT_ID_SELF ) {
-		contact_verified = MRV_BIDIRECTIONAL;
+		contact_verified = DC_BIDIRECT_VERIFIED;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
-	contact_verified = peerstate->m_verified_key? MRV_BIDIRECTIONAL : 0;
+	contact_verified = peerstate->m_verified_key? DC_BIDIRECT_VERIFIED : 0;
 
 cleanup:
 	return contact_verified;
@@ -310,7 +310,7 @@ cleanup:
  */
 int dc_contact_is_verified(const dc_contact_t* contact)
 {
-	int             contact_verified = MRV_NOT_VERIFIED;
+	int             contact_verified = DC_NOT_VERIFIED;
 	int             locked           = 0;
 	dc_apeerstate_t* peerstate        = NULL;
 

@@ -83,7 +83,7 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 		factory->m_out = NULL;
 	}
 	factory->m_out_encrypted = 0;
-	factory->m_loaded = MR_MF_NOTHING_LOADED;
+	factory->m_loaded = DC_MF_NOTHING_LOADED;
 
 	factory->m_timestamp = 0;
 }
@@ -153,7 +153,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				}
 
 				int command = dc_param_get_int(factory->m_msg->m_param, DC_PARAM_CMD, 0);
-				if( command==MR_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
+				if( command==DC_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 					char* email_to_remove     = dc_param_get(factory->m_msg->m_param, DC_PARAM_CMD_ARG, NULL);
 					char* self_addr           = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "");
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
@@ -167,8 +167,8 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 					free(self_addr);
 				}
 
-				if( command!=MR_CMD_AUTOCRYPT_SETUP_MESSAGE
-				 && command!=MR_CMD_SECUREJOIN_MESSAGE
+				if( command!=DC_CMD_AUTOCRYPT_SETUP_MESSAGE
+				 && command!=DC_CMD_SECUREJOIN_MESSAGE
 				 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
@@ -222,7 +222,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			}
 
 			success = 1;
-			factory->m_loaded = MR_MF_MSG_LOADED;
+			factory->m_loaded = DC_MF_MSG_LOADED;
 			factory->m_timestamp = factory->m_msg->m_timestamp;
 			factory->m_rfc724_mid = safe_strdup(factory->m_msg->m_rfc724_mid);
 		}
@@ -288,7 +288,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 	locked = 0;
 
 	success = 1;
-	factory->m_loaded = MR_MF_MDN_LOADED;
+	factory->m_loaded = DC_MF_MDN_LOADED;
 
 cleanup:
 	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
@@ -445,7 +445,7 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
-	if( dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0) == MR_CMD_AUTOCRYPT_SETUP_MESSAGE )
+	if( dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE )
 	{
 		ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
@@ -466,7 +466,7 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 int dc_mimefactory_render(dc_mimefactory_t* factory)
 {
 	if( factory == NULL
-	 || factory->m_loaded == MR_MF_NOTHING_LOADED
+	 || factory->m_loaded == DC_MF_NOTHING_LOADED
 	 || factory->m_out/*call empty() before*/ ) {
 		return 0;
 	}
@@ -480,7 +480,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                          parts = 0;
 	dc_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
-	int                          min_verified = MRV_NOT_VERIFIED;
+	int                          min_verified = DC_NOT_VERIFIED;
 	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
 	char*                        grpimage = NULL;
 
@@ -539,7 +539,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		mailmime_set_imf_fields(message, imf_fields);
 	}
 
-	if( factory->m_loaded == MR_MF_MSG_LOADED )
+	if( factory->m_loaded == DC_MF_MSG_LOADED )
 	{
 		/* Render a normal message
 		 *********************************************************************/
@@ -554,7 +554,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
 			force_plaintext   = 0;
 			e2ee_guaranteed   = 1;
-			min_verified      = MRV_BIDIRECTIONAL;
+			min_verified      = DC_BIDIRECT_VERIFIED;
 		}
 		else {
 			if( (force_plaintext = dc_param_get_int(factory->m_msg->m_param, DC_PARAM_FORCE_PLAINTEXT, 0)) == 0 ) {
@@ -570,14 +570,14 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), dc_encode_header_words(chat->m_name)));
 
 
-			if( command == MR_CMD_MEMBER_REMOVED_FROM_GROUP )
+			if( command == DC_CMD_MEMBER_REMOVED_FROM_GROUP )
 			{
 				char* email_to_remove = dc_param_get(msg->m_param, DC_PARAM_CMD_ARG, NULL);
 				if( email_to_remove ) {
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Member-Removed"), email_to_remove));
 				}
 			}
-			else if( command == MR_CMD_MEMBER_ADDED_TO_GROUP )
+			else if( command == DC_CMD_MEMBER_ADDED_TO_GROUP )
 			{
 				char* email_to_add = dc_param_get(msg->m_param, DC_PARAM_CMD_ARG, NULL);
 				if( email_to_add ) {
@@ -590,11 +590,11 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
 				}
 			}
-			else if( command == MR_CMD_GROUPNAME_CHANGED )
+			else if( command == DC_CMD_GROUPNAME_CHANGED )
 			{
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name-Changed"), strdup("1")));
 			}
-			else if( command == MR_CMD_GROUPIMAGE_CHANGED )
+			else if( command == DC_CMD_GROUPIMAGE_CHANGED )
 			{
 				grpimage = dc_param_get(msg->m_param, DC_PARAM_CMD_ARG, NULL);
 				if( grpimage==NULL ) {
@@ -603,12 +603,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			}
 		}
 
-		if( command == MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
+		if( command == DC_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
 			placeholdertext = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
 		}
 
-		if( command == MR_CMD_SECUREJOIN_MESSAGE ) {
+		if( command == DC_CMD_SECUREJOIN_MESSAGE ) {
 			char* step = dc_param_get(msg->m_param, DC_PARAM_CMD_ARG, NULL);
 			if( step ) {
 				dc_log_info(msg->m_context, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
@@ -712,7 +712,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			parts++;
 		}
 	}
-	else if( factory->m_loaded == MR_MF_MDN_LOADED )
+	else if( factory->m_loaded == DC_MF_MDN_LOADED )
 	{
 		/* Render a MDN
 		 *********************************************************************/
@@ -777,7 +777,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	/* Encrypt the message
 	 *************************************************************************/
 
-	if( factory->m_loaded==MR_MF_MDN_LOADED ) {
+	if( factory->m_loaded==DC_MF_MDN_LOADED ) {
 		char* e = mrstock_str(MR_STR_READRCPT); subject_str = dc_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
 	}
 	else {

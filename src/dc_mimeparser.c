@@ -426,7 +426,7 @@ dc_hash_t* mailimf_get_recipients(struct mailimf_fields* imffields)
 {
 	/* the returned value must be dc_hash_clear()'d and free()'d. returned addresses are normalized. */
 	dc_hash_t* recipients = malloc(sizeof(dc_hash_t));
-	dc_hash_init(recipients, MRHASH_STRING, 1/*copy key*/);
+	dc_hash_init(recipients, DC_HASH_STRING, 1/*copy key*/);
 
 	clistiter* cur1;
 	for( cur1 = clist_begin(imffields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
@@ -849,7 +849,7 @@ dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, dc_context_t* mailbox)
 	ths->m_reports = carray_new(16);
 	ths->m_e2ee_helper = calloc(1, sizeof(dc_e2ee_helper_t));
 
-	dc_hash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
+	dc_hash_init(&ths->m_header, DC_HASH_STRING, 0/* do not copy key */);
 
 	return ths;
 }
@@ -1307,7 +1307,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 						part->m_type = MR_MSG_TEXT;
 
 						char* msg_body = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
-						part->m_msg = dc_mprintf(MR_EDITORIAL_OPEN "%s" MR_EDITORIAL_CLOSE, msg_body);
+						part->m_msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, msg_body);
 						free(msg_body);
 
 						carray_add(ths->m_parts, (void*)part, NULL);
@@ -1533,7 +1533,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 		}
 		if( has_setup_file ) {
 			/* delete all parts but the application/autocrypt-setup part */
-			ths->m_is_system_message = MR_CMD_AUTOCRYPT_SETUP_MESSAGE;
+			ths->m_is_system_message = DC_CMD_AUTOCRYPT_SETUP_MESSAGE;
 			for( i = 0; i < carray_count(ths->m_parts); i++ ) {
 				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 				if( part->m_int_mimetype!=MR_MIMETYPE_AC_SETUP_FILE ) {
@@ -1626,7 +1626,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	 && carray_count(ths->m_parts)>=1 ) {
 		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(ths->m_parts, 0);
 		if( textpart->m_type == MR_MSG_TEXT ) {
-			dc_param_set_int(textpart->m_param, DC_PARAM_CMD, MR_CMD_GROUPIMAGE_CHANGED);
+			dc_param_set_int(textpart->m_param, DC_PARAM_CMD, DC_CMD_GROUPIMAGE_CHANGED);
 			if( carray_count(ths->m_parts)>=2 ) {
 				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(ths->m_parts, 1);
 				if( imgpart->m_type == MR_MSG_IMAGE ) {

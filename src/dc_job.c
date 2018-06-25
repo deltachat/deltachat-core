@@ -421,7 +421,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && dc_param_get(mimefactory.m_chat->m_param, DC_PARAM_SELFTALK, 0)==0
-		 && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
+		 && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_CMD, 0)!=DC_CMD_SECUREJOIN_MESSAGE ) {
 			dc_job_add(mailbox, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 

@@ -113,10 +113,10 @@ static int sjhashNoCase(const char *z, int n)
 void dc_hash_init(dc_hash_t *pNew, int keyClass, int copyKey)
 {
 	assert( pNew!=0 );
-	assert( keyClass>=MRHASH_INT && keyClass<=MRHASH_BINARY );
+	assert( keyClass>=DC_HASH_INT && keyClass<=DC_HASH_BINARY );
 	pNew->keyClass = keyClass;
 
-	if( keyClass==MRHASH_POINTER || keyClass==MRHASH_INT ) copyKey = 0;
+	if( keyClass==DC_HASH_POINTER || keyClass==DC_HASH_INT ) copyKey = 0;
 
 	pNew->copyKey = copyKey;
 	pNew->first = 0;
@@ -239,10 +239,10 @@ static int (*hashFunction(int keyClass))(const void*,int)
 {
 	switch( keyClass )
 	{
-		case MRHASH_INT:    return &intHash;
-		case MRHASH_POINTER:return &ptrHash;
-		case MRHASH_STRING: return &strHash;
-		case MRHASH_BINARY: return &binHash;;
+		case DC_HASH_INT:    return &intHash;
+		case DC_HASH_POINTER:return &ptrHash;
+		case DC_HASH_STRING: return &strHash;
+		case DC_HASH_BINARY: return &binHash;;
 		default:            break;
 	}
 	return 0;
@@ -256,10 +256,10 @@ static int (*compareFunction(int keyClass))(const void*,int,const void*,int)
 {
 	switch( keyClass )
 	{
-		case MRHASH_INT:     return &intCompare;
-		case MRHASH_POINTER: return &ptrCompare;
-		case MRHASH_STRING:  return &strCompare;
-		case MRHASH_BINARY:  return &binCompare;
+		case DC_HASH_INT:     return &intCompare;
+		case DC_HASH_POINTER: return &ptrCompare;
+		case DC_HASH_STRING:  return &strCompare;
+		case DC_HASH_BINARY:  return &binCompare;
 		default: break;
 	}
 	return 0;

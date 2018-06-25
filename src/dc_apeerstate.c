@@ -182,7 +182,7 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, dc_sqlite3_t* sql, in
 		sqlite3_step(stmt);
 	}
 
-	if( (ths->m_to_save&MRA_SAVE_ALL) || create )
+	if( (ths->m_to_save&DC_SAVE_ALL) || create )
 	{
 		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
 			"UPDATE acpeerstates "
@@ -204,7 +204,7 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, dc_sqlite3_t* sql, in
 			goto cleanup;
 		}
 	}
-	else if( ths->m_to_save&MRA_SAVE_TIMESTAMPS )
+	else if( ths->m_to_save&DC_SAVE_TIMESTAMPS )
 	{
 		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
 			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
@@ -301,8 +301,8 @@ cleanup:
  *
  * @param peerstate The peerstate object.
  * @param min_verified The minimal verification criterion the key should match.
- *     Typically either MRV_NOT_VERIFIED (0) if there is no need for the key being verified
- *     or MRV_BIDIRECTIONAL (2) for bidirectional verification requirement.
+ *     Typically either DC_NOT_VERIFIED (0) if there is no need for the key being verified
+ *     or DC_BIDIRECT_VERIFIED (2) for bidirectional verification requirement.
  *
  * @return m_public_key or m_gossip_key, NULL if nothing is available.
  *     the returned pointer MUST NOT be unref()'d.
@@ -345,7 +345,7 @@ int dc_apeerstate_init_from_header(dc_apeerstate_t* ths, const dc_aheader_t* hea
 	ths->m_addr                = safe_strdup(header->m_addr);
 	ths->m_last_seen           = message_time;
 	ths->m_last_seen_autocrypt = message_time;
-	ths->m_to_save             = MRA_SAVE_ALL;
+	ths->m_to_save             = DC_SAVE_ALL;
 	ths->m_prefer_encrypt      = header->m_prefer_encrypt;
 
 	ths->m_public_key = dc_key_new();
@@ -365,7 +365,7 @@ int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_
 	dc_apeerstate_empty(peerstate);
 	peerstate->m_addr                = safe_strdup(gossip_header->m_addr);
 	peerstate->m_gossip_timestamp    = message_time;
-	peerstate->m_to_save             = MRA_SAVE_ALL;
+	peerstate->m_to_save             = DC_SAVE_ALL;
 
 	peerstate->m_gossip_key = dc_key_new();
 	dc_key_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
@@ -382,12 +382,12 @@ int dc_apeerstate_degrade_encryption(dc_apeerstate_t* ths, time_t message_time)
 	}
 
 	if( ths->m_prefer_encrypt == DC_PE_MUTUAL ) {
-		ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
+		ths->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 	}
 
 	ths->m_prefer_encrypt = DC_PE_RESET;
 	ths->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
-	ths->m_to_save        = MRA_SAVE_ALL;
+	ths->m_to_save        = DC_SAVE_ALL;
 
 	return 1;
 }
@@ -406,17 +406,17 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header
 	{
 		ths->m_last_seen           = message_time;
 		ths->m_last_seen_autocrypt = message_time;
-		ths->m_to_save             |= MRA_SAVE_TIMESTAMPS;
+		ths->m_to_save             |= DC_SAVE_TIMESTAMPS;
 
 		if( (header->m_prefer_encrypt==DC_PE_MUTUAL || header->m_prefer_encrypt==DC_PE_NOPREFERENCE) /*this also switches from DC_PE_RESET to DC_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
 		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
 		{
 			if( ths->m_prefer_encrypt == DC_PE_MUTUAL && header->m_prefer_encrypt != DC_PE_MUTUAL ) {
-				ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
+				ths->m_degrade_event |= DC_DE_ENCRYPTION_PAUSED;
 			}
 
 			ths->m_prefer_encrypt = header->m_prefer_encrypt;
-			ths->m_to_save |= MRA_SAVE_ALL;
+			ths->m_to_save |= DC_SAVE_ALL;
 		}
 
 		if( ths->m_public_key == NULL ) {
@@ -427,7 +427,7 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header
 		{
 			dc_key_set_from_key(ths->m_public_key, header->m_public_key);
 			dc_apeerstate_recalc_fingerprint(ths);
-			ths->m_to_save |= MRA_SAVE_ALL;
+			ths->m_to_save |= DC_SAVE_ALL;
 		}
 	}
 }
@@ -445,7 +445,7 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 	if( message_time > peerstate->m_gossip_timestamp )
 	{
 		peerstate->m_gossip_timestamp    = message_time;
-		peerstate->m_to_save             |= MRA_SAVE_TIMESTAMPS;
+		peerstate->m_to_save             |= DC_SAVE_TIMESTAMPS;
 
 		if( peerstate->m_gossip_key == NULL ) {
 			peerstate->m_gossip_key = dc_key_new();
@@ -455,7 +455,7 @@ void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* 
 		{
 			dc_key_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
 			dc_apeerstate_recalc_fingerprint(peerstate);
-			peerstate->m_to_save |= MRA_SAVE_ALL;
+			peerstate->m_to_save |= DC_SAVE_ALL;
 		}
 	}
 }
@@ -490,10 +490,10 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 		 || peerstate->m_public_key_fingerprint[0] == 0
 		 || strcasecmp(old_public_fingerprint, peerstate->m_public_key_fingerprint) != 0 )
 		{
-			peerstate->m_to_save  |= MRA_SAVE_ALL;
+			peerstate->m_to_save  |= DC_SAVE_ALL;
 
 			if( old_public_fingerprint && old_public_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
-				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
+				peerstate->m_degrade_event |= DC_DE_FINGERPRINT_CHANGED;
 			}
 		}
 	}
@@ -509,10 +509,10 @@ int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 		 || peerstate->m_gossip_key_fingerprint[0] == 0
 		 || strcasecmp(old_gossip_fingerprint, peerstate->m_gossip_key_fingerprint) != 0 )
 		{
-			peerstate->m_to_save  |= MRA_SAVE_ALL;
+			peerstate->m_to_save  |= DC_SAVE_ALL;
 
 			if( old_gossip_fingerprint && old_gossip_fingerprint[0] ) { // no degrade event when we recveive just the initial fingerprint
-				peerstate->m_degrade_event |= MRA_DE_FINGERPRINT_CHANGED;
+				peerstate->m_degrade_event |= DC_DE_FINGERPRINT_CHANGED;
 			}
 		}
 	}
@@ -538,7 +538,7 @@ cleanup:
  * @param peerstate The peerstate object.
  * @param which_key Which key should be marked as being verified? MRA_GOSSIP_KEY (1) or MRA_PUBLIC_KEY (2)
  * @param fingerprint Fingerprint expected in the object
- * @param verified MRV_BIDIRECTIONAL (2): contact verfied in both directions
+ * @param verified DC_BIDIRECT_VERIFIED (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
  *     the verified-state is set; you should call dc_apeerstate_save_to_db__()
@@ -552,7 +552,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 
 	if( peerstate == NULL
 	 || (which_key!=MRA_GOSSIP_KEY && which_key!=MRA_PUBLIC_KEY)
-	 || (verified!=MRV_BIDIRECTIONAL) ) {
+	 || (verified!=DC_BIDIRECT_VERIFIED) ) {
 		goto cleanup;
 	}
 
@@ -562,7 +562,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_public_key_fingerprint, fingerprint) == 0 )
 	{
-		peerstate->m_to_save                 |= MRA_SAVE_ALL;
+		peerstate->m_to_save                 |= DC_SAVE_ALL;
 		peerstate->m_verified_key             = dc_key_ref(peerstate->m_public_key);
 		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_public_key_fingerprint);
 		success                               = 1;
@@ -574,7 +574,7 @@ int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const 
 	 && fingerprint[0] != 0
 	 && strcasecmp(peerstate->m_gossip_key_fingerprint, fingerprint) == 0 )
 	{
-		peerstate->m_to_save                 |= MRA_SAVE_ALL;
+		peerstate->m_to_save                 |= DC_SAVE_ALL;
 		peerstate->m_verified_key             = dc_key_ref(peerstate->m_gossip_key);
 		peerstate->m_verified_key_fingerprint = safe_strdup(peerstate->m_gossip_key_fingerprint);
 		success                               = 1;

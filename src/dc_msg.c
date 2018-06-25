@@ -786,7 +786,7 @@ int dc_msg_is_info(const dc_msg_t* msg)
 
 	if( msg->m_from_id == MR_CONTACT_ID_DEVICE
 	 || msg->m_to_id == MR_CONTACT_ID_DEVICE
-	 || (cmd && cmd != MR_CMD_AUTOCRYPT_SETUP_MESSAGE) ) {
+	 || (cmd && cmd != DC_CMD_AUTOCRYPT_SETUP_MESSAGE) ) {
 		return 1;
 	}
 
@@ -816,7 +816,7 @@ int dc_msg_is_setupmessage(const dc_msg_t* msg)
 		return 0;
 	}
 
-	return dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
+	return dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
 }
 
 
@@ -1064,7 +1064,7 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 			break;
 
 		case MR_MSG_FILE:
-			if( dc_param_get_int(param, DC_PARAM_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
+			if( dc_param_get_int(param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 				ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
 			}
 			else {

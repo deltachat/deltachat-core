@@ -786,7 +786,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* mailbox, time_t message
 						// verified when used in a verified group by a verified sender
 						if( gossipped_addr == NULL ) {
 							gossipped_addr = malloc(sizeof(dc_hash_t));
-							dc_hash_init(gossipped_addr, MRHASH_STRING, 1/*copy key*/);
+							dc_hash_init(gossipped_addr, DC_HASH_STRING, 1/*copy key*/);
 						}
 						dc_hash_insert(gossipped_addr, gossip_header->m_addr, strlen(gossip_header->m_addr), (void*)1);
 					}
@@ -917,7 +917,7 @@ void dc_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
 	helper->m_signatures = malloc(sizeof(dc_hash_t));
-	dc_hash_init(helper->m_signatures, MRHASH_STRING, 1/*copy key*/);
+	dc_hash_init(helper->m_signatures, DC_HASH_STRING, 1/*copy key*/);
 
 	int iterations = 0;
 	while( iterations < 10 ) {

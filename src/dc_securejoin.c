@@ -51,13 +51,13 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 		goto cleanup;
 	}
 
-	// - we do not issue an warning for MRA_DE_ENCRYPTION_PAUSED as this is quite normal
-	// - currently, we do not issue an extra warning for MRA_DE_VERIFICATION_LOST - this always comes
-	//   together with MRA_DE_FINGERPRINT_CHANGED which is logged, the idea is not to bother
+	// - we do not issue an warning for DC_DE_ENCRYPTION_PAUSED as this is quite normal
+	// - currently, we do not issue an extra warning for DC_DE_VERIFICATION_LOST - this always comes
+	//   together with DC_DE_FINGERPRINT_CHANGED which is logged, the idea is not to bother
 	//   with things they cannot fix, so the user is just kicked from the verified group
 	//   (and he will know this and can fix this)
 
-	if( peerstate->m_degrade_event & MRA_DE_FINGERPRINT_CHANGED )
+	if( peerstate->m_degrade_event & DC_DE_FINGERPRINT_CHANGED )
 	{
 		LOCK
 
@@ -212,7 +212,7 @@ static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprin
 		goto cleanup;
 	}
 
-	if( !dc_apeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, MRV_BIDIRECTIONAL) ) {
+	if( !dc_apeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, DC_BIDIRECT_VERIFIED) ) {
 		goto cleanup;
 	}
 
@@ -220,7 +220,7 @@ static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprin
 	// the state may be corrected by the Autocrypt headers as usual later;
 	// maybe it is a good idea to add the prefer-encrypt-state to the QR code.
 	peerstate->m_prefer_encrypt = DC_PE_MUTUAL;
-	peerstate->m_to_save       |= MRA_SAVE_ALL;
+	peerstate->m_to_save       |= DC_SAVE_ALL;
 
 	dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0);
 	success = 1;
@@ -250,7 +250,7 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 	msg->m_type = MR_MSG_TEXT;
 	msg->m_text = dc_mprintf("Secure-Join: %s", step);
 	msg->m_hidden = 1;
-	dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_SECUREJOIN_MESSAGE);
+	dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_SECUREJOIN_MESSAGE);
 	dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, step);
 
 	if( param2 ) {

@@ -2759,7 +2759,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
-		dc_param_set_int(msg->m_param, DC_PARAM_CMD, MR_CMD_GROUPNAME_CHANGED);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD, DC_CMD_GROUPNAME_CHANGED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -2831,7 +2831,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_GROUPIMAGE_CHANGED);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_GROUPIMAGE_CHANGED);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, new_image);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
@@ -2957,7 +2957,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP )
 			{
 				if( !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr)
-				 || dc_contact_is_verified__(contact, peerstate) != MRV_BIDIRECTIONAL ) {
+				 || dc_contact_is_verified__(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
 					dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 					goto cleanup;
 				}
@@ -2976,7 +2976,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
-		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_MEMBER_ADDED_TO_GROUP);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG ,contact->m_addr);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD_ARG2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
@@ -3083,7 +3083,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			else {
 				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
-			dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_MEMBER_REMOVED_FROM_GROUP);
+			dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_MEMBER_REMOVED_FROM_GROUP);
 			dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, contact->m_addr);
 			msg->m_id = dc_send_msg_object(context, chat_id, msg);
 			context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
@@ -3851,7 +3851,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
-	if( dc_apeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
+	if( dc_apeerstate_peek_key(peerstate, DC_NOT_VERIFIED) )
 	{
 		// E2E available :)
 		p = mrstock_str(peerstate->m_prefer_encrypt == DC_PE_MUTUAL? MR_STR_E2E_PREFERRED : MR_STR_E2E_AVAILABLE); dc_strbuilder_cat(&ret, p); free(p);
@@ -3871,8 +3871,8 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		dc_strbuilder_cat(&ret, ":");
 
 		fingerprint_self = dc_key_get_formatted_fingerprint(self_key);
-		fingerprint_other_verified = dc_key_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL));
-		fingerprint_other_unverified = dc_key_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
+		fingerprint_other_verified = dc_key_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, DC_BIDIRECT_VERIFIED));
+		fingerprint_other_unverified = dc_key_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, DC_NOT_VERIFIED));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_self, NULL);

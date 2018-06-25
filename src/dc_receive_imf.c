@@ -597,7 +597,7 @@ static int check_verified_properties__(dc_context_t* mailbox, dc_mimeparser_t* m
 	// ensure, the contact is verified
 	if( !dc_contact_load_from_db__(contact, mailbox->m_sql, from_id)
 	 || !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
-	 || dc_contact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
+	 || dc_contact_is_verified__(contact, peerstate) < DC_BIDIRECT_VERIFIED ) {
 		dc_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
@@ -641,7 +641,7 @@ static int check_verified_properties__(dc_context_t* mailbox, dc_mimeparser_t* m
 			    && strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_gossip_key_fingerprint)!=0) )
 			{
 				dc_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
-				dc_apeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
+				dc_apeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
 				dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 				is_verified = 1;
 			}
@@ -751,19 +751,19 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 
 		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
 			X_MrRemoveFromGrp = optional_field->fld_value;
-			mime_parser->m_is_system_message = MR_CMD_MEMBER_REMOVED_FROM_GROUP;
+			mime_parser->m_is_system_message = DC_CMD_MEMBER_REMOVED_FROM_GROUP;
 		}
 		else if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Added", "X-MrAddToGrp"))!=NULL ) {
 			X_MrAddToGrp = optional_field->fld_value;
-			mime_parser->m_is_system_message = MR_CMD_MEMBER_ADDED_TO_GROUP;
+			mime_parser->m_is_system_message = DC_CMD_MEMBER_ADDED_TO_GROUP;
 		}
 		else if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name-Changed", "X-MrGrpNameChanged"))!=NULL ) {
 			X_MrGrpNameChanged = 1;
-			mime_parser->m_is_system_message = MR_CMD_GROUPNAME_CHANGED;
+			mime_parser->m_is_system_message = DC_CMD_GROUPNAME_CHANGED;
 		}
 		else if( (optional_field=dc_mimeparser_lookup_optional_field(mime_parser, "Chat-Group-Image"))!=NULL ) {
 			X_MrGrpImageChanged = 1;
-			mime_parser->m_is_system_message = MR_CMD_GROUPIMAGE_CHANGED;
+			mime_parser->m_is_system_message = DC_CMD_GROUPIMAGE_CHANGED;
 		}
 	}
 
