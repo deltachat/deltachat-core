@@ -159,6 +159,7 @@ extern "C" {
 #define mrchat_is_unpromoted                dc_chat_is_unpromoted
 #define mrchat_is_self_talk                 dc_chat_is_self_talk
 #define mrchat_is_verified                  dc_chat_is_verified
+#define mrchat_set_draft                    dc_chat_set_draft
 
 // message functions
 #define MR_MSG_ID_MARKER1                   DC_MSG_ID_MARKER1
