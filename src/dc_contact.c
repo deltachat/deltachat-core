@@ -46,7 +46,7 @@ dc_contact_t* dc_contact_new(dc_context_t* mailbox)
 	}
 
 	ths->m_magic   = MR_CONTACT_MAGIC;
-	ths->m_mailbox = mailbox;
+	ths->m_context = mailbox;
 
 	return ths;
 }
@@ -318,19 +318,19 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 		goto cleanup;
 	}
 
-	peerstate = dc_apeerstate_new(contact->m_mailbox);
+	peerstate = dc_apeerstate_new(contact->m_context);
 
-	dc_sqlite3_lock(contact->m_mailbox->m_sql);
+	dc_sqlite3_lock(contact->m_context->m_sql);
 	locked = 1;
 
-		if( !dc_apeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
+		if( !dc_apeerstate_load_by_addr__(peerstate, contact->m_context->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
 		contact_verified = dc_contact_is_verified__(contact, peerstate);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(contact->m_mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(contact->m_context->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	return contact_verified;
 }

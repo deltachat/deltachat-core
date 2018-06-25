@@ -229,7 +229,7 @@ cleanup:
  ******************************************************************************/
 
 
-dc_apeerstate_t* dc_apeerstate_new(mrmailbox_t* mailbox)
+dc_apeerstate_t* dc_apeerstate_new(dc_context_t* mailbox)
 {
 	dc_apeerstate_t* ths = NULL;
 
@@ -237,7 +237,7 @@ dc_apeerstate_t* dc_apeerstate_new(mrmailbox_t* mailbox)
 		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_mailbox = mailbox;
+	ths->m_context = mailbox;
 
 	return ths;
 }

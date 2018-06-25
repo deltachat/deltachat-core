@@ -34,14 +34,14 @@
  ******************************************************************************/
 
 
-void dc_mimefactory_init(dc_mimefactory_t* factory, mrmailbox_t* mailbox)
+void dc_mimefactory_init(dc_mimefactory_t* factory, dc_context_t* mailbox)
 {
 	if( factory == NULL || mailbox == NULL ) {
 		return;
 	}
 
 	memset(factory, 0, sizeof(dc_mimefactory_t));
-	factory->m_mailbox = mailbox;
+	factory->m_context = mailbox;
 }
 
 
@@ -91,10 +91,10 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 
 static void load_from__(dc_mimefactory_t* factory)
 {
-	factory->m_from_addr        = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "configured_addr", NULL);
-	factory->m_from_displayname = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "displayname", NULL);
+	factory->m_from_addr        = dc_sqlite3_get_config__(factory->m_context->m_sql, "configured_addr", NULL);
+	factory->m_from_displayname = dc_sqlite3_get_config__(factory->m_context->m_sql, "displayname", NULL);
 
-	factory->m_selfstatus       = dc_sqlite3_get_config__(factory->m_mailbox->m_sql, "selfstatus", NULL);
+	factory->m_selfstatus       = dc_sqlite3_get_config__(factory->m_context->m_sql, "selfstatus", NULL);
 	if( factory->m_selfstatus == NULL ) {
 		factory->m_selfstatus = mrstock_str(MR_STR_STATUSLINE);
 	}
@@ -106,12 +106,12 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 	int success = 0, locked = 0;
 
 	if( factory == NULL || msg_id <= MR_MSG_ID_LAST_SPECIAL
-	 || factory->m_mailbox == NULL
+	 || factory->m_context == NULL
 	 || factory->m_msg /*call empty() before */ ) {
 		goto cleanup;
 	}
 
-	mrmailbox_t* mailbox = factory->m_mailbox;
+	dc_context_t* mailbox = factory->m_context;
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
@@ -243,13 +243,13 @@ cleanup:
 int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 {
 	int           success = 0, locked = 0;
-	dc_contact_t*  contact = dc_contact_new(factory->m_mailbox);
+	dc_contact_t*  contact = dc_contact_new(factory->m_context);
 
 	if( factory == NULL ) {
 		goto cleanup;
 	}
 
-	mrmailbox_t* mailbox = factory->m_mailbox;
+	dc_context_t* mailbox = factory->m_context;
 
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
@@ -478,13 +478,13 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
-	mrmailbox_e2ee_helper_t      e2ee_helper;
+	dc_e2ee_helper_t      e2ee_helper;
 	int                          e2ee_guaranteed = 0;
 	int                          min_verified = MRV_NOT_VERIFIED;
 	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)
 	char*                        grpimage = NULL;
 
-	memset(&e2ee_helper, 0, sizeof(mrmailbox_e2ee_helper_t));
+	memset(&e2ee_helper, 0, sizeof(dc_e2ee_helper_t));
 
 
 	/* create basic mail
@@ -522,8 +522,8 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("X-Mailer"),
 			mr_mprintf("Delta Chat %s%s%s",
 			DC_VERSION_STR,
-			factory->m_mailbox->m_os_name? " for " : "",
-			factory->m_mailbox->m_os_name? factory->m_mailbox->m_os_name : "")));
+			factory->m_context->m_os_name? " for " : "",
+			factory->m_context->m_os_name? factory->m_context->m_os_name : "")));
 
 		mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Version"), strdup("1.0"))); /* mark message as being sent by a messenger */
 		if( factory->m_predecessor ) {
@@ -586,7 +586,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 				}
 
 				if( mrparam_get_int(msg->m_param, MRP_CMD_PARAM2, 0)&MR_FROM_HANDSHAKE ) {
-					dc_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
+					dc_log_info(msg->m_context, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", "vg-member-added");
 					mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), strdup("vg-member-added")));
 				}
 			}
@@ -611,7 +611,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		if( command == MR_CMD_SECUREJOIN_MESSAGE ) {
 			char* step = mrparam_get(msg->m_param, MRP_CMD_PARAM, NULL);
 			if( step ) {
-				dc_log_info(msg->m_mailbox, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
+				dc_log_info(msg->m_context, 0, "sending secure-join message '%s' >>>>>>>>>>>>>>>>>>>>>>>>>", step);
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Secure-Join"), step/*mailimf takes ownership of string*/));
 
 				char* param2 = mrparam_get(msg->m_param, MRP_CMD_PARAM2, NULL);
@@ -788,7 +788,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	mailimf_fields_add(imf_fields, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 
 	if( force_plaintext != MRFP_NO_AUTOCRYPT_HEADER ) {
-		mrmailbox_e2ee_encrypt(factory->m_mailbox, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
+		mrmailbox_e2ee_encrypt(factory->m_context, factory->m_recipients_addr, force_plaintext, e2ee_guaranteed, min_verified, message, &e2ee_helper);
 	}
 
 	if( e2ee_helper.m_encryption_successfull ) {

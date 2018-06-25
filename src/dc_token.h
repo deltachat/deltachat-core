@@ -35,9 +35,9 @@ typedef enum {
 
 
 // Functions to read/write token from/to the database. A token is any string associated with a key.
-void     mrtoken_save__                 (mrmailbox_t*, mrtokennamespc_t, uint32_t foreign_id, const char* token);
-char*    mrtoken_lookup__               (mrmailbox_t*, mrtokennamespc_t, uint32_t foreign_id);
-int      mrtoken_exists__               (mrmailbox_t*, mrtokennamespc_t, const char* token);
+void     mrtoken_save__                 (dc_context_t*, mrtokennamespc_t, uint32_t foreign_id, const char* token);
+char*    mrtoken_lookup__               (dc_context_t*, mrtokennamespc_t, uint32_t foreign_id);
+int      mrtoken_exists__               (dc_context_t*, mrtokennamespc_t, const char* token);
 
 
 #ifdef __cplusplus

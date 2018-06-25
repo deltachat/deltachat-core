@@ -361,7 +361,7 @@ cleanup:
  *
  * @private @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by mrmailbox_new().
+ * @param mailbox Mailbox object as created by dc_context_new().
  *
  * @return Setup code, must be free()'d after usage. NULL on errors.
  */
@@ -395,7 +395,7 @@ char* mrmailbox_create_setup_code(dc_context_t* mailbox)
 
 
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
-char* mrmailbox_normalize_setup_code(mrmailbox_t* mailbox, const char* in)
+char* mrmailbox_normalize_setup_code(dc_context_t* mailbox, const char* in)
 {
 	if( in == NULL ) {
 		return NULL;
@@ -553,7 +553,7 @@ cleanup:
 }
 
 
-static int set_self_key(mrmailbox_t* mailbox, const char* armored, int set_default)
+static int set_self_key(dc_context_t* mailbox, const char* armored, int set_default)
 {
 	int            success      = 0;
 	int            locked       = 0;
@@ -667,7 +667,7 @@ int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_mailbox) || filecontent == NULL || filebytes <= 0 ) {
+	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_context) || filecontent == NULL || filebytes <= 0 ) {
 		dc_log_error(mailbox, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
@@ -703,7 +703,7 @@ cleanup:
  ******************************************************************************/
 
 
-static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id, const dc_key_t* key, int is_default)
+static void export_key_to_asc_file(dc_context_t* mailbox, const char* dir, int id, const dc_key_t* key, int is_default)
 {
 	char* file_name;
 	if( is_default ) {
@@ -722,7 +722,7 @@ static void export_key_to_asc_file(mrmailbox_t* mailbox, const char* dir, int id
 }
 
 
-static int export_self_keys(mrmailbox_t* mailbox, const char* dir)
+static int export_self_keys(dc_context_t* mailbox, const char* dir)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -763,7 +763,7 @@ cleanup:
  ******************************************************************************/
 
 
-static int import_self_keys(mrmailbox_t* mailbox, const char* dir_name)
+static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
 {
 	/* hint: even if we switch to import Autocrypt Setup Files, we should leave the possibility to import
 	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
@@ -868,7 +868,7 @@ The macro avoids weird values of 0% or 100% while still working. */
 	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, permille, 0);
 
 
-static int export_backup(mrmailbox_t* mailbox, const char* dir)
+static int export_backup(dc_context_t* mailbox, const char* dir)
 {
 	int            success = 0, locked = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
@@ -1032,7 +1032,7 @@ static void ensure_no_slash(char* path)
 }
 
 
-static int import_backup(mrmailbox_t* mailbox, const char* backup_to_import)
+static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
 {
 	/* command for testing eg.
 	imex import-backup /home/bpetersen/temp/delta-chat-2017-11-14.bak

@@ -68,7 +68,7 @@ struct _dc_msg
 	/*
 	 * The mailbox object the chat belongs to. Never NULL.
 	 */
-	//mrmailbox_t*    m_mailbox;
+	//dc_context_t*    m_context;
 
 
 	int             m_type;                   /**< Message type. It is recommended to use dc_msg_set_type() and dc_msg_get_type() to access this field. */
@@ -83,7 +83,7 @@ struct _dc_msg
 
 	char*           m_text;                   /**< Message text.  NULL if unset.  It is recommended to use dc_msg_set_text() and dc_msg_get_text() to access this field. */
 
-	mrmailbox_t*    m_mailbox;                /**< may be NULL, set on loading from database and on sending */
+	dc_context_t*    m_context;                /**< may be NULL, set on loading from database and on sending */
 	char*           m_rfc724_mid;             /**< The RFC-742 Message-ID */
 	char*           m_server_folder;          /**< Folder where the message was last seen on the server */
 	uint32_t        m_server_uid;             /**< UID last seen on the server for this message */
@@ -94,7 +94,7 @@ struct _dc_msg
 };
 
 
-int             dc_msg_load_from_db__                 (dc_msg_t*, mrmailbox_t*, uint32_t id);
+int             dc_msg_load_from_db__                 (dc_msg_t*, dc_context_t*, uint32_t id);
 int             dc_msg_is_increation__                (const dc_msg_t*);
 char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
 void            dc_msg_save_param_to_disk__           (dc_msg_t*);

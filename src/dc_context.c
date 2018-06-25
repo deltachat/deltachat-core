@@ -41,13 +41,13 @@
  ******************************************************************************/
 
 
-static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+static uintptr_t cb_dummy(dc_context_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
 	return 0;
 }
 static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 {
-	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	dc_context_t* mailbox = (dc_context_t*)imap->m_userData;
 	dc_sqlite3_lock(mailbox->m_sql);
 		char* ret = dc_sqlite3_get_config__(mailbox->m_sql, key, def);
 	dc_sqlite3_unlock(mailbox->m_sql);
@@ -55,14 +55,14 @@ static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 }
 static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 {
-	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	dc_context_t* mailbox = (dc_context_t*)imap->m_userData;
 	dc_sqlite3_lock(mailbox->m_sql);
 		dc_sqlite3_set_config__(mailbox->m_sql, key, value);
 	dc_sqlite3_unlock(mailbox->m_sql);
 }
 static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
-	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
+	dc_context_t* mailbox = (dc_context_t*)imap->m_userData;
 	mrmailbox_receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, server_folder, server_uid, flags);
 }
 
@@ -98,9 +98,9 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  */
 dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_name)
 {
-	mrmailbox_t* ths = NULL;
+	dc_context_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrmailbox_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_context_t)))==NULL ) {
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -646,7 +646,7 @@ char* dc_get_info(dc_context_t* mailbox)
  ******************************************************************************/
 
 
-int mrmailbox_get_archived_count__(mrmailbox_t* mailbox)
+int mrmailbox_get_archived_count__(dc_context_t* mailbox)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived,
 		"SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
@@ -831,7 +831,7 @@ uint32_t dc_get_chat_id_by_contact_id(dc_context_t* mailbox, uint32_t contact_id
 }
 
 
-uint32_t mrmailbox_get_chat_id_by_grpid__(mrmailbox_t* mailbox, const char* grpid, int* ret_blocked, int* ret_verified)
+uint32_t mrmailbox_get_chat_id_by_grpid__(dc_context_t* mailbox, const char* grpid, int* ret_blocked, int* ret_verified)
 {
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt;
@@ -989,7 +989,7 @@ cleanup:
 }
 
 
-static dc_array_t* mrmailbox_get_chat_media__(mrmailbox_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
+static dc_array_t* mrmailbox_get_chat_media__(dc_context_t* mailbox, uint32_t chat_id, int msg_type, int or_msg_type)
 {
 	dc_array_t* ret = dc_array_new(mailbox, 100);
 
@@ -1516,7 +1516,7 @@ cleanup:
 }
 
 
-int mrmailbox_get_fresh_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
+int mrmailbox_get_fresh_msg_count__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -1535,7 +1535,7 @@ int mrmailbox_get_fresh_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
-uint32_t mrmailbox_get_last_deaddrop_fresh_msg__(mrmailbox_t* mailbox)
+uint32_t mrmailbox_get_last_deaddrop_fresh_msg__(dc_context_t* mailbox)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -1556,7 +1556,7 @@ uint32_t mrmailbox_get_last_deaddrop_fresh_msg__(mrmailbox_t* mailbox)
 }
 
 
-int mrmailbox_get_total_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
+int mrmailbox_get_total_msg_count__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -1572,7 +1572,7 @@ int mrmailbox_get_total_msg_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
-size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
+size_t mrmailbox_get_chat_cnt__(dc_context_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
@@ -1590,7 +1590,7 @@ size_t mrmailbox_get_chat_cnt__(mrmailbox_t* mailbox)
 }
 
 
-void mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked)
+void mrmailbox_lookup_real_nchat_by_contact_id__(dc_context_t* mailbox, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	/* checks for "real" chats or self-chat */
 	sqlite3_stmt* stmt;
@@ -1616,7 +1616,7 @@ void mrmailbox_lookup_real_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t 
 }
 
 
-void mrmailbox_create_or_lookup_nchat_by_contact_id__(mrmailbox_t* mailbox, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
+void mrmailbox_create_or_lookup_nchat_by_contact_id__(dc_context_t* mailbox, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	uint32_t      chat_id = 0;
 	int           chat_blocked = 0;
@@ -1694,7 +1694,7 @@ cleanup:
 }
 
 
-void mrmailbox_unarchive_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
+void mrmailbox_unarchive_chat__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_unarchived, "UPDATE chats SET archived=0 WHERE id=?");
 	sqlite3_bind_int (stmt, 1, chat_id);
@@ -1926,7 +1926,7 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 }
 
 
-static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
+static uint32_t mrmailbox_send_msg_i__(dc_context_t* mailbox, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
 	sqlite3_stmt* stmt;
@@ -2082,7 +2082,7 @@ uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, dc_m
 	}
 
 	msg->m_id      = 0;
-	msg->m_mailbox = mailbox;
+	msg->m_context = mailbox;
 
 	if( msg->m_type == MR_MSG_TEXT )
 	{
@@ -2118,7 +2118,7 @@ uint32_t mrmailbox_send_msg_object(dc_context_t* mailbox, uint32_t chat_id, dc_m
 			 && (mrparam_get_int(msg->m_param, MRP_WIDTH, 0)<=0 || mrparam_get_int(msg->m_param, MRP_HEIGHT, 0)<=0) ) {
 				/* set width/height of images, if not yet done */
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-				if( mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_mailbox) ) {
+				if( mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_context) ) {
 					if( mr_get_filemeta(buf, buf_bytes, &w, &h) ) {
 						mrparam_set_int(msg->m_param, MRP_WIDTH, w);
 						mrparam_set_int(msg->m_param, MRP_HEIGHT, h);
@@ -2506,7 +2506,7 @@ cleanup:
 /* similar to mrmailbox_add_device_msg() but without locking and without sending
  * an event.
  */
-uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, const char* text, time_t timestamp)
+uint32_t mrmailbox_add_device_msg__(dc_context_t* mailbox, uint32_t chat_id, const char* text, time_t timestamp)
 {
 	sqlite3_stmt* stmt = NULL;
 
@@ -2536,7 +2536,7 @@ uint32_t mrmailbox_add_device_msg__(mrmailbox_t* mailbox, uint32_t chat_id, cons
  * Such a message is typically shown in the "middle" of the chat, the user can check this using dc_msg_is_info().
  * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
  */
-uint32_t mrmailbox_add_device_msg(mrmailbox_t* mailbox, uint32_t chat_id, const char* text)
+uint32_t mrmailbox_add_device_msg(dc_context_t* mailbox, uint32_t chat_id, const char* text)
 {
 	uint32_t      msg_id = 0;
 	int           locked = 0;
@@ -2570,7 +2570,7 @@ cleanup:
 #define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
 
 
-int mrmailbox_is_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+int mrmailbox_is_group_explicitly_left__(dc_context_t* mailbox, const char* grpid)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_FROM_leftgrps_WHERE_grpid, "SELECT id FROM leftgrps WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
@@ -2578,7 +2578,7 @@ int mrmailbox_is_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid
 }
 
 
-void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grpid)
+void mrmailbox_set_group_explicitly_left__(dc_context_t* mailbox, const char* grpid)
 {
 	if( !mrmailbox_is_group_explicitly_left__(mailbox, grpid) )
 	{
@@ -2590,7 +2590,7 @@ void mrmailbox_set_group_explicitly_left__(mrmailbox_t* mailbox, const char* grp
 }
 
 
-static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
+static int mrmailbox_real_group_exists__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	// check if a group or a verified group exists under the given ID
 	sqlite3_stmt* stmt;
@@ -2615,7 +2615,7 @@ static int mrmailbox_real_group_exists__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
-int mrmailbox_add_to_chat_contacts_table__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int mrmailbox_add_to_chat_contacts_table__(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, INSERT_INTO_chats_contacts,
@@ -2853,7 +2853,7 @@ cleanup:
 }
 
 
-int mrmailbox_get_chat_contact_count__(mrmailbox_t* mailbox, uint32_t chat_id)
+int mrmailbox_get_chat_contact_count__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
 		"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
@@ -2865,7 +2865,7 @@ int mrmailbox_get_chat_contact_count__(mrmailbox_t* mailbox, uint32_t chat_id)
 }
 
 
-int mrmailbox_is_contact_in_chat__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id)
+int mrmailbox_is_contact_in_chat__(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,
 		"SELECT contact_id FROM chats_contacts WHERE chat_id=? AND contact_id=?;");
@@ -2909,7 +2909,7 @@ int dc_is_contact_in_chat(dc_context_t* mailbox, uint32_t chat_id, uint32_t cont
 }
 
 
-int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t contact_id, int flags)
+int mrmailbox_add_contact_to_chat_ex(dc_context_t* mailbox, uint32_t chat_id, uint32_t contact_id, int flags)
 {
 	int             success   = 0, locked = 0;
 	dc_contact_t*    contact   = mrmailbox_get_contact(mailbox, contact_id);
@@ -3123,7 +3123,7 @@ cleanup:
  ******************************************************************************/
 
 
-int mrmailbox_real_contact_exists__(mrmailbox_t* mailbox, uint32_t contact_id)
+int mrmailbox_real_contact_exists__(dc_context_t* mailbox, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt;
 	int           ret = 0;
@@ -3145,7 +3145,7 @@ int mrmailbox_real_contact_exists__(mrmailbox_t* mailbox, uint32_t contact_id)
 }
 
 
-size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
+size_t mrmailbox_get_real_contact_cnt__(dc_context_t* mailbox)
 {
 	sqlite3_stmt* stmt;
 
@@ -3163,7 +3163,7 @@ size_t mrmailbox_get_real_contact_cnt__(mrmailbox_t* mailbox)
 }
 
 
-uint32_t mrmailbox_add_or_lookup_contact__( mrmailbox_t* mailbox,
+uint32_t mrmailbox_add_or_lookup_contact__( dc_context_t* mailbox,
                                            const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
                                            const char*  addr__,
                                            int          origin,
@@ -3281,7 +3281,7 @@ cleanup:
 }
 
 
-void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int origin)
+void mrmailbox_scaleup_contact_origin__(dc_context_t* mailbox, uint32_t contact_id, int origin)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;
@@ -3296,7 +3296,7 @@ void mrmailbox_scaleup_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_i
 }
 
 
-int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
+int mrmailbox_is_contact_blocked__(dc_context_t* mailbox, uint32_t contact_id)
 {
 	int          is_blocked = 0;
 	dc_contact_t* contact = dc_contact_new(mailbox);
@@ -3312,7 +3312,7 @@ int mrmailbox_is_contact_blocked__(mrmailbox_t* mailbox, uint32_t contact_id)
 }
 
 
-int mrmailbox_get_contact_origin__(mrmailbox_t* mailbox, uint32_t contact_id, int* ret_blocked)
+int mrmailbox_get_contact_origin__(dc_context_t* mailbox, uint32_t contact_id, int* ret_blocked)
 {
 	int          ret = 0;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
@@ -3653,7 +3653,7 @@ dc_contact_t* dc_get_contact(dc_context_t* mailbox, uint32_t contact_id)
 }
 
 
-static void marknoticed_contact__(mrmailbox_t* mailbox, uint32_t contact_id)
+static void marknoticed_contact__(dc_context_t* mailbox, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_from_id_AND_state,
 		"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE from_id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
@@ -3688,7 +3688,7 @@ void dc_marknoticed_contact(dc_context_t* mailbox, uint32_t contact_id)
 }
 
 
-void mrmailbox_block_chat__(mrmailbox_t* mailbox, uint32_t chat_id, int new_blocking)
+void mrmailbox_block_chat__(dc_context_t* mailbox, uint32_t chat_id, int new_blocking)
 {
 	sqlite3_stmt* stmt;
 
@@ -3704,7 +3704,7 @@ void mrmailbox_block_chat__(mrmailbox_t* mailbox, uint32_t chat_id, int new_bloc
 }
 
 
-void mrmailbox_unblock_chat__(mrmailbox_t* mailbox, uint32_t chat_id)
+void mrmailbox_unblock_chat__(dc_context_t* mailbox, uint32_t chat_id)
 {
 	mrmailbox_block_chat__(mailbox, chat_id, MR_CHAT_NOT_BLOCKED);
 }
@@ -3976,7 +3976,7 @@ cleanup:
 }
 
 
-int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, const char* other_addr)
+int mrmailbox_contact_addr_equals__(dc_context_t* mailbox, uint32_t contact_id, const char* other_addr)
 {
 	int addr_are_equal = 0;
 	if( other_addr ) {
@@ -3999,7 +3999,7 @@ int mrmailbox_contact_addr_equals__(mrmailbox_t* mailbox, uint32_t contact_id, c
  ******************************************************************************/
 
 
-void mrmailbox_update_msg_chat_id__(mrmailbox_t* mailbox, uint32_t msg_id, uint32_t chat_id)
+void mrmailbox_update_msg_chat_id__(dc_context_t* mailbox, uint32_t msg_id, uint32_t chat_id)
 {
     sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
 		"UPDATE msgs SET chat_id=? WHERE id=?;");
@@ -4009,7 +4009,7 @@ void mrmailbox_update_msg_chat_id__(mrmailbox_t* mailbox, uint32_t msg_id, uint3
 }
 
 
-void mrmailbox_update_msg_state__(mrmailbox_t* mailbox, uint32_t msg_id, int state)
+void mrmailbox_update_msg_state__(dc_context_t* mailbox, uint32_t msg_id, int state)
 {
     sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_state_WHERE_id,
 		"UPDATE msgs SET state=? WHERE id=?;");
@@ -4019,7 +4019,7 @@ void mrmailbox_update_msg_state__(mrmailbox_t* mailbox, uint32_t msg_id, int sta
 }
 
 
-size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
+size_t mrmailbox_get_real_msg_cnt__(dc_context_t* mailbox)
 {
 	if( mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
@@ -4041,7 +4041,7 @@ size_t mrmailbox_get_real_msg_cnt__(mrmailbox_t* mailbox)
 }
 
 
-size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
+size_t mrmailbox_get_deaddrop_msg_cnt__(dc_context_t* mailbox)
 {
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
@@ -4057,7 +4057,7 @@ size_t mrmailbox_get_deaddrop_msg_cnt__(mrmailbox_t* mailbox)
 }
 
 
-int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
+int mrmailbox_rfc724_mid_cnt__(dc_context_t* mailbox, const char* rfc724_mid)
 {
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql->m_cobj==NULL ) {
 		return 0;
@@ -4077,7 +4077,7 @@ int mrmailbox_rfc724_mid_cnt__(mrmailbox_t* mailbox, const char* rfc724_mid)
 
 /* check, if the given Message-ID exists in the database (if not, the message is normally downloaded from the server and parsed,
 so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
-uint32_t mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
+uint32_t mrmailbox_rfc724_mid_exists__(dc_context_t* mailbox, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
 		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
@@ -4094,7 +4094,7 @@ uint32_t mrmailbox_rfc724_mid_exists__(mrmailbox_t* mailbox, const char* rfc724_
 }
 
 
-void mrmailbox_update_server_uid__(mrmailbox_t* mailbox, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
+void mrmailbox_update_server_uid__(dc_context_t* mailbox, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_msgs_SET_ss_WHERE_rfc724_mid,
 		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead of "id" as there may be several db-entries refering to the same "rfc724_mid" */
@@ -4606,7 +4606,7 @@ cleanup:
 }
 
 
-int mrmailbox_mdn_from_ext__(mrmailbox_t* mailbox, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
+int mrmailbox_mdn_from_ext__(dc_context_t* mailbox, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
                                      uint32_t* ret_chat_id,
                                      uint32_t* ret_msg_id)
 {

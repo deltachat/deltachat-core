@@ -33,7 +33,7 @@ errors from here. */
  ******************************************************************************/
 
 
-mrmailbox_t* s_localize_mb_obj = NULL;
+dc_context_t* s_localize_mb_obj = NULL;
 
 
 static char* default_string(int id, int qty)

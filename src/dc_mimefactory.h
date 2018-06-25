@@ -74,12 +74,12 @@ typedef struct dc_mimefactory_t {
 	int          m_out_encrypted;
 
 	/* private */
-	mrmailbox_t* m_mailbox;
+	dc_context_t* m_context;
 
 } dc_mimefactory_t;
 
 
-void        dc_mimefactory_init              (dc_mimefactory_t*, mrmailbox_t*);
+void        dc_mimefactory_init              (dc_mimefactory_t*, dc_context_t*);
 void        dc_mimefactory_empty             (dc_mimefactory_t*);
 int         dc_mimefactory_load_msg          (dc_mimefactory_t*, uint32_t msg_id);
 int         dc_mimefactory_load_mdn          (dc_mimefactory_t*, uint32_t msg_id);

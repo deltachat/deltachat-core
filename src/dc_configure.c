@@ -35,7 +35,7 @@
  ******************************************************************************/
 
 
-static char* read_autoconf_file(mrmailbox_t* mailbox, const char* url)
+static char* read_autoconf_file(dc_context_t* mailbox, const char* url)
 {
 	char* filecontent = NULL;
 	dc_log_info(mailbox, 0, "Testing %s ...", url);
@@ -163,7 +163,7 @@ static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static dc_loginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, const dc_loginparam_t* param_in)
+static dc_loginparam_t* moz_autoconfigure(dc_context_t* mailbox, const char* url, const dc_loginparam_t* param_in)
 {
 	char*               xml_raw = NULL;
 	moz_autoconfigure_t moz_ac;
@@ -302,7 +302,7 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static dc_loginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url__, const dc_loginparam_t* param_in)
+static dc_loginparam_t* outlk_autodiscover(dc_context_t* mailbox, const char* url__, const dc_loginparam_t* param_in)
 {
 	char*                 xml_raw = NULL, *url = safe_strdup(url__);
 	outlk_autodiscover_t  outlk_ad;
@@ -773,7 +773,7 @@ int dc_is_configured(dc_context_t* mailbox)
  */
 static int s_ongoing_running = 0;
 int        mr_shall_stop_ongoing = 1; /* the value 1 avoids mrmailbox_stop_ongoing_process() from stopping already stopped threads */
-int mrmailbox_alloc_ongoing(mrmailbox_t* mailbox)
+int mrmailbox_alloc_ongoing(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return 0;
@@ -794,7 +794,7 @@ int mrmailbox_alloc_ongoing(mrmailbox_t* mailbox)
  * Frees the process allocated with mrmailbox_alloc_ongoing() - independingly of mr_shall_stop_ongoing.
  * If mrmailbox_alloc_ongoing() fails, this function MUST NOT be called.
  */
-void mrmailbox_free_ongoing(mrmailbox_t* mailbox)
+void mrmailbox_free_ongoing(dc_context_t* mailbox)
 {
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;

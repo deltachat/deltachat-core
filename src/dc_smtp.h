@@ -41,10 +41,10 @@ typedef struct dc_smtp_t
 	int             m_log_connect_errors;
 	int             m_log_usual_error;
 
-	mrmailbox_t*    m_mailbox; /* only for logging! */
+	dc_context_t*    m_context; /* only for logging! */
 } dc_smtp_t;
 
-dc_smtp_t*    dc_smtp_new          (mrmailbox_t*);
+dc_smtp_t*    dc_smtp_new          (dc_context_t*);
 void         dc_smtp_unref        (dc_smtp_t*);
 int          dc_smtp_is_connected (const dc_smtp_t*);
 int          dc_smtp_connect      (dc_smtp_t*, const dc_loginparam_t*);

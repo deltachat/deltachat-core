@@ -36,7 +36,7 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
+static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
 	int dummy;
@@ -77,7 +77,7 @@ static void add_or_lookup_contact_by_addr__(mrmailbox_t* mailbox, const char* di
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* mailbox, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -94,7 +94,7 @@ static void mrmailbox_add_or_lookup_contacts_by_mailbox_list__(mrmailbox_t* mail
 }
 
 
-static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
+static void mrmailbox_add_or_lookup_contacts_by_address_list__(dc_context_t* mailbox, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -127,7 +127,7 @@ static void mrmailbox_add_or_lookup_contacts_by_address_list__(mrmailbox_t* mail
  ******************************************************************************/
 
 
-static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
+static int is_known_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
 		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
@@ -145,7 +145,7 @@ static int is_known_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 }
 
 
-static int is_known_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_list)
+static int is_known_rfc724_mid_in_list__(dc_context_t* mailbox, const clist* mid_list)
 {
 	if( mid_list ) {
 		clistiter* cur;
@@ -160,7 +160,7 @@ static int is_known_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_
 }
 
 
-static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser)
+static int mrmailbox_is_reply_to_known_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in mrchat.c) */
@@ -205,7 +205,7 @@ static int mrmailbox_is_reply_to_known_message__(mrmailbox_t* mailbox, dc_mimepa
  ******************************************************************************/
 
 
-static int is_msgrmsg_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
+static int is_msgrmsg_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid)
 {
 	if( rfc724_mid ) {
 		sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_id_FROM_msgs_WHERE_mcm,
@@ -222,7 +222,7 @@ static int is_msgrmsg_rfc724_mid__(mrmailbox_t* mailbox, const char* rfc724_mid)
 }
 
 
-static int is_msgrmsg_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mid_list)
+static int is_msgrmsg_rfc724_mid_in_list__(dc_context_t* mailbox, const clist* mid_list)
 {
 	if( mid_list ) {
 		clistiter* cur;
@@ -237,7 +237,7 @@ static int is_msgrmsg_rfc724_mid_in_list__(mrmailbox_t* mailbox, const clist* mi
 }
 
 
-static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser)
+static int mrmailbox_is_reply_to_messenger_message__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser)
 {
 	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
 
@@ -281,7 +281,7 @@ static int mrmailbox_is_reply_to_messenger_message__(mrmailbox_t* mailbox, dc_mi
 
 
 
-static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
+static void mrmailbox_calc_timestamps__(dc_context_t* mailbox, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
                                         time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
 	*rcvd_timestamp = time(NULL);
@@ -323,7 +323,7 @@ static void mrmailbox_calc_timestamps__(mrmailbox_t* mailbox, uint32_t chat_id, 
 }
 
 
-static dc_array_t* search_chat_ids_by_contact_ids(mrmailbox_t* mailbox, const dc_array_t* unsorted_contact_ids)
+static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* mailbox, const dc_array_t* unsorted_contact_ids)
 {
 	/* searches chat_id's by the given contact IDs, may return zero, one or more chat_id's */
 	sqlite3_stmt* stmt = NULL;
@@ -406,7 +406,7 @@ cleanup:
 }
 
 
-static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids /*including SELF*/)
+static char* create_adhoc_grp_id__(dc_context_t* mailbox, dc_array_t* member_ids /*including SELF*/)
 {
 	/* algorithm:
 	- sort normalized, lowercased, e-mail addresses alphabetically
@@ -473,7 +473,7 @@ static char* create_adhoc_grp_id__(mrmailbox_t* mailbox, dc_array_t* member_ids 
 }
 
 
-static uint32_t create_group_record__(mrmailbox_t* mailbox, const char* grpid, const char* grpname, int create_blocked, int create_verified)
+static uint32_t create_group_record__(dc_context_t* mailbox, const char* grpid, const char* grpname, int create_blocked, int create_verified)
 {
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -500,7 +500,7 @@ cleanup:
  ******************************************************************************/
 
 
-static void create_or_lookup_adhoc_group__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
+static void create_or_lookup_adhoc_group__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
                                            int32_t from_id, const dc_array_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
@@ -584,7 +584,7 @@ cleanup:
 }
 
 
-static int check_verified_properties__(mrmailbox_t* mailbox, dc_mimeparser_t* mimeparser,
+static int check_verified_properties__(dc_context_t* mailbox, dc_mimeparser_t* mimeparser,
                                        uint32_t from_id, const dc_array_t* to_ids)
 {
 	int             everythings_okay = 0;
@@ -680,7 +680,7 @@ which tries to create or find out the chat_id by:
 
 So when the function returns, the caller has the group id matching the current
 state of the group. */
-static void create_or_lookup_group__(mrmailbox_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
+static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mime_parser, int create_blocked,
                                      int32_t from_id, const dc_array_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
@@ -935,7 +935,7 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
+void mrmailbox_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, size_t imf_raw_bytes,
                            const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	/* the function returns the number of created messages in the database */

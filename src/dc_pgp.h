@@ -37,19 +37,19 @@ typedef struct dc_keyring_t dc_keyring_t;
 #define MRE2EE_NO_VALID_SIGNATURE 0x02
 
 /* misc. */
-void dc_pgp_init             (mrmailbox_t*);
-void dc_pgp_exit             (mrmailbox_t*);
-void dc_pgp_rand_seed        (mrmailbox_t*, const void* buf, size_t bytes);
+void dc_pgp_init             (dc_context_t*);
+void dc_pgp_exit             (dc_context_t*);
+void dc_pgp_rand_seed        (dc_context_t*, const void* buf, size_t bytes);
 int  dc_split_armored_data  (char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64);
 
 /* public key encryption */
-int  dc_pgp_create_keypair   (mrmailbox_t*, const char* addr, dc_key_t* public_key, dc_key_t* private_key);
-int  dc_pgp_is_valid_key     (mrmailbox_t*, const dc_key_t*);
+int  dc_pgp_create_keypair   (dc_context_t*, const char* addr, dc_key_t* public_key, dc_key_t* private_key);
+int  dc_pgp_is_valid_key     (dc_context_t*, const dc_key_t*);
 int  dc_pgp_calc_fingerprint (const dc_key_t*, uint8_t** fingerprint, size_t* fingerprint_bytes);
-int  dc_pgp_split_key        (mrmailbox_t*, const dc_key_t* private_in, dc_key_t* public_out);
+int  dc_pgp_split_key        (dc_context_t*, const dc_key_t* private_in, dc_key_t* public_out);
 
-int  dc_pgp_pk_encrypt       (mrmailbox_t*, const void* plain, size_t plain_bytes, const dc_keyring_t*, const dc_key_t* sign_key, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
-int  dc_pgp_pk_decrypt       (mrmailbox_t*, const void* ctext, size_t ctext_bytes, const dc_keyring_t*, const dc_keyring_t* validate_keys, int use_armor, void** plain, size_t* plain_bytes, dc_hash_t* ret_signature_fingerprints);
+int  dc_pgp_pk_encrypt       (dc_context_t*, const void* plain, size_t plain_bytes, const dc_keyring_t*, const dc_key_t* sign_key, int use_armor, void** ret_ctext, size_t* ret_ctext_bytes);
+int  dc_pgp_pk_decrypt       (dc_context_t*, const void* ctext, size_t ctext_bytes, const dc_keyring_t*, const dc_keyring_t* validate_keys, int use_armor, void** plain, size_t* plain_bytes, dc_hash_t* ret_signature_fingerprints);
 
 
 #ifdef __cplusplus

@@ -159,7 +159,7 @@ int dc_key_set_from_base64(dc_key_t* ths, const char* base64, int type)
 }
 
 
-int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, mrmailbox_t* mailbox)
+int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, dc_context_t* mailbox)
 {
 	char*      buf = NULL;
 	const char *headerline, *base64; // just pointers inside buf, must not be freed
@@ -403,7 +403,7 @@ cleanup:
 }
 
 
-int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, mrmailbox_t* mailbox /* for logging only */)
+int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_t* mailbox /* for logging only */)
 {
 	int   success = 0;
 	char* file_content = NULL;

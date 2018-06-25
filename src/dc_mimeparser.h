@@ -21,8 +21,8 @@
 
 
 /* Parse MIME body; this is the text part of an IMF, see https://tools.ietf.org/html/rfc5322
-dc_mimeparser_t has no deep dependencies to mrmailbox_t or to the database
-(mrmailbox_t is used for logging only). */
+dc_mimeparser_t has no deep dependencies to dc_context_t or to the database
+(dc_context_t is used for logging only). */
 
 
 #ifndef __MRMIMEPARSER_H__
@@ -36,7 +36,7 @@ extern "C" {
 #include "dc_param.h"
 
 
-typedef struct mrmailbox_e2ee_helper_t mrmailbox_e2ee_helper_t;
+typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
 
 
 typedef struct mrmimepart_t
@@ -70,13 +70,13 @@ typedef struct dc_mimeparser_t
 
 	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 
-	mrmailbox_e2ee_helper_t* m_e2ee_helper;
+	dc_e2ee_helper_t* m_e2ee_helper;
 
 	const char*            m_blobdir;
 
 	int                    m_is_forwarded;
 
-	mrmailbox_t*           m_mailbox;
+	dc_context_t*           m_context;
 
 	carray*                m_reports;           /* array of mailmime objects */
 
@@ -85,7 +85,7 @@ typedef struct dc_mimeparser_t
 } dc_mimeparser_t;
 
 
-dc_mimeparser_t*  dc_mimeparser_new                    (const char* blobdir, mrmailbox_t*);
+dc_mimeparser_t*  dc_mimeparser_new                    (const char* blobdir, dc_context_t*);
 void             dc_mimeparser_unref                  (dc_mimeparser_t*);
 void             dc_mimeparser_empty                  (dc_mimeparser_t*);
 

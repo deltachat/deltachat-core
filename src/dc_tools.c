@@ -1018,7 +1018,7 @@ char* mr_get_filename(const char* pathNfilename)
 }
 
 
-int mr_delete_file(const char* pathNfilename, mrmailbox_t* log/*may be NULL*/)
+int mr_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 {
 	if( pathNfilename==NULL ) {
 		return 0;
@@ -1033,7 +1033,7 @@ int mr_delete_file(const char* pathNfilename, mrmailbox_t* log/*may be NULL*/)
 }
 
 
-int mr_copy_file(const char* src, const char* dest, mrmailbox_t* log/*may be NULL*/)
+int mr_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NULL*/)
 {
     int     success = 0, fd_src = -1, fd_dest = -1;
     #define MR_COPY_BUF_SIZE 4096
@@ -1081,7 +1081,7 @@ cleanup:
 }
 
 
-int mr_create_folder(const char* pathNfilename, mrmailbox_t* log)
+int mr_create_folder(const char* pathNfilename, dc_context_t* log)
 {
 	struct stat st;
 	if (stat(pathNfilename, &st) == -1) {
@@ -1178,7 +1178,7 @@ cleanup:
 }
 
 
-int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, mrmailbox_t* log)
+int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, dc_context_t* log)
 {
 	int success = 0;
 
@@ -1200,7 +1200,7 @@ int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, 
 }
 
 
-int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, mrmailbox_t* log)
+int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_context_t* log)
 {
 	int success = 0;
 

@@ -52,8 +52,8 @@ void dc_sqlite3_log_error(dc_sqlite3_t* ths, const char* msg_format, ...)
 	va_list     va;
 
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(ths->m_mailbox, 0, "Bad log format string \"%s\".", msg_format); }
-			dc_log_error(ths->m_mailbox, 0, "%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(ths->m_context, 0, "Bad log format string \"%s\".", msg_format); }
+			dc_log_error(ths->m_context, 0, "%s SQLite says: %s", msg, ths->m_cobj? sqlite3_errmsg(ths->m_cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
 }
@@ -113,7 +113,7 @@ cleanup:
  ******************************************************************************/
 
 
-dc_sqlite3_t* dc_sqlite3_new(mrmailbox_t* mailbox)
+dc_sqlite3_t* dc_sqlite3_new(dc_context_t* mailbox)
 {
 	dc_sqlite3_t* ths = NULL;
 	int          i;
@@ -122,7 +122,7 @@ dc_sqlite3_t* dc_sqlite3_new(mrmailbox_t* mailbox)
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	ths->m_mailbox          = mailbox;
+	ths->m_context          = mailbox;
 
 	for( i = 0; i < PREDEFINED_CNT; i++ ) {
 		ths->m_pd[i] = NULL;
@@ -158,18 +158,18 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 	}
 
 	if( sqlite3_threadsafe() == 0 ) {
-		dc_log_error(ths->m_mailbox, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
+		dc_log_error(ths->m_context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
 		goto cleanup;
 	}
 
 	if( ths->m_cobj ) {
-		dc_log_error(ths->m_mailbox, 0, "Cannot open, database \"%s\" already opened.", dbfile);
+		dc_log_error(ths->m_context, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
 	}
 
 	// Force serialized mode (SQLITE_OPEN_FULLMUTEX) explicitly.
 	// So, most of the explicit lock/unlocks on dc_sqlite3_t object are no longer needed.
-	// However, locking is _also_ used for mrmailbox_t which _is_ still needed, so, we
+	// However, locking is _also_ used for dc_context_t which _is_ still needed, so, we
 	// should remove locks only if we're really sure.
 	if( sqlite3_open_v2(dbfile, &ths->m_cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&MR_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
@@ -192,7 +192,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 		/* Init tables to dbversion=0 */
 		if( !dc_sqlite3_table_exists__(ths, "config") )
 		{
-			dc_log_info(ths->m_mailbox, 0, "First time init: creating tables in \"%s\".", dbfile);
+			dc_log_info(ths->m_context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
 			dc_sqlite3_execute__(ths, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			dc_sqlite3_execute__(ths, "CREATE INDEX config_index1 ON config (keyname);");
@@ -443,7 +443,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 		{
 			sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(ths, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
-					dc_apeerstate_t* peerstate = dc_apeerstate_new(ths->m_mailbox);
+					dc_apeerstate_t* peerstate = dc_apeerstate_new(ths->m_context);
 						if( dc_apeerstate_load_by_addr__(peerstate, ths, (const char*)sqlite3_column_text(stmt, 0))
 						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
 							dc_apeerstate_save_to_db__(peerstate, ths, 0/*don't create*/);
@@ -454,7 +454,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 		}
 	}
 
-	dc_log_info(ths->m_mailbox, 0, "Opened \"%s\" successfully.", dbfile);
+	dc_log_info(ths->m_context, 0, "Opened \"%s\" successfully.", dbfile);
 	return 1;
 
 cleanup:
@@ -484,7 +484,7 @@ void dc_sqlite3_close__(dc_sqlite3_t* ths)
 		ths->m_cobj = NULL;
 	}
 
-	dc_log_info(ths->m_mailbox, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
+	dc_log_info(ths->m_context, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
 }
 
 
@@ -550,7 +550,7 @@ int dc_sqlite3_table_exists__(dc_sqlite3_t* ths, const char* name)
 	int           sqlState;
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
-		dc_log_error(ths->m_mailbox, 0, "dc_sqlite3_table_exists_(): Out of memory.");
+		dc_log_error(ths->m_context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
@@ -591,12 +591,12 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* ths, const char* key, const char* valu
 	sqlite3_stmt* stmt;
 
 	if( key == NULL ) {
-		dc_log_error(ths->m_mailbox, 0, "dc_sqlite3_set_config(): Bad parameter.");
+		dc_log_error(ths->m_context, 0, "dc_sqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
 	if( !dc_sqlite3_is_open(ths) ) {
-		dc_log_error(ths->m_mailbox, 0, "dc_sqlite3_set_config(): Database not ready.");
+		dc_log_error(ths->m_context, 0, "dc_sqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
@@ -621,7 +621,7 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* ths, const char* key, const char* valu
 			state=sqlite3_step(stmt);
 		}
 		else {
-			dc_log_error(ths->m_mailbox, 0, "dc_sqlite3_set_config(): Cannot read value.");
+			dc_log_error(ths->m_context, 0, "dc_sqlite3_set_config(): Cannot read value.");
 			return 0;
 		}
 	}
@@ -634,7 +634,7 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* ths, const char* key, const char* valu
 	}
 
 	if( state != SQLITE_DONE )  {
-		dc_log_error(ths->m_mailbox, 0, "dc_sqlite3_set_config(): Cannot change value.");
+		dc_log_error(ths->m_context, 0, "dc_sqlite3_set_config(): Cannot change value.");
 		return 0;
 	}
 
@@ -704,13 +704,13 @@ void dc_sqlite3_lock(dc_sqlite3_t* ths) /* wait and lock */
 {
 	#ifdef MR_USE_LOCK_DEBUG
 		clock_t start = clock();
-		dc_log_info(ths->m_mailbox, 0, "    waiting for lock at %s#L%i", filename, linenum);
+		dc_log_info(ths->m_context, 0, "    waiting for lock at %s#L%i", filename, linenum);
 	#endif
 
 	pthread_mutex_lock(&ths->m_critical_);
 
 	#ifdef MR_USE_LOCK_DEBUG
-		dc_log_info(ths->m_mailbox, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+		dc_log_info(ths->m_context, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 	#endif
 }
 
@@ -722,7 +722,7 @@ void dc_sqlite3_unlock(dc_sqlite3_t* ths)
 #endif
 {
 	#ifdef MR_USE_LOCK_DEBUG
-		dc_log_info(ths->m_mailbox, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
+		dc_log_info(ths->m_context, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
 	#endif
 
 	pthread_mutex_unlock(&ths->m_critical_);

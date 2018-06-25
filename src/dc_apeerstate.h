@@ -44,7 +44,7 @@ typedef struct dc_aheader_t dc_aheader_t;
 typedef struct dc_apeerstate_t
 {
 	/** @privatesection */
-	mrmailbox_t*   m_mailbox;
+	dc_context_t*   m_context;
 
 	char*          m_addr;
 	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
@@ -76,7 +76,7 @@ typedef struct dc_apeerstate_t
 } dc_apeerstate_t;
 
 
-dc_apeerstate_t* dc_apeerstate_new                  (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
+dc_apeerstate_t* dc_apeerstate_new                  (dc_context_t*); /* the returned pointer is ref'd and must be unref'd after usage */
 void            dc_apeerstate_unref                (dc_apeerstate_t*);
 
 int             dc_apeerstate_init_from_header     (dc_apeerstate_t*, const dc_aheader_t*, time_t message_time);

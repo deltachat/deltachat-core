@@ -23,7 +23,7 @@
 #include "dc_context.h"
 
 
-void mrmailbox_add_to_keyhistory__(mrmailbox_t* mailbox, const char* rfc724_mid, time_t sending_time, const char* addr, const char* fingerprint)
+void mrmailbox_add_to_keyhistory__(dc_context_t* mailbox, const char* rfc724_mid, time_t sending_time, const char* addr, const char* fingerprint)
 {
 	// TODO
 }

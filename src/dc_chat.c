@@ -48,7 +48,7 @@ dc_chat_t* dc_chat_new(dc_context_t* mailbox)
 	}
 
 	ths->m_magic    = MR_CHAT_MAGIC;
-	ths->m_mailbox  = mailbox;
+	ths->m_context  = mailbox;
 	ths->m_type     = MR_CHAT_TYPE_UNDEFINED;
 	ths->m_param    = mrparam_new();
 
@@ -228,9 +228,9 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	else if( chat->m_type == MR_CHAT_TYPE_SINGLE )
 	{
 		int r;
-		dc_sqlite3_lock(chat->m_mailbox->m_sql);
+		dc_sqlite3_lock(chat->m_context->m_sql);
 
-			stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
+			stmt = dc_sqlite3_predefine__(chat->m_context->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
 				"SELECT c.addr FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON c.id=cc.contact_id "
 					" WHERE cc.chat_id=?;");
@@ -241,7 +241,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 				ret = safe_strdup((const char*)sqlite3_column_text(stmt, 0));
 			}
 
-		dc_sqlite3_unlock(chat->m_mailbox->m_sql);
+		dc_sqlite3_unlock(chat->m_context->m_sql);
 	}
 	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
@@ -252,12 +252,12 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		}
 		else
 		{
-			dc_sqlite3_lock(chat->m_mailbox->m_sql);
+			dc_sqlite3_lock(chat->m_context->m_sql);
 
-				cnt = mrmailbox_get_chat_contact_count__(chat->m_mailbox, chat->m_id);
+				cnt = mrmailbox_get_chat_contact_count__(chat->m_context, chat->m_id);
 				ret = mrstock_str_repl_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
-			dc_sqlite3_unlock(chat->m_mailbox->m_sql);
+			dc_sqlite3_unlock(chat->m_context->m_sql);
 		}
 	}
 
@@ -413,7 +413,7 @@ int dc_chat_are_all_members_verified__(dc_chat_t* chat)
 		goto cleanup; // deaddrop & co. are never verified
 	}
 
-	stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
+	stmt = dc_sqlite3_predefine__(chat->m_context->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
 		"SELECT c.id, LENGTH(ps.verified_key_fingerprint) "
 		" FROM chats_contacts cc"
 		" LEFT JOIN contacts c ON c.id=cc.contact_id"
@@ -465,7 +465,7 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
 int dc_chat_update_param__(dc_chat_t* ths)
 {
 	int success = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(ths->m_mailbox->m_sql, "UPDATE chats SET param=? WHERE id=?");
+	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(ths->m_context->m_sql, "UPDATE chats SET param=? WHERE id=?");
 	sqlite3_bind_text(stmt, 1, ths->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, ths->m_id);
 	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;
@@ -513,7 +513,7 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
 		free(ths->m_name);
 		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
-			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_mailbox));
+			ths->m_name = mr_mprintf("%s (%i)", tempname, mrmailbox_get_archived_count__(ths->m_context));
 		free(tempname);
 	}
 	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
@@ -553,7 +553,7 @@ int dc_chat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 
 	dc_chat_empty(chat);
 
-	stmt = dc_sqlite3_predefine__(chat->m_mailbox->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
+	stmt = dc_sqlite3_predefine__(chat->m_context->m_sql, SELECT_itndd_FROM_chats_WHERE_i,
 		"SELECT " MR_CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 

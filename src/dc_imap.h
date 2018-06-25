@@ -21,7 +21,7 @@
 
 
 /* Purpose: Reading from IMAP servers with no dependencies to the database.
-mrmailbox_t is only used for logging and to get information about
+dc_context_t is only used for logging and to get information about
 the online state. */
 
 
@@ -86,7 +86,7 @@ typedef struct dc_imap_t
 	mr_set_config_t       m_set_config;
 	mr_receive_imf_t      m_receive_imf;
 	void*                 m_userData;
-	mrmailbox_t*          m_mailbox;
+	dc_context_t*          m_context;
 
 	int                   m_log_connect_errors;
 	int                   m_skip_log_capabilities;
@@ -94,7 +94,7 @@ typedef struct dc_imap_t
 } dc_imap_t;
 
 
-dc_imap_t* dc_imap_new               (mr_get_config_t, mr_set_config_t, mr_receive_imf_t, void* userData, mrmailbox_t*);
+dc_imap_t* dc_imap_new               (mr_get_config_t, mr_set_config_t, mr_receive_imf_t, void* userData, dc_context_t*);
 void       dc_imap_unref             (dc_imap_t*);
 
 int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);

@@ -51,7 +51,7 @@ one :-) */
 static pgp_io_t s_io;
 
 
-void dc_pgp_init(mrmailbox_t* mailbox)
+void dc_pgp_init(dc_context_t* mailbox)
 {
 	#ifdef __APPLE__
 		OPENSSL_init();
@@ -70,12 +70,12 @@ void dc_pgp_init(mrmailbox_t* mailbox)
 }
 
 
-void dc_pgp_exit(mrmailbox_t* mailbox)
+void dc_pgp_exit(dc_context_t* mailbox)
 {
 }
 
 
-void dc_pgp_rand_seed(mrmailbox_t* mailbox, const void* buf, size_t bytes)
+void dc_pgp_rand_seed(dc_context_t* mailbox, const void* buf, size_t bytes)
 {
 	if( buf == NULL || bytes <= 0 ) {
 		return;
@@ -296,7 +296,7 @@ static void add_subkey_binding_signature(pgp_subkeysig_t* p, pgp_key_t* primaryk
 }
 
 
-int dc_pgp_create_keypair(mrmailbox_t* mailbox, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
+int dc_pgp_create_keypair(dc_context_t* mailbox, const char* addr, dc_key_t* ret_public_key, dc_key_t* ret_private_key)
 {
 	int              success = 0;
 	pgp_key_t        seckey, pubkey, subkey;
@@ -411,7 +411,7 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_pgp_is_valid_key(mrmailbox_t* mailbox, const dc_key_t* raw_key)
+int dc_pgp_is_valid_key(dc_context_t* mailbox, const dc_key_t* raw_key)
 {
 	int             key_is_valid = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -482,7 +482,7 @@ cleanup:
 }
 
 
-int dc_pgp_split_key(mrmailbox_t* mailbox, const dc_key_t* private_in, dc_key_t* ret_public_key)
+int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t* ret_public_key)
 {
 	int             success = 0;
 	pgp_keyring_t*  public_keys = calloc(1, sizeof(pgp_keyring_t));
@@ -534,7 +534,7 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_pgp_pk_encrypt(  mrmailbox_t*       mailbox,
+int dc_pgp_pk_encrypt(  dc_context_t*       mailbox,
                        const void*        plain_text,
                        size_t             plain_bytes,
                        const dc_keyring_t* raw_public_keys_for_encryption,
@@ -625,7 +625,7 @@ cleanup:
 }
 
 
-int dc_pgp_pk_decrypt(  mrmailbox_t*       mailbox,
+int dc_pgp_pk_decrypt(  dc_context_t*       mailbox,
                        const void*        ctext,
                        size_t             ctext_bytes,
                        const dc_keyring_t* raw_private_keys_for_decryption,

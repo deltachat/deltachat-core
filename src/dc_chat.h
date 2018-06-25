@@ -44,7 +44,7 @@ struct _dc_chat
 	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
 	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
 	int             m_archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
-	mrmailbox_t*    m_mailbox;          /**< The mailbox object the chat belongs to. */
+	dc_context_t*    m_context;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	int             m_blocked;          /**< One of MR_CHAT_*_BLOCKED */
 	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */

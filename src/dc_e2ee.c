@@ -191,7 +191,7 @@ static int contains_report(struct mailmime* mime)
  ******************************************************************************/
 
 
-static int load_or_generate_self_public_key__(mrmailbox_t* mailbox, dc_key_t* public_key, const char* self_addr,
+static int load_or_generate_self_public_key__(dc_context_t* mailbox, dc_key_t* public_key, const char* self_addr,
                                               struct mailmime* random_data_mime /*for an extra-seed of the random generator. For speed reasons, only give _available_ pointers here, do not create any data - in very most cases, the key is not generated!*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
@@ -278,7 +278,7 @@ cleanup:
 }
 
 
-int mrmailbox_ensure_secret_key_exists(mrmailbox_t* mailbox)
+int mrmailbox_ensure_secret_key_exists(dc_context_t* mailbox)
 {
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
@@ -317,11 +317,11 @@ cleanup:
  ******************************************************************************/
 
 
-void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
+void mrmailbox_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
                     int force_unencrypted,
                     int e2ee_guaranteed, /*set if e2ee was possible on sending time; we should not degrade to transport*/
                     int min_verified,
-                    struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
+                    struct mailmime* in_out_message, dc_e2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
 	dc_aheader_t*           autocryptheader = dc_aheader_new();
@@ -333,7 +333,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 	size_t                 ctext_bytes = 0;
 	dc_array_t*             peerstates = dc_array_new(NULL, 10);
 
-	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
+	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
@@ -519,7 +519,7 @@ cleanup:
 }
 
 
-void mrmailbox_e2ee_thanks(mrmailbox_e2ee_helper_t* helper)
+void mrmailbox_e2ee_thanks(dc_e2ee_helper_t* helper)
 {
 	if( helper == NULL ) {
 		return;
@@ -566,7 +566,7 @@ static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 }
 
 
-static int decrypt_part(mrmailbox_t*       mailbox,
+static int decrypt_part(dc_context_t*       mailbox,
                         struct mailmime*   mime,
                         const dc_keyring_t* private_keyring,
                         const dc_keyring_t* public_keyring_for_validate, /*may be NULL*/
@@ -670,7 +670,7 @@ cleanup:
 }
 
 
-static int decrypt_recursive(mrmailbox_t*            mailbox,
+static int decrypt_recursive(dc_context_t*            mailbox,
                              struct mailmime*        mime,
                              const dc_keyring_t*      private_keyring,
                              const dc_keyring_t*      public_keyring_for_validate,
@@ -738,7 +738,7 @@ static int decrypt_recursive(mrmailbox_t*            mailbox,
 }
 
 
-static dc_hash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
+static dc_hash_t* update_gossip_peerstates(dc_context_t* mailbox, time_t message_time, struct mailimf_fields* imffields, const struct mailimf_fields* gossip_headers)
 {
 	clistiter* cur1;
 	dc_hash_t*  recipients = NULL;
@@ -809,8 +809,8 @@ static dc_hash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_
 }
 
 
-void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_message,
-                           mrmailbox_e2ee_helper_t* helper)
+void mrmailbox_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
+                           dc_e2ee_helper_t* helper)
 {
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
@@ -824,7 +824,7 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	dc_keyring_t*           public_keyring_for_validate = dc_keyring_new();
 	struct mailimf_fields* gossip_headers = NULL;
 
-	if( helper ) { memset(helper, 0, sizeof(mrmailbox_e2ee_helper_t)); }
+	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL
 	 || helper == NULL || imffields==NULL ) {

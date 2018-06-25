@@ -46,7 +46,7 @@ dc_array_t* dc_array_new(dc_context_t* mailbox, size_t initsize)
 	}
 
 	array->m_magic     = MR_ARRAY_MAGIC;
-	array->m_mailbox   = mailbox;
+	array->m_context   = mailbox;
 	array->m_count     = 0;
 	array->m_allocated = initsize < 1? 1 : initsize;
 	array->m_array     = malloc(array->m_allocated * sizeof(uintptr_t));
@@ -125,7 +125,7 @@ dc_array_t* dc_array_duplicate(const dc_array_t* array)
 		return NULL;
 	}
 
-	ret = dc_array_new(array->m_mailbox, array->m_allocated);
+	ret = dc_array_new(array->m_context, array->m_allocated);
 	ret->m_count = array->m_count;
 	memcpy(ret->m_array, array->m_array, array->m_count * sizeof(uintptr_t));
 

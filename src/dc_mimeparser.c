@@ -835,7 +835,7 @@ static void mrmimepart_unref(mrmimepart_t* ths)
  *
  * @return The MIME-parser object.
  */
-dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
+dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, dc_context_t* mailbox)
 {
 	dc_mimeparser_t* ths = NULL;
 
@@ -843,11 +843,11 @@ dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, mrmailbox_t* mailbox)
 		exit(30);
 	}
 
-	ths->m_mailbox = mailbox;
+	ths->m_context = mailbox;
 	ths->m_parts   = carray_new(16);
 	ths->m_blobdir = blobdir; /* no need to copy the string at the moment */
 	ths->m_reports = carray_new(16);
-	ths->m_e2ee_helper = calloc(1, sizeof(mrmailbox_e2ee_helper_t));
+	ths->m_e2ee_helper = calloc(1, sizeof(dc_e2ee_helper_t));
 
 	dc_hash_init(&ths->m_header, MRHASH_STRING, 0/* do not copy key */);
 
@@ -968,7 +968,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	}
 
 	/* copy data to file */
-	if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_mailbox)==0 ) {
+	if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_context)==0 ) {
 		goto cleanup;
 	}
 
@@ -1065,7 +1065,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						dc_log_warning(ths->m_mailbox, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
+						dc_log_warning(ths->m_context, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
@@ -1235,7 +1235,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 		 && mime->mm_content_type->ct_type->tp_data.tp_discrete_type->dt_type==MAILMIME_DISCRETE_TYPE_TEXT
 		 && mime->mm_content_type->ct_subtype
 		 && strcmp(mime->mm_content_type->ct_subtype, "rfc822-headers")==0 ) {
-			dc_log_info(ths->m_mailbox, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
+			dc_log_info(ths->m_context, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
 			return 0;
 		}
 
@@ -1243,11 +1243,11 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 			size_t dummy = 0;
 			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &ths->m_header_protected)!=MAILIMF_NO_ERROR
 			 || ths->m_header_protected==NULL ) {
-				dc_log_warning(ths->m_mailbox, 0, "Protected headers parsing error.");
+				dc_log_warning(ths->m_context, 0, "Protected headers parsing error.");
 			}
 		}
 		else {
-			dc_log_info(ths->m_mailbox, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
+			dc_log_info(ths->m_context, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
 		}
 	}
 
@@ -1365,7 +1365,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 								}
 							}
 							if( plain_cnt==1 && html_cnt==1 )  {
-								dc_log_warning(ths->m_mailbox, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
+								dc_log_warning(ths->m_context, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
 								skip_part = html_part;
 							}
 						}
@@ -1401,7 +1401,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 }
 
 
-static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, mrmailbox_t* mailbox)
+static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_context_t* mailbox)
 {
 	if( in == NULL ) {
 		return;
@@ -1495,7 +1495,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	mrmailbox_e2ee_decrypt(ths->m_mailbox, ths->m_mimeroot, ths->m_e2ee_helper);
+	mrmailbox_e2ee_decrypt(ths->m_context, ths->m_mimeroot, ths->m_e2ee_helper);
 
 	//printf("after decryption:\n"); mailmime_print(ths->m_mimeroot);
 
@@ -1507,8 +1507,8 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	//       may also be handy for extracting binaries from uuencoded text and just add the rest text after the binaries.
 
 	/* setup header */
-	hash_header(&ths->m_header, ths->m_header_root, ths->m_mailbox);
-	hash_header(&ths->m_header, ths->m_header_protected, ths->m_mailbox); /* overwrite the original header with the protected one */
+	hash_header(&ths->m_header, ths->m_header_root, ths->m_context);
+	hash_header(&ths->m_header, ths->m_header_protected, ths->m_context); /* overwrite the original header with the protected one */
 
 	/* set some basic data */
 	{

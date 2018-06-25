@@ -32,7 +32,7 @@ struct _dc_chatlist
 {
 	/** @privatesection */
 	uint32_t        m_magic;
-	mrmailbox_t*    m_mailbox; /**< The mailbox, the chatlist belongs to */
+	dc_context_t*    m_context; /**< The mailbox, the chatlist belongs to */
 	#define         MR_CHATLIST_IDS_PER_RESULT 2
 	size_t          m_cnt;
 	dc_array_t*      m_chatNlastmsg_ids;

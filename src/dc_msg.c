@@ -105,7 +105,7 @@ void dc_msg_empty(dc_msg_t* msg)
 
 	mrparam_set_packed(msg->m_param, NULL);
 
-	msg->m_mailbox = NULL;
+	msg->m_context = NULL;
 
 	msg->m_hidden = 0;
 }
@@ -457,13 +457,13 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 	char*        pathNfilename = NULL;
 	dc_contact_t* contact = NULL;
 
-	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_context == NULL ) {
 		goto cleanup;
 	}
 
 	if( msg->m_type == MR_MSG_VOICE )
 	{
-		if( (contact = mrmailbox_get_contact(msg->m_mailbox, msg->m_from_id))==NULL ) {
+		if( (contact = mrmailbox_get_contact(msg->m_context, msg->m_from_id))==NULL ) {
 			goto cleanup;
 		}
 		ret->m_text1 = safe_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
@@ -582,15 +582,15 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
 	int show_encryption_state = 0;
 
-	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_context == NULL ) {
 		return 0;
 	}
 
-	if( msg->m_mailbox->m_e2ee_enabled ) {
+	if( msg->m_context->m_e2ee_enabled ) {
 		show_encryption_state = 1;
 	}
 	else {
-		dc_chat_t* chat = mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id);
+		dc_chat_t* chat = mrmailbox_get_chat(msg->m_context, msg->m_chat_id);
 		show_encryption_state = dc_chat_is_verified(chat);
 		dc_chat_unref(chat);
 	}
@@ -645,14 +645,14 @@ dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 	}
 
 	if( chat == NULL ) {
-		if( (chat_to_delete=mrmailbox_get_chat(msg->m_mailbox, msg->m_chat_id)) == NULL ) {
+		if( (chat_to_delete=mrmailbox_get_chat(msg->m_context, msg->m_chat_id)) == NULL ) {
 			goto cleanup;
 		}
 		chat = chat_to_delete;
 	}
 
 	if( msg->m_from_id != MR_CONTACT_ID_SELF && MR_CHAT_TYPE_IS_MULTI(chat->m_type) ) {
-		contact = mrmailbox_get_contact(chat->m_mailbox, msg->m_from_id);
+		contact = mrmailbox_get_contact(chat->m_context, msg->m_from_id);
 	}
 
 	dc_lot_fill(ret, msg, chat, contact);
@@ -853,7 +853,7 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	if( !mr_read_file(filename, (void**)&buf, &buf_bytes, msg->m_mailbox) || buf == NULL || buf_bytes <= 0 ) {
+	if( !mr_read_file(filename, (void**)&buf, &buf_bytes, msg->m_context) || buf == NULL || buf_bytes <= 0 ) {
 		goto cleanup;
 	}
 
@@ -923,7 +923,7 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
  *
  * @private @memberof dc_msg_t
  */
-int dc_msg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
+int dc_msg_load_from_db__(dc_msg_t* ths, dc_context_t* mailbox, uint32_t id)
 {
 	sqlite3_stmt* stmt;
 
@@ -945,7 +945,7 @@ int dc_msg_load_from_db__(dc_msg_t* ths, mrmailbox_t* mailbox, uint32_t id)
 		return 0;
 	}
 
-	ths->m_mailbox = mailbox;
+	ths->m_context = mailbox;
 
 	return 1;
 }
@@ -1138,13 +1138,13 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 		return 0;
 	}
 
-	if( msg->m_mailbox && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
+	if( msg->m_context && MR_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
 	{
-		dc_sqlite3_lock(msg->m_mailbox->m_sql);
+		dc_sqlite3_lock(msg->m_context->m_sql);
 
 			is_increation = dc_msg_is_increation__(msg);
 
-		dc_sqlite3_unlock(msg->m_mailbox->m_sql);
+		dc_sqlite3_unlock(msg->m_context->m_sql);
 	}
 
 	return is_increation;
@@ -1153,11 +1153,11 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 
 void dc_msg_save_param_to_disk__(dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_mailbox == NULL || msg->m_mailbox->m_sql == NULL ) {
+	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC || msg->m_context == NULL || msg->m_context->m_sql == NULL ) {
 		return;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(msg->m_mailbox->m_sql, UPDATE_msgs_SET_param_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_predefine__(msg->m_context->m_sql, UPDATE_msgs_SET_param_WHERE_id,
 		"UPDATE msgs SET param=? WHERE id=?;");
 	sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, msg->m_id);
@@ -1199,7 +1199,7 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(msg->m_mailbox->m_sql);
+	dc_sqlite3_lock(msg->m_context->m_sql);
 	locked = 1;
 
 		if( width > 0 ) {
@@ -1216,9 +1216,9 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 
 		dc_msg_save_param_to_disk__(msg);
 
-	dc_sqlite3_unlock(msg->m_mailbox->m_sql);
+	dc_sqlite3_unlock(msg->m_context->m_sql);
 	locked = 0;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(msg->m_mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(msg->m_context->m_sql); }
 }

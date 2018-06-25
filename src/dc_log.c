@@ -39,7 +39,7 @@ are usually logged by dc_log_warning(). */
  ******************************************************************************/
 
 
-static void log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* msg_format, va_list va)
+static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* msg_format, va_list va)
 {
 	char* msg = NULL;
 
@@ -84,7 +84,7 @@ static void log_vprintf(mrmailbox_t* mailbox, int event, int code, const char* m
 }
 
 
-void dc_log_info(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_info(dc_context_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg); /* va_start() expects the last non-variable argument as the second parameter */
@@ -94,7 +94,7 @@ void dc_log_info(mrmailbox_t* mailbox, int code, const char* msg, ...)
 
 
 
-void dc_log_warning(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_warning(dc_context_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
@@ -103,7 +103,7 @@ void dc_log_warning(mrmailbox_t* mailbox, int code, const char* msg, ...)
 }
 
 
-void dc_log_error(mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_error(dc_context_t* mailbox, int code, const char* msg, ...)
 {
 	va_list va;
 	va_start(va, msg);
@@ -112,7 +112,7 @@ void dc_log_error(mrmailbox_t* mailbox, int code, const char* msg, ...)
 }
 
 
-void dc_log_error_if(int* condition, mrmailbox_t* mailbox, int code, const char* msg, ...)
+void dc_log_error_if(int* condition, dc_context_t* mailbox, int code, const char* msg, ...)
 {
 	if( condition == NULL || mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		return;

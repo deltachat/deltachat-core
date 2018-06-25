@@ -72,8 +72,8 @@ typedef struct dc_job_t
 } dc_job_t;
 
 
-void     dc_job_add                   (mrmailbox_t*, int action, int foreign_id, const char* param, int delay);
-void     dc_job_kill_actions          (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
+void     dc_job_add                   (dc_context_t*, int action, int foreign_id, const char* param, int delay);
+void     dc_job_kill_actions          (dc_context_t*, int action1, int action2); /* delete all pending jobs with the given actions */
 
 #define  DC_DONT_TRY_AGAIN           0
 #define  DC_AT_ONCE                 -1

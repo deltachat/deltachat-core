@@ -72,8 +72,8 @@ extern "C" {
 #define MR_STR_SELFTALK_SUBTITLE          50
 
 
-/* should be set up by mrmailbox_new() */
-extern mrmailbox_t* s_localize_mb_obj;
+/* should be set up by dc_context_new() */
+extern dc_context_t* s_localize_mb_obj;
 
 
 /* Return the string with the given ID by calling DC_EVENT_GET_STRING.

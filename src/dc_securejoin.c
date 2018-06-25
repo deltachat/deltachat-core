@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, dc_apeerstate_t* peerstate)
+void mrmailbox_handle_degrade_event(dc_context_t* mailbox, dc_apeerstate_t* peerstate)
 {
 	sqlite3_stmt* stmt            = NULL;
 	int           locked          = 0;
@@ -94,22 +94,22 @@ cleanup:
 static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expected_fingerprint)
 {
 	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
-		dc_log_warning(mimeparser->m_mailbox, 0, "Message not encrypted.");
+		dc_log_warning(mimeparser->m_context, 0, "Message not encrypted.");
 		return 0;
 	}
 
 	if( dc_hash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
-		dc_log_warning(mimeparser->m_mailbox, 0, "Message not signed.");
+		dc_log_warning(mimeparser->m_context, 0, "Message not signed.");
 		return 0;
 	}
 
 	if( expected_fingerprint == NULL ) {
-		dc_log_warning(mimeparser->m_mailbox, 0, "Fingerprint for comparison missing.");
+		dc_log_warning(mimeparser->m_context, 0, "Fingerprint for comparison missing.");
 		return 0;
 	}
 
 	if( dc_hash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
-		dc_log_warning(mimeparser->m_mailbox, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
+		dc_log_warning(mimeparser->m_context, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
 
@@ -117,7 +117,7 @@ static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expecte
 }
 
 
-static char* get_self_fingerprint(mrmailbox_t* mailbox)
+static char* get_self_fingerprint(dc_context_t* mailbox)
 {
 	int      locked      = 0;
 	char*    self_addr   = NULL;
@@ -147,7 +147,7 @@ cleanup:
 }
 
 
-static uint32_t chat_id_2_contact_id(mrmailbox_t* mailbox, uint32_t contact_chat_id)
+static uint32_t chat_id_2_contact_id(dc_context_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t   contact_id = 0;
 	dc_array_t* contacts = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
@@ -164,7 +164,7 @@ cleanup:
 }
 
 
-static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerprint, uint32_t contact_chat_id)
+static int fingerprint_equals_sender(dc_context_t* mailbox, const char* fingerprint, uint32_t contact_chat_id)
 {
 	int             fingerprint_equal      = 0;
 	int             locked                 = 0;
@@ -203,7 +203,7 @@ cleanup:
 }
 
 
-static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint)
+static int mark_peer_as_verified__(dc_context_t* mailbox, const char* fingerprint)
 {
 	int             success = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
@@ -243,7 +243,7 @@ static const char* lookup_field(dc_mimeparser_t* mimeparser, const char* key)
 }
 
 
-static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint, const char* grpid)
+static void send_handshake_msg(dc_context_t* mailbox, uint32_t contact_chat_id, const char* step, const char* param2, const char* fingerprint, const char* grpid)
 {
 	dc_msg_t* msg = dc_msg_new();
 
@@ -278,7 +278,7 @@ static void send_handshake_msg(mrmailbox_t* mailbox, uint32_t contact_chat_id, c
 }
 
 
-static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t contact_chat_id, const char* details)
+static void could_not_establish_secure_connection(dc_context_t* mailbox, uint32_t contact_chat_id, const char* details)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
 	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
@@ -293,7 +293,7 @@ static void could_not_establish_secure_connection(mrmailbox_t* mailbox, uint32_t
 }
 
 
-static void secure_connection_established(mrmailbox_t* mailbox, uint32_t contact_chat_id)
+static void secure_connection_established(dc_context_t* mailbox, uint32_t contact_chat_id)
 {
 	uint32_t     contact_id = chat_id_2_contact_id(mailbox, contact_chat_id);
 	dc_contact_t* contact    = mrmailbox_get_contact(mailbox, contact_id);
@@ -320,7 +320,7 @@ static dc_lot_t* s_bobs_qr_scan = NULL; // should be surround eg. by dc_sqlite3_
 static int      s_bobs_status = 0;
 
 
-static void end_bobs_joining(mrmailbox_t* mailbox, int status)
+static void end_bobs_joining(dc_context_t* mailbox, int status)
 {
 	s_bobs_status = status;
 	mrmailbox_stop_ongoing_process(mailbox);
@@ -565,7 +565,7 @@ cleanup:
 }
 
 
-int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, dc_mimeparser_t* mimeparser, uint32_t contact_id)
+int mrmailbox_handle_securejoin_handshake(dc_context_t* mailbox, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
 	const char*  step   = NULL;

@@ -160,13 +160,13 @@ typedef struct dc_sqlite3_t
 	sqlite3_stmt* m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3*      m_cobj;               /**< is the database given as dbfile to Open() */
 	int           m_transactionCount;   /**< helper for transactions */
-	mrmailbox_t*  m_mailbox;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
+	dc_context_t*  m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per mrmailbox! In practise, we use 2 on backup, 1 otherwise. */
 	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
 } dc_sqlite3_t;
 
 
-dc_sqlite3_t*  dc_sqlite3_new              (mrmailbox_t*);
+dc_sqlite3_t*  dc_sqlite3_new              (dc_context_t*);
 void          dc_sqlite3_unref            (dc_sqlite3_t*);
 
 #define       MR_OPEN_READONLY           0x01

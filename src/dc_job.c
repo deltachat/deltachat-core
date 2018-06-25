@@ -35,7 +35,7 @@
  ******************************************************************************/
 
 
-static int connect_to_imap(mrmailbox_t* mailbox, dc_job_t* job /*may be NULL if the function is called directly!*/)
+static int connect_to_imap(dc_context_t* mailbox, dc_job_t* job /*may be NULL if the function is called directly!*/)
 {
 	#define         NOT_CONNECTED     0
 	#define         ALREADY_CONNECTED 1
@@ -81,7 +81,7 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
 	dc_mimefactory_t  mimefactory;
 	char*            server_folder = NULL;
@@ -124,7 +124,7 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0, delete_from_server = 1;
 	dc_msg_t* msg = dc_msg_new();
@@ -226,7 +226,7 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0;
 	dc_msg_t* msg = dc_msg_new();
@@ -296,7 +296,7 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
 	char*    server_folder = mrparam_get    (job->m_param, MRP_SERVER_FOLDER, NULL);
 	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
@@ -327,7 +327,7 @@ cleanup:
  ******************************************************************************/
 
 
-static void mark_as_error(mrmailbox_t* mailbox, dc_msg_t* msg)
+static void mark_as_error(dc_context_t* mailbox, dc_msg_t* msg)
 {
 	if( mailbox==NULL || msg==NULL ) {
 		return;
@@ -340,7 +340,7 @@ static void mark_as_error(mrmailbox_t* mailbox, dc_msg_t* msg)
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* job)
 {
 	dc_mimefactory_t mimefactory;
 
@@ -438,7 +438,7 @@ cleanup:
 }
 
 
-static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
+static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* mailbox, dc_job_t* job)
 {
 	dc_mimefactory_t mimefactory;
 	dc_mimefactory_init(&mimefactory, mailbox);
@@ -480,7 +480,7 @@ cleanup:
 }
 
 
-void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
+void mrmailbox_suspend_smtp_thread(dc_context_t* mailbox, int suspend)
 {
 	pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
 		mailbox->m_smtpidle_suspend = suspend;
@@ -510,7 +510,7 @@ void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
  ******************************************************************************/
 
 
-void dc_job_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
+void dc_job_add(dc_context_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt;
@@ -556,7 +556,7 @@ void dc_job_try_again_later(dc_job_t* job, int try_again)
 }
 
 
-void dc_job_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
+void dc_job_kill_actions(dc_context_t* mailbox, int action1, int action2)
 {
 	if( mailbox == NULL ) {
 		return;
@@ -571,7 +571,7 @@ void dc_job_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
 }
 
 
-static void dc_job_perform(mrmailbox_t* mailbox, int thread)
+static void dc_job_perform(dc_context_t* mailbox, int thread)
 {
 	sqlite3_stmt* select_stmt = NULL;
 	dc_job_t      job;
