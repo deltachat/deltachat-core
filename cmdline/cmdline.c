@@ -139,9 +139,9 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 {
 	/* mainly for testing: if the partner does not support Autocrypt,
 	encryption is disabled as soon as the first messages comes from the partner */
-	mraheader_t*    header = mraheader_new();
-	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
-	int             locked = 0, success = 0;
+	dc_aheader_t*    header = dc_aheader_new();
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
+	int              locked = 0, success = 0;
 
 	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
 		goto cleanup;
@@ -160,21 +160,21 @@ static int poke_public_key(mrmailbox_t* mailbox, const char* addr, const char* p
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
-			mrapeerstate_apply_header(peerstate, header, time(NULL));
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+		if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
+			dc_apeerstate_apply_header(peerstate, header, time(NULL));
+			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 		}
 		else {
-			mrapeerstate_init_from_header(peerstate, header, time(NULL));
-			mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
+			dc_apeerstate_init_from_header(peerstate, header, time(NULL));
+			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
 		}
 
 		success = 1;
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrapeerstate_unref(peerstate);
-	mraheader_unref(header);
+	dc_apeerstate_unref(peerstate);
+	dc_aheader_unref(header);
 	return success;
 }
 
@@ -339,7 +339,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 {
 	int             i, cnt = mrarray_get_cnt(contacts);
 	mrcontact_t*    contact = NULL;
-	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 
 	for( i = 0; i < cnt; i++ ) {
 		uint32_t contact_id = mrarray_get_id(contacts, i);
@@ -352,7 +352,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = mr_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
 			mrsqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
+				int peerstate_ok = dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
 			mrsqlite3_unlock(mailbox->m_sql);
 			if( peerstate_ok && contact_id != MR_CONTACT_ID_SELF ) {
 				char* pe = NULL;
@@ -377,7 +377,7 @@ static void log_contactlist(mrmailbox_t* mailbox, mrarray_t* contacts)
 		free(line2);
 	}
 
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 }
 
 

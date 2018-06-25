@@ -40,7 +40,7 @@
  ******************************************************************************/
 
 
-void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, mrapeerstate_t* peerstate)
+void mrmailbox_handle_degrade_event(mrmailbox_t* mailbox, dc_apeerstate_t* peerstate)
 {
 	sqlite3_stmt* stmt            = NULL;
 	int           locked          = 0;
@@ -170,7 +170,7 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 	int             locked                 = 0;
 	mrarray_t*      contacts               = mrmailbox_get_chat_contacts(mailbox, contact_chat_id);
 	mrcontact_t*    contact                = mrcontact_new(mailbox);
-	mrapeerstate_t* peerstate              = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate              = dc_apeerstate_new(mailbox);
 	char*           fingerprint_normalized = NULL;
 
 	if( mrarray_get_cnt(contacts) != 1 ) {
@@ -181,7 +181,7 @@ static int fingerprint_equals_sender(mrmailbox_t* mailbox, const char* fingerpri
 	locked = 1;
 
 		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, mrarray_get_id(contacts, 0))
-		 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
+		 || !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
@@ -206,13 +206,13 @@ cleanup:
 static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint)
 {
 	int             success = 0;
-	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 
-	if( !mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
+	if( !dc_apeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
 		goto cleanup;
 	}
 
-	if( !mrapeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, MRV_BIDIRECTIONAL) ) {
+	if( !dc_apeerstate_set_verified(peerstate, MRA_PUBLIC_KEY, fingerprint, MRV_BIDIRECTIONAL) ) {
 		goto cleanup;
 	}
 
@@ -222,11 +222,11 @@ static int mark_peer_as_verified__(mrmailbox_t* mailbox, const char* fingerprint
 	peerstate->m_prefer_encrypt = MRA_PE_MUTUAL;
 	peerstate->m_to_save       |= MRA_SAVE_ALL;
 
-	mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+	dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 	success = 1;
 
 cleanup:
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	return success;
 }
 
@@ -814,7 +814,7 @@ int mrmailbox_handle_securejoin_handshake(mrmailbox_t* mailbox, mrmimeparser_t* 
 		if( (field=mrmimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 			if( fld_message_id && fld_message_id->mid_value ) {
-				mrjob_add(mailbox, MRJ_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 0);
+				dc_job_add(mailbox, DC_JOB_DELETE_MSG_ON_IMAP, mrmailbox_rfc724_mid_exists__(mailbox, fld_message_id->mid_value, NULL, NULL), NULL, 0);
 			}
 		}
 	}

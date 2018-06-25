@@ -30,7 +30,7 @@ extern "C" {
 #include "dc_key.h"
 
 
-typedef struct mraheader_t mraheader_t;
+typedef struct dc_aheader_t dc_aheader_t;
 
 
 #define MRA_PE_NOPREFERENCE   0 /* prefer-encrypt states */
@@ -41,7 +41,7 @@ typedef struct mraheader_t mraheader_t;
 /**
  * Library-internal.
  */
-typedef struct mrapeerstate_t
+typedef struct dc_apeerstate_t
 {
 	/** @privatesection */
 	mrmailbox_t*   m_mailbox;
@@ -73,35 +73,35 @@ typedef struct mrapeerstate_t
 	#define        MRA_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
 	int            m_degrade_event;
 
-} mrapeerstate_t;
+} dc_apeerstate_t;
 
 
-mrapeerstate_t* mrapeerstate_new                  (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
-void            mrapeerstate_unref                (mrapeerstate_t*);
+dc_apeerstate_t* dc_apeerstate_new                  (mrmailbox_t*); /* the returned pointer is ref'd and must be unref'd after usage */
+void            dc_apeerstate_unref                (dc_apeerstate_t*);
 
-int             mrapeerstate_init_from_header     (mrapeerstate_t*, const mraheader_t*, time_t message_time);
-int             mrapeerstate_init_from_gossip     (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+int             dc_apeerstate_init_from_header     (dc_apeerstate_t*, const dc_aheader_t*, time_t message_time);
+int             dc_apeerstate_init_from_gossip     (dc_apeerstate_t*, const dc_aheader_t*, time_t message_time);
 
-int             mrapeerstate_degrade_encryption   (mrapeerstate_t*, time_t message_time);
+int             dc_apeerstate_degrade_encryption   (dc_apeerstate_t*, time_t message_time);
 
-void            mrapeerstate_apply_header         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
-void            mrapeerstate_apply_gossip         (mrapeerstate_t*, const mraheader_t*, time_t message_time);
+void            dc_apeerstate_apply_header         (dc_apeerstate_t*, const dc_aheader_t*, time_t message_time);
+void            dc_apeerstate_apply_gossip         (dc_apeerstate_t*, const dc_aheader_t*, time_t message_time);
 
-char*           mrapeerstate_render_gossip_header (const mrapeerstate_t*, int min_verified);
+char*           dc_apeerstate_render_gossip_header (const dc_apeerstate_t*, int min_verified);
 
-mrkey_t*        mrapeerstate_peek_key             (const mrapeerstate_t*, int min_verified);
+mrkey_t*        dc_apeerstate_peek_key             (const dc_apeerstate_t*, int min_verified);
 
-int             mrapeerstate_recalc_fingerprint   (mrapeerstate_t*);
+int             dc_apeerstate_recalc_fingerprint   (dc_apeerstate_t*);
 
 #define         MRA_GOSSIP_KEY 0
 #define         MRA_PUBLIC_KEY 1
-int             mrapeerstate_set_verified         (mrapeerstate_t*, int which_key, const char* fingerprint, int verfied);
+int             dc_apeerstate_set_verified         (dc_apeerstate_t*, int which_key, const char* fingerprint, int verfied);
 
-int             mrapeerstate_load_by_addr__       (mrapeerstate_t*, mrsqlite3_t*, const char* addr);
-int             mrapeerstate_load_by_fingerprint__(mrapeerstate_t*, mrsqlite3_t*, const char* fingerprint);
-int             mrapeerstate_save_to_db__         (const mrapeerstate_t*, mrsqlite3_t*, int create);
+int             dc_apeerstate_load_by_addr__       (dc_apeerstate_t*, mrsqlite3_t*, const char* addr);
+int             dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t*, mrsqlite3_t*, const char* fingerprint);
+int             dc_apeerstate_save_to_db__         (const dc_apeerstate_t*, mrsqlite3_t*, int create);
 
-int             mrapeerstate_has_verified_key     (const mrapeerstate_t*, const mrhash_t* fingerprints);
+int             dc_apeerstate_has_verified_key     (const dc_apeerstate_t*, const mrhash_t* fingerprints);
 
 #ifdef __cplusplus
 } /* /extern "C" */

@@ -27,11 +27,11 @@
 
 
 /*******************************************************************************
- * mrapeerstate_t represents the state of an Autocrypt peer - Load/save
+ * dc_apeerstate_t represents the state of an Autocrypt peer - Load/save
  ******************************************************************************/
 
 
-static void mrapeerstate_empty(mrapeerstate_t* ths)
+static void dc_apeerstate_empty(dc_apeerstate_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -75,7 +75,7 @@ static void mrapeerstate_empty(mrapeerstate_t* ths)
 }
 
 
-static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt* stmt)
+static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_stmt* stmt)
 {
 	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, public_key_fingerprint, gossip_key_fingerprint, verified_key, verified_key_fingerprint"
 	peerstate->m_addr                = safe_strdup((char*)sqlite3_column_text  (stmt, 0));
@@ -107,7 +107,7 @@ static void mrapeerstate_set_from_stmt__(mrapeerstate_t* peerstate, sqlite3_stmt
 }
 
 
-int mrapeerstate_load_by_addr__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
+int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, mrsqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -116,7 +116,7 @@ int mrapeerstate_load_by_addr__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, con
 		return 0;
 	}
 
-	mrapeerstate_empty(peerstate);
+	dc_apeerstate_empty(peerstate);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_addr,
 		"SELECT " PEERSTATE_FIELDS
@@ -126,7 +126,7 @@ int mrapeerstate_load_by_addr__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, con
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
-	mrapeerstate_set_from_stmt__(peerstate, stmt);
+	dc_apeerstate_set_from_stmt__(peerstate, stmt);
 
 	success = 1;
 
@@ -135,7 +135,7 @@ cleanup:
 }
 
 
-int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* sql, const char* fingerprint)
+int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, mrsqlite3_t* sql, const char* fingerprint)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -144,7 +144,7 @@ int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* s
 		return 0;
 	}
 
-	mrapeerstate_empty(peerstate);
+	dc_apeerstate_empty(peerstate);
 
 	stmt = mrsqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
 		"SELECT " PEERSTATE_FIELDS
@@ -158,7 +158,7 @@ int mrapeerstate_load_by_fingerprint__(mrapeerstate_t* peerstate, mrsqlite3_t* s
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
-	mrapeerstate_set_from_stmt__(peerstate, stmt);
+	dc_apeerstate_set_from_stmt__(peerstate, stmt);
 
 	success = 1;
 
@@ -167,7 +167,7 @@ cleanup:
 }
 
 
-int mrapeerstate_save_to_db__(const mrapeerstate_t* ths, mrsqlite3_t* sql, int create)
+int dc_apeerstate_save_to_db__(const dc_apeerstate_t* ths, mrsqlite3_t* sql, int create)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt;
@@ -229,11 +229,11 @@ cleanup:
  ******************************************************************************/
 
 
-mrapeerstate_t* mrapeerstate_new(mrmailbox_t* mailbox)
+dc_apeerstate_t* dc_apeerstate_new(mrmailbox_t* mailbox)
 {
-	mrapeerstate_t* ths = NULL;
+	dc_apeerstate_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrapeerstate_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_apeerstate_t)))==NULL ) {
 		exit(43); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -243,7 +243,7 @@ mrapeerstate_t* mrapeerstate_new(mrmailbox_t* mailbox)
 }
 
 
-void mrapeerstate_unref(mrapeerstate_t* ths)
+void dc_apeerstate_unref(dc_apeerstate_t* ths)
 {
 	if( ths==NULL ) {
 		return;
@@ -260,7 +260,7 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
  * Render an Autocrypt-Gossip header value.  The contained key is either
  * m_public_key or m_gossip_key if m_public_key is NULL.
  *
- * @memberof mrapeerstate_t
+ * @memberof dc_apeerstate_t
  *
  * @param peerstate The peerstate object.
  *
@@ -268,10 +268,10 @@ void mrapeerstate_unref(mrapeerstate_t* ths)
  *     `Autocrypt-Gossip:` is _not_ included in the returned string. If there
  *     is not key for the peer that can be gossiped, NULL is returned.
  */
-char* mrapeerstate_render_gossip_header(const mrapeerstate_t* peerstate, int min_verified)
+char* dc_apeerstate_render_gossip_header(const dc_apeerstate_t* peerstate, int min_verified)
 {
 	char*        ret = NULL;
-	mraheader_t* autocryptheader = mraheader_new();
+	dc_aheader_t* autocryptheader = dc_aheader_new();
 
 	if( peerstate == NULL || peerstate->m_addr == NULL ) {
 		goto cleanup;
@@ -279,12 +279,12 @@ char* mrapeerstate_render_gossip_header(const mrapeerstate_t* peerstate, int min
 
 	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
-	autocryptheader->m_public_key     = mrkey_ref(mrapeerstate_peek_key(peerstate, min_verified)); /* may be NULL */
+	autocryptheader->m_public_key     = mrkey_ref(dc_apeerstate_peek_key(peerstate, min_verified)); /* may be NULL */
 
-	ret = mraheader_render(autocryptheader);
+	ret = dc_aheader_render(autocryptheader);
 
 cleanup:
-	mraheader_unref(autocryptheader);
+	dc_aheader_unref(autocryptheader);
 	return ret;
 }
 
@@ -297,7 +297,7 @@ cleanup:
  * This function does not do the Autocrypt encryption recommendation; it just
  * returns a key that can be used.
  *
- * @memberof mrapeerstate_t
+ * @memberof dc_apeerstate_t
  *
  * @param peerstate The peerstate object.
  * @param min_verified The minimal verification criterion the key should match.
@@ -307,7 +307,7 @@ cleanup:
  * @return m_public_key or m_gossip_key, NULL if nothing is available.
  *     the returned pointer MUST NOT be unref()'d.
  */
-mrkey_t* mrapeerstate_peek_key(const mrapeerstate_t* peerstate, int min_verified)
+mrkey_t* dc_apeerstate_peek_key(const dc_apeerstate_t* peerstate, int min_verified)
 {
 	if(  peerstate == NULL
 	 || (peerstate->m_public_key && (peerstate->m_public_key->m_binary==NULL || peerstate->m_public_key->m_bytes<=0))
@@ -335,13 +335,13 @@ mrkey_t* mrapeerstate_peek_key(const mrapeerstate_t* peerstate, int min_verified
  ******************************************************************************/
 
 
-int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
+int dc_apeerstate_init_from_header(dc_apeerstate_t* ths, const dc_aheader_t* header, time_t message_time)
 {
 	if( ths == NULL || header == NULL ) {
 		return 0;
 	}
 
-	mrapeerstate_empty(ths);
+	dc_apeerstate_empty(ths);
 	ths->m_addr                = safe_strdup(header->m_addr);
 	ths->m_last_seen           = message_time;
 	ths->m_last_seen_autocrypt = message_time;
@@ -350,32 +350,32 @@ int mrapeerstate_init_from_header(mrapeerstate_t* ths, const mraheader_t* header
 
 	ths->m_public_key = mrkey_new();
 	mrkey_set_from_key(ths->m_public_key, header->m_public_key);
-	mrapeerstate_recalc_fingerprint(ths);
+	dc_apeerstate_recalc_fingerprint(ths);
 
 	return 1;
 }
 
 
-int mrapeerstate_init_from_gossip(mrapeerstate_t* peerstate, const mraheader_t* gossip_header, time_t message_time)
+int dc_apeerstate_init_from_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* gossip_header, time_t message_time)
 {
 	if( peerstate == NULL || gossip_header == NULL ) {
 		return 0;
 	}
 
-	mrapeerstate_empty(peerstate);
+	dc_apeerstate_empty(peerstate);
 	peerstate->m_addr                = safe_strdup(gossip_header->m_addr);
 	peerstate->m_gossip_timestamp    = message_time;
 	peerstate->m_to_save             = MRA_SAVE_ALL;
 
 	peerstate->m_gossip_key = mrkey_new();
 	mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
-	mrapeerstate_recalc_fingerprint(peerstate);
+	dc_apeerstate_recalc_fingerprint(peerstate);
 
 	return 1;
 }
 
 
-int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
+int dc_apeerstate_degrade_encryption(dc_apeerstate_t* ths, time_t message_time)
 {
 	if( ths==NULL ) {
 		return 0;
@@ -393,7 +393,7 @@ int mrapeerstate_degrade_encryption(mrapeerstate_t* ths, time_t message_time)
 }
 
 
-void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, time_t message_time)
+void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header, time_t message_time)
 {
 	if( ths==NULL || header==NULL
 	 || ths->m_addr==NULL
@@ -426,14 +426,14 @@ void mrapeerstate_apply_header(mrapeerstate_t* ths, const mraheader_t* header, t
 		if( !mrkey_equals(ths->m_public_key, header->m_public_key) )
 		{
 			mrkey_set_from_key(ths->m_public_key, header->m_public_key);
-			mrapeerstate_recalc_fingerprint(ths);
+			dc_apeerstate_recalc_fingerprint(ths);
 			ths->m_to_save |= MRA_SAVE_ALL;
 		}
 	}
 }
 
 
-void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gossip_header, time_t message_time)
+void dc_apeerstate_apply_gossip(dc_apeerstate_t* peerstate, const dc_aheader_t* gossip_header, time_t message_time)
 {
 	if( peerstate==NULL || gossip_header==NULL
 	 || peerstate->m_addr==NULL
@@ -454,7 +454,7 @@ void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gos
 		if( !mrkey_equals(peerstate->m_gossip_key, gossip_header->m_public_key) )
 		{
 			mrkey_set_from_key(peerstate->m_gossip_key, gossip_header->m_public_key);
-			mrapeerstate_recalc_fingerprint(peerstate);
+			dc_apeerstate_recalc_fingerprint(peerstate);
 			peerstate->m_to_save |= MRA_SAVE_ALL;
 		}
 	}
@@ -467,10 +467,10 @@ void mrapeerstate_apply_gossip(mrapeerstate_t* peerstate, const mraheader_t* gos
  * If the fingerprint has changed, the verified-state is reset.
  *
  * An explicit call to this function from outside this class is only needed
- * for database updates; the mrapeerstate_init_*() and mrapeerstate_apply_*()
+ * for database updates; the dc_apeerstate_init_*() and dc_apeerstate_apply_*()
  * functions update the fingerprint automatically as needed.
  */
-int mrapeerstate_recalc_fingerprint(mrapeerstate_t* peerstate)
+int dc_apeerstate_recalc_fingerprint(dc_apeerstate_t* peerstate)
 {
 	int            success = 0;
 	char*          old_public_fingerprint = NULL, *old_gossip_fingerprint = NULL;
@@ -533,7 +533,7 @@ cleanup:
  * The given fingerprint is present only to ensure the peer has not changed
  * between fingerprint comparison and calling this function.
  *
- * @memberof mrapeerstate_t
+ * @memberof dc_apeerstate_t
  *
  * @param peerstate The peerstate object.
  * @param which_key Which key should be marked as being verified? MRA_GOSSIP_KEY (1) or MRA_PUBLIC_KEY (2)
@@ -541,12 +541,12 @@ cleanup:
  * @param verified MRV_BIDIRECTIONAL (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
- *     the verified-state is set; you should call mrapeerstate_save_to_db__()
+ *     the verified-state is set; you should call dc_apeerstate_save_to_db__()
  *     to permanently store this state.
  *     0=the given fingerprint is not eqial to the peer's fingerprint,
  *     verified-state not changed.
  */
-int mrapeerstate_set_verified(mrapeerstate_t* peerstate, int which_key, const char* fingerprint, int verified)
+int dc_apeerstate_set_verified(dc_apeerstate_t* peerstate, int which_key, const char* fingerprint, int verified)
 {
 	int success = 0;
 
@@ -585,7 +585,7 @@ cleanup:
 }
 
 
-int mrapeerstate_has_verified_key(const mrapeerstate_t* peerstate, const mrhash_t* fingerprints)
+int dc_apeerstate_has_verified_key(const dc_apeerstate_t* peerstate, const mrhash_t* fingerprints)
 {
 	if( peerstate == NULL || fingerprints == NULL ) {
 		return 0;

@@ -31,8 +31,8 @@
 #include "dc_loginparam.h"
 
 
-static int  setup_handle_if_needed__ (mrimap_t*);
-static void unsetup_handle__         (mrimap_t*);
+static int  setup_handle_if_needed__ (dc_imap_t*);
+static void unsetup_handle__         (dc_imap_t*);
 
 
 /*******************************************************************************
@@ -40,7 +40,7 @@ static void unsetup_handle__         (mrimap_t*);
  ******************************************************************************/
 
 
-static int is_error(mrimap_t* ths, int code)
+static int is_error(dc_imap_t* ths, int code)
 {
 	if( code == MAILIMAP_NO_ERROR /*0*/
 	 || code == MAILIMAP_NO_ERROR_AUTHENTICATED /*1*/
@@ -60,7 +60,7 @@ static int is_error(mrimap_t* ths, int code)
 }
 
 
-static void get_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t* uidvalidity, uint32_t* lastseenuid)
+static void get_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t* uidvalidity, uint32_t* lastseenuid)
 {
 	*uidvalidity = 0;
 	*lastseenuid = 0;
@@ -88,7 +88,7 @@ static void get_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t*
 }
 
 
-static void set_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t uidvalidity, uint32_t lastseenuid)
+static void set_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t uidvalidity, uint32_t lastseenuid)
 {
 	char* key = mr_mprintf("imap.mailbox.%s", folder);
 	char* val = mr_mprintf("%lu:%lu", uidvalidity, lastseenuid);
@@ -103,7 +103,7 @@ static void set_config_lastseenuid(mrimap_t* imap, const char* folder, uint32_t 
  ******************************************************************************/
 
 
-static int get_folder_meaning(const mrimap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name, bool force_fallback)
+static int get_folder_meaning(const dc_imap_t* ths, struct mailimap_mbx_list_flags* flags, const char* folder_name, bool force_fallback)
 {
 	#define MEANING_NORMAL       1
 	#define MEANING_INBOX        2
@@ -198,7 +198,7 @@ typedef struct mrimapfolder_t
 } mrimapfolder_t;
 
 
-static clist* list_folders__(mrimap_t* ths)
+static clist* list_folders__(dc_imap_t* ths)
 {
 	clist*     imap_list = NULL;
 	clistiter* iter1;
@@ -294,7 +294,7 @@ static void free_folders(clist* folders)
 }
 
 
-static int init_chat_folders__(mrimap_t* ths)
+static int init_chat_folders__(dc_imap_t* ths)
 {
 	int        success = 0;
 	clist*     folder_list = NULL;
@@ -387,7 +387,7 @@ cleanup:
 }
 
 
-static int select_folder__(mrimap_t* ths, const char* folder /*may be NULL*/)
+static int select_folder__(dc_imap_t* ths, const char* folder /*may be NULL*/)
 {
 	if( ths == NULL ) {
 		return 0;
@@ -429,7 +429,7 @@ static int select_folder__(mrimap_t* ths, const char* folder /*may be NULL*/)
 }
 
 
-static uint32_t search_uid__(mrimap_t* imap, const char* message_id)
+static uint32_t search_uid__(dc_imap_t* imap, const char* message_id)
 {
 	/* Search Message-ID in all folders.
 	On success, the folder containing the message is selected and the UID is returned.
@@ -628,7 +628,7 @@ static void peek_body(struct mailimap_msg_att* msg_att, char** p_msg, size_t* p_
 }
 
 
-static int fetch_single_msg(mrimap_t* ths, const char* folder, uint32_t server_uid)
+static int fetch_single_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid)
 {
 	/* the function returns:
 	    0  the caller should try over again later
@@ -687,7 +687,7 @@ cleanup:
 }
 
 
-static int fetch_from_single_folder(mrimap_t* ths, const char* folder)
+static int fetch_from_single_folder(dc_imap_t* ths, const char* folder)
 {
 	int                  r;
 	uint32_t             uidvalidity = 0;
@@ -819,7 +819,7 @@ cleanup:
 }
 
 
-static int fetch_from_all_folders(mrimap_t* ths)
+static int fetch_from_all_folders(dc_imap_t* ths)
 {
 	clist*     folder_list = NULL;
 	clistiter* cur;
@@ -859,7 +859,7 @@ static int fetch_from_all_folders(mrimap_t* ths)
  ******************************************************************************/
 
 
-int mrimap_fetch(mrimap_t* imap)
+int dc_imap_fetch(dc_imap_t* imap)
 {
 	if( imap==NULL || !imap->m_connected ) {
 		return 0;
@@ -885,7 +885,7 @@ int mrimap_fetch(mrimap_t* imap)
 }
 
 
-static void fake_idle(mrimap_t* imap)
+static void fake_idle(dc_imap_t* imap)
 {
 	/* Idle using timeouts. This is also needed if we're not yet configured -
 	in this case, we're waiting for a configure job */
@@ -937,7 +937,7 @@ static void fake_idle(mrimap_t* imap)
 }
 
 
-void mrimap_idle(mrimap_t* imap)
+void dc_imap_idle(dc_imap_t* imap)
 {
 	int r, r2;
 
@@ -1000,7 +1000,7 @@ void mrimap_idle(mrimap_t* imap)
 }
 
 
-void mrimap_interrupt_idle(mrimap_t* ths)
+void dc_imap_interrupt_idle(dc_imap_t* ths)
 {
 	if( ths==NULL ) { // ths->m_hEtPan may be NULL
 		dc_log_warning(ths->m_mailbox, 0, "Interrupt IMAP-IDLE: Bad parameter.");
@@ -1027,7 +1027,7 @@ void mrimap_interrupt_idle(mrimap_t* ths)
  ******************************************************************************/
 
 
-static int setup_handle_if_needed__(mrimap_t* ths)
+static int setup_handle_if_needed__(dc_imap_t* ths)
 {
 	int r, success = 0;
 
@@ -1122,7 +1122,7 @@ cleanup:
 }
 
 
-static void unsetup_handle__(mrimap_t* ths)
+static void unsetup_handle__(dc_imap_t* ths)
 {
 	if( ths==NULL ) {
 		return;
@@ -1157,7 +1157,7 @@ static void unsetup_handle__(mrimap_t* ths)
  ******************************************************************************/
 
 
-static void free_connect_param__(mrimap_t* imap)
+static void free_connect_param__(dc_imap_t* imap)
 {
 	free(imap->m_imap_server);
 	imap->m_imap_server = NULL;
@@ -1182,7 +1182,7 @@ static void free_connect_param__(mrimap_t* imap)
 }
 
 
-int mrimap_connect(mrimap_t* ths, const mrloginparam_t* lp)
+int dc_imap_connect(dc_imap_t* ths, const dc_loginparam_t* lp)
 {
 	int success = 0;
 
@@ -1248,7 +1248,7 @@ cleanup:
 }
 
 
-void mrimap_disconnect(mrimap_t* ths)
+void dc_imap_disconnect(dc_imap_t* ths)
 {
 	if( ths==NULL ) {
 		return;
@@ -1263,7 +1263,7 @@ void mrimap_disconnect(mrimap_t* ths)
 }
 
 
-int mrimap_is_connected(mrimap_t* ths)
+int dc_imap_is_connected(dc_imap_t* ths)
 {
 	return (ths && ths->m_connected); /* we do not use a LOCK - otherwise, the check may take seconds and is not sufficient for some GUI state updates. */
 }
@@ -1274,11 +1274,11 @@ int mrimap_is_connected(mrimap_t* ths)
  ******************************************************************************/
 
 
-mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_receive_imf_t receive_imf, void* userData, mrmailbox_t* mailbox)
+dc_imap_t* dc_imap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_receive_imf_t receive_imf, void* userData, mrmailbox_t* mailbox)
 {
-	mrimap_t* ths = NULL;
+	dc_imap_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrimap_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_imap_t)))==NULL ) {
 		exit(25); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -1325,13 +1325,13 @@ mrimap_t* mrimap_new(mr_get_config_t get_config, mr_set_config_t set_config, mr_
 }
 
 
-void mrimap_unref(mrimap_t* ths)
+void dc_imap_unref(dc_imap_t* ths)
 {
 	if( ths==NULL ) {
 		return;
 	}
 
-	mrimap_disconnect(ths);
+	dc_imap_disconnect(ths);
 
 	pthread_cond_destroy(&ths->m_watch_cond);
 	pthread_mutex_destroy(&ths->m_watch_condmutex);
@@ -1346,7 +1346,7 @@ void mrimap_unref(mrimap_t* ths)
 }
 
 
-int mrimap_append_msg(mrimap_t* ths, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid)
+int dc_imap_append_msg(dc_imap_t* ths, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid)
 {
 	int                        success = 0, r;
 	uint32_t                   ret_uidvalidity = 0;
@@ -1411,7 +1411,7 @@ cleanup:
 }
 
 
-static int add_flag__(mrimap_t* ths, uint32_t server_uid, struct mailimap_flag* flag)
+static int add_flag__(dc_imap_t* ths, uint32_t server_uid, struct mailimap_flag* flag)
 {
 	int                              r;
 	struct mailimap_flag_list*       flag_list = NULL;
@@ -1443,7 +1443,7 @@ cleanup:
 }
 
 
-int mrimap_markseen_msg(mrimap_t* ths, const char* folder, uint32_t server_uid, int ms_flags,
+int dc_imap_markseen_msg(dc_imap_t* ths, const char* folder, uint32_t server_uid, int ms_flags,
                         char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags)
 {
 	// when marking as seen, there is no real need to check against the rfc724_mid - in the worst case, when the UID validity or the mailbox has changed, we mark the wrong message as "seen" - as the very most messages are seen, this is no big thing.
@@ -1594,7 +1594,7 @@ cleanup:
 }
 
 
-int mrimap_delete_msg(mrimap_t* ths, const char* rfc724_mid, const char* folder, uint32_t server_uid)
+int dc_imap_delete_msg(dc_imap_t* ths, const char* rfc724_mid, const char* folder, uint32_t server_uid)
 {
 	int    success = 0, r = 0;
 	clist* fetch_result = NULL;
@@ -1664,7 +1664,7 @@ cleanup:
 	free(is_rfc724_mid);
 	free(new_folder);
 
-	return success? 1 : mrimap_is_connected(ths); /* only return 0 on connection problems; we should try later again in this case */
+	return success? 1 : dc_imap_is_connected(ths); /* only return 0 on connection problems; we should try later again in this case */
 
 }
 

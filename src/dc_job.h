@@ -27,21 +27,21 @@ extern "C" {
 
 
 // thread IDs
-#define MR_IMAP_THREAD             100
-#define MR_SMTP_THREAD            5000
+#define DC_IMAP_THREAD             100
+#define DC_SMTP_THREAD            5000
 
 
 // jobs in the IMAP-thread
-#define MRJ_DELETE_MSG_ON_IMAP     110    // low priority ...
-#define MRJ_MARKSEEN_MDN_ON_IMAP   120
-#define MRJ_MARKSEEN_MSG_ON_IMAP   130
-#define MRJ_SEND_MSG_TO_IMAP       700
-#define MRJ_CONFIGURE_IMAP         900    // ... high priority
+#define DC_JOB_DELETE_MSG_ON_IMAP     110    // low priority ...
+#define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
+#define DC_JOB_MARKSEEN_MSG_ON_IMAP   130
+#define DC_JOB_SEND_MSG_TO_IMAP       700
+#define DC_JOB_CONFIGURE_IMAP         900    // ... high priority
 
 
 // jobs in the SMTP-thread
-#define MRJ_SEND_MDN              5010    // low priority ...
-#define MRJ_SEND_MSG_TO_SMTP      5900    // ... high priority
+#define DC_JOB_SEND_MDN              5010    // low priority ...
+#define DC_JOB_SEND_MSG_TO_SMTP      5900    // ... high priority
 
 
 // timeouts until actions are aborted.
@@ -60,7 +60,7 @@ extern "C" {
 /**
  * Library-internal.
  */
-typedef struct mrjob_t
+typedef struct dc_job_t
 {
 	/** @privatesection */
 
@@ -69,21 +69,21 @@ typedef struct mrjob_t
 	uint32_t   m_foreign_id;
 	mrparam_t* m_param;
 	int        m_try_again;
-} mrjob_t;
+} dc_job_t;
 
 
-void     mrjob_add                   (mrmailbox_t*, int action, int foreign_id, const char* param, int delay);
-void     mrjob_kill_actions          (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
+void     dc_job_add                   (mrmailbox_t*, int action, int foreign_id, const char* param, int delay);
+void     dc_job_kill_actions          (mrmailbox_t*, int action1, int action2); /* delete all pending jobs with the given actions */
 
-#define  MR_DONT_TRY_AGAIN           0
-#define  MR_AT_ONCE                 -1
-#define  MR_INCREATION_POLL          2 // this value does not increase the number of tries
-#define  MR_STANDARD_DELAY           3
-void     mrjob_try_again_later       (mrjob_t*, int try_again);
+#define  DC_DONT_TRY_AGAIN           0
+#define  DC_AT_ONCE                 -1
+#define  DC_INCREATION_POLL          2 // this value does not increase the number of tries
+#define  DC_STANDARD_DELAY           3
+void     dc_job_try_again_later       (dc_job_t*, int try_again);
 
 
-// the other mrjob_do_MRJ_*() functions are declared static in the c-file
-void     mrjob_do_MRJ_CONFIGURE_IMAP (mrmailbox_t*, mrjob_t*);
+// the other dc_job_do_DC_JOB_*() functions are declared static in the c-file
+void     dc_job_do_DC_JOB_CONFIGURE_IMAP (dc_context_t*, dc_job_t*);
 
 
 #ifdef __cplusplus

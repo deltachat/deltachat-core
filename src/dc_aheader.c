@@ -30,13 +30,13 @@
 /**
  * Empty an Autocrypt-header object and free all data associated with it.
  *
- * @private @memberof mraheader_t
+ * @private @memberof dc_aheader_t
  *
  * @param ths The Autocrypt-header object. If you pass NULL here, the function does nothing.
  *
  * @return None
  */
-void mraheader_empty(mraheader_t* ths)
+void dc_aheader_empty(dc_aheader_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -60,9 +60,9 @@ void mraheader_empty(mraheader_t* ths)
 
 
 /**
- * @memberof mraheader_t
+ * @memberof dc_aheader_t
  */
-char* mraheader_render(const mraheader_t* ths)
+char* dc_aheader_render(const dc_aheader_t* ths)
 {
 	int            success = 0;
 	char*          keybase64_wrapped = NULL;
@@ -105,7 +105,7 @@ cleanup:
  ******************************************************************************/
 
 
-static int add_attribute(mraheader_t* ths, const char* name, const char* value /*may be NULL*/)
+static int add_attribute(dc_aheader_t* ths, const char* name, const char* value /*may be NULL*/)
 {
 	/* returns 0 if the attribute will result in an invalid header, 1 if the attribute is okay */
 	if( strcasecmp(name, "addr")==0 )
@@ -158,9 +158,9 @@ static int add_attribute(mraheader_t* ths, const char* name, const char* value /
 
 
 /**
- * @memberof mraheader_t
+ * @memberof dc_aheader_t
  */
-int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
+int dc_aheader_set_from_string(dc_aheader_t* ths, const char* header_str__)
 {
 	/* according to RFC 5322 (Internet Message Format), the given string may contain `\r\n` before any whitespace.
 	we can ignore this issue as
@@ -172,7 +172,7 @@ int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 	char    *p, *beg_attr_name, *after_attr_name, *beg_attr_value;
 	int     success = 0;
 
-	mraheader_empty(ths);
+	dc_aheader_empty(ths);
 
 	if( ths == NULL || header_str__ == NULL ) {
 		goto cleanup;
@@ -224,7 +224,7 @@ int mraheader_set_from_string(mraheader_t* ths, const char* header_str__)
 
 cleanup:
 	free(header_str);
-	if( !success ) { mraheader_empty(ths); }
+	if( !success ) { dc_aheader_empty(ths); }
 	return success;
 }
 
@@ -235,13 +235,13 @@ cleanup:
 
 
 /**
- * @memberof mraheader_t
+ * @memberof dc_aheader_t
  */
-mraheader_t* mraheader_new()
+dc_aheader_t* dc_aheader_new()
 {
-	mraheader_t* ths = NULL;
+	dc_aheader_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mraheader_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_aheader_t)))==NULL ) {
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -252,9 +252,9 @@ mraheader_t* mraheader_new()
 
 
 /**
- * @memberof mraheader_t
+ * @memberof dc_aheader_t
  */
-void mraheader_unref(mraheader_t* ths)
+void dc_aheader_unref(dc_aheader_t* ths)
 {
 	if( ths==NULL ) {
 		return;
@@ -267,12 +267,12 @@ void mraheader_unref(mraheader_t* ths)
 
 
 /**
- * @memberof mraheader_t
+ * @memberof dc_aheader_t
  */
-mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* header)
+dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* header)
 {
 	clistiter*   cur;
-	mraheader_t* fine_header = NULL;
+	dc_aheader_t* fine_header = NULL;
 
 	if( wanted_from == NULL || header == NULL ) {
 		return 0;
@@ -287,10 +287,10 @@ mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct 
 			if( optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt")==0 )
 			{
 				/* header found, check if it is valid and matched the wanted address */
-				mraheader_t* test = mraheader_new();
-				if( !mraheader_set_from_string(test, optional_field->fld_value)
+				dc_aheader_t* test = dc_aheader_new();
+				if( !dc_aheader_set_from_string(test, optional_field->fld_value)
 				 || strcasecmp(test->m_addr, wanted_from)!=0 ) {
-					mraheader_unref(test);
+					dc_aheader_unref(test);
 					test = NULL;
 				}
 
@@ -298,8 +298,8 @@ mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct 
 					fine_header = test; /* may still be NULL */
 				}
 				else if( test ) {
-					mraheader_unref(fine_header);
-					mraheader_unref(test);
+					dc_aheader_unref(fine_header);
+					dc_aheader_unref(test);
 					return NULL; /* more than one valid header for the same address results in an error, see Autocrypt Level 1 */
 				}
 			}

@@ -589,14 +589,14 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 {
 	int             everythings_okay = 0;
 	mrcontact_t*    contact          = mrcontact_new(mailbox);
-	mrapeerstate_t* peerstate        = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate        = dc_apeerstate_new(mailbox);
 	char*           to_ids_str       = NULL;
 	char*           q3               = NULL;
 	sqlite3_stmt*   stmt             = NULL;
 
 	// ensure, the contact is verified
 	if( !mrcontact_load_from_db__(contact, mailbox->m_sql, from_id)
-	 || !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
+	 || !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
 	 || mrcontact_is_verified__(contact, peerstate) < MRV_BIDIRECTIONAL ) {
 		dc_log_warning(mailbox, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
@@ -609,7 +609,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 	}
 
 	// ensure, the message is signed with a verified key of the sender
-	if( !mrapeerstate_has_verified_key(peerstate, mimeparser->m_e2ee_helper->m_signatures) ) {
+	if( !dc_apeerstate_has_verified_key(peerstate, mimeparser->m_e2ee_helper->m_signatures) ) {
 		dc_log_warning(mailbox, 0, "Cannot verifiy group; message is not signed properly.");
 		goto cleanup;
     }
@@ -629,7 +629,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 		int is_verified         =              sqlite3_column_int (stmt, 1);
 
 		if( mrhash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
-		 && mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
+		 && dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, to_addr) )
 		{
 			// if we're here, we know the gossip key is verified:
 			// - use the gossip-key as verified-key if there is no verified-key
@@ -641,8 +641,8 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 			    && strcmp(peerstate->m_verified_key_fingerprint, peerstate->m_gossip_key_fingerprint)!=0) )
 			{
 				dc_log_info(mailbox, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
-				mrapeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
-				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
+				dc_apeerstate_set_verified(peerstate, MRA_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, MRV_BIDIRECTIONAL);
+				dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
 				is_verified = 1;
 			}
 		}
@@ -661,7 +661,7 @@ static int check_verified_properties__(mrmailbox_t* mailbox, mrmimeparser_t* mim
 cleanup:
 	sqlite3_finalize(stmt);
 	mrcontact_unref(contact);
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	free(to_ids_str);
 	sqlite3_free(q3);
 	return everythings_okay;
@@ -1439,12 +1439,12 @@ void mrmailbox_receive_imf(mrmailbox_t* mailbox, const char* imf_raw_not_termina
 					Unconsumed MDNs from normal MUAs are _not_ moved.
 					NB: we do not delete the MDN as it may be used by other clients
 
-					CAVE: we rely on mrimap_markseen_msg() not to move messages that are already in the correct folder.
+					CAVE: we rely on dc_imap_markseen_msg() not to move messages that are already in the correct folder.
 					otherwise, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
 					a classical deadlock, see also (***) in mrimap.c */
 					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
 						char* jobparam = mr_mprintf("%c=%s\n%c=%lu", MRP_SERVER_FOLDER, server_folder, MRP_SERVER_UID, server_uid);
-							mrjob_add(mailbox, MRJ_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
+							dc_job_add(mailbox, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
 						free(jobparam);
 					}
 				}

@@ -35,21 +35,21 @@
  ******************************************************************************/
 
 
-static int connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if the function is called directly!*/)
+static int connect_to_imap(mrmailbox_t* mailbox, dc_job_t* job /*may be NULL if the function is called directly!*/)
 {
 	#define         NOT_CONNECTED     0
 	#define         ALREADY_CONNECTED 1
 	#define         JUST_CONNECTED    2
 	int             ret_connected = NOT_CONNECTED;
 	int             is_locked = 0;
-	mrloginparam_t* param = mrloginparam_new();
+	dc_loginparam_t* param = dc_loginparam_new();
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
 		dc_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
 
-	if( mrimap_is_connected(mailbox->m_imap) ) {
+	if( dc_imap_is_connected(mailbox->m_imap) ) {
 		ret_connected = ALREADY_CONNECTED;
 		goto cleanup;
 	}
@@ -62,13 +62,13 @@ static int connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if t
 			goto cleanup;
 		}
 
-		mrloginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
+		dc_loginparam_read__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	is_locked = 0;
 
-	if( !mrimap_connect(mailbox->m_imap, param) ) {
-		mrjob_try_again_later(job, MR_STANDARD_DELAY);
+	if( !dc_imap_connect(mailbox->m_imap, param) ) {
+		dc_job_try_again_later(job, DC_STANDARD_DELAY);
 		goto cleanup;
 	}
 
@@ -76,12 +76,12 @@ static int connect_to_imap(mrmailbox_t* mailbox, mrjob_t* job /*may be NULL if t
 
 cleanup:
 	if( is_locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrloginparam_unref(param);
+	dc_loginparam_unref(param);
 	return ret_connected;
 }
 
 
-static void mrjob_do_MRJ_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	mrmimefactory_t  mimefactory;
 	char*            server_folder = NULL;
@@ -90,10 +90,10 @@ static void mrjob_do_MRJ_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	mrmimefactory_init(&mimefactory, mailbox);
 
 	/* connect to IMAP-server */
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
+	if( !dc_imap_is_connected(mailbox->m_imap) ) {
 		connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		if( !dc_imap_is_connected(mailbox->m_imap) ) {
+			dc_job_try_again_later(job, DC_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -108,8 +108,8 @@ static void mrjob_do_MRJ_SEND_MSG_TO_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		goto cleanup; /* should not happen as we've sent the message to the SMTP server before */
 	}
 
-	if( !mrimap_append_msg(mailbox->m_imap, mimefactory.m_msg->m_timestamp, mimefactory.m_out->str, mimefactory.m_out->len, &server_folder, &server_uid) ) {
-		mrjob_try_again_later(job, MR_AT_ONCE);
+	if( !dc_imap_append_msg(mailbox->m_imap, mimefactory.m_msg->m_timestamp, mimefactory.m_out->str, mimefactory.m_out->len, &server_folder, &server_uid) ) {
+		dc_job_try_again_later(job, DC_AT_ONCE);
 		goto cleanup;
 	}
 	else {
@@ -124,7 +124,7 @@ cleanup:
 }
 
 
-static void mrjob_do_MRJ_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0, delete_from_server = 1;
 	mrmsg_t* msg = mrmsg_new();
@@ -148,17 +148,17 @@ static void mrjob_do_MRJ_DELETE_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	/* if this is the last existing part of the message, we delete the message from the server */
 	if( delete_from_server )
 	{
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
+		if( !dc_imap_is_connected(mailbox->m_imap) ) {
 			connect_to_imap(mailbox, NULL);
-			if( !mrimap_is_connected(mailbox->m_imap) ) {
-				mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			if( !dc_imap_is_connected(mailbox->m_imap) ) {
+				dc_job_try_again_later(job, DC_STANDARD_DELAY);
 				goto cleanup;
 			}
 		}
 
-		if( !mrimap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
+		if( !dc_imap_delete_msg(mailbox->m_imap, msg->m_rfc724_mid, msg->m_server_folder, msg->m_server_uid) )
 		{
-			mrjob_try_again_later(job, MR_AT_ONCE);
+			dc_job_try_again_later(job, DC_AT_ONCE);
 			goto cleanup;
 		}
 	}
@@ -226,7 +226,7 @@ cleanup:
 }
 
 
-static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	int      locked = 0;
 	mrmsg_t* msg = mrmsg_new();
@@ -234,10 +234,10 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 	uint32_t new_server_uid = 0;
 	int      in_ms_flags = 0, out_ms_flags = 0;
 
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
+	if( !dc_imap_is_connected(mailbox->m_imap) ) {
 		connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		if( !dc_imap_is_connected(mailbox->m_imap) ) {
+			dc_job_try_again_later(job, DC_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -262,7 +262,7 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 		in_ms_flags |= MR_MS_ALSO_MOVE;
 	}
 
-	if( mrimap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
+	if( dc_imap_markseen_msg(mailbox->m_imap, msg->m_server_folder, msg->m_server_uid,
 		   in_ms_flags, &new_server_folder, &new_server_uid, &out_ms_flags) != 0 )
 	{
 		if( (new_server_folder && new_server_uid) || out_ms_flags&MR_MS_MDNSent_JUST_SET )
@@ -277,7 +277,7 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 
 				if( out_ms_flags&MR_MS_MDNSent_JUST_SET )
 				{
-					mrjob_add(mailbox, MRJ_SEND_MDN, msg->m_id, NULL, 0);
+					dc_job_add(mailbox, DC_JOB_SEND_MDN, msg->m_id, NULL, 0);
 				}
 
 			mrsqlite3_unlock(mailbox->m_sql);
@@ -286,7 +286,7 @@ static void mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 	}
 	else
 	{
-		mrjob_try_again_later(job, MR_AT_ONCE);
+		dc_job_try_again_later(job, DC_AT_ONCE);
 	}
 
 cleanup:
@@ -296,7 +296,7 @@ cleanup:
 }
 
 
-static void mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	char*    server_folder = mrparam_get    (job->m_param, MRP_SERVER_FOLDER, NULL);
 	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
@@ -304,16 +304,16 @@ static void mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP(mrmailbox_t* mailbox, mrjob_t* job
 	uint32_t new_server_uid    = 0;
 	int      out_ms_flags = 0;
 
-	if( !mrimap_is_connected(mailbox->m_imap) ) {
+	if( !dc_imap_is_connected(mailbox->m_imap) ) {
 		connect_to_imap(mailbox, NULL);
-		if( !mrimap_is_connected(mailbox->m_imap) ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+		if( !dc_imap_is_connected(mailbox->m_imap) ) {
+			dc_job_try_again_later(job, DC_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
 
-	if( mrimap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
-		mrjob_try_again_later(job, MR_AT_ONCE);
+	if( dc_imap_markseen_msg(mailbox->m_imap, server_folder, server_uid, MR_MS_ALSO_MOVE, &new_server_folder, &new_server_uid, &out_ms_flags) == 0 ) {
+		dc_job_try_again_later(job, DC_AT_ONCE);
 	}
 
 cleanup:
@@ -340,22 +340,22 @@ static void mark_as_error(mrmailbox_t* mailbox, mrmsg_t* msg)
 }
 
 
-static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	mrmimefactory_t mimefactory;
 
 	mrmimefactory_init(&mimefactory, mailbox);
 
 	/* connect to SMTP server, if not yet done */
-	if( !mrsmtp_is_connected(mailbox->m_smtp) ) {
-		mrloginparam_t* loginparam = mrloginparam_new();
+	if( !dc_smtp_is_connected(mailbox->m_smtp) ) {
+		dc_loginparam_t* loginparam = dc_loginparam_new();
 			mrsqlite3_lock(mailbox->m_sql);
-				mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+				dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
 			mrsqlite3_unlock(mailbox->m_sql);
-			int connected = mrsmtp_connect(mailbox->m_smtp, loginparam);
-		mrloginparam_unref(loginparam);
+			int connected = dc_smtp_connect(mailbox->m_smtp, loginparam);
+		dc_loginparam_unref(loginparam);
 		if( !connected ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -370,7 +370,7 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 	/* check if the message is ready (normally, only video files may be delayed this way) */
 	if( mimefactory.m_increation ) {
 		dc_log_info(mailbox, 0, "File is in creation, retrying later.");
-		mrjob_try_again_later(job, MR_INCREATION_POLL);
+		dc_job_try_again_later(job, DC_INCREATION_POLL);
 		goto cleanup;
 	}
 
@@ -389,9 +389,9 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 			goto cleanup; /* unrecoverable */
 		}
 
-		if( !mrsmtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
-			mrsmtp_disconnect(mailbox->m_smtp);
-			mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+		if( !dc_smtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
+			dc_smtp_disconnect(mailbox->m_smtp);
+			dc_job_try_again_later(job, DC_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 			goto cleanup;
 		}
 	}
@@ -422,7 +422,7 @@ static void mrjob_do_MRJ_SEND_MSG_TO_SMTP(mrmailbox_t* mailbox, mrjob_t* job)
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
 		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
 		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
-			mrjob_add(mailbox, MRJ_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
+			dc_job_add(mailbox, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 
 		// TODO: add to keyhistory
@@ -438,7 +438,7 @@ cleanup:
 }
 
 
-static void mrjob_do_MRJ_SEND_MDN(mrmailbox_t* mailbox, mrjob_t* job)
+static void dc_job_do_DC_JOB_SEND_MDN(mrmailbox_t* mailbox, dc_job_t* job)
 {
 	mrmimefactory_t mimefactory;
 	mrmimefactory_init(&mimefactory, mailbox);
@@ -448,16 +448,16 @@ static void mrjob_do_MRJ_SEND_MDN(mrmailbox_t* mailbox, mrjob_t* job)
 	}
 
 	/* connect to SMTP server, if not yet done */
-	if( !mrsmtp_is_connected(mailbox->m_smtp) )
+	if( !dc_smtp_is_connected(mailbox->m_smtp) )
 	{
-		mrloginparam_t* loginparam = mrloginparam_new();
+		dc_loginparam_t* loginparam = dc_loginparam_new();
 			mrsqlite3_lock(mailbox->m_sql);
-				mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+				dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
 			mrsqlite3_unlock(mailbox->m_sql);
-			int connected = mrsmtp_connect(mailbox->m_smtp, loginparam);
-		mrloginparam_unref(loginparam);
+			int connected = dc_smtp_connect(mailbox->m_smtp, loginparam);
+		dc_loginparam_unref(loginparam);
 		if( !connected ) {
-			mrjob_try_again_later(job, MR_STANDARD_DELAY);
+			dc_job_try_again_later(job, DC_STANDARD_DELAY);
 			goto cleanup;
 		}
 	}
@@ -469,9 +469,9 @@ static void mrjob_do_MRJ_SEND_MDN(mrmailbox_t* mailbox, mrjob_t* job)
 
 	//char* t1=mr_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~MDN~~~~~\n%s\n~~~~~/MDN~~~~~",t1);free(t1); // DEBUG OUTPUT
 
-	if( !mrsmtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
-		mrsmtp_disconnect(mailbox->m_smtp);
-		mrjob_try_again_later(job, MR_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
+	if( !dc_smtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
+		dc_smtp_disconnect(mailbox->m_smtp);
+		dc_job_try_again_later(job, DC_AT_ONCE); /* MR_AT_ONCE is only the _initial_ delay, if the second try failes, the delay gets larger */
 		goto cleanup;
 	}
 
@@ -510,17 +510,17 @@ void mrmailbox_suspend_smtp_thread(mrmailbox_t* mailbox, int suspend)
  ******************************************************************************/
 
 
-void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
+void dc_job_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* param, int delay_seconds)
 {
 	time_t        timestamp = time(NULL);
 	sqlite3_stmt* stmt;
 	int           thread;
 
-	if( action >= MR_IMAP_THREAD && action < MR_IMAP_THREAD+1000 ) {
-		thread = MR_IMAP_THREAD;
+	if( action >= DC_IMAP_THREAD && action < DC_IMAP_THREAD+1000 ) {
+		thread = DC_IMAP_THREAD;
 	}
-	else if( action >= MR_SMTP_THREAD && action < MR_SMTP_THREAD+1000 ) {
-		thread = MR_SMTP_THREAD;
+	else if( action >= DC_SMTP_THREAD && action < DC_SMTP_THREAD+1000 ) {
+		thread = DC_SMTP_THREAD;
 	}
 	else {
 		return;
@@ -537,7 +537,7 @@ void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* par
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 
-	if( thread == MR_IMAP_THREAD ) {
+	if( thread == DC_IMAP_THREAD ) {
 		dc_interrupt_imap_idle(mailbox);
 	}
 	else {
@@ -546,7 +546,7 @@ void mrjob_add(mrmailbox_t* mailbox, int action, int foreign_id, const char* par
 }
 
 
-void mrjob_try_again_later(mrjob_t* job, int try_again)
+void dc_job_try_again_later(dc_job_t* job, int try_again)
 {
 	if( job == NULL ) {
 		return;
@@ -556,7 +556,7 @@ void mrjob_try_again_later(mrjob_t* job, int try_again)
 }
 
 
-void mrjob_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
+void dc_job_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
 {
 	if( mailbox == NULL ) {
 		return;
@@ -571,13 +571,13 @@ void mrjob_kill_actions(mrmailbox_t* mailbox, int action1, int action2)
 }
 
 
-static void mrjob_perform(mrmailbox_t* mailbox, int thread)
+static void dc_job_perform(mrmailbox_t* mailbox, int thread)
 {
 	sqlite3_stmt* select_stmt = NULL;
-	mrjob_t       job;
-	#define       THREAD_STR (thread==MR_IMAP_THREAD? "IMAP" : "SMTP")
+	dc_job_t      job;
+	#define       THREAD_STR (thread==DC_IMAP_THREAD? "IMAP" : "SMTP")
 
-	memset(&job, 0, sizeof(mrjob_t));
+	memset(&job, 0, sizeof(dc_job_t));
 	job.m_param = mrparam_new();
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -599,30 +599,30 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 
 		for( int tries = 0; tries <= 1; tries++ )
 		{
-			job.m_try_again = MR_DONT_TRY_AGAIN; // this can be modified by a job using mrjob_try_again_later()
+			job.m_try_again = DC_DONT_TRY_AGAIN; // this can be modified by a job using dc_job_try_again_later()
 
 			switch( job.m_action ) {
-				case MRJ_SEND_MSG_TO_SMTP:     mrjob_do_MRJ_SEND_MSG_TO_SMTP     (mailbox, &job); break;
-				case MRJ_SEND_MSG_TO_IMAP:     mrjob_do_MRJ_SEND_MSG_TO_IMAP     (mailbox, &job); break;
-				case MRJ_DELETE_MSG_ON_IMAP:   mrjob_do_MRJ_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
-				case MRJ_MARKSEEN_MSG_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
-				case MRJ_MARKSEEN_MDN_ON_IMAP: mrjob_do_MRJ_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
-				case MRJ_SEND_MDN:             mrjob_do_MRJ_SEND_MDN             (mailbox, &job); break;
-				case MRJ_CONFIGURE_IMAP:       mrjob_do_MRJ_CONFIGURE_IMAP       (mailbox, &job); break;
+				case DC_JOB_SEND_MSG_TO_SMTP:     dc_job_do_DC_JOB_SEND_MSG_TO_SMTP     (mailbox, &job); break;
+				case DC_JOB_SEND_MSG_TO_IMAP:     dc_job_do_DC_JOB_SEND_MSG_TO_IMAP     (mailbox, &job); break;
+				case DC_JOB_DELETE_MSG_ON_IMAP:   dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP   (mailbox, &job); break;
+				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (mailbox, &job); break;
+				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (mailbox, &job); break;
+				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (mailbox, &job); break;
+				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (mailbox, &job); break;
 			}
 
-			if( job.m_try_again != MR_AT_ONCE ) {
+			if( job.m_try_again != DC_AT_ONCE ) {
 				break;
 			}
 		}
 
 
-		if( job.m_try_again == MR_INCREATION_POLL )
+		if( job.m_try_again == DC_INCREATION_POLL )
 		{
 			// just try over next loop unconditionally, the ui typically interrupts idle when the file (video) is ready
 			dc_log_info(mailbox, 0, "%s-job #%i not yet ready and will be delayed.", THREAD_STR, (int)job.m_job_id);
 		}
-		else if( job.m_try_again == MR_AT_ONCE || job.m_try_again == MR_STANDARD_DELAY )
+		else if( job.m_try_again == DC_AT_ONCE || job.m_try_again == DC_STANDARD_DELAY )
 		{
 			int tries = mrparam_get_int(job.m_param, MRP_TIMES, 0) + 1;
 			mrparam_set_int(job.m_param, MRP_TIMES, tries);
@@ -638,7 +638,7 @@ static void mrjob_perform(mrmailbox_t* mailbox, int thread)
 			// if the job did not succeeded AND this is a smtp-job AND we're online, try over after a mini-delay of one second.
 			// if we're not online, the ui calls interrupt idle as soon as we're online again.
 			// if nothing of this happens, after MR_SMTP_IDLE_SEC (60) we try again.
-			if( thread == MR_SMTP_THREAD
+			if( thread == DC_SMTP_THREAD
 			 && dc_is_online(mailbox) )
 			{
 				pthread_mutex_lock(&mailbox->m_smtpidle_condmutex);
@@ -686,7 +686,7 @@ void dc_perform_imap_jobs(dc_context_t* context)
 		context->m_perform_imap_jobs_needed = 0;
 	pthread_mutex_unlock(&context->m_imapidle_condmutex);
 
-	mrjob_perform(context, MR_IMAP_THREAD);
+	dc_job_perform(context, DC_IMAP_THREAD);
 
 	dc_log_info(context, 0, "IMAP-jobs ended.");
 }
@@ -713,13 +713,13 @@ void dc_perform_imap_fetch(dc_context_t* context)
 
 	dc_log_info(context, 0, "IMAP-fetch started...");
 
-	mrimap_fetch(context->m_imap);
+	dc_imap_fetch(context->m_imap);
 
 	if( context->m_imap->m_should_reconnect
 	 && context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)==0 )
 	{
 		dc_log_info(context, 0, "IMAP-fetch aborted, starting over...");
-		mrimap_fetch(context->m_imap);
+		dc_imap_fetch(context->m_imap);
 	}
 
 	dc_log_info(context, 0, "IMAP-fetch done in %.0f ms.", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
@@ -741,7 +741,7 @@ void dc_perform_imap_fetch(dc_context_t* context)
  */
 void dc_perform_imap_idle(dc_context_t* context)
 {
-	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. mrimap_idle() will handle this by the fake-idle and log a warning
+	connect_to_imap(context, NULL); // also idle if connection fails because of not-configured, no-network, whatever. dc_imap_idle() will handle this by the fake-idle and log a warning
 
 	pthread_mutex_lock(&context->m_imapidle_condmutex);
 		if( context->m_perform_imap_jobs_needed ) {
@@ -753,7 +753,7 @@ void dc_perform_imap_idle(dc_context_t* context)
 
 	dc_log_info(context, 0, "IMAP-IDLE started...");
 
-	mrimap_idle(context->m_imap);
+	dc_imap_idle(context->m_imap);
 
 	dc_log_info(context, 0, "IMAP-IDLE ended.");
 }
@@ -809,7 +809,7 @@ void dc_interrupt_imap_idle(dc_context_t* context)
 		context->m_perform_imap_jobs_needed = 1;
 	pthread_mutex_unlock(&context->m_imapidle_condmutex);
 
-	mrimap_interrupt_idle(context->m_imap);
+	dc_imap_interrupt_idle(context->m_imap);
 }
 
 
@@ -837,7 +837,7 @@ void dc_perform_smtp_jobs(dc_context_t* context)
 		context->m_perform_smtp_jobs_needed = 0;
 	pthread_mutex_unlock(&context->m_smtpidle_condmutex);
 
-	mrjob_perform(context, MR_SMTP_THREAD);
+	dc_job_perform(context, DC_SMTP_THREAD);
 
 	dc_log_info(context, 0, "SMTP-jobs ended.");
 }

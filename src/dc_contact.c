@@ -275,7 +275,7 @@ int dc_contact_is_blocked(const dc_contact_t* contact)
 }
 
 
-int mrcontact_is_verified__(const dc_contact_t* contact, const mrapeerstate_t* peerstate)
+int mrcontact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 
@@ -312,18 +312,18 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 {
 	int             contact_verified = MRV_NOT_VERIFIED;
 	int             locked           = 0;
-	mrapeerstate_t* peerstate        = NULL;
+	dc_apeerstate_t* peerstate        = NULL;
 
 	if( contact == NULL || contact->m_magic != MR_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
-	peerstate = mrapeerstate_new(contact->m_mailbox);
+	peerstate = dc_apeerstate_new(contact->m_mailbox);
 
 	mrsqlite3_lock(contact->m_mailbox->m_sql);
 	locked = 1;
 
-		if( !mrapeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
+		if( !dc_apeerstate_load_by_addr__(peerstate, contact->m_mailbox->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
@@ -331,7 +331,7 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(contact->m_mailbox->m_sql); }
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	return contact_verified;
 }
 

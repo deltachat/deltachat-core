@@ -1400,7 +1400,7 @@ int dc_check_password(dc_context_t* mailbox, const char* test_pw)
 	/* Check if the given password matches the configured mail_pw.
 	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.
 	When we start supporting OAuth some day, we should think this over, maybe force the user to re-authenticate himself with the Android password. */
-	mrloginparam_t* loginparam = mrloginparam_new();
+	dc_loginparam_t* loginparam = dc_loginparam_new();
 	int             success = 0;
 
 	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
@@ -1409,7 +1409,7 @@ int dc_check_password(dc_context_t* mailbox, const char* test_pw)
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+		dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
@@ -1427,6 +1427,6 @@ int dc_check_password(dc_context_t* mailbox, const char* test_pw)
 	}
 
 cleanup:
-	mrloginparam_unref(loginparam);
+	dc_loginparam_unref(loginparam);
 	return success;
 }

@@ -53,7 +53,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	char*           name          = NULL;
 	char*           invitenumber  = NULL;
 	char*           auth          = NULL;
-	mrapeerstate_t* peerstate     = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate     = dc_apeerstate_new(mailbox);
 	mrlot_t*        qr_parsed     = mrlot_new();
 	uint32_t        chat_id       = 0;
 	char*           device_msg    = NULL;
@@ -210,7 +210,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 			mrsqlite3_lock(mailbox->m_sql);
 			locked = 1;
 
-				if( mrapeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
+				if( dc_apeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
 					qr_parsed->m_state = MR_QR_FPR_OK;
 					qr_parsed->m_id    = mrmailbox_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
@@ -276,7 +276,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	free(addr);
 	free(fingerprint);
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	free(payload);
 	free(name);
 	free(invitenumber);

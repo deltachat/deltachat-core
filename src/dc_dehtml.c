@@ -161,16 +161,16 @@ char* mr_dehtml(char* buf_terminated)
 	}
 	else {
 		dehtml_t      dehtml;
-		mrsaxparser_t saxparser;
+		dc_saxparser_t saxparser;
 
 		memset(&dehtml, 0, sizeof(dehtml_t));
 		dehtml.m_add_text   = DO_ADD_REMOVE_LINEENDS;
 		mrstrbuilder_init(&dehtml.m_strbuilder, strlen(buf_terminated));
 
-		mrsaxparser_init(&saxparser, &dehtml);
-		mrsaxparser_set_tag_handler(&saxparser, dehtml_starttag_cb, dehtml_endtag_cb);
-		mrsaxparser_set_text_handler(&saxparser, dehtml_text_cb);
-		mrsaxparser_parse(&saxparser, buf_terminated);
+		dc_saxparser_init(&saxparser, &dehtml);
+		dc_saxparser_set_tag_handler(&saxparser, dehtml_starttag_cb, dehtml_endtag_cb);
+		dc_saxparser_set_text_handler(&saxparser, dehtml_text_cb);
+		dc_saxparser_parse(&saxparser, buf_terminated);
 
 		free(dehtml.m_last_href);
 		return dehtml.m_strbuilder.m_buf;

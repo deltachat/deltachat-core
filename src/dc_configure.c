@@ -58,11 +58,11 @@ static char* read_autoconf_file(mrmailbox_t* mailbox, const char* url)
 
 typedef struct moz_autoconfigure_t
 {
-	const mrloginparam_t* m_in;
+	const dc_loginparam_t* m_in;
 	char*                 m_in_emaildomain;
 	char*                 m_in_emaillocalpart;
 
-	mrloginparam_t*       m_out;
+	dc_loginparam_t*       m_out;
 	int                   m_out_imap_set, m_out_smtp_set;
 
 	/* currently, we assume there is only one emailProvider tag in the
@@ -163,7 +163,7 @@ static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static mrloginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, const mrloginparam_t* param_in)
+static dc_loginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, const dc_loginparam_t* param_in)
 {
 	char*               xml_raw = NULL;
 	moz_autoconfigure_t moz_ac;
@@ -177,22 +177,22 @@ static mrloginparam_t* moz_autoconfigure(mrmailbox_t* mailbox, const char* url, 
 	moz_ac.m_in                = param_in;
 	moz_ac.m_in_emaillocalpart = safe_strdup(param_in->m_addr); char* p = strchr(moz_ac.m_in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
 	moz_ac.m_in_emaildomain    = safe_strdup(p+1);
-	moz_ac.m_out               = mrloginparam_new();
+	moz_ac.m_out               = dc_loginparam_new();
 
-	mrsaxparser_t                 saxparser;
-	mrsaxparser_init            (&saxparser, &moz_ac);
-	mrsaxparser_set_tag_handler (&saxparser, moz_autoconfigure_starttag_cb, moz_autoconfigure_endtag_cb);
-	mrsaxparser_set_text_handler(&saxparser, moz_autoconfigure_text_cb);
-	mrsaxparser_parse           (&saxparser, xml_raw);
+	dc_saxparser_t                saxparser;
+	dc_saxparser_init            (&saxparser, &moz_ac);
+	dc_saxparser_set_tag_handler (&saxparser, moz_autoconfigure_starttag_cb, moz_autoconfigure_endtag_cb);
+	dc_saxparser_set_text_handler(&saxparser, moz_autoconfigure_text_cb);
+	dc_saxparser_parse           (&saxparser, xml_raw);
 
 	if( moz_ac.m_out->m_mail_server == NULL
 	 || moz_ac.m_out->m_mail_port   == 0
 	 || moz_ac.m_out->m_send_server == NULL
 	 || moz_ac.m_out->m_send_port   == 0 )
 	{
-		{ char* r = mrloginparam_get_readable(moz_ac.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = dc_loginparam_get_readable(moz_ac.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 
-		mrloginparam_unref(moz_ac.m_out); /* autoconfig failed for the given URL */
+		dc_loginparam_unref(moz_ac.m_out); /* autoconfig failed for the given URL */
 		moz_ac.m_out = NULL;
 		goto cleanup;
 	}
@@ -212,9 +212,9 @@ cleanup:
 
 typedef struct outlk_autodiscover_t
 {
-	const mrloginparam_t* m_in;
+	const dc_loginparam_t* m_in;
 
-	mrloginparam_t*       m_out;
+	dc_loginparam_t*       m_out;
 	int                   m_out_imap_set, m_out_smtp_set;
 
 	/* file format: https://msdn.microsoft.com/en-us/library/bb204278(v=exchg.80).aspx */
@@ -302,7 +302,7 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static mrloginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url__, const mrloginparam_t* param_in)
+static dc_loginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url__, const dc_loginparam_t* param_in)
 {
 	char*                 xml_raw = NULL, *url = safe_strdup(url__);
 	outlk_autodiscover_t  outlk_ad;
@@ -317,18 +317,18 @@ static mrloginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url_
 		}
 
 		outlk_ad.m_in                = param_in;
-		outlk_ad.m_out               = mrloginparam_new();
+		outlk_ad.m_out               = dc_loginparam_new();
 
-		mrsaxparser_t                 saxparser;
-		mrsaxparser_init            (&saxparser, &outlk_ad);
-		mrsaxparser_set_tag_handler (&saxparser, outlk_autodiscover_starttag_cb, outlk_autodiscover_endtag_cb);
-		mrsaxparser_set_text_handler(&saxparser, outlk_autodiscover_text_cb);
-		mrsaxparser_parse           (&saxparser, xml_raw);
+		dc_saxparser_t                 saxparser;
+		dc_saxparser_init            (&saxparser, &outlk_ad);
+		dc_saxparser_set_tag_handler (&saxparser, outlk_autodiscover_starttag_cb, outlk_autodiscover_endtag_cb);
+		dc_saxparser_set_text_handler(&saxparser, outlk_autodiscover_text_cb);
+		dc_saxparser_parse           (&saxparser, xml_raw);
 
 		if( outlk_ad.m_config[OUTLK_REDIRECTURL] && outlk_ad.m_config[OUTLK_REDIRECTURL][0] ) {
 			free(url);
 			url = safe_strdup(outlk_ad.m_config[OUTLK_REDIRECTURL]);
-			mrloginparam_unref(outlk_ad.m_out);
+			dc_loginparam_unref(outlk_ad.m_out);
 			outlk_clean_config(&outlk_ad);
 			free(xml_raw); xml_raw = NULL;
 		}
@@ -342,8 +342,8 @@ static mrloginparam_t* outlk_autodiscover(mrmailbox_t* mailbox, const char* url_
 	 || outlk_ad.m_out->m_send_server == NULL
 	 || outlk_ad.m_out->m_send_port   == 0 )
 	{
-		{ char* r = mrloginparam_get_readable(outlk_ad.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
-		mrloginparam_unref(outlk_ad.m_out); /* autoconfig failed for the given URL */
+		{ char* r = dc_loginparam_get_readable(outlk_ad.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		dc_loginparam_unref(outlk_ad.m_out); /* autoconfig failed for the given URL */
 		outlk_ad.m_out = NULL;
 		goto cleanup;
 	}
@@ -361,22 +361,22 @@ cleanup:
  ******************************************************************************/
 
 
-void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
+void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;
 
-	mrloginparam_t* param = NULL;
+	dc_loginparam_t* param = NULL;
 	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
 	char*           param_addr_urlencoded = NULL;
-	mrloginparam_t* param_autoconfig = NULL;
+	dc_loginparam_t* param_autoconfig = NULL;
 
 	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
 		goto cleanup;
 	}
 
 	mrmailbox_suspend_smtp_thread(mailbox, 1);
-	mrjob_kill_actions(mailbox, MRJ_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
+	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
 	if( !mrmailbox_alloc_ongoing(mailbox) ) {
 		goto cleanup;
@@ -394,8 +394,8 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 
 	/* disconnect */
 
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
+	dc_imap_disconnect(mailbox->m_imap);
+	dc_smtp_disconnect(mailbox->m_smtp);
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
@@ -421,12 +421,12 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	/* 1.  Load the parameters and check email-address and password
 	 **************************************************************************/
 
-	param = mrloginparam_new();
+	param = dc_loginparam_new();
 
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		mrloginparam_read__(param, mailbox->m_sql, "");
+		dc_loginparam_read__(param, mailbox->m_sql, "");
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
@@ -507,7 +507,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		/* C.  Do we have any result? */
 		if( param_autoconfig )
 		{
-			{ char* r = mrloginparam_get_readable(param_autoconfig); dc_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
+			{ char* r = dc_loginparam_get_readable(param_autoconfig); dc_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
 
 			if( param_autoconfig->m_mail_user ) {
 				free(param->m_mail_user);
@@ -618,9 +618,9 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	PROGRESS(600)
 
 	/* try to connect to IMAP */
-	{ char* r = mrloginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+	{ char* r = dc_loginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
 
-	if( !mrimap_connect(mailbox->m_imap, param) ) {
+	if( !dc_imap_connect(mailbox->m_imap, param) ) {
 		goto cleanup;
 	}
 
@@ -629,7 +629,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	PROGRESS(800)
 
 	/* try to connect to SMTP - if we did not got an autoconfig, the first try was SSL-465 and we do a second try with STARTTLS-587 */
-	if( !mrsmtp_connect(mailbox->m_smtp, param) )  {
+	if( !dc_smtp_connect(mailbox->m_smtp, param) )  {
 		if( param_autoconfig ) {
 			goto cleanup;
 		}
@@ -639,9 +639,9 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
 		param->m_server_flags |=  MR_SMTP_SOCKET_STARTTLS;
 		param->m_send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
-		{ char* r = mrloginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+		{ char* r = dc_loginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
 
-		if( !mrsmtp_connect(mailbox->m_smtp, param) ) {
+		if( !dc_smtp_connect(mailbox->m_smtp, param) ) {
 			goto cleanup;
 		}
 	}
@@ -654,7 +654,7 @@ void mrjob_do_MRJ_CONFIGURE_IMAP(mrmailbox_t* mailbox, mrjob_t* job)
 	mrsqlite3_lock(mailbox->m_sql);
 	locked = 1;
 
-		mrloginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
+		dc_loginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 		mrsqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -676,14 +676,14 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
-	if( imap_connected_here ) { mrimap_disconnect(mailbox->m_imap); }
+	if( imap_connected_here ) { dc_imap_disconnect(mailbox->m_imap); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
 
-	if( smtp_connected_here ) { mrsmtp_disconnect(mailbox->m_smtp); }
+	if( smtp_connected_here ) { dc_smtp_disconnect(mailbox->m_smtp); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
 
-	mrloginparam_unref(param);
-	mrloginparam_unref(param_autoconfig);
+	dc_loginparam_unref(param);
+	dc_loginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
 	if( ongoing_allocated_here ) { mrmailbox_free_ongoing(mailbox); }
 	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
@@ -727,8 +727,8 @@ cleanup:
  */
 void dc_configure(dc_context_t* mailbox)
 {
-	mrjob_kill_actions(mailbox, MRJ_CONFIGURE_IMAP, 0);
-	mrjob_add(mailbox, MRJ_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
+	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0);
+	dc_job_add(mailbox, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to mrmailbox_configure_job()
 }
 
 
@@ -753,7 +753,7 @@ int dc_is_configured(dc_context_t* mailbox)
 		return 0;
 	}
 
-	if( mrimap_is_connected(mailbox->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
+	if( dc_imap_is_connected(mailbox->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
 		return 1;
 	}
 

@@ -20,7 +20,7 @@
  ******************************************************************************/
 
 
-/* mrsaxparser_t parses XML and HTML files that may not be wellformed
+/* dc_saxparser_t parses XML and HTML files that may not be wellformed
 and spits out all text and tags found.
 - Attributes are recognized with single, double or no quotes
 - Whitespace ignored inside tags
@@ -236,7 +236,7 @@ static void def_endtag_cb   (void* userdata, const char* tag) { }
 static void def_text_cb     (void* userdata, const char* text, int len) { }
 
 
-static void call_text_cb(mrsaxparser_t* ths, char* text, size_t len, char type)
+static void call_text_cb(dc_saxparser_t* ths, char* text, size_t len, char type)
 {
 	if( text && len )
 	{
@@ -289,7 +289,7 @@ const char* mrattr_find(char** attr, const char* key)
 }
 
 
-void mrsaxparser_init(mrsaxparser_t* ths, void* userdata)
+void dc_saxparser_init(dc_saxparser_t* ths, void* userdata)
 {
 	ths->m_userdata    = userdata;
 	ths->m_starttag_cb = def_starttag_cb;
@@ -298,7 +298,7 @@ void mrsaxparser_init(mrsaxparser_t* ths, void* userdata)
 }
 
 
-void mrsaxparser_set_tag_handler(mrsaxparser_t* ths, mrsaxparser_starttag_cb_t starttag_cb, mrsaxparser_endtag_cb_t endtag_cb)
+void dc_saxparser_set_tag_handler(dc_saxparser_t* ths, dc_saxparser_starttag_cb_t starttag_cb, dc_saxparser_endtag_cb_t endtag_cb)
 {
 	if( ths == NULL ) {
 		return;
@@ -309,7 +309,7 @@ void mrsaxparser_set_tag_handler(mrsaxparser_t* ths, mrsaxparser_starttag_cb_t s
 }
 
 
-void mrsaxparser_set_text_handler (mrsaxparser_t* ths, mrsaxparser_text_cb_t text_cb)
+void dc_saxparser_set_text_handler (dc_saxparser_t* ths, dc_saxparser_text_cb_t text_cb)
 {
 	if( ths == NULL ) {
 		return;
@@ -319,7 +319,7 @@ void mrsaxparser_set_text_handler (mrsaxparser_t* ths, mrsaxparser_text_cb_t tex
 }
 
 
-void mrsaxparser_parse(mrsaxparser_t* ths, const char* buf_start__)
+void dc_saxparser_parse(dc_saxparser_t* ths, const char* buf_start__)
 {
 	char bak, *buf_start, *last_text_start, *p;
 

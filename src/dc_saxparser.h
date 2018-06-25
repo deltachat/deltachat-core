@@ -27,25 +27,25 @@ extern "C" {
 #endif
 
 
-typedef void (*mrsaxparser_starttag_cb_t) (void* userdata, const char* tag, char** attr);
-typedef void (*mrsaxparser_endtag_cb_t)   (void* userdata, const char* tag);
-typedef void (*mrsaxparser_text_cb_t)     (void* userdata, const char* text, int len); /* len is only informational, text is already null-terminated */
+typedef void (*dc_saxparser_starttag_cb_t) (void* userdata, const char* tag, char** attr);
+typedef void (*dc_saxparser_endtag_cb_t)   (void* userdata, const char* tag);
+typedef void (*dc_saxparser_text_cb_t)     (void* userdata, const char* text, int len); /* len is only informational, text is already null-terminated */
 
 
-typedef struct mrsaxparser_t
+typedef struct dc_saxparser_t
 {
-	mrsaxparser_starttag_cb_t m_starttag_cb;
-	mrsaxparser_endtag_cb_t   m_endtag_cb;
-	mrsaxparser_text_cb_t     m_text_cb;
+	dc_saxparser_starttag_cb_t m_starttag_cb;
+	dc_saxparser_endtag_cb_t   m_endtag_cb;
+	dc_saxparser_text_cb_t     m_text_cb;
 	void*                     m_userdata;
-} mrsaxparser_t;
+} dc_saxparser_t;
 
 
-void           mrsaxparser_init             (mrsaxparser_t*, void* userData);
-void           mrsaxparser_set_tag_handler  (mrsaxparser_t*, mrsaxparser_starttag_cb_t, mrsaxparser_endtag_cb_t);
-void           mrsaxparser_set_text_handler (mrsaxparser_t*, mrsaxparser_text_cb_t);
+void           dc_saxparser_init             (dc_saxparser_t*, void* userData);
+void           dc_saxparser_set_tag_handler  (dc_saxparser_t*, dc_saxparser_starttag_cb_t, dc_saxparser_endtag_cb_t);
+void           dc_saxparser_set_text_handler (dc_saxparser_t*, dc_saxparser_text_cb_t);
 
-void           mrsaxparser_parse            (mrsaxparser_t*, const char* text);
+void           dc_saxparser_parse            (dc_saxparser_t*, const char* text);
 
 const char*    mrattr_find                  (char** attr, const char* key);
 

@@ -33,22 +33,22 @@ extern "C" {
 /**
  * Library-internal. Parse and create [Autocrypt-headers](https://autocrypt.org/en/latest/level1.html#the-autocrypt-header).
  */
-typedef struct mraheader_t
+typedef struct dc_aheader_t
 {
 	char*          m_addr;
 	mrkey_t*       m_public_key; /* != NULL */
 	int            m_prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
-} mraheader_t;
+} dc_aheader_t;
 
 
-mraheader_t* mraheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
-mraheader_t* mraheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* mime);
-void         mraheader_empty             (mraheader_t*);
-void         mraheader_unref             (mraheader_t*);
+dc_aheader_t* dc_aheader_new               (); /* the returned pointer is ref'd and must be unref'd after usage */
+dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* mime);
+void          dc_aheader_empty             (dc_aheader_t*);
+void          dc_aheader_unref             (dc_aheader_t*);
 
-int          mraheader_set_from_string   (mraheader_t*, const char* header_str);
+int           dc_aheader_set_from_string   (dc_aheader_t*, const char* header_str);
 
-char*        mraheader_render            (const mraheader_t*);
+char*         dc_aheader_render            (const dc_aheader_t*);
 
 
 #ifdef __cplusplus

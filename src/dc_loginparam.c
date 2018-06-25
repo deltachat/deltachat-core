@@ -29,11 +29,11 @@
  ******************************************************************************/
 
 
-mrloginparam_t* mrloginparam_new()
+dc_loginparam_t* dc_loginparam_new()
 {
-	mrloginparam_t* ths = NULL;
+	dc_loginparam_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrloginparam_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_loginparam_t)))==NULL ) {
 		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -41,18 +41,18 @@ mrloginparam_t* mrloginparam_new()
 }
 
 
-void mrloginparam_unref(mrloginparam_t* ths)
+void dc_loginparam_unref(dc_loginparam_t* ths)
 {
 	if( ths==NULL ) {
 		return;
 	}
 
-	mrloginparam_empty(ths);
+	dc_loginparam_empty(ths);
 	free(ths);
 }
 
 
-void mrloginparam_empty(mrloginparam_t* ths)
+void dc_loginparam_empty(dc_loginparam_t* ths)
 {
 	if( ths == NULL ) {
 		return; /* ok, but nothing to do */
@@ -71,12 +71,12 @@ void mrloginparam_empty(mrloginparam_t* ths)
 }
 
 
-void mrloginparam_read__(mrloginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
+void dc_loginparam_read__(dc_loginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 	#define MR_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
 
-	mrloginparam_empty(ths);
+	dc_loginparam_empty(ths);
 
 	MR_PREFIX("addr");        ths->m_addr        = mrsqlite3_get_config__    (sql, key, NULL);
 
@@ -96,7 +96,7 @@ void mrloginparam_read__(mrloginparam_t* ths, mrsqlite3_t* sql, const char* pref
 }
 
 
-void mrloginparam_write__(const mrloginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
+void dc_loginparam_write__(const dc_loginparam_t* ths, mrsqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 
@@ -156,7 +156,7 @@ static char* get_readable_flags(int flags)
 }
 
 
-char* mrloginparam_get_readable(const mrloginparam_t* ths)
+char* dc_loginparam_get_readable(const dc_loginparam_t* ths)
 {
 	const char* unset = "0";
 	const char* pw = "***";

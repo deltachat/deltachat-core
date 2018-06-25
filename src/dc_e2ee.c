@@ -324,7 +324,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
                     struct mailmime* in_out_message, mrmailbox_e2ee_helper_t* helper)
 {
 	int                    locked = 0, col = 0, do_encrypt = 0;
-	mraheader_t*           autocryptheader = mraheader_new();
+	dc_aheader_t*           autocryptheader = dc_aheader_new();
 	struct mailimf_fields* imffields_unprotected = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	mrkeyring_t*           keyring = mrkeyring_new();
 	mrkey_t*               sign_key = mrkey_new();
@@ -366,14 +366,14 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 			clistiter*      iter1;
 			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
 				const char* recipient_addr = clist_content(iter1);
-				mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+				dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 				mrkey_t* key_to_use = NULL;
 				if( strcasecmp(recipient_addr, autocryptheader->m_addr) == 0 )
 				{
 					; // encrypt to SELF, this key is added below
 				}
-				else if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
-				      && (key_to_use=mrapeerstate_peek_key(peerstate, min_verified)) != NULL
+				else if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
+				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
 				      && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					mrkeyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
@@ -381,7 +381,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 				}
 				else
 				{
-					mrapeerstate_unref(peerstate);
+					dc_apeerstate_unref(peerstate);
 					do_encrypt = 0;
 					break; /* if we cannot encrypt to a single recipient, we cannot encrypt the message at all */
 				}
@@ -422,7 +422,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		int iCnt = mrarray_get_cnt(peerstates);
 		if( iCnt > 1 ) {
 			for( int i = 0; i < iCnt; i++ ) {
-				char* p = mrapeerstate_render_gossip_header((mrapeerstate_t*)mrarray_get_ptr(peerstates, i), min_verified);
+				char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)mrarray_get_ptr(peerstates, i), min_verified);
 				if( p ) {
 					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
 				}
@@ -501,7 +501,7 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 		helper->m_encryption_successfull = 1;
 	}
 
-	char* p = mraheader_render(autocryptheader);
+	char* p = dc_aheader_render(autocryptheader);
 	if( p == NULL ) {
 		goto cleanup;
 	}
@@ -509,12 +509,12 @@ void mrmailbox_e2ee_encrypt(mrmailbox_t* mailbox, const clist* recipients_addr,
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mraheader_unref(autocryptheader);
+	dc_aheader_unref(autocryptheader);
 	mrkeyring_unref(keyring);
 	mrkey_unref(sign_key);
 	if( plain ) { mmap_string_free(plain); }
 
-	for( int i=mrarray_get_cnt(peerstates)-1; i>=0; i-- ) { mrapeerstate_unref((mrapeerstate_t*)mrarray_get_ptr(peerstates, i)); }
+	for( int i=mrarray_get_cnt(peerstates)-1; i>=0; i-- ) { dc_apeerstate_unref((dc_apeerstate_t*)mrarray_get_ptr(peerstates, i)); }
 	mrarray_unref(peerstates);
 }
 
@@ -752,8 +752,8 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 			const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
 			if( optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt-Gossip")==0 )
 			{
-				mraheader_t* gossip_header = mraheader_new();
-				if( mraheader_set_from_string(gossip_header, optional_field->fld_value)
+				dc_aheader_t* gossip_header = dc_aheader_new();
+				if( dc_aheader_set_from_string(gossip_header, optional_field->fld_value)
 				 && mrpgp_is_valid_key(mailbox, gossip_header->m_public_key) )
 				{
 					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
@@ -764,15 +764,15 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 					if( mrhash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
 					{
 						/* valid recipient: update peerstate */
-						mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+						dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 						mrsqlite3_lock(mailbox->m_sql);
-							if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
-								mrapeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-								mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+							if( !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, gossip_header->m_addr) ) {
+								dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+								dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 							}
 							else {
-								mrapeerstate_apply_gossip(peerstate, gossip_header, message_time);
-								mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
+								dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
+								dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*do not create*/);
 							}
 						mrsqlite3_unlock(mailbox->m_sql);
 
@@ -780,7 +780,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 							mrmailbox_handle_degrade_event(mailbox, peerstate);
 						}
 
-						mrapeerstate_unref(peerstate);
+						dc_apeerstate_unref(peerstate);
 
 						// collect all gossipped addresses; we need them later to mark them as being
 						// verified when used in a verified group by a verified sender
@@ -795,7 +795,7 @@ static mrhash_t* update_gossip_peerstates(mrmailbox_t* mailbox, time_t message_t
 						dc_log_info(mailbox, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->m_addr);
 					}
 				}
-				mraheader_unref(gossip_header);
+				dc_aheader_unref(gossip_header);
 			}
 		}
 	}
@@ -815,9 +815,9 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 	/* return values: 0=nothing to decrypt/cannot decrypt, 1=sth. decrypted
 	(to detect parts that could not be decrypted, simply look for left "multipart/encrypted" MIME types */
 	struct mailimf_fields* imffields = mailmime_find_mailimf_fields(in_out_message); /*just a pointer into mailmime structure, must not be freed*/
-	mraheader_t*           autocryptheader = NULL;
+	dc_aheader_t*           autocryptheader = NULL;
 	time_t                 message_time = 0;
-	mrapeerstate_t*        peerstate = mrapeerstate_new(mailbox);
+	dc_apeerstate_t*        peerstate = dc_apeerstate_new(mailbox);
 	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	mrkeyring_t*           private_keyring = mrkeyring_new();
@@ -854,10 +854,10 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 		}
 	}
 
-	autocryptheader = mraheader_new_from_imffields(from, imffields);
+	autocryptheader = dc_aheader_new_from_imffields(from, imffields);
 	if( autocryptheader ) {
 		if( !mrpgp_is_valid_key(mailbox, autocryptheader->m_public_key) ) {
-			mraheader_unref(autocryptheader);
+			dc_aheader_unref(autocryptheader);
 			autocryptheader = NULL;
 		}
 	}
@@ -870,22 +870,22 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 		if( message_time > 0
 		 && from )
 		{
-			if( mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, from) ) {
+			if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, from) ) {
 				if( autocryptheader ) {
-					mrapeerstate_apply_header(peerstate, autocryptheader, message_time);
-					mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
+					dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
+					dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 				}
 				else {
 					if( message_time > peerstate->m_last_seen_autocrypt
 					 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
-						mrapeerstate_degrade_encryption(peerstate, message_time);
-						mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
+						dc_apeerstate_degrade_encryption(peerstate, message_time);
+						dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0/*no not create*/);
 					}
 				}
 			}
 			else if( autocryptheader ) {
-				mrapeerstate_init_from_header(peerstate, autocryptheader, message_time);
-				mrapeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
+				dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
+				dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1/*create*/);
 			}
 		}
 
@@ -900,7 +900,7 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 
 		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
 		if( peerstate->m_last_seen == 0 ) {
-			mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, from);
+			dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, from);
 		}
 
 	mrsqlite3_unlock(mailbox->m_sql);
@@ -949,8 +949,8 @@ void mrmailbox_e2ee_decrypt(mrmailbox_t* mailbox, struct mailmime* in_out_messag
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
-	mraheader_unref(autocryptheader);
-	mrapeerstate_unref(peerstate);
+	dc_aheader_unref(autocryptheader);
+	dc_apeerstate_unref(peerstate);
 	mrkeyring_unref(private_keyring);
 	mrkeyring_unref(public_keyring_for_validate);
 	free(from);

@@ -25,27 +25,27 @@ mrmailbox_t is only used for logging and to get information about
 the online state. */
 
 
-#ifndef __MRIMAP_H__
-#define __MRIMAP_H__
+#ifndef __DC_IMAP_H__
+#define __DC_IMAP_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct mrloginparam_t mrloginparam_t;
-typedef struct mrimap_t mrimap_t;
+typedef struct dc_loginparam_t dc_loginparam_t;
+typedef struct dc_imap_t dc_imap_t;
 
 #define MR_IMAP_SEEN 0x0001L
 
-typedef char*    (*mr_get_config_t)    (mrimap_t*, const char*, const char*);
-typedef void     (*mr_set_config_t)    (mrimap_t*, const char*, const char*);
-typedef void     (*mr_receive_imf_t)   (mrimap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
+typedef char*    (*mr_get_config_t)    (dc_imap_t*, const char*, const char*);
+typedef void     (*mr_set_config_t)    (dc_imap_t*, const char*, const char*);
+typedef void     (*mr_receive_imf_t)   (dc_imap_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 
 
 /**
  * Library-internal.
  */
-typedef struct mrimap_t
+typedef struct dc_imap_t
 {
 	/** @privatesection */
 
@@ -91,32 +91,32 @@ typedef struct mrimap_t
 	int                   m_log_connect_errors;
 	int                   m_skip_log_capabilities;
 
-} mrimap_t;
+} dc_imap_t;
 
 
-mrimap_t* mrimap_new               (mr_get_config_t, mr_set_config_t, mr_receive_imf_t, void* userData, mrmailbox_t*);
-void      mrimap_unref             (mrimap_t*);
+dc_imap_t* dc_imap_new               (mr_get_config_t, mr_set_config_t, mr_receive_imf_t, void* userData, mrmailbox_t*);
+void       dc_imap_unref             (dc_imap_t*);
 
-int       mrimap_connect           (mrimap_t*, const mrloginparam_t*);
-void      mrimap_disconnect        (mrimap_t*);
-int       mrimap_is_connected      (mrimap_t*);
-int       mrimap_fetch             (mrimap_t*);
+int        dc_imap_connect           (dc_imap_t*, const dc_loginparam_t*);
+void       dc_imap_disconnect        (dc_imap_t*);
+int        dc_imap_is_connected      (dc_imap_t*);
+int        dc_imap_fetch             (dc_imap_t*);
 
-void      mrimap_idle              (mrimap_t*);
-void      mrimap_interrupt_idle    (mrimap_t*);
+void       dc_imap_idle              (dc_imap_t*);
+void       dc_imap_interrupt_idle    (dc_imap_t*);
 
-int       mrimap_append_msg        (mrimap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
+int        dc_imap_append_msg        (dc_imap_t*, time_t timestamp, const char* data_not_terminated, size_t data_bytes, char** ret_server_folder, uint32_t* ret_server_uid);
 
-#define   MR_MS_ALSO_MOVE          0x01
-#define   MR_MS_SET_MDNSent_FLAG   0x02
-#define   MR_MS_MDNSent_JUST_SET   0x10
-int       mrimap_markseen_msg      (mrimap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
+#define    MR_MS_ALSO_MOVE          0x01
+#define    MR_MS_SET_MDNSent_FLAG   0x02
+#define    MR_MS_MDNSent_JUST_SET   0x10
+int        dc_imap_markseen_msg      (dc_imap_t*, const char* folder, uint32_t server_uid, int ms_flags, char** ret_server_folder, uint32_t* ret_server_uid, int* ret_ms_flags); /* only returns 0 on connection problems; we should try later again in this case */
 
-int       mrimap_delete_msg        (mrimap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
+int        dc_imap_delete_msg        (dc_imap_t*, const char* rfc724_mid, const char* folder, uint32_t server_uid); /* only returns 0 on connection problems; we should try later again in this case */
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRIMAP_H__ */
+#endif // __DC_IMAP_H__
 

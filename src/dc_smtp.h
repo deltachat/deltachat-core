@@ -32,7 +32,7 @@ extern "C" {
 
 /*** library-private **********************************************************/
 
-typedef struct mrsmtp_t
+typedef struct dc_smtp_t
 {
 	mailsmtp*       m_hEtpan;
 	char*           m_from;
@@ -42,14 +42,14 @@ typedef struct mrsmtp_t
 	int             m_log_usual_error;
 
 	mrmailbox_t*    m_mailbox; /* only for logging! */
-} mrsmtp_t;
+} dc_smtp_t;
 
-mrsmtp_t*    mrsmtp_new          (mrmailbox_t*);
-void         mrsmtp_unref        (mrsmtp_t*);
-int          mrsmtp_is_connected (const mrsmtp_t*);
-int          mrsmtp_connect      (mrsmtp_t*, const mrloginparam_t*);
-void         mrsmtp_disconnect   (mrsmtp_t*);
-int          mrsmtp_send_msg     (mrsmtp_t*, const clist* recipients, const char* data, size_t data_bytes);
+dc_smtp_t*    dc_smtp_new          (mrmailbox_t*);
+void         dc_smtp_unref        (dc_smtp_t*);
+int          dc_smtp_is_connected (const dc_smtp_t*);
+int          dc_smtp_connect      (dc_smtp_t*, const dc_loginparam_t*);
+void         dc_smtp_disconnect   (dc_smtp_t*);
+int          dc_smtp_send_msg     (dc_smtp_t*, const clist* recipients, const char* data, size_t data_bytes);
 
 
 #ifdef __cplusplus

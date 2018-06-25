@@ -45,7 +45,7 @@ static uintptr_t cb_dummy(mrmailbox_t* mailbox, int event, uintptr_t data1, uint
 {
 	return 0;
 }
-static char* cb_get_config(mrimap_t* imap, const char* key, const char* def)
+static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
@@ -53,14 +53,14 @@ static char* cb_get_config(mrimap_t* imap, const char* key, const char* def)
 	mrsqlite3_unlock(mailbox->m_sql);
 	return ret;
 }
-static void cb_set_config(mrimap_t* imap, const char* key, const char* value)
+static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrsqlite3_lock(mailbox->m_sql);
 		mrsqlite3_set_config__(mailbox->m_sql, key, value);
 	mrsqlite3_unlock(mailbox->m_sql);
 }
-static void cb_receive_imf(mrimap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
+static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	mrmailbox_t* mailbox = (mrmailbox_t*)imap->m_userData;
 	mrmailbox_receive_imf(mailbox, imf_raw_not_terminated, imf_raw_bytes, server_folder, server_uid, flags);
@@ -113,8 +113,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	ths->m_sql      = mrsqlite3_new(ths);
 	ths->m_cb       = cb? cb : cb_dummy;
 	ths->m_userdata = userdata;
-	ths->m_imap     = mrimap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
-	ths->m_smtp     = mrsmtp_new(ths);
+	ths->m_imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)ths, ths);
+	ths->m_smtp     = dc_smtp_new(ths);
 	ths->m_os_name  = strdup_keep_null(os_name);
 
 	mrpgp_init(ths);
@@ -163,8 +163,8 @@ void dc_context_unref(dc_context_t* mailbox)
 		mrmailbox_close(mailbox);
 	}
 
-	mrimap_unref(mailbox->m_imap);
-	mrsmtp_unref(mailbox->m_smtp);
+	dc_imap_unref(mailbox->m_imap);
+	dc_smtp_unref(mailbox->m_smtp);
 	mrsqlite3_unref(mailbox->m_sql);
 
 	pthread_mutex_destroy(&mailbox->m_log_ringbuf_critical);
@@ -295,8 +295,8 @@ void dc_close(dc_context_t* mailbox)
 		return;
 	}
 
-	mrimap_disconnect(mailbox->m_imap);
-	mrsmtp_disconnect(mailbox->m_smtp);
+	dc_imap_disconnect(mailbox->m_imap);
+	dc_smtp_disconnect(mailbox->m_smtp);
 
 	mrsqlite3_lock(mailbox->m_sql);
 
@@ -510,7 +510,7 @@ char* dc_get_info(dc_context_t* mailbox)
 {
 	const char* unset = "0";
 	char *displayname = NULL, *temp = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
-	mrloginparam_t *l = NULL, *l2 = NULL;
+	dc_loginparam_t *l = NULL, *l2 = NULL;
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
 	mrkey_t* self_public = mrkey_new();
 
@@ -522,13 +522,13 @@ char* dc_get_info(dc_context_t* mailbox)
 	}
 
 	/* read data (all pointers may be NULL!) */
-	l = mrloginparam_new();
-	l2 = mrloginparam_new();
+	l = dc_loginparam_new();
+	l2 = dc_loginparam_new();
 
 	mrsqlite3_lock(mailbox->m_sql);
 
-		mrloginparam_read__(l, mailbox->m_sql, "");
-		mrloginparam_read__(l2, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
+		dc_loginparam_read__(l, mailbox->m_sql, "");
+		dc_loginparam_read__(l2, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 		displayname     = mrsqlite3_get_config__(mailbox->m_sql, "displayname", NULL);
 
@@ -564,8 +564,8 @@ char* dc_get_info(dc_context_t* mailbox)
 
 	mrsqlite3_unlock(mailbox->m_sql);
 
-	l_readable_str = mrloginparam_get_readable(l);
-	l2_readable_str = mrloginparam_get_readable(l2);
+	l_readable_str = dc_loginparam_get_readable(l);
+	l2_readable_str = dc_loginparam_get_readable(l2);
 
 	/* create info
 	- some keys are display lower case - these can be changed using the `set`-command
@@ -630,8 +630,8 @@ char* dc_get_info(dc_context_t* mailbox)
 	pthread_mutex_unlock(&mailbox->m_log_ringbuf_critical);
 
 	/* free data */
-	mrloginparam_unref(l);
-	mrloginparam_unref(l2);
+	dc_loginparam_unref(l);
+	dc_loginparam_unref(l2);
 	free(displayname);
 	free(l_readable_str);
 	free(l2_readable_str);
@@ -2064,7 +2064,7 @@ static uint32_t mrmailbox_send_msg_i__(mrmailbox_t* mailbox, mrchat_t* chat, con
 
 	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
 	mrmailbox_update_msg_chat_id__(mailbox, msg_id, chat->m_id);
-	mrjob_add(mailbox, MRJ_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
+	dc_job_add(mailbox, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(rfc724_mid);
@@ -2937,7 +2937,7 @@ int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uin
 {
 	int             success   = 0, locked = 0;
 	mrcontact_t*    contact   = mrmailbox_get_contact(mailbox, contact_id);
-	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 	mrchat_t*       chat      = mrchat_new(mailbox);
 	mrmsg_t*        msg       = mrmsg_new();
 	char*           self_addr = NULL;
@@ -2983,7 +2983,7 @@ int mrmailbox_add_contact_to_chat_ex(mrmailbox_t* mailbox, uint32_t chat_id, uin
 		{
 			if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP )
 			{
-				if( !mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
+				if( !dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr)
 				 || mrcontact_is_verified__(contact, peerstate) != MRV_BIDIRECTIONAL ) {
 					dc_log_error(mailbox, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 					goto cleanup;
@@ -3017,7 +3017,7 @@ cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
 	mrchat_unref(chat);
 	mrcontact_unref(contact);
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	mrmsg_unref(msg);
 	free(self_addr);
 	return success;
@@ -3848,9 +3848,9 @@ static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* f
 char* dc_get_contact_encrinfo(dc_context_t* mailbox, uint32_t contact_id)
 {
 	int             locked = 0;
-	mrloginparam_t* loginparam = mrloginparam_new();
+	dc_loginparam_t* loginparam = dc_loginparam_new();
 	mrcontact_t*    contact = mrcontact_new(mailbox);
-	mrapeerstate_t* peerstate = mrapeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
 	mrkey_t*        self_key = mrkey_new();
 	char*           fingerprint_self = NULL;
 	char*           fingerprint_other_verified = NULL;
@@ -3870,15 +3870,15 @@ char* dc_get_contact_encrinfo(dc_context_t* mailbox, uint32_t contact_id)
 		if( !mrcontact_load_from_db__(contact, mailbox->m_sql, contact_id) ) {
 			goto cleanup;
 		}
-		mrapeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
-		mrloginparam_read__(loginparam, mailbox->m_sql, "configured_");
+		dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, contact->m_addr);
+		dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
 
 		mrkey_load_self_public__(self_key, loginparam->m_addr, mailbox->m_sql);
 
 	mrsqlite3_unlock(mailbox->m_sql);
 	locked = 0;
 
-	if( mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
+	if( dc_apeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
 		// E2E available :)
 		p = mrstock_str(peerstate->m_prefer_encrypt == MRA_PE_MUTUAL? MR_STR_E2E_PREFERRED : MR_STR_E2E_AVAILABLE); mrstrbuilder_cat(&ret, p); free(p);
@@ -3898,8 +3898,8 @@ char* dc_get_contact_encrinfo(dc_context_t* mailbox, uint32_t contact_id)
 		mrstrbuilder_cat(&ret, ":");
 
 		fingerprint_self = mrkey_get_formatted_fingerprint(self_key);
-		fingerprint_other_verified = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL));
-		fingerprint_other_unverified = mrkey_get_formatted_fingerprint(mrapeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
+		fingerprint_other_verified = mrkey_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL));
+		fingerprint_other_unverified = mrkey_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, MRV_NOT_VERIFIED));
 
 		if( strcmp(loginparam->m_addr, peerstate->m_addr)<0 ) {
 			cat_fingerprint(&ret, loginparam->m_addr, fingerprint_self, NULL);
@@ -3926,9 +3926,9 @@ char* dc_get_contact_encrinfo(dc_context_t* mailbox, uint32_t contact_id)
 
 cleanup:
 	if( locked ) { mrsqlite3_unlock(mailbox->m_sql); }
-	mrapeerstate_unref(peerstate);
+	dc_apeerstate_unref(peerstate);
 	mrcontact_unref(contact);
-	mrloginparam_unref(loginparam);
+	dc_loginparam_unref(loginparam);
 	mrkey_unref(self_key);
 	free(fingerprint_self);
 	free(fingerprint_other_verified);
@@ -4538,7 +4538,7 @@ void dc_delete_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cnt)
 		for( i = 0; i < msg_cnt; i++ )
 		{
 			mrmailbox_update_msg_chat_id__(mailbox, msg_ids[i], MR_CHAT_ID_TRASH);
-			mrjob_add(mailbox, MRJ_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
+			dc_job_add(mailbox, DC_JOB_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 		}
 
 	mrsqlite3_commit__(mailbox->m_sql);
@@ -4600,7 +4600,7 @@ void dc_markseen_msgs(dc_context_t* mailbox, const uint32_t* msg_ids, int msg_cn
 				if( curr_state == MR_STATE_IN_FRESH || curr_state == MR_STATE_IN_NOTICED ) {
 					mrmailbox_update_msg_state__(mailbox, msg_ids[i], MR_STATE_IN_SEEN);
 					dc_log_info(mailbox, 0, "Seen message #%i.", msg_ids[i]);
-					mrjob_add(mailbox, MRJ_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
+					dc_job_add(mailbox, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to mrmailbox_markseen_msg_on_imap() */
 					send_event = 1;
 				}
 			}

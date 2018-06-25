@@ -575,50 +575,50 @@ void stress_functions(mrmailbox_t* mailbox)
 	 **************************************************************************/
 
 	{
-		mraheader_t* ah = mraheader_new();
-		char*        rendered = NULL;
-		int          ah_ok;
+		dc_aheader_t* ah = dc_aheader_new();
+		char*         rendered = NULL;
+		int           ah_ok;
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=mutual; keydata=RGVsdGEgQ2hhdA==");
+		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=mutual; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 );
 		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
 		assert( ah->m_prefer_encrypt==MRA_PE_MUTUAL );
 
-		rendered = mraheader_render(ah);
+		rendered = dc_aheader_render(ah);
 		assert( rendered && strcmp(rendered, "addr=a@b.example.org; prefer-encrypt=mutual; keydata= RGVsdGEgQ2hhdA==")==0 );
 
-		ah_ok = mraheader_set_from_string(ah, " _foo; __FOO=BAR ;;; addr = a@b.example.org ;\r\n   prefer-encrypt = mutual ; keydata = RG VsdGEgQ\r\n2hhdA==");
+		ah_ok = dc_aheader_set_from_string(ah, " _foo; __FOO=BAR ;;; addr = a@b.example.org ;\r\n   prefer-encrypt = mutual ; keydata = RG VsdGEgQ\r\n2hhdA==");
 		assert( ah_ok == 1 );
 		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
 		assert( ah->m_prefer_encrypt==MRA_PE_MUTUAL );
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=ignoreUnknownValues; keydata=RGVsdGEgQ2hhdA==");
+		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=ignoreUnknownValues; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 ); /* only "yes" or "no" are valid for prefer-encrypt ... */
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@b.example.org; keydata=RGVsdGEgQ2hhdA==");
+		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 && ah->m_prefer_encrypt==MRA_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
 
-		ah_ok = mraheader_set_from_string(ah, "");
+		ah_ok = dc_aheader_set_from_string(ah, "");
 		assert( ah_ok == 0 );
 
-		ah_ok = mraheader_set_from_string(ah, ";");
+		ah_ok = dc_aheader_set_from_string(ah, ";");
 		assert( ah_ok == 0 );
 
-		ah_ok = mraheader_set_from_string(ah, "foo");
+		ah_ok = dc_aheader_set_from_string(ah, "foo");
 		assert( ah_ok == 0 );
 
-		ah_ok = mraheader_set_from_string(ah, "\n\n\n");
+		ah_ok = dc_aheader_set_from_string(ah, "\n\n\n");
 		assert( ah_ok == 0 );
 
-		ah_ok = mraheader_set_from_string(ah, " ;;");
+		ah_ok = dc_aheader_set_from_string(ah, " ;;");
 		assert( ah_ok == 0 );
 
-		ah_ok = mraheader_set_from_string(ah, "addr=a@t.de; unknwon=1; keydata=jau"); /* unknwon non-underscore attributes result in invalid headers */
+		ah_ok = dc_aheader_set_from_string(ah, "addr=a@t.de; unknwon=1; keydata=jau"); /* unknwon non-underscore attributes result in invalid headers */
 		assert( ah_ok == 0 );
 
-		mraheader_unref(ah);
+		dc_aheader_unref(ah);
 		free(rendered);
 	}
 

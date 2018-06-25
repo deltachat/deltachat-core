@@ -36,10 +36,10 @@
  ******************************************************************************/
 
 
-mrsmtp_t* mrsmtp_new(mrmailbox_t* mailbox)
+dc_smtp_t* dc_smtp_new(mrmailbox_t* mailbox)
 {
-	mrsmtp_t* ths;
-	if( (ths=calloc(1, sizeof(mrsmtp_t)))==NULL ) {
+	dc_smtp_t* ths;
+	if( (ths=calloc(1, sizeof(dc_smtp_t)))==NULL ) {
 		exit(29);
 	}
 
@@ -50,12 +50,12 @@ mrsmtp_t* mrsmtp_new(mrmailbox_t* mailbox)
 }
 
 
-void mrsmtp_unref(mrsmtp_t* ths)
+void dc_smtp_unref(dc_smtp_t* ths)
 {
 	if( ths == NULL ) {
 		return;
 	}
-	mrsmtp_disconnect(ths);
+	dc_smtp_disconnect(ths);
 	free(ths->m_from);
 	free(ths);
 }
@@ -66,7 +66,7 @@ void mrsmtp_unref(mrsmtp_t* ths)
  ******************************************************************************/
 
 
-int mrsmtp_is_connected(const mrsmtp_t* ths)
+int dc_smtp_is_connected(const dc_smtp_t* ths)
 {
 	return (ths && ths->m_hEtpan)? 1 : 0;
 }
@@ -91,7 +91,7 @@ static void logger(mailsmtp* smtp, int log_type, const char* buffer__, size_t si
 #endif
 
 
-int mrsmtp_connect(mrsmtp_t* ths, const mrloginparam_t* lp)
+int dc_smtp_connect(dc_smtp_t* ths, const dc_loginparam_t* lp)
 {
 	int         success = 0;
 	int         r, try_esmtp;
@@ -233,7 +233,7 @@ cleanup:
 }
 
 
-void mrsmtp_disconnect(mrsmtp_t* ths)
+void dc_smtp_disconnect(dc_smtp_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -252,7 +252,7 @@ void mrsmtp_disconnect(mrsmtp_t* ths)
  ******************************************************************************/
 
 
-int mrsmtp_send_msg(mrsmtp_t* ths, const clist* recipients, const char* data_not_terminated, size_t data_bytes)
+int dc_smtp_send_msg(dc_smtp_t* ths, const clist* recipients, const char* data_not_terminated, size_t data_bytes)
 {
 	int           success = 0, r;
 	clistiter*    iter;

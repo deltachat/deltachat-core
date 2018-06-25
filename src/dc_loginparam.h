@@ -30,7 +30,7 @@ extern "C" {
 /**
  * Library-internal.
  */
-typedef struct mrloginparam_t
+typedef struct dc_loginparam_t
 {
 	/**  @privatesection */
 
@@ -66,15 +66,15 @@ typedef struct mrloginparam_t
 	#define       MR_NO_MOVE_TO_CHATS       0x4000000
 
 	int           m_server_flags;
-} mrloginparam_t;
+} dc_loginparam_t;
 
 
-mrloginparam_t* mrloginparam_new          ();
-void            mrloginparam_unref        (mrloginparam_t*);
-void            mrloginparam_empty        (mrloginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
-void            mrloginparam_read__       (mrloginparam_t*, mrsqlite3_t*, const char* prefix);
-void            mrloginparam_write__      (const mrloginparam_t*, mrsqlite3_t*, const char* prefix);
-char*           mrloginparam_get_readable (const mrloginparam_t*);
+dc_loginparam_t* dc_loginparam_new          ();
+void             dc_loginparam_unref        (dc_loginparam_t*);
+void             dc_loginparam_empty        (dc_loginparam_t*); /* clears all data and frees its memory. All pointers are NULL after this function is called. */
+void             dc_loginparam_read__       (dc_loginparam_t*, mrsqlite3_t*, const char* prefix);
+void             dc_loginparam_write__      (const dc_loginparam_t*, mrsqlite3_t*, const char* prefix);
+char*            dc_loginparam_get_readable (const dc_loginparam_t*);
 
 
 #ifdef __cplusplus

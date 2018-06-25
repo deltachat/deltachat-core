@@ -443,12 +443,12 @@ int mrsqlite3_open__(mrsqlite3_t* ths, const char* dbfile, int flags)
 		{
 			sqlite3_stmt* stmt = mrsqlite3_prepare_v2_(ths, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
-					mrapeerstate_t* peerstate = mrapeerstate_new(ths->m_mailbox);
-						if( mrapeerstate_load_by_addr__(peerstate, ths, (const char*)sqlite3_column_text(stmt, 0))
-						 && mrapeerstate_recalc_fingerprint(peerstate) ) {
-							mrapeerstate_save_to_db__(peerstate, ths, 0/*don't create*/);
+					dc_apeerstate_t* peerstate = dc_apeerstate_new(ths->m_mailbox);
+						if( dc_apeerstate_load_by_addr__(peerstate, ths, (const char*)sqlite3_column_text(stmt, 0))
+						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
+							dc_apeerstate_save_to_db__(peerstate, ths, 0/*don't create*/);
 						}
-					mrapeerstate_unref(peerstate);
+					dc_apeerstate_unref(peerstate);
 				}
 			sqlite3_finalize(stmt);
 		}

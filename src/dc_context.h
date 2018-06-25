@@ -48,10 +48,10 @@ extern "C" {
 #include "dc_contact.h"
 
 
-typedef struct mrimap_t       mrimap_t;
-typedef struct mrsmtp_t       mrsmtp_t;
+typedef struct dc_imap_t      dc_imap_t;
+typedef struct dc_smtp_t      dc_smtp_t;
 typedef struct mrsqlite3_t    mrsqlite3_t;
-typedef struct mrjob_t        mrjob_t;
+typedef struct dc_job_t       dc_job_t;
 typedef struct mrmimeparser_t mrmimeparser_t;
 typedef struct mrhash_t       mrhash_t;
 
@@ -70,11 +70,11 @@ struct _dc_context
 
 	mrsqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
 
-	mrimap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
+	dc_imap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
 	pthread_mutex_t  m_imapidle_condmutex;
 	int              m_perform_imap_jobs_needed;
 
-	mrsmtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
+	dc_smtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   m_smtpidle_cond;
 	pthread_mutex_t  m_smtpidle_condmutex;
 	int              m_smtpidle_condflag;
@@ -193,7 +193,7 @@ void            mrmailbox_free_ongoing      (mrmailbox_t*);
 #define         MR_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
 #define         MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
 int             mrmailbox_handle_securejoin_handshake(mrmailbox_t*, mrmimeparser_t*, uint32_t contact_id);
-void            mrmailbox_handle_degrade_event       (mrmailbox_t*, mrapeerstate_t*);
+void            mrmailbox_handle_degrade_event       (mrmailbox_t*, dc_apeerstate_t*);
 
 
 #define OPENPGP4FPR_SCHEME "OPENPGP4FPR:" /* yes: uppercase */
