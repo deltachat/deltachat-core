@@ -1310,7 +1310,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 			}
 
 			/* add daymarker, if needed */
-			if( flags&MR_GCM_ADDDAYMARKER ) {
+			if( flags&DC_GCM_ADDDAYMARKER ) {
 				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
 				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
 				if( curr_day != last_day ) {
@@ -2081,11 +2081,11 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 	msg->m_id      = 0;
 	msg->m_context = context;
 
-	if( msg->m_type == MR_MSG_TEXT )
+	if( msg->m_type == DC_MSG_TEXT )
 	{
 		; /* the caller should check if the message text is empty */
 	}
-	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
+	else if( DC_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
 		pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename )
@@ -2095,7 +2095,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 			In this case, the user should create an `.increation`; when the file is deleted later on, the message is sent.
 			(we do not use a state in the database as this would make eg. forwarding such messages much more complicated) */
 
-			if( msg->m_type == MR_MSG_FILE || msg->m_type == MR_MSG_IMAGE )
+			if( msg->m_type == DC_MSG_FILE || msg->m_type == DC_MSG_IMAGE )
 			{
 				/* Correct the type, take care not to correct already very special formats as GIF or VOICE.
 				Typical conversions:
@@ -2111,7 +2111,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 				free(better_mime);
 			}
 
-			if( (msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF)
+			if( (msg->m_type == DC_MSG_IMAGE || msg->m_type == DC_MSG_GIF)
 			 && (dc_param_get_int(msg->m_param, DC_PARAM_WIDTH, 0)<=0 || dc_param_get_int(msg->m_param, DC_PARAM_HEIGHT, 0)<=0) ) {
 				/* set width/height of images, if not yet done */
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
@@ -2127,7 +2127,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 			dc_log_info(context, 0, "Attaching \"%s\" for message type #%i.", pathNfilename, (int)msg->m_type);
 
 			if( msg->m_text ) { free(msg->m_text); }
-			if( msg->m_type == MR_MSG_AUDIO ) {
+			if( msg->m_type == DC_MSG_AUDIO ) {
 				char* filename = dc_get_filename(pathNfilename);
 				char* author = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, "");
 				char* title = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, "");
@@ -2136,10 +2136,10 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 				free(author);
 				free(title);
 			}
-			else if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
+			else if( DC_MSG_MAKE_FILENAME_SEARCHABLE(msg->m_type) ) {
 				msg->m_text = dc_get_filename(pathNfilename);
 			}
-			else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg->m_type) ) {
+			else if( DC_MSG_MAKE_SUFFIX_SEARCHABLE(msg->m_type) ) {
 				msg->m_text = dc_get_filesuffix_lc(pathNfilename);
 			}
 		}
@@ -2217,7 +2217,7 @@ uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* t
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_TEXT;
+	msg->m_type = DC_MSG_TEXT;
 	msg->m_text = dc_strdup(text_to_send);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
@@ -2258,7 +2258,7 @@ uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_IMAGE;
+	msg->m_type = DC_MSG_IMAGE;
 	dc_param_set    (msg->m_param, DC_PARAM_FILE,   file);
 	dc_param_set_int(msg->m_param, DC_PARAM_WIDTH,  width);  /* set in sending job, if 0 */
 	dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height); /* set in sending job, if 0 */
@@ -2303,7 +2303,7 @@ uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_VIDEO;
+	msg->m_type = DC_MSG_VIDEO;
 	dc_param_set    (msg->m_param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE, filemime);
 	dc_param_set_int(msg->m_param, DC_PARAM_WIDTH,    width);
@@ -2347,7 +2347,7 @@ uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_VOICE;
+	msg->m_type = DC_MSG_VOICE;
 	dc_param_set    (msg->m_param, DC_PARAM_FILE,     file);
 	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE, filemime);
 	dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
@@ -2390,7 +2390,7 @@ uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_AUDIO;
+	msg->m_type = DC_MSG_AUDIO;
 	dc_param_set    (msg->m_param, DC_PARAM_FILE,       file);
 	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE,   filemime);
 	dc_param_set_int(msg->m_param, DC_PARAM_DURATION,   duration);
@@ -2432,7 +2432,7 @@ uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* f
 		goto cleanup;
 	}
 
-	msg->m_type = MR_MSG_FILE;
+	msg->m_type = DC_MSG_FILE;
 	dc_param_set(msg->m_param, DC_PARAM_FILE,     file);
 	dc_param_set(msg->m_param, DC_PARAM_MIMETYPE, filemime);
 
@@ -2517,7 +2517,7 @@ uint32_t dc_add_device_msg__(dc_context_t* context, uint32_t chat_id, const char
 	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
 	sqlite3_bind_int64(stmt,  4, timestamp);
-	sqlite3_bind_int  (stmt,  5, MR_MSG_TEXT);
+	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
 	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
 	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
@@ -2757,7 +2757,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		msg->m_type = MR_MSG_TEXT;
+		msg->m_type = DC_MSG_TEXT;
 		msg->m_text = dc_stock_str_repl_string2(DC_STR_MSGGRPNAME, chat->m_name, new_name);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD, DC_CMD_GROUPNAME_CHANGED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
@@ -2833,7 +2833,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	{
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_GROUPIMAGE_CHANGED);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, new_image);
-		msg->m_type = MR_MSG_TEXT;
+		msg->m_type = DC_MSG_TEXT;
 		msg->m_text = dc_stock_str(new_image? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
@@ -2974,7 +2974,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	/* send a status mail to all group members */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		msg->m_type = MR_MSG_TEXT;
+		msg->m_type = DC_MSG_TEXT;
 		msg->m_text = dc_stock_str_repl_string(DC_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_MEMBER_ADDED_TO_GROUP);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG ,contact->m_addr);
@@ -3075,7 +3075,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 	{
 		if( DO_SEND_STATUS_MAILS )
 		{
-			msg->m_type = MR_MSG_TEXT;
+			msg->m_type = DC_MSG_TEXT;
 			if( contact->m_id == DC_CONTACT_ID_SELF ) {
 				dc_set_group_explicitly_left__(context, chat->m_grpid);
 				msg->m_text = dc_stock_str(DC_STR_MSGGROUPLEFT);
@@ -3161,7 +3161,7 @@ size_t dc_get_real_contact_cnt__(dc_context_t* context)
 
 
 uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
-                                           const char*  name /*can be NULL, the caller may use mr_normalize_name() before*/,
+                                           const char*  name /*can be NULL, the caller may use dc_normalize_name() before*/,
                                            const char*  addr__,
                                            int          origin,
                                            int*         sth_modified )
@@ -3185,7 +3185,7 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 
 	/* normalize the email-address:
 	- remove leading `mailto:` */
-	addr = mr_normalize_addr(addr__);
+	addr = dc_normalize_addr(addr__);
 
 	/* rough check if email-address is valid */
 	if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
@@ -3431,7 +3431,7 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 		for( i = 0; i+1 < iCnt; i += 2 ) {
 			char* name = (char*)carray_get(lines, i);
 			char* addr = (char*)carray_get(lines, i+1);
-			mr_normalize_name(name);
+			dc_normalize_name(name);
 			dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_ADRESS_BOOK, &sth_modified);
 			if( sth_modified ) {
 				modify_cnt++;
@@ -3488,7 +3488,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 
 		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", ""); /* we add DC_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
 
-		if( (listflags&MR_GCL_VERIFIED_ONLY) || query )
+		if( (listflags&DC_GCL_VERIFIED_ONLY) || query )
 		{
 			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query? query : ""))==NULL ) {
 				goto cleanup;
@@ -3502,7 +3502,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
-			sqlite3_bind_int (stmt, 4, (listflags&MR_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
+			sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
 
 			self_name  = dc_sqlite3_get_config__(context->m_sql, "displayname", "");
 			self_name2 = dc_stock_str(DC_STR_SELF);
@@ -3529,7 +3529,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 	locked = 0;
 
 	/* to the end of the list, add self - this is to be in sync with member lists and to allow the user to start a self talk */
-	if( (listflags&MR_GCL_ADD_SELF) && add_self ) {
+	if( (listflags&DC_GCL_ADD_SELF) && add_self ) {
 		dc_array_add_id(ret, DC_CONTACT_ID_SELF);
 	}
 
@@ -4289,15 +4289,15 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)dc_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
 	}
 
-	if( msg->m_type != MR_MSG_TEXT ) {
+	if( msg->m_type != DC_MSG_TEXT ) {
 		p = NULL;
 		switch( msg->m_type )  {
-			case MR_MSG_AUDIO: p = dc_strdup("Audio");          break;
-			case MR_MSG_FILE:  p = dc_strdup("File");           break;
-			case MR_MSG_GIF:   p = dc_strdup("GIF");            break;
-			case MR_MSG_IMAGE: p = dc_strdup("Image");          break;
-			case MR_MSG_VIDEO: p = dc_strdup("Video");          break;
-			case MR_MSG_VOICE: p = dc_strdup("Voice");          break;
+			case DC_MSG_AUDIO: p = dc_strdup("Audio");          break;
+			case DC_MSG_FILE:  p = dc_strdup("File");           break;
+			case DC_MSG_GIF:   p = dc_strdup("GIF");            break;
+			case DC_MSG_IMAGE: p = dc_strdup("Image");          break;
+			case DC_MSG_VIDEO: p = dc_strdup("Video");          break;
+			case DC_MSG_VOICE: p = dc_strdup("Voice");          break;
 			default:           p = dc_mprintf("%i", msg->m_type); break;
 		}
 		dc_strbuilder_catf(&ret, "Type: %s\n", p);

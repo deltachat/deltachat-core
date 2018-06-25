@@ -340,7 +340,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
 		sqlite3_bind_int(stmt, 1, query_contact_id);
 	}
-	else if( listflags & MR_GCL_ARCHIVED_ONLY )
+	else if( listflags & DC_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
 		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
@@ -349,7 +349,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	else if( query__==NULL )
 	{
 		/* show normal chatlist  */
-		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
+		if( !(listflags & DC_GCL_NO_SPECIALS) ) {
 			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(ths->m_context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
 				dc_array_add_id(ths->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */

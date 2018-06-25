@@ -115,7 +115,7 @@ static int add_attribute(dc_aheader_t* ths, const char* name, const char* value 
 		 || ths->m_addr /* email already given */ ) {
 			return 0;
 		}
-		ths->m_addr = mr_normalize_addr(value);
+		ths->m_addr = dc_normalize_addr(value);
 		return 1;
 	}
 	#if 0 /* autoctypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */

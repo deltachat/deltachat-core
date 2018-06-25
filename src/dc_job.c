@@ -186,7 +186,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 			{
 				char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
 				sqlite3_stmt* stmt2 = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
-				sqlite3_bind_int (stmt2, 1, MR_MSG_TEXT);
+				sqlite3_bind_int (stmt2, 1, DC_MSG_TEXT);
 				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
 				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
 				free(strLikeFilename);
@@ -201,12 +201,12 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 					free(increation_file);
 
 					char* filenameOnly = dc_get_filename(pathNfilename);
-					if( msg->m_type==MR_MSG_VOICE ) {
+					if( msg->m_type==DC_MSG_VOICE ) {
 						char* waveform_file = dc_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
 						dc_delete_file(waveform_file, mailbox);
 						free(waveform_file);
 					}
-					else if( msg->m_type==MR_MSG_VIDEO ) {
+					else if( msg->m_type==DC_MSG_VIDEO ) {
 						char* preview_file = dc_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
 						dc_delete_file(preview_file, mailbox);
 						free(preview_file);

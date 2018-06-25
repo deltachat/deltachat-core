@@ -91,7 +91,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 				char* urlencoded = dc_param_get(param, 'n', NULL);
 				if(urlencoded ) {
 					name = dc_urldecode(urlencoded);
-					mr_normalize_name(name);
+					dc_normalize_name(name);
 					free(urlencoded);
 				}
 
@@ -166,8 +166,8 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 				else if( strcasecmp(key, "N") == 0 ) {
 					semicolon = strchr(value, ';'); if( semicolon ) { semicolon = strchr(semicolon+1, ';'); if( semicolon ) { *semicolon = 0; } } /* the N format is `lastname;prename;wtf;title` - skip everything after the second semicolon */
 					name = dc_strdup(value);
-					dc_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by mr_normalize_name() */
-					mr_normalize_name(name);
+					dc_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by dc_normalize_name() */
+					dc_normalize_name(name);
 				}
 			}
 		}
@@ -179,7 +179,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 	if( addr ) {
 		char* temp = dc_urldecode(addr);      free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
-		      temp = mr_normalize_addr(addr); free(addr); addr = temp;
+		      temp = dc_normalize_addr(addr); free(addr); addr = temp;
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
 			qr_parsed->m_state = MR_QR_ERROR;

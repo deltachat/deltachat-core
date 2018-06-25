@@ -62,7 +62,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* d
 	char* display_name_dec = NULL;
 	if( display_name_enc ) {
 		display_name_dec = dc_decode_header_words(display_name_enc);
-		mr_normalize_name(display_name_dec);
+		dc_normalize_name(display_name_dec);
 	}
 
 	uint32_t row_id = dc_add_or_lookup_contact__(mailbox, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
@@ -847,10 +847,10 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 		char* grpimage = NULL;
 		if( carray_count(mime_parser->m_parts)>=1 ) {
 			dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mime_parser->m_parts, 0);
-			if( textpart->m_type == MR_MSG_TEXT ) {
+			if( textpart->m_type == DC_MSG_TEXT ) {
 				if( carray_count(mime_parser->m_parts)>=2 ) {
 					dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mime_parser->m_parts, 1);
-					if( imgpart->m_type == MR_MSG_IMAGE ) {
+					if( imgpart->m_type == DC_MSG_IMAGE ) {
 						grpimage = dc_param_get(imgpart->m_param, DC_PARAM_FILE, NULL);
 						ok = 1;
 					}
@@ -1287,7 +1287,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 					continue;
 				}
 
-				if( part->m_type == MR_MSG_TEXT ) {
+				if( part->m_type == DC_MSG_TEXT ) {
 					txt_raw = dc_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 				}
 

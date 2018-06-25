@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRCONTACT_PRIVATE_H__
-#define __MRCONTACT_PRIVATE_H__
+#ifndef __DC_CONTACT_H__
+#define __DC_CONTACT_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -80,12 +80,12 @@ struct _dc_contact
 
 int          dc_contact_load_from_db__         (dc_contact_t*, dc_sqlite3_t*, uint32_t contact_id);
 int          dc_contact_is_verified__          (const dc_contact_t*, const dc_apeerstate_t*);
-void         mr_normalize_name                (char* full_name);
-char*        mr_normalize_addr                (const char* email_addr);
-char*        mr_get_first_name                (const char* full_name);
+void         dc_normalize_name                (char* full_name);
+char*        dc_normalize_addr                (const char* email_addr);
+char*        dc_get_first_name                (const char* full_name);
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCONTACT_PRIVATE_H__ */
+#endif /* __DC_CONTACT_H__ */

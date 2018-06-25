@@ -336,7 +336,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 	}
 
 	/* get file name to use for sending (for privacy purposes, we do not transfer the original filenames eg. for images; these names are normally not needed and contain timesamps, running numbers etc.) */
-	if( msg->m_type == MR_MSG_VOICE ) {
+	if( msg->m_type == DC_MSG_VOICE ) {
 		struct tm wanted_struct;
 		memcpy(&wanted_struct, localtime(&msg->m_timestamp), sizeof(struct tm));
 		filename_to_send = dc_mprintf("voice-message_%04i-%02i-%02i_%02i-%02i-%02i.%s",
@@ -344,7 +344,7 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 			(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec,
 			suffix? suffix : "dat");
 	}
-	else if( msg->m_type == MR_MSG_AUDIO ) {
+	else if( msg->m_type == DC_MSG_AUDIO ) {
 		char* author = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, NULL);
 		char* title = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, NULL);
 		if( author && author[0] && title && title[0] && suffix ) {
@@ -356,13 +356,13 @@ static struct mailmime* build_body_file(const dc_msg_t* msg, const char* base_na
 		free(author);
 		free(title);
 	}
-	else if( msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF ) {
+	else if( msg->m_type == DC_MSG_IMAGE || msg->m_type == DC_MSG_GIF ) {
 		if( base_name == NULL ) {
 			base_name = "image";
 		}
 		filename_to_send = dc_mprintf("%s.%s", base_name, suffix? suffix : "dat");
 	}
-	else if( msg->m_type == MR_MSG_VIDEO ) {
+	else if( msg->m_type == DC_MSG_VIDEO ) {
 		filename_to_send = dc_mprintf("video.%s", suffix? suffix : "dat");
 	}
 	else {
@@ -442,7 +442,7 @@ cleanup:
 
 static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_email)
 {
-	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, APPROX_SUBJECT_CHARS);
+	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_APPROX_SUBJECT_CHARS);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
 	if( dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE )
@@ -641,7 +641,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		if( grpimage )
 		{
 			dc_msg_t* meta = dc_msg_new();
-			meta->m_type = MR_MSG_IMAGE;
+			meta->m_type = DC_MSG_IMAGE;
 			dc_param_set(meta->m_param, DC_PARAM_FILE, grpimage);
 			char* filename_as_sent = NULL;
 			if( (meta_part=build_body_file(meta, "group-image", &filename_as_sent))!=NULL ) {
@@ -650,9 +650,9 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			dc_msg_unref(meta);
 		}
 
-		if( msg->m_type == MR_MSG_VOICE || msg->m_type == MR_MSG_AUDIO || msg->m_type == MR_MSG_VIDEO )
+		if( msg->m_type == DC_MSG_VOICE || msg->m_type == DC_MSG_AUDIO || msg->m_type == DC_MSG_VIDEO )
 		{
-			if( msg->m_type == MR_MSG_VOICE ) {
+			if( msg->m_type == DC_MSG_VOICE ) {
 				mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Voice-Message"), strdup("1")));
 			}
 
@@ -673,7 +673,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		}
 
 		const char* final_text = NULL;
-		if( msg->m_type==MR_MSG_TEXT && msg->m_text && msg->m_text[0] ) { /* m_text may also contain data otherwise, eg. the filename of attachments */
+		if( msg->m_type==DC_MSG_TEXT && msg->m_text && msg->m_text[0] ) { /* m_text may also contain data otherwise, eg. the filename of attachments */
 			final_text = msg->m_text;
 		}
 		else if( placeholdertext ) {
@@ -695,7 +695,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		free(placeholdertext);
 
 		/* add attachment part */
-		if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
+		if( DC_MSG_NEEDS_ATTACHMENT(msg->m_type) ) {
 			struct mailmime* file_part = build_body_file(msg, NULL, NULL);
 			if( file_part ) {
 				mailmime_smart_add_part(message, file_part);
@@ -728,7 +728,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 			p1 = dc_stock_str(DC_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
 		}
 		else {
-			p1 = dc_msg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
+			p1 = dc_msg_get_summarytext(factory->m_msg, DC_APPROX_SUBJECT_CHARS);
 		}
 		p2 = dc_stock_str_repl_string(DC_STR_READRCPT_MAILBODY, p1);
 		message_text = dc_mprintf("%s" LINEEND, p2);

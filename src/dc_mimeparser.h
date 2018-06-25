@@ -42,7 +42,7 @@ typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
 typedef struct dc_mimepart_t
 {
 	/** @privatesection */
-	int                 m_type; /*one of MR_MSG_* */
+	int                 m_type; /*one of DC_MSG_* */
 	int                 m_is_meta; /*meta parts contain eg. profile or group images and are only present if there is at least one "normal" part*/
 	int                 m_int_mimetype;
 	char*               m_msg;

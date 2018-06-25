@@ -248,7 +248,7 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
 	}
 
 	if( contact->m_name && contact->m_name[0] ) {
-		return mr_get_first_name(contact->m_name);
+		return dc_get_first_name(contact->m_name);
 	}
 
 	return dc_strdup(contact->m_addr);
@@ -348,7 +348,7 @@ cleanup:
  *
  * @return String with the first name, must be free()'d after usage.
  */
-char* mr_get_first_name(const char* full_name)
+char* dc_get_first_name(const char* full_name)
 {
 	char* first_name = dc_strdup(full_name);
 	char* p1 = strchr(first_name, ' ');
@@ -386,7 +386,7 @@ char* mr_get_first_name(const char* full_name)
  *
  * @return None. But the given buffer may be modified.
  */
-void mr_normalize_name(char* full_name)
+void dc_normalize_name(char* full_name)
 {
 	if( full_name == NULL ) {
 		return; /* error, however, this can be treated as documented behaviour */
@@ -438,7 +438,7 @@ void mr_normalize_name(char* full_name)
  *
  * @return The normalized email address, must be free()'d. NULL is never returned.
  */
-char* mr_normalize_addr(const char* email_addr__)
+char* dc_normalize_addr(const char* email_addr__)
 {
 	char* addr = dc_strdup(email_addr__);
 	dc_trim(addr);

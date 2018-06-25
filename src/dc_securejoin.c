@@ -247,7 +247,7 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 {
 	dc_msg_t* msg = dc_msg_new();
 
-	msg->m_type = MR_MSG_TEXT;
+	msg->m_type = DC_MSG_TEXT;
 	msg->m_text = dc_mprintf("Secure-Join: %s", step);
 	msg->m_hidden = 1;
 	dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_SECUREJOIN_MESSAGE);
