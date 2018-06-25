@@ -1458,85 +1458,61 @@ cleanup:
 }
 
 
-static void set_draft_int(dc_context_t* mailbox, dc_chat_t* chat, uint32_t chat_id, const char* msg)
+/**
+ * Save a draft for a chat.
+ *
+ * To get the draft for a given chat ID, use dc_chat_get_draft().
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @param chat_id The chat ID to save the draft for.
+ * @param msg The message text to save as a draft.
+ * @return None.
+ */
+void dc_set_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 {
-	sqlite3_stmt* stmt;
-	dc_chat_t*     chat_to_delete = NULL;
+	sqlite3_stmt* stmt = NULL;
+	dc_chat_t*    chat = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if (context==NULL || context->m_magic!=MR_MAILBOX_MAGIC) {
 		goto cleanup;
 	}
 
-	if( chat==NULL ) {
-		if( (chat=mrmailbox_get_chat(mailbox, chat_id)) == NULL ) {
-			goto cleanup;
-		}
-		chat_to_delete = chat;
+	if ((chat=dc_get_chat(context, chat_id))==NULL) {
+		goto cleanup;
 	}
 
-	if( msg && msg[0]==0 ) {
-		msg = NULL; /* an empty draft is no draft */
+	if (msg && msg[0]==0) {
+		msg = NULL; // an empty draft is no draft
 	}
 
-	if( chat->m_draft_text==NULL && msg==NULL
-	 && chat->m_draft_timestamp==0 ) {
-		goto cleanup; /* nothing to do - there is no old and no new draft */
+	if (chat->m_draft_text==NULL && msg==NULL
+	 && chat->m_draft_timestamp==0) {
+		goto cleanup; // nothing to do - there is no old and no new draft
 	}
 
-	if( chat->m_draft_timestamp && chat->m_draft_text && msg && strcmp(chat->m_draft_text, msg)==0 ) {
-		goto cleanup; /* for equal texts, we do not update the timestamp */
+	if (chat->m_draft_timestamp && chat->m_draft_text && msg && strcmp(chat->m_draft_text, msg)==0) {
+		goto cleanup; // for equal texts, we do not update the timestamp
 	}
 
-	/* save draft in object - NULL or empty: clear draft */
+	// save draft in object - NULL or empty: clear draft
 	free(chat->m_draft_text);
 	chat->m_draft_text      = msg? safe_strdup(msg) : NULL;
 	chat->m_draft_timestamp = msg? time(NULL) : 0;
 
-	/* save draft in database */
-	dc_sqlite3_lock(mailbox->m_sql);
+	// save draft in database
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+		"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
+	sqlite3_bind_int64(stmt, 1, chat->m_draft_timestamp);
+	sqlite3_bind_text (stmt, 2, chat->m_draft_text? chat->m_draft_text : "", -1, SQLITE_STATIC);
+	sqlite3_bind_int  (stmt, 3, chat->m_id);
+	sqlite3_step(stmt);
 
-		stmt = dc_sqlite3_predefine__(mailbox->m_sql, UPDATE_chats_SET_draft_WHERE_id,
-			"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
-		sqlite3_bind_int64(stmt, 1, chat->m_draft_timestamp);
-		sqlite3_bind_text (stmt, 2, chat->m_draft_text? chat->m_draft_text : "", -1, SQLITE_STATIC); /* SQLITE_STATIC: we promise the buffer to be valid until the query is done */
-		sqlite3_bind_int  (stmt, 3, chat->m_id);
-
-		sqlite3_step(stmt);
-
-	dc_sqlite3_unlock(mailbox->m_sql);
-
-	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0);
+	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
-	dc_chat_unref(chat_to_delete);
-}
-
-
-/**
- * Save a draft for a chat.
- *
- * To get the draft for a given chat ID, use dc_chat_get_draft()
- *
- * @memberof dc_context_t
- *
- * @param mailbox The mailbox object as returned from dc_context_new().
- *
- * @param chat_id The chat ID to save the draft for.
- *
- * @param msg The message text to save as a draft.
- *
- * @return None.
- */
-void dc_set_draft(dc_context_t* mailbox, uint32_t chat_id, const char* msg)
-{
-	set_draft_int(mailbox, NULL, chat_id, msg);
-}
-
-
-int dc_chat_set_draft(dc_chat_t* chat, const char* msg) /* deprecated */
-{
-	set_draft_int(chat->m_mailbox, chat, chat->m_id, msg);
-	return 1;
+	sqlite3_finalize(stmt);
+	dc_chat_unref(chat);
 }
 
 
