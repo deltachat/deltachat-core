@@ -33,9 +33,9 @@ extern "C" {
 typedef struct dc_aheader_t dc_aheader_t;
 
 
-#define MRA_PE_NOPREFERENCE   0 /* prefer-encrypt states */
-#define MRA_PE_MUTUAL         1
-#define MRA_PE_RESET         20
+#define DC_PE_NOPREFERENCE   0 /* prefer-encrypt states */
+#define DC_PE_MUTUAL         1
+#define DC_PE_RESET         20
 
 
 /**

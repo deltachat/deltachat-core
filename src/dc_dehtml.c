@@ -32,7 +32,7 @@
 
 typedef struct dehtml_t
 {
-    mrstrbuilder_t m_strbuilder;
+    dc_strbuilder_t m_strbuilder;
 
     #define DO_NOT_ADD               0
     #define DO_ADD_REMOVE_LINEENDS   1
@@ -49,12 +49,12 @@ static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
 
 	if( strcmp(tag, "p")==0 || strcmp(tag, "div")==0 || strcmp(tag, "table")==0 || strcmp(tag, "td")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "\n\n");
 		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
 	}
 	else if( strcmp(tag, "br")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "\n");
 		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
 	}
 	else if( strcmp(tag, "style")==0 || strcmp(tag, "script")==0 || strcmp(tag, "title")==0 )
@@ -63,7 +63,7 @@ static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
 	}
 	else if( strcmp(tag, "pre")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "\n\n");
 		dehtml->m_add_text = DO_ADD_PRESERVE_LINEENDS;
 	}
 	else if( strcmp(tag, "a")==0 )
@@ -71,16 +71,16 @@ static void dehtml_starttag_cb(void* userdata, const char* tag, char** attr)
 		free(dehtml->m_last_href);
 		dehtml->m_last_href = strdup_keep_null(mrattr_find(attr, "href"));
 		if( dehtml->m_last_href ) {
-			mrstrbuilder_cat(&dehtml->m_strbuilder, "[");
+			dc_strbuilder_cat(&dehtml->m_strbuilder, "[");
 		}
 	}
 	else if( strcmp(tag, "b")==0 || strcmp(tag, "strong")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "*");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "*");
 	}
 	else if( strcmp(tag, "i")==0 || strcmp(tag, "em")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "_");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "_");
 	}
 }
 
@@ -91,7 +91,7 @@ static void dehtml_text_cb(void* userdata, const char* text, int len)
 
 	if( dehtml->m_add_text != DO_NOT_ADD )
 	{
-		char* last_added = mrstrbuilder_cat(&dehtml->m_strbuilder, text);
+		char* last_added = dc_strbuilder_cat(&dehtml->m_strbuilder, text);
 
 		if( dehtml->m_add_text==DO_ADD_REMOVE_LINEENDS )
 		{
@@ -129,26 +129,26 @@ static void dehtml_endtag_cb(void* userdata, const char* tag)
 	 || strcmp(tag, "style")==0 || strcmp(tag, "script")==0 || strcmp(tag, "title")==0
 	 || strcmp(tag, "pre")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "\n\n"); /* do not expect an starting block element (which, of course, should come right now) */
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "\n\n"); /* do not expect an starting block element (which, of course, should come right now) */
 		dehtml->m_add_text = DO_ADD_REMOVE_LINEENDS;
 	}
 	else if( strcmp(tag, "a")==0 )
 	{
 		if( dehtml->m_last_href ) {
-			mrstrbuilder_cat(&dehtml->m_strbuilder, "](");
-			mrstrbuilder_cat(&dehtml->m_strbuilder, dehtml->m_last_href);
-			mrstrbuilder_cat(&dehtml->m_strbuilder, ")");
+			dc_strbuilder_cat(&dehtml->m_strbuilder, "](");
+			dc_strbuilder_cat(&dehtml->m_strbuilder, dehtml->m_last_href);
+			dc_strbuilder_cat(&dehtml->m_strbuilder, ")");
 			free(dehtml->m_last_href);
 			dehtml->m_last_href = NULL;
 		}
 	}
 	else if( strcmp(tag, "b")==0 || strcmp(tag, "strong")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "*");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "*");
 	}
 	else if( strcmp(tag, "i")==0 || strcmp(tag, "em")==0 )
 	{
-		mrstrbuilder_cat(&dehtml->m_strbuilder, "_");
+		dc_strbuilder_cat(&dehtml->m_strbuilder, "_");
 	}
 }
 
@@ -165,7 +165,7 @@ char* dc_dehtml(char* buf_terminated)
 
 		memset(&dehtml, 0, sizeof(dehtml_t));
 		dehtml.m_add_text   = DO_ADD_REMOVE_LINEENDS;
-		mrstrbuilder_init(&dehtml.m_strbuilder, strlen(buf_terminated));
+		dc_strbuilder_init(&dehtml.m_strbuilder, strlen(buf_terminated));
 
 		dc_saxparser_init(&saxparser, &dehtml);
 		dc_saxparser_set_tag_handler(&saxparser, dehtml_starttag_cb, dehtml_endtag_cb);

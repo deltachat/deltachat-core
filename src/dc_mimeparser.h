@@ -48,7 +48,7 @@ typedef struct dc_mimepart_t
 	char*               m_msg;
 	char*               m_msg_raw;
 	int                 m_bytes;
-	mrparam_t*          m_param;
+	dc_param_t*          m_param;
 
 } dc_mimepart_t;
 

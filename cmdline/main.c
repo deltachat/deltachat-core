@@ -47,73 +47,73 @@ static int s_do_log_info = 1;
 #define ANSI_NORMAL "\e[0m"
 
 
-static uintptr_t receive_event(mrmailbox_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+static uintptr_t receive_event(dc_context_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
 {
 	switch( event )
 	{
-		case MR_EVENT_GET_STRING:
-		case MR_EVENT_GET_QUANTITY_STRING:
+		case DC_EVENT_GET_STRING:
+		case DC_EVENT_GET_QUANTITY_STRING:
 			break; /* do not show the event as this would fill the screen */
 
-		case MR_EVENT_INFO:
+		case DC_EVENT_INFO:
 			if( s_do_log_info ) {
 				printf("%s\n", (char*)data2);
 			}
 			break;
 
-		case MR_EVENT_WARNING:
+		case DC_EVENT_WARNING:
 			printf("[Warning] %s\n", (char*)data2);
 			break;
 
-		case MR_EVENT_ERROR:
+		case DC_EVENT_ERROR:
 			printf(ANSI_RED "[ERROR #%i] %s" ANSI_NORMAL "\n", (int)data1, (char*)data2);
 			break;
 
-		case MR_EVENT_HTTP_GET:
+		case DC_EVENT_HTTP_GET:
 			{
 				char* ret = NULL;
-				char* tempFile = mr_get_fine_pathNfilename(mailbox->m_blobdir, "curl.result");
-				char* cmd = mr_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
+				char* tempFile = dc_get_fine_pathNfilename(mailbox->m_blobdir, "curl.result");
+				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
 				int error = system(cmd);
 				if( error == 0 ) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
 					size_t bytes = 0;
-					mr_read_file(tempFile, (void**)&ret, &bytes, mailbox);
+					dc_read_file(tempFile, (void**)&ret, &bytes, mailbox);
 				}
 				free(cmd);
 				free(tempFile);
 				return (uintptr_t)ret;
 			}
 
-		case MR_EVENT_IS_OFFLINE:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_IS_OFFLINE()}}\n" ANSI_NORMAL);
+		case DC_EVENT_IS_OFFLINE:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_IS_OFFLINE()}}\n" ANSI_NORMAL);
 			break;
 
-		case MR_EVENT_MSGS_CHANGED:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_MSGS_CHANGED(%i, %i)}}\n" ANSI_NORMAL, (int)data1, (int)data2);
+		case DC_EVENT_MSGS_CHANGED:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_MSGS_CHANGED(%i, %i)}}\n" ANSI_NORMAL, (int)data1, (int)data2);
 			break;
 
-		case MR_EVENT_CONTACTS_CHANGED:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_CONTACTS_CHANGED()}}\n" ANSI_NORMAL);
+		case DC_EVENT_CONTACTS_CHANGED:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_CONTACTS_CHANGED()}}\n" ANSI_NORMAL);
 			break;
 
-		case MR_EVENT_CONFIGURE_PROGRESS:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_CONFIGURE_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
+		case DC_EVENT_CONFIGURE_PROGRESS:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_CONFIGURE_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
-		case MR_EVENT_IMEX_PROGRESS:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_IMEX_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
+		case DC_EVENT_IMEX_PROGRESS:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_IMEX_PROGRESS(%i ‰)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
-		case MR_EVENT_IMEX_FILE_WRITTEN:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_IMEX_FILE_WRITTEN(%s)}}\n" ANSI_NORMAL, (char*)data1);
+		case DC_EVENT_IMEX_FILE_WRITTEN:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_IMEX_FILE_WRITTEN(%s)}}\n" ANSI_NORMAL, (char*)data1);
 			break;
 
-		case MR_EVENT_CHAT_MODIFIED:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (int)data1);
+		case DC_EVENT_CHAT_MODIFIED:
+			printf(ANSI_YELLOW "{{Received DC_EVENT_CHAT_MODIFIED(%i)}}\n" ANSI_NORMAL, (int)data1);
 			break;
 
 		default:
-			printf(ANSI_YELLOW "{{Received MR_EVENT_%i(%i, %i)}}\n" ANSI_NORMAL, (int)event, (int)data1, (int)data2);
+			printf(ANSI_YELLOW "{{Received DC_EVENT_%i(%i, %i)}}\n" ANSI_NORMAL, (int)event, (int)data1, (int)data2);
 			break;
 	}
 	return 0;
@@ -129,7 +129,7 @@ static pthread_t imap_thread     = 0;
 static int       imap_foreground = 1;
 static void* imap_thread_entry_point (void* entry_arg)
 {
-	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
+	dc_context_t* mailbox = (dc_context_t*)entry_arg;
 
 	while( 1 ) {
 		// perform_jobs(), fetch() and idle()
@@ -152,7 +152,7 @@ static void* imap_thread_entry_point (void* entry_arg)
 static pthread_t smtp_thread = 0;
 static void* smtp_thread_entry_point (void* entry_arg)
 {
-	mrmailbox_t* mailbox = (mrmailbox_t*)entry_arg;
+	dc_context_t* mailbox = (dc_context_t*)entry_arg;
 
 	while( 1 ) {
 		dc_perform_smtp_jobs(mailbox);
@@ -169,7 +169,7 @@ static void* smtp_thread_entry_point (void* entry_arg)
 }
 
 
-static void start_threads(mrmailbox_t* mailbox)
+static void start_threads(dc_context_t* mailbox)
 {
 	if( !imap_thread ) {
 		pthread_create(&imap_thread, NULL, imap_thread_entry_point, mailbox);
@@ -181,7 +181,7 @@ static void start_threads(mrmailbox_t* mailbox)
 }
 
 
-static void stop_threads(mrmailbox_t* mailbox)
+static void stop_threads(dc_context_t* mailbox)
 {
 	imap_foreground = 0;
 	dc_interrupt_imap_idle(mailbox);
@@ -212,15 +212,15 @@ static char* read_cmd(void)
 
 int main(int argc, char ** argv)
 {
-	char*        cmd = NULL;
-	mrmailbox_t* mailbox = mrmailbox_new(receive_event, NULL, "CLI");
+	char*         cmd = NULL;
+	dc_context_t* mailbox = dc_context_new(receive_event, NULL, "CLI");
 
-	mrmailbox_cmdline_skip_auth(mailbox); /* disable the need to enter the command `auth <password>` for all mailboxes. */
+	dc_cmdline_skip_auth(mailbox); /* disable the need to enter the command `auth <password>` for all mailboxes. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
 		printf("Opening %s ...\n", argv[1]);
-		if( !mrmailbox_open(mailbox, argv[1], NULL) ) {
+		if( !dc_open(mailbox, argv[1], NULL) ) {
 			printf("ERROR: Cannot open mailbox.\n");
 		}
 	}
@@ -261,7 +261,7 @@ int main(int argc, char ** argv)
 		{
 			imap_foreground = 1;
 			start_threads(mailbox);
-			mrmailbox_configure(mailbox);
+			dc_configure(mailbox);
 		}
 		else if( strcmp(cmd, "clear")==0 )
 		{
@@ -272,13 +272,13 @@ int main(int argc, char ** argv)
 		{
 			imap_foreground = 1;
 			start_threads(mailbox);
-			char* qrstr  = mrmailbox_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
+			char* qrstr  = dc_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
 					for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
 				}
 				printf("%s\n", qrstr);
-				char* syscmd = mr_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
+				char* syscmd = dc_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
 				system(syscmd);
 				free(syscmd);
 			}
@@ -294,7 +294,7 @@ int main(int argc, char ** argv)
 		}
 		else
 		{
-			char* execute_result = mrmailbox_cmdline(mailbox, cmdline);
+			char* execute_result = dc_cmdline(mailbox, cmdline);
 			if( execute_result ) {
 				printf("%s\n", execute_result);
 				free(execute_result);
@@ -304,8 +304,8 @@ int main(int argc, char ** argv)
 
 	free(cmd);
 	stop_threads(mailbox);
-	mrmailbox_close(mailbox);
-	mrmailbox_unref(mailbox);
+	dc_close(mailbox);
+	dc_context_unref(mailbox);
 	mailbox = NULL;
 	return 0;
 }

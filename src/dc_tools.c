@@ -148,7 +148,7 @@ char* mr_strlower(const char* in) /* the result must be free()'d */
 /*
  * haystack may be realloc()'d, returns the number of replacements.
  */
-int mr_str_replace(char** haystack, const char* needle, const char* replacement)
+int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 {
 	int replacements = 0, start_search_pos = 0, needle_len, replacement_len;
 
@@ -166,7 +166,7 @@ int mr_str_replace(char** haystack, const char* needle, const char* replacement)
 
 		*p2 = 0;
 		p2 += needle_len;
-		char* new_string = mr_mprintf("%s%s%s", *haystack, replacement? replacement : "", p2);
+		char* new_string = dc_mprintf("%s%s%s", *haystack, replacement? replacement : "", p2);
 		free(*haystack);
 		*haystack = new_string;
 		replacements++;
@@ -211,7 +211,7 @@ int mr_str_contains(const char* haystack, const const char* needle)
  *     On memory-allocation errors, the program halts.
  *     On other errors, an empty string is returned.
  */
-char* mr_null_terminate(const char* in, int bytes) /* the result must be free()'d */
+char* dc_null_terminate(const char* in, int bytes) /* the result must be free()'d */
 {
 	char* out = malloc(bytes+1);
 	if( out==NULL ) {
@@ -264,7 +264,7 @@ cleanup:
 }
 
 
-char* mr_mprintf(const char* format, ...)
+char* dc_mprintf(const char* format, ...)
 {
 	char  testbuf[1];
 	char* buf;
@@ -366,7 +366,7 @@ void mr_unify_lineends(char* buf)
 }
 
 
-void mr_replace_bad_utf8_chars(char* buf)
+void dc_replace_bad_utf8_chars(char* buf)
 {
 	if( buf==NULL ) {
 		return;
@@ -478,7 +478,7 @@ void mr_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 }
 
 
-void mr_truncate_str(char* buf, int approx_chars)
+void dc_truncate_str(char* buf, int approx_chars)
 {
 	if( approx_chars > 0 && strlen(buf) > approx_chars+strlen(MR_EDITORIAL_ELLIPSE) )
 	{
@@ -535,7 +535,7 @@ void mr_free_splitted_lines(carray* lines)
 }
 
 
-char* mr_insert_breaks(const char* in, int break_every, const char* break_chars)
+char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 {
 	/* insert a space every n characters, the return must be free()'d.
 	this is useful to allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
@@ -705,7 +705,7 @@ long mr_gm2local_offset(void)
 }
 
 
-char* mr_timestamp_to_str(time_t wanted)
+char* dc_timestamp_to_str(time_t wanted)
 {
 	struct tm wanted_struct;
 	memcpy(&wanted_struct, localtime(&wanted), sizeof(struct tm));
@@ -717,7 +717,7 @@ char* mr_timestamp_to_str(time_t wanted)
 	memcpy(&curr_struct, localtime(&curr), sizeof(struct tm));
 	*/
 
-	return mr_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
+	return dc_mprintf("%02i.%02i.%04i %02i:%02i:%02i",
 		(int)wanted_struct.tm_mday, (int)wanted_struct.tm_mon+1, (int)wanted_struct.tm_year+1900,
 		(int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
 }
@@ -834,7 +834,7 @@ static char* encode_66bits_as_base64(uint32_t v1, uint32_t v2, uint32_t fill /*o
 }
 
 
-char* mr_create_id(void)
+char* dc_create_id(void)
 {
 	/* generate an id. the generated ID should be as short and as unique as possible:
 	- short, because it may also used as part of Message-ID headers or in QR codes
@@ -856,8 +856,8 @@ char* mr_create_id(void)
 
 char* mr_create_dummy_references_mid()
 {
-	char* msgid = mr_create_id(), *ret = NULL;
-	ret = mr_mprintf("Rf.%s@mr.thread", msgid);
+	char* msgid = dc_create_id(), *ret = NULL;
+	ret = dc_mprintf("Rf.%s@mr.thread", msgid);
 	free(msgid);
 	return ret;
 }
@@ -871,7 +871,7 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	- do not add a counter or any private data as as this may give unneeded information to the receiver	*/
 
 	char*       rand1 = NULL;
-	char*       rand2 = mr_create_id();
+	char*       rand2 = dc_create_id();
 	char*       ret = NULL;
 	const char* at_hostname = strchr(from_addr, '@');
 
@@ -880,12 +880,12 @@ char* mr_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	}
 
 	if( grpid ) {
-		ret = mr_mprintf("Gr.%s.%s%s", grpid, rand2, at_hostname);
+		ret = dc_mprintf("Gr.%s.%s%s", grpid, rand2, at_hostname);
 		               /* ^^^ `Gr.` must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
 	}
 	else {
-		rand1 = mr_create_id();
-		ret = mr_mprintf("Mr.%s.%s%s", rand1, rand2, at_hostname);
+		rand1 = dc_create_id();
+		ret = dc_mprintf("Mr.%s.%s%s", rand1, rand2, at_hostname);
 		               /* ^^^ `Mr.` is currently not used, however, this may change in future */
 	}
 
@@ -918,7 +918,7 @@ char* mr_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 
 	/* build a more or less unique string based on the timestamp and one receiver -
 	for our purposes, this seems "good enough" for the moment, esp. as clients normally set Message-ID on sent. */
-	return mr_mprintf("%lu-%lu-%lu@stub", (unsigned long)message_timestamp, (unsigned long)contact_id_from, (unsigned long)largest_id_to);
+	return dc_mprintf("%lu-%lu-%lu@stub", (unsigned long)message_timestamp, (unsigned long)contact_id_from, (unsigned long)largest_id_to);
 }
 
 
@@ -943,7 +943,7 @@ char* mr_extract_grpid_from_rfc724_mid(const char* mid)
 
 	#define MR_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
 	grpid_len = strlen(grpid);
-	if( grpid_len!=MR_CREATE_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
+	if( grpid_len!=DC_CREATE_ID_LEN && grpid_len!=MR_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;
 	}
 
@@ -1094,7 +1094,7 @@ int mr_create_folder(const char* pathNfilename, dc_context_t* log)
 }
 
 
-char* mr_get_filesuffix_lc(const char* pathNfilename)
+char* dc_get_filesuffix_lc(const char* pathNfilename)
 {
 	if( pathNfilename ) {
 		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
@@ -1144,7 +1144,7 @@ void mr_validate_filename(char* filename)
 }
 
 
-char* mr_get_fine_pathNfilename(const char* folder, const char* desired_filenameNsuffix__)
+char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filenameNsuffix__)
 {
 	char*       ret = NULL, *filenameNsuffix, *basename = NULL, *dotNSuffix = NULL;
 	time_t      now = time(NULL);
@@ -1158,10 +1158,10 @@ char* mr_get_fine_pathNfilename(const char* folder, const char* desired_filename
 	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
 		if( i ) {
 			time_t idx = i<100? i : now+i;
-			ret = mr_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
+			ret = dc_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
 		}
 		else {
-			ret = mr_mprintf("%s/%s%s", folder, basename, dotNSuffix);
+			ret = dc_mprintf("%s/%s%s", folder, basename, dotNSuffix);
 		}
 		if (stat(ret, &st) == -1) {
 			goto cleanup; /* fine filename found */
@@ -1178,7 +1178,7 @@ cleanup:
 }
 
 
-int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, dc_context_t* log)
+int dc_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, dc_context_t* log)
 {
 	int success = 0;
 
@@ -1200,7 +1200,7 @@ int mr_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, 
 }
 
 
-int mr_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_context_t* log)
+int dc_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_context_t* log)
 {
 	int success = 0;
 
@@ -1241,7 +1241,7 @@ cleanup:
 }
 
 
-int mr_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height)
+int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width, uint32_t *ret_height)
 {
 	/* Strategy:
 	reading GIF dimensions requires the first 10 bytes of the file

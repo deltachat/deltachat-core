@@ -174,7 +174,7 @@ static const char* s_em_setupfile =
 
 void stress_functions(dc_context_t* context)
 {
-	/* test mrsimplify and mrsaxparser (indirectly used by mrsimplify)
+	/* test dc_simplify_t and dc_saxparser_t (indirectly used by dc_simplify_t)
 	 **************************************************************************/
 
 	{
@@ -233,7 +233,7 @@ void stress_functions(dc_context_t* context)
 		mailmime_free(mime);
 	}
 
-	/* test mrmimeparser_t
+	/* test dc_mimeparser_t
 	**************************************************************************/
 
 	{
@@ -286,7 +286,7 @@ void stress_functions(dc_context_t* context)
 		dc_msg_guess_msgtype_from_suffix("foo/bar-sth.mp3", NULL, &mime);
 		assert( strcmp(mime, "audio/mpeg")==0 );
 		dc_msg_guess_msgtype_from_suffix("foo/bar-sth.mp3", &type, NULL);
-		assert( type == MR_MSG_AUDIO );
+		assert( type == DC_MSG_AUDIO );
 		free(mime);
 	}
 
@@ -295,214 +295,217 @@ void stress_functions(dc_context_t* context)
 
 	{
 		char* str = strdup("aaa");
-		int replacements = mr_str_replace(&str, "a", "ab"); /* no endless recursion here! */
+		int replacements = dc_str_replace(&str, "a", "ab"); /* no endless recursion here! */
 		assert( strcmp(str, "ababab")==0 );
 		assert( replacements == 3 );
 		free(str);
 
 		str = strdup("this is a little test string");
-			mr_truncate_str(str, 16);
+			dc_truncate_str(str, 16);
 			assert( strcmp(str, "this is a " MR_EDITORIAL_ELLIPSE)==0 );
 		free(str);
 
 		str = strdup("1234");
-			mr_truncate_str(str, 2);
+			dc_truncate_str(str, 2);
 			assert( strcmp(str, "1234")==0 );
 		free(str);
 
 		str = strdup("1234567");
-			mr_truncate_str(str, 1);
+			dc_truncate_str(str, 1);
 			assert( strcmp(str, "1[...]")==0 );
 		free(str);
 
 		str = strdup("123456");
-			mr_truncate_str(str, 4);
+			dc_truncate_str(str, 4);
 			assert( strcmp(str, "123456")==0 );
 		free(str);
 
-		str = mr_insert_breaks("just1234test", 4, " ");
+		str = dc_insert_breaks("just1234test", 4, " ");
 		assert( strcmp(str, "just 1234 test")==0 );
 		free(str);
 
-		str = mr_insert_breaks("just1234tes", 4, "--");
+		str = dc_insert_breaks("just1234tes", 4, "--");
 		assert( strcmp(str, "just--1234--tes")==0 );
 		free(str);
 
-		str = mr_insert_breaks("just1234t", 4, "");
+		str = dc_insert_breaks("just1234t", 4, "");
 		assert( strcmp(str, "just1234t")==0 );
 		free(str);
 
-		str = mr_insert_breaks("", 4, "---");
+		str = dc_insert_breaks("", 4, "---");
 		assert( strcmp(str, "")==0 );
 		free(str);
 
-		str = mr_null_terminate("abcxyz", 3);
+		str = dc_null_terminate("abcxyz", 3);
 		assert( strcmp(str, "abc")==0 );
 		free(str);
 
-		str = mr_null_terminate("abcxyz", 0);
+		str = dc_null_terminate("abcxyz", 0);
 		assert( strcmp(str, "")==0 );
 		free(str);
 
-		str = mr_null_terminate(NULL, 0);
+		str = dc_null_terminate(NULL, 0);
 		assert( strcmp(str, "")==0 );
 		free(str);
 
-		assert( strcmp("fresh="     MR_STRINGIFY(MR_STATE_IN_FRESH),      "fresh=10")==0 ); /* these asserts check the values, the existance of the macros and also MR_STRINGIFY() */
-		assert( strcmp("noticed="   MR_STRINGIFY(MR_STATE_IN_NOTICED),    "noticed=13")==0 );
-		assert( strcmp("seen="      MR_STRINGIFY(MR_STATE_IN_SEEN),       "seen=16")==0 );
-		assert( strcmp("pending="   MR_STRINGIFY(MR_STATE_OUT_PENDING),   "pending=20")==0 );
-		assert( strcmp("error="     MR_STRINGIFY(MR_STATE_OUT_ERROR),     "error=24")==0 );
-		assert( strcmp("delivered=" MR_STRINGIFY(MR_STATE_OUT_DELIVERED), "delivered=26")==0 );
-		assert( strcmp("mdn_rcvd="  MR_STRINGIFY(MR_STATE_OUT_MDN_RCVD),  "mdn_rcvd=28")==0 );
+		assert( strcmp("fresh="     DC_STRINGIFY(DC_STATE_IN_FRESH),      "fresh=10")==0 ); /* these asserts check the values, the existance of the macros and also DC_STRINGIFY() */
+		assert( strcmp("noticed="   DC_STRINGIFY(DC_STATE_IN_NOTICED),    "noticed=13")==0 );
+		assert( strcmp("seen="      DC_STRINGIFY(DC_STATE_IN_SEEN),       "seen=16")==0 );
+		assert( strcmp("pending="   DC_STRINGIFY(DC_STATE_OUT_PENDING),   "pending=20")==0 );
+		assert( strcmp("error="     DC_STRINGIFY(DC_STATE_OUT_ERROR),     "error=24")==0 );
+		assert( strcmp("delivered=" DC_STRINGIFY(DC_STATE_OUT_DELIVERED), "delivered=26")==0 );
+		assert( strcmp("mdn_rcvd="  DC_STRINGIFY(DC_STATE_OUT_MDN_RCVD),  "mdn_rcvd=28")==0 );
 
-		assert( strcmp("undefined="    MR_STRINGIFY(MR_CHAT_TYPE_UNDEFINED),      "undefined=0")==0 );
-		assert( strcmp("single="       MR_STRINGIFY(MR_CHAT_TYPE_SINGLE),         "single=100")==0 );
-		assert( strcmp("group="        MR_STRINGIFY(MR_CHAT_TYPE_GROUP),          "group=120")==0 );
-		assert( strcmp("vgroup="       MR_STRINGIFY(MR_CHAT_TYPE_VERIFIED_GROUP), "vgroup=130")==0 );
+		assert( strcmp("undefined="    DC_STRINGIFY(DC_CHAT_TYPE_UNDEFINED),      "undefined=0")==0 );
+		assert( strcmp("single="       DC_STRINGIFY(DC_CHAT_TYPE_SINGLE),         "single=100")==0 );
+		assert( strcmp("group="        DC_STRINGIFY(DC_CHAT_TYPE_GROUP),          "group=120")==0 );
+		assert( strcmp("vgroup="       DC_STRINGIFY(DC_CHAT_TYPE_VERIFIED_GROUP), "vgroup=130")==0 );
 
-		assert( strcmp("deaddrop="     MR_STRINGIFY(MR_CHAT_ID_DEADDROP),         "deaddrop=1")==0 );
-		assert( strcmp("trash="        MR_STRINGIFY(MR_CHAT_ID_TRASH),            "trash=3")==0 );
-		assert( strcmp("in_creation="  MR_STRINGIFY(MR_CHAT_ID_MSGS_IN_CREATION), "in_creation=4")==0 );
-		assert( strcmp("starred="      MR_STRINGIFY(MR_CHAT_ID_STARRED),          "starred=5")==0 );
-		assert( strcmp("archivedlink=" MR_STRINGIFY(MR_CHAT_ID_ARCHIVED_LINK),    "archivedlink=6")==0 );
-		assert( strcmp("spcl_chat="    MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL),     "spcl_chat=9")==0 );
+		assert( strcmp("deaddrop="     DC_STRINGIFY(DC_CHAT_ID_DEADDROP),         "deaddrop=1")==0 );
+		assert( strcmp("trash="        DC_STRINGIFY(DC_CHAT_ID_TRASH),            "trash=3")==0 );
+		assert( strcmp("in_creation="  DC_STRINGIFY(DC_CHAT_ID_MSGS_IN_CREATION), "in_creation=4")==0 );
+		assert( strcmp("starred="      DC_STRINGIFY(DC_CHAT_ID_STARRED),          "starred=5")==0 );
+		assert( strcmp("archivedlink=" DC_STRINGIFY(DC_CHAT_ID_ARCHIVED_LINK),    "archivedlink=6")==0 );
+		assert( strcmp("spcl_chat="    DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL),     "spcl_chat=9")==0 );
 
-		assert( strcmp("self="         MR_STRINGIFY(MR_CONTACT_ID_SELF),          "self=1")==0 );
-		assert( strcmp("spcl_contact=" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL),  "spcl_contact=9")==0 );
+		assert( strcmp("self="         DC_STRINGIFY(DC_CONTACT_ID_SELF),          "self=1")==0 );
+		assert( strcmp("spcl_contact=" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL),  "spcl_contact=9")==0 );
 
-		assert( strcmp("grpimg="    MR_STRINGIFY(MR_CMD_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
+		assert( strcmp("grpimg="    DC_STRINGIFY(MR_CMD_GROUPIMAGE_CHANGED), "grpimg=3")==0 );
 
-		assert( strcmp("notverified="    MR_STRINGIFY(MRV_NOT_VERIFIED),  "notverified=0")==0 );
-		assert( strcmp("bidirectional="  MR_STRINGIFY(MRV_BIDIRECTIONAL), "bidirectional=2")==0 );
+		assert( strcmp("notverified="    DC_STRINGIFY(MRV_NOT_VERIFIED),  "notverified=0")==0 );
+		assert( strcmp("bidirectional="  DC_STRINGIFY(MRV_BIDIRECTIONAL), "bidirectional=2")==0 );
 
-		assert( MRP_FILE == 'f' );
-		assert( MRP_WIDTH == 'w' );
-		assert( MRP_HEIGHT == 'h' );
-		assert( MRP_DURATION == 'd' );
-		assert( MRP_MIMETYPE == 'm' );
-		assert( MRP_AUTHORNAME == 'N' );
-		assert( MRP_TRACKNAME == 'n' );
-		assert( MRP_FORWARDED == 'a' );
-		assert( MRP_UNPROMOTED == 'U' );
+		assert( strcmp("public="  DC_STRINGIFY(DC_KEY_PUBLIC), "public=0")==0 );
+		assert( strcmp("private="  DC_STRINGIFY(DC_KEY_PRIVATE), "private=1")==0 );
+
+		assert( DC_PARAM_FILE == 'f' );
+		assert( DC_PARAM_WIDTH == 'w' );
+		assert( DC_PARAM_HEIGHT == 'h' );
+		assert( DC_PARAM_DURATION == 'd' );
+		assert( DC_PARAM_MIMETYPE == 'm' );
+		assert( DC_PARAM_AUTHORNAME == 'N' );
+		assert( DC_PARAM_TRACKNAME == 'n' );
+		assert( DC_PARAM_FORWARDED == 'a' );
+		assert( DC_PARAM_UNPROMOTED == 'U' );
 
 		char* buf1 = strdup("ol\xc3\xa1 mundo <>\"'& äÄöÖüÜß fooÆçÇ ♦&noent;"); char* buf2 = strdup(buf1);
-		mr_replace_bad_utf8_chars(buf2);
+		dc_replace_bad_utf8_chars(buf2);
 		assert( strcmp(buf1, buf2)==0 );
 		free(buf1); free(buf2);
 
 		buf1 = strdup("ISO-String with Ae: \xC4"); buf2 = strdup(buf1);
-		mr_replace_bad_utf8_chars(buf2);
+		dc_replace_bad_utf8_chars(buf2);
 		assert( strcmp("ISO-String with Ae: _", buf2)==0 );
 		free(buf1); free(buf2);
 
 		buf1 = strdup(""); buf2 = strdup(buf1);
-		mr_replace_bad_utf8_chars(buf2);
+		dc_replace_bad_utf8_chars(buf2);
 		assert( buf2[0]==0 );
 		free(buf1); free(buf2);
 
-		mr_replace_bad_utf8_chars(NULL); /* should do nothing */
+		dc_replace_bad_utf8_chars(NULL); /* should do nothing */
 
-		buf1 = mr_urlencode("Björn Petersen");
+		buf1 = dc_urlencode("Björn Petersen");
 		assert( strcmp(buf1, "Bj%C3%B6rn+Petersen") == 0 );
-		buf2 = mr_urldecode(buf1);
+		buf2 = dc_urldecode(buf1);
 		assert( strcmp(buf2, "Björn Petersen") == 0 );
 		free(buf1); free(buf2);
 
-		buf1 = mr_create_id();
-		assert( strlen(buf1) == MR_CREATE_ID_LEN );
+		buf1 = dc_create_id();
+		assert( strlen(buf1) == DC_CREATE_ID_LEN );
 		free(buf1);
 
-		buf1 = mr_decode_header_words("=?utf-8?B?dGVzdMOkw7bDvC50eHQ=?=");
+		buf1 = dc_decode_header_words("=?utf-8?B?dGVzdMOkw7bDvC50eHQ=?=");
 		assert( strcmp(buf1, "testäöü.txt")==0 );
 		free(buf1);
 
-		buf1 = mr_decode_header_words("just ascii test");
+		buf1 = dc_decode_header_words("just ascii test");
 		assert( strcmp(buf1, "just ascii test")==0 );
 		free(buf1);
 
-		buf1 = mr_encode_header_words("abcdef");
+		buf1 = dc_encode_header_words("abcdef");
 		assert( strcmp(buf1, "abcdef")==0 );
 		free(buf1);
 
-		buf1 = mr_encode_header_words("testäöü.txt");
+		buf1 = dc_encode_header_words("testäöü.txt");
 		assert( strncmp(buf1, "=?utf-8", 7)==0 );
-		buf2 = mr_decode_header_words(buf1);
+		buf2 = dc_decode_header_words(buf1);
 		assert( strcmp("testäöü.txt", buf2)==0 );
 		free(buf1);
 		free(buf2);
 
-		buf1 = mr_decode_header_words("=?ISO-8859-1?Q?attachment=3B=0D=0A_filename=3D?= =?ISO-8859-1?Q?=22test=E4=F6=FC=2Etxt=22=3B=0D=0A_size=3D39?=");
+		buf1 = dc_decode_header_words("=?ISO-8859-1?Q?attachment=3B=0D=0A_filename=3D?= =?ISO-8859-1?Q?=22test=E4=F6=FC=2Etxt=22=3B=0D=0A_size=3D39?=");
 		assert( strcmp(buf1, "attachment;\r\n filename=\"testäöü.txt\";\r\n size=39")==0 );
 		free(buf1);
 
-		buf1 = mr_encode_ext_header("Björn Petersen");
+		buf1 = dc_encode_ext_header("Björn Petersen");
 		assert( strcmp(buf1, "utf-8''Bj%C3%B6rn%20Petersen") == 0 );
-		buf2 = mr_decode_ext_header(buf1);
+		buf2 = dc_decode_ext_header(buf1);
 		assert( strcmp(buf2, "Björn Petersen") == 0 );
 		free(buf1);
 		free(buf2);
 
-		buf1 = mr_decode_ext_header("iso-8859-1'en'%A3%20rates");
+		buf1 = dc_decode_ext_header("iso-8859-1'en'%A3%20rates");
 		assert( strcmp(buf1, "£ rates") == 0 );
 		assert( strcmp(buf1, "\xC2\xA3 rates") == 0 );
 		free(buf1);
 
-		buf1 = mr_decode_ext_header("wrong'format"); // bad format -> should return given string
+		buf1 = dc_decode_ext_header("wrong'format"); // bad format -> should return given string
 		assert( strcmp(buf1, "wrong'format") == 0 );
 		free(buf1);
 
-		buf1 = mr_decode_ext_header("''"); // empty charset -> should return given string
+		buf1 = dc_decode_ext_header("''"); // empty charset -> should return given string
 		assert( strcmp(buf1, "''") == 0 );
 		free(buf1);
 
-		buf1 = mr_decode_ext_header("x''"); // charset given -> return empty encoded string
+		buf1 = dc_decode_ext_header("x''"); // charset given -> return empty encoded string
 		assert( strcmp(buf1, "") == 0 );
 		free(buf1);
 
-		buf1 = mr_decode_ext_header("'"); // bad format -> should return given string
+		buf1 = dc_decode_ext_header("'"); // bad format -> should return given string
 		assert( strcmp(buf1, "'") == 0 );
 		free(buf1);
 
-		buf1 = mr_decode_ext_header(""); // bad format -> should return given string - empty in this case
+		buf1 = dc_decode_ext_header(""); // bad format -> should return given string - empty in this case
 		assert( strcmp(buf1, "") == 0 );
 		free(buf1);
 
-		assert(  mr_needs_ext_header("Björn") );
-		assert( !mr_needs_ext_header("Bjoern") );
-		assert( !mr_needs_ext_header("") );
-		assert(  mr_needs_ext_header(" ") );
-		assert(  mr_needs_ext_header("a b") );
-		assert( !mr_needs_ext_header(NULL) );
+		assert(  dc_needs_ext_header("Björn") );
+		assert( !dc_needs_ext_header("Bjoern") );
+		assert( !dc_needs_ext_header("") );
+		assert(  dc_needs_ext_header(" ") );
+		assert(  dc_needs_ext_header("a b") );
+		assert( !dc_needs_ext_header(NULL) );
 
-		buf1 = mr_encode_modified_utf7("Björn Petersen", 1);
+		buf1 = dc_encode_modified_utf7("Björn Petersen", 1);
 		assert( strcmp(buf1, "Bj&APY-rn_Petersen")==0 );
-		buf2 = mr_decode_modified_utf7(buf1, 1);
+		buf2 = dc_decode_modified_utf7(buf1, 1);
 		assert( strcmp(buf2, "Björn Petersen")==0 );
 		free(buf1);
 		free(buf2);
 	}
 
-	/* test mrarray_t
+	/* test dc_array_t
 	 **************************************************************************/
 
 	{
 		#define TEST_CNT  1000
-		mrarray_t* arr = mrarray_new(NULL, 7);
-		assert( mrarray_get_cnt(arr) == 0 );
+		dc_array_t* arr = dc_array_new(NULL, 7);
+		assert( dc_array_get_cnt(arr) == 0 );
 
 		int i;
 		for( i = 0; i < TEST_CNT; i++ ) {
-			mrarray_add_id(arr, i+1*2);
+			dc_array_add_id(arr, i+1*2);
 		}
-		assert( mrarray_get_cnt(arr) == TEST_CNT );
+		assert( dc_array_get_cnt(arr) == TEST_CNT );
 
 		for( i = 0; i< TEST_CNT; i++ ) {
-			assert( mrarray_get_id(arr, i) == i+1*2 );
+			assert( dc_array_get_id(arr, i) == i+1*2 );
 		}
-		assert( mrarray_get_id(arr, -1) == 0 ); /* test out-of-range access */
-		assert( mrarray_get_id(arr, TEST_CNT) == 0 ); /* test out-of-range access */
-		assert( mrarray_get_id(arr, TEST_CNT+1) == 0 ); /* test out-of-range access */
+		assert( dc_array_get_id(arr, -1) == 0 ); /* test out-of-range access */
+		assert( dc_array_get_id(arr, TEST_CNT) == 0 ); /* test out-of-range access */
+		assert( dc_array_get_id(arr, TEST_CNT+1) == 0 ); /* test out-of-range access */
 
 		dc_array_empty(arr);
 		assert( dc_array_get_cnt(arr) == 0 );
@@ -520,10 +523,10 @@ void stress_functions(dc_context_t* context)
 		free(str);
 
 		const uint32_t arr2[] = { 0, 12, 133, 1999999 };
-		str = mr_arr_to_string(arr2, 4);
+		str = dc_arr_to_string(arr2, 4);
 		assert( strcmp(str, "0,12,133,1999999")==0 );
 		free(str);
-		mrarray_empty(arr);
+		dc_array_empty(arr);
 
 		dc_array_add_ptr(arr, "XX");
 		dc_array_add_ptr(arr, "item1");
@@ -538,37 +541,37 @@ void stress_functions(dc_context_t* context)
 		dc_array_unref(arr);
 	}
 
-	/* test mrparam
+	/* test dc_param
 	 **************************************************************************/
 
 	{
-		mrparam_t* p1 = mrparam_new();
+		dc_param_t* p1 = dc_param_new();
 
-		mrparam_set_packed(p1, "\r\n\r\na=1\nb=2\n\nc = 3 ");
+		dc_param_set_packed(p1, "\r\n\r\na=1\nb=2\n\nc = 3 ");
 
-		assert( mrparam_get_int(p1, 'a', 0)==1 );
-		assert( mrparam_get_int(p1, 'b', 0)==2 );
-		assert( mrparam_get_int(p1, 'c', 0)==0 ); /* c is not accepted, spaces and weird characters are not allowed in param, were very strict there */
-		assert( mrparam_exists (p1, 'c')==0 );
+		assert( dc_param_get_int(p1, 'a', 0)==1 );
+		assert( dc_param_get_int(p1, 'b', 0)==2 );
+		assert( dc_param_get_int(p1, 'c', 0)==0 ); /* c is not accepted, spaces and weird characters are not allowed in param, were very strict there */
+		assert( dc_param_exists (p1, 'c')==0 );
 
-		mrparam_set_int(p1, 'd', 4);
-		assert( mrparam_get_int(p1, 'd', 0)==4 );
+		dc_param_set_int(p1, 'd', 4);
+		assert( dc_param_get_int(p1, 'd', 0)==4 );
 
-		mrparam_empty(p1);
-		mrparam_set    (p1, 'a', "foo");
-		mrparam_set_int(p1, 'b', 2);
-		mrparam_set    (p1, 'c', NULL);
-		mrparam_set_int(p1, 'd', 4);
+		dc_param_empty(p1);
+		dc_param_set    (p1, 'a', "foo");
+		dc_param_set_int(p1, 'b', 2);
+		dc_param_set    (p1, 'c', NULL);
+		dc_param_set_int(p1, 'd', 4);
 		assert( strcmp(p1->m_packed, "a=foo\nb=2\nd=4")==0 );
 
-		mrparam_set    (p1, 'b', NULL);
+		dc_param_set    (p1, 'b', NULL);
 		assert( strcmp(p1->m_packed, "a=foo\nd=4")==0 );
 
-		mrparam_set    (p1, 'a', NULL);
-		mrparam_set    (p1, 'd', NULL);
+		dc_param_set    (p1, 'a', NULL);
+		dc_param_set    (p1, 'd', NULL);
 		assert( strcmp(p1->m_packed, "")==0 );
 
-		mrparam_unref(p1);
+		dc_param_unref(p1);
 	}
 
 	/* test Autocrypt header parsing functions
@@ -583,7 +586,7 @@ void stress_functions(dc_context_t* context)
 		assert( ah_ok == 1 );
 		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
-		assert( ah->m_prefer_encrypt==MRA_PE_MUTUAL );
+		assert( ah->m_prefer_encrypt==DC_PE_MUTUAL );
 
 		rendered = dc_aheader_render(ah);
 		assert( rendered && strcmp(rendered, "addr=a@b.example.org; prefer-encrypt=mutual; keydata= RGVsdGEgQ2hhdA==")==0 );
@@ -592,13 +595,13 @@ void stress_functions(dc_context_t* context)
 		assert( ah_ok == 1 );
 		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
 		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
-		assert( ah->m_prefer_encrypt==MRA_PE_MUTUAL );
+		assert( ah->m_prefer_encrypt==DC_PE_MUTUAL );
 
 		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=ignoreUnknownValues; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 ); /* only "yes" or "no" are valid for prefer-encrypt ... */
 
 		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; keydata=RGVsdGEgQ2hhdA==");
-		assert( ah_ok == 1 && ah->m_prefer_encrypt==MRA_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
+		assert( ah_ok == 1 && ah->m_prefer_encrypt==DC_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
 
 		ah_ok = dc_aheader_set_from_string(ah, "");
 		assert( ah_ok == 0 );
@@ -749,7 +752,7 @@ void stress_functions(dc_context_t* context)
 				bad_data[i] = (unsigned char)(i&0xFF);
 			}
 			for( int j = 0; j < BAD_DATA_BYTES/40; j++ ) {
-				dc_key_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? MR_PUBLIC : MR_PRIVATE);
+				dc_key_set_from_binary(bad_key, &bad_data[j], BAD_DATA_BYTES/2 + j, (j&1)? DC_KEY_PUBLIC : DC_KEY_PRIVATE);
 				assert( !dc_pgp_is_valid_key(context, bad_key) );
 			}
 		dc_key_unref(bad_key);
@@ -760,8 +763,8 @@ void stress_functions(dc_context_t* context)
 		dc_pgp_create_keypair(context, "foo@bar.de", public_key, private_key);
 		assert( dc_pgp_is_valid_key(context, public_key) );
 		assert( dc_pgp_is_valid_key(context, private_key) );
-		//{char *t1=dc_key_render_asc(public_key); printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
-		//{char *t1=dc_key_render_asc(private_key);printf("%s",t1);mr_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);mr_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
+		//{char *t1=dc_key_render_asc(public_key); printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
+		//{char *t1=dc_key_render_asc(private_key);printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
 
 		{
 			dc_key_t *test_key = dc_key_new();
@@ -787,7 +790,7 @@ void stress_functions(dc_context_t* context)
 				assert( ok && ctext_signed && ctext_signed_bytes>0 );
 				assert( strncmp((char*)ctext_signed, "-----BEGIN PGP MESSAGE-----", 27)==0 );
 				assert( ((char*)ctext_signed)[ctext_signed_bytes-1]!=0 ); /*armored strings are not null-terminated!*/
-				//{char* t3 = mr_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
+				//{char* t3 = dc_null_terminate((char*)ctext,ctext_bytes);printf("\n%i ENCRYPTED BYTES: {\n%s\n}\n",(int)ctext_bytes,t3);free(t3);}
 
 				ok = dc_pgp_pk_encrypt(context, original_text, strlen(original_text), keyring, NULL, 1, (void**)&ctext_unsigned, &ctext_unsigned_bytes);
 				assert( ok && ctext_unsigned && ctext_unsigned_bytes>0 );
@@ -883,7 +886,7 @@ void stress_functions(dc_context_t* context)
 	 **************************************************************************/
 
 	{
-		char* fingerprint = mr_normalize_fingerprint(" 1234  567890 \n AbcD abcdef ABCDEF ");
+		char* fingerprint = dc_normalize_fingerprint(" 1234  567890 \n AbcD abcdef ABCDEF ");
 		assert( fingerprint );
 		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
 	}
@@ -895,14 +898,14 @@ void stress_functions(dc_context_t* context)
 
 		dc_lot_t* res = dc_check_qr(context, qr);
 		assert( res );
-		assert( res->m_state == MR_QR_ASK_VERIFYCONTACT || res->m_state == MR_QR_FPR_MISMATCH || res->m_state == MR_QR_FPR_WITHOUT_ADDR );
+		assert( res->m_state == DC_QR_ASK_VERIFYCONTACT || res->m_state == DC_QR_FPR_MISMATCH || res->m_state == DC_QR_FPR_WITHOUT_ADDR );
 
 		dc_lot_unref(res);
 		free(qr);
 
 		res = dc_check_qr(context, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
 		assert( res );
-		assert( res->m_state == MR_QR_ADDR );
+		assert( res->m_state == DC_QR_ADDR );
 		assert( res->m_id != 0 );
 		dc_lot_unref(res);
 	}

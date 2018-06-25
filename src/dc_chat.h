@@ -47,7 +47,7 @@ struct _dc_chat
 	dc_context_t*    m_context;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
 	int             m_blocked;          /**< One of MR_CHAT_*_BLOCKED */
-	mrparam_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
+	dc_param_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 };
 
 

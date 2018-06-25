@@ -66,22 +66,22 @@ char* dc_aheader_render(const dc_aheader_t* ths)
 {
 	int            success = 0;
 	char*          keybase64_wrapped = NULL;
-	mrstrbuilder_t ret;
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_t ret;
+	dc_strbuilder_init(&ret, 0);
 
-	if( ths==NULL || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=MR_PUBLIC ) {
+	if( ths==NULL || ths->m_addr==NULL || ths->m_public_key->m_binary==NULL || ths->m_public_key->m_type!=DC_KEY_PUBLIC ) {
 		goto cleanup;
 	}
 
-	mrstrbuilder_cat(&ret, "addr=");
-	mrstrbuilder_cat(&ret, ths->m_addr);
-	mrstrbuilder_cat(&ret, "; ");
+	dc_strbuilder_cat(&ret, "addr=");
+	dc_strbuilder_cat(&ret, ths->m_addr);
+	dc_strbuilder_cat(&ret, "; ");
 
-	if( ths->m_prefer_encrypt==MRA_PE_MUTUAL ) {
-		mrstrbuilder_cat(&ret, "prefer-encrypt=mutual; ");
+	if( ths->m_prefer_encrypt==DC_PE_MUTUAL ) {
+		dc_strbuilder_cat(&ret, "prefer-encrypt=mutual; ");
 	}
 
-	mrstrbuilder_cat(&ret, "keydata= "); /* the trailing space together with mr_insert_breaks() allows a proper transport */
+	dc_strbuilder_cat(&ret, "keydata= "); /* the trailing space together with dc_insert_breaks() allows a proper transport */
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
@@ -89,7 +89,7 @@ char* dc_aheader_render(const dc_aheader_t* ths)
 		goto cleanup;
 	}
 
-	mrstrbuilder_cat(&ret, keybase64_wrapped);
+	dc_strbuilder_cat(&ret, keybase64_wrapped);
 
 	success = 1;
 
@@ -133,7 +133,7 @@ static int add_attribute(dc_aheader_t* ths, const char* name, const char* value 
 	else if( strcasecmp(name, "prefer-encrypt")==0 )
 	{
 		if( value && strcasecmp(value, "mutual")==0 ) {
-			ths->m_prefer_encrypt = MRA_PE_MUTUAL;
+			ths->m_prefer_encrypt = DC_PE_MUTUAL;
 			return 1;
 		}
 		return 1; /* An Autocrypt level 0 client that sees the attribute with any other value (or that does not see the attribute at all) should interpret the value as nopreference.*/
@@ -144,7 +144,7 @@ static int add_attribute(dc_aheader_t* ths, const char* name, const char* value 
 		 || ths->m_public_key->m_binary || ths->m_public_key->m_bytes ) {
 			return 0; /* there is already a k*/
 		}
-		return dc_key_set_from_base64(ths->m_public_key, value, MR_PUBLIC);
+		return dc_key_set_from_base64(ths->m_public_key, value, DC_KEY_PUBLIC);
 	}
 	else if( name[0]=='_' )
 	{
@@ -178,7 +178,7 @@ int dc_aheader_set_from_string(dc_aheader_t* ths, const char* header_str__)
 		goto cleanup;
 	}
 
-	ths->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
+	ths->m_prefer_encrypt = DC_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
 
 	header_str = safe_strdup(header_str__);
 	p = header_str;

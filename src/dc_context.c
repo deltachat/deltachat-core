@@ -259,7 +259,7 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 			context->m_blobdir = safe_strdup(blobdir);
 		}
 		else {
-			context->m_blobdir = mr_mprintf("%s-blobs", dbfile);
+			context->m_blobdir = dc_mprintf("%s-blobs", dbfile);
 			mr_create_folder(context->m_blobdir, context);
 		}
 
@@ -511,8 +511,8 @@ char* dc_get_info(dc_context_t* context)
 	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
 	dc_key_t* self_public = dc_key_new();
 
-	mrstrbuilder_t  ret;
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_t  ret;
+	dc_strbuilder_init(&ret, 0);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return safe_strdup("ErrBadPtr");
@@ -569,7 +569,7 @@ char* dc_get_info(dc_context_t* context)
 	- we do not display the password here; in the cli-utility, you can see it using `get mail_pw`
 	- use neutral speach; the Delta Chat Core is not directly related to any front end or end-product
 	- contributors: You're welcome to add your names here */
-	temp = mr_mprintf(
+	temp = dc_mprintf(
 		"Chats: %i\n"
 		"Chat messages: %i\n"
 		"Messages in context requests: %i\n"
@@ -608,7 +608,7 @@ char* dc_get_info(dc_context_t* context)
 		, sizeof(void*)*8
 
 		);
-	mrstrbuilder_cat(&ret, temp);
+	dc_strbuilder_cat(&ret, temp);
 	free(temp);
 
 	/* add log excerpt */
@@ -618,9 +618,9 @@ char* dc_get_info(dc_context_t* context)
 			if( context->m_log_ringbuf[j] ) {
 				struct tm wanted_struct;
 				memcpy(&wanted_struct, localtime(&context->m_log_ringbuf_times[j]), sizeof(struct tm));
-				temp = mr_mprintf("\n%02i:%02i:%02i ", (int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
-					mrstrbuilder_cat(&ret, temp);
-					mrstrbuilder_cat(&ret, context->m_log_ringbuf[j]);
+				temp = dc_mprintf("\n%02i:%02i:%02i ", (int)wanted_struct.tm_hour, (int)wanted_struct.tm_min, (int)wanted_struct.tm_sec);
+					dc_strbuilder_cat(&ret, temp);
+					dc_strbuilder_cat(&ret, context->m_log_ringbuf[j]);
 				free(temp);
 			}
 		}
@@ -787,7 +787,7 @@ void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
 	dc_sqlite3_lock(context->m_sql);
 
 		stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_state_WHERE_chat_id_AND_state,
-			"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE chat_id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
+			"UPDATE msgs SET state=" DC_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE chat_id=? AND state=" DC_STRINGIFY(MR_STATE_IN_FRESH) ";");
 		sqlite3_bind_int(stmt, 1, chat_id);
 		sqlite3_step(stmt);
 
@@ -1195,7 +1195,7 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 				" FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
 				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.state=" MR_STRINGIFY(MR_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
+				" WHERE m.state=" DC_STRINGIFY(MR_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
 				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
 		sqlite3_bind_int(stmt, 1, show_deaddrop? MR_CHAT_DEADDROP_BLOCKED : 0);
 
@@ -1270,9 +1270,9 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 					" FROM msgs m"
 					" LEFT JOIN chats ON m.chat_id=chats.id"
 					" LEFT JOIN contacts ON m.from_id=contacts.id"
-					" WHERE m.from_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF)
+					" WHERE m.from_id!=" DC_STRINGIFY(MR_CONTACT_ID_SELF)
 					"   AND m.hidden=0 "
-					"   AND chats.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
+					"   AND chats.blocked=" DC_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
 					"   AND contacts.blocked=0"
 					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
 		}
@@ -1385,8 +1385,8 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 		goto cleanup;
 	}
 
-	strLikeInText = mr_mprintf("%%%s%%", real_query);
-	strLikeBeg = mr_mprintf("%s%%", real_query); /*for the name search, we use "Name%" which is fast as it can use the index ("%Name%" could not). */
+	strLikeInText = dc_mprintf("%%%s%%", real_query);
+	strLikeBeg = dc_mprintf("%s%%", real_query); /*for the name search, we use "Name%" which is fast as it can use the index ("%Name%" could not). */
 
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
@@ -1415,7 +1415,7 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 				"SELECT m.id, m.timestamp FROM msgs m"
 				" LEFT JOIN contacts ct ON m.from_id=ct.id"
 				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+				" WHERE m.chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
 					" AND m.hidden=0 "
 					" AND (c.blocked=0 OR c.blocked=?)"
 					" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
@@ -1519,7 +1519,7 @@ int dc_get_fresh_msg_count__(dc_context_t* context, uint32_t chat_id)
 
 	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
 		"SELECT COUNT(*) FROM msgs "
-		" WHERE state=" MR_STRINGIFY(MR_STATE_IN_FRESH)
+		" WHERE state=" DC_STRINGIFY(MR_STATE_IN_FRESH)
 		"   AND hidden=0 "
 		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 	sqlite3_bind_int(stmt, 1, chat_id);
@@ -1540,9 +1540,9 @@ uint32_t dc_get_last_deaddrop_fresh_msg__(dc_context_t* context)
 		"SELECT m.id "
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
-		" WHERE m.state=" MR_STRINGIFY(MR_STATE_IN_FRESH)
+		" WHERE m.state=" DC_STRINGIFY(MR_STATE_IN_FRESH)
 		"   AND m.hidden=0 "
-		"   AND c.blocked=" MR_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
+		"   AND c.blocked=" DC_STRINGIFY(MR_CHAT_DEADDROP_BLOCKED)
 		" ORDER BY m.timestamp DESC, m.id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -1578,7 +1578,7 @@ size_t dc_get_chat_cnt__(dc_context_t* context)
 	}
 
 	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats,
-		"SELECT COUNT(*) FROM chats WHERE id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND blocked=0;");
+		"SELECT COUNT(*) FROM chats WHERE id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
@@ -1603,7 +1603,7 @@ void dc_lookup_real_nchat_by_contact_id__(dc_context_t* context, uint32_t contac
 			"SELECT c.id, c.blocked"
 			" FROM chats c"
 			" INNER JOIN chats_contacts j ON c.id=j.chat_id"
-			" WHERE c.type=" MR_STRINGIFY(MR_CHAT_TYPE_SINGLE) " AND c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
+			" WHERE c.type=" DC_STRINGIFY(MR_CHAT_TYPE_SINGLE) " AND c.id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -1651,7 +1651,7 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 	/* create chat record */
 	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", MR_CHAT_TYPE_SINGLE, chat_name,
 		contact_id==MR_CONTACT_ID_SELF? "K=1" : "", create_blocked);
-	assert( MRP_SELFTALK == 'K' );
+	assert( DC_PARAM_SELFTALK == 'K' );
 	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q);
 	if( stmt == NULL) {
 		goto cleanup;
@@ -1912,12 +1912,12 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 		" ORDER BY id DESC;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		mrparam_t* msg_param = mrparam_new();
-		mrparam_set_packed(msg_param, (char*)sqlite3_column_text(stmt, 0));
-		if( mrparam_exists(msg_param, MRP_GUARANTEE_E2EE) ) {
+		dc_param_t* msg_param = dc_param_new();
+		dc_param_set_packed(msg_param, (char*)sqlite3_column_text(stmt, 0));
+		if( dc_param_exists(msg_param, DC_PARAM_GUARANTEE_E2EE) ) {
 			last_is_encrypted = 1;
 		}
-		mrparam_unref(msg_param);
+		dc_param_unref(msg_param);
 	}
 	return last_is_encrypted;
 }
@@ -1962,16 +1962,16 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	}
 	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
-		if( mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
+		if( dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
 			/* mark group as being no longer unpromoted */
-			mrparam_set(chat->m_param, MRP_UNPROMOTED, NULL);
+			dc_param_set(chat->m_param, DC_PARAM_UNPROMOTED, NULL);
 			dc_chat_update_param__(chat);
 		}
 	}
 
 	/* check if we can guarantee E2EE for this message.  If we can, we won't send the message without E2EE later (because of a reset, changed settings etc. - messages may be delayed significally if there is no network present) */
 	int do_guarantee_e2ee = 0;
-	if( context->m_e2ee_enabled && mrparam_get_int(msg->m_param, MRP_FORCE_PLAINTEXT, 0)==0 )
+	if( context->m_e2ee_enabled && dc_param_get_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, 0)==0 )
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
 		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
@@ -1980,7 +1980,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 			 " LEFT JOIN contacts c ON cc.contact_id=c.id "
 			 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 			 " WHERE cc.chat_id=? "                                               /* take care that this statement returns NULL rows if there is no peerstates for a chat member! */
-			 " AND cc.contact_id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* for MRP_SELFTALK this statement does not return any row */
+			 " AND cc.contact_id>" DC_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";"); /* for DC_PARAM_SELFTALK this statement does not return any row */
 		sqlite3_bind_int(stmt, 1, chat->m_id);
 		while( sqlite3_step(stmt) == SQLITE_ROW )
 		{
@@ -1991,7 +1991,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 			else {
 				/* the peerstate exist, so we have either public_key or gossip_key and can encrypt potentially */
 				int prefer_encrypted = sqlite3_column_int(stmt, 0);
-				if( prefer_encrypted != MRA_PE_MUTUAL ) {
+				if( prefer_encrypted != DC_PE_MUTUAL ) {
 					all_mutual = 0;
 				}
 			}
@@ -2011,9 +2011,9 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	}
 
 	if( do_guarantee_e2ee ) {
-		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1);
+		dc_param_set_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1);
 	}
-	mrparam_set(msg->m_param, MRP_ERRONEOUS_E2EE, NULL); /* reset eg. on forwarding */
+	dc_param_set(msg->m_param, DC_PARAM_ERRONEOUS_E2EE, NULL); /* reset eg. on forwarding */
 
 	/* add message to the database */
 	stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_mcftttstpb,
@@ -2087,7 +2087,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 	}
 	else if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename )
 		{
 			/* Got an attachment. Take care, the file may not be ready in this moment!
@@ -2106,19 +2106,19 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 				dc_msg_guess_msgtype_from_suffix(pathNfilename, &better_type, &better_mime);
 				if( better_type ) {
 					msg->m_type = better_type;
-					mrparam_set(msg->m_param, MRP_MIMETYPE, better_mime);
+					dc_param_set(msg->m_param, DC_PARAM_MIMETYPE, better_mime);
 				}
 				free(better_mime);
 			}
 
 			if( (msg->m_type == MR_MSG_IMAGE || msg->m_type == MR_MSG_GIF)
-			 && (mrparam_get_int(msg->m_param, MRP_WIDTH, 0)<=0 || mrparam_get_int(msg->m_param, MRP_HEIGHT, 0)<=0) ) {
+			 && (dc_param_get_int(msg->m_param, DC_PARAM_WIDTH, 0)<=0 || dc_param_get_int(msg->m_param, DC_PARAM_HEIGHT, 0)<=0) ) {
 				/* set width/height of images, if not yet done */
 				unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-				if( mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_context) ) {
-					if( mr_get_filemeta(buf, buf_bytes, &w, &h) ) {
-						mrparam_set_int(msg->m_param, MRP_WIDTH, w);
-						mrparam_set_int(msg->m_param, MRP_HEIGHT, h);
+				if( dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, msg->m_context) ) {
+					if( dc_get_filemeta(buf, buf_bytes, &w, &h) ) {
+						dc_param_set_int(msg->m_param, DC_PARAM_WIDTH, w);
+						dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, h);
 					}
 				}
 				free(buf);
@@ -2129,9 +2129,9 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 			if( msg->m_text ) { free(msg->m_text); }
 			if( msg->m_type == MR_MSG_AUDIO ) {
 				char* filename = mr_get_filename(pathNfilename);
-				char* author = mrparam_get(msg->m_param, MRP_AUTHORNAME, "");
-				char* title = mrparam_get(msg->m_param, MRP_TRACKNAME, "");
-				msg->m_text = mr_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
+				char* author = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, "");
+				char* title = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, "");
+				msg->m_text = dc_mprintf("%s %s %s", filename, author, title); /* for outgoing messages, also add the mediainfo. For incoming messages, this is not needed as the filename is build from these information */
 				free(filename);
 				free(author);
 				free(title);
@@ -2140,7 +2140,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 				msg->m_text = mr_get_filename(pathNfilename);
 			}
 			else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg->m_type) ) {
-				msg->m_text = mr_get_filesuffix_lc(pathNfilename);
+				msg->m_text = dc_get_filesuffix_lc(pathNfilename);
 			}
 		}
 		else
@@ -2259,9 +2259,9 @@ uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	}
 
 	msg->m_type = MR_MSG_IMAGE;
-	mrparam_set    (msg->m_param, MRP_FILE,   file);
-	mrparam_set_int(msg->m_param, MRP_WIDTH,  width);  /* set in sending job, if 0 */
-	mrparam_set_int(msg->m_param, MRP_HEIGHT, height); /* set in sending job, if 0 */
+	dc_param_set    (msg->m_param, DC_PARAM_FILE,   file);
+	dc_param_set_int(msg->m_param, DC_PARAM_WIDTH,  width);  /* set in sending job, if 0 */
+	dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height); /* set in sending job, if 0 */
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2304,11 +2304,11 @@ uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	}
 
 	msg->m_type = MR_MSG_VIDEO;
-	mrparam_set    (msg->m_param, MRP_FILE,     file);
-	mrparam_set    (msg->m_param, MRP_MIMETYPE, filemime);
-	mrparam_set_int(msg->m_param, MRP_WIDTH,    width);
-	mrparam_set_int(msg->m_param, MRP_HEIGHT,   height);
-	mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+	dc_param_set    (msg->m_param, DC_PARAM_FILE,     file);
+	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE, filemime);
+	dc_param_set_int(msg->m_param, DC_PARAM_WIDTH,    width);
+	dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT,   height);
+	dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2348,9 +2348,9 @@ uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	}
 
 	msg->m_type = MR_MSG_VOICE;
-	mrparam_set    (msg->m_param, MRP_FILE,     file);
-	mrparam_set    (msg->m_param, MRP_MIMETYPE, filemime);
-	mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+	dc_param_set    (msg->m_param, DC_PARAM_FILE,     file);
+	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE, filemime);
+	dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2391,11 +2391,11 @@ uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* 
 	}
 
 	msg->m_type = MR_MSG_AUDIO;
-	mrparam_set    (msg->m_param, MRP_FILE,       file);
-	mrparam_set    (msg->m_param, MRP_MIMETYPE,   filemime);
-	mrparam_set_int(msg->m_param, MRP_DURATION,   duration);
-	mrparam_set    (msg->m_param, MRP_AUTHORNAME, author);
-	mrparam_set    (msg->m_param, MRP_TRACKNAME,  trackname);
+	dc_param_set    (msg->m_param, DC_PARAM_FILE,       file);
+	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE,   filemime);
+	dc_param_set_int(msg->m_param, DC_PARAM_DURATION,   duration);
+	dc_param_set    (msg->m_param, DC_PARAM_AUTHORNAME, author);
+	dc_param_set    (msg->m_param, DC_PARAM_TRACKNAME,  trackname);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2433,8 +2433,8 @@ uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* f
 	}
 
 	msg->m_type = MR_MSG_FILE;
-	mrparam_set(msg->m_param, MRP_FILE,     file);
-	mrparam_set(msg->m_param, MRP_MIMETYPE, filemime);
+	dc_param_set(msg->m_param, DC_PARAM_FILE,     file);
+	dc_param_set(msg->m_param, DC_PARAM_MIMETYPE, filemime);
 
 	ret = dc_send_msg_object(context, chat_id, msg);
 
@@ -2484,7 +2484,7 @@ uint32_t dc_send_vcard_msg(dc_context_t* context, uint32_t chat_id, uint32_t con
 	}
 
 	if( contact->m_authname && contact->m_authname[0] ) {
-		text_to_send = mr_mprintf("%s: %s", contact->m_authname, contact->m_addr);
+		text_to_send = dc_mprintf("%s: %s", contact->m_authname, contact->m_addr);
 	}
 	else {
 		text_to_send = safe_strdup(contact->m_addr);
@@ -2564,7 +2564,7 @@ cleanup:
 
 
 #define IS_SELF_IN_GROUP__ (dc_is_contact_in_chat__(context, chat_id, MR_CONTACT_ID_SELF)==1)
-#define DO_SEND_STATUS_MAILS (mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==0)
+#define DO_SEND_STATUS_MAILS (dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==0)
 
 
 int dc_is_group_explicitly_left__(dc_context_t* context, const char* grpid)
@@ -2601,7 +2601,7 @@ static int dc_real_group_exists__(dc_context_t* context, uint32_t chat_id)
 	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_chats_WHERE_id,
 		"SELECT id FROM chats "
 		" WHERE id=? "
-		"   AND (type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) " OR type=" MR_STRINGIFY(MR_CHAT_TYPE_VERIFIED_GROUP) ");");
+		"   AND (type=" DC_STRINGIFY(MR_CHAT_TYPE_GROUP) " OR type=" DC_STRINGIFY(MR_CHAT_TYPE_VERIFIED_GROUP) ");");
 	sqlite3_bind_int(stmt, 1, chat_id);
 
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -2663,10 +2663,10 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 	locked = 1;
 
 		draft_txt = mrstock_str_repl_string(MR_STR_NEWGROUPDRAFT, chat_name);
-		grpid = mr_create_id();
+		grpid = dc_create_id();
 
 		stmt = dc_sqlite3_prepare_v2_(context->m_sql,
-			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=MRP_UNPROMOTED*/ );
+			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/ );
 		sqlite3_bind_int  (stmt, 1, verified? MR_CHAT_TYPE_VERIFIED_GROUP : MR_CHAT_TYPE_GROUP);
 		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
 		sqlite3_bind_int64(stmt, 3, time(NULL));
@@ -2759,7 +2759,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string2(MR_STR_MSGGRPNAME, chat->m_name, new_name);
-		mrparam_set_int(msg->m_param, MRP_CMD, MR_CMD_GROUPNAME_CHANGED);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD, MR_CMD_GROUPNAME_CHANGED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -2820,7 +2820,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
-		mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, new_image/*may be NULL*/);
+		dc_param_set(chat->m_param, DC_PARAM_PROFILE_IMAGE, new_image/*may be NULL*/);
 		if( !dc_chat_update_param__(chat) ) {
 			goto cleanup;
 		}
@@ -2831,8 +2831,8 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
 	{
-		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_GROUPIMAGE_CHANGED);
-		mrparam_set    (msg->m_param, MRP_CMD_PARAM, new_image);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_GROUPIMAGE_CHANGED);
+		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, new_image);
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str(new_image? MR_STR_MSGGRPIMGCHANGED : MR_STR_MSGGRPIMGDELETED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
@@ -2933,9 +2933,9 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
 
-		if( (flags&MR_FROM_HANDSHAKE) && mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0)==1 ) {
+		if( (flags&MR_FROM_HANDSHAKE) && dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
 			// after a handshake, force sending the `Chat-Group-Member-Added` message
-			mrparam_set(chat->m_param, MRP_UNPROMOTED, NULL);
+			dc_param_set(chat->m_param, DC_PARAM_UNPROMOTED, NULL);
 			dc_chat_update_param__(chat);
 		}
 
@@ -2976,9 +2976,9 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	{
 		msg->m_type = MR_MSG_TEXT;
 		msg->m_text = mrstock_str_repl_string(MR_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
-		mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
-		mrparam_set_int(msg->m_param, MRP_CMD_PARAM2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_MEMBER_ADDED_TO_GROUP);
+		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG ,contact->m_addr);
+		dc_param_set_int(msg->m_param, DC_PARAM_CMD_ARG2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -3083,8 +3083,8 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			else {
 				msg->m_text = mrstock_str_repl_string(MR_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
-			mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_MEMBER_REMOVED_FROM_GROUP);
-			mrparam_set    (msg->m_param, MRP_CMD_PARAM, contact->m_addr);
+			dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_MEMBER_REMOVED_FROM_GROUP);
+			dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, contact->m_addr);
 			msg->m_id = dc_send_msg_object(context, chat_id, msg);
 			context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 		}
@@ -3496,7 +3496,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
 				"SELECT c.id FROM contacts c"
 					" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
-					" WHERE c.addr!=? AND c.id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in dc_search_msgs() about the LIKE operator */
+					" WHERE c.addr!=? AND c.id>" DC_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" DC_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in dc_search_msgs() about the LIKE operator */
 					" AND (1=? OR LENGTH(ps.verified_key_fingerprint)!=0) "
 					" ORDER BY LOWER(c.name||c.addr),c.id;");
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
@@ -3514,7 +3514,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 		{
 			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_ORDER_BY,
 				"SELECT id FROM contacts"
-					" WHERE addr!=? AND id>" MR_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND origin>=" MR_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
+					" WHERE addr!=? AND id>" DC_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) " AND origin>=" DC_STRINGIFY(MR_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
 					" ORDER BY LOWER(name||addr),id;");
 			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 
@@ -3653,7 +3653,7 @@ dc_contact_t* dc_get_contact(dc_context_t* context, uint32_t contact_id)
 static void marknoticed_contact__(dc_context_t* context, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_state_WHERE_from_id_AND_state,
-		"UPDATE msgs SET state=" MR_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE from_id=? AND state=" MR_STRINGIFY(MR_STATE_IN_FRESH) ";");
+		"UPDATE msgs SET state=" DC_STRINGIFY(MR_STATE_IN_NOTICED) " WHERE from_id=? AND state=" DC_STRINGIFY(MR_STATE_IN_FRESH) ";");
 	sqlite3_bind_int(stmt, 1, contact_id);
 	sqlite3_step(stmt);
 }
@@ -3785,22 +3785,22 @@ cleanup:
 }
 
 
-static void cat_fingerprint(mrstrbuilder_t* ret, const char* addr, const char* fingerprint_verified, const char* fingerprint_unverified)
+static void cat_fingerprint(dc_strbuilder_t* ret, const char* addr, const char* fingerprint_verified, const char* fingerprint_unverified)
 {
-	mrstrbuilder_cat(ret, "\n\n");
-	mrstrbuilder_cat(ret, addr);
-	mrstrbuilder_cat(ret, ":\n");
-	mrstrbuilder_cat(ret, (fingerprint_verified&&fingerprint_verified[0])? fingerprint_verified : fingerprint_unverified);
+	dc_strbuilder_cat(ret, "\n\n");
+	dc_strbuilder_cat(ret, addr);
+	dc_strbuilder_cat(ret, ":\n");
+	dc_strbuilder_cat(ret, (fingerprint_verified&&fingerprint_verified[0])? fingerprint_verified : fingerprint_unverified);
 
 	if( fingerprint_verified && fingerprint_verified[0]
 	 && fingerprint_unverified && fingerprint_unverified[0]
 	 && strcmp(fingerprint_verified, fingerprint_unverified)!=0 ) {
 		// might be that for verified chats the - older - verified gossiped key is used
 		// and for normal chats the - newer - unverified key :/
-		mrstrbuilder_cat(ret, "\n\n");
-		mrstrbuilder_cat(ret, addr);
-		mrstrbuilder_cat(ret, " (alternative):\n");
-		mrstrbuilder_cat(ret, fingerprint_unverified);
+		dc_strbuilder_cat(ret, "\n\n");
+		dc_strbuilder_cat(ret, addr);
+		dc_strbuilder_cat(ret, " (alternative):\n");
+		dc_strbuilder_cat(ret, fingerprint_unverified);
 	}
 }
 
@@ -3834,8 +3834,8 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		goto cleanup;
 	}
 
-	mrstrbuilder_t  ret;
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_t  ret;
+	dc_strbuilder_init(&ret, 0);
 
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
@@ -3854,7 +3854,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	if( dc_apeerstate_peek_key(peerstate, MRV_NOT_VERIFIED) )
 	{
 		// E2E available :)
-		p = mrstock_str(peerstate->m_prefer_encrypt == MRA_PE_MUTUAL? MR_STR_E2E_PREFERRED : MR_STR_E2E_AVAILABLE); mrstrbuilder_cat(&ret, p); free(p);
+		p = mrstock_str(peerstate->m_prefer_encrypt == DC_PE_MUTUAL? MR_STR_E2E_PREFERRED : MR_STR_E2E_AVAILABLE); dc_strbuilder_cat(&ret, p); free(p);
 
 		if( self_key->m_binary == NULL ) {
 			dc_pgp_rand_seed(context, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -3866,9 +3866,9 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 			locked = 0;
 		}
 
-		mrstrbuilder_cat(&ret, " ");
-		p = mrstock_str(MR_STR_FINGERPRINTS); mrstrbuilder_cat(&ret, p); free(p);
-		mrstrbuilder_cat(&ret, ":");
+		dc_strbuilder_cat(&ret, " ");
+		p = mrstock_str(MR_STR_FINGERPRINTS); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, ":");
 
 		fingerprint_self = dc_key_get_formatted_fingerprint(self_key);
 		fingerprint_other_verified = dc_key_get_formatted_fingerprint(dc_apeerstate_peek_key(peerstate, MRV_BIDIRECTIONAL));
@@ -3889,11 +3889,11 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		if( !(loginparam->m_server_flags&MR_IMAP_SOCKET_PLAIN)
 		 && !(loginparam->m_server_flags&MR_SMTP_SOCKET_PLAIN) )
 		{
-			p = mrstock_str(MR_STR_ENCR_TRANSP); mrstrbuilder_cat(&ret, p); free(p);
+			p = mrstock_str(MR_STR_ENCR_TRANSP); dc_strbuilder_cat(&ret, p); free(p);
 		}
 		else
 		{
-			p = mrstock_str(MR_STR_ENCR_NONE); mrstrbuilder_cat(&ret, p); free(p);
+			p = mrstock_str(MR_STR_ENCR_NONE); dc_strbuilder_cat(&ret, p); free(p);
 		}
 	}
 
@@ -4026,8 +4026,8 @@ size_t dc_get_real_msg_cnt__(dc_context_t* context)
 		"SELECT COUNT(*) "
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
-		" WHERE m.id>" MR_STRINGIFY(MR_MSG_ID_LAST_SPECIAL)
-		" AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+		" WHERE m.id>" DC_STRINGIFY(MR_MSG_ID_LAST_SPECIAL)
+		" AND m.chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
 		" AND c.blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		dc_sqlite3_log_error(context->m_sql, "mr_get_assigned_msg_cnt_() failed.");
@@ -4166,14 +4166,14 @@ cleanup:
  */
 char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 {
-	mrstrbuilder_t ret;
+	dc_strbuilder_t ret;
 	int            locked = 0;
 	sqlite3_stmt*  stmt;
 	dc_msg_t*       msg = dc_msg_new();
 	dc_contact_t*   contact_from = dc_contact_new(context);
 	char           *rawtxt = NULL, *p;
 
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_init(&ret, 0);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -4189,7 +4189,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 			"SELECT txt_raw FROM msgs WHERE id=?;");
 		sqlite3_bind_int(stmt, 1, msg_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
-			p = mr_mprintf("Cannot load message #%i.", (int)msg_id); mrstrbuilder_cat(&ret, p); free(p);
+			p = dc_mprintf("Cannot load message #%i.", (int)msg_id); dc_strbuilder_cat(&ret, p); free(p);
 			goto cleanup;
 		}
 
@@ -4201,23 +4201,23 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 				char* subject = rawtxt;
 				*p = 0;
 				p++;
-				rawtxt = mr_mprintf("<b>%s</b>\n%s", subject, p);
+				rawtxt = dc_mprintf("<b>%s</b>\n%s", subject, p);
 				free(subject);
 			}
 		#endif
 
 		mr_trim(rawtxt);
-		mr_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
+		dc_truncate_str(rawtxt, MR_MAX_GET_INFO_LEN);
 
 		/* add time */
-		mrstrbuilder_cat(&ret, "Sent: ");
-		p = mr_timestamp_to_str(dc_msg_get_timestamp(msg)); mrstrbuilder_cat(&ret, p); free(p);
-		mrstrbuilder_cat(&ret, "\n");
+		dc_strbuilder_cat(&ret, "Sent: ");
+		p = dc_timestamp_to_str(dc_msg_get_timestamp(msg)); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, "\n");
 
 		if( msg->m_from_id != MR_CONTACT_ID_SELF ) {
-			mrstrbuilder_cat(&ret, "Received: ");
-			p = mr_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); mrstrbuilder_cat(&ret, p); free(p);
-			mrstrbuilder_cat(&ret, "\n");
+			dc_strbuilder_cat(&ret, "Received: ");
+			p = dc_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); dc_strbuilder_cat(&ret, p); free(p);
+			dc_strbuilder_cat(&ret, "\n");
 		}
 
 		if( msg->m_from_id == MR_CONTACT_ID_DEVICE || msg->m_to_id == MR_CONTACT_ID_DEVICE ) {
@@ -4229,15 +4229,15 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 			"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
 		sqlite3_bind_int (stmt, 1, msg_id);
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			mrstrbuilder_cat(&ret, "Read: ");
-			p = mr_timestamp_to_str(sqlite3_column_int64(stmt, 1)); mrstrbuilder_cat(&ret, p); free(p);
-			mrstrbuilder_cat(&ret, " by ");
+			dc_strbuilder_cat(&ret, "Read: ");
+			p = dc_timestamp_to_str(sqlite3_column_int64(stmt, 1)); dc_strbuilder_cat(&ret, p); free(p);
+			dc_strbuilder_cat(&ret, " by ");
 
 			dc_contact_t* contact = dc_contact_new(context);
 				dc_contact_load_from_db__(contact, context->m_sql, sqlite3_column_int64(stmt, 0));
-				p = dc_contact_get_display_name(contact); mrstrbuilder_cat(&ret, p); free(p);
+				p = dc_contact_get_display_name(contact); dc_strbuilder_cat(&ret, p); free(p);
 			dc_contact_unref(contact);
-			mrstrbuilder_cat(&ret, "\n");
+			dc_strbuilder_cat(&ret, "\n");
 		}
 		sqlite3_finalize(stmt);
 
@@ -4254,39 +4254,39 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		case MR_STATE_OUT_ERROR:     p = safe_strdup("Error");           break;
 		case MR_STATE_OUT_MDN_RCVD:  p = safe_strdup("Read");            break;
 		case MR_STATE_OUT_PENDING:   p = safe_strdup("Pending");         break;
-		default:                     p = mr_mprintf("%i", msg->m_state); break;
+		default:                     p = dc_mprintf("%i", msg->m_state); break;
 	}
-	mrstrbuilder_catf(&ret, "State: %s", p);
+	dc_strbuilder_catf(&ret, "State: %s", p);
 	free(p);
 
 	p = NULL;
 	int e2ee_errors;
-	if( (e2ee_errors=mrparam_get_int(msg->m_param, MRP_ERRONEOUS_E2EE, 0)) ) {
+	if( (e2ee_errors=dc_param_get_int(msg->m_param, DC_PARAM_ERRONEOUS_E2EE, 0)) ) {
 		if( e2ee_errors&MRE2EE_NO_VALID_SIGNATURE ) {
 			p = safe_strdup("Encrypted, no valid signature");
 		}
 	}
-	else if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) ) {
+	else if( dc_param_get_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) ) {
 		p = safe_strdup("Encrypted");
 	}
 
 	if( p ) {
-		mrstrbuilder_catf(&ret, ", %s", p);
+		dc_strbuilder_catf(&ret, ", %s", p);
 		free(p);
 	}
-	mrstrbuilder_cat(&ret, "\n");
+	dc_strbuilder_cat(&ret, "\n");
 
 	/* add sender (only for info messages as the avatar may not be shown for them) */
 	if( dc_msg_is_info(msg) ) {
-		mrstrbuilder_cat(&ret, "Sender: ");
-		p = dc_contact_get_name_n_addr(contact_from); mrstrbuilder_cat(&ret, p); free(p);
-		mrstrbuilder_cat(&ret, "\n");
+		dc_strbuilder_cat(&ret, "Sender: ");
+		p = dc_contact_get_name_n_addr(contact_from); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, "\n");
 	}
 
 	/* add file info */
-	char* file = mrparam_get(msg->m_param, MRP_FILE, NULL);
+	char* file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 	if( file ) {
-		p = mr_mprintf("\nFile: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); mrstrbuilder_cat(&ret, p); free(p);
+		p = dc_mprintf("\nFile: %s, %i bytes\n", file, (int)mr_get_filebytes(file)); dc_strbuilder_cat(&ret, p); free(p);
 	}
 
 	if( msg->m_type != MR_MSG_TEXT ) {
@@ -4298,44 +4298,44 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 			case MR_MSG_IMAGE: p = safe_strdup("Image");          break;
 			case MR_MSG_VIDEO: p = safe_strdup("Video");          break;
 			case MR_MSG_VOICE: p = safe_strdup("Voice");          break;
-			default:           p = mr_mprintf("%i", msg->m_type); break;
+			default:           p = dc_mprintf("%i", msg->m_type); break;
 		}
-		mrstrbuilder_catf(&ret, "Type: %s\n", p);
+		dc_strbuilder_catf(&ret, "Type: %s\n", p);
 		free(p);
 	}
 
-	int w = mrparam_get_int(msg->m_param, MRP_WIDTH, 0), h = mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
+	int w = dc_param_get_int(msg->m_param, DC_PARAM_WIDTH, 0), h = dc_param_get_int(msg->m_param, DC_PARAM_HEIGHT, 0);
 	if( w != 0 || h != 0 ) {
-		p = mr_mprintf("Dimension: %i x %i\n", w, h); mrstrbuilder_cat(&ret, p); free(p);
+		p = dc_mprintf("Dimension: %i x %i\n", w, h); dc_strbuilder_cat(&ret, p); free(p);
 	}
 
-	int duration = mrparam_get_int(msg->m_param, MRP_DURATION, 0);
+	int duration = dc_param_get_int(msg->m_param, DC_PARAM_DURATION, 0);
 	if( duration != 0 ) {
-		p = mr_mprintf("Duration: %i ms\n", duration); mrstrbuilder_cat(&ret, p); free(p);
+		p = dc_mprintf("Duration: %i ms\n", duration); dc_strbuilder_cat(&ret, p); free(p);
 	}
 
 	/* add rawtext */
 	if( rawtxt && rawtxt[0] ) {
-		mrstrbuilder_cat(&ret, "\n");
-		mrstrbuilder_cat(&ret, rawtxt);
-		mrstrbuilder_cat(&ret, "\n");
+		dc_strbuilder_cat(&ret, "\n");
+		dc_strbuilder_cat(&ret, rawtxt);
+		dc_strbuilder_cat(&ret, "\n");
 	}
 
 	/* add Message-ID, Server-Folder and Server-UID; the database ID is normally only of interest if you have access to sqlite; if so you can easily get it from the "msgs" table. */
 	#ifdef __ANDROID__
-		mrstrbuilder_cat(&ret, "<c#808080>");
+		dc_strbuilder_cat(&ret, "<c#808080>");
 	#endif
 
 	if( msg->m_rfc724_mid && msg->m_rfc724_mid[0] ) {
-		mrstrbuilder_catf(&ret, "\nMessage-ID: %s", msg->m_rfc724_mid);
+		dc_strbuilder_catf(&ret, "\nMessage-ID: %s", msg->m_rfc724_mid);
 	}
 
 	if( msg->m_server_folder && msg->m_server_folder[0] ) {
-		mrstrbuilder_catf(&ret, "\nLast seen as: %s/%i", msg->m_server_folder, (int)msg->m_server_uid);
+		dc_strbuilder_catf(&ret, "\nLast seen as: %s/%i", msg->m_server_folder, (int)msg->m_server_uid);
 	}
 
 	#ifdef __ANDROID__
-		mrstrbuilder_cat(&ret, "</c>");
+		dc_strbuilder_cat(&ret, "</c>");
 	#endif
 
 cleanup:
@@ -4392,7 +4392,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 
 		curr_timestamp = mr_create_smeared_timestamps__(msg_cnt);
 
-		idsstr = mr_arr_to_string(msg_ids, msg_cnt);
+		idsstr = dc_arr_to_string(msg_ids, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);
 		stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
 		while( sqlite3_step(stmt)==SQLITE_ROW )
@@ -4402,9 +4402,9 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 				goto cleanup;
 			}
 
-			mrparam_set_int(msg->m_param, MRP_FORWARDED, 1);
-			mrparam_set    (msg->m_param, MRP_GUARANTEE_E2EE, NULL);
-			mrparam_set    (msg->m_param, MRP_FORCE_PLAINTEXT, NULL);
+			dc_param_set_int(msg->m_param, DC_PARAM_FORWARDED, 1);
+			dc_param_set    (msg->m_param, DC_PARAM_GUARANTEE_E2EE, NULL);
+			dc_param_set    (msg->m_param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 
 			uint32_t new_msg_id = dc_send_msg_i__(context, chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
@@ -4558,7 +4558,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 				"SELECT m.state, c.blocked "
 				" FROM msgs m "
 				" LEFT JOIN chats c ON c.id=m.chat_id "
-				" WHERE m.id=? AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL));
+				" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL));
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
 			if( sqlite3_step(stmt) != SQLITE_ROW ) {
 				goto cleanup;

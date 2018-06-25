@@ -67,7 +67,7 @@ typedef struct dc_job_t
 	uint32_t   m_job_id;
 	int        m_action;
 	uint32_t   m_foreign_id;
-	mrparam_t* m_param;
+	dc_param_t* m_param;
 	int        m_try_again;
 } dc_job_t;
 

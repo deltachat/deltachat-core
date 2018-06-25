@@ -51,7 +51,7 @@ dc_msg_t* dc_msg_new()
 	ths->m_magic     = MR_MSG_MAGIC;
 	ths->m_type      = MR_MSG_UNDEFINED;
 	ths->m_state     = MR_STATE_UNDEFINED;
-	ths->m_param     = mrparam_new();
+	ths->m_param     = dc_param_new();
 
 	return ths;
 }
@@ -73,7 +73,7 @@ void dc_msg_unref(dc_msg_t* msg)
 	}
 
 	dc_msg_empty(msg);
-	mrparam_unref(msg->m_param);
+	dc_param_unref(msg->m_param);
 	msg->m_magic = 0;
 	free(msg);
 }
@@ -103,7 +103,7 @@ void dc_msg_empty(dc_msg_t* msg)
 	free(msg->m_server_folder);
 	msg->m_server_folder = NULL;
 
-	mrparam_set_packed(msg->m_param, NULL);
+	dc_param_set_packed(msg->m_param, NULL);
 
 	msg->m_context = NULL;
 
@@ -290,7 +290,7 @@ char* dc_msg_get_text(const dc_msg_t* msg)
 	}
 
 	ret = safe_strdup(msg->m_text);
-	mr_truncate_str(ret, MR_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
+	dc_truncate_str(ret, MR_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
 	return ret;
 }
 
@@ -318,7 +318,7 @@ char* dc_msg_get_file(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = mrparam_get(msg->m_param, MRP_FILE, NULL);
+	ret = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 
 cleanup:
 	return ret? ret : safe_strdup(NULL);
@@ -345,7 +345,7 @@ char* dc_msg_get_filename(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
+	pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 	if( pathNfilename == NULL ) {
 		goto cleanup;
 	}
@@ -378,9 +378,9 @@ char* dc_msg_get_filemime(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	ret = mrparam_get(msg->m_param, MRP_MIMETYPE, NULL);
+	ret = dc_param_get(msg->m_param, DC_PARAM_MIMETYPE, NULL);
 	if( ret == NULL ) {
-		file = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( file == NULL ) {
 			goto cleanup;
 		}
@@ -418,7 +418,7 @@ uint64_t dc_msg_get_filebytes(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	file = mrparam_get(msg->m_param, MRP_FILE, NULL);
+	file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 	if( file == NULL ) {
 		goto cleanup;
 	}
@@ -471,15 +471,15 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 	}
 	else
 	{
-		ret->m_text1 = mrparam_get(msg->m_param, MRP_AUTHORNAME, NULL);
-		ret->m_text2 = mrparam_get(msg->m_param, MRP_TRACKNAME, NULL);
+		ret->m_text1 = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, NULL);
+		ret->m_text2 = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, NULL);
 		if( ret->m_text1 && ret->m_text1[0] && ret->m_text2 && ret->m_text2[0] ) {
 			goto cleanup;
 		}
 		free(ret->m_text1); ret->m_text1 = NULL;
 		free(ret->m_text2); ret->m_text2 = NULL;
 
-		pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
@@ -517,7 +517,7 @@ int dc_msg_get_width(const dc_msg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(msg->m_param, MRP_WIDTH, 0);
+	return dc_param_get_int(msg->m_param, DC_PARAM_WIDTH, 0);
 }
 
 
@@ -542,7 +542,7 @@ int dc_msg_get_height(const dc_msg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(msg->m_param, MRP_HEIGHT, 0);
+	return dc_param_get_int(msg->m_param, DC_PARAM_HEIGHT, 0);
 }
 
 
@@ -564,7 +564,7 @@ int dc_msg_get_duration(const dc_msg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(msg->m_param, MRP_DURATION, 0);
+	return dc_param_get_int(msg->m_param, DC_PARAM_DURATION, 0);
 }
 
 
@@ -596,7 +596,7 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
 	}
 
 	if( show_encryption_state ) {
-		if( mrparam_get_int(msg->m_param, MRP_GUARANTEE_E2EE, 0) != 0 ) {
+		if( dc_param_get_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) != 0 ) {
 			return 1;
 		}
 	}
@@ -754,7 +754,7 @@ int dc_msg_is_forwarded(const dc_msg_t* msg)
 	if( msg == NULL || msg->m_magic != MR_MSG_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(msg->m_param, MRP_FORWARDED, 0)? 1 : 0;
+	return dc_param_get_int(msg->m_param, DC_PARAM_FORWARDED, 0)? 1 : 0;
 }
 
 
@@ -782,7 +782,7 @@ int dc_msg_is_info(const dc_msg_t* msg)
 		return 0;
 	}
 
-	int cmd = mrparam_get_int(msg->m_param, MRP_CMD, 0);
+	int cmd = dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0);
 
 	if( msg->m_from_id == MR_CONTACT_ID_DEVICE
 	 || msg->m_to_id == MR_CONTACT_ID_DEVICE
@@ -816,7 +816,7 @@ int dc_msg_is_setupmessage(const dc_msg_t* msg)
 		return 0;
 	}
 
-	return mrparam_get_int(msg->m_param, MRP_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
+	return dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
 }
 
 
@@ -853,7 +853,7 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	if( !mr_read_file(filename, (void**)&buf, &buf_bytes, msg->m_context) || buf == NULL || buf_bytes <= 0 ) {
+	if( !dc_read_file(filename, (void**)&buf, &buf_bytes, msg->m_context) || buf == NULL || buf_bytes <= 0 ) {
 		goto cleanup;
 	}
 
@@ -902,7 +902,7 @@ static int dc_msg_set_from_stmt__(dc_msg_t* ths, sqlite3_stmt* row, int row_offs
 	ths->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_text         =  safe_strdup((char*)sqlite3_column_text (row, row_offset++));
 
-	mrparam_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
+	dc_param_set_packed(  ths->m_param, (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_starred      =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_hidden       =                     sqlite3_column_int  (row, row_offset++);
 	ths->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
@@ -981,7 +981,7 @@ void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtyp
 	*ret_msgtype = MR_MSG_UNDEFINED;
 	*ret_mime = NULL;
 
-	suffix = mr_get_filesuffix_lc(pathNfilename);
+	suffix = dc_get_filesuffix_lc(pathNfilename);
 	if( suffix == NULL ) {
 		goto cleanup;
 	}
@@ -1031,7 +1031,7 @@ void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret
 }
 
 
-char* dc_msg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param, int approx_characters)
+char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* param, int approx_characters)
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
@@ -1055,23 +1055,23 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, mrparam_t* param
 			break;
 
 		case MR_MSG_AUDIO:
-			if( (value=mrparam_get(param, MRP_TRACKNAME, NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
-				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
+			if( (value=dc_param_get(param, DC_PARAM_TRACKNAME, NULL))==NULL ) { /* although we send files with "author - title" in the filename, existing files may follow other conventions, so this lookup is neccessary */
+				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				dc_msg_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
 			}
 			label = mrstock_str(MR_STR_AUDIO);
-			ret = mr_mprintf("%s: %s", label, value);
+			ret = dc_mprintf("%s: %s", label, value);
 			break;
 
 		case MR_MSG_FILE:
-			if( mrparam_get_int(param, MRP_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
+			if( dc_param_get_int(param, DC_PARAM_CMD, 0)==MR_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 				ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
 			}
 			else {
-				pathNfilename = mrparam_get(param, MRP_FILE, "ErrFilename");
+				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				value = mr_get_filename(pathNfilename);
 				label = mrstock_str(MR_STR_FILE);
-				ret = mr_mprintf("%s: %s", label, value);
+				ret = dc_mprintf("%s: %s", label, value);
 			}
 			break;
 
@@ -1099,9 +1099,9 @@ int dc_msg_is_increation__(const dc_msg_t* msg)
 	int is_increation = 0;
 	if( MR_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename ) {
-			char* totest = mr_mprintf("%s.increation", pathNfilename);
+			char* totest = dc_mprintf("%s.increation", pathNfilename);
 			if( mr_file_exist(totest) ) {
 				is_increation = 1;
 			}
@@ -1203,15 +1203,15 @@ void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int durat
 	locked = 1;
 
 		if( width > 0 ) {
-			mrparam_set_int(msg->m_param, MRP_WIDTH, width);
+			dc_param_set_int(msg->m_param, DC_PARAM_WIDTH, width);
 		}
 
 		if( height > 0 ) {
-			mrparam_set_int(msg->m_param, MRP_HEIGHT, height);
+			dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height);
 		}
 
 		if( duration > 0 ) {
-			mrparam_set_int(msg->m_param, MRP_DURATION, duration);
+			dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
 		}
 
 		dc_msg_save_param_to_disk__(msg);

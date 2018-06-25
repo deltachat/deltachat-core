@@ -66,9 +66,9 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 
 	/* if we have still no message, create one based upon  the code */
 	if( msg == NULL ) {
-		     if( event == DC_EVENT_INFO )    { msg = mr_mprintf("Info: %i",    (int)code); }
-		else if( event == DC_EVENT_WARNING ) { msg = mr_mprintf("Warning: %i", (int)code); }
-		else                                 { msg = mr_mprintf("Error: %i",   (int)code); }
+		     if( event == DC_EVENT_INFO )    { msg = dc_mprintf("Info: %i",    (int)code); }
+		else if( event == DC_EVENT_WARNING ) { msg = dc_mprintf("Warning: %i", (int)code); }
+		else                                 { msg = dc_mprintf("Error: %i",   (int)code); }
 	}
 
 	/* finally, log */

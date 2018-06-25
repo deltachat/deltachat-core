@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 
-typedef struct mrparam_t   mrparam_t;
+typedef struct dc_param_t   dc_param_t;
 typedef struct sqlite3_stmt sqlite3_stmt;
 
 
@@ -90,13 +90,13 @@ struct _dc_msg
 	int             m_is_msgrmsg;             /**< Set to 1 if the message was sent by another messenger. 0 otherwise. */
 	int             m_starred;                /**< Starred-state of the message. 0=no, 1=yes. */
 	int             m_chat_blocked;           /**< Internal */
-	mrparam_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
+	dc_param_t*      m_param;                  /**< Additional paramter for the message. Never a NULL-pointer. It is recommended to use setters and getters instead of accessing this field directly. */
 };
 
 
 int             dc_msg_load_from_db__                 (dc_msg_t*, dc_context_t*, uint32_t id);
 int             dc_msg_is_increation__                (const dc_msg_t*);
-char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, mrparam_t*, int approx_bytes); /* the returned value must be free()'d */
+char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes); /* the returned value must be free()'d */
 void            dc_msg_save_param_to_disk__           (dc_msg_t*);
 void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
 void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);

@@ -180,11 +180,11 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 		sqlite3_bind_int(stmt, 1, msg->m_id);
 		sqlite3_step(stmt);
 
-		char* pathNfilename = mrparam_get(msg->m_param, MRP_FILE, NULL);
+		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
 		if( pathNfilename ) {
 			if( strncmp(mailbox->m_blobdir, pathNfilename, strlen(mailbox->m_blobdir))==0 )
 			{
-				char* strLikeFilename = mr_mprintf("%%f=%s%%", pathNfilename);
+				char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
 				sqlite3_stmt* stmt2 = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
 				sqlite3_bind_int (stmt2, 1, MR_MSG_TEXT);
 				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
@@ -196,18 +196,18 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_t*
 				{
 					mr_delete_file(pathNfilename, mailbox);
 
-					char* increation_file = mr_mprintf("%s.increation", pathNfilename);
+					char* increation_file = dc_mprintf("%s.increation", pathNfilename);
 					mr_delete_file(increation_file, mailbox);
 					free(increation_file);
 
 					char* filenameOnly = mr_get_filename(pathNfilename);
 					if( msg->m_type==MR_MSG_VOICE ) {
-						char* waveform_file = mr_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
+						char* waveform_file = dc_mprintf("%s/%s.waveform", mailbox->m_blobdir, filenameOnly);
 						mr_delete_file(waveform_file, mailbox);
 						free(waveform_file);
 					}
 					else if( msg->m_type==MR_MSG_VIDEO ) {
-						char* preview_file = mr_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
+						char* preview_file = dc_mprintf("%s/%s-preview.jpg", mailbox->m_blobdir, filenameOnly);
 						mr_delete_file(preview_file, mailbox);
 						free(preview_file);
 					}
@@ -250,7 +250,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* mailbox, dc_job_
 		}
 
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
-		if( mrparam_get_int(msg->m_param, MRP_WANTS_MDN, 0) /* MRP_WANTS_MDN is set only for one part of a multipart-message */
+		if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
 		 && dc_sqlite3_get_config_int__(mailbox->m_sql, "mdns_enabled", MR_MDNS_DEFAULT_ENABLED) ) {
 			in_ms_flags |= MR_MS_SET_MDNSent_FLAG;
 		}
@@ -298,8 +298,8 @@ cleanup:
 
 static void dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP(dc_context_t* mailbox, dc_job_t* job)
 {
-	char*    server_folder = mrparam_get    (job->m_param, MRP_SERVER_FOLDER, NULL);
-	uint32_t server_uid    = mrparam_get_int(job->m_param, MRP_SERVER_UID, 0);
+	char*    server_folder = dc_param_get    (job->m_param, DC_PARAM_SERVER_FOLDER, NULL);
+	uint32_t server_uid    = dc_param_get_int(job->m_param, DC_PARAM_SERVER_UID, 0);
 	char*    new_server_folder = NULL;
 	uint32_t new_server_uid    = 0;
 	int      out_ms_flags = 0;
@@ -383,7 +383,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 		}
 
 		/* have we guaranteed encryption but cannot fulfill it for any reason? Do not send the message then.*/
-		if( mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0) && !mimefactory.m_out_encrypted ) {
+		if( dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) && !mimefactory.m_out_encrypted ) {
 			mark_as_error(mailbox, mimefactory.m_msg);
 			dc_log_error(mailbox, 0, "End-to-end-encryption unavailable unexpectedly.");
 			goto cleanup; /* unrecoverable */
@@ -402,7 +402,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 
 		/* debug print? */
 		if( dc_sqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
-			char* emlname = mr_mprintf("%s/to-smtp-%i.eml", mailbox->m_blobdir, (int)mimefactory.m_msg->m_id);
+			char* emlname = dc_mprintf("%s/to-smtp-%i.eml", mailbox->m_blobdir, (int)mimefactory.m_msg->m_id);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {
 				if( mimefactory.m_out ) {
@@ -414,14 +414,14 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 		}
 
 		dc_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_STATE_OUT_DELIVERED);
-		if( mimefactory.m_out_encrypted && mrparam_get_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 0)==0 ) {
-			mrparam_set_int(mimefactory.m_msg->m_param, MRP_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
+		if( mimefactory.m_out_encrypted && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0)==0 ) {
+			dc_param_set_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk__(mimefactory.m_msg);
 		}
 
 		if( (mailbox->m_imap->m_server_flags&MR_NO_EXTRA_IMAP_UPLOAD)==0
-		 && mrparam_get(mimefactory.m_chat->m_param, MRP_SELFTALK, 0)==0
-		 && mrparam_get_int(mimefactory.m_msg->m_param, MRP_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
+		 && dc_param_get(mimefactory.m_chat->m_param, DC_PARAM_SELFTALK, 0)==0
+		 && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_CMD, 0)!=MR_CMD_SECUREJOIN_MESSAGE ) {
 			dc_job_add(mailbox, DC_JOB_SEND_MSG_TO_IMAP, mimefactory.m_msg->m_id, NULL, 0); /* send message to IMAP in another job */
 		}
 
@@ -467,7 +467,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* mailbox, dc_job_t* job)
 		goto cleanup;
     }
 
-	//char* t1=mr_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~MDN~~~~~\n%s\n~~~~~/MDN~~~~~",t1);free(t1); // DEBUG OUTPUT
+	//char* t1=dc_null_terminate(mimefactory.m_out->str,mimefactory.m_out->len);printf("~~~~~MDN~~~~~\n%s\n~~~~~/MDN~~~~~",t1);free(t1); // DEBUG OUTPUT
 
 	if( !dc_smtp_send_msg(mailbox->m_smtp, mimefactory.m_recipients_addr, mimefactory.m_out->str, mimefactory.m_out->len) ) {
 		dc_smtp_disconnect(mailbox->m_smtp);
@@ -578,7 +578,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 	#define       THREAD_STR (thread==DC_IMAP_THREAD? "IMAP" : "SMTP")
 
 	memset(&job, 0, sizeof(dc_job_t));
-	job.m_param = mrparam_new();
+	job.m_param = dc_param_new();
 
 	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -593,7 +593,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 		job.m_job_id                         = sqlite3_column_int (select_stmt, 0);
 		job.m_action                         = sqlite3_column_int (select_stmt, 1);
 		job.m_foreign_id                     = sqlite3_column_int (select_stmt, 2);
-		mrparam_set_packed(job.m_param, (char*)sqlite3_column_text(select_stmt, 3));
+		dc_param_set_packed(job.m_param, (char*)sqlite3_column_text(select_stmt, 3));
 
 		dc_log_info(mailbox, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.m_job_id, (int)job.m_action);
 
@@ -624,8 +624,8 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 		}
 		else if( job.m_try_again == DC_AT_ONCE || job.m_try_again == DC_STANDARD_DELAY )
 		{
-			int tries = mrparam_get_int(job.m_param, MRP_TIMES, 0) + 1;
-			mrparam_set_int(job.m_param, MRP_TIMES, tries);
+			int tries = dc_param_get_int(job.m_param, DC_PARAM_TIMES, 0) + 1;
+			dc_param_set_int(job.m_param, DC_PARAM_TIMES, tries);
 
 			sqlite3_stmt* update_stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 				"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
@@ -657,7 +657,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 	}
 
 cleanup:
-	mrparam_unref(job.m_param);
+	dc_param_unref(job.m_param);
 	sqlite3_finalize(select_stmt);
 }
 

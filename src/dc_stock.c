@@ -42,8 +42,8 @@ static char* default_string(int id, int qty)
 		case MR_STR_NOMESSAGES:            return safe_strdup("No messages.");
 		case MR_STR_SELF:                  return safe_strdup("Me");
 		case MR_STR_DRAFT:                 return safe_strdup("Draft");
-		case MR_STR_MEMBER:                return mr_mprintf("%i member(s)", qty);
-		case MR_STR_CONTACT:               return mr_mprintf("%i contact(s)", qty);
+		case MR_STR_MEMBER:                return dc_mprintf("%i member(s)", qty);
+		case MR_STR_CONTACT:               return dc_mprintf("%i contact(s)", qty);
 		case MR_STR_VOICEMESSAGE:          return safe_strdup("Voice message");
 		case MR_STR_DEADDROP:              return safe_strdup("Mailbox");
 		case MR_STR_IMAGE:                 return safe_strdup("Image");
@@ -96,14 +96,14 @@ char* mrstock_str(int id) /* get the string with the given ID, the result must b
 char* mrstock_str_repl_string(int id, const char* to_insert)
 {
 	char* p1 = mrstock_str(id);
-	mr_str_replace(&p1, "%1$s", to_insert);
+	dc_str_replace(&p1, "%1$s", to_insert);
 	return p1;
 }
 
 
 char* mrstock_str_repl_int(int id, int to_insert_int)
 {
-	char* ret, *to_insert_str = mr_mprintf("%i", (int)to_insert_int);
+	char* ret, *to_insert_str = dc_mprintf("%i", (int)to_insert_int);
 	ret = mrstock_str_repl_string(id, to_insert_str);
 	free(to_insert_str);
 	return ret;
@@ -113,8 +113,8 @@ char* mrstock_str_repl_int(int id, int to_insert_int)
 char* mrstock_str_repl_string2(int id, const char* to_insert, const char* to_insert2)
 {
 	char* p1 = mrstock_str(id);
-	mr_str_replace(&p1, "%1$s", to_insert);
-	mr_str_replace(&p1, "%2$s", to_insert2);
+	dc_str_replace(&p1, "%1$s", to_insert);
+	dc_str_replace(&p1, "%2$s", to_insert2);
 	return p1;
 }
 

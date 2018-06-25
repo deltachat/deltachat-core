@@ -401,7 +401,7 @@ const uintptr_t* dc_array_get_raw(const dc_array_t* array)
 }
 
 
-char* mr_arr_to_string(const uint32_t* arr, int cnt)
+char* dc_arr_to_string(const uint32_t* arr, int cnt)
 {
 	/* return comma-separated value-string from integer array */
 	char*       ret = NULL;

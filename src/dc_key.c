@@ -50,14 +50,14 @@ static void dc_key_empty(dc_key_t* ths) /* only use before calling setters; take
 		return;
 	}
 
-	if( ths->m_type==MR_PRIVATE ) {
+	if( ths->m_type==DC_KEY_PRIVATE ) {
 		mr_wipe_secret_mem(ths->m_binary, ths->m_bytes);
 	}
 
 	free(ths->m_binary);
 	ths->m_binary = NULL;
 	ths->m_bytes = 0;
-	ths->m_type = MR_PUBLIC;
+	ths->m_type = DC_KEY_PUBLIC;
 }
 
 
@@ -172,7 +172,7 @@ int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, dc_context_t*
 		goto cleanup;
 	}
 
-	if( !mr_read_file(pathNfilename, (void**)&buf, &buf_bytes, mailbox)
+	if( !dc_read_file(pathNfilename, (void**)&buf, &buf_bytes, mailbox)
 	 || buf_bytes < 50 ) {
 		goto cleanup; /* error is already loged */
 	}
@@ -183,10 +183,10 @@ int dc_key_set_from_file(dc_key_t* ths, const char* pathNfilename, dc_context_t*
 	}
 
 	if( strcmp(headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
-		type = MR_PUBLIC;
+		type = DC_KEY_PUBLIC;
 	}
 	else if( strcmp(headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")==0 ) {
-		type = MR_PRIVATE;
+		type = DC_KEY_PRIVATE;
 	}
 	else {
 		dc_log_warning(mailbox, 0, "Header missing for key \"%s\".", pathNfilename);
@@ -269,7 +269,7 @@ int dc_key_load_self_public__(dc_key_t* ths, const char* self_addr, dc_sqlite3_t
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
-	dc_key_set_from_stmt(ths, stmt, 0, MR_PUBLIC);
+	dc_key_set_from_stmt(ths, stmt, 0, DC_KEY_PUBLIC);
 	return 1;
 }
 
@@ -289,7 +289,7 @@ int dc_key_load_self_private__(dc_key_t* ths, const char* self_addr, dc_sqlite3_
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		return 0;
 	}
-	dc_key_set_from_stmt(ths, stmt, 0, MR_PRIVATE);
+	dc_key_set_from_stmt(ths, stmt, 0, DC_KEY_PRIVATE);
 	return 1;
 }
 
@@ -339,7 +339,7 @@ char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const
 		c[2] = (uint8_t)((checksum)&0xFF);
 		char* c64 = encode_base64((const char*)c, 3);
 			char* temp = ret;
-				ret = mr_mprintf("%s=%s", temp, c64);
+				ret = dc_mprintf("%s=%s", temp, c64);
 			free(temp);
 		free(c64);
 	}
@@ -347,7 +347,7 @@ char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const
 
 	if( break_every>0 ) {
 		char* temp = ret;
-			ret = mr_insert_breaks(temp, break_every, break_chars);
+			ret = dc_insert_breaks(temp, break_every, break_chars);
 		free(temp);
 	}
 
@@ -359,7 +359,7 @@ char* mr_render_base64(const void* buf, size_t buf_bytes, int break_every, const
 		c[2] = (uint8_t)((checksum)&0xFF);
 		char* c64 = encode_base64((const char*)c, 3);
 			char* temp = ret;
-				ret = mr_mprintf("%s%s=%s", temp, break_chars, c64);
+				ret = dc_mprintf("%s%s=%s", temp, break_chars, c64);
 			free(temp);
 		free(c64);
 	}
@@ -391,11 +391,11 @@ char* dc_key_render_asc(const dc_key_t* ths, const char* add_header_lines /*must
 		goto cleanup;
 	}
 
-	ret = mr_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n%s\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
-		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE",
+	ret = dc_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n%s\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
+		ths->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE",
 		add_header_lines? add_header_lines : "",
 		base64,
-		ths->m_type==MR_PUBLIC? "PUBLIC" : "PRIVATE");
+		ths->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE");
 
 cleanup:
 	free(base64);
@@ -417,7 +417,7 @@ int dc_key_render_asc_to_file(const dc_key_t* key, const char* file, dc_context_
 		goto cleanup;
 	}
 
-	if( !mr_write_file(file, file_content, strlen(file_content), mailbox) ) {
+	if( !dc_write_file(file, file_content, strlen(file_content), mailbox) ) {
 		dc_log_error(mailbox, 0, "Cannot write key to %s", file);
 		goto cleanup;
 	}
@@ -432,18 +432,18 @@ cleanup:
 char* mr_format_fingerprint(const char* fingerprint)
 {
 	int i = 0, fingerprint_len = strlen(fingerprint);
-	mrstrbuilder_t ret;
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_t ret;
+	dc_strbuilder_init(&ret, 0);
 
     while( fingerprint[i] ) {
-		mrstrbuilder_catf(&ret, "%c", fingerprint[i]);
+		dc_strbuilder_catf(&ret, "%c", fingerprint[i]);
 		i++;
 		if( i != fingerprint_len ) {
 			if( i%20 == 0 ) {
-				mrstrbuilder_cat(&ret, "\n");
+				dc_strbuilder_cat(&ret, "\n");
 			}
 			else if( i%4 == 0 ) {
-				mrstrbuilder_cat(&ret, " ");
+				dc_strbuilder_cat(&ret, " ");
 			}
 		}
     }
@@ -454,19 +454,19 @@ char* mr_format_fingerprint(const char* fingerprint)
 
 /* bring a human-readable or otherwise formatted fingerprint back to the
 40-characters-uppercase-hex format */
-char* mr_normalize_fingerprint(const char* in)
+char* dc_normalize_fingerprint(const char* in)
 {
 	if( in == NULL ) {
 		return NULL;
 	}
 
-	mrstrbuilder_t out;
-	mrstrbuilder_init(&out, 0);
+	dc_strbuilder_t out;
+	dc_strbuilder_init(&out, 0);
 
 	const char* p1 = in;
 	while( *p1 ) {
 		if( (*p1 >= '0' && *p1 <= '9') || (*p1 >= 'A' && *p1 <= 'F') || (*p1 >= 'a' && *p1 <= 'f') ) {
-			mrstrbuilder_catf(&out, "%c", toupper(*p1)); /* make uppercase which is needed as we do not search case-insensitive, see comment in mrsqlite3.c */
+			dc_strbuilder_catf(&out, "%c", toupper(*p1)); /* make uppercase which is needed as we do not search case-insensitive, see comment in mrsqlite3.c */
 		}
 		p1++;
 	}

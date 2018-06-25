@@ -323,7 +323,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.hidden=0 AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id AND hidden=0)) " /* not: `m.hidden` which would refer the outer select and takes lot of time*/ \
-	                " WHERE c.id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
+	                " WHERE c.id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
@@ -370,7 +370,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 			success = 1; /*empty result*/
 			goto cleanup;
 		}
-		strLikeCmd = mr_mprintf("%%%s%%", query);
+		strLikeCmd = dc_mprintf("%%%s%%", query);
 		stmt = dc_sqlite3_predefine__(ths->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);

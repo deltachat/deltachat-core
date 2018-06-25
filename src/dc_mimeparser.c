@@ -793,7 +793,7 @@ static dc_mimepart_t* mrmimepart_new(void)
 	}
 
 	ths->m_type    = MR_MSG_UNDEFINED;
-	ths->m_param   = mrparam_new();
+	ths->m_param   = dc_param_new();
 
 	return ths;
 }
@@ -815,7 +815,7 @@ static void mrmimepart_unref(dc_mimepart_t* ths)
 		ths->m_msg_raw = NULL;
 	}
 
-	mrparam_unref(ths->m_param);
+	dc_param_unref(ths->m_param);
 	free(ths);
 }
 
@@ -946,10 +946,10 @@ static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
 	if( parser->m_e2ee_helper->m_encrypted && dc_hash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
-		mrparam_set_int(part->m_param, MRP_GUARANTEE_E2EE, 1);
+		dc_param_set_int(part->m_param, DC_PARAM_GUARANTEE_E2EE, 1);
 	}
 	else if( parser->m_e2ee_helper->m_encrypted ) {
-		mrparam_set_int(part->m_param, MRP_ERRONEOUS_E2EE, MRE2EE_NO_VALID_SIGNATURE);
+		dc_param_set_int(part->m_param, DC_PARAM_ERRONEOUS_E2EE, MRE2EE_NO_VALID_SIGNATURE);
 	}
 	carray_add(parser->m_parts, (void*)part, NULL);
 }
@@ -963,12 +963,12 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	char*         pathNfilename = NULL;
 
 	/* create a free file name to use */
-	if( (pathNfilename=mr_get_fine_pathNfilename(parser->m_blobdir, desired_filename)) == NULL ) {
+	if( (pathNfilename=dc_get_fine_pathNfilename(parser->m_blobdir, desired_filename)) == NULL ) {
 		goto cleanup;
 	}
 
 	/* copy data to file */
-	if( mr_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_context)==0 ) {
+	if( dc_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_context)==0 ) {
 		goto cleanup;
 	}
 
@@ -976,28 +976,28 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	part->m_type  = msg_type;
 	part->m_int_mimetype = mime_type;
 	part->m_bytes = decoded_data_bytes;
-	mrparam_set(part->m_param, MRP_FILE, pathNfilename);
+	dc_param_set(part->m_param, DC_PARAM_FILE, pathNfilename);
 	if( MR_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
 		part->m_msg = mr_get_filename(pathNfilename);
 	}
 	else if( MR_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
-		part->m_msg = mr_get_filesuffix_lc(pathNfilename);
+		part->m_msg = dc_get_filesuffix_lc(pathNfilename);
 	}
 
 	if( mime_type == MR_MIMETYPE_IMAGE ) {
 		uint32_t w = 0, h = 0;
-		if( mr_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
-			mrparam_set_int(part->m_param, MRP_WIDTH, w);
-			mrparam_set_int(part->m_param, MRP_HEIGHT, h);
+		if( dc_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
+			dc_param_set_int(part->m_param, DC_PARAM_WIDTH, w);
+			dc_param_set_int(part->m_param, DC_PARAM_HEIGHT, h);
 		}
 	}
 
-	/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by mr_get_fine_pathNfilename()) */
+	/* split author/title from the original filename (if we do it from the real filename, we'll also get numbers appended by dc_get_fine_pathNfilename()) */
 	if( msg_type == MR_MSG_AUDIO ) {
 		char* author = NULL, *title = NULL;
 		dc_msg_get_authorNtitle_from_filename(desired_filename, &author, &title);
-		mrparam_set(part->m_param, MRP_AUTHORNAME, author);
-		mrparam_set(part->m_param, MRP_TRACKNAME, title);
+		dc_param_set(part->m_param, DC_PARAM_AUTHORNAME, author);
+		dc_param_set(part->m_param, DC_PARAM_TRACKNAME, title);
 		free(author);
 		free(title);
 	}
@@ -1138,8 +1138,8 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 				   `Content-Disposition: ... filename*=...`
 				or `Content-Disposition: ... filename*0*=... filename*1*=... filename*2*=...`
 				or `Content-Disposition: ... filename=...` */
-				mrstrbuilder_t filename_parts;
-				mrstrbuilder_init(&filename_parts, 0);
+				dc_strbuilder_t filename_parts;
+				dc_strbuilder_init(&filename_parts, 0);
 				for( clistiter* cur1 = clist_begin(mime->mm_mime_fields->fld_list); cur1 != NULL; cur1 = clist_next(cur1) )
 				{
 					struct mailmime_field* field = (struct mailmime_field*)clist_content(cur1);
@@ -1158,11 +1158,11 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 									 && dsp_param->pa_data.pa_parameter->pa_name
 									 && strncmp(dsp_param->pa_data.pa_parameter->pa_name, "filename*", 9)==0 )
 									{
-										mrstrbuilder_cat(&filename_parts, dsp_param->pa_data.pa_parameter->pa_value); // we assume the filename*?* parts are in order, not seen anything else yet
+										dc_strbuilder_cat(&filename_parts, dsp_param->pa_data.pa_parameter->pa_value); // we assume the filename*?* parts are in order, not seen anything else yet
 									}
 									else if( dsp_param->pa_type==MAILMIME_DISPOSITION_PARM_FILENAME )
 									{
-										desired_filename = mr_decode_header_words(dsp_param->pa_data.pa_filename); // this is used only if the parts buffer stays empty
+										desired_filename = dc_decode_header_words(dsp_param->pa_data.pa_filename); // this is used only if the parts buffer stays empty
 									}
 								}
 							}
@@ -1173,7 +1173,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 
 				if( strlen(filename_parts.m_buf) ) {
 					free(desired_filename);
-					desired_filename = mr_decode_ext_header(filename_parts.m_buf);
+					desired_filename = dc_decode_ext_header(filename_parts.m_buf);
 				}
 
 				free(filename_parts.m_buf);
@@ -1189,14 +1189,14 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct m
 				/* if there is still no filename, guess one */
 				if( desired_filename==NULL ) {
 					if( mime->mm_content_type && mime->mm_content_type->ct_subtype ) {
-						desired_filename = mr_mprintf("file.%s", mime->mm_content_type->ct_subtype);
+						desired_filename = dc_mprintf("file.%s", mime->mm_content_type->ct_subtype);
 					}
 					else {
 						goto cleanup;
 					}
 				}
 
-				mr_replace_bad_utf8_chars(desired_filename);
+				dc_replace_bad_utf8_chars(desired_filename);
 
 				do_add_single_file_part(ths, msg_type, mime_type, decoded_data, decoded_data_bytes, desired_filename);
 			}
@@ -1307,7 +1307,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 						part->m_type = MR_MSG_TEXT;
 
 						char* msg_body = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
-						part->m_msg = mr_mprintf(MR_EDITORIAL_OPEN "%s" MR_EDITORIAL_CLOSE, msg_body);
+						part->m_msg = dc_mprintf(MR_EDITORIAL_OPEN "%s" MR_EDITORIAL_CLOSE, msg_body);
 						free(msg_body);
 
 						carray_add(ths->m_parts, (void*)part, NULL);
@@ -1514,7 +1514,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	{
 		struct mailimf_field* field = dc_mimeparser_lookup_field(ths, "Subject");
 		if( field && field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-			ths->m_subject = mr_decode_header_words(field->fld_data.fld_subject->sbj_value);
+			ths->m_subject = dc_decode_header_words(field->fld_data.fld_subject->sbj_value);
 		}
 	}
 
@@ -1575,7 +1575,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 					if( part->m_type == MR_MSG_TEXT ) {
 						#define MR_NDASH "\xE2\x80\x93"
-						char* new_txt = mr_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
+						char* new_txt = dc_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
 						free(part->m_msg);
 						part->m_msg = new_txt;
 						break;
@@ -1591,7 +1591,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 		int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 		for( i = 0; i < icnt; i++ ) {
 			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
-			mrparam_set_int(part->m_param, MRP_FORWARDED, 1);
+			dc_param_set_int(part->m_param, DC_PARAM_FORWARDED, 1);
 		}
 	}
 
@@ -1605,8 +1605,8 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 				free(part->m_msg);
 				part->m_msg = strdup("ogg"); /* MR_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
 				part->m_type = MR_MSG_VOICE;
-				mrparam_set(part->m_param, MRP_AUTHORNAME, NULL); /* remove unneeded information */
-				mrparam_set(part->m_param, MRP_TRACKNAME, NULL);
+				dc_param_set(part->m_param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
+				dc_param_set(part->m_param, DC_PARAM_TRACKNAME, NULL);
 			}
 		}
 
@@ -1615,7 +1615,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
-					mrparam_set_int(part->m_param, MRP_DURATION, duration_ms);
+					dc_param_set_int(part->m_param, DC_PARAM_DURATION, duration_ms);
 				}
 			}
 		}
@@ -1626,7 +1626,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	 && carray_count(ths->m_parts)>=1 ) {
 		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(ths->m_parts, 0);
 		if( textpart->m_type == MR_MSG_TEXT ) {
-			mrparam_set_int(textpart->m_param, MRP_CMD, MR_CMD_GROUPIMAGE_CHANGED);
+			dc_param_set_int(textpart->m_param, DC_PARAM_CMD, MR_CMD_GROUPIMAGE_CHANGED);
 			if( carray_count(ths->m_parts)>=2 ) {
 				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(ths->m_parts, 1);
 				if( imgpart->m_type == MR_MSG_IMAGE ) {
@@ -1662,7 +1662,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
 								dc_mimepart_t* part = dc_mimeparser_get_last_nonmeta(ths);
 								if( part ) {
-									mrparam_set_int(part->m_param, MRP_WANTS_MDN, 1);
+									dc_param_set_int(part->m_param, DC_PARAM_WANTS_MDN, 1);
 								}
 							}
 							free(from_addr);

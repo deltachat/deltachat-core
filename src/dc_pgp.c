@@ -324,9 +324,9 @@ int dc_pgp_create_keypair(dc_context_t* mailbox, const char* addr, dc_key_t* ret
 	However, as eg. Enigmail displayes the user-id in "Good signature from <user-id>,
 	for now, we decided to leave the address in the user-id */
 	#if 0
-		user_id = (uint8_t*)mr_mprintf("<%08X@%08X.org>", (int)random(), (int)random());
+		user_id = (uint8_t*)dc_mprintf("<%08X@%08X.org>", (int)random(), (int)random());
 	#else
-		user_id = (uint8_t*)mr_mprintf("<%s>", addr);
+		user_id = (uint8_t*)dc_mprintf("<%s>", addr);
 	#endif
 
 
@@ -388,8 +388,8 @@ int dc_pgp_create_keypair(dc_context_t* mailbox, const char* addr, dc_key_t* ret
 		goto cleanup;
 	}
 
-	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
-	dc_key_set_from_binary(ret_private_key, secmem->buf, secmem->length, MR_PRIVATE);
+	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, DC_KEY_PUBLIC);
+	dc_key_set_from_binary(ret_private_key, secmem->buf, secmem->length, DC_KEY_PRIVATE);
 
 	success = 1;
 
@@ -427,10 +427,10 @@ int dc_pgp_is_valid_key(dc_context_t* mailbox, const dc_key_t* raw_key)
 	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
-	if( raw_key->m_type == MR_PUBLIC && public_keys->keyc >= 1 ) {
+	if( raw_key->m_type == DC_KEY_PUBLIC && public_keys->keyc >= 1 ) {
 		key_is_valid = 1;
 	}
-	else if( raw_key->m_type == MR_PRIVATE && private_keys->keyc >= 1 ) {
+	else if( raw_key->m_type == DC_KEY_PRIVATE && private_keys->keyc >= 1 ) {
 		key_is_valid = 1;
 	}
 
@@ -458,7 +458,7 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( raw_key->m_type != MR_PUBLIC || public_keys->keyc <= 0 ) {
+	if( raw_key->m_type != DC_KEY_PUBLIC || public_keys->keyc <= 0 ) {
 		goto cleanup;
 	}
 
@@ -499,7 +499,7 @@ int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t
 	pgp_memory_add(keysmem, private_in->m_binary, private_in->m_bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( private_in->m_type!=MR_PRIVATE || private_keys->keyc <= 0 ) {
+	if( private_in->m_type!=DC_KEY_PRIVATE || private_keys->keyc <= 0 ) {
 		dc_log_warning(mailbox, 0, "Split key: Given key is no private key.");
 		goto cleanup;
 	}
@@ -515,7 +515,7 @@ int dc_pgp_split_key(dc_context_t* mailbox, const dc_key_t* private_in, dc_key_t
 		goto cleanup;
 	}
 
-	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, MR_PUBLIC);
+	dc_key_set_from_binary(ret_public_key, pubmem->buf, pubmem->length, DC_KEY_PUBLIC);
 
 	success = 1;
 

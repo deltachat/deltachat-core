@@ -28,11 +28,11 @@
  * A string-builder-object is placed typically on the stack and contains a string-buffer
  * which is initially empty.
  *
- * You can add data to the string-buffer using eg. mrstrbuilder_cat() or
- * mrstrbuilder_catf() - the buffer is reallocated as needed.
+ * You can add data to the string-buffer using eg. dc_strbuilder_cat() or
+ * dc_strbuilder_catf() - the buffer is reallocated as needed.
  *
  * When you're done with string building, the ready-to-use, null-terminates
- * string can be found at mrstrbuilder_t::m_buf, you can do whatever you like
+ * string can be found at dc_strbuilder_t::m_buf, you can do whatever you like
  * with this buffer, however, never forget to call free() when done.
  *
  * @param strbuilder The object to initialze.
@@ -44,7 +44,7 @@
  *
  * @return None.
  */
-void mrstrbuilder_init(mrstrbuilder_t* strbuilder, int init_bytes)
+void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
 {
 	if( strbuilder==NULL ) {
 		return;
@@ -69,17 +69,17 @@ void mrstrbuilder_init(mrstrbuilder_t* strbuilder, int init_bytes)
  * If reallocation fails, the program halts.
  *
  * @param strbuilder The object to initialze. Must be initialized with
- *      mrstrbuilder_init().
+ *      dc_strbuilder_init().
  *
  * @param text Null-terminated string to add to the end of the string-builder-string.
  *
  * @return Returns a pointer to the copy of the given text.
- *     The returned pointer is a pointer inside mrstrbuilder_t::m_buf and MUST NOT
+ *     The returned pointer is a pointer inside dc_strbuilder_t::m_buf and MUST NOT
  *     be freed.  If the string-builder was empty before, the returned
- *     pointer is equal to mrstrbuilder_t::m_buf.
+ *     pointer is equal to dc_strbuilder_t::m_buf.
  *     If the given text is NULL, NULL is returned and the string-builder-object is not modified.
  */
-char* mrstrbuilder_cat(mrstrbuilder_t* strbuilder, const char* text)
+char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
 {
 	// this function MUST NOT call logging functions as it is used to output the log
 	if( strbuilder==NULL || text==NULL ) {
@@ -115,11 +115,11 @@ char* mrstrbuilder_cat(mrstrbuilder_t* strbuilder, const char* text)
 
 /**
  * Add a formatted string to a string-builder-object.
- * This function is similar to mrstrbuilder_cat() but allows the same
+ * This function is similar to dc_strbuilder_cat() but allows the same
  * formatting options as eg. printf()
  *
  * @param strbuilder The object to initialze. Must be initialized with
- *      mrstrbuilder_init().
+ *      dc_strbuilder_init().
  *
  * @param format The formatting string to add to the string-builder-object.
  *      This parameter may be followed by data to be inserted into the
@@ -127,7 +127,7 @@ char* mrstrbuilder_cat(mrstrbuilder_t* strbuilder, const char* text)
  *
  * @return None.
  */
-void mrstrbuilder_catf(mrstrbuilder_t* strbuilder, const char* format, ...)
+void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
 {
 	char  testbuf[1];
 	char* buf;
@@ -142,35 +142,35 @@ void mrstrbuilder_catf(mrstrbuilder_t* strbuilder, const char* format, ...)
 	va_end(argp);
 	if( char_cnt_without_zero < 0) {
 		va_end(argp_copy);
-		mrstrbuilder_cat(strbuilder, "ErrFmt");
+		dc_strbuilder_cat(strbuilder, "ErrFmt");
 		return;
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
 	if( buf == NULL ) {
 		va_end(argp_copy);
-		mrstrbuilder_cat(strbuilder, "ErrMem");
+		dc_strbuilder_cat(strbuilder, "ErrMem");
 		return;
 	}
 
 	vsnprintf(buf, char_cnt_without_zero+1, format, argp_copy);
 	va_end(argp_copy);
 
-	mrstrbuilder_cat(strbuilder, buf);
+	dc_strbuilder_cat(strbuilder, buf);
 	free(buf);
 }
 
 
 /**
  * Set the string to a lenght of 0. This does not free the buffer;
- * if you want to free the buffer, you have to call free() on mrstrbuilder_t::m_buf.
+ * if you want to free the buffer, you have to call free() on dc_strbuilder_t::m_buf.
  *
  * @param strbuilder The object to initialze. Must be initialized with
- *      mrstrbuilder_init().
+ *      dc_strbuilder_init().
  *
  * @return None
  */
-void mrstrbuilder_empty(mrstrbuilder_t* strbuilder)
+void dc_strbuilder_empty(dc_strbuilder_t* strbuilder)
 {
 	strbuilder->m_buf[0] = 0;
 	strbuilder->m_free   = strbuilder->m_allocated - 1 /*the nullbyte! */;

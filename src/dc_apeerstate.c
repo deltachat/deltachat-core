@@ -92,17 +92,17 @@ static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_st
 
 	if( sqlite3_column_type(stmt, PUBLIC_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_public_key = dc_key_new();
-		dc_key_set_from_stmt(peerstate->m_public_key, stmt, PUBLIC_KEY_COL, MR_PUBLIC);
+		dc_key_set_from_stmt(peerstate->m_public_key, stmt, PUBLIC_KEY_COL, DC_KEY_PUBLIC);
 	}
 
 	if( sqlite3_column_type(stmt, GOSSIP_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_gossip_key = dc_key_new();
-		dc_key_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, MR_PUBLIC);
+		dc_key_set_from_stmt(peerstate->m_gossip_key, stmt, GOSSIP_KEY_COL, DC_KEY_PUBLIC);
 	}
 
 	if( sqlite3_column_type(stmt, VERIFIED_KEY_COL)!=SQLITE_NULL ) {
 		peerstate->m_verified_key = dc_key_new();
-		dc_key_set_from_stmt(peerstate->m_verified_key, stmt, VERIFIED_KEY_COL, MR_PUBLIC);
+		dc_key_set_from_stmt(peerstate->m_verified_key, stmt, VERIFIED_KEY_COL, DC_KEY_PUBLIC);
 	}
 }
 
@@ -277,7 +277,7 @@ char* dc_apeerstate_render_gossip_header(const dc_apeerstate_t* peerstate, int m
 		goto cleanup;
 	}
 
-	autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
+	autocryptheader->m_prefer_encrypt = DC_PE_NOPREFERENCE; /* the spec says, we SHOULD NOT gossip this flag */
 	autocryptheader->m_addr           = safe_strdup(peerstate->m_addr);
 	autocryptheader->m_public_key     = dc_key_ref(dc_apeerstate_peek_key(peerstate, min_verified)); /* may be NULL */
 
@@ -381,11 +381,11 @@ int dc_apeerstate_degrade_encryption(dc_apeerstate_t* ths, time_t message_time)
 		return 0;
 	}
 
-	if( ths->m_prefer_encrypt == MRA_PE_MUTUAL ) {
+	if( ths->m_prefer_encrypt == DC_PE_MUTUAL ) {
 		ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
 	}
 
-	ths->m_prefer_encrypt = MRA_PE_RESET;
+	ths->m_prefer_encrypt = DC_PE_RESET;
 	ths->m_last_seen      = message_time; /*last_seen_autocrypt is not updated as there was not Autocrypt:-header seen*/
 	ths->m_to_save        = MRA_SAVE_ALL;
 
@@ -408,10 +408,10 @@ void dc_apeerstate_apply_header(dc_apeerstate_t* ths, const dc_aheader_t* header
 		ths->m_last_seen_autocrypt = message_time;
 		ths->m_to_save             |= MRA_SAVE_TIMESTAMPS;
 
-		if( (header->m_prefer_encrypt==MRA_PE_MUTUAL || header->m_prefer_encrypt==MRA_PE_NOPREFERENCE) /*this also switches from MRA_PE_RESET to MRA_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
+		if( (header->m_prefer_encrypt==DC_PE_MUTUAL || header->m_prefer_encrypt==DC_PE_NOPREFERENCE) /*this also switches from DC_PE_RESET to DC_PE_NOPREFERENCE, which is just fine as the function is only called _if_ the Autocrypt:-header is preset at all */
 		 &&  header->m_prefer_encrypt != ths->m_prefer_encrypt )
 		{
-			if( ths->m_prefer_encrypt == MRA_PE_MUTUAL && header->m_prefer_encrypt != MRA_PE_MUTUAL ) {
+			if( ths->m_prefer_encrypt == DC_PE_MUTUAL && header->m_prefer_encrypt != DC_PE_MUTUAL ) {
 				ths->m_degrade_event |= MRA_DE_ENCRYPTION_PAUSED;
 			}
 

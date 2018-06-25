@@ -120,9 +120,9 @@ void dc_loginparam_write__(const dc_loginparam_t* ths, dc_sqlite3_t* sql, const 
 
 static char* get_readable_flags(int flags)
 {
-	mrstrbuilder_t strbuilder;
-	mrstrbuilder_init(&strbuilder, 0);
-	#define CAT_FLAG(f, s) if( (1<<bit)==(f) ) { mrstrbuilder_cat(&strbuilder, (s)); flag_added = 1; }
+	dc_strbuilder_t strbuilder;
+	dc_strbuilder_init(&strbuilder, 0);
+	#define CAT_FLAG(f, s) if( (1<<bit)==(f) ) { dc_strbuilder_cat(&strbuilder, (s)); flag_added = 1; }
 
 	for( int bit = 0; bit <= 30; bit++ )
 	{
@@ -145,12 +145,12 @@ static char* get_readable_flags(int flags)
 			CAT_FLAG(MR_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
 
 			if( !flag_added ) {
-				char* temp = mr_mprintf("0x%x ", 1<<bit); mrstrbuilder_cat(&strbuilder, temp); free(temp);
+				char* temp = dc_mprintf("0x%x ", 1<<bit); dc_strbuilder_cat(&strbuilder, temp); free(temp);
 			}
 		}
 	}
 
-	if( strbuilder.m_buf[0]==0 ) { mrstrbuilder_cat(&strbuilder, "0"); }
+	if( strbuilder.m_buf[0]==0 ) { dc_strbuilder_cat(&strbuilder, "0"); }
 	mr_trim(strbuilder.m_buf);
 	return strbuilder.m_buf;
 }
@@ -167,7 +167,7 @@ char* dc_loginparam_get_readable(const dc_loginparam_t* ths)
 
 	char* flags_readable = get_readable_flags(ths->m_server_flags);
 
-	char* ret = mr_mprintf("%s %s:%s:%s:%i %s:%s:%s:%i %s",
+	char* ret = dc_mprintf("%s %s:%s:%s:%i %s:%s:%s:%i %s",
 		ths->m_addr? ths->m_addr : unset,
 
 		ths->m_mail_user? ths->m_mail_user : unset,

@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRPARAM_H__
-#define __MRPARAM_H__
+#ifndef __DC_PARAM_H__
+#define __DC_PARAM_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,66 +32,66 @@ extern "C" {
  * a single character is allowed.
  *
  * The object is used eg. by dc_chat_t or dc_msg_t, for readable paramter names,
- * these classes define some MRP_* constantats.
+ * these classes define some DC_PARAM_* constantats.
  *
  * Only for library-internal use.
  */
-typedef struct mrparam_t
+typedef struct dc_param_t
 {
 	/** @privatesection */
 	char*           m_packed;    /**< Always set, never NULL. */
-} mrparam_t;
+} dc_param_t;
 
 
-#define MRP_FILE              'f'  /* for msgs */
-#define MRP_WIDTH             'w'  /* for msgs */
-#define MRP_HEIGHT            'h'  /* for msgs */
-#define MRP_DURATION          'd'  /* for msgs */
-#define MRP_MIMETYPE          'm'  /* for msgs */
-#define MRP_AUTHORNAME        'N'  /* for msgs: name of author or artist */
-#define MRP_TRACKNAME         'n'  /* for msgs: name of author or artist */
-#define MRP_GUARANTEE_E2EE    'c'  /* for msgs: incoming: message is encryoted, outgoing: guarantee E2EE or the message is not send */
-#define MRP_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
-#define MRP_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either MRFP_ADD_AUTOCRYPT_HEADER (1), MRFP_NO_AUTOCRYPT_HEADER (2) or 0 */
-#define MRP_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
-#define MRP_FORWARDED         'a'  /* for msgs */
-#define MRP_CMD               'S'  /* for msgs */
-#define MRP_CMD_PARAM         'E'  /* for msgs */
-#define MRP_CMD_PARAM2        'F'  /* for msgs */
-#define MRP_CMD_PARAM3        'G'  /* for msgs */
-#define MRP_CMD_PARAM4        'H'  /* for msgs */
+#define DC_PARAM_FILE              'f'  /* for msgs */
+#define DC_PARAM_WIDTH             'w'  /* for msgs */
+#define DC_PARAM_HEIGHT            'h'  /* for msgs */
+#define DC_PARAM_DURATION          'd'  /* for msgs */
+#define DC_PARAM_MIMETYPE          'm'  /* for msgs */
+#define DC_PARAM_AUTHORNAME        'N'  /* for msgs: name of author or artist */
+#define DC_PARAM_TRACKNAME         'n'  /* for msgs: name of author or artist */
+#define DC_PARAM_GUARANTEE_E2EE    'c'  /* for msgs: incoming: message is encryoted, outgoing: guarantee E2EE or the message is not send */
+#define DC_PARAM_ERRONEOUS_E2EE    'e'  /* for msgs: decrypted with validation errors or without mutual set, if neither 'c' nor 'e' are preset, the messages is only transport encrypted */
+#define DC_PARAM_FORCE_PLAINTEXT   'u'  /* for msgs: force unencrypted message, either MRFP_ADD_AUTOCRYPT_HEADER (1), MRFP_NO_AUTOCRYPT_HEADER (2) or 0 */
+#define DC_PARAM_WANTS_MDN         'r'  /* for msgs: an incoming message which requestes a MDN (aka read receipt) */
+#define DC_PARAM_FORWARDED         'a'  /* for msgs */
+#define DC_PARAM_CMD               'S'  /* for msgs */
+#define DC_PARAM_CMD_ARG           'E'  /* for msgs */
+#define DC_PARAM_CMD_ARG2          'F'  /* for msgs */
+#define DC_PARAM_CMD_ARG3          'G'  /* for msgs */
+#define DC_PARAM_CMD_ARG4          'H'  /* for msgs */
 
-#define MRP_SERVER_FOLDER     'Z'  /* for jobs */
-#define MRP_SERVER_UID        'z'  /* for jobs */
-#define MRP_TIMES             't'  /* for jobs: times a job was tried */
+#define DC_PARAM_SERVER_FOLDER     'Z'  /* for jobs */
+#define DC_PARAM_SERVER_UID        'z'  /* for jobs */
+#define DC_PARAM_TIMES             't'  /* for jobs: times a job was tried */
 
-#define MRP_REFERENCES        'R'  /* for groups and chats: References-header last used for a chat */
-#define MRP_UNPROMOTED        'U'  /* for groups */
-#define MRP_PROFILE_IMAGE     'i'  /* for groups and contacts */
-#define MRP_SELFTALK          'K'  /* for chats */
+#define DC_PARAM_REFERENCES        'R'  /* for groups and chats: References-header last used for a chat */
+#define DC_PARAM_UNPROMOTED        'U'  /* for groups */
+#define DC_PARAM_PROFILE_IMAGE     'i'  /* for groups and contacts */
+#define DC_PARAM_SELFTALK          'K'  /* for chats */
 
 
-// values for MRP_FORCE_PLAINTEXT
+// values for DC_PARAM_FORCE_PLAINTEXT
 #define MRFP_ADD_AUTOCRYPT_HEADER 1
 #define MRFP_NO_AUTOCRYPT_HEADER  2
 
 
 /* user functions */
-int             mrparam_exists         (mrparam_t*, int key);
-char*           mrparam_get            (mrparam_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
-int32_t         mrparam_get_int        (mrparam_t*, int key, int32_t def);
-void            mrparam_set            (mrparam_t*, int key, const char* value);
-void            mrparam_set_int        (mrparam_t*, int key, int32_t value);
+int             dc_param_exists         (dc_param_t*, int key);
+char*           dc_param_get            (dc_param_t*, int key, const char* def); /* the value may be an empty string, "def" is returned only if the value unset.  The result must be free()'d in any case. */
+int32_t         dc_param_get_int        (dc_param_t*, int key, int32_t def);
+void            dc_param_set            (dc_param_t*, int key, const char* value);
+void            dc_param_set_int        (dc_param_t*, int key, int32_t value);
 
 /* library-private */
-mrparam_t*      mrparam_new            ();
-void            mrparam_empty          (mrparam_t*);
-void            mrparam_unref          (mrparam_t*);
-void            mrparam_set_packed     (mrparam_t*, const char*);
-void            mrparam_set_urlencoded (mrparam_t*, const char*);
+dc_param_t*     dc_param_new            ();
+void            dc_param_empty          (dc_param_t*);
+void            dc_param_unref          (dc_param_t*);
+void            dc_param_set_packed     (dc_param_t*, const char*);
+void            dc_param_set_urlencoded (dc_param_t*, const char*);
 
 
 #ifdef __cplusplus
-} /* /extern "C" */
+} // /extern "C"
 #endif
-#endif /* __MRPARAM_H__ */
+#endif // __DC_PARAM_H__

@@ -65,7 +65,7 @@ static void get_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t
 	*uidvalidity = 0;
 	*lastseenuid = 0;
 
-	char* key = mr_mprintf("imap.mailbox.%s", folder);
+	char* key = dc_mprintf("imap.mailbox.%s", folder);
 	char* val1 = imap->m_get_config(imap, key, NULL), *val2 = NULL, *val3 = NULL;
 	if( val1 )
 	{
@@ -90,8 +90,8 @@ static void get_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t
 
 static void set_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t uidvalidity, uint32_t lastseenuid)
 {
-	char* key = mr_mprintf("imap.mailbox.%s", folder);
-	char* val = mr_mprintf("%lu:%lu", uidvalidity, lastseenuid);
+	char* key = dc_mprintf("imap.mailbox.%s", folder);
+	char* val = dc_mprintf("%lu:%lu", uidvalidity, lastseenuid);
 	imap->m_set_config(imap, key, val);
 	free(val);
 	free(key);
@@ -251,7 +251,7 @@ static clist* list_folders__(dc_imap_t* ths)
 			ret_folder->m_name_to_select = safe_strdup(imap_folder->mb_name);
 		}
 
-		ret_folder->m_name_utf8      = mr_decode_modified_utf7(imap_folder->mb_name, 0);
+		ret_folder->m_name_utf8      = dc_decode_modified_utf7(imap_folder->mb_name, 0);
 		ret_folder->m_meaning        = get_folder_meaning(ths, imap_folder->mb_flag, ret_folder->m_name_utf8, false);
 
 		if( ret_folder->m_meaning == MEANING_IGNORE || ret_folder->m_meaning == MEANING_SENT_OBJECTS /*MEANING_INBOX is no hint for a working XLIST*/ ) {
@@ -436,7 +436,7 @@ static uint32_t search_uid__(dc_imap_t* imap, const char* message_id)
 	On failure, 0 is returned and any or none folder is selected. */
 	clist                       *folders = list_folders__(imap), *search_result = NULL;
 	clistiter                   *cur, *cur2;
-	struct mailimap_search_key  *key = mailimap_search_key_new_header(strdup("Message-ID"), mr_mprintf("<%s>", message_id));
+	struct mailimap_search_key  *key = mailimap_search_key_new_header(strdup("Message-ID"), dc_mprintf("<%s>", message_id));
 	uint32_t                    uid = 0;
 	for( cur = clist_begin(folders); cur != NULL ; cur = clist_next(cur) )
 	{
@@ -1219,16 +1219,16 @@ int dc_imap_connect(dc_imap_t* ths, const dc_loginparam_t* lp)
 	{
 		/* just log the whole capabilities list (the mailimap_has_*() function also use this list, so this is a good overview on problems) */
 		ths->m_skip_log_capabilities = 1;
-		mrstrbuilder_t capinfostr;
-		mrstrbuilder_init(&capinfostr, 0);
+		dc_strbuilder_t capinfostr;
+		dc_strbuilder_init(&capinfostr, 0);
 		clist* list = ths->m_hEtpan->imap_connection_info->imap_capability->cap_list;
 		if( list ) {
 			clistiter* cur;
 			for(cur = clist_begin(list) ; cur != NULL ; cur = clist_next(cur)) {
 				struct mailimap_capability * cap = clist_content(cur);
 				if( cap && cap->cap_type == MAILIMAP_CAPABILITY_NAME ) {
-					mrstrbuilder_cat(&capinfostr, " ");
-					mrstrbuilder_cat(&capinfostr, cap->cap_data.cap_name);
+					dc_strbuilder_cat(&capinfostr, " ");
+					dc_strbuilder_cat(&capinfostr, cap->cap_data.cap_name);
 				}
 			}
 		}

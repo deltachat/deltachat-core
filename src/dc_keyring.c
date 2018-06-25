@@ -92,7 +92,7 @@ int dc_keyring_load_self_private_for_decrypting__(dc_keyring_t* ths, const char*
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	while( sqlite3_step(stmt) == SQLITE_ROW ) {
 		key = dc_key_new();
-			if( dc_key_set_from_stmt(key, stmt, 0, MR_PRIVATE) ) {
+			if( dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PRIVATE) ) {
 				dc_keyring_add(ths, key);
 			}
 		dc_key_unref(key); /* unref in any case, dc_keyring_add() adds its own reference */

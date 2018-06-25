@@ -345,9 +345,9 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 	locked = 1;
 
 		/* init autocrypt header from db */
-		autocryptheader->m_prefer_encrypt = MRA_PE_NOPREFERENCE;
+		autocryptheader->m_prefer_encrypt = DC_PE_NOPREFERENCE;
 		if( mailbox->m_e2ee_enabled ) {
-			autocryptheader->m_prefer_encrypt = MRA_PE_MUTUAL;
+			autocryptheader->m_prefer_encrypt = DC_PE_MUTUAL;
 		}
 
 		autocryptheader->m_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
@@ -360,7 +360,7 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 		}
 
 		/* load peerstate information etc. */
-		if( autocryptheader->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed )
+		if( autocryptheader->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed )
 		{
 			do_encrypt = 1;
 			clistiter*      iter1;
@@ -374,7 +374,7 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 				}
 				else if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, recipient_addr)
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
-				      && (peerstate->m_prefer_encrypt==MRA_PE_MUTUAL || e2ee_guaranteed) )
+				      && (peerstate->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					dc_keyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					dc_array_add_ptr(peerstates, peerstate);
@@ -459,8 +459,8 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 			}
 		}
 
-		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); char* subject_str = mr_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
-		struct mailimf_subject* subject = mailimf_subject_new(mr_encode_header_words(subject_str));
+		char* e = mrstock_str(MR_STR_ENCRYPTEDMSG); char* subject_str = dc_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+		struct mailimf_subject* subject = mailimf_subject_new(dc_encode_header_words(subject_str));
 		mailimf_fields_add(imffields_unprotected, mailimf_field_new(MAILIMF_FIELD_SUBJECT, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, subject, NULL, NULL, NULL));
 		free(subject_str);
 
@@ -471,13 +471,13 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 		if( plain->str == NULL || plain->len<=0 ) {
 			goto cleanup;
 		}
-		//char* t1=mr_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
+		//char* t1=dc_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
 		if( !dc_pgp_pk_encrypt(mailbox, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
 		helper->m_cdata_to_free = ctext;
-		//char* t2=mr_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2); // DEBUG OUTPUT
+		//char* t2=dc_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2); // DEBUG OUTPUT
 
 		/* create MIME-structure that will contain the encrypted text */
 		struct mailmime* encrypted_part = new_data_part(NULL, 0, "multipart/encrypted", -1);
@@ -496,7 +496,7 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 		in_out_message->mm_data.mm_message.mm_msg_mime = encrypted_part;
 		encrypted_part->mm_parent = in_out_message;
 		mailmime_free(message_to_encrypt);
-		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=mr_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
+		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=dc_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
 
 		helper->m_encryption_successfull = 1;
 	}
@@ -642,7 +642,7 @@ static int decrypt_part(dc_context_t*       mailbox,
 		goto cleanup;
 	}
 
-	//{char* t1=mr_null_terminate(plain_buf,plain_bytes);printf("\n**********\n%s\n**********\n",t1);free(t1);}
+	//{char* t1=dc_null_terminate(plain_buf,plain_bytes);printf("\n**********\n%s\n**********\n",t1);free(t1);}
 
 	{
 		size_t index = 0;

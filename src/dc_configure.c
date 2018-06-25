@@ -110,9 +110,9 @@ static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 
 	char* val = safe_strdup(text);
 	mr_trim(val);
-	mr_str_replace(&val, "%EMAILADDRESS%",   moz_ac->m_in->m_addr);
-	mr_str_replace(&val, "%EMAILLOCALPART%", moz_ac->m_in_emaillocalpart);
-	mr_str_replace(&val, "%EMAILDOMAIN%",    moz_ac->m_in_emaildomain);
+	dc_str_replace(&val, "%EMAILADDRESS%",   moz_ac->m_in->m_addr);
+	dc_str_replace(&val, "%EMAILLOCALPART%", moz_ac->m_in_emaillocalpart);
+	dc_str_replace(&val, "%EMAILDOMAIN%",    moz_ac->m_in_emaildomain);
 
 	if( moz_ac->m_tag_server == MOZ_SERVER_IMAP ) {
 		switch( moz_ac->m_tag_config ) {
@@ -444,7 +444,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 	param_domain++;
 
-	param_addr_urlencoded = mr_urlencode(param->m_addr);
+	param_addr_urlencoded = dc_urlencode(param->m_addr);
 
 	/* if no password is given, assume an empty password.
 	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */
@@ -470,7 +470,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		/* A.  Search configurations from the domain used in the email-address */
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
-				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
+				char* url = dc_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
 				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
 				PROGRESS(300+i*20)
@@ -479,7 +479,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
-				char* url = mr_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
+				char* url = dc_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
 				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
 				PROGRESS(340+i*30)
@@ -488,7 +488,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
-				char* url = mr_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
+				char* url = dc_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
 				param_autoconfig = outlk_autodiscover(context, url, param);
 				free(url);
 				PROGRESS(400+i*50)
@@ -498,7 +498,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		/* B.  If we have no configuration yet, search configuration in Thunderbird's centeral database */
 		if( param_autoconfig==NULL )
 		{
-			char* url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
+			char* url = dc_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
 			param_autoconfig = moz_autoconfigure(context, url, param);
 			free(url);
 			PROGRESS(500)
@@ -548,7 +548,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	#define TYPICAL_SMTP_PLAIN_PORT      25
 
 	if( param->m_mail_server == NULL ) {
-		param->m_mail_server = mr_mprintf("imap.%s", param_domain);
+		param->m_mail_server = dc_mprintf("imap.%s", param_domain);
 	}
 
 	if( param->m_mail_port == 0 ) {

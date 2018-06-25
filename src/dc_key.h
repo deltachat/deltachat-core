@@ -30,8 +30,8 @@ extern "C" {
 typedef struct sqlite3_stmt sqlite3_stmt;
 
 
-#define MR_PUBLIC  0
-#define MR_PRIVATE 1
+#define DC_KEY_PUBLIC  0
+#define DC_KEY_PRIVATE 1
 
 
 /**
@@ -70,7 +70,7 @@ char* dc_key_render_asc   (const dc_key_t*, const char* add_header_lines); /* ea
 int   dc_key_render_asc_to_file(const dc_key_t*, const char* file, dc_context_t* mailbox);
 
 char* mr_format_fingerprint          (const char*);
-char* mr_normalize_fingerprint       (const char*);
+char* dc_normalize_fingerprint       (const char*);
 char* dc_key_get_fingerprint          (const dc_key_t*);
 char* dc_key_get_formatted_fingerprint(const dc_key_t*);
 

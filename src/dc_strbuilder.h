@@ -20,30 +20,30 @@
  ******************************************************************************/
 
 
-#ifndef __MRSTRBUILDER_H__
-#define __MRSTRBUILDER_H__
+#ifndef __DC_STRBUILDER_H__
+#define __DC_STRBUILDER_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef struct mrstrbuilder_t
+typedef struct dc_strbuilder_t
 {
 	char* m_buf;
 	int   m_allocated;
 	int   m_free;
 	char* m_eos;
-} mrstrbuilder_t;
+} dc_strbuilder_t;
 
 
-void  mrstrbuilder_init    (mrstrbuilder_t* ths, int init_bytes);
-char* mrstrbuilder_cat     (mrstrbuilder_t* ths, const char* text);
-void  mrstrbuilder_catf    (mrstrbuilder_t* ths, const char* format, ...);
-void  mrstrbuilder_empty   (mrstrbuilder_t* ths);
+void  dc_strbuilder_init    (dc_strbuilder_t*, int init_bytes);
+char* dc_strbuilder_cat     (dc_strbuilder_t*, const char* text);
+void  dc_strbuilder_catf    (dc_strbuilder_t*, const char* format, ...);
+void  dc_strbuilder_empty   (dc_strbuilder_t*);
 
 
 #ifdef __cplusplus
-} /* /extern "C" */
+} // /extern "C"
 #endif
-#endif /* __MRSTRBUILDER_H__ */
+#endif // __DC_STRBUILDER_H__
 

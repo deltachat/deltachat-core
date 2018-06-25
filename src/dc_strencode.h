@@ -20,29 +20,29 @@
  ******************************************************************************/
 
 
-#ifndef __MRSTRENCODE_H__
-#define __MRSTRENCODE_H__
+#ifndef __DC_STRENCODE_H__
+#define __DC_STRENCODE_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-char*   mr_urlencode              (const char*);
-char*   mr_urldecode              (const char*);
+char*   dc_urlencode              (const char*);
+char*   dc_urldecode              (const char*);
 
-char*   mr_encode_header_words    (const char*);
-char*   mr_decode_header_words    (const char*);
+char*   dc_encode_header_words    (const char*);
+char*   dc_decode_header_words    (const char*);
 
-char*   mr_encode_modified_utf7   (const char*, int change_spaces);
-char*   mr_decode_modified_utf7   (const char*, int change_spaces);
+char*   dc_encode_modified_utf7   (const char*, int change_spaces);
+char*   dc_decode_modified_utf7   (const char*, int change_spaces);
 
-int     mr_needs_ext_header       (const char*);
-char*   mr_encode_ext_header      (const char*);
-char*   mr_decode_ext_header      (const char*);
+int     dc_needs_ext_header       (const char*);
+char*   dc_encode_ext_header      (const char*);
+char*   dc_decode_ext_header      (const char*);
 
 
 #ifdef __cplusplus
-} /* /extern "C" */
+} // /extern "C"
 #endif
-#endif /* __MRSTRENCODE_H__ */
+#endif // __DC_STRENCODE_H__
 

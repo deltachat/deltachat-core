@@ -226,7 +226,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	/* done with symmetric key block */
 	pgp_writer_close(encr_output);
-	encr_string = mr_null_terminate((const char*)encr_mem->buf, encr_mem->length);
+	encr_string = dc_null_terminate((const char*)encr_mem->buf, encr_mem->length);
 
 	//printf("\n~~~~~~~~~~~~~~~~~~~~SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SYMMETRICALLY ENCRYPTED~~~~~~~~~~~~~~~~~~~~\n",encr_string); // DEBUG OUTPUT
 
@@ -235,10 +235,10 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	#define LINEEND "\r\n" /* use the same lineends as the PGP armored data */
 	{
-		char* replacement = mr_mprintf("-----BEGIN PGP MESSAGE-----" LINEEND
+		char* replacement = dc_mprintf("-----BEGIN PGP MESSAGE-----" LINEEND
 		                               "Passphrase-Format: numeric9x4" LINEEND
 		                               "Passphrase-Begin: %s", passphrase_begin);
-		mr_str_replace(&encr_string, "-----BEGIN PGP MESSAGE-----", replacement);
+		dc_str_replace(&encr_string, "-----BEGIN PGP MESSAGE-----", replacement);
 		free(replacement);
 	}
 
@@ -248,10 +248,10 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 		char* setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
 		char* setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
 
-		mr_str_replace(&setup_message_body, "\r", NULL);
-		mr_str_replace(&setup_message_body, "\n", "<br>");
+		dc_str_replace(&setup_message_body, "\r", NULL);
+		dc_str_replace(&setup_message_body, "\n", "<br>");
 
-		ret_setupfilecontent = mr_mprintf(
+		ret_setupfilecontent = dc_mprintf(
 			"<!DOCTYPE html>" LINEEND
 			"<html>" LINEEND
 				"<head>" LINEEND
@@ -370,9 +370,9 @@ char* dc_create_setup_code(dc_context_t* context)
 	#define        CODE_ELEMS 9
 	uint16_t       random_val;
 	int            i;
-	mrstrbuilder_t ret;
+	dc_strbuilder_t ret;
 
-	mrstrbuilder_init(&ret, 0);
+	dc_strbuilder_init(&ret, 0);
 
 	for( i = 0; i < CODE_ELEMS; i++ )
 	{
@@ -387,7 +387,7 @@ char* dc_create_setup_code(dc_context_t* context)
 
 		random_val = random_val % 10000; /* force all blocks into the range 0..9999 */
 
-		mrstrbuilder_catf(&ret, "%s%04i", i?"-":"", (int)random_val);
+		dc_strbuilder_catf(&ret, "%s%04i", i?"-":"", (int)random_val);
 	}
 
 	return ret.m_buf;
@@ -401,17 +401,17 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 		return NULL;
 	}
 
-	mrstrbuilder_t out;
-	mrstrbuilder_init(&out, 0);
+	dc_strbuilder_t out;
+	dc_strbuilder_init(&out, 0);
 	int   outlen;
 
 	const char* p1 = in;
 	while( *p1 ) {
 		if( *p1 >= '0' && *p1 <= '9' ) {
-			mrstrbuilder_catf(&out, "%c", *p1);
+			dc_strbuilder_catf(&out, "%c", *p1);
 			outlen = strlen(out.m_buf);
 			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
-				mrstrbuilder_cat(&out, "-");
+				dc_strbuilder_cat(&out, "-");
 			}
 		}
 		p1++;
@@ -497,8 +497,8 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if( (setup_file_name=mr_get_fine_pathNfilename(context->m_blobdir, "autocrypt-setup-message.html")) == NULL
-	 || !mr_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context) ) {
+	if( (setup_file_name=dc_get_fine_pathNfilename(context->m_blobdir, "autocrypt-setup-message.html")) == NULL
+	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context) ) {
 		goto cleanup;
 	}
 
@@ -508,10 +508,10 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	msg = dc_msg_new();
 	msg->m_type = MR_MSG_FILE;
-	mrparam_set    (msg->m_param, MRP_FILE,              setup_file_name);
-	mrparam_set    (msg->m_param, MRP_MIMETYPE,          "application/autocrypt-setup");
-	mrparam_set_int(msg->m_param, MRP_CMD,               MR_CMD_AUTOCRYPT_SETUP_MESSAGE);
-	mrparam_set_int(msg->m_param, MRP_FORCE_PLAINTEXT,   MRFP_NO_AUTOCRYPT_HEADER);
+	dc_param_set    (msg->m_param, DC_PARAM_FILE,              setup_file_name);
+	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE,          "application/autocrypt-setup");
+	dc_param_set_int(msg->m_param, DC_PARAM_CMD,               MR_CMD_AUTOCRYPT_SETUP_MESSAGE);
+	dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT,   MRFP_NO_AUTOCRYPT_HEADER);
 
 	CHECK_EXIT
 
@@ -571,7 +571,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 		goto cleanup;
 	}
 
-	if( !dc_key_set_from_base64(private_key, buf_base64, MR_PRIVATE)
+	if( !dc_key_set_from_base64(private_key, buf_base64, DC_KEY_PRIVATE)
 	 || !dc_pgp_is_valid_key(context, private_key)
 	 || !dc_pgp_split_key(context, private_key, public_key) ) {
 		dc_log_error(context, 0, "File does not contain a valid private key.");
@@ -667,7 +667,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_context) || filecontent == NULL || filebytes <= 0 ) {
+	if( !dc_read_file(filename, (void**)&filecontent, &filebytes, msg->m_context) || filecontent == NULL || filebytes <= 0 ) {
 		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
@@ -707,10 +707,10 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 {
 	char* file_name;
 	if( is_default ) {
-		file_name = mr_mprintf("%s/%s-key-default.asc", dir, key->m_type==MR_PUBLIC? "public" : "private");
+		file_name = dc_mprintf("%s/%s-key-default.asc", dir, key->m_type==DC_KEY_PUBLIC? "public" : "private");
 	}
 	else {
-		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
+		file_name = dc_mprintf("%s/%s-key-%i.asc", dir, key->m_type==DC_KEY_PUBLIC? "public" : "private", id);
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
 	mr_delete_file(file_name, context);
@@ -740,8 +740,8 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 
 		while( sqlite3_step(stmt)==SQLITE_ROW ) {
 			id = sqlite3_column_int(         stmt, 0  );
-			dc_key_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
-			dc_key_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
+			dc_key_set_from_stmt(public_key,  stmt, 1, DC_KEY_PUBLIC);
+			dc_key_set_from_stmt(private_key, stmt, 2, DC_KEY_PRIVATE);
 			is_default = sqlite3_column_int( stmt, 3  );
 			export_key_to_asc_file(context, dir, id, public_key,  is_default);
 			export_key_to_asc_file(context, dir, id, private_key, is_default);
@@ -795,18 +795,18 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	while( (dir_entry=readdir(dir_handle))!=NULL )
 	{
 		free(suffix);
-		suffix = mr_get_filesuffix_lc(dir_entry->d_name);
+		suffix = dc_get_filesuffix_lc(dir_entry->d_name);
 		if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
 			continue;
 		}
 
 		free(path_plus_name);
-		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
+		path_plus_name = dc_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
 		dc_log_info(context, 0, "Checking: %s", path_plus_name);
 
 		free(buf);
 		buf = NULL;
-		if( !mr_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
+		if( !dc_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
 		 || buf_bytes < 50 ) {
 			continue;
 		}
@@ -892,7 +892,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 		char buffer[256];
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
-		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
+		if( (dest_pathNfilename=dc_get_fine_pathNfilename(dir, buffer))==NULL ) {
 			dc_log_error(context, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
@@ -971,9 +971,9 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 			//dc_log_info(context, 0, "Backup \"%s\".", name);
 			free(curr_pathNfilename);
-			curr_pathNfilename = mr_mprintf("%s/%s", context->m_blobdir, name);
+			curr_pathNfilename = dc_mprintf("%s/%s", context->m_blobdir, name);
 			free(buf);
-			if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0 ) {
+			if( !dc_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0 ) {
 				continue;
 			}
 
@@ -1100,8 +1100,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
         if( file_bytes > 0 && file_content ) {
 			free(pathNfilename);
-			pathNfilename = mr_mprintf("%s/%s", context->m_blobdir, file_name);
-			if( !mr_write_file(pathNfilename, file_content, file_bytes, context) ) {
+			pathNfilename = dc_mprintf("%s/%s", context->m_blobdir, file_name);
+			if( !dc_write_file(pathNfilename, file_content, file_bytes, context) ) {
 				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
 			}
@@ -1126,10 +1126,10 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
 
-		assert( 'f' == MRP_FILE );
-		assert( 'i' == MRP_PROFILE_IMAGE );
+		assert( 'f' == DC_PARAM_FILE );
+		assert( 'i' == DC_PARAM_PROFILE_IMAGE );
 
-		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use mr_mprintf() because of "%q" */
+		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
 			dc_sqlite3_execute__(context->m_sql, q3);
 		sqlite3_free(q3);
 
@@ -1356,7 +1356,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0 )
 		{
 			free(curr_pathNfilename);
-			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);
+			curr_pathNfilename = dc_mprintf("%s/%s", dir_name, name);
 
 			dc_sqlite3_unref(test_sql);
 			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL

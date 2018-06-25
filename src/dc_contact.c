@@ -223,7 +223,7 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 	}
 
 	if( contact->m_name && contact->m_name[0] ) {
-		return mr_mprintf("%s (%s)", contact->m_name, contact->m_addr);
+		return dc_mprintf("%s (%s)", contact->m_name, contact->m_addr);
 	}
 
 	return safe_strdup(contact->m_addr);

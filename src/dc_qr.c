@@ -83,35 +83,35 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			*fragment = 0;
 			fragment++;
 
-			mrparam_t* param = mrparam_new();
-			mrparam_set_urlencoded(param, fragment);
+			dc_param_t* param = dc_param_new();
+			dc_param_set_urlencoded(param, fragment);
 
-			addr = mrparam_get(param, 'a', NULL);
+			addr = dc_param_get(param, 'a', NULL);
 			if( addr ) {
-				char* urlencoded = mrparam_get(param, 'n', NULL);
+				char* urlencoded = dc_param_get(param, 'n', NULL);
 				if(urlencoded ) {
-					name = mr_urldecode(urlencoded);
+					name = dc_urldecode(urlencoded);
 					mr_normalize_name(name);
 					free(urlencoded);
 				}
 
-				invitenumber  = mrparam_get(param, 'i', NULL);
-				auth          = mrparam_get(param, 's', NULL);
+				invitenumber  = dc_param_get(param, 'i', NULL);
+				auth          = dc_param_get(param, 's', NULL);
 
-				grpid  = mrparam_get(param, 'x', NULL);
+				grpid  = dc_param_get(param, 'x', NULL);
 				if( grpid ) {
-					urlencoded = mrparam_get(param, 'g', NULL);
+					urlencoded = dc_param_get(param, 'g', NULL);
 					if( urlencoded ) {
-						grpname = mr_urldecode(urlencoded);
+						grpname = dc_urldecode(urlencoded);
 						free(urlencoded);
 					}
 				}
 			}
 
-			mrparam_unref(param);
+			dc_param_unref(param);
 		}
 
-		fingerprint = mr_normalize_fingerprint(payload);
+		fingerprint = dc_normalize_fingerprint(payload);
 	}
 	else if( strncasecmp(qr, MAILTO_SCHEME, strlen(MAILTO_SCHEME)) == 0 )
 	{
@@ -166,7 +166,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 				else if( strcasecmp(key, "N") == 0 ) {
 					semicolon = strchr(value, ';'); if( semicolon ) { semicolon = strchr(semicolon+1, ';'); if( semicolon ) { *semicolon = 0; } } /* the N format is `lastname;prename;wtf;title` - skip everything after the second semicolon */
 					name = safe_strdup(value);
-					mr_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by mr_normalize_name() */
+					dc_str_replace(&name, ";", ","); /* the format "lastname,prename" is handled by mr_normalize_name() */
 					mr_normalize_name(name);
 				}
 			}
@@ -178,7 +178,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	  ---------------------- */
 
 	if( addr ) {
-		char* temp = mr_urldecode(addr);      free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
+		char* temp = dc_urldecode(addr);      free(addr); addr = temp; /* urldecoding is needed at least for OPENPGP4FPR but should not hurt in the other cases */
 		      temp = mr_normalize_addr(addr); free(addr); addr = temp;
 
 		if( strlen(addr) < 3 || strchr(addr, '@')==NULL || strchr(addr, '.')==NULL ) {
@@ -215,7 +215,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
 					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
-					device_msg = mr_mprintf("%s verified.", peerstate->m_addr);
+					device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
 					qr_parsed->m_text1 = mr_format_fingerprint(fingerprint);

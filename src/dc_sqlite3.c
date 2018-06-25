@@ -681,7 +681,7 @@ int32_t dc_sqlite3_get_config_int__(dc_sqlite3_t* ths, const char* key, int32_t 
 
 int dc_sqlite3_set_config_int__(dc_sqlite3_t* ths, const char* key, int32_t value)
 {
-    char* value_str = mr_mprintf("%i", (int)value);
+    char* value_str = dc_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return 0;
     }

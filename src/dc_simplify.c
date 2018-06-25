@@ -249,11 +249,11 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 	}
 
 	/* re-create buffer from the remaining lines */
-	mrstrbuilder_t ret;
-	mrstrbuilder_init(&ret, strlen(buf_terminated));
+	dc_strbuilder_t ret;
+	dc_strbuilder_init(&ret, strlen(buf_terminated));
 
 	if( ths->m_is_cut_at_begin ) {
-		mrstrbuilder_cat(&ret, MR_EDITORIAL_ELLIPSE " ");
+		dc_strbuilder_cat(&ret, MR_EDITORIAL_ELLIPSE " ");
 	}
 
 	int pending_linebreaks = 0; /* we write empty lines only in case and non-empty line follows */
@@ -273,12 +273,12 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 			{
 				if( pending_linebreaks > 2 ) { pending_linebreaks = 2; } /* ignore more than one empty line (however, regard normal line ends) */
 				while( pending_linebreaks ) {
-					mrstrbuilder_cat(&ret, "\n");
+					dc_strbuilder_cat(&ret, "\n");
 					pending_linebreaks--;
 				}
 			}
 
-			mrstrbuilder_cat(&ret, line);
+			dc_strbuilder_cat(&ret, line);
 			content_lines_added++;
 			pending_linebreaks = 1;
 		}
@@ -286,7 +286,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* ths, const char* buf
 
 	if( ths->m_is_cut_at_end
 	 && (!ths->m_is_cut_at_begin || content_lines_added) /* avoid two `[...]` without content */ ) {
-		mrstrbuilder_cat(&ret, " " MR_EDITORIAL_ELLIPSE);
+		dc_strbuilder_cat(&ret, " " MR_EDITORIAL_ELLIPSE);
 	}
 
 	mr_free_splitted_lines(lines);

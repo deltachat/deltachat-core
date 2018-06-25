@@ -50,7 +50,7 @@ dc_chat_t* dc_chat_new(dc_context_t* mailbox)
 	ths->m_magic    = MR_CHAT_MAGIC;
 	ths->m_context  = mailbox;
 	ths->m_type     = MR_CHAT_TYPE_UNDEFINED;
-	ths->m_param    = mrparam_new();
+	ths->m_param    = dc_param_new();
 
     return ths;
 }
@@ -72,7 +72,7 @@ void dc_chat_unref(dc_chat_t* chat)
 	}
 
 	dc_chat_empty(chat);
-	mrparam_unref(chat->m_param);
+	dc_param_unref(chat->m_param);
 	chat->m_magic = 0;
 	free(chat);
 }
@@ -109,7 +109,7 @@ void dc_chat_empty(dc_chat_t* chat)
 
 	chat->m_blocked = 0;
 
-	mrparam_set_packed(chat->m_param, NULL);
+	dc_param_set_packed(chat->m_param, NULL);
 }
 
 
@@ -221,7 +221,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		return safe_strdup("Err");
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_SINGLE && mrparam_exists(chat->m_param, MRP_SELFTALK) )
+	if( chat->m_type == MR_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
 	{
 		ret = mrstock_str(MR_STR_SELFTALK_SUBTITLE);
 	}
@@ -283,7 +283,7 @@ char* dc_chat_get_profile_image(dc_chat_t* chat)
 		return NULL;
 	}
 
-	return mrparam_get(chat->m_param, MRP_PROFILE_IMAGE, NULL);
+	return dc_param_get(chat->m_param, DC_PARAM_PROFILE_IMAGE, NULL);
 }
 
 
@@ -376,7 +376,7 @@ int dc_chat_is_unpromoted(dc_chat_t* chat)
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
-	return mrparam_get_int(chat->m_param, MRP_UNPROMOTED, 0);
+	return dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0);
 }
 
 
@@ -453,7 +453,7 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
-	return mrparam_exists(chat->m_param, MRP_SELFTALK);
+	return dc_param_exists(chat->m_param, DC_PARAM_SELFTALK);
 }
 
 
@@ -492,7 +492,7 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	ths->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text             =       (const char*)sqlite3_column_text (row, row_offset++);
 	ths->m_grpid           = safe_strdup((char*)sqlite3_column_text (row, row_offset++));
-	mrparam_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
+	dc_param_set_packed(ths->m_param,     (char*)sqlite3_column_text (row, row_offset++));
 	ths->m_archived        =                    sqlite3_column_int  (row, row_offset++);
 	ths->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
 
@@ -513,14 +513,14 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
 		free(ths->m_name);
 		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
-			ths->m_name = mr_mprintf("%s (%i)", tempname, dc_get_archived_count__(ths->m_context));
+			ths->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count__(ths->m_context));
 		free(tempname);
 	}
 	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
 		free(ths->m_name);
 		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
 	}
-	else if( mrparam_exists(ths->m_param, MRP_SELFTALK) ) {
+	else if( dc_param_exists(ths->m_param, DC_PARAM_SELFTALK) ) {
 		free(ths->m_name);
 		ths->m_name = mrstock_str(MR_STR_SELF);
 	}

@@ -33,7 +33,7 @@ struct _dc_array
 	/** @privatesection */
 
 	uint32_t        m_magic;
-	dc_context_t*    m_context;     /**< The mailbox the array belongs to. May be NULL when NULL is given to dc_array_new(). */
+	dc_context_t*   m_context;     /**< The mailbox the array belongs to. May be NULL when NULL is given to dc_array_new(). */
 	size_t          m_allocated;   /**< The number of allocated items. Initially ~ 200. */
 	size_t          m_count;       /**< The number of used items. Initially 0. */
 	uintptr_t*      m_array;       /**< The data items, can be used between m_data[0] and m_data[m_cnt-1]. Never NULL. */
@@ -41,11 +41,11 @@ struct _dc_array
 
 
 void             dc_array_free_ptr            (dc_array_t*);
-dc_array_t*       dc_array_duplicate           (const dc_array_t*);
+dc_array_t*      dc_array_duplicate           (const dc_array_t*);
 void             dc_array_sort_ids            (dc_array_t*);
 void             dc_array_sort_strings        (dc_array_t*);
 char*            dc_array_get_string          (const dc_array_t*, const char* sep);
-char*            mr_arr_to_string            (const uint32_t* arr, int cnt);
+char*            dc_arr_to_string             (const uint32_t* arr, int cnt);
 
 
 #ifdef __cplusplus

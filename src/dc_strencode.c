@@ -61,7 +61,7 @@ static char hex_2_int(char ch)
  *     On memory allocation errors the program halts.
  *     On other errors, an empty string is returned.
  */
-char* mr_urlencode(const char *to_encode)
+char* dc_urlencode(const char *to_encode)
 {
 	const char *pstr = to_encode;
 
@@ -97,7 +97,7 @@ char* mr_urlencode(const char *to_encode)
 
 /**
  * Returns a url-decoded version of the given string.
- * The string may be encoded eg. by mr_urlencode().
+ * The string may be encoded eg. by dc_urlencode().
  * Belongs to RFC 3986: https://tools.ietf.org/html/rfc3986#section-2
  *
  * @param to_decode Null-terminated string to decode.
@@ -107,7 +107,7 @@ char* mr_urlencode(const char *to_encode)
  *     On memory allocation errors the program halts.
  *     On other errors, an empty string is returned.
  */
-char* mr_urldecode(const char* to_decode)
+char* dc_urldecode(const char* to_decode)
 {
 	const char *pstr = to_decode;
 
@@ -361,7 +361,7 @@ static void get_word(const char* begin, const char** pend, int* pto_be_quoted)
  * @return Returns the encoded string which must be free()'d when no longed needed.
  *     On errors, NULL is returned.
  */
-char* mr_encode_header_words(const char* to_encode)
+char* dc_encode_header_words(const char* to_encode)
 {
 	char*       ret_str = NULL;
 	const char* cur = to_encode;
@@ -452,7 +452,7 @@ cleanup:
  * @return Returns the null-terminated decoded string as UTF-8. Must be free()'d when no longed needed.
  *     On errors, NULL is returned.
  */
-char* mr_decode_header_words(const char* in)
+char* dc_decode_header_words(const char* in)
 {
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
 	if `in` is NULL, `out` is NULL as well; also returns NULL on errors */
@@ -497,7 +497,7 @@ static const char base64chars[] =
  *     for all other errors, an empty string is returned.
  *     NULL is never returned.
  */
-char* mr_encode_modified_utf7(const char* to_encode, int change_spaces)
+char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
 {
 	#define UTF16MASK       0x03FFUL
 	#define UTF16SHIFT      10
@@ -641,7 +641,7 @@ char* mr_encode_modified_utf7(const char* to_encode, int change_spaces)
  *     for all other errors, an empty string is returned.
  *     NULL is never returned.
  */
-char* mr_decode_modified_utf7(const char *to_decode, int change_spaces)
+char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 {
 	unsigned      c, i, bitcount;
 	unsigned long ucs4, utf16, bitbuf;
@@ -758,9 +758,9 @@ char* mr_decode_modified_utf7(const char *to_decode, int change_spaces)
  *
  * @return 0=extended header encoding is not needed,
  *     1=extended header encoding is needed,
- *     use mr_encode_ext_header() for this purpose.
+ *     use dc_encode_ext_header() for this purpose.
  */
-int mr_needs_ext_header(const char* to_check)
+int dc_needs_ext_header(const char* to_check)
 {
 	if( to_check ) {
 		while( *to_check )
@@ -788,7 +788,7 @@ int mr_needs_ext_header(const char* to_check)
  *     for all other errors, an empty string is returned or just the given string is returned.
  *     NULL is never returned.
  */
-char* mr_encode_ext_header(const char* to_encode)
+char* dc_encode_ext_header(const char* to_encode)
 {
 	#define PREFIX "utf-8''"
 	const char *pstr = to_encode;
@@ -834,7 +834,7 @@ char* mr_encode_ext_header(const char* to_encode)
  *     for all other errors, an empty string is returned or just the given string is returned.
  *     NULL is never returned.
  */
-char* mr_decode_ext_header(const char* to_decode)
+char* dc_decode_ext_header(const char* to_decode)
 {
 	char       *decoded = NULL, *charset = NULL;
 	const char *p2 = NULL;
@@ -849,7 +849,7 @@ char* mr_decode_ext_header(const char* to_decode)
 		goto cleanup;
 	}
 
-	charset = mr_null_terminate(to_decode, p2-to_decode);
+	charset = dc_null_terminate(to_decode, p2-to_decode);
 	p2++;
 
 	// skip language
@@ -860,7 +860,7 @@ char* mr_decode_ext_header(const char* to_decode)
 	p2++;
 
 	// decode text
-	decoded = mr_urldecode(p2);
+	decoded = dc_urldecode(p2);
 
 	if( charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0 ) {
 		char* converted = NULL;

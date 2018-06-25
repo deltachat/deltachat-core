@@ -75,7 +75,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 
 		UNLOCK
 
-		char* msg = mr_mprintf("Changed setup for %s", peerstate->m_addr);
+		char* msg = dc_mprintf("Changed setup for %s", peerstate->m_addr);
 		dc_add_device_msg(context, contact_chat_id, msg);
 		free(msg);
 		context->m_cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
@@ -188,7 +188,7 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
-	fingerprint_normalized = mr_normalize_fingerprint(fingerprint);
+	fingerprint_normalized = dc_normalize_fingerprint(fingerprint);
 
 	if( strcasecmp(fingerprint_normalized, peerstate->m_public_key_fingerprint) == 0 ) {
 		fingerprint_equal = 1;
@@ -219,7 +219,7 @@ static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprin
 	// set MUTUAL as an out-of-band-verification is a strong hint that encryption is wanted.
 	// the state may be corrected by the Autocrypt headers as usual later;
 	// maybe it is a good idea to add the prefer-encrypt-state to the QR code.
-	peerstate->m_prefer_encrypt = MRA_PE_MUTUAL;
+	peerstate->m_prefer_encrypt = DC_PE_MUTUAL;
 	peerstate->m_to_save       |= MRA_SAVE_ALL;
 
 	dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0);
@@ -248,28 +248,28 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 	dc_msg_t* msg = dc_msg_new();
 
 	msg->m_type = MR_MSG_TEXT;
-	msg->m_text = mr_mprintf("Secure-Join: %s", step);
+	msg->m_text = dc_mprintf("Secure-Join: %s", step);
 	msg->m_hidden = 1;
-	mrparam_set_int(msg->m_param, MRP_CMD,       MR_CMD_SECUREJOIN_MESSAGE);
-	mrparam_set    (msg->m_param, MRP_CMD_PARAM, step);
+	dc_param_set_int(msg->m_param, DC_PARAM_CMD,       MR_CMD_SECUREJOIN_MESSAGE);
+	dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, step);
 
 	if( param2 ) {
-		mrparam_set(msg->m_param, MRP_CMD_PARAM2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
+		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
 	}
 
 	if( fingerprint ) {
-		mrparam_set(msg->m_param, MRP_CMD_PARAM3, fingerprint);
+		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG3, fingerprint);
 	}
 
 	if( grpid ) {
-		mrparam_set(msg->m_param, MRP_CMD_PARAM4, grpid);
+		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG4, grpid);
 	}
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
-		mrparam_set_int(msg->m_param, MRP_FORCE_PLAINTEXT, MRFP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
+		dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, MRFP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
-		mrparam_set_int(msg->m_param, MRP_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
+		dc_param_set_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
 	dc_send_msg_object(context, contact_chat_id, msg);
@@ -282,7 +282,7 @@ static void could_not_establish_secure_connection(dc_context_t* context, uint32_
 {
 	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = mr_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
+	char*        msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -297,7 +297,7 @@ static void secure_connection_established(dc_context_t* context, uint32_t contac
 {
 	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = mr_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
+	char*        msg        = dc_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -383,13 +383,13 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
 		invitenumber = mrtoken_lookup__(context, MRT_INVITENUMBER, group_chat_id);
 		if( invitenumber == NULL ) {
-			invitenumber = mr_create_id();
+			invitenumber = dc_create_id();
 			mrtoken_save__(context, MRT_INVITENUMBER, group_chat_id, invitenumber);
 		}
 
 		auth = mrtoken_lookup__(context, MRT_AUTH, group_chat_id);
 		if( auth == NULL ) {
-			auth = mr_create_id();
+			auth = dc_create_id();
 			mrtoken_save__(context, MRT_AUTH, group_chat_id, auth);
 		}
 
@@ -407,8 +407,8 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 		goto cleanup;
 	}
 
-	self_addr_urlencoded = mr_urlencode(self_addr);
-	self_name_urlencoded = mr_urlencode(self_name);
+	self_addr_urlencoded = dc_urlencode(self_addr);
+	self_name_urlencoded = dc_urlencode(self_name);
 
 	if( group_chat_id )
 	{
@@ -419,13 +419,13 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 			goto cleanup;
 		}
 		group_name = dc_chat_get_name(chat);
-		group_name_urlencoded = mr_urlencode(group_name);
-		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
+		group_name_urlencoded = dc_urlencode(group_name);
+		qr = dc_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
 	}
 	else
 	{
 		// parameters used: a=n=i=s=
-		qr = mr_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
+		qr = dc_mprintf(OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
 	}
 
 cleanup:

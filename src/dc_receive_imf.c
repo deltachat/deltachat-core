@@ -61,7 +61,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* d
 	/* add addr_spec if missing, update otherwise */
 	char* display_name_dec = NULL;
 	if( display_name_enc ) {
-		display_name_dec = mr_decode_header_words(display_name_enc);
+		display_name_dec = dc_decode_header_words(display_name_enc);
 		mr_normalize_name(display_name_dec);
 	}
 
@@ -134,7 +134,7 @@ static int is_known_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid)
 			"SELECT m.id FROM msgs m "
 			" LEFT JOIN chats c ON m.chat_id=c.id "
 			" WHERE m.rfc724_mid=? "
-			" AND m.chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+			" AND m.chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
 			" AND c.blocked=0;");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -212,7 +212,7 @@ static int is_msgrmsg_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid
 			"SELECT id FROM msgs "
 			" WHERE rfc724_mid=? "
 			" AND msgrmsg!=0 "
-			" AND chat_id>" MR_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+			" AND chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
 			return 1;
@@ -362,8 +362,8 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* mailbox, const d
 	                     " FROM chats_contacts cc "
 	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
 	                     " WHERE cc.chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
-	                     "   AND c.type=" MR_STRINGIFY(MR_CHAT_TYPE_GROUP) /* no verified groups and no single chats (which are equal to a group with a single member and without SELF) */
-	                     "   AND cc.contact_id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
+	                     "   AND c.type=" DC_STRINGIFY(MR_CHAT_TYPE_GROUP) /* no verified groups and no single chats (which are equal to a group with a single member and without SELF) */
+	                     "   AND cc.contact_id!=" DC_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
 	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);
 	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
@@ -416,17 +416,17 @@ static char* create_adhoc_grp_id__(dc_context_t* mailbox, dc_array_t* member_ids
 	 */
 	dc_array_t*     member_addrs = dc_array_new(mailbox, 23);
 	char*          member_ids_str = dc_array_get_string(member_ids, ",");
-	mrstrbuilder_t member_cs;
+	dc_strbuilder_t member_cs;
 	sqlite3_stmt*  stmt = NULL;
 	char*          q3 = NULL, *addr;
 	int            i, iCnt;
 	uint8_t*       binary_hash = NULL;
 	char*          ret = NULL;
 
-	mrstrbuilder_init(&member_cs, 0);
+	dc_strbuilder_init(&member_cs, 0);
 
 	/* collect all addresses and sort them */
-	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" MR_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
+	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" DC_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
 	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
 	addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
 	mr_strlower_in_place(addr);
@@ -441,8 +441,8 @@ static char* create_adhoc_grp_id__(dc_context_t* mailbox, dc_array_t* member_ids
 	/* build a single, comma-separated (cs) string from all addresses */
 	iCnt = dc_array_get_cnt(member_addrs);
 	for( i = 0; i < iCnt; i++ ) {
-		if( i ) { mrstrbuilder_cat(&member_cs, ","); }
-		mrstrbuilder_cat(&member_cs, (const char*)dc_array_get_ptr(member_addrs, i));
+		if( i ) { dc_strbuilder_cat(&member_cs, ","); }
+		dc_strbuilder_cat(&member_cs, (const char*)dc_array_get_ptr(member_addrs, i));
 	}
 
 	/* make sha-256 from the string */
@@ -746,7 +746,7 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 		}
 
 		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Name", "X-MrGrpName"))!=NULL ) {
-			grpname = mr_decode_header_words(optional_field->fld_value); /* this is no changed groupname message */
+			grpname = dc_decode_header_words(optional_field->fld_value); /* this is no changed groupname message */
 		}
 
 		if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Group-Member-Removed", "X-MrRemoveFromGrp"))!=NULL ) {
@@ -851,7 +851,7 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 				if( carray_count(mime_parser->m_parts)>=2 ) {
 					dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mime_parser->m_parts, 1);
 					if( imgpart->m_type == MR_MSG_IMAGE ) {
-						grpimage = mrparam_get(imgpart->m_param, MRP_FILE, NULL);
+						grpimage = dc_param_get(imgpart->m_param, DC_PARAM_FILE, NULL);
 						ok = 1;
 					}
 				}
@@ -865,7 +865,7 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 			dc_chat_t* chat = dc_chat_new(mailbox);
 				dc_log_info(mailbox, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
 				dc_chat_load_from_db__(chat, chat_id);
-				mrparam_set(chat->m_param, MRP_PROFILE_IMAGE, grpimage/*may be NULL*/);
+				dc_param_set(chat->m_param, DC_PARAM_PROFILE_IMAGE, grpimage/*may be NULL*/);
 				dc_chat_update_param__(chat);
 			dc_chat_unref(chat);
 			free(grpimage);
@@ -1288,11 +1288,11 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				}
 
 				if( part->m_type == MR_MSG_TEXT ) {
-					txt_raw = mr_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
+					txt_raw = dc_mprintf("%s\n\n%s", mime_parser->m_subject? mime_parser->m_subject : "", part->m_msg_raw);
 				}
 
 				if( mime_parser->m_is_system_message ) {
-					mrparam_set_int(part->m_param, MRP_CMD, mime_parser->m_is_system_message);
+					dc_param_set_int(part->m_param, DC_PARAM_CMD, mime_parser->m_is_system_message);
 				}
 
 				stmt = dc_sqlite3_predefine__(mailbox->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
@@ -1443,7 +1443,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 					otherwise, the moved message get a new server_uid and is "fresh" again and we will be here again to move it away -
 					a classical deadlock, see also (***) in mrimap.c */
 					if( mime_parser->m_is_send_by_messenger || mdn_consumed ) {
-						char* jobparam = mr_mprintf("%c=%s\n%c=%lu", MRP_SERVER_FOLDER, server_folder, MRP_SERVER_UID, server_uid);
+						char* jobparam = dc_mprintf("%c=%s\n%c=%lu", DC_PARAM_SERVER_FOLDER, server_folder, DC_PARAM_SERVER_UID, server_uid);
 							dc_job_add(mailbox, DC_JOB_MARKSEEN_MDN_ON_IMAP, 0, jobparam, 0);
 						free(jobparam);
 					}
@@ -1455,7 +1455,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 
 		/* debug print? */
 		if( dc_sqlite3_get_config_int__(mailbox->m_sql, "save_eml", 0) ) {
-			char* emlname = mr_mprintf("%s/%s-%i.eml", mailbox->m_blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
+			char* emlname = dc_mprintf("%s/%s-%i.eml", mailbox->m_blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {
 				fwrite(imf_raw_not_terminated, 1, imf_raw_bytes, emlfileob);

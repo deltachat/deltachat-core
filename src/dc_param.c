@@ -62,15 +62,15 @@ static char* find_param(char* ths, int key, char** ret_p2)
 /**
  * Create new parameter list object.
  *
- * @private @memberof mrparam_t
+ * @private @memberof dc_param_t
  *
  * @return The created parameter list object.
  */
-mrparam_t* mrparam_new()
+dc_param_t* dc_param_new()
 {
-	mrparam_t* param;
+	dc_param_t* param;
 
-	if( (param=calloc(1, sizeof(mrparam_t)))==NULL ) {
+	if( (param=calloc(1, sizeof(dc_param_t)))==NULL ) {
 		exit(28); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -81,19 +81,19 @@ mrparam_t* mrparam_new()
 
 
 /**
- * Free an parameter list object created eg. by mrparam_new().
+ * Free an parameter list object created eg. by dc_param_new().
  *
- * @private @memberof mrparam_t
+ * @private @memberof dc_param_t
  *
  * @param param The parameter list object to free.
  */
-void mrparam_unref(mrparam_t* param)
+void dc_param_unref(dc_param_t* param)
 {
 	if( param==NULL ) {
 		return;
 	}
 
-	mrparam_empty(param);
+	dc_param_empty(param);
 	free(param->m_packed);
 	free(param);
 }
@@ -102,13 +102,13 @@ void mrparam_unref(mrparam_t* param)
 /**
  * Delete all parameters in the object.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to modify.
  *
  * @return None.
  */
-void mrparam_empty(mrparam_t* param)
+void dc_param_empty(dc_param_t* param)
 {
 	if( param == NULL ) {
 		return;
@@ -124,7 +124,7 @@ void mrparam_empty(mrparam_t* param)
  *
  * Before the new packed parameters are stored, _all_ existant parameters are deleted.
  *
- * @private @memberof mrparam_t
+ * @private @memberof dc_param_t
  *
  * @param param Parameter object to modify.
  *
@@ -132,13 +132,13 @@ void mrparam_empty(mrparam_t* param)
  *
  * @return None.
  */
-void mrparam_set_packed(mrparam_t* param, const char* packed)
+void dc_param_set_packed(dc_param_t* param, const char* packed)
 {
 	if( param == NULL ) {
 		return;
 	}
 
-	mrparam_empty(param);
+	dc_param_empty(param);
 
 	if( packed ) {
 		free(param->m_packed);
@@ -148,21 +148,21 @@ void mrparam_set_packed(mrparam_t* param, const char* packed)
 
 
 /**
- * Same as mrparam_set_packed() but uses '&' as a separator (instead '\n').
+ * Same as dc_param_set_packed() but uses '&' as a separator (instead '\n').
  * Urldecoding itself is not done by this function, this is up to the caller.
  */
-void mrparam_set_urlencoded(mrparam_t* param, const char* urlencoded)
+void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
 {
 	if( param == NULL ) {
 		return;
 	}
 
-	mrparam_empty(param);
+	dc_param_empty(param);
 
 	if( urlencoded ) {
 		free(param->m_packed);
 		param->m_packed = safe_strdup(urlencoded);
-		mr_str_replace(&param->m_packed, "&", "\n");
+		dc_str_replace(&param->m_packed, "&", "\n");
 	}
 }
 
@@ -170,15 +170,15 @@ void mrparam_set_urlencoded(mrparam_t* param, const char* urlencoded)
 /**
  * Check if a parameter exists.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to query.
  *
- * @param key Key of the parameter to check the existance, one of the MRP_* constants.
+ * @param key Key of the parameter to check the existance, one of the DC_PARAM_* constants.
  *
  * @return 1=parameter exists in object, 0=parameter does not exist in parameter object.
  */
-int mrparam_exists(mrparam_t* param, int key)
+int dc_param_exists(dc_param_t* param, int key)
 {
 	char *p2;
 
@@ -193,17 +193,17 @@ int mrparam_exists(mrparam_t* param, int key)
 /**
  * Get value of a parameter.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to query.
  *
- * @param key Key of the parameter to get, one of the MRP_* constants.
+ * @param key Key of the parameter to get, one of the DC_PARAM_* constants.
  *
  * @param def Value to return if the parameter is not set.
  *
  * @return The stored value or the default value.  In both cases, the returned value must be free()'d.
  */
-char* mrparam_get(mrparam_t* param, int key, const char* def)
+char* dc_param_get(dc_param_t* param, int key, const char* def)
 {
 	char *p1, *p2, bak, *ret;
 
@@ -230,23 +230,23 @@ char* mrparam_get(mrparam_t* param, int key, const char* def)
 /**
  * Get value of a parameter.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to query.
  *
- * @param key Key of the parameter to get, one of the MRP_* constants.
+ * @param key Key of the parameter to get, one of the DC_PARAM_* constants.
  *
  * @param def Value to return if the parameter is not set.
  *
  * @return The stored value or the default value.
  */
-int32_t mrparam_get_int(mrparam_t* param, int key, int32_t def)
+int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
 {
 	if( param == NULL || key == 0 ) {
 		return def;
 	}
 
-    char* str = mrparam_get(param, key, NULL);
+    char* str = dc_param_get(param, key, NULL);
     if( str == NULL ) {
 		return def;
     }
@@ -259,18 +259,18 @@ int32_t mrparam_get_int(mrparam_t* param, int key, int32_t def)
 /**
  * Set parameter to a string.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to modify.
  *
- * @param key Key of the parameter to modify, one of the MRP_* constants.
+ * @param key Key of the parameter to modify, one of the DC_PARAM_* constants.
  *
  * @param value Value to store for key. NULL to clear the value.
  *
  * @return None.
  */
 
-void mrparam_set(mrparam_t* param, int key, const char* value)
+void dc_param_set(dc_param_t* param, int key, const char* value)
 {
 	char *old1, *old2, *new1 = NULL;
 
@@ -302,7 +302,7 @@ void mrparam_set(mrparam_t* param, int key, const char* value)
 
 	/* create new string */
 	if( value ) {
-		new1 = mr_mprintf("%s%s%c=%s%s%s",
+		new1 = dc_mprintf("%s%s%c=%s%s%s",
 			old1?  old1 : "",
 			old1?  "\n" : "",
 			key,
@@ -311,7 +311,7 @@ void mrparam_set(mrparam_t* param, int key, const char* value)
 			old2?  old2 : "");
 	}
 	else {
-		new1 = mr_mprintf("%s%s%s",
+		new1 = dc_mprintf("%s%s%s",
 			old1?         old1 : "",
 			(old1&&old2)? "\n" : "",
 			old2?         old2 : "");
@@ -325,26 +325,26 @@ void mrparam_set(mrparam_t* param, int key, const char* value)
 /**
  * Set parameter to an integer.
  *
- * @memberof mrparam_t
+ * @memberof dc_param_t
  *
  * @param param Parameter object to modify.
  *
- * @param key Key of the parameter to modify, one of the MRP_* constants.
+ * @param key Key of the parameter to modify, one of the DC_PARAM_* constants.
  *
  * @param value Value to store for key.
  *
  * @return None.
  */
-void mrparam_set_int(mrparam_t* param, int key, int32_t value)
+void dc_param_set_int(dc_param_t* param, int key, int32_t value)
 {
 	if( param == NULL || key == 0 ) {
 		return;
 	}
 
-    char* value_str = mr_mprintf("%i", (int)value);
+    char* value_str = dc_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return;
     }
-    mrparam_set(param, key, value_str);
+    dc_param_set(param, key, value_str);
     free(value_str);
 }
