@@ -39,12 +39,12 @@
  *
  * @memberof dc_context_t
  *
- * @param mailbox The mailbox object.
+ * @param context The context object.
  * @param qr The text of the scanned QR code.
  *
  * @return Parsed QR code as an dc_lot_t object.
  */
-dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
+dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 {
 	int             locked        = 0;
 	char*           payload       = NULL;
@@ -53,7 +53,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	char*           name          = NULL;
 	char*           invitenumber  = NULL;
 	char*           auth          = NULL;
-	dc_apeerstate_t* peerstate     = dc_apeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate     = dc_apeerstate_new(context);
 	dc_lot_t*        qr_parsed     = dc_lot_new();
 	uint32_t        chat_id       = 0;
 	char*           device_msg    = NULL;
@@ -62,11 +62,11 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 
 	qr_parsed->m_state = 0;
 
-	if( mailbox==NULL || mailbox->m_magic!=MR_MAILBOX_MAGIC || qr==NULL ) {
+	if( context==NULL || context->m_magic!=DC_CONTEXT_MAGIC || qr==NULL ) {
 		goto cleanup;
 	}
 
-	dc_log_info(mailbox, 0, "Scanned QR code: %s", qr);
+	dc_log_info(context, 0, "Scanned QR code: %s", qr);
 
 	/* split parameters from the qr code
 	 ------------------------------------ */
@@ -207,14 +207,14 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 		{
 			// _only_ fingerprint set ...
 			// (we could also do this before/instead of a secure-join, however, this may require complicated questions in the ui)
-			dc_sqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(context->m_sql);
 			locked = 1;
 
-				if( dc_apeerstate_load_by_fingerprint__(peerstate, mailbox->m_sql, fingerprint) ) {
+				if( dc_apeerstate_load_by_fingerprint__(peerstate, context->m_sql, fingerprint) ) {
 					qr_parsed->m_state = MR_QR_FPR_OK;
-					qr_parsed->m_id    = dc_add_or_lookup_contact__(mailbox, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
-					dc_create_or_lookup_nchat_by_contact_id__(mailbox, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
+					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
 					device_msg = mr_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
@@ -222,7 +222,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 					qr_parsed->m_state = MR_QR_FPR_WITHOUT_ADDR;
 				}
 
-			dc_sqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(context->m_sql);
 			locked = 0;
 		}
 		else
@@ -230,7 +230,7 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 			// fingerprint + addr set, secure-join requested
 			// do not comapre the fingerprint already - it may have changed - errors are catched later more proberly.
 			// (theroretically, there is also the state "addr=set, fingerprint=set, invitenumber=0", however, currently, we won't get into this state)
-			dc_sqlite3_lock(mailbox->m_sql);
+			dc_sqlite3_lock(context->m_sql);
 			locked = 1;
 
 				if( grpid && grpname ) {
@@ -242,20 +242,20 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
 				}
 
-				qr_parsed->m_id            = dc_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);
 				qr_parsed->m_auth          = safe_strdup(auth);
 
 
-			dc_sqlite3_unlock(mailbox->m_sql);
+			dc_sqlite3_unlock(context->m_sql);
 			locked = 0;
 		}
 	}
 	else if( addr )
 	{
         qr_parsed->m_state = MR_QR_ADDR;
-		qr_parsed->m_id    = dc_add_or_lookup_contact__(mailbox, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+		qr_parsed->m_id    = dc_add_or_lookup_contact__(context, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{
@@ -269,11 +269,11 @@ dc_lot_t* dc_check_qr(dc_context_t* mailbox, const char* qr)
 	}
 
 	if( device_msg ) {
-		dc_add_device_msg(mailbox, chat_id, device_msg);
+		dc_add_device_msg(context, chat_id, device_msg);
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(addr);
 	free(fingerprint);
 	dc_apeerstate_unref(peerstate);

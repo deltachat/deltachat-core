@@ -43,7 +43,7 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 {
 	char* msg = NULL;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -114,7 +114,7 @@ void dc_log_error(dc_context_t* mailbox, int code, const char* msg, ...)
 
 void dc_log_error_if(int* condition, dc_context_t* mailbox, int code, const char* msg, ...)
 {
-	if( condition == NULL || mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( condition == NULL || mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 

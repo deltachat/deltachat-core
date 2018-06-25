@@ -39,7 +39,7 @@ extern "C" {
 typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
 
 
-typedef struct mrmimepart_t
+typedef struct dc_mimepart_t
 {
 	/** @privatesection */
 	int                 m_type; /*one of MR_MSG_* */
@@ -50,7 +50,7 @@ typedef struct mrmimepart_t
 	int                 m_bytes;
 	mrparam_t*          m_param;
 
-} mrmimepart_t;
+} dc_mimepart_t;
 
 
 typedef struct dc_mimeparser_t
@@ -58,7 +58,7 @@ typedef struct dc_mimeparser_t
 	/** @privatesection */
 
 	/* data, read-only, must not be free()'d (it is free()'d when the dc_mimeparser_t object gets destructed) */
-	carray*                m_parts;             /* array of mrmimepart_t objects */
+	carray*                m_parts;             /* array of dc_mimepart_t objects */
 	struct mailmime*       m_mimeroot;
 
 	dc_hash_t               m_header;            /* memoryhole-compliant header */
@@ -96,7 +96,7 @@ void             dc_mimeparser_parse                  (dc_mimeparser_t*, const c
 struct mailimf_field*          dc_mimeparser_lookup_field           (dc_mimeparser_t*, const char* field_name);
 struct mailimf_optional_field* dc_mimeparser_lookup_optional_field  (dc_mimeparser_t*, const char* field_name);
 struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2 (dc_mimeparser_t*, const char* field_name, const char* or_field_name);
-mrmimepart_t*                  dc_mimeparser_get_last_nonmeta       (dc_mimeparser_t*);
+dc_mimepart_t*                 dc_mimeparser_get_last_nonmeta       (dc_mimeparser_t*);
 #define                        dc_mimeparser_has_nonmeta(a)         (dc_mimeparser_get_last_nonmeta((a))!=NULL)
 int                            dc_mimeparser_is_mailinglist_message (dc_mimeparser_t*);
 int                            dc_mimeparser_sender_equals_recipient(dc_mimeparser_t*);

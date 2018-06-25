@@ -44,7 +44,7 @@ static int connect_to_imap(dc_context_t* mailbox, dc_job_t* job /*may be NULL if
 	int             is_locked = 0;
 	dc_loginparam_t* param = dc_loginparam_new();
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_imap == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || mailbox->m_imap == NULL ) {
 		dc_log_warning(mailbox, 0, "Cannot connect to IMAP: Bad parameters.");
 		goto cleanup;
 	}
@@ -443,7 +443,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* mailbox, dc_job_t* job)
 	dc_mimefactory_t mimefactory;
 	dc_mimefactory_init(&mimefactory, mailbox);
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || job == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || job == NULL ) {
 		return;
 	}
 
@@ -580,7 +580,7 @@ static void dc_job_perform(dc_context_t* mailbox, int thread)
 	memset(&job, 0, sizeof(dc_job_t));
 	job.m_param = mrparam_new();
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -795,7 +795,7 @@ void dc_perform_imap_idle(dc_context_t* context)
  */
 void dc_interrupt_imap_idle(dc_context_t* context)
 {
-	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC || context->m_imap == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_imap == NULL ) {
 		dc_log_warning(context, 0, "Interrupt IMAP-IDLE: Bad parameters.");
 		return;
 	}
@@ -856,7 +856,7 @@ void dc_perform_smtp_jobs(dc_context_t* context)
  */
 void dc_perform_smtp_idle(dc_context_t* context)
 {
-	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		dc_log_warning(context, 0, "Cannot perform SMTP-idle: Bad parameters.");
 		return;
 	}
@@ -927,7 +927,7 @@ void dc_perform_smtp_idle(dc_context_t* context)
  */
 void dc_interrupt_smtp_idle(dc_context_t* context)
 {
-	if( context == NULL || context->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		dc_log_warning(context, 0, "Interrupt SMTP-idle: Bad parameters.");
 		return;
 	}

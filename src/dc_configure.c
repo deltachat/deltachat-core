@@ -35,13 +35,13 @@
  ******************************************************************************/
 
 
-static char* read_autoconf_file(dc_context_t* mailbox, const char* url)
+static char* read_autoconf_file(dc_context_t* context, const char* url)
 {
 	char* filecontent = NULL;
-	dc_log_info(mailbox, 0, "Testing %s ...", url);
-	filecontent = (char*)mailbox->m_cb(mailbox, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
+	dc_log_info(context, 0, "Testing %s ...", url);
+	filecontent = (char*)context->m_cb(context, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
 	if( filecontent == NULL ) {
-		dc_log_info(mailbox, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
+		dc_log_info(context, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
 		return NULL;
 	}
 	return filecontent;
@@ -163,14 +163,14 @@ static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static dc_loginparam_t* moz_autoconfigure(dc_context_t* mailbox, const char* url, const dc_loginparam_t* param_in)
+static dc_loginparam_t* moz_autoconfigure(dc_context_t* context, const char* url, const dc_loginparam_t* param_in)
 {
 	char*               xml_raw = NULL;
 	moz_autoconfigure_t moz_ac;
 
 	memset(&moz_ac, 0, sizeof(moz_autoconfigure_t));
 
-	if( (xml_raw=read_autoconf_file(mailbox, url))==NULL ) {
+	if( (xml_raw=read_autoconf_file(context, url))==NULL ) {
 		goto cleanup;
 	}
 
@@ -190,7 +190,7 @@ static dc_loginparam_t* moz_autoconfigure(dc_context_t* mailbox, const char* url
 	 || moz_ac.m_out->m_send_server == NULL
 	 || moz_ac.m_out->m_send_port   == 0 )
 	{
-		{ char* r = dc_loginparam_get_readable(moz_ac.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = dc_loginparam_get_readable(moz_ac.m_out); dc_log_warning(context, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 
 		dc_loginparam_unref(moz_ac.m_out); /* autoconfig failed for the given URL */
 		moz_ac.m_out = NULL;
@@ -302,7 +302,7 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 }
 
 
-static dc_loginparam_t* outlk_autodiscover(dc_context_t* mailbox, const char* url__, const dc_loginparam_t* param_in)
+static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* url__, const dc_loginparam_t* param_in)
 {
 	char*                 xml_raw = NULL, *url = safe_strdup(url__);
 	outlk_autodiscover_t  outlk_ad;
@@ -312,7 +312,7 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* mailbox, const char* ur
 	{
 		memset(&outlk_ad, 0, sizeof(outlk_autodiscover_t));
 
-		if( (xml_raw=read_autoconf_file(mailbox, url))==NULL ) {
+		if( (xml_raw=read_autoconf_file(context, url))==NULL ) {
 			goto cleanup;
 		}
 
@@ -342,7 +342,7 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* mailbox, const char* ur
 	 || outlk_ad.m_out->m_send_server == NULL
 	 || outlk_ad.m_out->m_send_port   == 0 )
 	{
-		{ char* r = dc_loginparam_get_readable(outlk_ad.m_out); dc_log_warning(mailbox, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
+		{ char* r = dc_loginparam_get_readable(outlk_ad.m_out); dc_log_warning(context, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 		dc_loginparam_unref(outlk_ad.m_out); /* autoconfig failed for the given URL */
 		outlk_ad.m_out = NULL;
 		goto cleanup;
@@ -361,7 +361,7 @@ cleanup:
  ******************************************************************************/
 
 
-void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
+void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	int             success = 0, locked = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;
@@ -371,48 +371,48 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	char*           param_addr_urlencoded = NULL;
 	dc_loginparam_t* param_autoconfig = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_suspend_smtp_thread(mailbox, 1);
-	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
+	dc_suspend_smtp_thread(context, 1);
+	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
-	if( !dc_alloc_ongoing(mailbox) ) {
+	if( !dc_alloc_ongoing(context) ) {
 		goto cleanup;
 	}
 	ongoing_allocated_here = 1;
 
 	#define PROGRESS(p) \
 				if( mr_shall_stop_ongoing ) { goto cleanup; } \
-				mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
+				context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
-	if( !dc_sqlite3_is_open(mailbox->m_sql) ) {
-		dc_log_error(mailbox, 0, "Cannot configure, database not opened.");
+	if( !dc_sqlite3_is_open(context->m_sql) ) {
+		dc_log_error(context, 0, "Cannot configure, database not opened.");
 		goto cleanup;
 	}
 
 	/* disconnect */
 
-	dc_imap_disconnect(mailbox->m_imap);
-	dc_smtp_disconnect(mailbox->m_smtp);
+	dc_imap_disconnect(context->m_imap);
+	dc_smtp_disconnect(context->m_smtp);
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		//dc_sqlite3_set_config_int__(mailbox->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
-		mailbox->m_smtp->m_log_connect_errors = 1;
-		mailbox->m_imap->m_log_connect_errors = 1;
+		//dc_sqlite3_set_config_int__(context->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
+		context->m_smtp->m_log_connect_errors = 1;
+		context->m_imap->m_log_connect_errors = 1;
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
-	dc_log_info(mailbox, 0, "Configure ...");
+	dc_log_info(context, 0, "Configure ...");
 
 	PROGRESS(0)
 
-	if( mailbox->m_cb(mailbox, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
-		dc_log_error(mailbox, DC_ERROR_NO_NETWORK, NULL);
+	if( context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
 
@@ -423,23 +423,23 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 
 	param = dc_loginparam_new();
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		dc_loginparam_read__(param, mailbox->m_sql, "");
+		dc_loginparam_read__(param, context->m_sql, "");
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 	if( param->m_addr == NULL ) {
-		dc_log_error(mailbox, 0, "Please enter the email address.");
+		dc_log_error(context, 0, "Please enter the email address.");
 		goto cleanup;
 	}
 	mr_trim(param->m_addr);
 
 	param_domain = strchr(param->m_addr, '@');
 	if( param_domain==NULL || param_domain[0]==0 ) {
-		dc_log_error(mailbox, 0, "Bad email-address.");
+		dc_log_error(context, 0, "Bad email-address.");
 		goto cleanup;
 	}
 	param_domain++;
@@ -471,7 +471,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
 				char* url = mr_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
-				param_autoconfig = moz_autoconfigure(mailbox, url, param);
+				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
 				PROGRESS(300+i*20)
 			}
@@ -480,7 +480,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
 				char* url = mr_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
-				param_autoconfig = moz_autoconfigure(mailbox, url, param);
+				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
 				PROGRESS(340+i*30)
 			}
@@ -489,7 +489,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		for( i = 0; i <= 1; i++ ) {
 			if( param_autoconfig==NULL ) {
 				char* url = mr_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
-				param_autoconfig = outlk_autodiscover(mailbox, url, param);
+				param_autoconfig = outlk_autodiscover(context, url, param);
 				free(url);
 				PROGRESS(400+i*50)
 			}
@@ -499,7 +499,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		if( param_autoconfig==NULL )
 		{
 			char* url = mr_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
-			param_autoconfig = moz_autoconfigure(mailbox, url, param);
+			param_autoconfig = moz_autoconfigure(context, url, param);
 			free(url);
 			PROGRESS(500)
 		}
@@ -507,7 +507,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		/* C.  Do we have any result? */
 		if( param_autoconfig )
 		{
-			{ char* r = dc_loginparam_get_readable(param_autoconfig); dc_log_info(mailbox, 0, "Got autoconfig: %s", r); free(r); }
+			{ char* r = dc_loginparam_get_readable(param_autoconfig); dc_log_info(context, 0, "Got autoconfig: %s", r); free(r); }
 
 			if( param_autoconfig->m_mail_user ) {
 				free(param->m_mail_user);
@@ -611,16 +611,16 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	 || param->m_send_pw      == NULL
 	 || param->m_server_flags == 0 )
 	{
-		dc_log_error(mailbox, 0, "Account settings incomplete.");
+		dc_log_error(context, 0, "Account settings incomplete.");
 		goto cleanup;
 	}
 
 	PROGRESS(600)
 
 	/* try to connect to IMAP */
-	{ char* r = dc_loginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-	if( !dc_imap_connect(mailbox->m_imap, param) ) {
+	if( !dc_imap_connect(context->m_imap, param) ) {
 		goto cleanup;
 	}
 
@@ -629,7 +629,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	PROGRESS(800)
 
 	/* try to connect to SMTP - if we did not got an autoconfig, the first try was SSL-465 and we do a second try with STARTTLS-587 */
-	if( !dc_smtp_connect(mailbox->m_smtp, param) )  {
+	if( !dc_smtp_connect(context->m_smtp, param) )  {
 		if( param_autoconfig ) {
 			goto cleanup;
 		}
@@ -639,9 +639,9 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 		param->m_server_flags &= ~MR_SMTP_SOCKET_FLAGS;
 		param->m_server_flags |=  MR_SMTP_SOCKET_STARTTLS;
 		param->m_send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
-		{ char* r = dc_loginparam_get_readable(param); dc_log_info(mailbox, 0, "Trying: %s", r); free(r); }
+		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-		if( !dc_smtp_connect(mailbox->m_smtp, param) ) {
+		if( !dc_smtp_connect(context->m_smtp, param) ) {
 			goto cleanup;
 		}
 	}
@@ -651,13 +651,13 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	PROGRESS(900)
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		dc_loginparam_write__(param, mailbox->m_sql, "configured_" /*the trailing underscore is correct*/);
-		dc_sqlite3_set_config_int__(mailbox->m_sql, "configured", 1);
+		dc_loginparam_write__(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
+		dc_sqlite3_set_config_int__(context->m_sql, "configured", 1);
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 	PROGRESS(920)
@@ -665,38 +665,38 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* mailbox, dc_job_t* job)
 	// we generate the keypair just now - we could also postpone this until the first message is sent, however,
 	// this may result in a unexpected and annoying delay when the user sends his very first message
 	// (~30 seconds on a Moto G4 play) and might looks as if message sending is always that slow.
-	dc_ensure_secret_key_exists(mailbox);
+	dc_ensure_secret_key_exists(context);
 
 	success = 1;
-	dc_log_info(mailbox, 0, "Configure completed successfully.");
+	dc_log_info(context, 0, "Configure completed successfully.");
 
 	PROGRESS(940)
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
-	if( imap_connected_here ) { dc_imap_disconnect(mailbox->m_imap); }
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
+	if( imap_connected_here ) { dc_imap_disconnect(context->m_imap); }
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
 
-	if( smtp_connected_here ) { dc_smtp_disconnect(mailbox->m_smtp); }
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
+	if( smtp_connected_here ) { dc_smtp_disconnect(context->m_smtp); }
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
 
 	dc_loginparam_unref(param);
 	dc_loginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
-	if( ongoing_allocated_here ) { dc_free_ongoing(mailbox); }
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
+	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
 
-	dc_suspend_smtp_thread(mailbox, 0);
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
+	dc_suspend_smtp_thread(context, 0);
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
 
-	mailbox->m_cb(mailbox, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
+	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
 }
 
 
 /**
- * Configure and connect a mailbox.
+ * Configure and connect a context.
  * For this, the function creates a job that is executed in the IMAP-thread then;
  * this requires to call dc_perform_imap_jobs() regulary.
  *
@@ -711,7 +711,7 @@ cleanup:
  *
  * @memberof dc_context_t
  *
- * @param mailbox the mailbox object as created by dc_context_new().
+ * @param context the context object as created by dc_context_new().
  *
  * @return None.
  *
@@ -725,43 +725,41 @@ cleanup:
  * }
  * ```
  */
-void dc_configure(dc_context_t* mailbox)
+void dc_configure(dc_context_t* context)
 {
-	dc_job_kill_actions(mailbox, DC_JOB_CONFIGURE_IMAP, 0);
-	dc_job_add(mailbox, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
+	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0);
+	dc_job_add(context, DC_JOB_CONFIGURE_IMAP, 0, NULL, 0); // results in a call to dc_configure_job()
 }
 
 
 /**
- * Check if the mailbox is already configured.
+ * Check if the context is already configured.
  *
- * Typically, for unconfigured mailboxes, the user is prompeted for
+ * Typically, for unconfigured accounts, the user is prompeted for
  * to enter some settings and dc_configure() is called in a thread then.
  *
  * @memberof dc_context_t
- *
- * @param mailbox The mailbox object as created by dc_context_new().
- *
+ * @param context The context object as created by dc_context_new().
  * @return 1=context is configuredc can be used;
  *     0=context is not configured and a configuration by dc_configure() is required.
  */
-int dc_is_configured(dc_context_t* mailbox)
+int dc_is_configured(dc_context_t* context)
 {
 	int is_configured;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
-	if( dc_imap_is_connected(mailbox->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
+	if( dc_imap_is_connected(context->m_imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
 		return 1;
 	}
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		is_configured = dc_sqlite3_get_config_int__(mailbox->m_sql, "configured", 0);
+		is_configured = dc_sqlite3_get_config_int__(context->m_sql, "configured", 0);
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	return is_configured? 1 : 0;
 }
@@ -773,14 +771,14 @@ int dc_is_configured(dc_context_t* mailbox)
  */
 static int s_ongoing_running = 0;
 int        mr_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
-int dc_alloc_ongoing(dc_context_t* mailbox)
+int dc_alloc_ongoing(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
 	if( s_ongoing_running || mr_shall_stop_ongoing == 0 ) {
-		dc_log_warning(mailbox, 0, "There is already another ongoing process running.");
+		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
 
@@ -794,9 +792,9 @@ int dc_alloc_ongoing(dc_context_t* mailbox)
  * Frees the process allocated with dc_alloc_ongoing() - independingly of mr_shall_stop_ongoing.
  * If dc_alloc_ongoing() fails, this function MUST NOT be called.
  */
-void dc_free_ongoing(dc_context_t* mailbox)
+void dc_free_ongoing(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -825,23 +823,23 @@ void dc_free_ongoing(dc_context_t* mailbox)
  *
  * @memberof dc_context_t
  *
- * @param mailbox The mailbox object.
+ * @param context The context object.
  *
  * @return None
  */
-void dc_stop_ongoing_process(dc_context_t* mailbox)
+void dc_stop_ongoing_process(dc_context_t* context)
 {
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
 	if( s_ongoing_running && mr_shall_stop_ongoing==0 )
 	{
-		dc_log_info(mailbox, 0, "Signaling the ongoing process to stop ASAP.");
+		dc_log_info(context, 0, "Signaling the ongoing process to stop ASAP.");
 		mr_shall_stop_ongoing = 1;
 	}
 	else
 	{
-		dc_log_info(mailbox, 0, "No ongoing process to stop.");
+		dc_log_info(context, 0, "No ongoing process to stop.");
 	}
 }

@@ -20,8 +20,8 @@
  ******************************************************************************/
 
 
-#ifndef __MRMAILBOX_PRIVATE_H__
-#define __MRMAILBOX_PRIVATE_H__
+#ifndef __DC_CONTEXT_H__
+#define __DC_CONTEXT_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,7 +60,7 @@ typedef struct dc_hash_t       dc_hash_t;
 struct _dc_context
 {
 	/** @privatesection */
-	#define          MR_MAILBOX_MAGIC         0x11a11807
+	#define          DC_CONTEXT_MAGIC         0x11a11807
 	uint32_t         m_magic;                 /**< @private */
 
 	void*            m_userdata;              /**< Use data, may be used for any purpose. The same pointer as given to dc_context_new(), may be used by the caller for any purpose. */
@@ -206,4 +206,4 @@ void            dc_add_to_keyhistory__(dc_context_t*, const char* rfc724_mid, ti
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRMAILBOX_PRIVATE_H__ */
+#endif /* __DC_CONTEXT_H__ */

@@ -179,10 +179,10 @@ extern "C" {
 /**
  * @class dc_context_t
  *
- * An object representing a single mailbox.
+ * An object representing a single account.
  *
- * Each mailbox is linked to an IMAP/POP3 account and uses a separate
- * SQLite database for offline functionality and for mailbox-related
+ * Each account is linked to an IMAP/POP3 account and uses a separate
+ * SQLite database for offline functionality and for account-related
  * settings.
  */
 typedef struct _dc_context  dc_context_t;

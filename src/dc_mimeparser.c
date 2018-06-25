@@ -784,11 +784,11 @@ static int mailmime_get_mime_type(struct mailmime* mime, int* msg_type)
  ******************************************************************************/
 
 
-static mrmimepart_t* mrmimepart_new(void)
+static dc_mimepart_t* mrmimepart_new(void)
 {
-	mrmimepart_t* ths = NULL;
+	dc_mimepart_t* ths = NULL;
 
-	if( (ths=calloc(1, sizeof(mrmimepart_t)))==NULL ) {
+	if( (ths=calloc(1, sizeof(dc_mimepart_t)))==NULL ) {
 		exit(33);
 	}
 
@@ -799,7 +799,7 @@ static mrmimepart_t* mrmimepart_new(void)
 }
 
 
-static void mrmimepart_unref(mrmimepart_t* ths)
+static void mrmimepart_unref(dc_mimepart_t* ths)
 {
 	if( ths == NULL ) {
 		return;
@@ -902,7 +902,7 @@ void dc_mimeparser_empty(dc_mimeparser_t* ths)
 	{
 		int i, cnt = carray_count(ths->m_parts);
 		for( i = 0; i < cnt; i++ ) {
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 			if( part ) {
 				mrmimepart_unref(part);
 			}
@@ -942,7 +942,7 @@ void dc_mimeparser_empty(dc_mimeparser_t* ths)
 }
 
 
-static void do_add_single_part(dc_mimeparser_t* parser, mrmimepart_t* part)
+static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
 	if( parser->m_e2ee_helper->m_encrypted && dc_hash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
@@ -959,7 +959,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
                                     const char* decoded_data, size_t decoded_data_bytes,
                                     const char* desired_filename)
 {
-	mrmimepart_t* part = NULL;
+	dc_mimepart_t* part = NULL;
 	char*         pathNfilename = NULL;
 
 	/* create a free file name to use */
@@ -1013,7 +1013,7 @@ cleanup:
 
 static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* ths, struct mailmime* mime)
 {
-	mrmimepart_t*                part = NULL;
+	dc_mimepart_t*                part = NULL;
 	int                          old_part_count = carray_count(ths->m_parts);
 
 	int                          mime_type;
@@ -1303,7 +1303,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 
 				case MR_MIMETYPE_MP_NOT_DECRYPTABLE:
 					{
-						mrmimepart_t* part = mrmimepart_new();
+						dc_mimepart_t* part = mrmimepart_new();
 						part->m_type = MR_MSG_TEXT;
 
 						char* msg_body = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
@@ -1526,7 +1526,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 		/* Autocrypt-Setup-Message header found - check if there is an application/autocrypt-setup part */
 		int i, has_setup_file = 0;
 		for( i = 0; i < carray_count(ths->m_parts); i++ ) {
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 			if( part->m_int_mimetype==MR_MIMETYPE_AC_SETUP_FILE ) {
 				has_setup_file = 1;
 			}
@@ -1535,7 +1535,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 			/* delete all parts but the application/autocrypt-setup part */
 			ths->m_is_system_message = MR_CMD_AUTOCRYPT_SETUP_MESSAGE;
 			for( i = 0; i < carray_count(ths->m_parts); i++ ) {
-				mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 				if( part->m_int_mimetype!=MR_MIMETYPE_AC_SETUP_FILE ) {
 					mrmimepart_unref(part);
 					carray_delete_slow(ths->m_parts, i);
@@ -1572,7 +1572,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 			if( subj[0] ) {
 				int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 				for( i = 0; i < icnt; i++ ) {
-					mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 					if( part->m_type == MR_MSG_TEXT ) {
 						#define MR_NDASH "\xE2\x80\x93"
 						char* new_txt = mr_mprintf("%s " MR_NDASH " %s", subj, part->m_msg);
@@ -1590,7 +1590,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	if( ths->m_is_forwarded ) {
 		int i, icnt = carray_count(ths->m_parts); /* should be at least one - maybe empty - part */
 		for( i = 0; i < icnt; i++ ) {
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 			mrparam_set_int(part->m_param, MRP_FORWARDED, 1);
 		}
 	}
@@ -1599,7 +1599,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	{
 		/* mark audio as voice message, if appropriate (we have to do this on global level as we do not know the global header in the recursice parse).
 		and read some additional parameters */
-		mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, 0);
+		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, 0);
 		if( part->m_type == MR_MSG_AUDIO ) {
 			if( dc_mimeparser_lookup_optional_field2(ths, "Chat-Voice-Message", "X-MrVoiceMessage") ) {
 				free(part->m_msg);
@@ -1624,11 +1624,11 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	/* some special system message? */
 	if( dc_mimeparser_lookup_field(ths, "Chat-Group-Image")
 	 && carray_count(ths->m_parts)>=1 ) {
-		mrmimepart_t* textpart = (mrmimepart_t*)carray_get(ths->m_parts, 0);
+		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(ths->m_parts, 0);
 		if( textpart->m_type == MR_MSG_TEXT ) {
 			mrparam_set_int(textpart->m_param, MRP_CMD, MR_CMD_GROUPIMAGE_CHANGED);
 			if( carray_count(ths->m_parts)>=2 ) {
-				mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(ths->m_parts, 1);
+				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(ths->m_parts, 1);
 				if( imgpart->m_type == MR_MSG_IMAGE ) {
 					imgpart->m_is_meta = 1;
 				}
@@ -1660,7 +1660,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 								/* we mark _only_ the _last_ part to send a MDN
 								(this avoids trouble with multi-part-messages who should send only one MDN.
 								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
-								mrmimepart_t* part = dc_mimeparser_get_last_nonmeta(ths);
+								dc_mimepart_t* part = dc_mimeparser_get_last_nonmeta(ths);
 								if( part ) {
 									mrparam_set_int(part->m_param, MRP_WANTS_MDN, 1);
 								}
@@ -1678,7 +1678,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
 	if( !dc_mimeparser_has_nonmeta(ths) && carray_count(ths->m_reports)==0 ) {
-		mrmimepart_t* part = mrmimepart_new();
+		dc_mimepart_t* part = mrmimepart_new();
 		part->m_type = MR_MSG_TEXT;
 		part->m_msg = safe_strdup(ths->m_subject? ths->m_subject : "Empty message");
 		carray_add(ths->m_parts, (void*)part, NULL);
@@ -1754,12 +1754,12 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparse
  * @return The last part that is not flagged with m_is_meta. The returned value
  *     must not be freed.  If there is no such part, NULL is returned.
  */
-mrmimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* ths)
+dc_mimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* ths)
 {
 	if( ths && ths->m_parts ) {
 		int i, icnt = carray_count(ths->m_parts);
 		for( i = icnt-1; i >= 0; i-- ) {
-			mrmimepart_t* part = (mrmimepart_t*)carray_get(ths->m_parts, i);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(ths->m_parts, i);
 			if( part && !part->m_is_meta ) {
 				return part;
 			}

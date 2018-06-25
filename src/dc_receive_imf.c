@@ -42,7 +42,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* mailbox, const char* d
 	int dummy;
 	if( check_self == NULL ) { check_self = &dummy; }
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || addr_spec == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || addr_spec == NULL ) {
 		return;
 	}
 
@@ -81,7 +81,7 @@ static void dc_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* mailbox, c
 {
 	clistiter* cur;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mb_list == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || mb_list == NULL ) {
 		return;
 	}
 
@@ -98,7 +98,7 @@ static void dc_add_or_lookup_contacts_by_address_list__(dc_context_t* mailbox, c
 {
 	clistiter* cur;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || adr_list == NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */ ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || adr_list == NULL /*may be NULL eg. if bcc is given as `Bcc: \n` in the header */ ) {
 		return;
 	}
 
@@ -331,7 +331,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* mailbox, const d
 	char*         contact_ids_str = NULL, *q3 = NULL;
 	dc_array_t*    chat_ids = dc_array_new(mailbox, 23);
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC  ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC  ) {
 		goto cleanup;
 	}
 
@@ -846,10 +846,10 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 		int   ok = 0;
 		char* grpimage = NULL;
 		if( carray_count(mime_parser->m_parts)>=1 ) {
-			mrmimepart_t* textpart = (mrmimepart_t*)carray_get(mime_parser->m_parts, 0);
+			dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mime_parser->m_parts, 0);
 			if( textpart->m_type == MR_MSG_TEXT ) {
 				if( carray_count(mime_parser->m_parts)>=2 ) {
-					mrmimepart_t* imgpart = (mrmimepart_t*)carray_get(mime_parser->m_parts, 1);
+					dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mime_parser->m_parts, 1);
 					if( imgpart->m_type == MR_MSG_IMAGE ) {
 						grpimage = mrparam_get(imgpart->m_param, MRP_FILE, NULL);
 						ok = 1;
@@ -1282,7 +1282,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
 			for( i = 0; i < icnt; i++ )
 			{
-				mrmimepart_t* part = (mrmimepart_t*)carray_get(mime_parser->m_parts, i);
+				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->m_parts, i);
 				if( part->m_is_meta ) {
 					continue;
 				}

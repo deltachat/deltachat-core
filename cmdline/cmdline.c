@@ -42,7 +42,7 @@ your library */
  */
 int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
 {
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
@@ -95,7 +95,7 @@ int mrmailbox_reset_tables(mrmailbox_t* ths, int bits)
  */
 static int mrmailbox_cleanup_contacts(mrmailbox_t* ths)
 {
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
@@ -117,7 +117,7 @@ static int mrmailbox_poke_eml_file(mrmailbox_t* ths, const char* filename)
 	char*   data = NULL;
 	size_t  data_bytes;
 
-	if( ths == NULL || ths->m_magic != MR_MAILBOX_MAGIC ) {
+	if( ths == NULL || ths->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 

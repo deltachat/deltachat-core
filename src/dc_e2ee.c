@@ -198,7 +198,7 @@ static int load_or_generate_self_public_key__(dc_context_t* mailbox, dc_key_t* p
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || public_key == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || public_key == NULL ) {
 		goto cleanup;
 	}
 
@@ -286,7 +286,7 @@ int dc_ensure_secret_key_exists(dc_context_t* mailbox)
 	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || public_key==NULL ) {
+	if( mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
 
@@ -335,7 +335,7 @@ void dc_e2ee_encrypt(dc_context_t* mailbox, const clist* recipients_addr,
 
 	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || recipients_addr == NULL || in_out_message == NULL
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
 	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
@@ -826,7 +826,7 @@ void dc_e2ee_decrypt(dc_context_t* mailbox, struct mailmime* in_out_message,
 
 	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || in_out_message==NULL
+	if( mailbox==NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || in_out_message==NULL
 	 || helper == NULL || imffields==NULL ) {
 		goto cleanup;
 	}

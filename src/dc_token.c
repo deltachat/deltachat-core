@@ -28,7 +28,7 @@ void mrtoken_save__(dc_context_t* mailbox, mrtokennamespc_t namespc, uint32_t fo
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || token == NULL ) { // foreign_id may be 0
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || token == NULL ) { // foreign_id may be 0
 		goto cleanup;
 	}
 
@@ -50,7 +50,7 @@ char* mrtoken_lookup__(dc_context_t* mailbox, mrtokennamespc_t namespc, uint32_t
 	char*         token = NULL;
 	sqlite3_stmt* stmt  = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -73,7 +73,7 @@ int mrtoken_exists__(dc_context_t* mailbox, mrtokennamespc_t namespc, const char
 	int           exists = 0;
 	sqlite3_stmt* stmt   = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || token == NULL ) {
+	if( mailbox == NULL || mailbox->m_magic != DC_CONTEXT_MAGIC || token == NULL ) {
 		goto cleanup;
 	}
 

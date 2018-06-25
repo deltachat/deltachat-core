@@ -93,13 +93,13 @@
  *
  * @private @memberof dc_context_t
  *
- * @param mailbox The mailbox object
+ * @param context The context object
  * @param passphrase The setup code that shall be used to encrypt the message.
  *     Typically created by dc_create_setup_code().
  * @return String with the HTML-code of the message on success, NULL on errors.
  *     The returned value must be free()'d
  */
-char* dc_render_setup_file(dc_context_t* mailbox, const char* passphrase)
+char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 {
 	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
@@ -120,7 +120,7 @@ char* dc_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 
 	char*                  ret_setupfilecontent = NULL;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || passphrase==NULL
+	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || passphrase==NULL
 	 || strlen(passphrase)<2 || curr_private_key==NULL ) {
 		goto cleanup;
 	}
@@ -130,23 +130,23 @@ char* dc_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 
 	/* create the payload */
 
-	if( !dc_ensure_secret_key_exists(mailbox) ) {
+	if( !dc_ensure_secret_key_exists(context) ) {
 		goto cleanup;
 	}
 
 	{
-		dc_sqlite3_lock(mailbox->m_sql);
+		dc_sqlite3_lock(context->m_sql);
 		locked = 1;
 
-			self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-			dc_key_load_self_private__(curr_private_key, self_addr, mailbox->m_sql);
+			self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+			dc_key_load_self_private__(curr_private_key, self_addr, context->m_sql);
 
-			char* payload_key_asc = dc_key_render_asc(curr_private_key, mailbox->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
+			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if( payload_key_asc == NULL ) {
 				goto cleanup;
 			}
 
-		dc_sqlite3_unlock(mailbox->m_sql);
+		dc_sqlite3_unlock(context->m_sql);
 		locked = 0;
 
 		//printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",key_asc); // DEBUG OUTPUT
@@ -276,7 +276,7 @@ char* dc_render_setup_file(dc_context_t* mailbox, const char* passphrase)
 
 cleanup:
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	if( payload_output ) { pgp_output_delete(payload_output); }
 	if( payload_mem ) { pgp_memory_free(payload_mem); }
@@ -299,7 +299,7 @@ cleanup:
  *
  * @private @memberof dc_context_t
  *
- * @param mailbox The mailbox object
+ * @param context The context object
  * @param passphrase The setup code that shall be used to decrypt the message.
  *     May be created by dc_create_setup_code() on another device or by
  *     a completely different app as Thunderbird/Enigmail or K-9.
@@ -309,7 +309,7 @@ cleanup:
  * @return The decrypted private key as armored-ascii-data or NULL on errors.
  *     Must be dc_key_unref()'d.
  */
-char* dc_decrypt_setup_file(dc_context_t* mailbox, const char* passphrase, const char* filecontent)
+char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const char* filecontent)
 {
 	char*         fc_buf = NULL;
 	const char    *fc_headerline = NULL, *fc_base64 = NULL;
@@ -361,11 +361,11 @@ cleanup:
  *
  * @private @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by dc_context_new().
+ * @param context The context as created by dc_context_new().
  *
  * @return Setup code, must be free()'d after usage. NULL on errors.
  */
-char* dc_create_setup_code(dc_context_t* mailbox)
+char* dc_create_setup_code(dc_context_t* context)
 {
 	#define        CODE_ELEMS 9
 	uint16_t       random_val;
@@ -379,7 +379,7 @@ char* dc_create_setup_code(dc_context_t* mailbox)
 		do
 		{
 			if( !RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t)) ) {
-				dc_log_warning(mailbox, 0, "Falling back to pseudo-number generation for the setup code.");
+				dc_log_warning(context, 0, "Falling back to pseudo-number generation for the setup code.");
 				RAND_pseudo_bytes((unsigned char*)&random_val, sizeof(uint16_t));
 			}
 		}
@@ -395,7 +395,7 @@ char* dc_create_setup_code(dc_context_t* mailbox)
 
 
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
-char* dc_normalize_setup_code(dc_context_t* mailbox, const char* in)
+char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 {
 	if( in == NULL ) {
 		return NULL;
@@ -426,7 +426,7 @@ char* dc_normalize_setup_code(dc_context_t* mailbox, const char* in)
  *
  * @memberof dc_context_t
  *
- * @param mailbox The mailbox object.
+ * @param context The context object.
  *
  * @return The setup code. Must be free()'d after usage.
  *     On errors, eg. if the message could not be sent, NULL is returned.
@@ -470,7 +470,7 @@ char* dc_normalize_setup_code(dc_context_t* mailbox, const char* in)
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
  */
-char* dc_initiate_key_transfer(dc_context_t* mailbox)
+char* dc_initiate_key_transfer(dc_context_t* context)
 {
 	int      success = 0;
 	char*    setup_code = NULL;
@@ -480,29 +480,29 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 	dc_msg_t* msg = NULL;
 	uint32_t msg_id = 0;
 
-	if( !dc_alloc_ongoing(mailbox) ) {
+	if( !dc_alloc_ongoing(context) ) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
 	#define CHECK_EXIT if( mr_shall_stop_ongoing ) { goto cleanup; }
 
-	if( (setup_code=dc_create_setup_code(mailbox)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
+	if( (setup_code=dc_create_setup_code(context)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( (setup_file_content=dc_render_setup_file(mailbox, setup_code))==NULL ) { /* encrypting may also take a while ... */
+	if( (setup_file_content=dc_render_setup_file(context, setup_code))==NULL ) { /* encrypting may also take a while ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( (setup_file_name=mr_get_fine_pathNfilename(mailbox->m_blobdir, "autocrypt-setup-message.html")) == NULL
-	 || !mr_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), mailbox) ) {
+	if( (setup_file_name=mr_get_fine_pathNfilename(context->m_blobdir, "autocrypt-setup-message.html")) == NULL
+	 || !mr_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context) ) {
 		goto cleanup;
 	}
 
-	if( (chat_id=dc_create_chat_by_contact_id(mailbox, MR_CONTACT_ID_SELF))==0 ) {
+	if( (chat_id=dc_create_chat_by_contact_id(context, MR_CONTACT_ID_SELF))==0 ) {
 		goto cleanup;
 	}
 
@@ -515,7 +515,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 
 	CHECK_EXIT
 
-	if( (msg_id = dc_send_msg_object(mailbox, chat_id, msg)) == 0 ) {
+	if( (msg_id = dc_send_msg_object(context, chat_id, msg)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -523,7 +523,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 	msg = NULL;
 
 	/* wait until the message is really sent */
-	dc_log_info(mailbox, 0, "Wait for setup message being sent ...");
+	dc_log_info(context, 0, "Wait for setup message being sent ...");
 
 	while( 1 )
 	{
@@ -531,7 +531,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 
 		sleep(1);
 
-		msg = dc_get_msg(mailbox, msg_id);
+		msg = dc_get_msg(context, msg_id);
 		if( dc_msg_is_sent(msg) ) {
 			break;
 		}
@@ -539,7 +539,7 @@ char* dc_initiate_key_transfer(dc_context_t* mailbox)
 		msg = NULL;
 	}
 
-	dc_log_info(mailbox, 0, "... setup message sent.");
+	dc_log_info(context, 0, "... setup message sent.");
 
 	success = 1;
 
@@ -548,12 +548,12 @@ cleanup:
 	free(setup_file_name);
 	free(setup_file_content);
 	dc_msg_unref(msg);
-	dc_free_ongoing(mailbox);
+	dc_free_ongoing(context);
 	return setup_code;
 }
 
 
-static int set_self_key(dc_context_t* mailbox, const char* armored, int set_default)
+static int set_self_key(dc_context_t* context, const char* armored, int set_default)
 {
 	int            success      = 0;
 	int            locked       = 0;
@@ -567,22 +567,22 @@ static int set_self_key(dc_context_t* mailbox, const char* armored, int set_defa
 	buf = safe_strdup(armored);
 	if( !dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
 	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
-		dc_log_warning(mailbox, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
+		dc_log_warning(context, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
 	if( !dc_key_set_from_base64(private_key, buf_base64, MR_PRIVATE)
-	 || !dc_pgp_is_valid_key(mailbox, private_key)
-	 || !dc_pgp_split_key(mailbox, private_key, public_key) ) {
-		dc_log_error(mailbox, 0, "File does not contain a valid private key.");
+	 || !dc_pgp_is_valid_key(context, private_key)
+	 || !dc_pgp_split_key(context, private_key, public_key) ) {
+		dc_log_error(context, 0, "File does not contain a valid private key.");
 		goto cleanup;
 	}
 
 	/* add keypair; before this, delete other keypairs with the same binary key and reset defaults */
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+		stmt = dc_sqlite3_prepare_v2_(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
 		sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
 		sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
 		sqlite3_step(stmt);
@@ -590,32 +590,32 @@ static int set_self_key(dc_context_t* mailbox, const char* armored, int set_defa
 		stmt = NULL;
 
 		if( set_default ) {
-			dc_sqlite3_execute__(mailbox->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+			dc_sqlite3_execute__(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
 		}
 
-		self_addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", NULL);
-		if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, set_default, mailbox->m_sql) ) {
-			dc_log_error(mailbox, 0, "Cannot save keypair.");
+		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+		if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, set_default, context->m_sql) ) {
+			dc_log_error(context, 0, "Cannot save keypair.");
 			goto cleanup;
 		}
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if( buf_preferencrypt ) {
 		if( strcmp(buf_preferencrypt, "nopreference")==0 ) {
-			dc_set_config_int(mailbox, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
+			dc_set_config_int(context, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
 		}
 		else if( strcmp(buf_preferencrypt, "mutual")==0 ) {
-			dc_set_config_int(mailbox, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
+			dc_set_config_int(context, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
 		}
 	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	free(buf);
 	free(self_addr);
@@ -637,7 +637,7 @@ cleanup:
  *
  * @memberof dc_context_t
  *
- * @param mailbox The mailbox object.
+ * @param context The context object.
  * @param msg_id ID of the setup message to decrypt.
  * @param setup_code Setup code entered by the user. This is the same setup code as returned from
  *     dc_initiate_key_transfer() on the other device.
@@ -647,7 +647,7 @@ cleanup:
  * @return 1=key successfully decrypted and imported; both devices will use the same key now;
  *     0=key transfer failed eg. due to a bad setup code.
  */
-int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char* setup_code)
+int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char* setup_code)
 {
 	int      success     = 0;
 	dc_msg_t* msg         = NULL;
@@ -657,32 +657,32 @@ int dc_continue_key_transfer(dc_context_t* mailbox, uint32_t msg_id, const char*
 	char*    armored_key = NULL;
 	char*    norm_sc     = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
 		goto cleanup;
 	}
 
-	if( (msg=dc_get_msg(mailbox, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
+	if( (msg=dc_get_msg(context, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
 	 || (filename=dc_msg_get_file(msg))==NULL || filename[0]==0 ) {
-		dc_log_error(mailbox, 0, "Message is no Autocrypt Setup Message.");
+		dc_log_error(context, 0, "Message is no Autocrypt Setup Message.");
 		goto cleanup;
 	}
 
 	if( !mr_read_file(filename, (void**)&filecontent, &filebytes, msg->m_context) || filecontent == NULL || filebytes <= 0 ) {
-		dc_log_error(mailbox, 0, "Cannot read Autocrypt Setup Message file.");
+		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
 
-	if( (norm_sc = dc_normalize_setup_code(mailbox, setup_code))==NULL ) {
-		dc_log_warning(mailbox, 0, "Cannot normalize Setup Code.");
+	if( (norm_sc = dc_normalize_setup_code(context, setup_code))==NULL ) {
+		dc_log_warning(context, 0, "Cannot normalize Setup Code.");
 		goto cleanup;
 	}
 
-	if( (armored_key=dc_decrypt_setup_file(mailbox, norm_sc, filecontent)) == NULL ) {
-		dc_log_warning(mailbox, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
+	if( (armored_key=dc_decrypt_setup_file(context, norm_sc, filecontent)) == NULL ) {
+		dc_log_warning(context, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
-	if( !set_self_key(mailbox, armored_key, 1/*set default*/) ) {
+	if( !set_self_key(context, armored_key, 1/*set default*/) ) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -703,7 +703,7 @@ cleanup:
  ******************************************************************************/
 
 
-static void export_key_to_asc_file(dc_context_t* mailbox, const char* dir, int id, const dc_key_t* key, int is_default)
+static void export_key_to_asc_file(dc_context_t* context, const char* dir, int id, const dc_key_t* key, int is_default)
 {
 	char* file_name;
 	if( is_default ) {
@@ -712,17 +712,17 @@ static void export_key_to_asc_file(dc_context_t* mailbox, const char* dir, int i
 	else {
 		file_name = mr_mprintf("%s/%s-key-%i.asc", dir, key->m_type==MR_PUBLIC? "public" : "private", id);
 	}
-	dc_log_info(mailbox, 0, "Exporting key %s", file_name);
-	mr_delete_file(file_name, mailbox);
-	if( dc_key_render_asc_to_file(key, file_name, mailbox) ) {
-		mailbox->m_cb(mailbox, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
-		dc_log_error(mailbox, 0, "Cannot write key to %s", file_name);
+	dc_log_info(context, 0, "Exporting key %s", file_name);
+	mr_delete_file(file_name, context);
+	if( dc_key_render_asc_to_file(key, file_name, context) ) {
+		context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+		dc_log_error(context, 0, "Cannot write key to %s", file_name);
 	}
 	free(file_name);
 }
 
 
-static int export_self_keys(dc_context_t* mailbox, const char* dir)
+static int export_self_keys(dc_context_t* context, const char* dir)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -731,10 +731,10 @@ static int export_self_keys(dc_context_t* mailbox, const char* dir)
 	dc_key_t*      private_key = dc_key_new();
 	int           locked = 0;
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( (stmt=dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+		if( (stmt=dc_sqlite3_prepare_v2_(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 			goto cleanup;
 		}
 
@@ -743,14 +743,14 @@ static int export_self_keys(dc_context_t* mailbox, const char* dir)
 			dc_key_set_from_stmt(public_key,  stmt, 1, MR_PUBLIC);
 			dc_key_set_from_stmt(private_key, stmt, 2, MR_PRIVATE);
 			is_default = sqlite3_column_int( stmt, 3  );
-			export_key_to_asc_file(mailbox, dir, id, public_key,  is_default);
-			export_key_to_asc_file(mailbox, dir, id, private_key, is_default);
+			export_key_to_asc_file(context, dir, id, public_key,  is_default);
+			export_key_to_asc_file(context, dir, id, private_key, is_default);
 		}
 
 		success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	dc_key_unref(public_key);
 	dc_key_unref(private_key);
@@ -763,7 +763,7 @@ cleanup:
  ******************************************************************************/
 
 
-static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
+static int import_self_keys(dc_context_t* context, const char* dir_name)
 {
 	/* hint: even if we switch to import Autocrypt Setup Files, we should leave the possibility to import
 	plain ASC keys, at least keys without a password, if we do not want to implement a password entry function.
@@ -784,11 +784,11 @@ static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
 	char*          buf2 = NULL;
 	const char*    buf2_headerline; // a pointer inside buf2, MUST NOT be free()'d
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || dir_name==NULL ) {
+	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || dir_name==NULL ) {
 		goto cleanup;
 	}
 	if( (dir_handle=opendir(dir_name))==NULL ) {
-		dc_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", dir_name);
+		dc_log_error(context, 0, "Import: Cannot open directory \"%s\".", dir_name);
 		goto cleanup;
 	}
 
@@ -802,11 +802,11 @@ static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
 
 		free(path_plus_name);
 		path_plus_name = mr_mprintf("%s/%s", dir_name, dir_entry->d_name/* name without path; may also be `.` or `..` */);
-		dc_log_info(mailbox, 0, "Checking: %s", path_plus_name);
+		dc_log_info(context, 0, "Checking: %s", path_plus_name);
 
 		free(buf);
 		buf = NULL;
-		if( !mr_read_file(path_plus_name, (void**)&buf, &buf_bytes, mailbox)
+		if( !mr_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
 		 || buf_bytes < 50 ) {
 			continue;
 		}
@@ -827,11 +827,11 @@ static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
 
 		set_default = 1;
 		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
-			dc_log_info(mailbox, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
+			dc_log_info(context, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
-		if( !set_self_key(mailbox, private_key, set_default) ) {
+		if( !set_self_key(context, private_key, set_default) ) {
 			continue;
 		}
 
@@ -839,7 +839,7 @@ static int import_self_keys(dc_context_t* mailbox, const char* dir_name)
 	}
 
 	if( imported_count == 0 ) {
-		dc_log_error(mailbox, 0, "No private keys found in \"%s\".", dir_name);
+		dc_log_error(context, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
 
@@ -865,10 +865,10 @@ The macro avoids weird values of 0% or 100% while still working. */
 	int permille = (processed_files_count*1000)/total_files_count; \
 	if( permille <  10 ) { permille =  10; } \
 	if( permille > 990 ) { permille = 990; } \
-	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, permille, 0);
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, permille, 0);
 
 
-static int export_backup(dc_context_t* mailbox, const char* dir)
+static int export_backup(dc_context_t* context, const char* dir)
 {
 	int            success = 0, locked = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
@@ -893,31 +893,31 @@ static int export_backup(dc_context_t* mailbox, const char* dir)
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
 		if( (dest_pathNfilename=mr_get_fine_pathNfilename(dir, buffer))==NULL ) {
-			dc_log_error(mailbox, 0, "Cannot get backup file name.");
+			dc_log_error(context, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
-	dc_sqlite3_close__(mailbox->m_sql);
+	dc_sqlite3_close__(context->m_sql);
 	closed = 1;
 
 	/* copy file to backup directory */
-	dc_log_info(mailbox, 0, "Backup \"%s\" to \"%s\".", mailbox->m_dbfile, dest_pathNfilename);
-	if( !mr_copy_file(mailbox->m_dbfile, dest_pathNfilename, mailbox) ) {
+	dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
+	if( !mr_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
 		goto cleanup; /* error already logged */
 	}
 
 	/* unlock and re-open the source and make it availabe again for the normal use */
-	dc_sqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0);
+	dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0);
 	closed = 0;
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
-	if( (dest_sql=dc_sqlite3_new(mailbox/*for logging only*/))==NULL
+	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
 	 || !dc_sqlite3_open__(dest_sql, dest_pathNfilename, 0) ) {
 		goto cleanup; /* error already logged */
 	}
@@ -930,8 +930,8 @@ static int export_backup(dc_context_t* mailbox, const char* dir)
 
 	/* scan directory, pass 1: collect file info */
 	total_files_count = 0;
-	if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
-		dc_log_error(mailbox, 0, "Backup: Cannot get info for blob-directory \"%s\".", mailbox->m_blobdir);
+	if( (dir_handle=opendir(context->m_blobdir))==NULL ) {
+		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->m_blobdir);
 		goto cleanup;
 	}
 
@@ -945,8 +945,8 @@ static int export_backup(dc_context_t* mailbox, const char* dir)
 	if( total_files_count>0 )
 	{
 		/* scan directory, pass 2: copy files */
-		if( (dir_handle=opendir(mailbox->m_blobdir))==NULL ) {
-			dc_log_error(mailbox, 0, "Backup: Cannot copy from blob-directory \"%s\".", mailbox->m_blobdir);
+		if( (dir_handle=opendir(context->m_blobdir))==NULL ) {
+			dc_log_error(context, 0, "Backup: Cannot copy from blob-directory \"%s\".", context->m_blobdir);
 			goto cleanup;
 		}
 
@@ -965,22 +965,22 @@ static int export_backup(dc_context_t* mailbox, const char* dir)
 			if( (name_len==1 && name[0]=='.')
 			 || (name_len==2 && name[0]=='.' && name[1]=='.')
 			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0) ) {
-				//dc_log_info(mailbox, 0, "Backup: Skipping \"%s\".", name);
+				//dc_log_info(context, 0, "Backup: Skipping \"%s\".", name);
 				continue;
 			}
 
-			//dc_log_info(mailbox, 0, "Backup \"%s\".", name);
+			//dc_log_info(context, 0, "Backup \"%s\".", name);
 			free(curr_pathNfilename);
-			curr_pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, name);
+			curr_pathNfilename = mr_mprintf("%s/%s", context->m_blobdir, name);
 			free(buf);
-			if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, mailbox) || buf==NULL || buf_bytes<=0 ) {
+			if( !mr_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0 ) {
 				continue;
 			}
 
 			sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 			sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
 			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
-				dc_log_error(mailbox, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
+				dc_log_error(context, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
 				goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
 			}
 			sqlite3_reset(stmt);
@@ -988,25 +988,25 @@ static int export_backup(dc_context_t* mailbox, const char* dir)
 	}
 	else
 	{
-		dc_log_info(mailbox, 0, "Backup: No files to copy.", mailbox->m_blobdir);
+		dc_log_info(context, 0, "Backup: No files to copy.", context->m_blobdir);
 	}
 
 	/* done - set some special config values (do this last to avoid importing crashed backups) */
 	dc_sqlite3_set_config_int__(dest_sql, "backup_time", now);
-	dc_sqlite3_set_config__    (dest_sql, "backup_for", mailbox->m_blobdir);
+	dc_sqlite3_set_config__    (dest_sql, "backup_for", context->m_blobdir);
 
-	mailbox->m_cb(mailbox, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
+	context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
 	success = 1;
 
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
-	if( closed ) { dc_sqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0); }
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( closed ) { dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
 	dc_sqlite3_unref(dest_sql);
-	if( delete_dest_file ) { mr_delete_file(dest_pathNfilename, mailbox); }
+	if( delete_dest_file ) { mr_delete_file(dest_pathNfilename, context); }
 	free(dest_pathNfilename);
 
 	free(curr_pathNfilename);
@@ -1032,7 +1032,7 @@ static void ensure_no_slash(char* path)
 }
 
 
-static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
+static int import_backup(dc_context_t* context, const char* backup_to_import)
 {
 	/* command for testing eg.
 	imex import-backup /home/bpetersen/temp/delta-chat-2017-11-14.bak
@@ -1046,46 +1046,46 @@ static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
 	char*         repl_from = NULL;
 	char*         repl_to = NULL;
 
-	dc_log_info(mailbox, 0, "Import \"%s\" to \"%s\".", backup_to_import, mailbox->m_dbfile);
+	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->m_dbfile);
 
-	if( dc_is_configured(mailbox) ) {
-		dc_log_error(mailbox, 0, "Cannot import backups to mailboxes in use.");
+	if( dc_is_configured(context) ) {
+		dc_log_error(context, 0, "Cannot import backups to mailboxes in use.");
 		goto cleanup;
 	}
 
 	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-	if( dc_sqlite3_is_open(mailbox->m_sql) ) {
-		dc_sqlite3_close__(mailbox->m_sql);
+	if( dc_sqlite3_is_open(context->m_sql) ) {
+		dc_sqlite3_close__(context->m_sql);
 	}
 
-	mr_delete_file(mailbox->m_dbfile, mailbox);
+	mr_delete_file(context->m_dbfile, context);
 
-	if( mr_file_exist(mailbox->m_dbfile) ) {
-		dc_log_error(mailbox, 0, "Cannot import backups: Cannot delete the old file.");
+	if( mr_file_exist(context->m_dbfile) ) {
+		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
 	/* copy the database file */
-	if( !mr_copy_file(backup_to_import, mailbox->m_dbfile, mailbox) ) {
+	if( !mr_copy_file(backup_to_import, context->m_dbfile, context) ) {
 		goto cleanup; /* error already logged */
 	}
 
 	/* re-open copied database file */
-	if( !dc_sqlite3_open__(mailbox->m_sql, mailbox->m_dbfile, 0) ) {
+	if( !dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0) ) {
 		goto cleanup;
 	}
 
 	/* copy all blobs to files */
-	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
 	sqlite3_step(stmt);
 	total_files_count = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
+	stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		if( mr_shall_stop_ongoing ) {
@@ -1100,9 +1100,9 @@ static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
 
         if( file_bytes > 0 && file_content ) {
 			free(pathNfilename);
-			pathNfilename = mr_mprintf("%s/%s", mailbox->m_blobdir, file_name);
-			if( !mr_write_file(pathNfilename, file_content, file_bytes, mailbox) ) {
-				dc_log_error(mailbox, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
+			pathNfilename = mr_mprintf("%s/%s", context->m_blobdir, file_name);
+			if( !mr_write_file(pathNfilename, file_content, file_bytes, context) ) {
+				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
 			}
 		}
@@ -1111,34 +1111,34 @@ static int import_backup(dc_context_t* mailbox, const char* backup_to_import)
 	/* finalize/reset all statements - otherwise the table cannot be DROPped below */
 	sqlite3_finalize(stmt);
 	stmt = 0;
-	dc_sqlite3_reset_all_predefinitions(mailbox->m_sql);
+	dc_sqlite3_reset_all_predefinitions(context->m_sql);
 
-	dc_sqlite3_execute__(mailbox->m_sql, "DROP TABLE backup_blobs;");
-	dc_sqlite3_execute__(mailbox->m_sql, "VACUUM;");
+	dc_sqlite3_execute__(context->m_sql, "DROP TABLE backup_blobs;");
+	dc_sqlite3_execute__(context->m_sql, "VACUUM;");
 
 	/* rewrite references to the blobs */
-	repl_from = dc_sqlite3_get_config__(mailbox->m_sql, "backup_for", NULL);
-	if( repl_from && strlen(repl_from)>1 && mailbox->m_blobdir && strlen(mailbox->m_blobdir)>1 )
+	repl_from = dc_sqlite3_get_config__(context->m_sql, "backup_for", NULL);
+	if( repl_from && strlen(repl_from)>1 && context->m_blobdir && strlen(context->m_blobdir)>1 )
 	{
 		ensure_no_slash(repl_from);
-		repl_to = safe_strdup(mailbox->m_blobdir);
+		repl_to = safe_strdup(context->m_blobdir);
 		ensure_no_slash(repl_to);
 
-		dc_log_info(mailbox, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
+		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
 
 		assert( 'f' == MRP_FILE );
 		assert( 'i' == MRP_PROFILE_IMAGE );
 
 		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use mr_mprintf() because of "%q" */
-			dc_sqlite3_execute__(mailbox->m_sql, q3);
+			dc_sqlite3_execute__(context->m_sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute__(mailbox->m_sql, q3);
+			dc_sqlite3_execute__(context->m_sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE contacts SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute__(mailbox->m_sql, q3);
+			dc_sqlite3_execute__(context->m_sql, q3);
 		sqlite3_free(q3);
 	}
 
@@ -1149,7 +1149,7 @@ cleanup:
 	free(repl_from);
 	free(repl_to);
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
+	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	return success;
 }
 
@@ -1172,7 +1172,7 @@ cleanup:
  *
  * - **DC_IMEX_IMPORT_BACKUP** (12) - `param1` is the file (not: directory) to import. The file is normally
  *   created by DC_IMEX_EXPORT_BACKUP and detected by dc_imex_has_backup(). Importing a backup
- *   is only possible as long as the mailbox is not configured or used in another way.
+ *   is only possible as long as the context is not configured or used in another way.
  *
  * - **DC_IMEX_EXPORT_SELF_KEYS** (1) - Export all private keys and all public keys of the user to the
  *   directory given as `param1`.  The default key is written to the files `public-key-default.asc`
@@ -1195,7 +1195,7 @@ cleanup:
  *
  * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by dc_context_new().
+ * @param context The context as created by dc_context_new().
  * @param what One of the DC_IMEX_* constants.
  * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
  *     a slash (otherwise you'll get double slashes when receiving #DC_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
@@ -1203,63 +1203,63 @@ cleanup:
  *
  * @return 1=success, 0=error or progress canceled.
  */
-int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* param2)
+int dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
 {
 	int success = 0;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC || mailbox->m_sql==NULL ) {
+	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql==NULL ) {
 		return 0;
 	}
 
-	if( !dc_alloc_ongoing(mailbox) ) {
+	if( !dc_alloc_ongoing(context) ) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
 
 	if( param1 == NULL ) {
-		dc_log_error(mailbox, 0, "No Import/export dir/file given.");
+		dc_log_error(context, 0, "No Import/export dir/file given.");
 		return 0;
 	}
 
-	dc_log_info(mailbox, 0, "Import/export process started.");
-	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, 0, 0);
+	dc_log_info(context, 0, "Import/export process started.");
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 0, 0);
 
-	if( !dc_sqlite3_is_open(mailbox->m_sql) ) {
-		dc_log_error(mailbox, 0, "Import/export: Database not opened.");
+	if( !dc_sqlite3_is_open(context->m_sql) ) {
+		dc_log_error(context, 0, "Import/export: Database not opened.");
 		goto cleanup;
 	}
 
 	if( what==MR_IMEX_EXPORT_SELF_KEYS || what==MR_IMEX_EXPORT_BACKUP ) {
 		/* before we export anything, make sure the private key exists */
-		if( !dc_ensure_secret_key_exists(mailbox) ) {
-			dc_log_error(mailbox, 0, "Import/export: Cannot create private key or private key not available.");
+		if( !dc_ensure_secret_key_exists(context) ) {
+			dc_log_error(context, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
 		/* also make sure, the directory for exporting exists */
-		mr_create_folder(param1, mailbox);
+		mr_create_folder(param1, context);
 	}
 
 	switch( what )
 	{
 		case MR_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys(mailbox, param1) ) {
+			if( !export_self_keys(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
 		case MR_IMEX_IMPORT_SELF_KEYS:
-			if( !import_self_keys(mailbox, param1) ) {
+			if( !import_self_keys(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
 		case MR_IMEX_EXPORT_BACKUP:
-			if( !export_backup(mailbox, param1) ) {
+			if( !export_backup(context, param1) ) {
 				goto cleanup;
 			}
 			break;
 
 		case MR_IMEX_IMPORT_BACKUP:
-			if( !import_backup(mailbox, param1) ) {
+			if( !import_backup(context, param1) ) {
 				goto cleanup;
 			}
 			break;
@@ -1269,11 +1269,11 @@ int dc_imex(dc_context_t* mailbox, int what, const char* param1, const char* par
 	}
 
 	success = 1;
-	mailbox->m_cb(mailbox, DC_EVENT_IMEX_PROGRESS, 1000, 0);
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 1000, 0);
 
 cleanup:
-	dc_log_info(mailbox, 0, "Import/export process ended.");
-	dc_free_ongoing(mailbox);
+	dc_log_info(context, 0, "Import/export process ended.");
+	dc_free_ongoing(context);
 	return success;
 }
 
@@ -1285,7 +1285,7 @@ cleanup:
  *
  * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by dc_context_new().
+ * @param context The context as created by dc_context_new().
  * @param dir_name Directory to search backups in.
  *
  * @return String with the backup file, typically given to dc_imex(), returned strings must be free()'d.
@@ -1310,12 +1310,12 @@ cleanup:
  *     return 1;
  * }
  *
- * if( !dc_is_configured(mailbox) )
+ * if( !dc_is_configured(context) )
  * {
  *     char* file = NULL;
- *     if( (file=dc_imex_has_backup(mailbox, dir))!=NULL && ask_user_whether_to_import() )
+ *     if( (file=dc_imex_has_backup(context, dir))!=NULL && ask_user_whether_to_import() )
  *     {
- *         dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, file, NULL);
+ *         dc_imex(context, DC_IMEX_IMPORT_BACKUP, file, NULL);
  *         // connect
  *     }
  *     else
@@ -1329,7 +1329,7 @@ cleanup:
  * }
  * ```
  */
-char* dc_imex_has_backup(dc_context_t* mailbox, const char* dir_name)
+char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 {
 	char*          ret = NULL;
 	time_t         ret_backup_time = 0;
@@ -1340,12 +1340,12 @@ char* dc_imex_has_backup(dc_context_t* mailbox, const char* dir_name)
 	char*          curr_pathNfilename = NULL;
 	dc_sqlite3_t*   test_sql = NULL;
 
-	if( mailbox == NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return NULL;
 	}
 
 	if( (dir_handle=opendir(dir_name))==NULL ) {
-		dc_log_info(mailbox, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
+		dc_log_info(context, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
 		goto cleanup;
 	}
 
@@ -1359,7 +1359,7 @@ char* dc_imex_has_backup(dc_context_t* mailbox, const char* dir_name)
 			curr_pathNfilename = mr_mprintf("%s/%s", dir_name, name);
 
 			dc_sqlite3_unref(test_sql);
-			if( (test_sql=dc_sqlite3_new(mailbox/*for logging only*/))!=NULL
+			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
 			 && dc_sqlite3_open__(test_sql, curr_pathNfilename, MR_OPEN_READONLY) )
 			{
 				time_t curr_backup_time = dc_sqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
@@ -1390,12 +1390,12 @@ cleanup:
  *
  * @memberof dc_context_t
  *
- * @param mailbox Mailbox object as created by dc_context_new().
+ * @param context The context as created by dc_context_new().
  * @param test_pw Password to check.
  *
  * @return 1=user is authorized, 0=user is not authorized.
  */
-int dc_check_password(dc_context_t* mailbox, const char* test_pw)
+int dc_check_password(dc_context_t* context, const char* test_pw)
 {
 	/* Check if the given password matches the configured mail_pw.
 	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.
@@ -1403,15 +1403,15 @@ int dc_check_password(dc_context_t* mailbox, const char* test_pw)
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	int             success = 0;
 
-	if( mailbox==NULL || mailbox->m_magic != MR_MAILBOX_MAGIC ) {
+	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(mailbox->m_sql);
+	dc_sqlite3_lock(context->m_sql);
 
-		dc_loginparam_read__(loginparam, mailbox->m_sql, "configured_");
+		dc_loginparam_read__(loginparam, context->m_sql, "configured_");
 
-	dc_sqlite3_unlock(mailbox->m_sql);
+	dc_sqlite3_unlock(context->m_sql);
 
 	if( (loginparam->m_mail_pw==NULL || loginparam->m_mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
 		/* both empty or unset */
