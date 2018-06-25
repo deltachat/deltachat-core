@@ -207,7 +207,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 			dc_sqlite3_execute__(ths, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
 			dc_sqlite3_execute__(ths, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
 			dc_sqlite3_execute__(ths, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'device',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
-			#if !defined(MR_ORIGIN_INTERNAL) || MR_ORIGIN_INTERNAL!=262144
+			#if !defined(DC_ORIGIN_INTERNAL) || DC_ORIGIN_INTERNAL!=262144
 				#error
 			#endif
 
@@ -223,10 +223,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* ths, const char* dbfile, int flags)
 			dc_sqlite3_execute__(ths, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
 			dc_sqlite3_execute__(ths, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
 			dc_sqlite3_execute__(ths, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'rsvd'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'starred'), (6,120,'archivedlink'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
-			#if !defined(MR_CHAT_TYPE_SINGLE) || MR_CHAT_TYPE_SINGLE!=100 || MR_CHAT_TYPE_GROUP!=120 || \
-			 MR_CHAT_ID_DEADDROP!=1 || MR_CHAT_ID_TRASH!=3 || \
-			 MR_CHAT_ID_MSGS_IN_CREATION!=4 || MR_CHAT_ID_STARRED!=5 || MR_CHAT_ID_ARCHIVED_LINK!=6 || \
-			 MR_CHAT_NOT_BLOCKED!=0  || MR_CHAT_MANUALLY_BLOCKED!=1 || MR_CHAT_DEADDROP_BLOCKED!=2
+			#if !defined(DC_CHAT_TYPE_SINGLE) || DC_CHAT_TYPE_SINGLE!=100 || DC_CHAT_TYPE_GROUP!=120 || \
+			 DC_CHAT_ID_DEADDROP!=1 || DC_CHAT_ID_TRASH!=3 || \
+			 DC_CHAT_ID_MSGS_IN_CREATION!=4 || DC_CHAT_ID_STARRED!=5 || DC_CHAT_ID_ARCHIVED_LINK!=6 || \
+			 DC_CHAT_NOT_BLOCKED!=0  || DC_CHAT_MANUALLY_BLOCKED!=1 || DC_CHAT_DEADDROP_BLOCKED!=2
 				#error
 			#endif
 

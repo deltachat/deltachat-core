@@ -50,11 +50,11 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 	/* format message from variable parameters or translate very comming errors */
 	if( code == DC_ERROR_SELF_NOT_IN_GROUP )
 	{
-		msg = mrstock_str(MR_STR_SELFNOTINGRP);
+		msg = dc_stock_str(DC_STR_SELFNOTINGRP);
 	}
 	else if( code == DC_ERROR_NO_NETWORK )
 	{
-		msg = mrstock_str(MR_STR_NONETWORK);
+		msg = dc_stock_str(DC_STR_NONETWORK);
 	}
 	else if( msg_format )
 	{
@@ -79,7 +79,7 @@ static void log_vprintf(dc_context_t* mailbox, int event, int code, const char* 
 		free(mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos]);
 		mailbox->m_log_ringbuf[mailbox->m_log_ringbuf_pos] = msg;
 		mailbox->m_log_ringbuf_times[mailbox->m_log_ringbuf_pos] = time(NULL);
-		mailbox->m_log_ringbuf_pos = (mailbox->m_log_ringbuf_pos+1) % MR_LOG_RINGBUF_SIZE;
+		mailbox->m_log_ringbuf_pos = (mailbox->m_log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
 	pthread_mutex_unlock(&mailbox->m_log_ringbuf_critical);
 }
 

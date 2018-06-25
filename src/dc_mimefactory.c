@@ -96,7 +96,7 @@ static void load_from__(dc_mimefactory_t* factory)
 
 	factory->m_selfstatus       = dc_sqlite3_get_config__(factory->m_context->m_sql, "selfstatus", NULL);
 	if( factory->m_selfstatus == NULL ) {
-		factory->m_selfstatus = mrstock_str(MR_STR_STATUSLINE);
+		factory->m_selfstatus = dc_stock_str(DC_STR_STATUSLINE);
 	}
 }
 
@@ -105,7 +105,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 {
 	int success = 0, locked = 0;
 
-	if( factory == NULL || msg_id <= MR_MSG_ID_LAST_SPECIAL
+	if( factory == NULL || msg_id <= DC_MSG_ID_LAST_SPECIAL
 	 || factory->m_context == NULL
 	 || factory->m_msg /*call empty() before */ ) {
 		goto cleanup;
@@ -139,7 +139,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 					"SELECT c.authname, c.addr "
 					" FROM chats_contacts cc "
 					" LEFT JOIN contacts c ON cc.contact_id=c.id "
-					" WHERE cc.chat_id=? AND cc.contact_id>" DC_STRINGIFY(MR_CONTACT_ID_LAST_SPECIAL) ";");
+					" WHERE cc.chat_id=? AND cc.contact_id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";");
 				sqlite3_bind_int(stmt, 1, factory->m_msg->m_chat_id);
 				while( sqlite3_step(stmt) == SQLITE_ROW )
 				{
@@ -189,7 +189,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			sqlite3_stmt* stmt = dc_sqlite3_predefine__(mailbox->m_sql, SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1,
 				"SELECT rfc724_mid FROM msgs WHERE timestamp=(SELECT max(timestamp) FROM msgs WHERE chat_id=? AND from_id!=?);");
 			sqlite3_bind_int  (stmt, 1, factory->m_msg->m_chat_id);
-			sqlite3_bind_int  (stmt, 2, MR_CONTACT_ID_SELF);
+			sqlite3_bind_int  (stmt, 2, DC_CONTACT_ID_SELF);
 			if( sqlite3_step(stmt) == SQLITE_ROW ) {
 				factory->m_predecessor = strdup_keep_null((const char*)sqlite3_column_text(stmt, 0));
 			}
@@ -268,11 +268,11 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		}
 
 		if( contact->m_blocked
-		 || factory->m_msg->m_chat_id<=MR_CHAT_ID_LAST_SPECIAL/* Do not send MDNs trash etc.; chats.blocked is already checked by the caller in dc_markseen_msgs() */ ) {
+		 || factory->m_msg->m_chat_id<=DC_CHAT_ID_LAST_SPECIAL/* Do not send MDNs trash etc.; chats.blocked is already checked by the caller in dc_markseen_msgs() */ ) {
 			goto cleanup;
 		}
 
-		if( factory->m_msg->m_from_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+		if( factory->m_msg->m_from_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 			goto cleanup;
 		}
 
@@ -447,15 +447,15 @@ static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_em
 
 	if( dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE )
 	{
-		ret = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
+		ret = dc_stock_str(DC_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
-	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
+	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
-		ret = dc_mprintf(MR_CHAT_PREFIX " %s: %s%s", chat->m_name, fwd, raw_subject);
+		ret = dc_mprintf(DC_CHAT_PREFIX " %s: %s%s", chat->m_name, fwd, raw_subject);
 	}
 	else
 	{
-		ret = dc_mprintf(MR_CHAT_PREFIX " %s%s", fwd, raw_subject);
+		ret = dc_mprintf(DC_CHAT_PREFIX " %s%s", fwd, raw_subject);
 	}
 
 	free(raw_subject);
@@ -550,7 +550,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		struct mailmime* meta_part = NULL;
 		char* placeholdertext = NULL;
 
-		if( chat->m_type == MR_CHAT_TYPE_VERIFIED_GROUP ) {
+		if( chat->m_type == DC_CHAT_TYPE_VERIFIED_GROUP ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Verified"), strdup("1")));
 			force_plaintext   = 0;
 			e2ee_guaranteed   = 1;
@@ -564,7 +564,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 		/* build header etc. */
 		int command = dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0);
-		if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
+		if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 		{
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-ID"), safe_strdup(chat->m_grpid)));
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Chat-Group-Name"), dc_encode_header_words(chat->m_name)));
@@ -605,7 +605,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 		if( command == DC_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
-			placeholdertext = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
+			placeholdertext = dc_stock_str(DC_STR_AC_SETUP_MSG_BODY);
 		}
 
 		if( command == DC_CMD_SECUREJOIN_MESSAGE ) {
@@ -725,12 +725,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		/* first body part: always human-readable, always REQUIRED by RFC 6522 */
 		char *p1 = NULL, *p2 = NULL;
 		if( dc_param_get_int(factory->m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) ) {
-			p1 = mrstock_str(MR_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
+			p1 = dc_stock_str(DC_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
 		}
 		else {
 			p1 = dc_msg_get_summarytext(factory->m_msg, APPROX_SUBJECT_CHARS);
 		}
-		p2 = mrstock_str_repl_string(MR_STR_READRCPT_MAILBODY, p1);
+		p2 = dc_stock_str_repl_string(DC_STR_READRCPT_MAILBODY, p1);
 		message_text = dc_mprintf("%s" LINEEND, p2);
 		free(p2);
 		free(p1);
@@ -778,7 +778,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	 *************************************************************************/
 
 	if( factory->m_loaded==DC_MF_MDN_LOADED ) {
-		char* e = mrstock_str(MR_STR_READRCPT); subject_str = dc_mprintf(MR_CHAT_PREFIX " %s", e); free(e);
+		char* e = dc_stock_str(DC_STR_READRCPT); subject_str = dc_mprintf(DC_CHAT_PREFIX " %s", e); free(e);
 	}
 	else {
 		subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);

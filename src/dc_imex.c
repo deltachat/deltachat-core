@@ -245,8 +245,8 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	/* wrap HTML-commands with instructions around the encrypted payload */
 
 	{
-		char* setup_message_title = mrstock_str(MR_STR_AC_SETUP_MSG_SUBJECT);
-		char* setup_message_body = mrstock_str(MR_STR_AC_SETUP_MSG_BODY);
+		char* setup_message_title = dc_stock_str(DC_STR_AC_SETUP_MSG_SUBJECT);
+		char* setup_message_body = dc_stock_str(DC_STR_AC_SETUP_MSG_BODY);
 
 		dc_str_replace(&setup_message_body, "\r", NULL);
 		dc_str_replace(&setup_message_body, "\n", "<br>");
@@ -502,7 +502,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 		goto cleanup;
 	}
 
-	if( (chat_id=dc_create_chat_by_contact_id(context, MR_CONTACT_ID_SELF))==0 ) {
+	if( (chat_id=dc_create_chat_by_contact_id(context, DC_CONTACT_ID_SELF))==0 ) {
 		goto cleanup;
 	}
 
@@ -657,7 +657,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 	char*    armored_key = NULL;
 	char*    norm_sc     = NULL;
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_id <= MR_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
 		goto cleanup;
 	}
 

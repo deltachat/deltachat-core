@@ -134,7 +134,7 @@ static int is_known_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid)
 			"SELECT m.id FROM msgs m "
 			" LEFT JOIN chats c ON m.chat_id=c.id "
 			" WHERE m.rfc724_mid=? "
-			" AND m.chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL)
+			" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
 			" AND c.blocked=0;");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -212,7 +212,7 @@ static int is_msgrmsg_rfc724_mid__(dc_context_t* mailbox, const char* rfc724_mid
 			"SELECT id FROM msgs "
 			" WHERE rfc724_mid=? "
 			" AND msgrmsg!=0 "
-			" AND chat_id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) ";");
+			" AND chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
 			return 1;
@@ -344,7 +344,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* mailbox, const d
 
 		for( i = 0; i < iCnt; i++ ) {
 			uint32_t curr_id = dc_array_get_id(unsorted_contact_ids, i);
-			if( curr_id != MR_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL) ) {
+			if( curr_id != DC_CONTACT_ID_SELF && !dc_array_search_id(contact_ids, curr_id, NULL) ) {
 				dc_array_add_id(contact_ids, curr_id);
 			}
 		}
@@ -362,8 +362,8 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* mailbox, const d
 	                     " FROM chats_contacts cc "
 	                     " LEFT JOIN chats c ON c.id=cc.chat_id "
 	                     " WHERE cc.chat_id IN(SELECT chat_id FROM chats_contacts WHERE contact_id IN(%s))"
-	                     "   AND c.type=" DC_STRINGIFY(MR_CHAT_TYPE_GROUP) /* no verified groups and no single chats (which are equal to a group with a single member and without SELF) */
-	                     "   AND cc.contact_id!=" DC_STRINGIFY(MR_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
+	                     "   AND c.type=" DC_STRINGIFY(DC_CHAT_TYPE_GROUP) /* no verified groups and no single chats (which are equal to a group with a single member and without SELF) */
+	                     "   AND cc.contact_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
 	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);
 	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
@@ -426,7 +426,7 @@ static char* create_adhoc_grp_id__(dc_context_t* mailbox, dc_array_t* member_ids
 	dc_strbuilder_init(&member_cs, 0);
 
 	/* collect all addresses and sort them */
-	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" DC_STRINGIFY(MR_CONTACT_ID_SELF), member_ids_str);
+	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF), member_ids_str);
 	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql, q3);
 	addr = dc_sqlite3_get_config__(mailbox->m_sql, "configured_addr", "no-self");
 	mr_strlower_in_place(addr);
@@ -480,7 +480,7 @@ static uint32_t create_group_record__(dc_context_t* mailbox, const char* grpid, 
 
 	stmt = dc_sqlite3_prepare_v2_(mailbox->m_sql,
 		"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
-	sqlite3_bind_int (stmt, 1, create_verified? MR_CHAT_TYPE_VERIFIED_GROUP : MR_CHAT_TYPE_GROUP);
+	sqlite3_bind_int (stmt, 1, create_verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
 	sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, grpid, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 4, create_blocked);
@@ -521,7 +521,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* mailbox, dc_mimeparser_
 	}
 	member_ids = dc_array_duplicate(to_ids);
 	if( !dc_array_search_id(member_ids, from_id, NULL) )            { dc_array_add_id(member_ids, from_id); }
-	if( !dc_array_search_id(member_ids, MR_CONTACT_ID_SELF, NULL) ) { dc_array_add_id(member_ids, MR_CONTACT_ID_SELF); }
+	if( !dc_array_search_id(member_ids, DC_CONTACT_ID_SELF, NULL) ) { dc_array_add_id(member_ids, DC_CONTACT_ID_SELF); }
 	if( dc_array_get_cnt(member_ids) < 3 ) {
 		goto cleanup; /* too few contacts given */
 	}
@@ -559,7 +559,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* mailbox, dc_mimeparser_
 		grpname = safe_strdup(mime_parser->m_subject);
 	}
 	else {
-		grpname = mrstock_str_repl_pl(MR_STR_MEMBER,  dc_array_get_cnt(member_ids));
+		grpname = dc_stock_str_repl_pl(DC_STR_MEMBER,  dc_array_get_cnt(member_ids));
 	}
 
 	/* create group record */
@@ -815,10 +815,10 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 	}
 
 	/* again, check chat_id */
-	if( chat_id <= MR_CHAT_ID_LAST_SPECIAL ) {
+	if( chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		chat_id = 0;
 		if( group_explicitly_left ) {
-			chat_id = MR_CHAT_ID_TRASH; /* we got a message for a chat we've deleted - do not show this even as a normal chat */
+			chat_id = DC_CHAT_ID_TRASH; /* we got a message for a chat we've deleted - do not show this even as a normal chat */
 		}
 		else {
 			create_or_lookup_adhoc_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
@@ -885,10 +885,10 @@ static void create_or_lookup_group__(dc_context_t* mailbox, dc_mimeparser_t* mim
 		sqlite3_finalize(stmt);
 
 		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
-			dc_add_to_chat_contacts_table__(mailbox, chat_id, MR_CONTACT_ID_SELF);
+			dc_add_to_chat_contacts_table__(mailbox, chat_id, DC_CONTACT_ID_SELF);
 		}
 
-		if( from_id > MR_CONTACT_ID_LAST_SPECIAL ) {
+		if( from_id > DC_CONTACT_ID_LAST_SPECIAL ) {
 			if( dc_contact_addr_equals__(mailbox, from_id, self_addr)==0
 			 && (skip==NULL || dc_contact_addr_equals__(mailbox, from_id, skip)==0) ) {
 				dc_add_to_chat_contacts_table__(mailbox, chat_id, from_id);
@@ -1031,14 +1031,14 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			{
 				int check_self;
 				dc_array_t* from_list = dc_array_new(mailbox, 16);
-				dc_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, MR_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				dc_add_or_lookup_contacts_by_mailbox_list__(mailbox, fld_from->frm_mb_list, DC_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0;
 
 					if( dc_mimeparser_sender_equals_recipient(mime_parser) )
 					{
-						from_id = MR_CONTACT_ID_SELF;
+						from_id = DC_CONTACT_ID_SELF;
 					}
 				}
 				else
@@ -1061,7 +1061,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			if( fld_to )
 			{
 				dc_add_or_lookup_contacts_by_address_list__(mailbox, fld_to->to_addr_list /*!= NULL*/,
-					outgoing? MR_ORIGIN_OUTGOING_TO : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_TO : MR_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, &to_self);
+					outgoing? DC_ORIGIN_OUTGOING_TO : (incoming_origin>=DC_ORIGIN_MIN_VERIFIED? DC_ORIGIN_INCOMING_TO : DC_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, &to_self);
 			}
 		}
 
@@ -1080,7 +1080,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 				if( fld_cc ) {
 					dc_add_or_lookup_contacts_by_address_list__(mailbox, fld_cc->cc_addr_list,
-						outgoing? MR_ORIGIN_OUTGOING_CC : (incoming_origin>=MR_ORIGIN_MIN_VERIFIED? MR_ORIGIN_INCOMING_CC : MR_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
+						outgoing? DC_ORIGIN_OUTGOING_CC : (incoming_origin>=DC_ORIGIN_MIN_VERIFIED? DC_ORIGIN_INCOMING_CC : DC_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
 				}
 			}
 
@@ -1125,8 +1125,8 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			(of course, the user can add other chats manually later) */
 			if( incoming )
 			{
-				state = (flags&MR_IMAP_SEEN)? MR_STATE_IN_SEEN : MR_STATE_IN_FRESH;
-				to_id = MR_CONTACT_ID_SELF;
+				state = (flags&MR_IMAP_SEEN)? DC_STATE_IN_SEEN : DC_STATE_IN_FRESH;
+				to_id = DC_CONTACT_ID_SELF;
 
 				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
 				assert( chat_id == 0 );
@@ -1135,7 +1135,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 					dc_sqlite3_unlock(mailbox->m_sql);
 						if( dc_handle_securejoin_handshake(mailbox, mime_parser, from_id) == MR_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 							hidden = 1;
-							state = MR_STATE_IN_SEEN;
+							state = DC_STATE_IN_SEEN;
 						}
 					dc_sqlite3_lock(mailbox->m_sql);
 					dc_sqlite3_begin_transaction__(mailbox->m_sql);
@@ -1152,7 +1152,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				{
 					/* try to create a group
 					(groups appear automatically only if the _sender_ is known, see core issue #54) */
-					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==MR_CHAT_NOT_BLOCKED) || incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==DC_CHAT_NOT_BLOCKED) || incoming_origin>=DC_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 					create_or_lookup_group__(mailbox, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 					if( chat_id && chat_id_blocked && !create_blocked ) {
 						dc_unblock_chat__(mailbox, chat_id);
@@ -1164,7 +1164,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				{
 					/* check if the message belongs to a mailing list */
 					if( dc_mimeparser_is_mailinglist_message(mime_parser) ) {
-						chat_id = MR_CHAT_ID_TRASH;
+						chat_id = DC_CHAT_ID_TRASH;
 						dc_log_info(mailbox, 0, "Message belongs to a mailing list and is ignored.");
 					}
 				}
@@ -1172,7 +1172,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				if( chat_id == 0 )
 				{
 					/* try to create a normal chat */
-					int create_blocked = (incoming_origin>=MR_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ || from_id==to_id)? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+					int create_blocked = (incoming_origin>=DC_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/ || from_id==to_id)? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 					if( test_normal_chat_id ) {
 						chat_id         = test_normal_chat_id;
 						chat_id_blocked = test_normal_chat_id_blocked;
@@ -1187,9 +1187,9 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 							chat_id_blocked = 0;
 						}
 						else if( dc_is_reply_to_known_message__(mailbox, mime_parser) ) {
-							dc_scaleup_contact_origin__(mailbox, from_id, MR_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
+							dc_scaleup_contact_origin__(mailbox, from_id, DC_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
 							dc_log_info(mailbox, 0, "Message is a reply to a known message, mark sender as known.");
-							incoming_origin = MR_MAX(incoming_origin, MR_ORIGIN_INCOMING_REPLY_TO);
+							incoming_origin = MR_MAX(incoming_origin, DC_ORIGIN_INCOMING_REPLY_TO);
 						}
 					}
 				}
@@ -1197,28 +1197,28 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				if( chat_id == 0 )
 				{
 					/* maybe from_id is null or sth. else is suspicious, move message to trash */
-					chat_id = MR_CHAT_ID_TRASH;
+					chat_id = DC_CHAT_ID_TRASH;
 				}
 
 				/* degrade state for unknown senders and non-delta messages
 				(the latter may be removed if we run into spam problems, currently this is fine)
 				(noticed messages do count as being unread; therefore, the deaddrop will not popup in the chatlist) */
-				if( chat_id_blocked && state == MR_STATE_IN_FRESH ) {
-					if( incoming_origin<MR_ORIGIN_MIN_VERIFIED && mime_parser->m_is_send_by_messenger==0 ) {
-						state = MR_STATE_IN_NOTICED;
+				if( chat_id_blocked && state == DC_STATE_IN_FRESH ) {
+					if( incoming_origin<DC_ORIGIN_MIN_VERIFIED && mime_parser->m_is_send_by_messenger==0 ) {
+						state = DC_STATE_IN_NOTICED;
 					}
 				}
 			}
 			else /* outgoing */
 			{
-				state = MR_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also delivered.  We cannot recreate other states (read, error). */
-				from_id = MR_CONTACT_ID_SELF;
+				state = DC_STATE_OUT_DELIVERED; /* the mail is on the IMAP server, probably it is also delivered.  We cannot recreate other states (read, error). */
+				from_id = DC_CONTACT_ID_SELF;
 				if( dc_array_get_cnt(to_ids) >= 1 ) {
 					to_id   = dc_array_get_id(to_ids, 0);
 
 					if( chat_id == 0 )
 					{
-						create_or_lookup_group__(mailbox, mime_parser, MR_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
+						create_or_lookup_group__(mailbox, mime_parser, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
 							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
@@ -1227,7 +1227,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 
 					if( chat_id == 0 )
 					{
-						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked__(mailbox, to_id))? MR_CHAT_NOT_BLOCKED : MR_CHAT_DEADDROP_BLOCKED;
+						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked__(mailbox, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id__(mailbox, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked && !create_blocked ) {
 							dc_unblock_chat__(mailbox, chat_id);
@@ -1238,8 +1238,8 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 
 				if( chat_id == 0 ) {
 					if( dc_array_get_cnt(to_ids) == 0 && to_self ) {
-						/* from_id == to_id == MR_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
-						dc_create_or_lookup_nchat_by_contact_id__(mailbox, MR_CONTACT_ID_SELF, MR_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
+						/* from_id == to_id == DC_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
+						dc_create_or_lookup_nchat_by_contact_id__(mailbox, DC_CONTACT_ID_SELF, DC_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
 							dc_unblock_chat__(mailbox, chat_id);
 							chat_id_blocked = 0;
@@ -1248,7 +1248,7 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 				}
 
 				if( chat_id == 0 ) {
-					chat_id = MR_CHAT_ID_TRASH;
+					chat_id = DC_CHAT_ID_TRASH;
 				}
 			}
 
@@ -1334,11 +1334,11 @@ void dc_receive_imf(dc_context_t* mailbox, const char* imf_raw_not_terminated, s
 			dc_log_info(mailbox, 0, "Message has %i parts and is assigned to chat #%i.", icnt, chat_id);
 
 			/* check event to send */
-			if( chat_id == MR_CHAT_ID_TRASH )
+			if( chat_id == DC_CHAT_ID_TRASH )
 			{
 				create_event_to_send = 0;
 			}
-			else if( incoming && state==MR_STATE_IN_FRESH )
+			else if( incoming && state==DC_STATE_IN_FRESH )
 			{
 				if( from_id_blocked ) {
 					create_event_to_send = 0;

@@ -209,14 +209,14 @@ void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		return;
 	}
 
-	if( msg->m_from_id == MR_CONTACT_ID_SELF )
+	if( msg->m_from_id == DC_CONTACT_ID_SELF )
 	{
 		if( dc_msg_is_info(msg) ) {
 			ths->m_text1 = NULL;
 			ths->m_text1_meaning = 0;
 		}
 		else {
-			ths->m_text1 = mrstock_str(MR_STR_SELF);
+			ths->m_text1 = dc_stock_str(DC_STR_SELF);
 			ths->m_text1_meaning = MR_TEXT1_SELF;
 		}
 	}
@@ -225,7 +225,7 @@ void dc_lot_fill(dc_lot_t* ths, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		ths->m_text1 = NULL;
 		ths->m_text1_meaning = 0;
 	}
-	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
+	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		if( dc_msg_is_info(msg) || contact==NULL ) {
 			ths->m_text1 = NULL;

@@ -68,13 +68,13 @@ struct _dc_context
 	char*            m_dbfile;                /**< The database file. This is the file given to dc_context_new(). */
 	char*            m_blobdir;               /**< Full path of the blob directory. This is the directory given to dc_context_new() or a directory in the same directory as dc_context_t::m_dbfile. */
 
-	dc_sqlite3_t*     m_sql;                   /**< Internal SQL object, never NULL */
+	dc_sqlite3_t*    m_sql;                   /**< Internal SQL object, never NULL */
 
-	dc_imap_t*        m_imap;                  /**< Internal IMAP object, never NULL */
+	dc_imap_t*       m_imap;                  /**< Internal IMAP object, never NULL */
 	pthread_mutex_t  m_imapidle_condmutex;
 	int              m_perform_imap_jobs_needed;
 
-	dc_smtp_t*        m_smtp;                  /**< Internal SMTP object, never NULL */
+	dc_smtp_t*       m_smtp;                  /**< Internal SMTP object, never NULL */
 	pthread_cond_t   m_smtpidle_cond;
 	pthread_mutex_t  m_smtpidle_condmutex;
 	int              m_smtpidle_condflag;
@@ -92,11 +92,11 @@ struct _dc_context
 
 	int              m_e2ee_enabled;          /**< Internal */
 
-	#define          MR_LOG_RINGBUF_SIZE 200
+	#define          DC_LOG_RINGBUF_SIZE 200
 	pthread_mutex_t  m_log_ringbuf_critical;  /**< Internal */
-	char*            m_log_ringbuf[MR_LOG_RINGBUF_SIZE];
+	char*            m_log_ringbuf[DC_LOG_RINGBUF_SIZE];
 	                                          /**< Internal */
-	time_t           m_log_ringbuf_times[MR_LOG_RINGBUF_SIZE];
+	time_t           m_log_ringbuf_times[DC_LOG_RINGBUF_SIZE];
 	                                          /**< Internal */
 	int              m_log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
 
@@ -166,7 +166,7 @@ typedef struct dc_e2ee_helper_t {
 	void* m_cdata_to_free;
 
 	// decryption
-	int       m_encrypted;  // encrypted without problems
+	int        m_encrypted;  // encrypted without problems
 	dc_hash_t* m_signatures; // fingerprints of valid signatures
 	dc_hash_t* m_gossipped_addr;
 

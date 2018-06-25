@@ -212,9 +212,9 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 				if( dc_apeerstate_load_by_fingerprint__(peerstate, context->m_sql, fingerprint) ) {
 					qr_parsed->m_state = MR_QR_FPR_OK;
-					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
-					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, MR_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
+					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, DC_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
 					device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
 				}
 				else {
@@ -242,7 +242,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 					qr_parsed->m_state = MR_QR_ASK_VERIFYCONTACT;
 				}
 
-				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 				qr_parsed->m_fingerprint   = safe_strdup(fingerprint);
 				qr_parsed->m_invitenumber  = safe_strdup(invitenumber);
 				qr_parsed->m_auth          = safe_strdup(auth);
@@ -255,7 +255,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	else if( addr )
 	{
         qr_parsed->m_state = MR_QR_ADDR;
-		qr_parsed->m_id    = dc_add_or_lookup_contact__(context, name, addr, MR_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+		qr_parsed->m_id    = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{

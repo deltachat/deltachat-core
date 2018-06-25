@@ -320,11 +320,11 @@ static int init_chat_folders__(dc_imap_t* ths)
 
 	//as a fallback, the chats_folder is created under INBOX as required e.g. for DomainFactory
 	char fallback_folder[64];
-	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", ths->m_imap_delimiter, MR_CHATS_FOLDER);
+	snprintf(fallback_folder, sizeof(fallback_folder), "INBOX%c%s", ths->m_imap_delimiter, DC_CHATS_FOLDER);
 
 	for( iter1 = clist_begin(folder_list); iter1 != NULL ; iter1 = clist_next(iter1) ) {
 		mrimapfolder_t* folder = (struct mrimapfolder_t*)clist_content(iter1);
-		if( strcmp(folder->m_name_utf8, MR_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
+		if( strcmp(folder->m_name_utf8, DC_CHATS_FOLDER)==0 || strcmp(folder->m_name_utf8, fallback_folder)==0 ) {
 			chats_folder = safe_strdup(folder->m_name_to_select);
 			break;
 		}
@@ -337,8 +337,8 @@ static int init_chat_folders__(dc_imap_t* ths)
 	}
 
 	if( chats_folder == NULL && (ths->m_server_flags&MR_NO_MOVE_TO_CHATS)==0 ) {
-		dc_log_info(ths->m_context, 0, "Creating IMAP-folder \"%s\"...", MR_CHATS_FOLDER);
-		int r = mailimap_create(ths->m_hEtpan, MR_CHATS_FOLDER);
+		dc_log_info(ths->m_context, 0, "Creating IMAP-folder \"%s\"...", DC_CHATS_FOLDER);
+		int r = mailimap_create(ths->m_hEtpan, DC_CHATS_FOLDER);
 		if( is_error(ths, r) ) {
 			dc_log_warning(ths->m_context, 0, "Cannot create IMAP-folder, using trying INBOX subfolder.");
 			r = mailimap_create(ths->m_hEtpan, fallback_folder);
@@ -352,7 +352,7 @@ static int init_chat_folders__(dc_imap_t* ths)
 			}
 		}
 		else {
-			chats_folder = safe_strdup(MR_CHATS_FOLDER);
+			chats_folder = safe_strdup(DC_CHATS_FOLDER);
 			dc_log_info(ths->m_context, 0, "IMAP-folder created.");
 		}
 	}

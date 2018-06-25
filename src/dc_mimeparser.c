@@ -1306,7 +1306,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* ths, struct mailm
 						dc_mimepart_t* part = mrmimepart_new();
 						part->m_type = MR_MSG_TEXT;
 
-						char* msg_body = mrstock_str(MR_STR_CANTDECRYPT_MSG_BODY);
+						char* msg_body = dc_stock_str(DC_STR_CANTDECRYPT_MSG_BODY);
 						part->m_msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, msg_body);
 						free(msg_body);
 
@@ -1556,7 +1556,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* ths, const char* body_not_terminated, 
 			if( (p-ths->m_subject) == 2 /*Re: etc.*/
 			 || (p-ths->m_subject) == 3 /*Fwd: etc.*/
 			 || ths->m_is_send_by_messenger
-			 || strstr(ths->m_subject, MR_CHAT_PREFIX)!=NULL ) {
+			 || strstr(ths->m_subject, DC_CHAT_PREFIX)!=NULL ) {
 				prepend_subject = 0;
 			}
 		}

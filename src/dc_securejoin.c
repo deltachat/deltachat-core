@@ -71,7 +71,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 				goto cleanup;
 			}
 
-			dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, MR_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
+			dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
 
 		UNLOCK
 
@@ -414,7 +414,7 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if( chat == NULL || chat->m_type != MR_CHAT_TYPE_VERIFIED_GROUP ) {
+		if( chat == NULL || chat->m_type != DC_CHAT_TYPE_VERIFIED_GROUP ) {
 			dc_log_error(context, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
@@ -578,7 +578,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 	char*        grpid = NULL;
 	int          ret = 0;
 
-	if( context == NULL || mimeparser == NULL || contact_id <= MR_CONTACT_ID_LAST_SPECIAL ) {
+	if( context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
@@ -589,7 +589,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
 	LOCK
-		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, MR_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
+		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
 		if( contact_chat_id_blocked ) {
 			dc_unblock_chat__(context, contact_chat_id);
 		}
@@ -723,7 +723,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 
-			dc_scaleup_contact_origin__(context, contact_id, MR_ORIGIN_SECUREJOIN_INVITED);
+			dc_scaleup_contact_origin__(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
 		UNLOCK
 
 		dc_log_info(context, 0, "Auth verified.");
@@ -796,7 +796,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 
-			dc_scaleup_contact_origin__(context, contact_id, MR_ORIGIN_SECUREJOIN_JOINED);
+			dc_scaleup_contact_origin__(context, contact_id, DC_ORIGIN_SECUREJOIN_JOINED);
 		UNLOCK
 
 		secure_connection_established(context, contact_chat_id);

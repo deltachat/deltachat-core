@@ -334,7 +334,7 @@ static void mark_as_error(dc_context_t* mailbox, dc_msg_t* msg)
 	}
 
 	dc_sqlite3_lock(mailbox->m_sql);
-		dc_update_msg_state__(mailbox, msg->m_id, MR_STATE_OUT_ERROR);
+		dc_update_msg_state__(mailbox, msg->m_id, DC_STATE_OUT_ERROR);
 	dc_sqlite3_unlock(mailbox->m_sql);
 	mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
@@ -413,7 +413,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* mailbox, dc_job_t* j
 			free(emlname);
 		}
 
-		dc_update_msg_state__(mailbox, mimefactory.m_msg->m_id, MR_STATE_OUT_DELIVERED);
+		dc_update_msg_state__(mailbox, mimefactory.m_msg->m_id, DC_STATE_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0)==0 ) {
 			dc_param_set_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk__(mimefactory.m_msg);

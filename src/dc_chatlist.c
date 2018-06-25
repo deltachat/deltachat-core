@@ -232,7 +232,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 			lastmsg = dc_msg_new();
 			dc_msg_load_from_db__(lastmsg, chatlist->m_context, lastmsg_id);
 
-			if( lastmsg->m_from_id != MR_CONTACT_ID_SELF  &&  MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
+			if( lastmsg->m_from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 			{
 				lastcontact = dc_contact_new(chatlist->m_context);
 				dc_contact_load_from_db__(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
@@ -243,7 +243,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	dc_sqlite3_unlock(chatlist->m_context->m_sql);
 	locked = 0;
 
-	if( chat->m_id == MR_CHAT_ID_ARCHIVED_LINK )
+	if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK )
 	{
 		ret->m_text2 = safe_strdup(NULL);
 	}
@@ -252,7 +252,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	      && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
 	{
 		/* show the draft as the last message */
-		ret->m_text1 = mrstock_str(MR_STR_DRAFT);
+		ret->m_text1 = dc_stock_str(DC_STR_DRAFT);
 		ret->m_text1_meaning = MR_TEXT1_DRAFT;
 
 		ret->m_text2 = safe_strdup(chat->m_draft_text);
@@ -263,7 +263,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	else if( lastmsg == NULL || lastmsg->m_from_id == 0 )
 	{
 		/* no messages */
-		ret->m_text2 = mrstock_str(MR_STR_NOMESSAGES);
+		ret->m_text2 = dc_stock_str(DC_STR_NOMESSAGES);
 	}
 	else
 	{
@@ -323,7 +323,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 	/* select example with left join and minimum: http://stackoverflow.com/questions/7588142/mysql-left-join-min */
 	#define QUR1 "SELECT c.id, m.id FROM chats c " \
 	                " LEFT JOIN msgs m ON (c.id=m.chat_id AND m.hidden=0 AND m.timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=c.id AND hidden=0)) " /* not: `m.hidden` which would refer the outer select and takes lot of time*/ \
-	                " WHERE c.id>" DC_STRINGIFY(MR_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
+	                " WHERE c.id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) " AND c.blocked=0"
 	#define QUR2    " GROUP BY c.id " /* GROUP BY is needed as there may be several messages with the same timestamp */ \
 	                " ORDER BY MAX(c.draft_timestamp, IFNULL(m.timestamp,0)) DESC,m.id DESC;" /* the list starts with the newest chats */
 
@@ -352,7 +352,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 		if( !(listflags & MR_GCL_NO_SPECIALS) ) {
 			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(ths->m_context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
-				dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
+				dc_array_add_id(ths->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
 				dc_array_add_id(ths->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
 			}
 			add_archived_link_item = 1;
@@ -384,7 +384,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* ths, int listflags, const char* qu
 
     if( add_archived_link_item && dc_get_archived_count__(ths->m_context)>0 )
     {
-		dc_array_add_id(ths->m_chatNlastmsg_ids, MR_CHAT_ID_ARCHIVED_LINK);
+		dc_array_add_id(ths->m_chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
 		dc_array_add_id(ths->m_chatNlastmsg_ids, 0);
     }
 

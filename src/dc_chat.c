@@ -49,7 +49,7 @@ dc_chat_t* dc_chat_new(dc_context_t* mailbox)
 
 	ths->m_magic    = MR_CHAT_MAGIC;
 	ths->m_context  = mailbox;
-	ths->m_type     = MR_CHAT_TYPE_UNDEFINED;
+	ths->m_type     = DC_CHAT_TYPE_UNDEFINED;
 	ths->m_param    = dc_param_new();
 
     return ths;
@@ -101,7 +101,7 @@ void dc_chat_empty(dc_chat_t* chat)
 	free(chat->m_draft_text);
 	chat->m_draft_text = NULL;
 
-	chat->m_type = MR_CHAT_TYPE_UNDEFINED;
+	chat->m_type = DC_CHAT_TYPE_UNDEFINED;
 	chat->m_id   = 0;
 
 	free(chat->m_grpid);
@@ -168,7 +168,7 @@ uint32_t dc_chat_get_id(dc_chat_t* chat)
 int dc_chat_get_type(dc_chat_t* chat)
 {
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
-		return MR_CHAT_TYPE_UNDEFINED;
+		return DC_CHAT_TYPE_UNDEFINED;
 	}
 	return chat->m_type;
 }
@@ -221,11 +221,11 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		return safe_strdup("Err");
 	}
 
-	if( chat->m_type == MR_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
+	if( chat->m_type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
 	{
-		ret = mrstock_str(MR_STR_SELFTALK_SUBTITLE);
+		ret = dc_stock_str(DC_STR_SELFTALK_SUBTITLE);
 	}
-	else if( chat->m_type == MR_CHAT_TYPE_SINGLE )
+	else if( chat->m_type == DC_CHAT_TYPE_SINGLE )
 	{
 		int r;
 		dc_sqlite3_lock(chat->m_context->m_sql);
@@ -243,19 +243,19 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 
 		dc_sqlite3_unlock(chat->m_context->m_sql);
 	}
-	else if( MR_CHAT_TYPE_IS_MULTI(chat->m_type) )
+	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		int cnt = 0;
-		if( chat->m_id == MR_CHAT_ID_DEADDROP )
+		if( chat->m_id == DC_CHAT_ID_DEADDROP )
 		{
-			ret = mrstock_str(MR_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
+			ret = dc_stock_str(DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
 		}
 		else
 		{
 			dc_sqlite3_lock(chat->m_context->m_sql);
 
 				cnt = dc_get_chat_contact_count__(chat->m_context, chat->m_id);
-				ret = mrstock_str_repl_pl(MR_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
+				ret = dc_stock_str_repl_pl(DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 
 			dc_sqlite3_unlock(chat->m_context->m_sql);
 		}
@@ -396,7 +396,7 @@ int dc_chat_is_verified(dc_chat_t* chat)
 	if( chat == NULL || chat->m_magic != MR_CHAT_MAGIC ) {
 		return 0;
 	}
-	return (chat->m_type==MR_CHAT_TYPE_VERIFIED_GROUP);
+	return (chat->m_type==DC_CHAT_TYPE_VERIFIED_GROUP);
 }
 
 
@@ -409,7 +409,7 @@ int dc_chat_are_all_members_verified__(dc_chat_t* chat)
 		goto cleanup;
 	}
 
-	if( chat->m_id == MR_CHAT_ID_DEADDROP || chat->m_id == MR_CHAT_ID_STARRED ) {
+	if( chat->m_id == DC_CHAT_ID_DEADDROP || chat->m_id == DC_CHAT_ID_STARRED ) {
 		goto cleanup; // deaddrop & co. are never verified
 	}
 
@@ -424,7 +424,7 @@ int dc_chat_are_all_members_verified__(dc_chat_t* chat)
 	{
 		uint32_t contact_id          = sqlite3_column_int(stmt, 0);
 		int      has_verified_key    = sqlite3_column_int(stmt, 1);
-		if( contact_id != MR_CONTACT_ID_SELF
+		if( contact_id != DC_CONTACT_ID_SELF
 		 && !has_verified_key )
 		{
 			goto cleanup; // a single unverified contact results in an unverified chat
@@ -506,23 +506,23 @@ static int dc_chat_set_from_stmt__(dc_chat_t* ths, sqlite3_stmt* row)
 	}
 
 	/* correct the title of some special groups */
-	if( ths->m_id == MR_CHAT_ID_DEADDROP ) {
+	if( ths->m_id == DC_CHAT_ID_DEADDROP ) {
 		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_DEADDROP);
+		ths->m_name = dc_stock_str(DC_STR_DEADDROP);
 	}
-	else if( ths->m_id == MR_CHAT_ID_ARCHIVED_LINK ) {
+	else if( ths->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
 		free(ths->m_name);
-		char* tempname = mrstock_str(MR_STR_ARCHIVEDCHATS);
+		char* tempname = dc_stock_str(DC_STR_ARCHIVEDCHATS);
 			ths->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count__(ths->m_context));
 		free(tempname);
 	}
-	else if( ths->m_id == MR_CHAT_ID_STARRED ) {
+	else if( ths->m_id == DC_CHAT_ID_STARRED ) {
 		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_STARREDMSGS);
+		ths->m_name = dc_stock_str(DC_STR_STARREDMSGS);
 	}
 	else if( dc_param_exists(ths->m_param, DC_PARAM_SELFTALK) ) {
 		free(ths->m_name);
-		ths->m_name = mrstock_str(MR_STR_SELF);
+		ths->m_name = dc_stock_str(DC_STR_SELF);
 	}
 
 	return row_offset; /* success, return the next row offset */

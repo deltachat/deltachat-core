@@ -20,17 +20,17 @@
  ******************************************************************************/
 
 
-#ifndef __MRCHAT_PRIVATE_H__
-#define __MRCHAT_PRIVATE_H__
+#ifndef __DC_CHAT_H__
+#define __DC_CHAT_H__
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
 /* values for the chats.blocked database field */
-#define         MR_CHAT_NOT_BLOCKED       0
-#define         MR_CHAT_MANUALLY_BLOCKED  1
-#define         MR_CHAT_DEADDROP_BLOCKED  2
+#define         DC_CHAT_NOT_BLOCKED       0
+#define         DC_CHAT_MANUALLY_BLOCKED  1
+#define         DC_CHAT_DEADDROP_BLOCKED  2
 
 
 /** the structure behind dc_chat_t */
@@ -44,10 +44,10 @@ struct _dc_chat
 	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
 	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
 	int             m_archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
-	dc_context_t*    m_context;          /**< The mailbox object the chat belongs to. */
+	dc_context_t*   m_context;          /**< The mailbox object the chat belongs to. */
 	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
-	int             m_blocked;          /**< One of MR_CHAT_*_BLOCKED */
-	dc_param_t*      m_param;            /**< Additional parameters for a chat. Should not be used directly. */
+	int             m_blocked;          /**< One of DC_CHAT_*_BLOCKED */
+	dc_param_t*     m_param;            /**< Additional parameters for a chat. Should not be used directly. */
 };
 
 
@@ -56,15 +56,15 @@ int             dc_chat_update_param__             (dc_chat_t*);
 int             dc_chat_are_all_members_verified__ (dc_chat_t*);
 
 
-#define         MR_CHAT_TYPE_IS_MULTI(a)   ((a)==MR_CHAT_TYPE_GROUP || (a)==MR_CHAT_TYPE_VERIFIED_GROUP)
-#define         MR_CHAT_TYPE_CAN_SEND(a)   ((a)==MR_CHAT_TYPE_SINGLE || (a)==MR_CHAT_TYPE_GROUP || (a)==MR_CHAT_TYPE_VERIFIED_GROUP)
+#define         DC_CHAT_TYPE_IS_MULTI(a)   ((a)==DC_CHAT_TYPE_GROUP || (a)==DC_CHAT_TYPE_VERIFIED_GROUP)
+#define         DC_CHAT_TYPE_CAN_SEND(a)   ((a)==DC_CHAT_TYPE_SINGLE || (a)==DC_CHAT_TYPE_GROUP || (a)==DC_CHAT_TYPE_VERIFIED_GROUP)
 
 
-#define         MR_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
-#define         MR_CHATS_FOLDER             "DeltaChat"  // make sure not to use reserved words here, eg. "Chats" or "Chat" are reserved in gmail
+#define         DC_CHAT_PREFIX              "Chat:"      /* you MUST NOT modify this or the following strings */
+#define         DC_CHATS_FOLDER             "DeltaChat"  // make sure not to use reserved words here, eg. "Chats" or "Chat" are reserved in gmail
 
 
 #ifdef __cplusplus
 } /* /extern "C" */
 #endif
-#endif /* __MRCHAT_PRIVATE_H__ */
+#endif /* __DC_CHAT_H__ */

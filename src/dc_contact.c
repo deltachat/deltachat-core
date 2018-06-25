@@ -283,7 +283,7 @@ int dc_contact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t*
 		goto cleanup;
 	}
 
-	if( contact->m_id == MR_CONTACT_ID_SELF ) {
+	if( contact->m_id == DC_CONTACT_ID_SELF ) {
 		contact_verified = DC_BIDIRECT_VERIFIED;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
@@ -470,10 +470,10 @@ int dc_contact_load_from_db__(dc_contact_t* ths, dc_sqlite3_t* sql, uint32_t con
 
 	dc_contact_empty(ths);
 
-	if( contact_id == MR_CONTACT_ID_SELF )
+	if( contact_id == DC_CONTACT_ID_SELF )
 	{
 		ths->m_id   = contact_id;
-		ths->m_name = mrstock_str(MR_STR_SELF);
+		ths->m_name = dc_stock_str(DC_STR_SELF);
 		ths->m_addr = dc_sqlite3_get_config__(sql, "configured_addr", "");
 	}
 	else
