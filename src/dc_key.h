@@ -60,9 +60,9 @@ int       dc_key_set_from_file            (dc_key_t*, const char* file, dc_conte
 
 int       dc_key_equals                   (const dc_key_t*, const dc_key_t*);
 
-int       dc_key_save_self_keypair__      (const dc_key_t* public_key, const dc_key_t* private_key, const char* addr, int is_default, dc_sqlite3_t* sql);
-int       dc_key_load_self_public__       (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
-int       dc_key_load_self_private__      (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
+int       dc_key_save_self_keypair        (const dc_key_t* public_key, const dc_key_t* private_key, const char* addr, int is_default, dc_sqlite3_t* sql);
+int       dc_key_load_self_public         (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
+int       dc_key_load_self_private        (dc_key_t*, const char* self_addr, dc_sqlite3_t* sql);
 
 char*     dc_render_base64                (const void* buf, size_t buf_bytes, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */
 char*     dc_key_render_base64            (const dc_key_t*, int break_every, const char* break_chars, int add_checksum); /* the result must be freed */

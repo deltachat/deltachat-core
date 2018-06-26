@@ -230,16 +230,17 @@ int dc_key_equals(const dc_key_t* key, const dc_key_t* o)
  ******************************************************************************/
 
 
-int dc_key_save_self_keypair__(const dc_key_t* public_key, const dc_key_t* private_key, const char* addr, int is_default, dc_sqlite3_t* sql)
+int dc_key_save_self_keypair(const dc_key_t* public_key, const dc_key_t* private_key, const char* addr, int is_default, dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( public_key==NULL || private_key==NULL || addr==NULL || sql==NULL
 	 || public_key->m_binary==NULL || private_key->m_binary==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(sql, INSERT_INTO_keypairs_aippc,
+	stmt = dc_sqlite3_prepare(sql,
 		"INSERT INTO keypairs (addr, is_default, public_key, private_key, created) VALUES (?,?,?,?,?);");
 	sqlite3_bind_text (stmt, 1, addr, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 2, is_default);
@@ -247,50 +248,64 @@ int dc_key_save_self_keypair__(const dc_key_t* public_key, const dc_key_t* priva
 	sqlite3_bind_blob (stmt, 4, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
 	sqlite3_bind_int64(stmt, 5, time(NULL));
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return 1;
+	success = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
 }
 
 
-int dc_key_load_self_public__(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
+int dc_key_load_self_public(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( key==NULL || self_addr==NULL || sql==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	dc_key_empty(key);
-	stmt = dc_sqlite3_predefine__(sql, SELECT_public_key_FROM_keypairs_WHERE_default,
+	stmt = dc_sqlite3_prepare(sql,
 		"SELECT public_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PUBLIC);
-	return 1;
+	success = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
 }
 
 
-int dc_key_load_self_private__(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
+int dc_key_load_self_private(dc_key_t* key, const char* self_addr, dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( key==NULL || self_addr==NULL || sql==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	dc_key_empty(key);
-	stmt = dc_sqlite3_predefine__(sql, SELECT_private_key_FROM_keypairs_WHERE_default,
+	stmt = dc_sqlite3_prepare(sql,
 		"SELECT private_key FROM keypairs WHERE addr=? AND is_default=1;");
 	sqlite3_bind_text (stmt, 1, self_addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 	dc_key_set_from_stmt(key, stmt, 0, DC_KEY_PRIVATE);
-	return 1;
+	success = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
 }
 
 

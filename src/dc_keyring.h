@@ -47,7 +47,7 @@ void          dc_keyring_unref();
 
 void          dc_keyring_add  (dc_keyring_t*, dc_key_t*); /* the reference counter of the key is increased by one */
 
-int           dc_keyring_load_self_private_for_decrypting__(dc_keyring_t*, const char* self_addr, dc_sqlite3_t* sql);
+int           dc_keyring_load_self_private_for_decrypting(dc_keyring_t*, const char* self_addr, dc_sqlite3_t* sql);
 
 
 #ifdef __cplusplus

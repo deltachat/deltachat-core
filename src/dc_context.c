@@ -503,7 +503,7 @@ char* dc_get_info(dc_context_t* context)
 		pub_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
-		if( dc_key_load_self_public__(self_public, l2->m_addr, context->m_sql) ) {
+		if( dc_key_load_self_public(self_public, l2->m_addr, context->m_sql) ) {
 			fingerprint_str = dc_key_get_formatted_fingerprint(self_public);
 		}
 		else {
@@ -3671,7 +3671,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr);
 		dc_loginparam_read(loginparam, context->m_sql, "configured_");
 
-		dc_key_load_self_public__(self_key, loginparam->m_addr, context->m_sql);
+		dc_key_load_self_public(self_key, loginparam->m_addr, context->m_sql);
 
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
@@ -3684,11 +3684,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		if( self_key->m_binary == NULL ) {
 			dc_pgp_rand_seed(context, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
 			dc_ensure_secret_key_exists(context);
-			dc_sqlite3_lock(context->m_sql);
-			locked = 1;
-				dc_key_load_self_public__(self_key, loginparam->m_addr, context->m_sql);
-			dc_sqlite3_unlock(context->m_sql);
-			locked = 0;
+			dc_key_load_self_public(self_key, loginparam->m_addr, context->m_sql);
 		}
 
 		dc_strbuilder_cat(&ret, " ");

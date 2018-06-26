@@ -124,11 +124,6 @@ enum
 	,UPDATE_acpeerstates_SET_l_WHERE_a
 	,UPDATE_acpeerstates_SET_lcpp_WHERE_a
 
-	,INSERT_INTO_keypairs_aippc
-	,SELECT_private_key_FROM_keypairs_WHERE_default
-	,SELECT_private_key_FROM_keypairs_ORDER_BY_default
-	,SELECT_public_key_FROM_keypairs_WHERE_default
-
 	,PREDEFINED_CNT /* must be last */
 };
 

@@ -202,7 +202,7 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 		goto cleanup;
 	}
 
-	if( !dc_key_load_self_public__(public_key, self_addr, context->m_sql) )
+	if( !dc_key_load_self_public(public_key, self_addr, context->m_sql) )
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
 		if( s_in_key_creation ) { goto cleanup; }
@@ -259,7 +259,7 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 				goto cleanup;
 			}
 
-			if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, context->m_sql) ) {
+			if( !dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->m_sql) ) {
 				dc_log_warning(context, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
@@ -390,7 +390,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		if( do_encrypt ) {
 			dc_keyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !dc_key_load_self_private__(sign_key, autocryptheader->m_addr, context->m_sql) ) {
+			if( !dc_key_load_self_private(sign_key, autocryptheader->m_addr, context->m_sql) ) {
 				do_encrypt = 0;
 			}
 		}

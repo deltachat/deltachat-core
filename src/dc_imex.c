@@ -138,7 +138,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 		locked = 1;
 
 			self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-			dc_key_load_self_private__(curr_private_key, self_addr, context->m_sql);
+			dc_key_load_self_private(curr_private_key, self_addr, context->m_sql);
 
 			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if( payload_key_asc == NULL ) {
@@ -548,11 +548,10 @@ cleanup:
 static int set_self_key(dc_context_t* context, const char* armored, int set_default)
 {
 	int            success      = 0;
-	int            locked       = 0;
 	char*          buf          = NULL;
 	const char*    buf_headerline, *buf_preferencrypt, *buf_base64; // pointers inside buf, MUST NOT be free()'d
-	dc_key_t*       private_key  = dc_key_new();
-	dc_key_t*       public_key   = dc_key_new();
+	dc_key_t*      private_key  = dc_key_new();
+	dc_key_t*      public_key   = dc_key_new();
 	sqlite3_stmt*  stmt         = NULL;
 	char*          self_addr    = NULL;
 
@@ -571,28 +570,22 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	}
 
 	/* add keypair; before this, delete other keypairs with the same binary key and reset defaults */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+	sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-		sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-		sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-		stmt = NULL;
+	if( set_default ) {
+		dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+	}
 
-		if( set_default ) {
-			dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
-		}
-
-		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-		if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, set_default, context->m_sql) ) {
-			dc_log_error(context, 0, "Cannot save keypair.");
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
+	if( !dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->m_sql) ) {
+		dc_log_error(context, 0, "Cannot save keypair.");
+		goto cleanup;
+	}
 
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if( buf_preferencrypt ) {
@@ -607,7 +600,6 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	free(buf);
 	free(self_addr);

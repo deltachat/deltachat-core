@@ -119,28 +119,20 @@ static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expecte
 
 static char* get_self_fingerprint(dc_context_t* context)
 {
-	int      locked      = 0;
-	char*    self_addr   = NULL;
+	char*     self_addr   = NULL;
 	dc_key_t* self_key    = dc_key_new();
-	char*    fingerprint = NULL;
+	char*     fingerprint = NULL;
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL
-		 || !dc_key_load_self_public__(self_key, self_addr, context->m_sql) ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL
+	 || !dc_key_load_self_public(self_key, self_addr, context->m_sql) ) {
+		goto cleanup;
+	}
 
 	if( (fingerprint=dc_key_get_fingerprint(self_key)) == NULL ) {
 		goto cleanup;
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(self_addr);
 	dc_key_unref(self_key);
 	return fingerprint;
