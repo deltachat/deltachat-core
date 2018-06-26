@@ -61,8 +61,6 @@ enum
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh
 	,SELECT_i_FROM_msgs_LEFT_JOIN_chats_contacts_WHERE_blocked
-	,SELECT_i_FROM_msgs_WHERE_query
-	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
 
 	,PREDEFINED_CNT /* must be last */
 };

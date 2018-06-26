@@ -1264,7 +1264,7 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 {
 	//clock_t       start = clock();
 
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_array_t*   ret = dc_array_new(context, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -1283,60 +1283,53 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 	strLikeInText = dc_mprintf("%%%s%%", real_query);
 	strLikeBeg = dc_mprintf("%s%%", real_query); /*for the name search, we use "Name%" which is fast as it can use the index ("%Name%" could not). */
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	/* Incremental search with "LIKE %query%" cannot take advantages from any index
+	("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
+	An alternative may be the FULLTEXT sqlite stuff, however, this does not really help with incremental search.
+	An extra table with all words and a COLLATE NOCASE indexes may help, however,
+	this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
+	For now, we just expect the following query to be fast enough :-) */
+	if( chat_id ) {
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" WHERE m.chat_id=? "
+				" AND m.hidden=0 "
+				" AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
+			" ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
+		sqlite3_bind_int (stmt, 1, chat_id);
+		sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
+	}
+	else {
+		int show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" LEFT JOIN chats c ON m.chat_id=c.id"
+			" WHERE m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
+				" AND m.hidden=0 "
+				" AND (c.blocked=0 OR c.blocked=?)"
+				" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
+			" ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
+		sqlite3_bind_int (stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
+		sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
+	}
 
-		/* Incremental search with "LIKE %query%" cannot take advantages from any index
-		("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
-		An alternative may be the FULLTEXT sqlite stuff, however, this does not really help with incremental search.
-		An extra table with all words and a COLLATE NOCASE indexes may help, however,
-		this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
-		For now, we just expect the following query to be fast enough :-) */
-		if( chat_id ) {
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_WHERE_chat_id_AND_query,
-				"SELECT m.id, m.timestamp FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE m.chat_id=? "
-					" AND m.hidden=0 "
-					" AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
-				" ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
-			sqlite3_bind_int (stmt, 1, chat_id);
-			sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
-		}
-		else {
-			int show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_WHERE_query,
-				"SELECT m.id, m.timestamp FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
-					" AND m.hidden=0 "
-					" AND (c.blocked=0 OR c.blocked=?)"
-					" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
-				" ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
-			sqlite3_bind_int (stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
-			sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
-		}
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(strLikeInText);
 	free(strLikeBeg);
 	free(real_query);
+	sqlite3_finalize(stmt);
 
 	//dc_log_info(context, 0, "Message list for search \"%s\" in chat #%i created in %.3f ms.", query, chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-
 
 	if( success ) {
 		return ret;
