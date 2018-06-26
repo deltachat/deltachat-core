@@ -790,7 +790,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	}
 
 	/* check if the group does not exist but should be created */
-	int group_explicitly_left = dc_is_group_explicitly_left__(context, grpid);
+	int group_explicitly_left = dc_is_group_explicitly_left(context, grpid);
 
 	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
 	if( chat_id == 0
@@ -1144,7 +1144,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
 				uint32_t test_normal_chat_id = 0;
 				int      test_normal_chat_id_blocked = 0;
-				dc_lookup_real_nchat_by_contact_id__(context, from_id, &test_normal_chat_id, &test_normal_chat_id_blocked);
+				dc_lookup_real_nchat_by_contact_id(context, from_id, &test_normal_chat_id, &test_normal_chat_id_blocked);
 
 				/* get the chat_id - a chat_id here is no indicator that the chat is displayed in the normal list, it might also be
 				blocked and displayed in the deaddrop as a result */

@@ -41,17 +41,6 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
-	,SELECT_id_FROM_contacts_WHERE_blocked
-	,DELETE_FROM_contacts_WHERE_id
-
-	,SELECT_COUNT_FROM_chats_WHERE_archived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id
-	,SELECT_id_FROM_chats_WHERE_id
-	,SELECT_id_FROM_chats_WHERE_contact_id
 	,SELECT_id_FROM_CHATS_WHERE_grpid
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
 	,SELECT_param_FROM_msgs
@@ -60,14 +49,10 @@ enum
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id
 	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
-	,SELECT_c_FROM_chats_contacts_WHERE_c
 	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
 	,INSERT_INTO_chats_contacts
 
-	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
-	,SELECT_COUNT_FROM_msgs_WHERE_ft
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_cm
 	,SELECT_id_FROM_msgs_WHERE_mcm
@@ -82,19 +67,11 @@ enum
 	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
 	,INSERT_INTO_msgs_msscftttsmttpb
 	,INSERT_INTO_msgs_cftttst
-	,INSERT_INTO_msgs_mcftttstpb
-	,UPDATE_msgs_SET_chat_id_WHERE_id
-	,UPDATE_msgs_SET_state_WHERE_id
 	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
-	,DELETE_FROM_msgs_WHERE_id
-	,DELETE_FROM_msgs_WHERE_rfc724_mid
 
 	,SELECT_c_FROM_msgs_mdns_WHERE_mc
 	,INSERT_INTO_msgs_mdns
 	,SELECT_COUNT_FROM_msgs_mdns_WHERE_m
-	,DELETE_FROM_msgs_mdns_WHERE_m
-
-	,SELECT_FROM_leftgrps_WHERE_grpid
 
 	,PREDEFINED_CNT /* must be last */
 };

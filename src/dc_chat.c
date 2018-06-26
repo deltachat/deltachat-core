@@ -514,7 +514,7 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	else if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
 		free(chat->m_name);
 		char* tempname = dc_stock_str(DC_STR_ARCHIVEDCHATS);
-			chat->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count__(chat->m_context));
+			chat->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count(chat->m_context));
 		free(tempname);
 	}
 	else if( chat->m_id == DC_CHAT_ID_STARRED ) {

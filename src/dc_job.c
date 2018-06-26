@@ -116,25 +116,19 @@ cleanup:
 
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int       locked = 0;
-	int       delete_from_server = 1;
-	dc_msg_t* msg = dc_msg_new();
+	int           delete_from_server = 1;
+	dc_msg_t*     msg = dc_msg_new();
+	sqlite3_stmt* stmt = NULL;
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_msg_load_from_db(msg, context, job->m_foreign_id)
+	 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db(msg, context, job->m_foreign_id)
-		 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
-			goto cleanup;
-		}
-
-		if( dc_rfc724_mid_cnt__(context, msg->m_rfc724_mid) != 1 ) {
-			dc_log_info(context, 0, "The message is deleted from the server when all parts are deleted.");
-			delete_from_server = 0;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( dc_rfc724_mid_cnt(context, msg->m_rfc724_mid) != 1 ) {
+		dc_log_info(context, 0, "The message is deleted from the server when all parts are deleted.");
+		delete_from_server = 0;
+	}
 
 	/* if this is the last existing part of the message, we delete the message from the server */
 	if( delete_from_server )
@@ -158,61 +152,61 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	- if the message is successfully removed from the server
 	- or if there are other parts of the message in the database (in this case we have not deleted if from the server)
 	(As long as the message is not removed from the IMAP-server, we need at least one database entry to avoid a re-download) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"DELETE FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg->m_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, DELETE_FROM_msgs_WHERE_id,
-			"DELETE FROM msgs WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, msg->m_id);
-		sqlite3_step(stmt);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"DELETE FROM msgs_mdns WHERE msg_id=?;");
+	sqlite3_bind_int(stmt, 1, msg->m_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		stmt = dc_sqlite3_predefine__(context->m_sql, DELETE_FROM_msgs_mdns_WHERE_m,
-			"DELETE FROM msgs_mdns WHERE msg_id=?;");
-		sqlite3_bind_int(stmt, 1, msg->m_id);
-		sqlite3_step(stmt);
+	char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+	if( pathNfilename ) {
+		if( strncmp(context->m_blobdir, pathNfilename, strlen(context->m_blobdir))==0 )
+		{
+			char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
+			stmt = dc_sqlite3_prepare(context->m_sql,
+				"SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
+			sqlite3_bind_int (stmt, 1, DC_MSG_TEXT);
+			sqlite3_bind_text(stmt, 2, strLikeFilename, -1, SQLITE_STATIC);
+			int file_used_by_other_msgs = (sqlite3_step(stmt)==SQLITE_ROW)? 1 : 0;
+			free(strLikeFilename);
+			sqlite3_finalize(stmt);
+			stmt = NULL;
 
-		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
-		if( pathNfilename ) {
-			if( strncmp(context->m_blobdir, pathNfilename, strlen(context->m_blobdir))==0 )
+			if( !file_used_by_other_msgs )
 			{
-				char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
-				sqlite3_stmt* stmt2 = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
-				sqlite3_bind_int (stmt2, 1, DC_MSG_TEXT);
-				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
-				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
-				free(strLikeFilename);
-				sqlite3_finalize(stmt2);
+				dc_delete_file(pathNfilename, context);
 
-				if( !file_used_by_other_msgs )
-				{
-					dc_delete_file(pathNfilename, context);
+				char* increation_file = dc_mprintf("%s.increation", pathNfilename);
+				dc_delete_file(increation_file, context);
+				free(increation_file);
 
-					char* increation_file = dc_mprintf("%s.increation", pathNfilename);
-					dc_delete_file(increation_file, context);
-					free(increation_file);
-
-					char* filenameOnly = dc_get_filename(pathNfilename);
-					if( msg->m_type==DC_MSG_VOICE ) {
-						char* waveform_file = dc_mprintf("%s/%s.waveform", context->m_blobdir, filenameOnly);
-						dc_delete_file(waveform_file, context);
-						free(waveform_file);
-					}
-					else if( msg->m_type==DC_MSG_VIDEO ) {
-						char* preview_file = dc_mprintf("%s/%s-preview.jpg", context->m_blobdir, filenameOnly);
-						dc_delete_file(preview_file, context);
-						free(preview_file);
-					}
-					free(filenameOnly);
+				char* filenameOnly = dc_get_filename(pathNfilename);
+				if( msg->m_type==DC_MSG_VOICE ) {
+					char* waveform_file = dc_mprintf("%s/%s.waveform", context->m_blobdir, filenameOnly);
+					dc_delete_file(waveform_file, context);
+					free(waveform_file);
 				}
+				else if( msg->m_type==DC_MSG_VIDEO ) {
+					char* preview_file = dc_mprintf("%s/%s-preview.jpg", context->m_blobdir, filenameOnly);
+					dc_delete_file(preview_file, context);
+					free(preview_file);
+				}
+				free(filenameOnly);
 			}
-			free(pathNfilename);
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+		free(pathNfilename);
+	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	dc_msg_unref(msg);
 }
 
@@ -312,7 +306,7 @@ static void mark_as_error(dc_context_t* context, dc_msg_t* msg)
 	}
 
 	dc_sqlite3_lock(context->m_sql);
-		dc_update_msg_state__(context, msg->m_id, DC_STATE_OUT_ERROR);
+		dc_update_msg_state(context, msg->m_id, DC_STATE_OUT_ERROR);
 	dc_sqlite3_unlock(context->m_sql);
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
@@ -388,7 +382,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 			free(emlname);
 		}
 
-		dc_update_msg_state__(context, mimefactory.m_msg->m_id, DC_STATE_OUT_DELIVERED);
+		dc_update_msg_state(context, mimefactory.m_msg->m_id, DC_STATE_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0)==0 ) {
 			dc_param_set_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
 			dc_msg_save_param_to_disk(mimefactory.m_msg);

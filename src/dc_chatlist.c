@@ -294,7 +294,7 @@ dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
  *
  * @private @memberof dc_chatlist_t
  */
-int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const char* query__, uint32_t query_contact_id)
+int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char* query__, uint32_t query_contact_id)
 {
 	//clock_t       start = clock();
 
@@ -325,14 +325,14 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const cha
 	if( query_contact_id )
 	{
 		// show chats shared with a given contact
-		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id,
+		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
 			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
 		sqlite3_bind_int(stmt, 1, query_contact_id);
 	}
 	else if( listflags & DC_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
-		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived,
+		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
 			QUR1 " AND c.archived=1 " QUR2);
 	}
 	else if( query__==NULL )
@@ -347,7 +347,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const cha
 			add_archived_link_item = 1;
 		}
 
-		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived,
+		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
 			QUR1 " AND c.archived=0 " QUR2);
 	}
 	else
@@ -360,7 +360,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const cha
 			goto cleanup;
 		}
 		strLikeCmd = dc_mprintf("%%%s%%", query);
-		stmt = dc_sqlite3_predefine__(chatlist->m_context->m_sql, SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query,
+		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
@@ -371,7 +371,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const cha
 		dc_array_add_id(chatlist->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
-    if( add_archived_link_item && dc_get_archived_count__(chatlist->m_context)>0 )
+    if( add_archived_link_item && dc_get_archived_count(chatlist->m_context)>0 )
     {
 		dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
 		dc_array_add_id(chatlist->m_chatNlastmsg_ids, 0);
@@ -382,7 +382,7 @@ int dc_chatlist_load_from_db__(dc_chatlist_t* chatlist, int listflags, const cha
 
 cleanup:
 	//dc_log_info(chatlist->m_context, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-
+	sqlite3_finalize(stmt);
 	free(query);
 	free(strLikeCmd);
 	return success;
