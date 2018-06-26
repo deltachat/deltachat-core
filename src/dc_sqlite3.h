@@ -41,10 +41,7 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_COUNT_FROM_contacts
-	,SELECT_naob_FROM_contacts_i
 	,SELECT_inao_FROM_contacts_a
-	,SELECT_id_FROM_contacts_WHERE_id
 	,SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc
 	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
 	,SELECT_id_FROM_contacts_ORDER_BY

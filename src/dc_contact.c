@@ -462,10 +462,10 @@ char* dc_normalize_addr(const char* email_addr__)
 int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC || sql == NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	dc_contact_empty(contact);
@@ -478,7 +478,7 @@ int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t
 	}
 	else
 	{
-		stmt = dc_sqlite3_predefine__(sql, SELECT_naob_FROM_contacts_i,
+		stmt = dc_sqlite3_prepare(sql,
 			"SELECT c.name, c.addr, c.origin, c.blocked, c.authname "
 			" FROM contacts c "
 			" WHERE c.id=?;");
@@ -490,13 +490,14 @@ int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t
 		contact->m_id               = contact_id;
 		contact->m_name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
 		contact->m_addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
-		contact->m_origin           =                    sqlite3_column_int  (stmt, 2);
-		contact->m_blocked          =                    sqlite3_column_int  (stmt, 3);
+		contact->m_origin           =                  sqlite3_column_int  (stmt, 2);
+		contact->m_blocked          =                  sqlite3_column_int  (stmt, 3);
 		contact->m_authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
 	}
 
 	success = 1;
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return success;
 }

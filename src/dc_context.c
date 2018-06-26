@@ -2975,15 +2975,15 @@ cleanup:
 
 int dc_real_contact_exists__(dc_context_t* context, uint32_t contact_id)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 	int           ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL
 	 || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_WHERE_id,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id FROM contacts WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
 
@@ -2991,25 +2991,32 @@ int dc_real_contact_exists__(dc_context_t* context, uint32_t contact_id)
 		ret = 1;
 	}
 
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
 
 size_t dc_get_real_contact_cnt__(dc_context_t* context)
 {
-	sqlite3_stmt* stmt;
+	size_t        ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_contacts, "SELECT COUNT(*) FROM contacts WHERE id>?;");
+	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM contacts WHERE id>?;");
 	sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_LAST_SPECIAL);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -3021,7 +3028,7 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 {
 	#define       CONTACT_MODIFIED 1
 	#define       CONTACT_CREATED  2
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 	uint32_t      row_id = 0;
 	int           dummy;
 	char*         addr = NULL;
