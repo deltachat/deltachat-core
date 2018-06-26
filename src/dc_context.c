@@ -1674,13 +1674,12 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "UPDATE chats SET archived=? WHERE id=?;");
-		sqlite3_bind_int  (stmt, 1, archive);
-		sqlite3_bind_int  (stmt, 2, chat_id);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-	dc_sqlite3_unlock(context->m_sql);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+		"UPDATE chats SET archived=? WHERE id=?;");
+	sqlite3_bind_int  (stmt, 1, archive);
+	sqlite3_bind_int  (stmt, 2, chat_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 }
