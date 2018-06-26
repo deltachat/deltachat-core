@@ -465,7 +465,7 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
 int dc_chat_update_param__(dc_chat_t* chat)
 {
 	int success = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(chat->m_context->m_sql, "UPDATE chats SET param=? WHERE id=?");
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->m_context->m_sql, "UPDATE chats SET param=? WHERE id=?");
 	sqlite3_bind_text(stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, chat->m_id);
 	success = sqlite3_step(stmt)==SQLITE_DONE? 1 : 0;

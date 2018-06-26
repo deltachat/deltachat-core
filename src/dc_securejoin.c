@@ -61,7 +61,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 	{
 		LOCK
 
-			stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT id FROM contacts WHERE addr=?;");
+			stmt = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM contacts WHERE addr=?;");
 				sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
 				sqlite3_step(stmt);
 				contact_id = sqlite3_column_int(stmt, 0);

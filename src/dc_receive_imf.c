@@ -366,7 +366,7 @@ static dc_array_t* search_chat_ids_by_contact_ids(dc_context_t* context, const d
 	                     "   AND cc.contact_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF) /* ignore SELF, we've also removed it above - if the user has left the group, it is still the same group */
 	                     " ORDER BY cc.chat_id, cc.contact_id;",
 	                     contact_ids_str);
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
+	stmt = dc_sqlite3_prepare(context->m_sql, q3);
 	{
 		uint32_t last_chat_id = 0, matches = 0, mismatches = 0;
 
@@ -427,7 +427,7 @@ static char* create_adhoc_grp_id__(dc_context_t* context, dc_array_t* member_ids
 
 	/* collect all addresses and sort them */
 	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF), member_ids_str);
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
+	stmt = dc_sqlite3_prepare(context->m_sql, q3);
 	addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "no-self");
 	dc_strlower_in_place(addr);
 	dc_array_add_ptr(member_addrs, addr);
@@ -478,7 +478,7 @@ static uint32_t create_group_record__(dc_context_t* context, const char* grpid, 
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO chats (type, name, grpid, blocked) VALUES(?, ?, ?, ?);");
 	sqlite3_bind_int (stmt, 1, create_verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
 	sqlite3_bind_text(stmt, 2, grpname, -1, SQLITE_STATIC);
@@ -537,7 +537,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 							 " ORDER BY m.timestamp DESC, m.id DESC "
 							 " LIMIT 1;",
 							 chat_ids_str);
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
+		stmt = dc_sqlite3_prepare(context->m_sql, q3);
 		if( sqlite3_step(stmt)==SQLITE_ROW ) {
 			chat_id         = sqlite3_column_int(stmt, 0);
 			chat_id_blocked = sqlite3_column_int(stmt, 1);
@@ -622,7 +622,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 						 " LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
 						 " WHERE c.id IN(%s) ",
 						 to_ids_str);
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
+	stmt = dc_sqlite3_prepare(context->m_sql, q3);
 	while( sqlite3_step(stmt)==SQLITE_ROW )
 	{
 		const char* to_addr     = (const char*)sqlite3_column_text(stmt, 0);
@@ -833,7 +833,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	}
 	else if( X_MrGrpNameChanged && grpname && strlen(grpname) < 200 )
 	{
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, "UPDATE chats SET name=? WHERE id=?;");
+		stmt = dc_sqlite3_prepare(context->m_sql, "UPDATE chats SET name=? WHERE id=?;");
 		sqlite3_bind_text(stmt, 1, grpname, -1, SQLITE_STATIC);
 		sqlite3_bind_int (stmt, 2, chat_id);
 		sqlite3_step(stmt);
@@ -879,7 +879,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	{
 		const char* skip = X_MrRemoveFromGrp? X_MrRemoveFromGrp : NULL;
 
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
+		stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int (stmt, 1, chat_id);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);

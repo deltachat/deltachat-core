@@ -183,8 +183,8 @@ int32_t       dc_sqlite3_get_config_int__ (dc_sqlite3_t*, const char* key, int32
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
 sqlite3_stmt* dc_sqlite3_predefine__      (dc_sqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
-sqlite3_stmt* dc_sqlite3_prepare_v2_      (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
-int           dc_sqlite3_execute__        (dc_sqlite3_t*, const char* sql);
+sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
+int           dc_sqlite3_execute          (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
 

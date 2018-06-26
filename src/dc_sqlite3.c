@@ -59,9 +59,9 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 }
 
 
-sqlite3_stmt* dc_sqlite3_prepare_v2_(dc_sqlite3_t* sql, const char* querystr)
+sqlite3_stmt* dc_sqlite3_prepare(dc_sqlite3_t* sql, const char* querystr)
 {
-	sqlite3_stmt* retStmt = NULL;
+	sqlite3_stmt* stmt = NULL;
 
 	if( sql == NULL || querystr == NULL || sql->m_cobj == NULL ) {
 		return NULL;
@@ -69,7 +69,7 @@ sqlite3_stmt* dc_sqlite3_prepare_v2_(dc_sqlite3_t* sql, const char* querystr)
 
 	if( sqlite3_prepare_v2(sql->m_cobj,
 	         querystr, -1 /*read `querystr` up to the first null-byte*/,
-	         &retStmt,
+	         &stmt,
 	         NULL /*tail not interesting, we use only single statements*/) != SQLITE_OK )
 	{
 		dc_sqlite3_log_error(sql, "Query failed: %s", querystr);
@@ -77,17 +77,17 @@ sqlite3_stmt* dc_sqlite3_prepare_v2_(dc_sqlite3_t* sql, const char* querystr)
 	}
 
 	/* success - the result must be freed using sqlite3_finalize() */
-	return retStmt;
+	return stmt;
 }
 
 
-int dc_sqlite3_execute__(dc_sqlite3_t* sql, const char* querystr)
+int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
-	stmt = dc_sqlite3_prepare_v2_(sql, querystr);
+	stmt = dc_sqlite3_prepare(sql, querystr);
 	if( stmt == NULL ) {
 		goto cleanup;
 	}
@@ -194,24 +194,24 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		{
 			dc_log_info(sql->m_context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
-			dc_sqlite3_execute__(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
-			dc_sqlite3_execute__(sql, "CREATE INDEX config_index1 ON config (keyname);");
+			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
+			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
 
-			dc_sqlite3_execute__(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE contacts (id INTEGER PRIMARY KEY,"
 						" name TEXT DEFAULT '',"
 						" addr TEXT DEFAULT '' COLLATE NOCASE,"
 						" origin INTEGER DEFAULT 0,"
 						" blocked INTEGER DEFAULT 0,"
 						" last_seen INTEGER DEFAULT 0,"   /* last_seen is for future use */
 						" param TEXT DEFAULT '');");      /* param is for future use, eg. for the status */
-			dc_sqlite3_execute__(sql, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
-			dc_sqlite3_execute__(sql, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
-			dc_sqlite3_execute__(sql, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'device',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
+			dc_sqlite3_execute(sql, "CREATE INDEX contacts_index1 ON contacts (name COLLATE NOCASE);"); /* needed for query contacts */
+			dc_sqlite3_execute(sql, "CREATE INDEX contacts_index2 ON contacts (addr COLLATE NOCASE);"); /* needed for query and on receiving mails */
+			dc_sqlite3_execute(sql, "INSERT INTO contacts (id,name,origin) VALUES (1,'self',262144), (2,'device',262144), (3,'rsvd',262144), (4,'rsvd',262144), (5,'rsvd',262144), (6,'rsvd',262144), (7,'rsvd',262144), (8,'rsvd',262144), (9,'rsvd',262144);");
 			#if !defined(DC_ORIGIN_INTERNAL) || DC_ORIGIN_INTERNAL!=262144
 				#error
 			#endif
 
-			dc_sqlite3_execute__(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
+			dc_sqlite3_execute(sql, "CREATE TABLE chats (id INTEGER PRIMARY KEY, "
 						" type INTEGER DEFAULT 0,"
 						" name TEXT DEFAULT '',"
 						" draft_timestamp INTEGER DEFAULT 0,"
@@ -219,10 +219,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" blocked INTEGER DEFAULT 0,"
 						" grpid TEXT DEFAULT '',"          /* contacts-global unique group-ID, see dc_chat.c for details */
 						" param TEXT DEFAULT '');");
-			dc_sqlite3_execute__(sql, "CREATE INDEX chats_index1 ON chats (grpid);");
-			dc_sqlite3_execute__(sql, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
-			dc_sqlite3_execute__(sql, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
-			dc_sqlite3_execute__(sql, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'rsvd'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'starred'), (6,120,'archivedlink'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
+			dc_sqlite3_execute(sql, "CREATE INDEX chats_index1 ON chats (grpid);");
+			dc_sqlite3_execute(sql, "CREATE TABLE chats_contacts (chat_id INTEGER, contact_id INTEGER);");
+			dc_sqlite3_execute(sql, "CREATE INDEX chats_contacts_index1 ON chats_contacts (chat_id);");
+			dc_sqlite3_execute(sql, "INSERT INTO chats (id,type,name) VALUES (1,120,'deaddrop'), (2,120,'rsvd'), (3,120,'trash'), (4,120,'msgs_in_creation'), (5,120,'starred'), (6,120,'archivedlink'), (7,100,'rsvd'), (8,100,'rsvd'), (9,100,'rsvd');");
 			#if !defined(DC_CHAT_TYPE_SINGLE) || DC_CHAT_TYPE_SINGLE!=100 || DC_CHAT_TYPE_GROUP!=120 || \
 			 DC_CHAT_ID_DEADDROP!=1 || DC_CHAT_ID_TRASH!=3 || \
 			 DC_CHAT_ID_MSGS_IN_CREATION!=4 || DC_CHAT_ID_STARRED!=5 || DC_CHAT_ID_ARCHIVED_LINK!=6 || \
@@ -230,7 +230,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				#error
 			#endif
 
-			dc_sqlite3_execute__(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE msgs (id INTEGER PRIMARY KEY,"
 						" rfc724_mid TEXT DEFAULT '',"     /* forever-global-unique Message-ID-string, unfortunately, this cannot be easily used to communicate via IMAP */
 						" server_folder TEXT DEFAULT '',"  /* folder as used on the server, the folder will change when messages are moved around. */
 						" server_uid INTEGER DEFAULT 0,"   /* UID as used on the server, the UID will change when messages are moved around, unique together with validity, see RFC 3501; the validity may differ from folder to folder.  We use the server_uid for "markseen" and to delete messages as we check against the message-id, we ignore the validity for these commands. */
@@ -245,19 +245,19 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" txt TEXT DEFAULT '',"            /* as this is also used for (fulltext) searching, nothing but normal, plain text should go here */
 						" txt_raw TEXT DEFAULT '',"
 						" param TEXT DEFAULT '');");
-			dc_sqlite3_execute__(sql, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
-			dc_sqlite3_execute__(sql, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
-			dc_sqlite3_execute__(sql, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
-			dc_sqlite3_execute__(sql, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of fresh messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
-			dc_sqlite3_execute__(sql, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
+			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index1 ON msgs (rfc724_mid);");     /* in our database, one email may be split up to several messages (eg. one per image), so the email-Message-ID may be used for several records; id is always unique */
+			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index2 ON msgs (chat_id);");
+			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index3 ON msgs (timestamp);");      /* for sorting */
+			dc_sqlite3_execute(sql, "CREATE INDEX msgs_index4 ON msgs (state);");          /* for selecting the count of fresh messages (as there are normally only few unread messages, an index over the chat_id is not required for _this_ purpose */
+			dc_sqlite3_execute(sql, "INSERT INTO msgs (id,msgrmsg,txt) VALUES (1,0,'marker1'), (2,0,'rsvd'), (3,0,'rsvd'), (4,0,'rsvd'), (5,0,'rsvd'), (6,0,'rsvd'), (7,0,'rsvd'), (8,0,'rsvd'), (9,0,'daymarker');"); /* make sure, the reserved IDs are not used */
 
-			dc_sqlite3_execute__(sql, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
+			dc_sqlite3_execute(sql, "CREATE TABLE jobs (id INTEGER PRIMARY KEY,"
 						" added_timestamp INTEGER,"
 						" desired_timestamp INTEGER DEFAULT 0,"
 						" action INTEGER,"
 						" foreign_id INTEGER,"
 						" param TEXT DEFAULT '');");
-			dc_sqlite3_execute__(sql, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
+			dc_sqlite3_execute(sql, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
 
 			if( !dc_sqlite3_table_exists__(sql, "config") || !dc_sqlite3_table_exists__(sql, "contacts")
 			 || !dc_sqlite3_table_exists__(sql, "chats") || !dc_sqlite3_table_exists__(sql, "chats_contacts")
@@ -282,10 +282,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 1
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "CREATE TABLE leftgrps ("
+				dc_sqlite3_execute(sql, "CREATE TABLE leftgrps ("
 							" id INTEGER PRIMARY KEY,"
 							" grpid TEXT DEFAULT '');");
-				dc_sqlite3_execute__(sql, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
+				dc_sqlite3_execute(sql, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -295,7 +295,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 2
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
+				dc_sqlite3_execute(sql, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -305,7 +305,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 7
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "CREATE TABLE keypairs ("
+				dc_sqlite3_execute(sql, "CREATE TABLE keypairs ("
 							" id INTEGER PRIMARY KEY,"
 							" addr TEXT DEFAULT '' COLLATE NOCASE,"
 							" is_default INTEGER DEFAULT 0,"
@@ -321,14 +321,14 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 10
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "CREATE TABLE acpeerstates ("
+				dc_sqlite3_execute(sql, "CREATE TABLE acpeerstates ("
 							" id INTEGER PRIMARY KEY,"
 							" addr TEXT DEFAULT '' COLLATE NOCASE,"    /* no UNIQUE here, Autocrypt: requires the index above mail+type (type however, is not used at the moment, but to be future-proof, we do not use an index. instead we just check ourself if there is a record or not)*/
 							" last_seen INTEGER DEFAULT 0,"
 							" last_seen_autocrypt INTEGER DEFAULT 0,"
 							" public_key,"
 							" prefer_encrypted INTEGER DEFAULT 0);");
-				dc_sqlite3_execute__(sql, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
+				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -338,10 +338,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 12
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "CREATE TABLE msgs_mdns ("
+				dc_sqlite3_execute(sql, "CREATE TABLE msgs_mdns ("
 							" msg_id INTEGER, "
 							" contact_id INTEGER);");
-				dc_sqlite3_execute__(sql, "CREATE INDEX msgs_mdns_index1 ON msgs_mdns (msg_id);");
+				dc_sqlite3_execute(sql, "CREATE INDEX msgs_mdns_index1 ON msgs_mdns (msg_id);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -351,10 +351,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 17
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "ALTER TABLE chats ADD COLUMN archived INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "CREATE INDEX chats_index2 ON chats (archived);");
-				dc_sqlite3_execute__(sql, "ALTER TABLE msgs ADD COLUMN starred INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "CREATE INDEX msgs_index5 ON msgs (starred);");
+				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN archived INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX chats_index2 ON chats (archived);");
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN starred INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "CREATE INDEX msgs_index5 ON msgs (starred);");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -364,8 +364,8 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 18
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_timestamp INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key;");
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_timestamp INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key;");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -375,10 +375,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 27
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
-				dc_sqlite3_execute__(sql, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
-				dc_sqlite3_execute__(sql, "ALTER TABLE msgs ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
+				dc_sqlite3_execute(sql, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -388,12 +388,12 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 34
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN public_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				dc_sqlite3_execute__(sql, "CREATE INDEX acpeerstates_index3 ON acpeerstates (public_key_fingerprint);");
-				dc_sqlite3_execute__(sql, "CREATE INDEX acpeerstates_index4 ON acpeerstates (gossip_key_fingerprint);");
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN public_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index3 ON acpeerstates (public_key_fingerprint);");
+				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index4 ON acpeerstates (gossip_key_fingerprint);");
 				recalc_fingerprints = 1;
 
 				dbversion = NEW_DB_VERSION;
@@ -404,23 +404,23 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 39
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "CREATE TABLE tokens ("
+				dc_sqlite3_execute(sql, "CREATE TABLE tokens ("
 							" id INTEGER PRIMARY KEY,"
 							" namespc INTEGER DEFAULT 0,"
 							" foreign_id INTEGER DEFAULT 0,"
 							" token TEXT DEFAULT '',"
 							" timestamp INTEGER DEFAULT 0);");
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key;");
-				dc_sqlite3_execute__(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
-				dc_sqlite3_execute__(sql, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key;");
+				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
+				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");
 
 				if( dbversion_before_update == 34 )
 				{
 					// migrate database from the use of verified-flags to verified_key,
 					// _only_ version 34 (0.17.0) has the fields public_key_verified and gossip_key_verified
 					// this block can be deleted in half a year or so (created 5/2018)
-					dc_sqlite3_execute__(sql, "UPDATE acpeerstates SET verified_key=gossip_key, verified_key_fingerprint=gossip_key_fingerprint WHERE gossip_key_verified=2;");
-					dc_sqlite3_execute__(sql, "UPDATE acpeerstates SET verified_key=public_key, verified_key_fingerprint=public_key_fingerprint WHERE public_key_verified=2;");
+					dc_sqlite3_execute(sql, "UPDATE acpeerstates SET verified_key=gossip_key, verified_key_fingerprint=gossip_key_fingerprint WHERE gossip_key_verified=2;");
+					dc_sqlite3_execute(sql, "UPDATE acpeerstates SET verified_key=public_key, verified_key_fingerprint=public_key_fingerprint WHERE public_key_verified=2;");
 				}
 
 				dbversion = NEW_DB_VERSION;
@@ -431,7 +431,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#define NEW_DB_VERSION 40
 			if( dbversion < NEW_DB_VERSION )
 			{
-				dc_sqlite3_execute__(sql, "ALTER TABLE jobs ADD COLUMN thread INTEGER DEFAULT 0;");
+				dc_sqlite3_execute(sql, "ALTER TABLE jobs ADD COLUMN thread INTEGER DEFAULT 0;");
 
 				dbversion = NEW_DB_VERSION;
 				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
@@ -441,7 +441,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		// (2) updates that require high-level objects (the structure is complete now and all objects are usable)
 		if( recalc_fingerprints )
 		{
-			sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(sql, "SELECT addr FROM acpeerstates;");
+			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
 					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->m_context);
 						if( dc_apeerstate_load_by_addr__(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
@@ -554,7 +554,7 @@ int dc_sqlite3_table_exists__(dc_sqlite3_t* sql, const char* name)
 		goto cleanup;
 	}
 
-	if( (stmt=dc_sqlite3_prepare_v2_(sql, querystr)) == NULL ) {
+	if( (stmt=dc_sqlite3_prepare(sql, querystr)) == NULL ) {
 		goto cleanup;
 	}
 

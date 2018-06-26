@@ -186,7 +186,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 			if( strncmp(context->m_blobdir, pathNfilename, strlen(context->m_blobdir))==0 )
 			{
 				char* strLikeFilename = dc_mprintf("%%f=%s%%", pathNfilename);
-				sqlite3_stmt* stmt2 = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
+				sqlite3_stmt* stmt2 = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM msgs WHERE type!=? AND param LIKE ?;"); /* if this gets too slow, an index over "type" should help. */
 				sqlite3_bind_int (stmt2, 1, DC_MSG_TEXT);
 				sqlite3_bind_text(stmt2, 2, strLikeFilename, -1, SQLITE_STATIC);
 				int file_used_by_other_msgs = (sqlite3_step(stmt2)==SQLITE_ROW)? 1 : 0;
@@ -527,7 +527,7 @@ void dc_job_add(dc_context_t* context, int action, int foreign_id, const char* p
 		return;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO jobs (added_timestamp, thread, action, foreign_id, param, desired_timestamp) VALUES (?,?,?,?,?,?);");
 	sqlite3_bind_int64(stmt, 1, timestamp);
 	sqlite3_bind_int  (stmt, 2, thread);
@@ -563,7 +563,7 @@ void dc_job_kill_actions(dc_context_t* context, int action1, int action2)
 		return;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"DELETE FROM jobs WHERE action=? OR action=?;");
 	sqlite3_bind_int(stmt, 1, action1);
 	sqlite3_bind_int(stmt, 2, action2);
@@ -585,7 +585,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		goto cleanup;
 	}
 
-	select_stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	select_stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id, action, foreign_id, param FROM jobs WHERE thread=? AND desired_timestamp<=? ORDER BY action DESC, added_timestamp;");
 	sqlite3_bind_int64(select_stmt, 1, thread);
 	sqlite3_bind_int64(select_stmt, 2, time(NULL));
@@ -628,7 +628,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			int tries = dc_param_get_int(job.m_param, DC_PARAM_TIMES, 0) + 1;
 			dc_param_set_int(job.m_param, DC_PARAM_TIMES, tries);
 
-			sqlite3_stmt* update_stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+			sqlite3_stmt* update_stmt = dc_sqlite3_prepare(context->m_sql,
 				"UPDATE jobs SET desired_timestamp=0, param=? WHERE id=?;");
 			sqlite3_bind_text (update_stmt, 1, job.m_param->m_packed, -1, SQLITE_STATIC);
 			sqlite3_bind_int  (update_stmt, 2, job.m_job_id);
@@ -649,7 +649,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 		}
 		else
 		{
-			sqlite3_stmt* delete_stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+			sqlite3_stmt* delete_stmt = dc_sqlite3_prepare(context->m_sql,
 				"DELETE FROM jobs WHERE id=?;");
 			sqlite3_bind_int(delete_stmt, 1, job.m_job_id);
 			sqlite3_step(delete_stmt);

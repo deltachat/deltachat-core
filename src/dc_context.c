@@ -522,12 +522,12 @@ char* dc_get_info(dc_context_t* context)
 
 		mdns_enabled    = dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
-		sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
 		sqlite3_step(stmt);
 		prv_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT COUNT(*) FROM acpeerstates;");
+		stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM acpeerstates;");
 		sqlite3_step(stmt);
 		pub_key_count = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
@@ -1438,7 +1438,7 @@ void dc_set_draft(dc_context_t* context, uint32_t chat_id, const char* msg)
 	chat->m_draft_timestamp = msg? time(NULL) : 0;
 
 	// save draft in database
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE chats SET draft_timestamp=?, draft_txt=? WHERE id=?;");
 	sqlite3_bind_int64(stmt, 1, chat->m_draft_timestamp);
 	sqlite3_bind_text (stmt, 2, chat->m_draft_text? chat->m_draft_text : "", -1, SQLITE_STATIC);
@@ -1592,7 +1592,7 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", DC_CHAT_TYPE_SINGLE, chat_name,
 		contact_id==DC_CONTACT_ID_SELF? "K=1" : "", create_blocked);
 	assert( DC_PARAM_SELFTALK == 'K' );
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q);
+	stmt = dc_sqlite3_prepare(context->m_sql, q);
 	if( stmt == NULL) {
 		goto cleanup;
 	}
@@ -1610,7 +1610,7 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 
 	/* add contact IDs to the new chat record (may be replaced by dc_add_to_chat_contacts_table__()) */
 	q = sqlite3_mprintf("INSERT INTO chats_contacts (chat_id, contact_id) VALUES(%i, %i)", chat_id, contact_id);
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, q);
+	stmt = dc_sqlite3_prepare(context->m_sql, q);
 
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
@@ -1714,7 +1714,7 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 	}
 
 	dc_sqlite3_lock(context->m_sql);
-		sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(context->m_sql, "UPDATE chats SET archived=? WHERE id=?;");
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "UPDATE chats SET archived=? WHERE id=?;");
 		sqlite3_bind_int  (stmt, 1, archive);
 		sqlite3_bind_int  (stmt, 2, chat_id);
 		sqlite3_step(stmt);
@@ -1778,28 +1778,28 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 		pending_transaction = 1;
 
 			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
-			if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+			if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 				goto cleanup;
 			}
 			sqlite3_free(q3);
 			q3 = NULL;
 
 			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
-			if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+			if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 				goto cleanup;
 			}
 			sqlite3_free(q3);
 			q3 = NULL;
 
 			q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
-			if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+			if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 				goto cleanup;
 			}
 			sqlite3_free(q3);
 			q3 = NULL;
 
 			q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
-			if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+			if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 				goto cleanup;
 			}
 			sqlite3_free(q3);
@@ -2483,7 +2483,7 @@ void dc_set_group_explicitly_left__(dc_context_t* context, const char* grpid)
 {
 	if( !dc_is_group_explicitly_left__(context, grpid) )
 	{
-		sqlite3_stmt* stmt = dc_sqlite3_prepare_v2_(context->m_sql, "INSERT INTO leftgrps (grpid) VALUES(?);");
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "INSERT INTO leftgrps (grpid) VALUES(?);");
 		sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
@@ -2567,7 +2567,7 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		draft_txt = dc_stock_str_repl_string(DC_STR_NEWGROUPDRAFT, chat_name);
 		grpid = dc_create_id();
 
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/ );
 		sqlite3_bind_int  (stmt, 1, verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
 		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
@@ -2645,7 +2645,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 		}
 
 		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", new_name, chat_id);
-		if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+		if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 			goto cleanup;
 		}
 
@@ -2976,7 +2976,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 	locked = 1;
 
 		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
-		if( !dc_sqlite3_execute__(context->m_sql, q3) ) {
+		if( !dc_sqlite3_execute(context->m_sql, q3) ) {
 			goto cleanup;
 		}
 
@@ -4077,7 +4077,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 		}
 
 		/* add mdn's time and readers */
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
 		sqlite3_bind_int (stmt, 1, msg_id);
 		while( sqlite3_step(stmt) == SQLITE_ROW ) {
@@ -4241,7 +4241,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 
 		idsstr = dc_arr_to_string(msg_ids, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, q3);
+		stmt = dc_sqlite3_prepare(context->m_sql, q3);
 		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
 			int src_msg_id = sqlite3_column_int(stmt, 0);

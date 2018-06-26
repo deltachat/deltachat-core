@@ -32,7 +32,7 @@ void dc_token_save__(dc_context_t* context, dc_tokennamespc_t namespc, uint32_t 
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO tokens (namespc, foreign_id, token, timestamp) VALUES (?, ?, ?, ?);");
 	sqlite3_bind_int  (stmt, 1, (int)namespc);
 	sqlite3_bind_int  (stmt, 2, (int)foreign_id);
@@ -54,7 +54,7 @@ char* dc_token_lookup__(dc_context_t* context, dc_tokennamespc_t namespc, uint32
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT token FROM tokens WHERE namespc=? AND foreign_id=?;");
 	sqlite3_bind_int (stmt, 1, (int)namespc);
 	sqlite3_bind_int (stmt, 2, (int)foreign_id);
@@ -77,7 +77,7 @@ int dc_token_exists__(dc_context_t* context, dc_tokennamespc_t namespc, const ch
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id FROM tokens WHERE namespc=? AND token=?;");
 	sqlite3_bind_int (stmt, 1, (int)namespc);
 	sqlite3_bind_text(stmt, 2, token, -1, SQLITE_STATIC);

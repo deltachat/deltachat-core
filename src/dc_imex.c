@@ -574,7 +574,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		stmt = dc_sqlite3_prepare_v2_(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+		stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
 		sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
 		sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
 		sqlite3_step(stmt);
@@ -582,7 +582,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 		stmt = NULL;
 
 		if( set_default ) {
-			dc_sqlite3_execute__(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+			dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
 		}
 
 		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
@@ -724,7 +724,7 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( (stmt=dc_sqlite3_prepare_v2_(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+		if( (stmt=dc_sqlite3_prepare(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 			goto cleanup;
 		}
 
@@ -913,7 +913,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	if( !dc_sqlite3_table_exists__(dest_sql, "backup_blobs") ) {
-		if( !dc_sqlite3_execute__(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
+		if( !dc_sqlite3_execute(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
 			goto cleanup; /* error already logged */
 		}
 	}
@@ -940,7 +940,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 			goto cleanup;
 		}
 
-		stmt = dc_sqlite3_prepare_v2_(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
+		stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
 			if( dc_shall_stop_ongoing ) {
@@ -1069,13 +1069,13 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	}
 
 	/* copy all blobs to files */
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
+	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
 	sqlite3_step(stmt);
 	total_files_count = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	stmt = dc_sqlite3_prepare_v2_(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
+	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
 		if( dc_shall_stop_ongoing ) {
@@ -1103,8 +1103,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = 0;
 	dc_sqlite3_reset_all_predefinitions(context->m_sql);
 
-	dc_sqlite3_execute__(context->m_sql, "DROP TABLE backup_blobs;");
-	dc_sqlite3_execute__(context->m_sql, "VACUUM;");
+	dc_sqlite3_execute(context->m_sql, "DROP TABLE backup_blobs;");
+	dc_sqlite3_execute(context->m_sql, "VACUUM;");
 
 	/* rewrite references to the blobs */
 	repl_from = dc_sqlite3_get_config__(context->m_sql, "backup_for", NULL);
@@ -1120,15 +1120,15 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 		assert( 'i' == DC_PARAM_PROFILE_IMAGE );
 
 		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
-			dc_sqlite3_execute__(context->m_sql, q3);
+			dc_sqlite3_execute(context->m_sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute__(context->m_sql, q3);
+			dc_sqlite3_execute(context->m_sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE contacts SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute__(context->m_sql, q3);
+			dc_sqlite3_execute(context->m_sql, q3);
 		sqlite3_free(q3);
 	}
 
