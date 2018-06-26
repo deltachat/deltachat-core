@@ -92,7 +92,6 @@
  * `-==break1==` in this example.
  *
  * @private @memberof dc_context_t
- *
  * @param context The context object
  * @param passphrase The setup code that shall be used to encrypt the message.
  *     Typically created by dc_create_setup_code().
@@ -104,7 +103,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
 	char*                  self_addr = NULL;
-	dc_key_t*               curr_private_key = dc_key_new();
+	dc_key_t*              curr_private_key = dc_key_new();
 
 	char                   passphrase_begin[8];
 	uint8_t                salt[PGP_SALT_SIZE];
@@ -298,7 +297,6 @@ cleanup:
  * Parse the given file content and extract the private key.
  *
  * @private @memberof dc_context_t
- *
  * @param context The context object
  * @param passphrase The setup code that shall be used to decrypt the message.
  *     May be created by dc_create_setup_code() on another device or by
@@ -360,16 +358,14 @@ cleanup:
  * A higher-level function to initiate the key transfer is dc_initiate_key_transfer().
  *
  * @private @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
- *
  * @return Setup code, must be free()'d after usage. NULL on errors.
  */
 char* dc_create_setup_code(dc_context_t* context)
 {
-	#define        CODE_ELEMS 9
-	uint16_t       random_val;
-	int            i;
+	#define         CODE_ELEMS 9
+	uint16_t        random_val;
+	int             i;
 	dc_strbuilder_t ret;
 
 	dc_strbuilder_init(&ret, 0);
@@ -422,27 +418,18 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 
 
 /**
- * Initiate Autocrypt Key Transfer.
- *
- * @memberof dc_context_t
- *
- * @param context The context object.
- *
- * @return The setup code. Must be free()'d after usage.
- *     On errors, eg. if the message could not be sent, NULL is returned.
- *
- * Before starting the key transfer with this function, the user should be asked:
+ * Initiate Autocrypt Setup Transfer.
+ * Before starting the setup transfer with this function, the user should be asked:
  *
  * ```
- * "The 'Autocrypt Key Transfer' requires that the mail client on the other device is Autocrypt-compliant.
- * You can then send your key to yourself. Your key will be encrypted by a setup code which is displayed here and must be typed on the other device."
+ * "An 'Autocrypt Setup Message' securely shares your end-to-end setup with other Autocrypt-compliant apps.
+ * The setup will be encrypted by a setup code which is displayed here and must be typed on the other device.
  * ```
  *
- * After that, this function should be called to send the Autocrypt setup message.
+ * After that, this function should be called to send the Autocrypt Setup Message.
  * The function creates the setup message and waits until it is really sent.
  * As this may take a while, it is recommended to start the function in a separate thread;
  * to interrupt it, you can use dc_stop_ongoing_process().
- *
  *
  * After everything succeeded, the required setup code is returned in the following format:
  *
@@ -469,6 +456,11 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
  *
  * For more details about the Autocrypt setup process, please refer to
  * https://autocrypt.org/en/latest/level1.html#autocrypt-setup-message
+ *
+ * @memberof dc_context_t
+ * @param context The context object.
+ * @return The setup code. Must be free()'d after usage.
+ *     On errors, eg. if the message could not be sent, NULL is returned.
  */
 char* dc_initiate_key_transfer(dc_context_t* context)
 {
@@ -636,14 +628,12 @@ cleanup:
  * has created several messages and should not enter the wrong code).
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
  * @param msg_id ID of the setup message to decrypt.
  * @param setup_code Setup code entered by the user. This is the same setup code as returned from
  *     dc_initiate_key_transfer() on the other device.
  *     There is no need to format the string correctly, the function will remove all spaces and other characters and
  *     insert the `-` characters at the correct places.
- *
  * @return 1=key successfully decrypted and imported; both devices will use the same key now;
  *     0=key transfer failed eg. due to a bad setup code.
  */
@@ -1194,13 +1184,11 @@ cleanup:
  * To cancel an import-/export-progress, use dc_stop_ongoing_process().
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
  * @param what One of the DC_IMEX_* constants.
  * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
  *     a slash (otherwise you'll get double slashes when receiving #DC_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
  * @param param2 Meaning depends on the DC_IMEX_* constants. Set to NULL if not used.
- *
  * @return 1=success, 0=error or progress canceled.
  */
 int dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
@@ -1280,16 +1268,7 @@ cleanup:
 
 /**
  * Check if there is a backup file.
- *
  * May only be used on fresh installations (eg. dc_is_configured() returns 0).
- *
- * @memberof dc_context_t
- *
- * @param context The context as created by dc_context_new().
- * @param dir_name Directory to search backups in.
- *
- * @return String with the backup file, typically given to dc_imex(), returned strings must be free()'d.
- *     The function returns NULL if no backup was found.
  *
  * Example:
  *
@@ -1328,6 +1307,12 @@ cleanup:
  *     free(file);
  * }
  * ```
+ *
+ * @memberof dc_context_t
+ * @param context The context as created by dc_context_new().
+ * @param dir_name Directory to search backups in.
+ * @return String with the backup file, typically given to dc_imex(), returned strings must be free()'d.
+ *     The function returns NULL if no backup was found.
  */
 char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 {
@@ -1338,7 +1323,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	int            prefix_len = strlen(DC_BAK_PREFIX);
 	int            suffix_len = strlen(DC_BAK_SUFFIX);
 	char*          curr_pathNfilename = NULL;
-	dc_sqlite3_t*   test_sql = NULL;
+	dc_sqlite3_t*  test_sql = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return NULL;
@@ -1389,10 +1374,8 @@ cleanup:
  * This is to promt for the password eg. before exporting keys/backup.
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
  * @param test_pw Password to check.
- *
  * @return 1=user is authorized, 0=user is not authorized.
  */
 int dc_check_password(dc_context_t* context, const char* test_pw)
@@ -1401,7 +1384,7 @@ int dc_check_password(dc_context_t* context, const char* test_pw)
 	This is to prompt the user before starting eg. an export; this is mainly to avoid doing people bad thinkgs if they have short access to the device.
 	When we start supporting OAuth some day, we should think this over, maybe force the user to re-authenticate himself with the Android password. */
 	dc_loginparam_t* loginparam = dc_loginparam_new();
-	int             success = 0;
+	int              success = 0;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;

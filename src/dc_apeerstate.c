@@ -78,15 +78,15 @@ static void dc_apeerstate_empty(dc_apeerstate_t* peerstate)
 static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_stmt* stmt)
 {
 	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, public_key_fingerprint, gossip_key_fingerprint, verified_key, verified_key_fingerprint"
-	peerstate->m_addr                = dc_strdup((char*)sqlite3_column_text  (stmt, 0));
-	peerstate->m_last_seen           =                    sqlite3_column_int64 (stmt, 1);
-	peerstate->m_last_seen_autocrypt =                    sqlite3_column_int64 (stmt, 2);
-	peerstate->m_prefer_encrypt      =                    sqlite3_column_int   (stmt, 3);
-	#define PUBLIC_KEY_COL                                                      4
-	peerstate->m_gossip_timestamp    =                    sqlite3_column_int   (stmt, 5);
-	#define GOSSIP_KEY_COL                                                      6
-	peerstate->m_public_key_fingerprint = dc_strdup((char*)sqlite3_column_text  (stmt, 7));
-	peerstate->m_gossip_key_fingerprint = dc_strdup((char*)sqlite3_column_text  (stmt, 8));
+	peerstate->m_addr                     = dc_strdup((char*)sqlite3_column_text  (stmt, 0));
+	peerstate->m_last_seen                =                  sqlite3_column_int64 (stmt, 1);
+	peerstate->m_last_seen_autocrypt      =                  sqlite3_column_int64 (stmt, 2);
+	peerstate->m_prefer_encrypt           =                  sqlite3_column_int   (stmt, 3);
+	#define PUBLIC_KEY_COL                                                               4
+	peerstate->m_gossip_timestamp         =                  sqlite3_column_int   (stmt, 5);
+	#define GOSSIP_KEY_COL                                                               6
+	peerstate->m_public_key_fingerprint   = dc_strdup((char*)sqlite3_column_text  (stmt, 7));
+	peerstate->m_gossip_key_fingerprint   = dc_strdup((char*)sqlite3_column_text  (stmt, 8));
 	#define VERIFIED_KEY_COL                                                             9
 	peerstate->m_verified_key_fingerprint = dc_strdup((char*)sqlite3_column_text(stmt, 10));
 
@@ -270,7 +270,7 @@ void dc_apeerstate_unref(dc_apeerstate_t* peerstate)
  */
 char* dc_apeerstate_render_gossip_header(const dc_apeerstate_t* peerstate, int min_verified)
 {
-	char*        ret = NULL;
+	char*         ret = NULL;
 	dc_aheader_t* autocryptheader = dc_aheader_new();
 
 	if( peerstate == NULL || peerstate->m_addr == NULL ) {

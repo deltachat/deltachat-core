@@ -84,7 +84,6 @@ dc_param_t* dc_param_new()
  * Free an parameter list object created eg. by dc_param_new().
  *
  * @private @memberof dc_param_t
- *
  * @param param The parameter list object to free.
  */
 void dc_param_unref(dc_param_t* param)
@@ -103,9 +102,7 @@ void dc_param_unref(dc_param_t* param)
  * Delete all parameters in the object.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to modify.
- *
  * @return None.
  */
 void dc_param_empty(dc_param_t* param)
@@ -125,11 +122,8 @@ void dc_param_empty(dc_param_t* param)
  * Before the new packed parameters are stored, _all_ existant parameters are deleted.
  *
  * @private @memberof dc_param_t
- *
  * @param param Parameter object to modify.
- *
  * @param packed Parameters to set, see comment above.
- *
  * @return None.
  */
 void dc_param_set_packed(dc_param_t* param, const char* packed)
@@ -171,11 +165,8 @@ void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
  * Check if a parameter exists.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to query.
- *
  * @param key Key of the parameter to check the existance, one of the DC_PARAM_* constants.
- *
  * @return 1=parameter exists in object, 0=parameter does not exist in parameter object.
  */
 int dc_param_exists(dc_param_t* param, int key)
@@ -194,13 +185,9 @@ int dc_param_exists(dc_param_t* param, int key)
  * Get value of a parameter.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to query.
- *
  * @param key Key of the parameter to get, one of the DC_PARAM_* constants.
- *
  * @param def Value to return if the parameter is not set.
- *
  * @return The stored value or the default value.  In both cases, the returned value must be free()'d.
  */
 char* dc_param_get(dc_param_t* param, int key, const char* def)
@@ -231,13 +218,9 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
  * Get value of a parameter.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to query.
- *
  * @param key Key of the parameter to get, one of the DC_PARAM_* constants.
- *
  * @param def Value to return if the parameter is not set.
- *
  * @return The stored value or the default value.
  */
 int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
@@ -260,16 +243,11 @@ int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
  * Set parameter to a string.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to modify.
- *
  * @param key Key of the parameter to modify, one of the DC_PARAM_* constants.
- *
  * @param value Value to store for key. NULL to clear the value.
- *
  * @return None.
  */
-
 void dc_param_set(dc_param_t* param, int key, const char* value)
 {
 	char *old1, *old2, *new1 = NULL;
@@ -326,13 +304,9 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
  * Set parameter to an integer.
  *
  * @memberof dc_param_t
- *
  * @param param Parameter object to modify.
- *
  * @param key Key of the parameter to modify, one of the DC_PARAM_* constants.
- *
  * @param value Value to store for key.
- *
  * @return None.
  */
 void dc_param_set_int(dc_param_t* param, int key, int32_t value)

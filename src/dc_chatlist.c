@@ -200,8 +200,8 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	message. */
 
 	dc_lot_t*      ret = dc_lot_new(); /* the function never returns NULL */
-	int           locked = 0;
-	uint32_t      lastmsg_id = 0;
+	int            locked = 0;
+	uint32_t       lastmsg_id = 0;
 	dc_msg_t*      lastmsg = NULL;
 	dc_contact_t*  lastcontact = NULL;
 	dc_chat_t*     chat_to_delete = NULL;

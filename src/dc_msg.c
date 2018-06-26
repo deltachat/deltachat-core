@@ -37,7 +37,6 @@
  * to achieve this, you have to recreate it.
  *
  * @private @memberof dc_msg_t
- *
  * @return The created message object.
  */
 dc_msg_t* dc_msg_new()
@@ -61,9 +60,7 @@ dc_msg_t* dc_msg_new()
  * Free a message object. Message objects are created eg. by dc_get_msg().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object to free.
- *
  * @return None.
  */
 void dc_msg_unref(dc_msg_t* msg)
@@ -83,9 +80,7 @@ void dc_msg_unref(dc_msg_t* msg)
  * Empty a message object.
  *
  * @private @memberof dc_msg_t
- *
  * @param msg The message object to empty.
- *
  * @return None.
  */
 void dc_msg_empty(dc_msg_t* msg)
@@ -120,9 +115,7 @@ void dc_msg_empty(dc_msg_t* msg)
  * Get the ID of the message.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return the ID of the message, 0 on errors.
  */
 uint32_t dc_msg_get_id(const dc_msg_t* msg)
@@ -144,9 +137,7 @@ uint32_t dc_msg_get_id(const dc_msg_t* msg)
  * pass the returned ID to dc_get_contact().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return the ID of the contact who wrote the message, DC_CONTACT_ID_SELF (1)
  *     if this is an outgoing message, 0 on errors.
  */
@@ -166,9 +157,7 @@ uint32_t dc_msg_get_from_id(const dc_msg_t* msg)
  * although internally another ID is used.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return the ID of the chat the message belongs to, 0 on errors.
  */
 uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
@@ -184,9 +173,7 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  * Get the type of the message.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return One of DC_MSG_TEXT (10), DC_MSG_IMAGE (20), DC_MSG_GIF (21),
  *     DC_MSG_AUDIO (40), DC_MSG_VOICE (41), DC_MSG_VIDEO (50), DC_MSG_FILE (60)
  *     or DC_MSG_UNDEFINED (0) if the type is undefined.
@@ -224,9 +211,7 @@ int dc_msg_get_type(const dc_msg_t* msg)
  * when calling  dc_marknoticed_chat() or dc_markseen_msgs().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return The state of the message.
  */
 int dc_msg_get_state(const dc_msg_t* msg)
@@ -245,9 +230,7 @@ int dc_msg_get_state(const dc_msg_t* msg)
  * however, if a message is delayed for any reason, the correct sending time will be displayed.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return The time of the message.
  */
 time_t dc_msg_get_timestamp(const dc_msg_t* msg)
@@ -276,9 +259,7 @@ time_t dc_msg_get_timestamp(const dc_msg_t* msg)
  * To get information about the message and more/raw text, use dc_get_msg_info().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Message text. The result must be free()'d. Never returns NULL.
  */
 char* dc_msg_get_text(const dc_msg_t* msg)
@@ -303,9 +284,7 @@ char* dc_msg_get_text(const dc_msg_t* msg)
  * Plain text messages do not have a file.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Full path, file name and extension of the file associated with the
  *     message.  If there is no file associated with the message, an emtpy
  *     string is returned.  NULL is never returned and the returned value must be free()'d.
@@ -330,9 +309,7 @@ cleanup:
  * is not returned. To get the full path, use dc_msg_get_file().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Base file name plus extension without part.  If there is no file
  *     associated with the message, an empty string is returned.  The returned
  *     value must be free()'d.
@@ -364,9 +341,7 @@ cleanup:
  * in doubt, `application/octet-stream` is returned. NULL is never returned.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return String containing the mime type. Must be free()'d after usage. NULL is never returned.
  */
 char* dc_msg_get_filemime(const dc_msg_t* msg)
@@ -404,9 +379,7 @@ cleanup:
  * Typically, this is used to show the size of document messages, eg. a PDF.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return File size in bytes, 0 if not applicable or on errors.
  */
 uint64_t dc_msg_get_filebytes(const dc_msg_t* msg)
@@ -438,7 +411,6 @@ cleanup:
  *
  * - dc_lot_t::m_text1: Author of the media.  For voice messages, this is the sender.
  *   For music messages, the information are read from the filename. NULL if unknown.
- *
  * - dc_lot_t::m_text2: Title of the media.  For voice messages, this is the date.
  *   For music messages, the information are read from the filename. NULL if unknown.
  *
@@ -446,9 +418,7 @@ cleanup:
  * However, this is no big problem, as the sender usually sets the filename in a way we expect it.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Media information as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
  */
 dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
@@ -507,9 +477,7 @@ cleanup:
  * See also dc_msg_get_duration().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Width in pixels, if applicable. 0 otherwise or if unknown.
  */
 int dc_msg_get_width(const dc_msg_t* msg)
@@ -532,9 +500,7 @@ int dc_msg_get_width(const dc_msg_t* msg)
  * See also dc_msg_get_duration().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Height in pixels, if applicable. 0 otherwise or if unknown.
  */
 int dc_msg_get_height(const dc_msg_t* msg)
@@ -554,9 +520,7 @@ int dc_msg_get_height(const dc_msg_t* msg)
  * See also dc_msg_get_width() and dc_msg_get_height().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Duration in milliseconds, if applicable. 0 otherwise or if unknown.
  */
 int dc_msg_get_duration(const dc_msg_t* msg)
@@ -572,9 +536,7 @@ int dc_msg_get_duration(const dc_msg_t* msg)
  * Check if a padlock should be shown beside the message.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=padlock should be shown beside message, 0=do not show a padlock beside the message.
  */
 int dc_msg_get_showpadlock(const dc_msg_t* msg)
@@ -613,25 +575,18 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
  * - dc_lot_t::m_text1: contains the username or the string "Me".
  *   The string may be colored by having a look at m_text1_meaning.
  *   If the name should not be displayed, the element is NULL.
- *
  * - dc_lot_t::m_text1_meaning: one of DC_TEXT1_USERNAME or DC_TEXT1_SELF.
  *   Typically used to show dc_lot_t::m_text1 with different colors. 0 if not applicable.
- *
  * - dc_lot_t::m_text2: contains an excerpt of the message text.
- *
  * - dc_lot_t::m_timestamp: the timestamp of the message.
- *
  * - dc_lot_t::m_state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).
  *
  * Typically used to display a search result. See also dc_chatlist_get_summary() to display a list of chats.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @param chat To speed up things, pass an already available chat object here.
  *     If the chat object is not yet available, it is faster to pass NULL.
- *
  * @return The summary as an dc_lot_t object. Must be freed using dc_lot_unref().  NULL is never returned.
  */
 dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
@@ -669,11 +624,8 @@ cleanup:
  * notifications.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @param approx_characters Rough length of the expected string.
- *
  * @return A summary for the given messages. The returned string must be free()'d.
  *     Returns an empty string on errors, never returns NULL.
  */
@@ -694,9 +646,7 @@ char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
  * see dc_msg_get_state().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=message sent successfully, 0=message not yet sent or message is an incoming message.
  */
 int dc_msg_is_sent(const dc_msg_t* msg)
@@ -717,9 +667,7 @@ int dc_msg_is_sent(const dc_msg_t* msg)
  * use dc_get_chat_msgs() using DC_CHAT_ID_STARRED as the chat_id.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=message is starred, 0=message not starred.
  */
 int dc_msg_is_starred(const dc_msg_t* msg)
@@ -744,9 +692,7 @@ int dc_msg_is_starred(const dc_msg_t* msg)
  * esp. as the new recipient may not be in any relationship to the original author)
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=message is a forwarded message, 0=message not forwarded.
  */
 int dc_msg_is_forwarded(const dc_msg_t* msg)
@@ -771,9 +717,7 @@ int dc_msg_is_forwarded(const dc_msg_t* msg)
  * Typically, these messages are displayed in the center of the chat.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=message is a system command, 0=normal message
  */
 int dc_msg_is_info(const dc_msg_t* msg)
@@ -804,9 +748,7 @@ int dc_msg_is_info(const dc_msg_t* msg)
  * Setup message are typically generated by dc_initiate_key_transfer() on another device.
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return 1=message is a setup message, 0=no setup message.
  *     For setup messages, dc_msg_get_type() returns DC_MSG_FILE.
  */
@@ -830,9 +772,7 @@ int dc_msg_is_setupmessage(const dc_msg_t* msg)
  * To decrypt a secret key from a setup message, use dc_continue_key_transfer().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @return Typically, the first two digits of the setup code or an empty string if unknown.
  *     NULL is never returned. Must be free()'d when done.
  */
@@ -918,7 +858,6 @@ static int dc_msg_set_from_stmt__(dc_msg_t* msg, sqlite3_stmt* row, int row_offs
 
 /**
  * Library-internal.
- *
  * Calling this function is not thread-safe, locking is up to the caller.
  *
  * @private @memberof dc_msg_t
@@ -955,14 +894,10 @@ int dc_msg_load_from_db__(dc_msg_t* msg, dc_context_t* context, uint32_t id)
  * Guess message type from suffix.
  *
  * @private @memberof dc_msg_t
- *
  * @param pathNfilename Path and filename of the file to guess the type for.
- *
  * @param[out] ret_msgtype Guessed message type is copied here as one of the DC_MSG_* constants.
  *     May be NULL if you're not interested in this value.
- *
  * @param[out] ret_mime The pointer to a string buffer is set to the guessed MIME-type. May be NULL. Must be free()'d by the caller.
- *
  * @return None. But there are output parameters.
  */
 void dc_msg_guess_msgtype_from_suffix(const char* pathNfilename, int* ret_msgtype, char** ret_mime)
@@ -1123,9 +1058,7 @@ int dc_msg_is_increation__(const dc_msg_t* msg)
  * they can be sent.
  *
  * @memberof dc_msg_t
- *
  * @param msg the message object
- *
  * @return 1=message is still in creation (`<filename>.increation` exists),
  *     0=message no longer in creation
  */
@@ -1180,15 +1113,10 @@ void dc_msg_save_param_to_disk__(dc_msg_t* msg)
  * To get the stored values later, use dc_msg_get_width(), dc_msg_get_height() or dc_msg_get_duration().
  *
  * @memberof dc_msg_t
- *
  * @param msg The message object.
- *
  * @param width The new width to store in the message object. 0 if you do not want to change it.
- *
  * @param height The new height to store in the message object. 0 if you do not want to change it.
- *
  * @param duration The new duration to store in the message object. 0 if you do not want to change it.
- *
  * @return None.
  */
 void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int duration)

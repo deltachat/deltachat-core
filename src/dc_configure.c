@@ -59,11 +59,11 @@ static char* read_autoconf_file(dc_context_t* context, const char* url)
 typedef struct moz_autoconfigure_t
 {
 	const dc_loginparam_t* m_in;
-	char*                 m_in_emaildomain;
-	char*                 m_in_emaillocalpart;
+	char*                  m_in_emaildomain;
+	char*                  m_in_emaillocalpart;
 
 	dc_loginparam_t*       m_out;
-	int                   m_out_imap_set, m_out_smtp_set;
+	int                    m_out_imap_set, m_out_smtp_set;
 
 	/* currently, we assume there is only one emailProvider tag in the
 	file, see example at https://wiki.mozilla.org/Thunderbird:Autoconfiguration:ConfigFileFormat
@@ -71,15 +71,15 @@ typedef struct moz_autoconfigure_t
 	However, _if_ the assumptions are wrong, we can add a first saxparser-pass that searches for the correct domain
 	and the second pass will look for the index found. */
 
-	#define MOZ_SERVER_IMAP 1
-	#define MOZ_SERVER_SMTP 2
-	int m_tag_server;
+	#define                MOZ_SERVER_IMAP 1
+	#define                MOZ_SERVER_SMTP 2
+	int                    m_tag_server;
 
-	#define MOZ_HOSTNAME   10
-	#define MOZ_PORT       11
-	#define MOZ_USERNAME   12
-	#define MOZ_SOCKETTYPE 13
-	int m_tag_config;
+	#define                MOZ_HOSTNAME    10
+	#define                MOZ_PORT        11
+	#define                MOZ_USERNAME    12
+	#define                MOZ_SOCKETTYPE  13
+	int                    m_tag_config;
 
 } moz_autoconfigure_t;
 
@@ -215,19 +215,19 @@ typedef struct outlk_autodiscover_t
 	const dc_loginparam_t* m_in;
 
 	dc_loginparam_t*       m_out;
-	int                   m_out_imap_set, m_out_smtp_set;
+	int                    m_out_imap_set, m_out_smtp_set;
 
 	/* file format: https://msdn.microsoft.com/en-us/library/bb204278(v=exchg.80).aspx */
-	#define  OUTLK_TYPE         1
-	#define  OUTLK_SERVER       2
-	#define  OUTLK_PORT         3
-	#define  OUTLK_SSL          4
-	#define  OUTLK_REDIRECTURL  5
-	#define _OUTLK_COUNT_       6
-	int      m_tag_config;
+	#define                OUTLK_TYPE         1
+	#define                OUTLK_SERVER       2
+	#define                OUTLK_PORT         3
+	#define                OUTLK_SSL          4
+	#define                OUTLK_REDIRECTURL  5
+	#define                _OUTLK_COUNT_      6
+	int                    m_tag_config;
 
-	char*    m_config[_OUTLK_COUNT_];
-	char*    m_redirect;
+	char*                  m_config[_OUTLK_COUNT_];
+	char*                  m_redirect;
 
 } outlk_autodiscover_t;
 

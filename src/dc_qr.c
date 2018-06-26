@@ -38,27 +38,25 @@
  * The function takes the raw text scanned and checks what can be done with it.
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
  * @param qr The text of the scanned QR code.
- *
  * @return Parsed QR code as an dc_lot_t object.
  */
 dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 {
-	int             locked        = 0;
-	char*           payload       = NULL;
-	char*           addr          = NULL; /* must be normalized, if set */
-	char*           fingerprint   = NULL; /* must be normalized, if set */
-	char*           name          = NULL;
-	char*           invitenumber  = NULL;
-	char*           auth          = NULL;
+	int              locked        = 0;
+	char*            payload       = NULL;
+	char*            addr          = NULL; /* must be normalized, if set */
+	char*            fingerprint   = NULL; /* must be normalized, if set */
+	char*            name          = NULL;
+	char*            invitenumber  = NULL;
+	char*            auth          = NULL;
 	dc_apeerstate_t* peerstate     = dc_apeerstate_new(context);
 	dc_lot_t*        qr_parsed     = dc_lot_new();
-	uint32_t        chat_id       = 0;
-	char*           device_msg    = NULL;
-	char*           grpid         = NULL;
-	char*           grpname       = NULL;
+	uint32_t         chat_id       = 0;
+	char*            device_msg    = NULL;
+	char*            grpid         = NULL;
+	char*            grpname       = NULL;
 
 	qr_parsed->m_state = 0;
 

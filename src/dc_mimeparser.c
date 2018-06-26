@@ -1470,12 +1470,10 @@ static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_cont
  * MIME-structure will work.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimeparser The MIME-parser object.
  * @param body_not_terminated Plain text, no need to be null-terminated.
  * @param body_bytes The number of bytes to read from body_not_terminated.
  *     body_not_terminated is null-terminated, use strlen(body_not_terminated) here.
- *
  * @return None.
  */
 void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_terminated, size_t body_bytes)
@@ -1692,10 +1690,8 @@ cleanup:
  * Typical names are `From`, `To`, `Subject` and so on.
  *
  * @private @memberof dc_mimeparser_t
- *
  * @param mimparser The MIME-parser object.
  * @param field_name The name of the field to look for.
- *
  * @return A pointer to a mailimf_field structure. Must not be freed!
  *     Before accessing the mailimf_field::fld_data, please always have a look at mailimf_field::fld_type!
  *     If field_name could not be found, NULL is returned.

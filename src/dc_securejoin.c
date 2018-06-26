@@ -343,12 +343,9 @@ static void end_bobs_joining(dc_context_t* context, int status)
  * can be joined using dc_join_securejoin()
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
- *
  * @param group_chat_id If set to the ID of a chat, the "Joining a verified group" protocol is offered in the QR code.
  *     If set to 0, the "Setup Verified Contact" protocol is offered in the QR code.
- *
  * @return Text that should go to the qr code.
  */
 char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
@@ -454,11 +451,9 @@ cleanup:
  * call dc_stop_ongoing_process().
  *
  * @memberof dc_context_t
- *
  * @param context The context object
  * @param qr The text of the scanned QR code. Typically, the same string as given
  *     to dc_check_qr().
- *
  * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
  *     verification successfull, the UI may redirect to the corresponding chat
  *     where a new system message with the state was added.

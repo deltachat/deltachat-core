@@ -37,11 +37,11 @@
 
 static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if the function is called directly!*/)
 {
-	#define         NOT_CONNECTED     0
-	#define         ALREADY_CONNECTED 1
-	#define         JUST_CONNECTED    2
-	int             ret_connected = NOT_CONNECTED;
-	int             is_locked = 0;
+	#define          NOT_CONNECTED     0
+	#define          ALREADY_CONNECTED 1
+	#define          JUST_CONNECTED    2
+	int              ret_connected = NOT_CONNECTED;
+	int              is_locked = 0;
 	dc_loginparam_t* param = dc_loginparam_new();
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_imap == NULL ) {
@@ -84,8 +84,8 @@ cleanup:
 static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* job)
 {
 	dc_mimefactory_t  mimefactory;
-	char*            server_folder = NULL;
-	uint32_t         server_uid = 0;
+	char*             server_folder = NULL;
+	uint32_t          server_uid = 0;
 
 	dc_mimefactory_init(&mimefactory, context);
 
@@ -126,7 +126,8 @@ cleanup:
 
 static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int      locked = 0, delete_from_server = 1;
+	int       locked = 0;
+	int       delete_from_server = 1;
 	dc_msg_t* msg = dc_msg_new();
 
 	dc_sqlite3_lock(context->m_sql);
@@ -228,11 +229,12 @@ cleanup:
 
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int      locked = 0;
+	int       locked = 0;
 	dc_msg_t* msg = dc_msg_new();
-	char*    new_server_folder = NULL;
-	uint32_t new_server_uid = 0;
-	int      in_ms_flags = 0, out_ms_flags = 0;
+	char*     new_server_folder = NULL;
+	uint32_t  new_server_uid = 0;
+	int       in_ms_flags = 0;
+	int       out_ms_flags = 0;
 
 	if( !dc_imap_is_connected(context->m_imap) ) {
 		connect_to_imap(context, NULL);
@@ -343,7 +345,6 @@ static void mark_as_error(dc_context_t* context, dc_msg_t* msg)
 static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* job)
 {
 	dc_mimefactory_t mimefactory;
-
 	dc_mimefactory_init(&mimefactory, context);
 
 	/* connect to SMTP server, if not yet done */

@@ -478,7 +478,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	int                          col = 0;
 	int                          success = 0;
 	int                          parts = 0;
-	dc_e2ee_helper_t      e2ee_helper;
+	dc_e2ee_helper_t             e2ee_helper;
 	int                          e2ee_guaranteed = 0;
 	int                          min_verified = DC_NOT_VERIFIED;
 	int                          force_plaintext = 0; // 1=add Autocrypt-header (needed eg. for handshaking), 2=no Autocrypte-header (used for MDN)

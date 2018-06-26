@@ -36,12 +36,10 @@
  * with this buffer, however, never forget to call free() when done.
  *
  * @param strbuilder The object to initialze.
- *
  * @param init_bytes The number of bytes to reserve for the string. If you have an
  *     idea about how long the resulting string will be, you can give this as a hint here;
  *     this avoids some reallocations; if the string gets longer, reallocation is done.
  *     If you do not know how larget the string will be, give 0 here.
- *
  * @return None.
  */
 void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
@@ -70,9 +68,7 @@ void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
  *
  * @param strbuilder The object to initialze. Must be initialized with
  *      dc_strbuilder_init().
- *
  * @param text Null-terminated string to add to the end of the string-builder-string.
- *
  * @return Returns a pointer to the copy of the given text.
  *     The returned pointer is a pointer inside dc_strbuilder_t::m_buf and MUST NOT
  *     be freed.  If the string-builder was empty before, the returned
@@ -120,11 +116,9 @@ char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
  *
  * @param strbuilder The object to initialze. Must be initialized with
  *      dc_strbuilder_init().
- *
  * @param format The formatting string to add to the string-builder-object.
  *      This parameter may be followed by data to be inserted into the
  *      formatting string, see eg. printf()
- *
  * @return None.
  */
 void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
@@ -167,7 +161,6 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
  *
  * @param strbuilder The object to initialze. Must be initialized with
  *      dc_strbuilder_init().
- *
  * @return None
  */
 void dc_strbuilder_empty(dc_strbuilder_t* strbuilder)

@@ -689,7 +689,7 @@ time_t          dc_lot_get_timestamp     (dc_lot_t*);
 /**
  * Inform about the configuration progress started by dc_configure().
  *
- * @param data1 0=error, 0-999=progress in permille, 1000=success and done
+ * @param data1 0=error, 1-999=progress in permille, 1000=success and done
  * @param data2 0
  * @return 0
  */

@@ -415,13 +415,13 @@ static char* create_adhoc_grp_id__(dc_context_t* context, dc_array_t* member_ids
 	- encode the first 64 bits of the sha-256 output as lowercase hex (results in 16 characters from the set [0-9a-f])
 	 */
 	dc_array_t*     member_addrs = dc_array_new(context, 23);
-	char*          member_ids_str = dc_array_get_string(member_ids, ",");
+	char*           member_ids_str = dc_array_get_string(member_ids, ",");
 	dc_strbuilder_t member_cs;
-	sqlite3_stmt*  stmt = NULL;
-	char*          q3 = NULL, *addr;
-	int            i, iCnt;
-	uint8_t*       binary_hash = NULL;
-	char*          ret = NULL;
+	sqlite3_stmt*   stmt = NULL;
+	char*           q3 = NULL, *addr;
+	int             i, iCnt;
+	uint8_t*        binary_hash = NULL;
+	char*           ret = NULL;
 
 	dc_strbuilder_init(&member_cs, 0);
 
@@ -507,13 +507,13 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 	/* if we're here, no grpid was found, check there is an existing ad-hoc
 	group matching the to-list or if we can create one */
 	dc_array_t*    member_ids      = NULL;
-	uint32_t      chat_id         = 0;
-	int           chat_id_blocked = 0, i;
+	uint32_t       chat_id         = 0;
+	int            chat_id_blocked = 0, i;
 	dc_array_t*    chat_ids        = NULL;
-	char*         chat_ids_str    = NULL, *q3 = NULL;
-	sqlite3_stmt* stmt            = NULL;
-	char*         grpid           = NULL;
-	char*         grpname         = NULL;
+	char*          chat_ids_str    = NULL, *q3 = NULL;
+	sqlite3_stmt*  stmt            = NULL;
+	char*          grpid           = NULL;
+	char*          grpname         = NULL;
 
 	/* build member list from the given ids */
 	if( dc_array_get_cnt(to_ids)==0 || dc_mimeparser_is_mailinglist_message(mime_parser) ) {
@@ -587,12 +587,12 @@ cleanup:
 static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* mimeparser,
                                        uint32_t from_id, const dc_array_t* to_ids)
 {
-	int             everythings_okay = 0;
+	int              everythings_okay = 0;
 	dc_contact_t*    contact          = dc_contact_new(context);
 	dc_apeerstate_t* peerstate        = dc_apeerstate_new(context);
-	char*           to_ids_str       = NULL;
-	char*           q3               = NULL;
-	sqlite3_stmt*   stmt             = NULL;
+	char*            to_ids_str       = NULL;
+	char*            q3               = NULL;
+	sqlite3_stmt*    stmt             = NULL;
 
 	// ensure, the contact is verified
 	if( !dc_contact_load_from_db__(contact, context->m_sql, from_id)

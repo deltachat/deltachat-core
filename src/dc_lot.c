@@ -48,9 +48,7 @@ dc_lot_t* dc_lot_new()
  * dc_msg_get_mediainfo().
  *
  * @memberof dc_lot_t
- *
  * @param set The object to free.
- *
  * @return None
  */
 void dc_lot_unref(dc_lot_t* set)
@@ -97,9 +95,7 @@ void dc_lot_empty(dc_lot_t* lot)
  * Get first string. The meaning of the string is defined by the creator of the object and may be roughly described by dc_lot_get_text1_meaning().
  *
  * @memberof dc_lot_t
- *
  * @param lot The lot object.
- *
  * @return A string, the string may be empty and the returned value must be free()'d. NULL if there is no such string.
  */
 char* dc_lot_get_text1(dc_lot_t* lot)
@@ -134,9 +130,7 @@ char* dc_lot_get_text2(dc_lot_t* lot)
  * as DC_TEXT1_DRAFT, DC_TEXT1_USERNAME or DC_TEXT1_SELF.
  *
  * @memberof dc_lot_t
- *
  * @param lot The lot object.
- *
  * @return Returns the meaning of the first string, possible meanings are defined by the creator of the object.
  *    0 if there is no concrete meaning or on errors.
  */
@@ -171,9 +165,7 @@ int dc_lot_get_state(dc_lot_t* lot)
  * Get the associated ID. The meaning of the ID is defined by the creator of the object.
  *
  * @memberof dc_lot_t
- *
  * @param lot The lot object.
- *
  * @return The state as defined by the creator of the object. 0 if there is not state or on errors.
  */
 uint32_t dc_lot_get_id(dc_lot_t* lot)

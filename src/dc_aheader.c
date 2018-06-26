@@ -64,8 +64,8 @@ void dc_aheader_empty(dc_aheader_t* aheader)
  */
 char* dc_aheader_render(const dc_aheader_t* aheader)
 {
-	int            success = 0;
-	char*          keybase64_wrapped = NULL;
+	int             success = 0;
+	char*           keybase64_wrapped = NULL;
 	dc_strbuilder_t ret;
 	dc_strbuilder_init(&ret, 0);
 
@@ -271,7 +271,7 @@ void dc_aheader_unref(dc_aheader_t* aheader)
  */
 dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struct mailimf_fields* header)
 {
-	clistiter*   cur;
+	clistiter*    cur;
 	dc_aheader_t* fine_header = NULL;
 
 	if( wanted_from == NULL || header == NULL ) {

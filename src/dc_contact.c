@@ -310,8 +310,8 @@ cleanup:
  */
 int dc_contact_is_verified(const dc_contact_t* contact)
 {
-	int             contact_verified = DC_NOT_VERIFIED;
-	int             locked           = 0;
+	int              contact_verified = DC_NOT_VERIFIED;
+	int              locked           = 0;
 	dc_apeerstate_t* peerstate        = NULL;
 
 	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {

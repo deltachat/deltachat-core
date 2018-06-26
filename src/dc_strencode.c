@@ -56,7 +56,6 @@ static char hex_2_int(char ch)
  * Example: The string `Björn Petersen` will be encoded as `"Bj%C3%B6rn+Petersen`.
  *
  * @param to_encode Null-terminated UTF-8 string to encode.
- *
  * @return Returns a null-terminated url-encoded strings. The result must be free()'d when no longer needed.
  *     On memory allocation errors the program halts.
  *     On other errors, an empty string is returned.
@@ -101,7 +100,6 @@ char* dc_urlencode(const char *to_encode)
  * Belongs to RFC 3986: https://tools.ietf.org/html/rfc3986#section-2
  *
  * @param to_decode Null-terminated string to decode.
- *
  * @return The function returns a null-terminated UTF-8 string.
  *     The return value must be free() when no longer used.
  *     On memory allocation errors the program halts.
@@ -357,7 +355,6 @@ static void get_word(const char* begin, const char** pend, int* pto_be_quoted)
  * the best solution wor all this would be if libetpan encodes the line as only libetpan knowns when a header line is full.
  *
  * @param to_encode Null-terminated UTF-8-string to encode.
- *
  * @return Returns the encoded string which must be free()'d when no longed needed.
  *     On errors, NULL is returned.
  */
@@ -448,7 +445,6 @@ cleanup:
  * Belongs to RFC 2047: https://tools.ietf.org/html/rfc2047
  *
  * @param to_encode String to decode.
- *
  * @return Returns the null-terminated decoded string as UTF-8. Must be free()'d when no longed needed.
  *     On errors, NULL is returned.
  */
@@ -489,9 +485,7 @@ static const char base64chars[] =
  * Example: `Björn Petersen` gets encoded to `Bj&APY-rn_Petersen`
  *
  * @param to_encode Null-terminated UTF-8 string to encode
- *
  * @param change_spaces If set, spaces are encoded using the underscore character.
- *
  * @return Null-terminated encoded string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned.
@@ -632,10 +626,8 @@ char* dc_encode_modified_utf7(const char* to_encode, int change_spaces)
  * Modified UTF-7 strings are used eg. in IMAP mailbox names.
  *
  * @param to_decode Null-terminated, modified UTF-7 string to decode.
- *
  * @param change_spaces If set, the underscore character `_` is converted to
- *    a space.
- *
+ *     a space.
  * @return Null-terminated UTF-8 string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned.
@@ -755,7 +747,6 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
  * Check if extended header format is needed for a given string.
  *
  * @param to_check Null-terminated UTF-8 string to check.
- *
  * @return 0=extended header encoding is not needed,
  *     1=extended header encoding is needed,
  *     use dc_encode_ext_header() for this purpose.
@@ -782,7 +773,6 @@ int dc_needs_ext_header(const char* to_check)
  * Example: `Björn Petersen` gets encoded to `utf-8''Bj%C3%B6rn%20Petersen`
  *
  * @param to_encode Null-terminated UTF-8 string to encode.
- *
  * @return Null-terminated encoded string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned or just the given string is returned.
@@ -828,7 +818,6 @@ char* dc_encode_ext_header(const char* to_encode)
  * Decode an extended-header-format strings to UTF-8.
  *
  * @param to_encode Null-terminated string to decode
- *
  * @return Null-terminated decoded UTF-8 string. Must be free()'d after usage.
  *     Halts the program on memory allocation errors,
  *     for all other errors, an empty string is returned or just the given string is returned.

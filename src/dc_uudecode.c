@@ -32,19 +32,15 @@
  *
  * @param text Null-terminated text to search uuencode parts in.
  *     The text is not modified, instead, the modified text is returned on success.
- *
  * @param[out] ret_binary Points to a pointer that is set to the binary blob on
  *     success.
  *     The data is allocated with malloc() and must be free()'d by the caller.
  *     If no uuencoded part is found, this parameter is set to NULL and the function returns NULL.
- *
  * @param[out] ret_binary_bytes Points to an integer that should be set to
  *     binary blob bytes on success.
- *
  * @param[out] ret_filename Points to a pointer that should be set to the filename of the blob.
  *     The data is allocated with malloc() and must be free()'d by the caller.
  *     If no uuencoded part is found, this parameter is set to NULL and the function returns NULL.
- *
  * @return If uuencoded parts are found in the given text, the function returns the
  *     given text stripped by the first uuencode block.
  *     The caller will call dc_uudecode_do() again with this remaining text then.

@@ -214,8 +214,8 @@ char* dc_chat_get_name(dc_chat_t* chat)
 char* dc_chat_get_subtitle(dc_chat_t* chat)
 {
 	/* returns either the address or the number of chat members */
-	char* ret = NULL;
-	sqlite3_stmt* stmt;
+	char*         ret = NULL;
+	sqlite3_stmt* stmt = NULL;
 
 	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
 		return dc_strdup("Err");
@@ -403,7 +403,7 @@ int dc_chat_is_verified(dc_chat_t* chat)
 int dc_chat_are_all_members_verified__(dc_chat_t* chat)
 {
 	int           chat_verified = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
 		goto cleanup;
@@ -477,7 +477,7 @@ int dc_chat_update_param__(dc_chat_t* chat)
 static int dc_chat_set_from_stmt__(dc_chat_t* chat, sqlite3_stmt* row)
 {
 	int         row_offset = 0;
-	const char* draft_text;
+	const char* draft_text = NULL;
 
 	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC || row == NULL ) {
 		return 0;
@@ -545,7 +545,7 @@ static int dc_chat_set_from_stmt__(dc_chat_t* chat, sqlite3_stmt* row)
  */
 int dc_chat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( chat==NULL || chat->m_magic != DC_CHAT_MAGIC ) {
 		return 0;
@@ -567,8 +567,4 @@ int dc_chat_load_from_db__(dc_chat_t* chat, uint32_t chat_id)
 
 	return 1;
 }
-
-
-
-
 

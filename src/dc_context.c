@@ -45,6 +45,8 @@ static uintptr_t cb_dummy(dc_context_t* context, int event, uintptr_t data1, uin
 {
 	return 0;
 }
+
+
 static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 {
 	dc_context_t* context = (dc_context_t*)imap->m_userData;
@@ -53,6 +55,8 @@ static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 	dc_sqlite3_unlock(context->m_sql);
 	return ret;
 }
+
+
 static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 {
 	dc_context_t* context = (dc_context_t*)imap->m_userData;
@@ -60,6 +64,8 @@ static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 		dc_sqlite3_set_config__(context->m_sql, key, value);
 	dc_sqlite3_unlock(context->m_sql);
 }
+
+
 static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags)
 {
 	dc_context_t* context = (dc_context_t*)imap->m_userData;
@@ -73,7 +79,6 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  * After usage, the object should be deleted using dc_context_unref().
  *
  * @memberof dc_context_t
- *
  * @param cb a callback function that is called for events (update,
  *     state changes etc.) and to get some information form the client (eg. translation
  *     for a given string).
@@ -84,15 +89,12 @@ static void cb_receive_imf(dc_imap_t* imap, const char* imf_raw_not_terminated, 
  *     - The callback SHOULD return _fast_, for GUI updates etc. you should
  *       post yourself an asynchronous message to your GUI thread, if needed.
  *     - If not mentioned otherweise, the callback should return 0.
- *
  * @param userdata can be used by the client for any purpuse.  He finds it
  *     later in dc_get_userdata().
- *
  * @param os_name is only for decorative use and is shown eg. in the `X-Mailer:` header
  *     in the form "Delta Chat <version> for <os_name>".
  *     You can give the name of the operating system and/or the used environment here.
  *     It is okay to give NULL, in this case `X-Mailer:` header is set to "Delta Chat <version>".
- *
  * @return a context object with some public members the object must be passed to the other context functions
  *     and the object must be freed using dc_context_unref() after usage.
  */
@@ -146,9 +148,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
  * If app runs can only be terminated by a forced kill, this may be superfluous.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @return none
  */
 void dc_context_unref(dc_context_t* context)
@@ -190,9 +190,7 @@ void dc_context_unref(dc_context_t* context)
  * Get user data associated with a context object.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @return User data, this is the second parameter given to dc_context_new().
  */
 void* dc_get_userdata(dc_context_t* context)
@@ -217,17 +215,13 @@ static void update_config_cache__(dc_context_t* context, const char* key)
  * created and can be set up using dc_set_config() afterwards.
  *
  * @memberof dc_context_t
- *
  * @param context: the context object as created by dc_context_new()
- *
  * @param dbfile the file to use to store the database, sth. like "~/file" won't
  *     work on all systems, if in doubt, use absolute paths.
- *
  * @param blobdir a directory to store the blobs in, the trailing slash is added
  *     by us, so if you want to avoid double slashes, do not add one. If you
  *     give NULL as blobdir, `dbfile-blobs` is used in the same directory as
  *     _dbfile_ will be created in.
- *
  * @return 1 on success, 0 on failure
  */
 int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
@@ -284,9 +278,7 @@ cleanup:
  * Close context database.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new()
- *
  * @return none
  */
 void dc_close(dc_context_t* context)
@@ -318,9 +310,7 @@ void dc_close(dc_context_t* context)
  * Check if the context database is open.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @return 0=context is not open, 1=context is open.
  */
 int dc_is_open(const dc_context_t* context)
@@ -337,9 +327,7 @@ int dc_is_open(const dc_context_t* context)
  * Get the blob directory.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @return Blob directory associated with the context object, empty string if unset or on errors. NULL is never returned.
  *     The returned string must be free()'d.
  */
@@ -375,13 +363,9 @@ char* dc_get_blobdir(dc_context_t* context)
  * - e2ee_enabled = 0=no e2ee, 1=prefer encryption (default)
  *
  * @memberof dc_context_t
- *
  * @param context the context object
- *
  * @param key the option to change, typically one of the strings listed above
- *
  * @param value the value to save for "key"
- *
  * @return 0=failure, 1=success
  */
 int dc_set_config(dc_context_t* context, const char* key, const char* value)
@@ -407,13 +391,9 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
  * Get a configuration option.  The configuration option is typically set by dc_set_config() or by the library itself.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new()
- *
  * @param key the key to query
- *
  * @param def default value to return if "key" is unset
- *
  * @return Returns current value of "key", if "key" is unset, "def" is returned (which may be NULL)
  *     If the returned values is not NULL, the return value must be free()'d,
  */
@@ -505,11 +485,11 @@ char* dc_get_version_str(void)
  */
 char* dc_get_info(dc_context_t* context)
 {
-	const char* unset = "0";
-	char *displayname = NULL, *temp = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
+	const char      *unset = "0";
+	char            *displayname = NULL, *temp = NULL, *l_readable_str = NULL, *l2_readable_str = NULL, *fingerprint_str = NULL;
 	dc_loginparam_t *l = NULL, *l2 = NULL;
-	int contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
-	dc_key_t* self_public = dc_key_new();
+	int             contacts, chats, real_msgs, deaddrop_msgs, is_configured, dbversion, mdns_enabled, e2ee_enabled, prv_key_count, pub_key_count;
+	dc_key_t        *self_public = dc_key_new();
 
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 0);
@@ -659,9 +639,7 @@ int dc_get_archived_count__(dc_context_t* context)
  * To get the chat messages, use dc_get_chat_msgs().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned by dc_context_new()
- *
  * @param listflags A combination of flags:
  *     - if the flag DC_GCL_ARCHIVED_ONLY is set, only archived chats are returned.
  *       if DC_GCL_ARCHIVED_ONLY is not set, only unarchived chats are returned and
@@ -670,20 +648,17 @@ int dc_get_archived_count__(dc_context_t* context)
  *     - if the flag DC_GCL_NO_SPECIALS is set, deaddrop and archive link are not added
  *       to the list (may be used eg. for selecting chats on forwarding, the flag is
  *       not needed when DC_GCL_ARCHIVED_ONLY is already set)
- *
  * @param query_str An optional query for filtering the list.  Only chats matching this query
  *     are returned.  Give NULL for no filtering.
- *
  * @param query_id An optional contact ID for filtering the list.  Only chats including this contact ID
  *     are returned.  Give 0 for no filtering.
- *
  * @return A chatlist as an dc_chatlist_t object. Must be freed using
  *     dc_chatlist_unref() when no longer used
  */
 dc_chatlist_t* dc_get_chatlist(dc_context_t* context, int listflags, const char* query_str, uint32_t query_id)
 {
-	int success = 0;
-	int db_locked = 0;
+	int            success = 0;
+	int            db_locked = 0;
 	dc_chatlist_t* obj = dc_chatlist_new(context);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
@@ -721,17 +696,14 @@ cleanup:
  * Get chat object by a chat ID.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The ID of the chat to get the chat object for.
- *
  * @return A chat object of the type dc_chat_t, must be freed using dc_chat_unref() when done.
  */
 dc_chat_t* dc_get_chat(dc_context_t* context, uint32_t chat_id)
 {
-	int success = 0;
-	int db_locked = 0;
+	int        success = 0;
+	int        db_locked = 0;
 	dc_chat_t* obj = dc_chat_new(context);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
@@ -767,11 +739,8 @@ cleanup:
  * and dc_markseen_msgs()
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The chat ID of which all messages should be marked as being noticed.
- *
  * @return None.
  */
 void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
@@ -800,11 +769,8 @@ void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
  * To get the chat messages, use dc_get_chat_msgs().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param contact_id The contact ID to check.
- *
  * @return If there is a normal chat with the given contact_id, this chat_id is
  *     returned.  If there is no normal chat with the contact_id, the function
  *     returns 0.
@@ -864,12 +830,9 @@ cleanup:
  * chat messages, use dc_get_chat_msgs().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param contact_id The contact ID to create the chat for.  If there is already
  *     a chat with this contact, the already existing ID is returned.
- *
  * @return The created or reused chat ID on success. 0 on errors.
  */
 uint32_t dc_create_chat_by_contact_id(dc_context_t* context, uint32_t contact_id)
@@ -938,11 +901,8 @@ cleanup:
  * contact name only.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param msg_id The message ID to create the chat for.
- *
  * @return The created or reused chat ID on success. 0 on errors.
  */
 uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
@@ -1008,16 +968,11 @@ static dc_array_t* dc_get_chat_media__(dc_context_t* context, uint32_t chat_id, 
  * a gallery.  The result must be dc_array_unref()'d
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The chat ID to get all messages with media from.
- *
  * @param msg_type Specify a message type to query here, one of the DC_MSG_* constats.
- *
  * @param or_msg_type Another message type to return, one of the DC_MSG_* constats.
  *     The function will return both types then.  0 if you need only one.
- *
  * @return An array with messages from the given chat ID that have the wanted message types.
  */
 dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_type, int or_msg_type)
@@ -1044,13 +999,9 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
  * player playing eg. voice messages.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param curr_msg_id  This is the current (image) message displayed.
- *
  * @param dir 1=get the next (image) message, -1=get the previous one.
- *
  * @return Returns the message ID that should be played next. The
  *     returned message is in the same chat as the given one and has the same type.
  *     Typically, this result is passed again to dc_get_next_media()
@@ -1058,11 +1009,11 @@ dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_t
  */
 uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 {
-	uint32_t ret_msg_id = 0;
-	dc_msg_t* msg = dc_msg_new();
-	int      locked = 0;
+	uint32_t    ret_msg_id = 0;
+	dc_msg_t*   msg = dc_msg_new();
+	int         locked = 0;
 	dc_array_t* list = NULL;
-	int      i, cnt;
+	int         i, cnt;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -1125,10 +1076,8 @@ cleanup:
  *   added
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to get the belonging contact IDs for.
- *
  * @return an array of contact IDs belonging to the chat; must be freed using dc_array_unref() when done.
  */
 dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
@@ -1136,7 +1085,7 @@ dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
 	int           locked = 0;
-	dc_array_t*    ret = dc_array_new(context, 100);
+	dc_array_t*   ret = dc_array_new(context, 100);
 	sqlite3_stmt* stmt;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
@@ -1169,16 +1118,16 @@ cleanup:
 
 /**
  * Returns the message IDs of all _fresh_ messages of any chat. Typically used for implementing
- * notification summaries.  The result must be free()'d.
+ * notification summaries.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
+ * @return Array of message IDs, must be dc_array_unref()'d when no longer used.
  */
 dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 {
 	int           show_deaddrop, success = 0, locked = 0;
-	dc_array_t*    ret = dc_array_new(context, 128);
+	dc_array_t*   ret = dc_array_new(context, 128);
 	sqlite3_stmt* stmt = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || ret == NULL ) {
@@ -1229,17 +1178,12 @@ cleanup:
  * implement virtual lists.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The chat ID of which the messages IDs should be queried.
- *
  * @param flags If set to DC_GCM_ADD_DAY_MARKER, the marker DC_MSG_ID_DAYMARKER will
  *     be added before each day (regarding the local timezone).  Set this to 0 if you do not want this behaviour.
- *
  * @param marker1before An optional message ID.  If set, the id DC_MSG_ID_MARKER1 will be added just
  *   before the given ID in the returned array.  Set this to 0 if you do not want this behaviour.
- *
  * @return Array of message IDs, must be dc_array_unref()'d when no longer used.
  */
 dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t flags, uint32_t marker1before)
@@ -1247,7 +1191,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 	//clock_t       start = clock();
 
 	int           success = 0, locked = 0;
-	dc_array_t*    ret = dc_array_new(context, 512);
+	dc_array_t*   ret = dc_array_new(context, 512);
 	sqlite3_stmt* stmt = NULL;
 
 	uint32_t      curr_id;
@@ -1354,14 +1298,10 @@ cleanup:
  * prev/next button.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id ID of the chat to search messages in.
  *     Set this to 0 for a global search.
- *
  * @param query The query to search for.
- *
  * @return An array of message IDs. Must be freed using dc_array_unref() when no longer needed.
  *     If nothing can be found, the function returns NULL.
  */
@@ -1370,7 +1310,7 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 	//clock_t       start = clock();
 
 	int           success = 0, locked = 0;
-	dc_array_t*    ret = dc_array_new(context, 100);
+	dc_array_t*   ret = dc_array_new(context, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
 
@@ -1705,9 +1645,7 @@ void dc_unarchive_chat__(dc_context_t* context, uint32_t chat_id)
  * @memberof dc_context_t
  *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The ID of the chat to count the messages for.
- *
  * @return Number of total messages in the given chat. 0 for errors or empty chats.
  */
 int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
@@ -1731,11 +1669,8 @@ int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
  * a badge with a number in the chatlist.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The ID of the chat to count the messages for.
- *
  * @return Number of fresh messages in the given chat. 0 for errors or if there are no fresh messages.
  */
 int dc_get_fresh_msg_count(dc_context_t* context, uint32_t chat_id)
@@ -1762,20 +1697,14 @@ int dc_get_fresh_msg_count(dc_context_t* context, uint32_t chat_id)
  * the pseudo-chat with the chat_id DC_CHAT_ID_ARCHIVED_LINK will be added the the
  * end of the chatlist.
  *
- * To get a list of archived chats, use dc_get_chatlist() with the flag DC_GCL_ARCHIVED_ONLY.
- *
- * To find out the archived state of a given chat, use dc_chat_get_archived()
- *
- * Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED
+ * - To get a list of archived chats, use dc_get_chatlist() with the flag DC_GCL_ARCHIVED_ONLY.
+ * - To find out the archived state of a given chat, use dc_chat_get_archived()
+ * - Calling this function usually results in the event #DC_EVENT_MSGS_CHANGED
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The ID of the chat to archive or unarchive.
- *
  * @param archive 1=archive chat, 0=unarchive chat, all other values are reserved for future use
- *
  * @return None
  */
 void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
@@ -1810,10 +1739,8 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
  * Things that are _not_ done implicitly:
  *
  * - Messages are **not deleted from the server**.
- *
  * - The chat or the contact is **not blocked**, so new messages from the user/the group may appear
  *   and the user may create the chat again.
- *
  * - **Groups are not left** - this would
  *   be unexpected as (1) deleting a normal chat also does not prevent new mails
  *   from arriving, (2) leaving a group requires sending a message to
@@ -1825,19 +1752,16 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
  * chat_id=DC_CONTACT_ID_SELF)
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id The ID of the chat to delete.
- *
  * @return None
  */
 void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 {
 	/* Up to 2017-11-02 deleting a group also implied leaving it, see above why we have changed this. */
-	int       locked = 0, pending_transaction = 0;
+	int        locked = 0, pending_transaction = 0;
 	dc_chat_t* obj = dc_chat_new(context);
-	char*     q3 = NULL;
+	char*      q3 = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -2058,15 +1982,11 @@ cleanup:
  * which is easier to use.
  *
  * @private @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
- *
  * @param chat_id Chat ID to send the message to.
- *
  * @param msg Message object to send to the chat defined by the chat ID.
  *     The function does not take ownership of the object, so you have to
  *     free it using dc_msg_unref() as usual.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
@@ -2201,17 +2121,15 @@ cleanup:
  * See also dc_send_image_msg().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the text message to.
  * @param text_to_send Text to send to the chat defined by the chat ID.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_text_msg(dc_context_t* context, uint32_t chat_id, const char* text_to_send)
 {
 	dc_msg_t* msg = dc_msg_new();
-	uint32_t ret = 0;
+	uint32_t  ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || text_to_send == NULL ) {
 		goto cleanup;
@@ -2239,20 +2157,18 @@ cleanup:
  * See also dc_send_text_msg().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the image to.
  * @param file Full path of the image file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
  * @param width Width in pixel of the file. 0 if you don't know or don't care.
  * @param height Width in pixel of the file. 0 if you don't know or don't care.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_image_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height)
 {
 	dc_msg_t* msg = dc_msg_new();
-	uint32_t ret = 0;
+	uint32_t  ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
@@ -2283,7 +2199,6 @@ cleanup:
  * See also dc_send_image_msg().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the video to.
  * @param file Full path of the video file to send. The core may make a copy of the file.
@@ -2291,13 +2206,12 @@ cleanup:
  * @param width Width in video of the file, if known. 0 if you don't know or don't care.
  * @param height Width in video of the file, if known. 0 if you don't know or don't care.
  * @param duration Length of the video in milliseconds. 0 if you don't know or don't care.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_video_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int width, int height, int duration)
 {
 	dc_msg_t* msg = dc_msg_new();
-	uint32_t ret = 0;
+	uint32_t  ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
@@ -2329,19 +2243,17 @@ cleanup:
  * view, you're done with the message. Sooner or later it will find its way.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the voice message to.
  * @param file Full path of the file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
  * @param duration Length of the voice message in milliseconds. 0 if you don't know or don't care.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_voice_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration)
 {
 	dc_msg_t* msg = dc_msg_new();
-	uint32_t ret = 0;
+	uint32_t  ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
@@ -2370,7 +2282,6 @@ cleanup:
  * view, you're done with the message. Sooner or later it will find its way.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the audio to.
  * @param file Full path of the file to send. The core may make a copy of the file.
@@ -2378,7 +2289,6 @@ cleanup:
  * @param duration Length of the audio in milliseconds. 0 if you don't know or don't care.
  * @param author Author or artist of the file. NULL if you don't know or don't care.
  * @param trackname Trackname or title of the file. NULL if you don't know or don't care.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_audio_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime, int duration, const char* author, const char* trackname)
@@ -2415,18 +2325,16 @@ cleanup:
  * view, you're done with the message. Sooner or later it will find its way.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as returned from dc_context_new().
  * @param chat_id Chat ID to send the document to.
  * @param file Full path of the file to send. The core may make a copy of the file.
  * @param filemime Mime type of the file to send. NULL if you don't know or don't care.
- *
  * @return The ID of the message that is about being sent.
  */
 uint32_t dc_send_file_msg(dc_context_t* context, uint32_t chat_id, const char* file, const char* filemime)
 {
 	dc_msg_t* msg = dc_msg_new();
-	uint32_t ret = 0;
+	uint32_t  ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || file == NULL ) {
 		goto cleanup;
@@ -2459,21 +2367,17 @@ cleanup:
  * is not related to the VCARD data format.
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
- *
  * @param chat_id The chat to send the message to.
- *
  * @param contact_id The contact whichs data should be shared to the chat.
- *
  * @return Returns the ID of the message sent.
  */
 uint32_t dc_send_vcard_msg(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
 {
-	uint32_t     ret = 0;
+	uint32_t      ret = 0;
 	dc_msg_t*     msg = dc_msg_new();
 	dc_contact_t* contact = NULL;
-	char*        text_to_send = NULL;
+	char*         text_to_send = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -2638,14 +2542,12 @@ int dc_add_to_chat_contacts_table__(dc_context_t* context, uint32_t chat_id, uin
  * To check, if a chat is still unpromoted, you dc_chat_is_unpromoted()
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
  * @param verified If set to 1 the function creates a secure verfied group.
  *     Only secure-verified members are allowd in these groups and end-to-end-encryption is always enabled.
  * @param chat_name The name of the group chat to create.
  *     The name may be changed later using dc_set_chat_name().
  *     To find out the name of a group later, see dc_chat_get_name()
- *
  * @return The chat ID of the new group chat, 0 on errors.
  */
 uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* chat_name)
@@ -2707,22 +2609,18 @@ cleanup:
  * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
- *
  * @param chat_id The chat ID to set the name for.  Must be a group chat.
- *
  * @param new_name New name of the group.
- *
  * @param context The context as created by dc_context_new().
- *
  * @return 1=success, 0=error
  */
 int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_name)
 {
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
-	int       success = 0, locked = 0;
+	int        success = 0, locked = 0;
 	dc_chat_t* chat = dc_chat_new(context);
 	dc_msg_t*  msg = dc_msg_new();
-	char*     q3 = NULL;
+	char*      q3 = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || new_name==NULL || new_name[0]==0 || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -2787,19 +2685,15 @@ cleanup:
  * To find out the profile image of a chat, use dc_chat_get_profile_image()
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
- *
  * @param chat_id The chat ID to set the image for.
- *
  * @param new_image Full path of the image to use as the group image.  If you pass NULL here,
  *     the group image is deleted (for promoted groups, all members are informed about this change anyway).
- *
  * @return 1=success, 0=error
  */
 int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
 {
-	int       success = 0, locked = 0;;
+	int        success = 0, locked = 0;;
 	dc_chat_t* chat = dc_chat_new(context);
 	dc_msg_t*  msg = dc_msg_new();
 
@@ -2876,14 +2770,10 @@ int dc_is_contact_in_chat__(dc_context_t* context, uint32_t chat_id, uint32_t co
  * Check if a given contact ID is a member of a group chat.
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
- *
  * @param chat_id The chat ID to check.
- *
  * @param contact_id The contact ID to check.  To check if yourself is member
  *     of the chat, pass DC_CONTACT_ID_SELF (1) here.
- *
  * @return 1=contact ID is member of chat ID, 0=contact is not in chat
  */
 int dc_is_contact_in_chat(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
@@ -2908,12 +2798,12 @@ int dc_is_contact_in_chat(dc_context_t* context, uint32_t chat_id, uint32_t cont
 
 int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t contact_id, int flags)
 {
-	int             success   = 0, locked = 0;
+	int              success   = 0, locked = 0;
 	dc_contact_t*    contact   = dc_get_contact(context, contact_id);
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	dc_chat_t*       chat      = dc_chat_new(context);
 	dc_msg_t*        msg       = dc_msg_new();
-	char*           self_addr = NULL;
+	char*            self_addr = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || contact == NULL || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -3008,13 +2898,9 @@ cleanup:
  * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
- *
  * @param chat_id The chat ID to add the contact to.  Must be a group chat.
- *
  * @param contact_id The contact ID to add to the chat.
- *
  * @return 1=member added to group, 0=error
  */
 int dc_add_contact_to_chat(dc_context_t* context, uint32_t chat_id, uint32_t contact_id /*may be DC_CONTACT_ID_SELF*/)
@@ -3032,22 +2918,18 @@ int dc_add_contact_to_chat(dc_context_t* context, uint32_t chat_id, uint32_t con
  * Sends out #DC_EVENT_CHAT_MODIFIED and #DC_EVENT_MSGS_CHANGED if a status message was sent.
  *
  * @memberof dc_context_t
- *
  * @param context The context as created by dc_context_new().
- *
  * @param chat_id The chat ID to remove the contact from.  Must be a group chat.
- *
  * @param contact_id The contact ID to remove from the chat.
- *
  * @return 1=member removed from group, 0=error
  */
 int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_t contact_id /*may be DC_CONTACT_ID_SELF*/)
 {
-	int          success = 0, locked = 0;
+	int           success = 0, locked = 0;
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
 	dc_chat_t*    chat = dc_chat_new(context);
 	dc_msg_t*     msg = dc_msg_new();
-	char*        q3 = NULL;
+	char*         q3 = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || chat_id <= DC_CHAT_ID_LAST_SPECIAL || (contact_id<=DC_CONTACT_ID_LAST_SPECIAL && contact_id!=DC_CONTACT_ID_SELF) ) {
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
@@ -3346,16 +3228,12 @@ cleanup:
  * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param name Name of the contact to add. If you do not know the name belonging
  *     to the address, you can give NULL here.
- *
  * @param addr E-mail-address of the contact to add. If the email address
  *     already exists, the name is updated and the origin is increased to
  *     "manually created".
- *
  * @return Contact ID of the created or reused contact.
  */
 uint32_t dc_create_contact(dc_context_t* context, const char* name, const char* addr)
@@ -3399,14 +3277,11 @@ cleanup:
  * The function takes are of not overwriting names manually added or edited by dc_create_contact().
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @param adr_book A multi-line string in the format in the format
  *     `Name one\nAddress one\nName two\Address two`.  If an email address
  *      already exists, the name is updated and the origin is increased to
  *      "manually created".
- *
  * @return The number of modified or added contacts.
  */
 int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: Name one\nAddress one\nName two\Address two */
@@ -3455,16 +3330,13 @@ cleanup:
  * To get information about a single contact, see dc_get_contact().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param listflags A combination of flags:
  *     - if the flag DC_GCL_ADD_SELF is set, SELF is added to the list unless filtered by other parameters
  *     - if the flag DC_GCL_VERIFIED_ONLY is set, only verified contacts are returned.
  *       if DC_GCL_VERIFIED_ONLY is not set, verified and unverified contacts are returned.
  * @param query A string to filter the list.  Typically used to implement an
  *     incremental search.  NULL for no filtering.
- *
  * @return An array containing all contact IDs.  Must be dc_array_unref()'d
  *     after usage.
  */
@@ -3547,9 +3419,7 @@ cleanup:
  * Get blocked contacts.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @return An array containing all blocked contact IDs.  Must be dc_array_unref()'d
  *     after usage.
  */
@@ -3584,8 +3454,8 @@ cleanup:
  * Get the number of blocked contacts.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
+ * @return The number of blocked contacts.
  */
 int dc_get_blocked_count(dc_context_t* context)
 {
@@ -3625,11 +3495,8 @@ cleanup:
  * defined by dc_set_config().
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param contact_id ID of the contact to get the object for.
- *
  * @return The contact object, must be freed using dc_contact_unref() when no
  *     longer used.  NULL on errors.
  */
@@ -3665,11 +3532,8 @@ static void marknoticed_contact__(dc_context_t* context, uint32_t contact_id)
  * dc_markseen_msgs()
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new()
- *
  * @param contact_id The contact ID of which all messages should be marked as noticed.
- *
  * @return none
  */
 void dc_marknoticed_contact(dc_context_t* context, uint32_t contact_id)
@@ -3709,24 +3573,21 @@ void dc_unblock_chat__(dc_context_t* context, uint32_t chat_id)
 
 /**
  * Block or unblock a contact.
- *
  * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param contact_id The ID of the contact to block or unblock.
- *
  * @param new_blocking 1=block contact, 0=unblock contact
- *
  * @return None.
  */
 void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocking)
 {
-	int locked = 0, send_event = 0, transaction_pending = 0;
-	dc_contact_t*  contact = dc_contact_new(context);
-	sqlite3_stmt* stmt;
+	int           locked = 0;
+	int           send_event = 0;
+	int           transaction_pending = 0;
+	dc_contact_t* contact = dc_contact_new(context);
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -3811,24 +3672,21 @@ static void cat_fingerprint(dc_strbuilder_t* ret, const char* addr, const char* 
  * fingerprint of the contact, used eg. to compare the fingerprints for a simple out-of-band verification.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param contact_id ID of the contact to get the encryption info for.
- *
  * @return multi-line text, must be free()'d after usage.
  */
 char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 {
-	int             locked = 0;
+	int              locked = 0;
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	dc_contact_t*    contact = dc_contact_new(context);
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	dc_key_t*        self_key = dc_key_new();
-	char*           fingerprint_self = NULL;
-	char*           fingerprint_other_verified = NULL;
-	char*           fingerprint_other_unverified = NULL;
-	char*           p;
+	char*            fingerprint_self = NULL;
+	char*            fingerprint_other_verified = NULL;
+	char*            fingerprint_other_unverified = NULL;
+	char*            p = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -3917,11 +3775,8 @@ cleanup:
  * May result in a #DC_EVENT_CONTACTS_CHANGED event.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new().
- *
  * @param contact_id ID of the contact to delete.
- *
  * @return 1=success, 0=error
  */
 int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
@@ -4157,21 +4012,18 @@ cleanup:
  * can show the whole stuff eg. in a table.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new().
- *
  * @param msg_id the message id for which information should be generated
- *
  * @return text string, must be free()'d after usage
  */
 char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 {
 	dc_strbuilder_t ret;
-	int            locked = 0;
-	sqlite3_stmt*  stmt;
+	int             locked = 0;
+	sqlite3_stmt*   stmt;
 	dc_msg_t*       msg = dc_msg_new();
 	dc_contact_t*   contact_from = dc_contact_new(context);
-	char           *rawtxt = NULL, *p;
+	char            *rawtxt = NULL, *p;
 
 	dc_strbuilder_init(&ret, 0);
 
@@ -4351,15 +4203,10 @@ cleanup:
  * Forward messages to another chat.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new()
- *
  * @param msg_ids an array of uint32_t containing all message IDs that should be forwarded
- *
  * @param msg_cnt the number of messages IDs in the msg_ids array
- *
  * @param chat_id The destination chat ID.
- *
  * @return none
  */
 void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, uint32_t chat_id)
@@ -4439,15 +4286,10 @@ cleanup:
  * dc_get_chat_msgs() using the chat_id DC_CHAT_ID_STARRED.
  *
  * @memberof dc_context_t
- *
  * @param context The context object as created by dc_context_new()
- *
  * @param msg_ids An array of uint32_t message IDs defining the messages to star or unstar
- *
  * @param msg_cnt The number of IDs in msg_ids
- *
  * @param star 0=unstar the messages in msg_ids, 1=star them
- *
  * @return none
  */
 void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, int star)
@@ -4485,13 +4327,9 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
  * on the IMAP server.
  *
  * @memberof dc_context_t
- *
  * @param context the context object as created by dc_context_new()
- *
  * @param msg_ids an array of uint32_t containing all message IDs that should be deleted
- *
  * @param msg_cnt the number of messages IDs in the msg_ids array
- *
  * @return none
  */
 void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
@@ -4528,20 +4366,19 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
  * dc_marknoticed_chat() and dc_marknoticed_contact()
  *
  * @memberof dc_context_t
- *
  * @param context The context object.
- *
  * @param msg_ids an array of uint32_t containing all the messages IDs that should be marked as seen.
- *
  * @param msg_cnt The number of message IDs in msg_ids.
- *
  * @return none
  */
 void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 {
-	int locked = 0, transaction_pending = 0;
-	int i, send_event = 0;
-	int curr_state = 0, curr_blocked = 0;
+	int locked = 0;
+	int transaction_pending = 0;
+	int i = 0;
+	int send_event = 0;
+	int curr_state = 0;
+	int curr_blocked = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
 		goto cleanup;
