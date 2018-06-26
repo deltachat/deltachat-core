@@ -44,11 +44,9 @@ enum
 	,SELECT_id_FROM_CHATS_WHERE_grpid
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
 	,SELECT_param_FROM_msgs
-	,SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724
 	,UPDATE_chats_SET_blocked_WHERE_chat_id
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
 	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
 	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
 	,INSERT_INTO_chats_contacts
@@ -68,10 +66,6 @@ enum
 	,INSERT_INTO_msgs_msscftttsmttpb
 	,INSERT_INTO_msgs_cftttst
 	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
-
-	,SELECT_c_FROM_msgs_mdns_WHERE_mc
-	,INSERT_INTO_msgs_mdns
-	,SELECT_COUNT_FROM_msgs_mdns_WHERE_m
 
 	,PREDEFINED_CNT /* must be last */
 };

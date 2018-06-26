@@ -129,7 +129,7 @@ void            dc_lookup_real_nchat_by_contact_id         (dc_context_t*, uint3
 uint32_t        dc_get_last_deaddrop_fresh_msg__           (dc_context_t*);
 int             dc_add_to_chat_contacts_table__            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
 int             dc_is_contact_in_chat                      (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
-int             dc_get_chat_contact_count__                (dc_context_t*, uint32_t chat_id);
+int             dc_get_chat_contact_count                  (dc_context_t*, uint32_t chat_id);
 int             dc_is_group_explicitly_left                (dc_context_t*, const char* grpid);
 void            dc_set_group_explicitly_left               (dc_context_t*, const char* grpid);
 size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
@@ -139,7 +139,7 @@ uint32_t        dc_rfc724_mid_exists__                     (dc_context_t*, const
 void            dc_update_server_uid                       (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
-int             dc_mdn_from_ext__                          (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
+int             dc_mdn_from_ext                            (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
 uint32_t        dc_add_device_msg                          (dc_context_t*, uint32_t chat_id, const char* text);
 uint32_t        dc_add_device_msg__                        (dc_context_t*, uint32_t chat_id, const char* text, time_t timestamp);
 void            dc_suspend_smtp_thread                     (dc_context_t*, int suspend);

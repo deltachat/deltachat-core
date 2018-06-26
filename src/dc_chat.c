@@ -252,12 +252,8 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		}
 		else
 		{
-			dc_sqlite3_lock(chat->m_context->m_sql);
-
-				cnt = dc_get_chat_contact_count__(chat->m_context, chat->m_id);
-				ret = dc_stock_str_repl_pl(DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
-
-			dc_sqlite3_unlock(chat->m_context->m_sql);
+			cnt = dc_get_chat_contact_count(chat->m_context, chat->m_id);
+			ret = dc_stock_str_repl_pl(DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 		}
 	}
 

@@ -2680,15 +2680,17 @@ cleanup:
 }
 
 
-int dc_get_chat_contact_count__(dc_context_t* context, uint32_t chat_id)
+int dc_get_chat_contact_count(dc_context_t* context, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		return sqlite3_column_int(stmt, 0);
+		ret = sqlite3_column_int(stmt, 0);
 	}
-	return 0;
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -4353,62 +4355,74 @@ cleanup:
 }
 
 
-int dc_mdn_from_ext__(dc_context_t* context, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
-                                     uint32_t* ret_chat_id,
-                                     uint32_t* ret_msg_id)
+int dc_mdn_from_ext(dc_context_t* context, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
+                    uint32_t* ret_chat_id, uint32_t* ret_msg_id)
 {
+	int           read_by_all = 0;
+	sqlite3_stmt* stmt = NULL;
+
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || from_id <= DC_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL
 	 || *ret_chat_id != 0 || *ret_msg_id != 0 ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT m.id, c.id, c.type, m.state FROM msgs m "
 		" LEFT JOIN chats c ON m.chat_id=c.id "
 		" WHERE rfc724_mid=? AND from_id=1 "
 		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request MDNs for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
-
 	*ret_msg_id    = sqlite3_column_int(stmt, 0);
 	*ret_chat_id   = sqlite3_column_int(stmt, 1);
 	int chat_type  = sqlite3_column_int(stmt, 2);
 	int msg_state  = sqlite3_column_int(stmt, 3);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	if( msg_state!=DC_STATE_OUT_PENDING && msg_state!=DC_STATE_OUT_DELIVERED ) {
-		return 0; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
+		goto cleanup; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
 	}
 
 	// collect receipt senders, we do this also for normal chats as we may want to show the timestamp
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_c_FROM_msgs_mdns_WHERE_mc,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_bind_int(stmt, 2, from_id);
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_mdns,
+	int mdn_already_in_table = (sqlite3_step(stmt) == SQLITE_ROW)? 1 : 0;
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if( !mdn_already_in_table ) {
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"INSERT INTO msgs_mdns (msg_id, contact_id, timestamp_sent) VALUES (?, ?, ?);");
 		sqlite3_bind_int  (stmt, 1, *ret_msg_id);
 		sqlite3_bind_int  (stmt, 2, from_id);
 		sqlite3_bind_int64(stmt, 3, timestamp_sent);
 		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 
 	// Normal chat? that's quite easy.
 	if( chat_type == DC_CHAT_TYPE_SINGLE ) {
 		dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
-		return 1; /* send event about new state */
+		read_by_all = 1;
+		goto cleanup; /* send event about new state */
 	}
 
 	// Group chat: get the number of receipt senders
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_mdns_WHERE_m,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0; /* error */
+		goto cleanup; /* error */
 	}
 	int ist_cnt  = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	/*
 	Groupsize:  Min. MDNs
@@ -4422,12 +4436,16 @@ int dc_mdn_from_ext__(dc_context_t* context, uint32_t from_id, const char* rfc72
 
 	(S=Sender, R=Recipient)
 	*/
-	int soll_cnt = (dc_get_chat_contact_count__(context, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
+	int soll_cnt = (dc_get_chat_contact_count(context, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
 	if( ist_cnt < soll_cnt ) {
-		return 0; /* wait for more receipts */
+		goto cleanup; /* wait for more receipts */
 	}
 
 	/* got enough receipts :-) */
 	dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
-	return 1;
+	read_by_all = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return read_by_all;
 }
