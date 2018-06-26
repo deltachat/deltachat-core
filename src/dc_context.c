@@ -481,8 +481,8 @@ char* dc_get_info(dc_context_t* context)
 		displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
 
 		chats           = dc_get_chat_cnt__(context);
-		real_msgs       = dc_get_real_msg_cnt__(context);
-		deaddrop_msgs   = dc_get_deaddrop_msg_cnt__(context);
+		real_msgs       = dc_get_real_msg_cnt(context);
+		deaddrop_msgs   = dc_get_deaddrop_msg_cnt(context);
 		contacts        = dc_get_real_contact_cnt__(context);
 
 		is_configured   = dc_sqlite3_get_config_int(context->m_sql, "configured", 0);
@@ -3849,13 +3849,16 @@ void dc_update_msg_state__(dc_context_t* context, uint32_t msg_id, int state)
 }
 
 
-size_t dc_get_real_msg_cnt__(dc_context_t* context)
+size_t dc_get_real_msg_cnt(dc_context_t* context)
 {
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
 	if( context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) "
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
@@ -3863,27 +3866,38 @@ size_t dc_get_real_msg_cnt__(dc_context_t* context)
 		" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
 		" AND c.blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		dc_sqlite3_log_error(context->m_sql, "dc_get_real_msg_cnt__() failed.");
-		return 0;
+		dc_sqlite3_log_error(context->m_sql, "dc_get_real_msg_cnt() failed.");
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-size_t dc_get_deaddrop_msg_cnt__(dc_context_t* context)
+size_t dc_get_deaddrop_msg_cnt(dc_context_t* context)
 {
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id WHERE c.blocked=2;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 

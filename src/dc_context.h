@@ -134,8 +134,8 @@ int             dc_is_contact_in_chat__                    (dc_context_t*, uint3
 int             dc_get_chat_contact_count__                (dc_context_t*, uint32_t chat_id);
 int             dc_is_group_explicitly_left__              (dc_context_t*, const char* grpid);
 void            dc_set_group_explicitly_left__             (dc_context_t*, const char* grpid);
-size_t          dc_get_real_msg_cnt__                      (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
-size_t          dc_get_deaddrop_msg_cnt__                  (dc_context_t*);
+size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
+size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);
 int             dc_rfc724_mid_cnt__                        (dc_context_t*, const char* rfc724_mid);
 uint32_t        dc_rfc724_mid_exists__                     (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
 void            dc_update_server_uid__                     (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
