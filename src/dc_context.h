@@ -140,8 +140,7 @@ void            dc_update_server_uid                       (dc_context_t*, const
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
 int             dc_mdn_from_ext                            (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */
-uint32_t        dc_add_device_msg                          (dc_context_t*, uint32_t chat_id, const char* text);
-uint32_t        dc_add_device_msg__                        (dc_context_t*, uint32_t chat_id, const char* text, time_t timestamp);
+void            dc_add_device_msg                          (dc_context_t*, uint32_t chat_id, const char* text);
 void            dc_suspend_smtp_thread                     (dc_context_t*, int suspend);
 
 #define         DC_FROM_HANDSHAKE                          0x01

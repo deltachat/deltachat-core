@@ -954,7 +954,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	int              state   = DC_STATE_UNDEFINED;
 	int              hidden = 0;
 
-	sqlite3_stmt*    stmt;
+	sqlite3_stmt*    stmt = NULL;
 	size_t           i, icnt;
 	uint32_t         first_dblocal_id = 0;
 	char*            rfc724_mid = NULL; /* Message-ID from the header */
@@ -1280,6 +1280,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			and add them to the database (mails sent by other messenger clients should result
 			into only one message; mails sent by other clients may result in several messages (eg. one per attachment)) */
 			icnt = carray_count(mime_parser->m_parts); /* should be at least one - maybe empty - part */
+			stmt = dc_sqlite3_prepare(context->m_sql,
+				"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param, bytes,hidden)"
+				" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?);");
 			for( i = 0; i < icnt; i++ )
 			{
 				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mime_parser->m_parts, i);
@@ -1295,9 +1298,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					dc_param_set_int(part->m_param, DC_PARAM_CMD, mime_parser->m_is_system_message);
 				}
 
-				stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_msscftttsmttpb,
-					"INSERT INTO msgs (rfc724_mid,server_folder,server_uid,chat_id,from_id, to_id,timestamp,timestamp_sent,timestamp_rcvd,type, state,msgrmsg,txt,txt_raw,param, bytes,hidden)"
-					" VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?);");
+				sqlite3_reset(stmt);
 				sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
 				sqlite3_bind_text (stmt,  2, server_folder, -1, SQLITE_STATIC);
 				sqlite3_bind_int  (stmt,  3, server_uid);
@@ -1495,4 +1496,5 @@ cleanup:
 	}
 
 	free(txt_raw);
+	sqlite3_finalize(stmt);
 }
