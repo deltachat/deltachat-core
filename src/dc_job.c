@@ -105,9 +105,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_IMAP(dc_context_t* context, dc_job_t* j
 		goto cleanup;
 	}
 	else {
-		dc_sqlite3_lock(context->m_sql);
-			dc_update_server_uid__(context, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
-		dc_sqlite3_unlock(context->m_sql);
+		dc_update_server_uid(context, mimefactory.m_msg->m_rfc724_mid, server_folder, server_uid);
 	}
 
 cleanup:
@@ -125,7 +123,7 @@ static void dc_job_do_DC_JOB_DELETE_MSG_ON_IMAP(dc_context_t* context, dc_job_t*
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( !dc_msg_load_from_db__(msg, context, job->m_foreign_id)
+		if( !dc_msg_load_from_db(msg, context, job->m_foreign_id)
 		 || msg->m_rfc724_mid == NULL || msg->m_rfc724_mid[0] == 0 /* eg. device messages have no Message-ID */ ) {
 			goto cleanup;
 		}
@@ -221,7 +219,6 @@ cleanup:
 
 static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int       locked = 0;
 	dc_msg_t* msg = dc_msg_new();
 	char*     new_server_folder = NULL;
 	uint32_t  new_server_uid = 0;
@@ -236,21 +233,15 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 		}
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_msg_load_from_db(msg, context, job->m_foreign_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db__(msg, context, job->m_foreign_id) ) {
-			goto cleanup;
-		}
-
-		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
-		if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
-		 && dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
-			in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
+	if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
+	 && dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+		in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
+	}
 
 	if( msg->m_is_msgrmsg ) {
 		in_ms_flags |= DC_MS_ALSO_MOVE;
@@ -261,21 +252,15 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	{
 		if( (new_server_folder && new_server_uid) || out_ms_flags&DC_MS_MDNSent_JUST_SET )
 		{
-			dc_sqlite3_lock(context->m_sql);
-			locked = 1;
+			if( new_server_folder && new_server_uid )
+			{
+				dc_update_server_uid(context, msg->m_rfc724_mid, new_server_folder, new_server_uid);
+			}
 
-				if( new_server_folder && new_server_uid )
-				{
-					dc_update_server_uid__(context, msg->m_rfc724_mid, new_server_folder, new_server_uid);
-				}
-
-				if( out_ms_flags&DC_MS_MDNSent_JUST_SET )
-				{
-					dc_job_add(context, DC_JOB_SEND_MDN, msg->m_id, NULL, 0);
-				}
-
-			dc_sqlite3_unlock(context->m_sql);
-			locked = 0;
+			if( out_ms_flags&DC_MS_MDNSent_JUST_SET )
+			{
+				dc_job_add(context, DC_JOB_SEND_MDN, msg->m_id, NULL, 0);
+			}
 		}
 	}
 	else
@@ -284,7 +269,6 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_msg_unref(msg);
 	free(new_server_folder);
 }
@@ -407,7 +391,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		dc_update_msg_state__(context, mimefactory.m_msg->m_id, DC_STATE_OUT_DELIVERED);
 		if( mimefactory.m_out_encrypted && dc_param_get_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0)==0 ) {
 			dc_param_set_int(mimefactory.m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* can upgrade to E2EE - fine! */
-			dc_msg_save_param_to_disk__(mimefactory.m_msg);
+			dc_msg_save_param_to_disk(mimefactory.m_msg);
 		}
 
 		if( (context->m_imap->m_server_flags&DC_NO_EXTRA_IMAP_UPLOAD)==0

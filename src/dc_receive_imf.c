@@ -864,9 +864,9 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 		if( ok ) {
 			dc_chat_t* chat = dc_chat_new(context);
 				dc_log_info(context, 0, "New group image set to %s.", grpimage? "DELETED" : grpimage);
-				dc_chat_load_from_db__(chat, chat_id);
+				dc_chat_load_from_db(chat, chat_id);
 				dc_param_set(chat->m_param, DC_PARAM_PROFILE_IMAGE, grpimage/*may be NULL*/);
-				dc_chat_update_param__(chat);
+				dc_chat_update_param(chat);
 			dc_chat_unref(chat);
 			free(grpimage);
 			send_EVENT_CHAT_MODIFIED = 1;
@@ -1111,7 +1111,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 						dc_sqlite3_rollback__(context->m_sql);
 						transaction_pending = 0;
-						dc_update_server_uid__(context, rfc724_mid, server_folder, server_uid);
+						dc_update_server_uid(context, rfc724_mid, server_folder, server_uid);
 					}
 					free(old_server_folder);
 					dc_log_info(context, 0, "Message already in DB.");

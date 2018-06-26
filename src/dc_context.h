@@ -136,7 +136,7 @@ size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* t
 size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);
 int             dc_rfc724_mid_cnt__                        (dc_context_t*, const char* rfc724_mid);
 uint32_t        dc_rfc724_mid_exists__                     (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
-void            dc_update_server_uid__                     (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
+void            dc_update_server_uid                       (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 void            dc_update_msg_chat_id__                    (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state__                      (dc_context_t*, uint32_t msg_id, int state);
 int             dc_mdn_from_ext__                          (dc_context_t*, uint32_t from_id, const char* rfc724_mid, time_t, uint32_t* ret_chat_id, uint32_t* ret_msg_id); /* returns 1 if an event should be send */

@@ -122,8 +122,8 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( dc_msg_load_from_db__(factory->m_msg, context, msg_id)
-		 && dc_chat_load_from_db__(factory->m_chat, factory->m_msg->m_chat_id) )
+		if( dc_msg_load_from_db(factory->m_msg, context, msg_id)
+		 && dc_chat_load_from_db(factory->m_chat, factory->m_msg->m_chat_id) )
 		{
 			load_from__(factory);
 
@@ -225,7 +225,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			if( factory->m_references == NULL ) {
 				factory->m_references = dc_create_dummy_references_mid();
 				dc_param_set(factory->m_chat->m_param, DC_PARAM_REFERENCES, factory->m_references);
-				dc_chat_update_param__(factory->m_chat);
+				dc_chat_update_param(factory->m_chat);
 			}
 
 			success = 1;
@@ -235,7 +235,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 		}
 
 		if( success ) {
-			factory->m_increation = dc_msg_is_increation__(factory->m_msg);
+			factory->m_increation = dc_msg_is_increation(factory->m_msg);
 		}
 
 	dc_sqlite3_unlock(context->m_sql);
@@ -270,7 +270,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
 		}
 
-		if( !dc_msg_load_from_db__(factory->m_msg, context, msg_id)
+		if( !dc_msg_load_from_db(factory->m_msg, context, msg_id)
 		 || !dc_contact_load_from_db(contact, context->m_sql, factory->m_msg->m_from_id) ) {
 			goto cleanup;
 		}

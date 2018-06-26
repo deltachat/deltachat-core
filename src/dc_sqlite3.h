@@ -50,7 +50,6 @@ enum
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id
-	,SELECT_itndd_FROM_chats_WHERE_i
 	,SELECT_id_FROM_chats_WHERE_id
 	,SELECT_id_FROM_chats_WHERE_contact_id
 	,SELECT_id_FROM_CHATS_WHERE_grpid
@@ -74,7 +73,6 @@ enum
 	,SELECT_id_FROM_msgs_WHERE_mcm
 	,SELECT_id_FROM_msgs_WHERE_fresh_AND_deaddrop
 	,SELECT_txt_raw_FROM_msgs_WHERE_id
-	,SELECT_ircftttstpb_FROM_msg_WHERE_i
 	,SELECT_ss_FROM_msgs_WHERE_m
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
 	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred
@@ -88,10 +86,6 @@ enum
 	,UPDATE_msgs_SET_chat_id_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_id
 	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
-	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
-	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
-	,UPDATE_msgs_SET_param_WHERE_id
-	,UPDATE_msgs_SET_starred_WHERE_id
 	,DELETE_FROM_msgs_WHERE_id
 	,DELETE_FROM_msgs_WHERE_rfc724_mid
 

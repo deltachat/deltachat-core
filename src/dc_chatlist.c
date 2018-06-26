@@ -200,7 +200,6 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	message. */
 
 	dc_lot_t*      ret = dc_lot_new(); /* the function never returns NULL */
-	int            locked = 0;
 	uint32_t       lastmsg_id = 0;
 	dc_msg_t*      lastmsg = NULL;
 	dc_contact_t*  lastcontact = NULL;
@@ -213,35 +212,26 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 
 	lastmsg_id = dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
 
-	/* load data from database */
-	dc_sqlite3_lock(chatlist->m_context->m_sql);
-	locked = 1;
-
-		if( chat==NULL ) {
-			chat = dc_chat_new(chatlist->m_context);
-			chat_to_delete = chat;
-			if( !dc_chat_load_from_db__(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT)) ) {
-				ret->m_text2 = dc_strdup("ErrCannotReadChat");
-				goto cleanup;
-			}
+	if( chat==NULL ) {
+		chat = dc_chat_new(chatlist->m_context);
+		chat_to_delete = chat;
+		if( !dc_chat_load_from_db(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT)) ) {
+			ret->m_text2 = dc_strdup("ErrCannotReadChat");
+			goto cleanup;
 		}
+	}
 
-		if( lastmsg_id )
+	if( lastmsg_id )
+	{
+		lastmsg = dc_msg_new();
+		dc_msg_load_from_db(lastmsg, chatlist->m_context, lastmsg_id);
+
+		if( lastmsg->m_from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 		{
-
-			lastmsg = dc_msg_new();
-			dc_msg_load_from_db__(lastmsg, chatlist->m_context, lastmsg_id);
-
-			if( lastmsg->m_from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
-			{
-				lastcontact = dc_contact_new(chatlist->m_context);
-				dc_contact_load_from_db(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
-			}
-
+			lastcontact = dc_contact_new(chatlist->m_context);
+			dc_contact_load_from_db(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
 		}
-
-	dc_sqlite3_unlock(chatlist->m_context->m_sql);
-	locked = 0;
+	}
 
 	if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK )
 	{
@@ -272,7 +262,6 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(chatlist->m_context->m_sql); }
 	dc_msg_unref(lastmsg);
 	dc_contact_unref(lastcontact);
 	dc_chat_unref(chat_to_delete);
