@@ -91,10 +91,10 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 
 static void load_from__(dc_mimefactory_t* factory)
 {
-	factory->m_from_addr        = dc_sqlite3_get_config__(factory->m_context->m_sql, "configured_addr", NULL);
-	factory->m_from_displayname = dc_sqlite3_get_config__(factory->m_context->m_sql, "displayname", NULL);
+	factory->m_from_addr        = dc_sqlite3_get_config(factory->m_context->m_sql, "configured_addr", NULL);
+	factory->m_from_displayname = dc_sqlite3_get_config(factory->m_context->m_sql, "displayname", NULL);
 
-	factory->m_selfstatus       = dc_sqlite3_get_config__(factory->m_context->m_sql, "selfstatus", NULL);
+	factory->m_selfstatus       = dc_sqlite3_get_config(factory->m_context->m_sql, "selfstatus", NULL);
 	if( factory->m_selfstatus == NULL ) {
 		factory->m_selfstatus = dc_stock_str(DC_STR_STATUSLINE);
 	}
@@ -155,7 +155,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 				int command = dc_param_get_int(factory->m_msg->m_param, DC_PARAM_CMD, 0);
 				if( command==DC_CMD_MEMBER_REMOVED_FROM_GROUP /* for added members, the list is just fine */) {
 					char* email_to_remove     = dc_param_get(factory->m_msg->m_param, DC_PARAM_CMD_ARG, NULL);
-					char* self_addr           = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "");
+					char* self_addr           = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
 					if( email_to_remove && strcasecmp(email_to_remove, self_addr)!=0 )
 					{
 						if( clist_search_string_nocase(factory->m_recipients_addr, email_to_remove)==0 )
@@ -169,7 +169,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 
 				if( command!=DC_CMD_AUTOCRYPT_SETUP_MESSAGE
 				 && command!=DC_CMD_SECUREJOIN_MESSAGE
-				 && dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+				 && dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 					factory->m_req_mdn = 1;
 				}
 			}
@@ -258,7 +258,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( !dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+		if( !dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
 		}
 

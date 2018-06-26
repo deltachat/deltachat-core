@@ -216,12 +216,12 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	{
 		real_spec = dc_strdup(spec);
 		dc_sqlite3_lock(mailbox->m_sql);
-			dc_sqlite3_set_config__(mailbox->m_sql, "import_spec", real_spec);
+			dc_sqlite3_set_config(mailbox->m_sql, "import_spec", real_spec);
 		dc_sqlite3_unlock(mailbox->m_sql);
 	}
 	else {
 		dc_sqlite3_lock(mailbox->m_sql);
-			real_spec = dc_sqlite3_get_config__(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
+			real_spec = dc_sqlite3_get_config(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
 		dc_sqlite3_unlock(mailbox->m_sql);
 		if( real_spec == NULL ) {
 			dc_log_error(mailbox, 0, "Import: No file or folder given.");

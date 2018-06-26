@@ -655,7 +655,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	locked = 1;
 
 		dc_loginparam_write__(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
-		dc_sqlite3_set_config_int__(context->m_sql, "configured", 1);
+		dc_sqlite3_set_config_int(context->m_sql, "configured", 1);
 
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;
@@ -745,8 +745,6 @@ void dc_configure(dc_context_t* context)
  */
 int dc_is_configured(dc_context_t* context)
 {
-	int is_configured;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
@@ -755,13 +753,7 @@ int dc_is_configured(dc_context_t* context)
 		return 1;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		is_configured = dc_sqlite3_get_config_int__(context->m_sql, "configured", 0);
-
-	dc_sqlite3_unlock(context->m_sql);
-
-	return is_configured? 1 : 0;
+	return dc_sqlite3_get_config_int(context->m_sql, "configured", 0)? 1 : 0;
 }
 
 

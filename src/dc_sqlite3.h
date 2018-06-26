@@ -41,11 +41,6 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_v_FROM_config_k
-	,INSERT_INTO_config_kv
-	,UPDATE_config_vk
-	,DELETE_FROM_config_k
-
 	,SELECT_COUNT_FROM_contacts
 	,SELECT_naob_FROM_contacts_i
 	,SELECT_inao_FROM_contacts_a
@@ -176,10 +171,10 @@ void          dc_sqlite3_close__          (dc_sqlite3_t*);
 int           dc_sqlite3_is_open          (const dc_sqlite3_t*);
 
 /* handle configurations, private */
-int           dc_sqlite3_set_config__     (dc_sqlite3_t*, const char* key, const char* value);
-int           dc_sqlite3_set_config_int__ (dc_sqlite3_t*, const char* key, int32_t value);
-char*         dc_sqlite3_get_config__     (dc_sqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
-int32_t       dc_sqlite3_get_config_int__ (dc_sqlite3_t*, const char* key, int32_t def);
+int           dc_sqlite3_set_config       (dc_sqlite3_t*, const char* key, const char* value);
+int           dc_sqlite3_set_config_int   (dc_sqlite3_t*, const char* key, int32_t value);
+char*         dc_sqlite3_get_config       (dc_sqlite3_t*, const char* key, const char* def); /* the returned string must be free()'d, returns NULL on errors */
+int32_t       dc_sqlite3_get_config_int   (dc_sqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
 sqlite3_stmt* dc_sqlite3_predefine__      (dc_sqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/

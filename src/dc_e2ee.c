@@ -293,7 +293,7 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( (self_addr=dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL))==NULL ) {
+		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
 			dc_log_warning(context, 0, "Cannot ensure secret key if context is not configured.");
 			goto cleanup;
 		}
@@ -350,7 +350,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 			autocryptheader->m_prefer_encrypt = DC_PE_MUTUAL;
 		}
 
-		autocryptheader->m_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+		autocryptheader->m_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
 		if( autocryptheader->m_addr == NULL ) {
 			goto cleanup;
 		}
@@ -890,7 +890,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 		}
 
 		/* load private key for decryption */
-		if( (self_addr=dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL))==NULL ) {
+		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
 			goto cleanup;
 		}
 

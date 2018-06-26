@@ -137,7 +137,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 		dc_sqlite3_lock(context->m_sql);
 		locked = 1;
 
-			self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+			self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
 			dc_key_load_self_private__(curr_private_key, self_addr, context->m_sql);
 
 			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
@@ -585,7 +585,7 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 			dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
 		}
 
-		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
 		if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, set_default, context->m_sql) ) {
 			dc_log_error(context, 0, "Cannot save keypair.");
 			goto cleanup;
@@ -982,8 +982,8 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* done - set some special config values (do this last to avoid importing crashed backups) */
-	dc_sqlite3_set_config_int__(dest_sql, "backup_time", now);
-	dc_sqlite3_set_config__    (dest_sql, "backup_for", context->m_blobdir);
+	dc_sqlite3_set_config_int(dest_sql, "backup_time", now);
+	dc_sqlite3_set_config    (dest_sql, "backup_for", context->m_blobdir);
 
 	context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
 	success = 1;
@@ -1107,7 +1107,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	dc_sqlite3_execute(context->m_sql, "VACUUM;");
 
 	/* rewrite references to the blobs */
-	repl_from = dc_sqlite3_get_config__(context->m_sql, "backup_for", NULL);
+	repl_from = dc_sqlite3_get_config(context->m_sql, "backup_for", NULL);
 	if( repl_from && strlen(repl_from)>1 && context->m_blobdir && strlen(context->m_blobdir)>1 )
 	{
 		ensure_no_slash(repl_from);
@@ -1347,7 +1347,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
 			 && dc_sqlite3_open__(test_sql, curr_pathNfilename, DC_OPEN_READONLY) )
 			{
-				time_t curr_backup_time = dc_sqlite3_get_config_int__(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
+				time_t curr_backup_time = dc_sqlite3_get_config_int(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
 				if( curr_backup_time > 0
 				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
 				{

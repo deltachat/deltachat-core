@@ -48,7 +48,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* context, const char* d
 
 	*check_self = 0;
 
-	char* self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "");
+	char* self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
 		if( strcasecmp(self_addr, addr_spec)==0 ) {
 			*check_self = 1;
 		}
@@ -428,7 +428,7 @@ static char* create_adhoc_grp_id__(dc_context_t* context, dc_array_t* member_ids
 	/* collect all addresses and sort them */
 	q3 = sqlite3_mprintf("SELECT addr FROM contacts WHERE id IN(%s) AND id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF), member_ids_str);
 	stmt = dc_sqlite3_prepare(context->m_sql, q3);
-	addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "no-self");
+	addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "no-self");
 	dc_strlower_in_place(addr);
 	dc_array_add_ptr(member_addrs, addr);
 	while( sqlite3_step(stmt)==SQLITE_ROW ) {
@@ -792,7 +792,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	/* check if the group does not exist but should be created */
 	int group_explicitly_left = dc_is_group_explicitly_left__(context, grpid);
 
-	self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "");
+	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
 	if( chat_id == 0
 	 && !dc_mimeparser_is_mailinglist_message(mime_parser)
 	 && grpid
@@ -1369,7 +1369,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			 * Handle reports (mainly MDNs)
 			 *****************************************************************/
 
-			int mdns_enabled = dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
+			int mdns_enabled = dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 			icnt = carray_count(mime_parser->m_reports);
 			for( i = 0; i < icnt; i++ )
 			{
@@ -1454,7 +1454,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 		}
 
 		/* debug print? */
-		if( dc_sqlite3_get_config_int__(context->m_sql, "save_eml", 0) ) {
+		if( dc_sqlite3_get_config_int(context->m_sql, "save_eml", 0) ) {
 			char* emlname = dc_mprintf("%s/%s-%i.eml", context->m_blobdir, server_folder, (int)first_dblocal_id /*may be 0 for MDNs*/);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {

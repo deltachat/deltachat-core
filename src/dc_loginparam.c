@@ -78,19 +78,19 @@ void dc_loginparam_read__(dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const 
 
 	dc_loginparam_empty(loginparam);
 
-	LP_PREFIX("addr");        loginparam->m_addr        = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("addr");        loginparam->m_addr        = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("mail_server"); loginparam->m_mail_server = dc_sqlite3_get_config__    (sql, key, NULL);
-	LP_PREFIX("mail_port");   loginparam->m_mail_port   = dc_sqlite3_get_config_int__(sql, key, 0);
-	LP_PREFIX("mail_user");   loginparam->m_mail_user   = dc_sqlite3_get_config__    (sql, key, NULL);
-	LP_PREFIX("mail_pw");     loginparam->m_mail_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("mail_server"); loginparam->m_mail_server = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("mail_port");   loginparam->m_mail_port   = dc_sqlite3_get_config_int  (sql, key, 0);
+	LP_PREFIX("mail_user");   loginparam->m_mail_user   = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("mail_pw");     loginparam->m_mail_pw     = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("send_server"); loginparam->m_send_server = dc_sqlite3_get_config__    (sql, key, NULL);
-	LP_PREFIX("send_port");   loginparam->m_send_port   = dc_sqlite3_get_config_int__(sql, key, 0);
-	LP_PREFIX("send_user");   loginparam->m_send_user   = dc_sqlite3_get_config__    (sql, key, NULL);
-	LP_PREFIX("send_pw");     loginparam->m_send_pw     = dc_sqlite3_get_config__    (sql, key, NULL);
+	LP_PREFIX("send_server"); loginparam->m_send_server = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("send_port");   loginparam->m_send_port   = dc_sqlite3_get_config_int  (sql, key, 0);
+	LP_PREFIX("send_user");   loginparam->m_send_user   = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("send_pw");     loginparam->m_send_pw     = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("server_flags");loginparam->m_server_flags= dc_sqlite3_get_config_int__(sql, key, 0);
+	LP_PREFIX("server_flags");loginparam->m_server_flags= dc_sqlite3_get_config_int  (sql, key, 0);
 
 	sqlite3_free(key);
 }
@@ -100,19 +100,19 @@ void dc_loginparam_write__(const dc_loginparam_t* loginparam, dc_sqlite3_t* sql,
 {
 	char* key = NULL;
 
-	LP_PREFIX("addr");         dc_sqlite3_set_config__    (sql, key, loginparam->m_addr);
+	LP_PREFIX("addr");         dc_sqlite3_set_config      (sql, key, loginparam->m_addr);
 
-	LP_PREFIX("mail_server");  dc_sqlite3_set_config__    (sql, key, loginparam->m_mail_server);
-	LP_PREFIX("mail_port");    dc_sqlite3_set_config_int__(sql, key, loginparam->m_mail_port);
-	LP_PREFIX("mail_user");    dc_sqlite3_set_config__    (sql, key, loginparam->m_mail_user);
-	LP_PREFIX("mail_pw");      dc_sqlite3_set_config__    (sql, key, loginparam->m_mail_pw);
+	LP_PREFIX("mail_server");  dc_sqlite3_set_config      (sql, key, loginparam->m_mail_server);
+	LP_PREFIX("mail_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->m_mail_port);
+	LP_PREFIX("mail_user");    dc_sqlite3_set_config      (sql, key, loginparam->m_mail_user);
+	LP_PREFIX("mail_pw");      dc_sqlite3_set_config      (sql, key, loginparam->m_mail_pw);
 
-	LP_PREFIX("send_server");  dc_sqlite3_set_config__    (sql, key, loginparam->m_send_server);
-	LP_PREFIX("send_port");    dc_sqlite3_set_config_int__(sql, key, loginparam->m_send_port);
-	LP_PREFIX("send_user");    dc_sqlite3_set_config__    (sql, key, loginparam->m_send_user);
-	LP_PREFIX("send_pw");      dc_sqlite3_set_config__    (sql, key, loginparam->m_send_pw);
+	LP_PREFIX("send_server");  dc_sqlite3_set_config      (sql, key, loginparam->m_send_server);
+	LP_PREFIX("send_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->m_send_port);
+	LP_PREFIX("send_user");    dc_sqlite3_set_config      (sql, key, loginparam->m_send_user);
+	LP_PREFIX("send_pw");      dc_sqlite3_set_config      (sql, key, loginparam->m_send_pw);
 
-	LP_PREFIX("server_flags"); dc_sqlite3_set_config_int__(sql, key, loginparam->m_server_flags);
+	LP_PREFIX("server_flags"); dc_sqlite3_set_config_int  (sql, key, loginparam->m_server_flags);
 
 	sqlite3_free(key);
 }

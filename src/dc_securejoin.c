@@ -127,7 +127,7 @@ static char* get_self_fingerprint(dc_context_t* context)
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		if( (self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL)) == NULL
+		if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL
 		 || !dc_key_load_self_public__(self_key, self_addr, context->m_sql) ) {
 			goto cleanup;
 		}
@@ -390,12 +390,12 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 			dc_token_save__(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
-		if( (self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL)) == NULL ) {
+		if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL ) {
 			dc_log_error(context, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
-		self_name = dc_sqlite3_get_config__(context->m_sql, "displayname", "");
+		self_name = dc_sqlite3_get_config(context->m_sql, "displayname", "");
 
 	dc_sqlite3_unlock(context->m_sql);
 	locked = 0;

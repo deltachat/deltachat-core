@@ -57,7 +57,7 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	dc_sqlite3_lock(context->m_sql);
 	is_locked = 1;
 
-		if( dc_sqlite3_get_config_int__(context->m_sql, "configured", 0) == 0 ) {
+		if( dc_sqlite3_get_config_int(context->m_sql, "configured", 0) == 0 ) {
 			dc_log_warning(context, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
 			goto cleanup;
 		}
@@ -253,7 +253,7 @@ static void dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP(dc_context_t* context, dc_job_
 
 		/* add an additional job for sending the MDN (here in a thread for fast ui resonses) (an extra job as the MDN has a lower priority) */
 		if( dc_param_get_int(msg->m_param, DC_PARAM_WANTS_MDN, 0) /* DC_PARAM_WANTS_MDN is set only for one part of a multipart-message */
-		 && dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
+		 && dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 			in_ms_flags |= DC_MS_SET_MDNSent_FLAG;
 		}
 
@@ -402,7 +402,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	dc_sqlite3_begin_transaction__(context->m_sql);
 
 		/* debug print? */
-		if( dc_sqlite3_get_config_int__(context->m_sql, "save_eml", 0) ) {
+		if( dc_sqlite3_get_config_int(context->m_sql, "save_eml", 0) ) {
 			char* emlname = dc_mprintf("%s/to-smtp-%i.eml", context->m_blobdir, (int)mimefactory.m_msg->m_id);
 			FILE* emlfileob = fopen(emlname, "w");
 			if( emlfileob ) {

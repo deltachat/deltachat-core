@@ -267,11 +267,11 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				goto cleanup; /* cannot create the tables - maybe we cannot write? */
 			}
 
-			dc_sqlite3_set_config_int__(sql, "dbversion", 0);
+			dc_sqlite3_set_config_int(sql, "dbversion", 0);
 		}
 		else
 		{
-			dbversion_before_update = dc_sqlite3_get_config_int__(sql, "dbversion", 0);
+			dbversion_before_update = dc_sqlite3_get_config_int(sql, "dbversion", 0);
 		}
 
 		// (1) update low-level database structure.
@@ -288,7 +288,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "CREATE INDEX leftgrps_index1 ON leftgrps (grpid);");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -298,7 +298,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -314,7 +314,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 							" created INTEGER DEFAULT 0);");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -331,7 +331,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index1 ON acpeerstates (addr);");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -344,7 +344,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "CREATE INDEX msgs_mdns_index1 ON msgs_mdns (msg_id);");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -357,7 +357,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "CREATE INDEX msgs_index5 ON msgs (starred);");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -368,7 +368,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key;");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -381,7 +381,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN timestamp_rcvd INTEGER DEFAULT 0;");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -397,7 +397,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				recalc_fingerprints = 1;
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -424,7 +424,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				}
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -434,7 +434,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE jobs ADD COLUMN thread INTEGER DEFAULT 0;");
 
 				dbversion = NEW_DB_VERSION;
-				dc_sqlite3_set_config_int__(sql, "dbversion", NEW_DB_VERSION);
+				dc_sqlite3_set_config_int(sql, "dbversion", NEW_DB_VERSION);
 			}
 		#undef NEW_DB_VERSION
 
@@ -585,7 +585,7 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_sqlite3_set_config__(dc_sqlite3_t* sql, const char* key, const char* value)
+int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 {
 	int           state;
 	sqlite3_stmt* stmt;
@@ -604,21 +604,24 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* sql, const char* key, const char* valu
 	{
 		/* insert/update key=value */
 		#define SELECT_v_FROM_config_k_STATEMENT "SELECT value FROM config WHERE keyname=?;"
-		stmt = dc_sqlite3_predefine__(sql, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
+		stmt = dc_sqlite3_prepare(sql, SELECT_v_FROM_config_k_STATEMENT);
 		sqlite3_bind_text (stmt, 1, key, -1, SQLITE_STATIC);
-		state=sqlite3_step(stmt);
+		state = sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+
 		if( state == SQLITE_DONE ) {
-			stmt = dc_sqlite3_predefine__(sql, INSERT_INTO_config_kv, "INSERT INTO config (keyname, value) VALUES (?, ?);");
+			stmt = dc_sqlite3_prepare(sql, "INSERT INTO config (keyname, value) VALUES (?, ?);");
 			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
-			state=sqlite3_step(stmt);
-
+			state = sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
 		}
 		else if( state == SQLITE_ROW ) {
-			stmt = dc_sqlite3_predefine__(sql, UPDATE_config_vk, "UPDATE config SET value=? WHERE keyname=?;");
+			stmt = dc_sqlite3_prepare(sql, "UPDATE config SET value=? WHERE keyname=?;");
 			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
-			state=sqlite3_step(stmt);
+			state = sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
 		}
 		else {
 			dc_log_error(sql->m_context, 0, "dc_sqlite3_set_config(): Cannot read value.");
@@ -628,9 +631,10 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* sql, const char* key, const char* valu
 	else
 	{
 		/* delete key */
-		stmt = dc_sqlite3_predefine__(sql, DELETE_FROM_config_k, "DELETE FROM config WHERE keyname=?;");
+		stmt = dc_sqlite3_prepare(sql, "DELETE FROM config WHERE keyname=?;");
 		sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
-		state=sqlite3_step(stmt);
+		state = sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
 	}
 
 	if( state != SQLITE_DONE )  {
@@ -642,7 +646,7 @@ int dc_sqlite3_set_config__(dc_sqlite3_t* sql, const char* key, const char* valu
 }
 
 
-char* dc_sqlite3_get_config__(dc_sqlite3_t* sql, const char* key, const char* def) /* the returned string must be free()'d, NULL is only returned if def is NULL */
+char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def) /* the returned string must be free()'d, NULL is only returned if def is NULL */
 {
 	sqlite3_stmt* stmt;
 
@@ -650,7 +654,7 @@ char* dc_sqlite3_get_config__(dc_sqlite3_t* sql, const char* key, const char* de
 		return dc_strdup_keep_null(def);
 	}
 
-	stmt = dc_sqlite3_predefine__(sql, SELECT_v_FROM_config_k, SELECT_v_FROM_config_k_STATEMENT);
+	stmt = dc_sqlite3_prepare(sql, SELECT_v_FROM_config_k_STATEMENT);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
@@ -658,18 +662,21 @@ char* dc_sqlite3_get_config__(dc_sqlite3_t* sql, const char* key, const char* de
 		if( ptr )
 		{
 			/* success, fall through below to free objects */
-			return dc_strdup((const char*)ptr);
+			char* ret = dc_strdup((const char*)ptr);
+			sqlite3_finalize(stmt);
+			return ret;
 		}
 	}
 
 	/* return the default value */
+	sqlite3_finalize(stmt);
 	return dc_strdup_keep_null(def);
 }
 
 
-int32_t dc_sqlite3_get_config_int__(dc_sqlite3_t* sql, const char* key, int32_t def)
+int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t def)
 {
-    char* str = dc_sqlite3_get_config__(sql, key, NULL);
+    char* str = dc_sqlite3_get_config(sql, key, NULL);
     if( str == NULL ) {
 		return def;
     }
@@ -679,13 +686,13 @@ int32_t dc_sqlite3_get_config_int__(dc_sqlite3_t* sql, const char* key, int32_t 
 }
 
 
-int dc_sqlite3_set_config_int__(dc_sqlite3_t* sql, const char* key, int32_t value)
+int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
 {
     char* value_str = dc_mprintf("%i", (int)value);
     if( value_str == NULL ) {
 		return 0;
     }
-    int ret = dc_sqlite3_set_config__(sql, key, value_str);
+    int ret = dc_sqlite3_set_config(sql, key, value_str);
     free(value_str);
     return ret;
 }

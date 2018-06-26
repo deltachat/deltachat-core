@@ -50,19 +50,14 @@ static uintptr_t cb_dummy(dc_context_t* context, int event, uintptr_t data1, uin
 static char* cb_get_config(dc_imap_t* imap, const char* key, const char* def)
 {
 	dc_context_t* context = (dc_context_t*)imap->m_userData;
-	dc_sqlite3_lock(context->m_sql);
-		char* ret = dc_sqlite3_get_config__(context->m_sql, key, def);
-	dc_sqlite3_unlock(context->m_sql);
-	return ret;
+	return dc_sqlite3_get_config(context->m_sql, key, def);
 }
 
 
 static void cb_set_config(dc_imap_t* imap, const char* key, const char* value)
 {
 	dc_context_t* context = (dc_context_t*)imap->m_userData;
-	dc_sqlite3_lock(context->m_sql);
-		dc_sqlite3_set_config__(context->m_sql, key, value);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_set_config(context->m_sql, key, value);
 }
 
 
@@ -202,10 +197,10 @@ void* dc_get_userdata(dc_context_t* context)
 }
 
 
-static void update_config_cache__(dc_context_t* context, const char* key)
+static void update_config_cache(dc_context_t* context, const char* key)
 {
 	if( key==NULL || strcmp(key, "e2ee_enabled")==0 ) {
-		context->m_e2ee_enabled = dc_sqlite3_get_config_int__(context->m_sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
+		context->m_e2ee_enabled = dc_sqlite3_get_config_int(context->m_sql, "e2ee_enabled", DC_E2EE_DEFAULT_ENABLED);
 	}
 }
 
@@ -257,7 +252,7 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 			dc_create_folder(context->m_blobdir, context);
 		}
 
-		update_config_cache__(context, NULL);
+		update_config_cache(context, NULL);
 
 		success = 1;
 
@@ -376,12 +371,8 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
 		return 0;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		ret = dc_sqlite3_set_config__(context->m_sql, key, value);
-		update_config_cache__(context, key);
-
-	dc_sqlite3_unlock(context->m_sql);
+	ret = dc_sqlite3_set_config(context->m_sql, key, value);
+	update_config_cache(context, key);
 
 	return ret;
 }
@@ -399,19 +390,11 @@ int dc_set_config(dc_context_t* context, const char* key, const char* value)
  */
 char* dc_get_config(dc_context_t* context, const char* key, const char* def)
 {
-	char* ret;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) { /* "def" may be NULL */
 		return dc_strdup_keep_null(def);
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		ret = dc_sqlite3_get_config__(context->m_sql, key, def);
-
-	dc_sqlite3_unlock(context->m_sql);
-
-	return ret; /* the returned string must be free()'d, returns NULL only if "def" is NULL and "key" is unset */
+	return dc_sqlite3_get_config(context->m_sql, key, def);
 }
 
 
@@ -429,12 +412,8 @@ int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
 		return 0;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		ret = dc_sqlite3_set_config_int__(context->m_sql, key, value);
-		update_config_cache__(context, key);
-
-	dc_sqlite3_unlock(context->m_sql);
+	ret = dc_sqlite3_set_config_int(context->m_sql, key, value);
+	update_config_cache(context, key);
 
 	return ret;
 }
@@ -447,19 +426,11 @@ int dc_set_config_int(dc_context_t* context, const char* key, int32_t value)
  */
 int32_t dc_get_config_int(dc_context_t* context, const char* key, int32_t def)
 {
-	int32_t ret;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || key == NULL ) {
 		return def;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		ret = dc_sqlite3_get_config_int__(context->m_sql, key, def);
-
-	dc_sqlite3_unlock(context->m_sql);
-
-	return ret;
+	return dc_sqlite3_get_config_int(context->m_sql, key, def);
 }
 
 
@@ -507,20 +478,20 @@ char* dc_get_info(dc_context_t* context)
 		dc_loginparam_read__(l, context->m_sql, "");
 		dc_loginparam_read__(l2, context->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-		displayname     = dc_sqlite3_get_config__(context->m_sql, "displayname", NULL);
+		displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
 
 		chats           = dc_get_chat_cnt__(context);
 		real_msgs       = dc_get_real_msg_cnt__(context);
 		deaddrop_msgs   = dc_get_deaddrop_msg_cnt__(context);
 		contacts        = dc_get_real_contact_cnt__(context);
 
-		is_configured   = dc_sqlite3_get_config_int__(context->m_sql, "configured", 0);
+		is_configured   = dc_sqlite3_get_config_int(context->m_sql, "configured", 0);
 
-		dbversion       = dc_sqlite3_get_config_int__(context->m_sql, "dbversion", 0);
+		dbversion       = dc_sqlite3_get_config_int(context->m_sql, "dbversion", 0);
 
 		e2ee_enabled    = context->m_e2ee_enabled;
 
-		mdns_enabled    = dc_sqlite3_get_config_int__(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
+		mdns_enabled    = dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
 		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
 		sqlite3_step(stmt);
@@ -1864,7 +1835,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	}
 
 	{
-		char* from = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
+		char* from = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
 		if( from == NULL ) {
 			dc_log_error(context, 0, "Cannot send message, not configured.");
 			goto cleanup;
@@ -2829,7 +2800,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			dc_chat_update_param__(chat);
 		}
 
-		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", "");
+		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
 		if( strcasecmp(contact->m_addr, self_addr)==0 ) {
 			goto cleanup; /* ourself is added using DC_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
 		}
@@ -3358,7 +3329,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 	dc_sqlite3_lock(context->m_sql);
 	locked = 1;
 
-		self_addr = dc_sqlite3_get_config__(context->m_sql, "configured_addr", ""); /* we add DC_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
+		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", ""); /* we add DC_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
 
 		if( (listflags&DC_GCL_VERIFIED_ONLY) || query )
 		{
@@ -3376,7 +3347,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
 			sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
 
-			self_name  = dc_sqlite3_get_config__(context->m_sql, "displayname", "");
+			self_name  = dc_sqlite3_get_config(context->m_sql, "displayname", "");
 			self_name2 = dc_stock_str(DC_STR_SELF);
 			if( query==NULL || dc_str_contains(self_addr, query) || dc_str_contains(self_name, query) || dc_str_contains(self_name2, query) ) {
 				add_self = 1;
