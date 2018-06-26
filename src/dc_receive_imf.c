@@ -783,7 +783,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 
 	/* check if the sender is a member of the existing group -
 	if not, the message does not go to the group chat but to the normal chat with the sender */
-	if( chat_id!=0 && !dc_is_contact_in_chat__(context, chat_id, from_id) ) {
+	if( chat_id!=0 && !dc_is_contact_in_chat(context, chat_id, from_id) ) {
 		chat_id = 0;
 		create_or_lookup_adhoc_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		goto cleanup;
@@ -1155,7 +1155,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==DC_CHAT_NOT_BLOCKED) || incoming_origin>=DC_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 					create_or_lookup_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 					if( chat_id && chat_id_blocked && !create_blocked ) {
-						dc_unblock_chat__(context, chat_id);
+						dc_unblock_chat(context, chat_id);
 						chat_id_blocked = 0;
 					}
 				}
@@ -1183,7 +1183,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 					if( chat_id && chat_id_blocked ) {
 						if( !create_blocked ) {
-							dc_unblock_chat__(context, chat_id);
+							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
 						else if( dc_is_reply_to_known_message__(context, mime_parser) ) {
@@ -1220,7 +1220,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					{
 						create_or_lookup_group__(context, mime_parser, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
-							dc_unblock_chat__(context, chat_id);
+							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
@@ -1230,7 +1230,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id__(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked && !create_blocked ) {
-							dc_unblock_chat__(context, chat_id);
+							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
@@ -1241,7 +1241,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 						/* from_id == to_id == DC_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
 						dc_create_or_lookup_nchat_by_contact_id__(context, DC_CONTACT_ID_SELF, DC_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
-							dc_unblock_chat__(context, chat_id);
+							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
 					}
@@ -1258,7 +1258,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
 			/* unarchive chat */
-			dc_unarchive_chat__(context, chat_id);
+			dc_unarchive_chat(context, chat_id);
 
 			/* if the message is not sent by a messenger, check if it is sent at least as a reply to a messenger message
 			(later, we move these replies to the folder used for DeltaChat messages) */

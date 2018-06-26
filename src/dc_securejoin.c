@@ -570,7 +570,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 	LOCK
 		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
 		if( contact_chat_id_blocked ) {
-			dc_unblock_chat__(context, contact_chat_id);
+			dc_unblock_chat(context, contact_chat_id);
 		}
 	UNLOCK
 

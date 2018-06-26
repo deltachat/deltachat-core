@@ -41,7 +41,6 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc
 	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
 	,SELECT_id_FROM_contacts_WHERE_blocked
 	,DELETE_FROM_contacts_WHERE_id
@@ -58,10 +57,7 @@ enum
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
 	,SELECT_param_FROM_msgs
 	,SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724
-	,SELECT_MAX_timestamp_FROM_msgs
-	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
 	,UPDATE_chats_SET_blocked_WHERE_chat_id
-	,UPDATE_chats_SET_unarchived
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
 	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
@@ -69,7 +65,6 @@ enum
 	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
 	,SELECT_c_FROM_chats_contacts_WHERE_c
 	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
-	,SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id
 	,INSERT_INTO_chats_contacts
 
 	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid

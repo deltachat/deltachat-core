@@ -362,7 +362,7 @@ int dc_chat_get_archived(dc_chat_t* chat)
  * modified without the need of special status messages being sent.
  *
  * After the creation with dc_create_group_chat() the chat is usuall  unpromoted
- * until the first call to dc_send_msg() or dc_send_text_msg().
+ * until the first call to dc_send_text_msg() or another sending function.
  *
  * @memberof dc_chat_t
  *

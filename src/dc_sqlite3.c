@@ -749,7 +749,7 @@ void dc_sqlite3_begin_transaction__(dc_sqlite3_t* sql)
 
 	if( sql->m_transactionCount == 1 )
 	{
-		stmt = dc_sqlite3_predefine__(sql, BEGIN_transaction, "BEGIN;");
+		stmt = dc_sqlite3_predefine__(sql, BEGIN_transaction, "BEGIN IMMEDIATE;"); // IMMEDIATE=only one thread may write, see https://www.sqlite.org/lang_transaction.html
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			dc_sqlite3_log_error(sql, "Cannot begin transaction.");
 		}
