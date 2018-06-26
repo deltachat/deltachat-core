@@ -57,10 +57,6 @@ enum
 	,SELECT_id_FROM_msgs_WHERE_fresh_AND_deaddrop
 	,SELECT_txt_raw_FROM_msgs_WHERE_id
 	,SELECT_ss_FROM_msgs_WHERE_m
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh
-	,SELECT_i_FROM_msgs_LEFT_JOIN_chats_contacts_WHERE_blocked
 
 	,PREDEFINED_CNT /* must be last */
 };

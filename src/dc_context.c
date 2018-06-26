@@ -1081,7 +1081,7 @@ cleanup:
  */
 dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 {
-	int           show_deaddrop, success = 0, locked = 0;
+	int           show_deaddrop, success = 0;
 	dc_array_t*   ret = dc_array_new(context, 128);
 	sqlite3_stmt* stmt = NULL;
 
@@ -1089,31 +1089,25 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
 
-		show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT m.id"
+			" FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" LEFT JOIN chats c ON m.chat_id=c.id"
+			" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
+			" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
+	sqlite3_bind_int(stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
 
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh,
-			"SELECT m.id"
-				" FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
-				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
-		sqlite3_bind_int(stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 
 	if( success ) {
 		return ret;
@@ -1145,7 +1139,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 {
 	//clock_t       start = clock();
 
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_array_t*   ret = dc_array_new(context, 512);
 	sqlite3_stmt* stmt = NULL;
 
@@ -1159,75 +1153,69 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( chat_id == DC_CHAT_ID_DEADDROP )
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				" LEFT JOIN chats ON m.chat_id=chats.id"
+				" LEFT JOIN contacts ON m.from_id=contacts.id"
+				" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
+				"   AND m.hidden=0 "
+				"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
+				"   AND contacts.blocked=0"
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+	}
+	else if( chat_id == DC_CHAT_ID_STARRED )
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.starred=1 "
+				"   AND m.hidden=0 "
+				"   AND ct.blocked=0"
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+	}
+	else
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				//" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.chat_id=? "
+				"   AND m.hidden=0 "
+				//"   AND ct.blocked=0" -- we hide blocked-contacts from starred and deaddrop, but we have to show them in groups (otherwise it may be hard to follow conversation, wa and tg do the same. however, maybe this needs discussion some time :)
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		sqlite3_bind_int(stmt, 1, chat_id);
+	}
 
-		if( chat_id == DC_CHAT_ID_DEADDROP )
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_chats_contacts_WHERE_blocked,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					" LEFT JOIN chats ON m.chat_id=chats.id"
-					" LEFT JOIN contacts ON m.from_id=contacts.id"
-					" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
-					"   AND m.hidden=0 "
-					"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
-					"   AND contacts.blocked=0"
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		}
-		else if( chat_id == DC_CHAT_ID_STARRED )
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.starred=1 "
-					"   AND m.hidden=0 "
-					"   AND ct.blocked=0"
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		}
-		else
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					//" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.chat_id=? "
-					"   AND m.hidden=0 "
-					//"   AND ct.blocked=0" -- we hide blocked-contacts from starred and deaddrop, but we have to show them in groups (otherwise it may be hard to follow conversation, wa and tg do the same. however, maybe this needs discussion some time :)
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-			sqlite3_bind_int(stmt, 1, chat_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		curr_id = sqlite3_column_int(stmt, 0);
+
+		/* add user marker */
+		if( curr_id == marker1before ) {
+			dc_array_add_id(ret, DC_MSG_ID_MARKER1);
 		}
 
-		while( sqlite3_step(stmt) == SQLITE_ROW )
-		{
-			curr_id = sqlite3_column_int(stmt, 0);
-
-			/* add user marker */
-			if( curr_id == marker1before ) {
-				dc_array_add_id(ret, DC_MSG_ID_MARKER1);
+		/* add daymarker, if needed */
+		if( flags&DC_GCM_ADDDAYMARKER ) {
+			curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
+			curr_day = curr_local_timestamp/SECONDS_PER_DAY;
+			if( curr_day != last_day ) {
+				dc_array_add_id(ret, DC_MSG_ID_DAYMARKER);
+				last_day = curr_day;
 			}
-
-			/* add daymarker, if needed */
-			if( flags&DC_GCM_ADDDAYMARKER ) {
-				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
-				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
-				if( curr_day != last_day ) {
-					dc_array_add_id(ret, DC_MSG_ID_DAYMARKER);
-					last_day = curr_day;
-				}
-			}
-
-			dc_array_add_id(ret, curr_id);
 		}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+		dc_array_add_id(ret, curr_id);
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 
 	//dc_log_info(context, 0, "Message list for chat #%i created in %.3f ms.", chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
