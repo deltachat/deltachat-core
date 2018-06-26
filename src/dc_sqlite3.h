@@ -65,7 +65,6 @@ enum
 	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
 	,INSERT_INTO_msgs_msscftttsmttpb
 	,INSERT_INTO_msgs_cftttst
-	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
 
 	,PREDEFINED_CNT /* must be last */
 };

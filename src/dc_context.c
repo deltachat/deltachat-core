@@ -2352,61 +2352,37 @@ cleanup:
 }
 
 
-/* similar to dc_add_device_msg() but without locking and without sending
- * an event.
- */
-uint32_t dc_add_device_msg__(dc_context_t* context, uint32_t chat_id, const char* text, time_t timestamp)
-{
-	sqlite3_stmt* stmt = NULL;
-
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || text == NULL ) {
-		return 0;
-	}
-
-	stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_cftttst,
-		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
-	sqlite3_bind_int  (stmt,  1, chat_id);
-	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
-	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
-	sqlite3_bind_int64(stmt,  4, timestamp);
-	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
-	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
-	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		return 0;
-	}
-
-	return sqlite3_last_insert_rowid(context->m_sql->m_cobj);
-}
-
-
 /*
  * Log a device message.
  * Such a message is typically shown in the "middle" of the chat, the user can check this using dc_msg_is_info().
  * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
  */
-uint32_t dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text)
+void dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text)
 {
 	uint32_t      msg_id = 0;
-	int           locked = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || text == NULL ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		dc_add_device_msg__(context, chat_id, text, dc_create_smeared_timestamp__());
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
-
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
+	sqlite3_bind_int  (stmt,  1, chat_id);
+	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
+	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
+	sqlite3_bind_int64(stmt,  4, dc_create_smeared_timestamp__());
+	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
+	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
+	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto cleanup;
+	}
+	msg_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg_id);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
-	return msg_id;
+	sqlite3_finalize(stmt);
 }
 
 
@@ -4297,6 +4273,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 	int send_event = 0;
 	int curr_state = 0;
 	int curr_blocked = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
 		goto cleanup;
@@ -4307,16 +4284,17 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 	dc_sqlite3_begin_transaction__(context->m_sql);
 	transaction_pending = 1;
 
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.state, c.blocked "
+			" FROM msgs m "
+			" LEFT JOIN chats c ON c.id=m.chat_id "
+			" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL));
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id,
-				"SELECT m.state, c.blocked "
-				" FROM msgs m "
-				" LEFT JOIN chats c ON c.id=m.chat_id "
-				" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL));
+			sqlite3_reset(stmt);
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
 			if( sqlite3_step(stmt) != SQLITE_ROW ) {
-				goto cleanup;
+				continue;
 			}
 			curr_state   = sqlite3_column_int(stmt, 0);
 			curr_blocked = sqlite3_column_int(stmt, 1);
@@ -4352,6 +4330,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 cleanup:
 	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
 	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 }
 
 
