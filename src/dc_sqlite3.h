@@ -41,17 +41,9 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_inao_FROM_contacts_a
 	,SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc
 	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
-	,SELECT_id_FROM_contacts_ORDER_BY
-	,SELECT_id_FROM_contacts_WHERE_query_ORDER_BY
-	,SELECT_COUNT_FROM_contacts_WHERE_blocked
 	,SELECT_id_FROM_contacts_WHERE_blocked
-	,INSERT_INTO_contacts_neo
-	,UPDATE_contacts_nao_WHERE_i
-	,UPDATE_contacts_SET_origin_WHERE_id
-	,UPDATE_contacts_SET_b_WHERE_i
 	,DELETE_FROM_contacts_WHERE_id
 
 	,SELECT_COUNT_FROM_chats_WHERE_archived
@@ -68,9 +60,7 @@ enum
 	,SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724
 	,SELECT_MAX_timestamp_FROM_msgs
 	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
-	,UPDATE_chats_SET_n_WHERE_c
 	,UPDATE_chats_SET_blocked_WHERE_chat_id
-	,UPDATE_chats_SET_blocked_WHERE_contact_id
 	,UPDATE_chats_SET_unarchived
 
 	,SELECT_a_FROM_chats_contacts_WHERE_i
@@ -104,7 +94,6 @@ enum
 	,UPDATE_msgs_SET_state_WHERE_id
 	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
 	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
-	,UPDATE_msgs_SET_state_WHERE_from_id_AND_state
 	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
 	,UPDATE_msgs_SET_param_WHERE_id
 	,UPDATE_msgs_SET_starred_WHERE_id

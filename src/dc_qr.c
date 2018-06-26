@@ -210,7 +210,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 
 				if( dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
 					qr_parsed->m_state = DC_QR_FPR_OK;
-					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+					qr_parsed->m_id    = dc_add_or_lookup_contact(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
 					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, DC_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
 					device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
@@ -228,32 +228,25 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			// fingerprint + addr set, secure-join requested
 			// do not comapre the fingerprint already - it may have changed - errors are catched later more proberly.
 			// (theroretically, there is also the state "addr=set, fingerprint=set, invitenumber=0", however, currently, we won't get into this state)
-			dc_sqlite3_lock(context->m_sql);
-			locked = 1;
+			if( grpid && grpname ) {
+				qr_parsed->m_state = DC_QR_ASK_VERIFYGROUP;
+				qr_parsed->m_text1 = dc_strdup(grpname);
+				qr_parsed->m_text2 = dc_strdup(grpid);
+			}
+			else {
+				qr_parsed->m_state = DC_QR_ASK_VERIFYCONTACT;
+			}
 
-				if( grpid && grpname ) {
-					qr_parsed->m_state = DC_QR_ASK_VERIFYGROUP;
-					qr_parsed->m_text1 = dc_strdup(grpname);
-					qr_parsed->m_text2 = dc_strdup(grpid);
-				}
-				else {
-					qr_parsed->m_state = DC_QR_ASK_VERIFYCONTACT;
-				}
-
-				qr_parsed->m_id            = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
-				qr_parsed->m_fingerprint   = dc_strdup(fingerprint);
-				qr_parsed->m_invitenumber  = dc_strdup(invitenumber);
-				qr_parsed->m_auth          = dc_strdup(auth);
-
-
-			dc_sqlite3_unlock(context->m_sql);
-			locked = 0;
+			qr_parsed->m_id            = dc_add_or_lookup_contact(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+			qr_parsed->m_fingerprint   = dc_strdup(fingerprint);
+			qr_parsed->m_invitenumber  = dc_strdup(invitenumber);
+			qr_parsed->m_auth          = dc_strdup(auth);
 		}
 	}
 	else if( addr )
 	{
         qr_parsed->m_state = DC_QR_ADDR;
-		qr_parsed->m_id    = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
+		qr_parsed->m_id    = dc_add_or_lookup_contact(context, name, addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 	}
 	else if( strstr(qr, "http://")==qr || strstr(qr, "https://")==qr )
 	{

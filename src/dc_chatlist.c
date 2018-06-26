@@ -235,7 +235,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 			if( lastmsg->m_from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 			{
 				lastcontact = dc_contact_new(chatlist->m_context);
-				dc_contact_load_from_db__(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
+				dc_contact_load_from_db(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
 			}
 
 		}

@@ -454,7 +454,7 @@ char* dc_normalize_addr(const char* email_addr__)
  *
  * @private @memberof dc_contact_t
  */
-int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
+int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;

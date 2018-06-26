@@ -158,27 +158,20 @@ cleanup:
 
 static int fingerprint_equals_sender(dc_context_t* context, const char* fingerprint, uint32_t contact_chat_id)
 {
-	int             fingerprint_equal      = 0;
-	int             locked                 = 0;
+	int              fingerprint_equal      = 0;
 	dc_array_t*      contacts               = dc_get_chat_contacts(context, contact_chat_id);
 	dc_contact_t*    contact                = dc_contact_new(context);
 	dc_apeerstate_t* peerstate              = dc_apeerstate_new(context);
-	char*           fingerprint_normalized = NULL;
+	char*            fingerprint_normalized = NULL;
 
 	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		if( !dc_contact_load_from_db__(contact, context->m_sql, dc_array_get_id(contacts, 0))
-		 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr) ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( !dc_contact_load_from_db(contact, context->m_sql, dc_array_get_id(contacts, 0))
+	 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr) ) {
+		goto cleanup;
+	}
 
 	fingerprint_normalized = dc_normalize_fingerprint(fingerprint);
 
@@ -187,7 +180,6 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(fingerprint_normalized);
 	dc_contact_unref(contact);
 	dc_array_unref(contacts);
@@ -710,7 +702,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 
-			dc_scaleup_contact_origin__(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
+			dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
 		UNLOCK
 
 		dc_log_info(context, 0, "Auth verified.");
@@ -777,14 +769,12 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// TODO: for the broadcasted vg-member-added, make sure, the message is ours (eg. by comparing Chat-Group-Member-Added against SELF)
 
-		LOCK
-			if( !mark_peer_as_verified(context, scanned_fingerprint_of_alice) ) {
-				could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
-				goto cleanup;
-			}
+		if( !mark_peer_as_verified(context, scanned_fingerprint_of_alice) ) {
+			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
+			goto cleanup;
+		}
 
-			dc_scaleup_contact_origin__(context, contact_id, DC_ORIGIN_SECUREJOIN_JOINED);
-		UNLOCK
+		dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_JOINED);
 
 		secure_connection_established(context, contact_chat_id);
 

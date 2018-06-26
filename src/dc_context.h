@@ -114,12 +114,12 @@ void            dc_receive_imf                             (dc_context_t*, const
 uint32_t        dc_send_msg_object                         (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 int             dc_get_archived_count__                    (dc_context_t*);
 size_t          dc_get_real_contact_cnt                    (dc_context_t*);
-uint32_t        dc_add_or_lookup_contact__                 (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
-int             dc_get_contact_origin__                    (dc_context_t*, uint32_t id, int* ret_blocked);
-int             dc_is_contact_blocked__                    (dc_context_t*, uint32_t id);
+uint32_t        dc_add_or_lookup_contact                   (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
+int             dc_get_contact_origin                      (dc_context_t*, uint32_t id, int* ret_blocked);
+int             dc_is_contact_blocked                      (dc_context_t*, uint32_t id);
 int             dc_real_contact_exists__                   (dc_context_t*, uint32_t id);
-int             dc_contact_addr_equals__                   (dc_context_t*, uint32_t contact_id, const char* other_addr);
-void            dc_scaleup_contact_origin__                (dc_context_t*, uint32_t contact_id, int origin);
+int             dc_contact_addr_equals                     (dc_context_t*, uint32_t contact_id, const char* other_addr);
+void            dc_scaleup_contact_origin                  (dc_context_t*, uint32_t contact_id, int origin);
 void            dc_unarchive_chat__                        (dc_context_t*, uint32_t chat_id);
 size_t          dc_get_chat_cnt                            (dc_context_t*);
 void            dc_block_chat__                            (dc_context_t*, uint32_t chat_id, int new_blocking);

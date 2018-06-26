@@ -65,7 +65,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* context, const char* d
 		dc_normalize_name(display_name_dec);
 	}
 
-	uint32_t row_id = dc_add_or_lookup_contact__(context, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
+	uint32_t row_id = dc_add_or_lookup_contact(context, display_name_dec /*can be NULL*/, addr_spec, origin, NULL);
 
 	free(display_name_dec);
 
@@ -595,7 +595,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 	sqlite3_stmt*    stmt             = NULL;
 
 	// ensure, the contact is verified
-	if( !dc_contact_load_from_db__(contact, context->m_sql, from_id)
+	if( !dc_contact_load_from_db(contact, context->m_sql, from_id)
 	 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr)
 	 || dc_contact_is_verified__(contact, peerstate) < DC_BIDIRECT_VERIFIED ) {
 		dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
@@ -889,8 +889,8 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 		}
 
 		if( from_id > DC_CONTACT_ID_LAST_SPECIAL ) {
-			if( dc_contact_addr_equals__(context, from_id, self_addr)==0
-			 && (skip==NULL || dc_contact_addr_equals__(context, from_id, skip)==0) ) {
+			if( dc_contact_addr_equals(context, from_id, self_addr)==0
+			 && (skip==NULL || dc_contact_addr_equals(context, from_id, skip)==0) ) {
 				dc_add_to_chat_contacts_table__(context, chat_id, from_id);
 			}
 		}
@@ -898,8 +898,8 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 		for( i = 0; i < to_ids_cnt; i++ )
 		{
 			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
-			if( dc_contact_addr_equals__(context, to_id, self_addr)==0
-			 && (skip==NULL || dc_contact_addr_equals__(context, to_id, skip)==0) ) {
+			if( dc_contact_addr_equals(context, to_id, self_addr)==0
+			 && (skip==NULL || dc_contact_addr_equals(context, to_id, skip)==0) ) {
 				dc_add_to_chat_contacts_table__(context, chat_id, to_id);
 			}
 		}
@@ -1046,7 +1046,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					if( dc_array_get_cnt(from_list)>=1 ) /* if there is no from given, from_id stays 0 which is just fine. These messages are very rare, however, we have to add them to the database (they go to the "deaddrop" chat) to avoid a re-download from the server. See also [**] */
 					{
 						from_id = dc_array_get_id(from_list, 0);
-						incoming_origin = dc_get_contact_origin__(context, from_id, &from_id_blocked);
+						incoming_origin = dc_get_contact_origin(context, from_id, &from_id_blocked);
 					}
 				}
 				dc_array_unref(from_list);
@@ -1187,7 +1187,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 							chat_id_blocked = 0;
 						}
 						else if( dc_is_reply_to_known_message__(context, mime_parser) ) {
-							dc_scaleup_contact_origin__(context, from_id, DC_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
+							dc_scaleup_contact_origin(context, from_id, DC_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
 							dc_log_info(context, 0, "Message is a reply to a known message, mark sender as known.");
 							incoming_origin = DC_MAX(incoming_origin, DC_ORIGIN_INCOMING_REPLY_TO);
 						}
@@ -1227,7 +1227,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 					if( chat_id == 0 )
 					{
-						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked__(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
+						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
 						dc_create_or_lookup_nchat_by_contact_id__(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked && !create_blocked ) {
 							dc_unblock_chat__(context, chat_id);

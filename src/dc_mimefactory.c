@@ -263,7 +263,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		}
 
 		if( !dc_msg_load_from_db__(factory->m_msg, context, msg_id)
-		 || !dc_contact_load_from_db__(contact, context->m_sql, factory->m_msg->m_from_id) ) {
+		 || !dc_contact_load_from_db(contact, context->m_sql, factory->m_msg->m_from_id) ) {
 			goto cleanup;
 		}
 

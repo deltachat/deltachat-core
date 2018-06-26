@@ -78,7 +78,7 @@ struct _dc_contact
 #define DC_ORIGIN_MIN_VERIFIED        (DC_ORIGIN_INCOMING_REPLY_TO) /* contacts with at least this origin value are verified and known not to be spam */
 #define DC_ORIGIN_MIN_START_NEW_NCHAT (0x7FFFFFFF)                  /* contacts with at least this origin value start a new "normal" chat, defaults to off */
 
-int          dc_contact_load_from_db__         (dc_contact_t*, dc_sqlite3_t*, uint32_t contact_id);
+int          dc_contact_load_from_db          (dc_contact_t*, dc_sqlite3_t*, uint32_t contact_id);
 int          dc_contact_is_verified__          (const dc_contact_t*, const dc_apeerstate_t*);
 void         dc_normalize_name                (char* full_name);
 char*        dc_normalize_addr                (const char* email_addr);
