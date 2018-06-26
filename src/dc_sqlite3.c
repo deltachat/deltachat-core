@@ -444,9 +444,9 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
 					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->m_context);
-						if( dc_apeerstate_load_by_addr__(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
+						if( dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
 						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
-							dc_apeerstate_save_to_db__(peerstate, sql, 0/*don't create*/);
+							dc_apeerstate_save_to_db(peerstate, sql, 0/*don't create*/);
 						}
 					dc_apeerstate_unref(peerstate);
 				}

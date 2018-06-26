@@ -141,7 +141,7 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	encryption is disabled as soon as the first messages comes from the partner */
 	dc_aheader_t*    header = dc_aheader_new();
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
-	int              locked = 0, success = 0;
+	int              success = 0;
 
 	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
 		goto cleanup;
@@ -157,22 +157,18 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	}
 
 	/* update/create peerstate */
-	dc_sqlite3_lock(mailbox->m_sql);
-	locked = 1;
+	if( dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr) ) {
+		dc_apeerstate_apply_header(peerstate, header, time(NULL));
+		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 0);
+	}
+	else {
+		dc_apeerstate_init_from_header(peerstate, header, time(NULL));
+		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 1);
+	}
 
-		if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
-			dc_apeerstate_apply_header(peerstate, header, time(NULL));
-			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
-		}
-		else {
-			dc_apeerstate_init_from_header(peerstate, header, time(NULL));
-			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	dc_aheader_unref(header);
 	return success;
@@ -347,9 +343,7 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 			int verified_state = dc_contact_is_verified(contact);
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = dc_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
-			dc_sqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
-			dc_sqlite3_unlock(mailbox->m_sql);
+			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr);
 			if( peerstate_ok && contact_id != DC_CONTACT_ID_SELF ) {
 				char* pe = NULL;
 				switch( peerstate->m_prefer_encrypt ) {

@@ -372,7 +372,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 				{
 					; // encrypt to SELF, this key is added below
 				}
-				else if( dc_apeerstate_load_by_addr__(peerstate, context->m_sql, recipient_addr)
+				else if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, recipient_addr)
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
 				      && (peerstate->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
 				{
@@ -765,16 +765,14 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 					{
 						/* valid recipient: update peerstate */
 						dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
-						dc_sqlite3_lock(context->m_sql);
-							if( !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, gossip_header->m_addr) ) {
-								dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-								dc_apeerstate_save_to_db__(peerstate, context->m_sql, 1/*create*/);
-							}
-							else {
-								dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
-								dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*do not create*/);
-							}
-						dc_sqlite3_unlock(context->m_sql);
+						if( !dc_apeerstate_load_by_addr(peerstate, context->m_sql, gossip_header->m_addr) ) {
+							dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+							dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
+						}
+						else {
+							dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
+							dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*do not create*/);
+						}
 
 						if( peerstate->m_degrade_event ) {
 							dc_handle_degrade_event(context, peerstate);
@@ -863,48 +861,43 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	}
 
 	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
-		/* apply Autocrypt:-header */
-		if( message_time > 0
-		 && from )
-		{
-			if( dc_apeerstate_load_by_addr__(peerstate, context->m_sql, from) ) {
-				if( autocryptheader ) {
-					dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
-					dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*no not create*/);
-				}
-				else {
-					if( message_time > peerstate->m_last_seen_autocrypt
-					 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
-						dc_apeerstate_degrade_encryption(peerstate, message_time);
-						dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*no not create*/);
-					}
+	/* apply Autocrypt:-header */
+	if( message_time > 0
+	 && from )
+	{
+		if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, from) ) {
+			if( autocryptheader ) {
+				dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
+				dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
+			}
+			else {
+				if( message_time > peerstate->m_last_seen_autocrypt
+				 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
+					dc_apeerstate_degrade_encryption(peerstate, message_time);
+					dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
 				}
 			}
-			else if( autocryptheader ) {
-				dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
-				dc_apeerstate_save_to_db__(peerstate, context->m_sql, 1/*create*/);
-			}
 		}
-
-		/* load private key for decryption */
-		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
-			goto cleanup;
+		else if( autocryptheader ) {
+			dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
+			dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
 		}
+	}
 
-		if( !dc_keyring_load_self_private_for_decrypting__(private_keyring, self_addr, context->m_sql) ) {
-			goto cleanup;
-		}
+	/* load private key for decryption */
+	if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
+		goto cleanup;
+	}
 
-		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-		if( peerstate->m_last_seen == 0 ) {
-			dc_apeerstate_load_by_addr__(peerstate, context->m_sql, from);
-		}
+	if( !dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->m_sql) ) {
+		goto cleanup;
+	}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
+	if( peerstate->m_last_seen == 0 ) {
+		dc_apeerstate_load_by_addr(peerstate, context->m_sql, from);
+	}
 
 	if( peerstate->m_degrade_event ) {
 		dc_handle_degrade_event(context, peerstate);

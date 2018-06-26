@@ -173,7 +173,7 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 	locked = 1;
 
 		if( !dc_contact_load_from_db__(contact, context->m_sql, dc_array_get_id(contacts, 0))
-		 || !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr) ) {
+		 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr) ) {
 			goto cleanup;
 		}
 
@@ -195,12 +195,12 @@ cleanup:
 }
 
 
-static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprint)
+static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 {
-	int             success = 0;
+	int              success = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
-	if( !dc_apeerstate_load_by_fingerprint__(peerstate, context->m_sql, fingerprint) ) {
+	if( !dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
 		goto cleanup;
 	}
 
@@ -214,7 +214,7 @@ static int mark_peer_as_verified__(dc_context_t* context, const char* fingerprin
 	peerstate->m_prefer_encrypt = DC_PE_MUTUAL;
 	peerstate->m_to_save       |= DC_SAVE_ALL;
 
-	dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0);
+	dc_apeerstate_save_to_db(peerstate, context->m_sql, 0);
 	success = 1;
 
 cleanup:
@@ -703,7 +703,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 				goto cleanup;
 			}
 
-			if( !mark_peer_as_verified__(context, fingerprint) ) {
+			if( !mark_peer_as_verified(context, fingerprint) ) {
 				dc_sqlite3_unlock(context->m_sql);
 				locked = 0;
 				could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
@@ -778,7 +778,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		// TODO: for the broadcasted vg-member-added, make sure, the message is ours (eg. by comparing Chat-Group-Member-Added against SELF)
 
 		LOCK
-			if( !mark_peer_as_verified__(context, scanned_fingerprint_of_alice) ) {
+			if( !mark_peer_as_verified(context, scanned_fingerprint_of_alice) ) {
 				could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 				goto cleanup;
 			}

@@ -596,7 +596,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 
 	// ensure, the contact is verified
 	if( !dc_contact_load_from_db__(contact, context->m_sql, from_id)
-	 || !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr)
+	 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr)
 	 || dc_contact_is_verified__(contact, peerstate) < DC_BIDIRECT_VERIFIED ) {
 		dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
@@ -629,7 +629,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 		int is_verified         =              sqlite3_column_int (stmt, 1);
 
 		if( dc_hash_find_str(mimeparser->m_e2ee_helper->m_gossipped_addr, to_addr)
-		 && dc_apeerstate_load_by_addr__(peerstate, context->m_sql, to_addr) )
+		 && dc_apeerstate_load_by_addr(peerstate, context->m_sql, to_addr) )
 		{
 			// if we're here, we know the gossip key is verified:
 			// - use the gossip-key as verified-key if there is no verified-key
@@ -642,7 +642,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 			{
 				dc_log_info(context, 0, "Marking gossipped key %s as verified due to verified %s.", to_addr, contact->m_addr);
 				dc_apeerstate_set_verified(peerstate, DC_PS_GOSSIP_KEY, peerstate->m_gossip_key_fingerprint, DC_BIDIRECT_VERIFIED);
-				dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0);
+				dc_apeerstate_save_to_db(peerstate, context->m_sql, 0);
 				is_verified = 1;
 			}
 		}

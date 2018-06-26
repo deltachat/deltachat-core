@@ -208,7 +208,7 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 			dc_sqlite3_lock(context->m_sql);
 			locked = 1;
 
-				if( dc_apeerstate_load_by_fingerprint__(peerstate, context->m_sql, fingerprint) ) {
+				if( dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
 					qr_parsed->m_state = DC_QR_FPR_OK;
 					qr_parsed->m_id    = dc_add_or_lookup_contact__(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
