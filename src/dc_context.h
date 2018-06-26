@@ -113,7 +113,7 @@ void            dc_log_info          (dc_context_t*, int code, const char* msg, 
 void            dc_receive_imf                             (dc_context_t*, const char* imf_raw_not_terminated, size_t imf_raw_bytes, const char* server_folder, uint32_t server_uid, uint32_t flags);
 uint32_t        dc_send_msg_object                         (dc_context_t*, uint32_t chat_id, dc_msg_t*);
 int             dc_get_archived_count__                    (dc_context_t*);
-size_t          dc_get_real_contact_cnt__                  (dc_context_t*);
+size_t          dc_get_real_contact_cnt                    (dc_context_t*);
 uint32_t        dc_add_or_lookup_contact__                 (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
 int             dc_get_contact_origin__                    (dc_context_t*, uint32_t id, int* ret_blocked);
 int             dc_is_contact_blocked__                    (dc_context_t*, uint32_t id);
@@ -121,13 +121,11 @@ int             dc_real_contact_exists__                   (dc_context_t*, uint3
 int             dc_contact_addr_equals__                   (dc_context_t*, uint32_t contact_id, const char* other_addr);
 void            dc_scaleup_contact_origin__                (dc_context_t*, uint32_t contact_id, int origin);
 void            dc_unarchive_chat__                        (dc_context_t*, uint32_t chat_id);
-size_t          dc_get_chat_cnt__                          (dc_context_t*);
+size_t          dc_get_chat_cnt                            (dc_context_t*);
 void            dc_block_chat__                            (dc_context_t*, uint32_t chat_id, int new_blocking);
 void            dc_unblock_chat__                          (dc_context_t*, uint32_t chat_id);
 void            dc_create_or_lookup_nchat_by_contact_id__  (dc_context_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
 void            dc_lookup_real_nchat_by_contact_id__       (dc_context_t*, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked);
-int             dc_get_total_msg_count__                   (dc_context_t*, uint32_t chat_id);
-int             dc_get_fresh_msg_count__                   (dc_context_t*, uint32_t chat_id);
 uint32_t        dc_get_last_deaddrop_fresh_msg__           (dc_context_t*);
 int             dc_add_to_chat_contacts_table__            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
 int             dc_is_contact_in_chat__                    (dc_context_t*, uint32_t chat_id, uint32_t contact_id);

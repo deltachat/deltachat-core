@@ -480,10 +480,10 @@ char* dc_get_info(dc_context_t* context)
 
 		displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
 
-		chats           = dc_get_chat_cnt__(context);
+		chats           = dc_get_chat_cnt(context);
 		real_msgs       = dc_get_real_msg_cnt(context);
 		deaddrop_msgs   = dc_get_deaddrop_msg_cnt(context);
-		contacts        = dc_get_real_contact_cnt__(context);
+		contacts        = dc_get_real_contact_cnt(context);
 
 		is_configured   = dc_sqlite3_get_config_int(context->m_sql, "configured", 0);
 
@@ -1424,25 +1424,6 @@ cleanup:
 }
 
 
-int dc_get_fresh_msg_count__(dc_context_t* context, uint32_t chat_id)
-{
-	sqlite3_stmt* stmt = NULL;
-
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs "
-		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH)
-		"   AND hidden=0 "
-		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
-	sqlite3_bind_int(stmt, 1, chat_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	return sqlite3_column_int(stmt, 0);
-}
-
-
 uint32_t dc_get_last_deaddrop_fresh_msg__(dc_context_t* context)
 {
 	sqlite3_stmt* stmt = NULL;
@@ -1464,37 +1445,26 @@ uint32_t dc_get_last_deaddrop_fresh_msg__(dc_context_t* context)
 }
 
 
-int dc_get_total_msg_count__(dc_context_t* context, uint32_t chat_id)
+size_t dc_get_chat_cnt(dc_context_t* context)
 {
+	size_t        ret = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	return sqlite3_column_int(stmt, 0);
-}
-
-
-size_t dc_get_chat_cnt__(dc_context_t* context)
-{
-	sqlite3_stmt* stmt;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0; /* no database, no chats - this is no error (needed eg. for information) */
+		goto cleanup; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) " AND blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -1621,16 +1591,24 @@ void dc_unarchive_chat__(dc_context_t* context, uint32_t chat_id)
  */
 int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
 {
-	int ret;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		ret = dc_get_total_msg_count__(context, chat_id);
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
 
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -1646,16 +1624,28 @@ int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
  */
 int dc_get_fresh_msg_count(dc_context_t* context, uint32_t chat_id)
 {
-	int ret;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		ret = dc_get_fresh_msg_count__(context, chat_id);
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM msgs "
+		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH)
+		"   AND hidden=0 "
+		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+	sqlite3_bind_int(stmt, 1, chat_id);
 
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -2997,7 +2987,7 @@ cleanup:
 }
 
 
-size_t dc_get_real_contact_cnt__(dc_context_t* context)
+size_t dc_get_real_contact_cnt(dc_context_t* context)
 {
 	size_t        ret = 0;
 	sqlite3_stmt* stmt = NULL;

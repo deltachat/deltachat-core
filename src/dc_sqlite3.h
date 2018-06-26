@@ -54,7 +54,6 @@ enum
 	,UPDATE_contacts_SET_b_WHERE_i
 	,DELETE_FROM_contacts_WHERE_id
 
-	,SELECT_COUNT_FROM_chats
 	,SELECT_COUNT_FROM_chats_WHERE_archived
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived
 	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived
@@ -83,8 +82,6 @@ enum
 	,SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id
 	,INSERT_INTO_chats_contacts
 
-	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
-	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
 	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
 	,SELECT_COUNT_FROM_msgs_WHERE_ft
 	,SELECT_i_FROM_msgs_WHERE_ctt
