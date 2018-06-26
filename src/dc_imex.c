@@ -1390,11 +1390,7 @@ int dc_check_password(dc_context_t* context, const char* test_pw)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_loginparam_read__(loginparam, context->m_sql, "configured_");
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_loginparam_read(loginparam, context->m_sql, "configured_");
 
 	if( (loginparam->m_mail_pw==NULL || loginparam->m_mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
 		/* both empty or unset */

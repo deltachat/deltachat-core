@@ -71,7 +71,7 @@ void dc_loginparam_empty(dc_loginparam_t* loginparam)
 }
 
 
-void dc_loginparam_read__(dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const char* prefix)
+void dc_loginparam_read(dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 	#define LP_PREFIX(a) sqlite3_free(key); key=sqlite3_mprintf("%s%s", prefix, (a));
@@ -96,7 +96,7 @@ void dc_loginparam_read__(dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const 
 }
 
 
-void dc_loginparam_write__(const dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const char* prefix)
+void dc_loginparam_write(const dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const char* prefix)
 {
 	char* key = NULL;
 

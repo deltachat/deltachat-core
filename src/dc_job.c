@@ -41,7 +41,6 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	#define          ALREADY_CONNECTED 1
 	#define          JUST_CONNECTED    2
 	int              ret_connected = NOT_CONNECTED;
-	int              is_locked = 0;
 	dc_loginparam_t* param = dc_loginparam_new();
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_imap == NULL ) {
@@ -54,18 +53,12 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	is_locked = 1;
+	if( dc_sqlite3_get_config_int(context->m_sql, "configured", 0) == 0 ) {
+		dc_log_warning(context, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
+		goto cleanup;
+	}
 
-		if( dc_sqlite3_get_config_int(context->m_sql, "configured", 0) == 0 ) {
-			dc_log_warning(context, 0, "Not configured, cannot connect."); // this is no error, connect() is called eg. when the screen is switched on, it's okay if the caller does not check all circumstances here
-			goto cleanup;
-		}
-
-		dc_loginparam_read__(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
-
-	dc_sqlite3_unlock(context->m_sql);
-	is_locked = 0;
+	dc_loginparam_read(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 	if( !dc_imap_connect(context->m_imap, param) ) {
 		dc_job_try_again_later(job, DC_STANDARD_DELAY);
@@ -75,7 +68,6 @@ static int connect_to_imap(dc_context_t* context, dc_job_t* job /*may be NULL if
 	ret_connected = JUST_CONNECTED;
 
 cleanup:
-	if( is_locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_loginparam_unref(param);
 	return ret_connected;
 }
@@ -350,9 +342,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	/* connect to SMTP server, if not yet done */
 	if( !dc_smtp_is_connected(context->m_smtp) ) {
 		dc_loginparam_t* loginparam = dc_loginparam_new();
-			dc_sqlite3_lock(context->m_sql);
-				dc_loginparam_read__(loginparam, context->m_sql, "configured_");
-			dc_sqlite3_unlock(context->m_sql);
+			dc_loginparam_read(loginparam, context->m_sql, "configured_");
 			int connected = dc_smtp_connect(context->m_smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if( !connected ) {
@@ -452,9 +442,7 @@ static void dc_job_do_DC_JOB_SEND_MDN(dc_context_t* context, dc_job_t* job)
 	if( !dc_smtp_is_connected(context->m_smtp) )
 	{
 		dc_loginparam_t* loginparam = dc_loginparam_new();
-			dc_sqlite3_lock(context->m_sql);
-				dc_loginparam_read__(loginparam, context->m_sql, "configured_");
-			dc_sqlite3_unlock(context->m_sql);
+			dc_loginparam_read(loginparam, context->m_sql, "configured_");
 			int connected = dc_smtp_connect(context->m_smtp, loginparam);
 		dc_loginparam_unref(loginparam);
 		if( !connected ) {

@@ -475,8 +475,8 @@ char* dc_get_info(dc_context_t* context)
 
 	dc_sqlite3_lock(context->m_sql);
 
-		dc_loginparam_read__(l, context->m_sql, "");
-		dc_loginparam_read__(l2, context->m_sql, "configured_" /*the trailing underscore is correct*/);
+		dc_loginparam_read(l, context->m_sql, "");
+		dc_loginparam_read(l2, context->m_sql, "configured_" /*the trailing underscore is correct*/);
 
 		displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
 
@@ -3673,7 +3673,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 			goto cleanup;
 		}
 		dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr);
-		dc_loginparam_read__(loginparam, context->m_sql, "configured_");
+		dc_loginparam_read(loginparam, context->m_sql, "configured_");
 
 		dc_key_load_self_public__(self_key, loginparam->m_addr, context->m_sql);
 

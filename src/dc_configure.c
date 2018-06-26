@@ -423,13 +423,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	param = dc_loginparam_new();
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		dc_loginparam_read__(param, context->m_sql, "");
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	dc_loginparam_read(param, context->m_sql, "");
 
 	if( param->m_addr == NULL ) {
 		dc_log_error(context, 0, "Please enter the email address.");
@@ -651,14 +645,9 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	PROGRESS(900)
 
 	/* configuration success - write back the configured parameters with the "configured_" prefix; also write the "configured"-flag */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
-		dc_loginparam_write__(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
-		dc_sqlite3_set_config_int(context->m_sql, "configured", 1);
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	dc_loginparam_write(param, context->m_sql, "configured_" /*the trailing underscore is correct*/);
+	dc_sqlite3_set_config_int(context->m_sql, "configured", 1);
 
 	PROGRESS(920)
 
