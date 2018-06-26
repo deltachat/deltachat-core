@@ -219,9 +219,8 @@ int main(int argc, char ** argv)
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
-		printf("Opening %s ...\n", argv[1]);
 		if( !dc_open(mailbox, argv[1], NULL) ) {
-			printf("ERROR: Cannot open mailbox.\n");
+			printf("ERROR: Cannot open %s.\n", argv[1]);
 		}
 	}
 	else if( argc != 1 ) {

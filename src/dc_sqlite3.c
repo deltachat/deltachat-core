@@ -454,7 +454,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		}
 	}
 
-	dc_log_info(sql->m_context, 0, "Opened \"%s\" successfully.", dbfile);
+	dc_log_info(sql->m_context, 0, "Opened \"%s\".", dbfile);
 	return 1;
 
 cleanup:

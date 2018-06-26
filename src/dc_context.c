@@ -1866,7 +1866,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	{
 		char* from = dc_sqlite3_get_config__(context->m_sql, "configured_addr", NULL);
 		if( from == NULL ) {
-			dc_log_error(context, 0, "Cannot send message, not configured successfully.");
+			dc_log_error(context, 0, "Cannot send message, not configured.");
 			goto cleanup;
 		}
 		rfc724_mid = dc_create_outgoing_rfc724_mid(DC_CHAT_TYPE_IS_MULTI(chat->m_type)? chat->m_grpid : NULL, from);

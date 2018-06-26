@@ -668,7 +668,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	dc_ensure_secret_key_exists(context);
 
 	success = 1;
-	dc_log_info(context, 0, "Configure completed successfully.");
+	dc_log_info(context, 0, "Configure completed.");
 
 	PROGRESS(940)
 
