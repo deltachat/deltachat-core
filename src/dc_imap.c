@@ -902,11 +902,11 @@ static void fake_idle(dc_imap_t* imap)
 		pthread_mutex_lock(&imap->m_watch_condmutex);
 
 			int r = 0;
-			struct timespec timeToWait;
-			timeToWait.tv_sec  = time(NULL)+seconds_to_wait;
-			timeToWait.tv_nsec = 0;
+			struct timespec wakeup_at;
+			memset(&wakeup_at, 0, sizeof(wakeup_at));
+			wakeup_at.tv_sec  = time(NULL)+seconds_to_wait;
 			while( imap->m_watch_condflag == 0 && r == 0 ) {
-				r = pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &timeToWait); /* unlock mutex -> wait -> lock mutex */
+				r = pthread_cond_timedwait(&imap->m_watch_cond, &imap->m_watch_condmutex, &wakeup_at); /* unlock mutex -> wait -> lock mutex */
 				if( imap->m_watch_condflag ) {
 					do_fake_idle = 0;
 				}

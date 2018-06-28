@@ -864,11 +864,11 @@ void dc_perform_smtp_idle(dc_context_t* context)
 
 				do {
 					int r = 0;
-					struct timespec timeToWait;
-					timeToWait.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 1 : DC_SMTP_IDLE_SEC);
-					timeToWait.tv_nsec = 0;
+					struct timespec wakeup_at;
+					memset(&wakeup_at, 0, sizeof(wakeup_at));
+					wakeup_at.tv_sec  = time(NULL) + ((context->m_perform_smtp_jobs_needed==DC_JOBS_NEEDED_AVOID_DOS)? 2 : DC_SMTP_IDLE_SEC);
 					while (context->m_smtpidle_condflag==0 && r==0) {
-						r = pthread_cond_timedwait(&context->m_smtpidle_cond, &context->m_smtpidle_condmutex, &timeToWait); // unlock mutex -> wait -> lock mutex
+						r = pthread_cond_timedwait(&context->m_smtpidle_cond, &context->m_smtpidle_condmutex, &wakeup_at); // unlock mutex -> wait -> lock mutex
 					}
 				} while (context->m_smtpidle_suspend);
 				context->m_smtpidle_condflag = 0;
