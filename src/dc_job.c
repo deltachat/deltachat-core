@@ -366,8 +366,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 	}
 
 	/* done */
-	dc_sqlite3_lock(context->m_sql);
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		/* debug print? */
 		if( dc_sqlite3_get_config_int(context->m_sql, "save_eml", 0) ) {
@@ -397,8 +396,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		// TODO: add to keyhistory
 		dc_add_to_keyhistory__(context, NULL, 0, NULL, NULL);
 
-	dc_sqlite3_commit__(context->m_sql);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 
 	context->m_cb(context, DC_EVENT_MSG_DELIVERED, mimefactory.m_msg->m_chat_id, mimefactory.m_msg->m_id);
 

@@ -1020,7 +1020,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 	dc_sqlite3_lock(context->m_sql);
 	db_locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
 		/* get From: and check if it is known (for known From:'s we add the other To:/Cc: in the 3rd pass)
@@ -1111,7 +1111,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				uint32_t old_server_uid = 0;
 				if( dc_rfc724_mid_exists__(context, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
-						dc_sqlite3_rollback__(context->m_sql);
+						dc_sqlite3_rollback(context->m_sql);
 						transaction_pending = 0;
 						dc_update_server_uid(context, rfc724_mid, server_folder, server_uid);
 					}
@@ -1133,14 +1133,14 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
 				assert( chat_id == 0 );
 				if( dc_mimeparser_lookup_field(mime_parser, "Secure-Join") ) {
-					dc_sqlite3_commit__(context->m_sql);
+					dc_sqlite3_commit(context->m_sql);
 					dc_sqlite3_unlock(context->m_sql);
 						if( dc_handle_securejoin_handshake(context, mime_parser, from_id) == DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 							hidden = 1;
 							state = DC_STATE_IN_SEEN;
 						}
 					dc_sqlite3_lock(context->m_sql);
-					dc_sqlite3_begin_transaction__(context->m_sql);
+					dc_sqlite3_begin_transaction(context->m_sql);
 				}
 
 				/* test if there is a normal chat with the sender - if so, this allows us to create groups in the next step */
@@ -1468,11 +1468,11 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 		}
 
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	transaction_pending = 0;
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
 	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	dc_mimeparser_unref(mime_parser);

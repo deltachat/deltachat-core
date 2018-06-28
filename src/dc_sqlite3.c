@@ -741,55 +741,34 @@ void dc_sqlite3_unlock(dc_sqlite3_t* sql)
  ******************************************************************************/
 
 
-void dc_sqlite3_begin_transaction__(dc_sqlite3_t* sql)
+void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	sql->m_transactionCount++; /* this is safe, as the database should be locked when using a transaction */
-
-	if( sql->m_transactionCount == 1 )
-	{
-		stmt = dc_sqlite3_predefine__(sql, BEGIN_transaction, "BEGIN IMMEDIATE;"); // IMMEDIATE=only one thread may write, see https://www.sqlite.org/lang_transaction.html
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			dc_sqlite3_log_error(sql, "Cannot begin transaction.");
-		}
+	// `BEGIN IMMEDIATE` ensures, only one thread may write.
+	// all other calls to `BEGIN IMMEDIATE` will try over until sqlite3_busy_timeout() is reached.
+	// CAVE: This also implies that transactions MUST NOT be nested.
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "BEGIN IMMEDIATE;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot begin transaction.");
 	}
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_sqlite3_rollback__(dc_sqlite3_t* sql)
+void dc_sqlite3_rollback(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	if( sql->m_transactionCount >= 1 )
-	{
-		if( sql->m_transactionCount == 1 )
-		{
-			stmt = dc_sqlite3_predefine__(sql, ROLLBACK_transaction, "ROLLBACK;");
-			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
-			}
-		}
-
-		sql->m_transactionCount--;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "ROLLBACK;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
 	}
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_sqlite3_commit__(dc_sqlite3_t* sql)
+void dc_sqlite3_commit(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	if( sql->m_transactionCount >= 1 )
-	{
-		if( sql->m_transactionCount == 1 )
-		{
-			stmt = dc_sqlite3_predefine__(sql, COMMIT_transaction, "COMMIT;");
-			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				dc_sqlite3_log_error(sql, "Cannot commit transaction.");
-			}
-		}
-
-		sql->m_transactionCount--;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "COMMIT;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot commit transaction.");
 	}
+	sqlite3_finalize(stmt);
 }

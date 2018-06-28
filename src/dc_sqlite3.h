@@ -37,11 +37,7 @@ extern "C" {
 /* predefined statements */
 enum
 {
-	 BEGIN_transaction = 0 /* must be first */
-	,ROLLBACK_transaction
-	,COMMIT_transaction
-
-	,PREDEFINED_CNT /* must be last */
+	PREDEFINED_CNT /* must be last */
 };
 
 
@@ -58,9 +54,8 @@ typedef struct dc_sqlite3_t
 	/** @privatesection */
 	sqlite3_stmt*   m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
-	int             m_transactionCount;   /**< helper for transactions */
 	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
-	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
+	pthread_mutex_t m_critical_;          /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
 } dc_sqlite3_t;
 
@@ -104,10 +99,9 @@ void          dc_sqlite3_lock             (dc_sqlite3_t*); /* lock or wait; thes
 void          dc_sqlite3_unlock           (dc_sqlite3_t*);
 #endif
 
-/* nestable transactions, only the outest is really used */
-void          dc_sqlite3_begin_transaction__(dc_sqlite3_t*);
-void          dc_sqlite3_commit__           (dc_sqlite3_t*);
-void          dc_sqlite3_rollback__         (dc_sqlite3_t*);
+void          dc_sqlite3_begin_transaction  (dc_sqlite3_t*);
+void          dc_sqlite3_commit             (dc_sqlite3_t*);
+void          dc_sqlite3_rollback           (dc_sqlite3_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

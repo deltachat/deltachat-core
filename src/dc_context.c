@@ -1682,14 +1682,11 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
         if( !dc_chat_load_from_db(obj, chat_id) ) {
 			goto cleanup;
         }
 
-		dc_sqlite3_begin_transaction__(context->m_sql);
+		dc_sqlite3_begin_transaction(context->m_sql);
 		pending_transaction = 1;
 
 			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
@@ -1720,16 +1717,13 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 			sqlite3_free(q3);
 			q3 = NULL;
 
-		dc_sqlite3_commit__(context->m_sql);
+		dc_sqlite3_commit(context->m_sql);
 		pending_transaction = 0;
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
-	if( pending_transaction ) { dc_sqlite3_rollback__(context->m_sql); }
+	if( pending_transaction ) { dc_sqlite3_rollback(context->m_sql); }
 	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_chat_unref(obj);
 	sqlite3_free(q3);
@@ -1909,8 +1903,8 @@ cleanup:
  */
 uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
-	int   locked = 0, transaction_pending = 0;
-	char* pathNfilename = NULL;
+	char*      pathNfilename = NULL;
+	dc_chat_t* chat = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg == NULL || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
@@ -1993,36 +1987,22 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
-	transaction_pending = 1;
+	dc_unarchive_chat(context, chat_id);
 
-		dc_unarchive_chat(context, chat_id);
+	context->m_smtp->m_log_connect_errors = 1;
 
-		context->m_smtp->m_log_connect_errors = 1;
-
-		{
-			dc_chat_t* chat = dc_chat_new(context);
-			if( dc_chat_load_from_db(chat, chat_id) ) {
-				msg->m_id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp__());
-				if( msg ->m_id == 0 ) {
-					goto cleanup; /* error already logged */
-				}
-			}
-			dc_chat_unref(chat);
+	chat = dc_chat_new(context);
+	if( dc_chat_load_from_db(chat, chat_id) ) {
+		msg->m_id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp__());
+		if( msg ->m_id == 0 ) {
+			goto cleanup; /* error already logged */
 		}
-
-	dc_sqlite3_commit__(context->m_sql);
-	transaction_pending = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	}
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	dc_chat_unref(chat);
 	free(pathNfilename);
 	return msg->m_id;
 }
@@ -3183,9 +3163,7 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		iCnt = carray_count(lines);
 		for( i = 0; i+1 < iCnt; i += 2 ) {
@@ -3198,9 +3176,7 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 			}
 		}
 
-		dc_sqlite3_commit__(context->m_sql);
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 
 cleanup:
 	dc_free_splitted_lines(lines);
@@ -3441,9 +3417,7 @@ void dc_unblock_chat(dc_context_t* context, uint32_t chat_id)
  */
 void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocking)
 {
-	int           locked = 0;
 	int           send_event = 0;
-	int           transaction_pending = 0;
 	dc_contact_t* contact = dc_contact_new(context);
 	sqlite3_stmt* stmt = NULL;
 
@@ -3451,15 +3425,9 @@ void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocki
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
 		if( dc_contact_load_from_db(contact, context->m_sql, contact_id)
 		 && contact->m_blocked != new_blocking )
 		{
-			dc_sqlite3_begin_transaction__(context->m_sql);
-			transaction_pending = 1;
-
 				stmt = dc_sqlite3_prepare(context->m_sql,
 					"UPDATE contacts SET blocked=? WHERE id=?;");
 				sqlite3_bind_int(stmt, 1, new_blocking);
@@ -3486,22 +3454,14 @@ void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocki
 				/* mark all messages from the blocked contact as being noticed (this is to remove the deaddrop popup) */
 				dc_marknoticed_contact(context, contact_id);
 
-			dc_sqlite3_commit__(context->m_sql);
-			transaction_pending = 0;
-
 			send_event = 1;
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	if( send_event ) {
 		context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, 0, 0);
 	}
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	dc_contact_unref(contact);
 }
@@ -4084,19 +4044,17 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 	dc_msg_t*      msg = dc_msg_new();
 	dc_chat_t*     chat = dc_chat_new(context);
 	dc_contact_t*  contact = dc_contact_new(context);
-	int           locked = 0, transaction_pending = 0;
-	carray*       created_db_entries = carray_new(16);
-	char*         idsstr = NULL, *q3 = NULL;
-	sqlite3_stmt* stmt = NULL;
-	time_t        curr_timestamp;
+	int            transaction_pending = 0;
+	carray*        created_db_entries = carray_new(16);
+	char*          idsstr = NULL, *q3 = NULL;
+	sqlite3_stmt*  stmt = NULL;
+	time_t         curr_timestamp;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt <= 0 || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
 		dc_unarchive_chat(context, chat_id);
@@ -4128,12 +4086,11 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	transaction_pending = 0;
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
 	if( created_db_entries ) {
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
@@ -4171,7 +4128,7 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
 	}
 
 	dc_sqlite3_lock(context->m_sql);
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 			"UPDATE msgs SET starred=? WHERE id=?;");
@@ -4184,7 +4141,7 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
 		}
 		sqlite3_finalize(stmt);
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	dc_sqlite3_unlock(context->m_sql);
 }
 
@@ -4212,8 +4169,7 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		for( i = 0; i < msg_cnt; i++ )
 		{
@@ -4221,8 +4177,7 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 }
 
 
@@ -4245,7 +4200,6 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
  */
 void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 {
-	int locked = 0;
 	int transaction_pending = 0;
 	int i = 0;
 	int send_event = 0;
@@ -4257,9 +4211,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
 		stmt = dc_sqlite3_prepare(context->m_sql,
@@ -4295,10 +4247,8 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 			}
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	transaction_pending = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	/* the event is needed eg. to remove the deaddrop from the chatlist */
 	if( send_event ) {
@@ -4306,8 +4256,7 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 	}
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
 	sqlite3_finalize(stmt);
 }
 
