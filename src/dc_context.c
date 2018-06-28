@@ -754,10 +754,10 @@ uint32_t dc_get_chat_id_by_contact_id(dc_context_t* context, uint32_t contact_id
 }
 
 
-uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int* ret_blocked, int* ret_verified)
+uint32_t dc_get_chat_id_by_grpid(dc_context_t* context, const char* grpid, int* ret_blocked, int* ret_verified)
 {
 	uint32_t      chat_id = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if(ret_blocked)  { *ret_blocked = 0;  }
 	if(ret_verified) { *ret_verified = 0; }
@@ -766,7 +766,7 @@ uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
@@ -776,6 +776,7 @@ uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int
 	}
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return chat_id;
 }
 
@@ -822,7 +823,7 @@ uint32_t dc_create_chat_by_contact_id(dc_context_t* context, uint32_t contact_id
 			goto cleanup;
         }
 
-		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_NOT_BLOCKED, &chat_id, NULL);
+		dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_NOT_BLOCKED, &chat_id, NULL);
 		if( chat_id ) {
 			send_event = 1;
 		}
@@ -1459,11 +1460,11 @@ void dc_lookup_real_nchat_by_contact_id(dc_context_t* context, uint32_t contact_
 }
 
 
-void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
+void dc_create_or_lookup_nchat_by_contact_id(dc_context_t* context, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	uint32_t      chat_id = 0;
 	int           chat_blocked = 0;
-	dc_contact_t*  contact = NULL;
+	dc_contact_t* contact = NULL;
 	char*         chat_name;
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;

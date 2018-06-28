@@ -768,7 +768,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	}
 
 	/* check, if we have a chat with this group ID */
-	if( (chat_id=dc_get_chat_id_by_grpid__(context, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
+	if( (chat_id=dc_get_chat_id_by_grpid(context, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
 		if( chat_id_verified
 		 && !check_verified_properties__(context, mime_parser, from_id, to_ids) ) {
 			chat_id          = 0; // force the creation of an unverified ad-hoc group.
@@ -1178,7 +1178,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 						chat_id_blocked = test_normal_chat_id_blocked;
 					}
 					else {
-						dc_create_or_lookup_nchat_by_contact_id__(context, from_id, create_blocked, &chat_id, &chat_id_blocked);
+						dc_create_or_lookup_nchat_by_contact_id(context, from_id, create_blocked, &chat_id, &chat_id_blocked);
 					}
 
 					if( chat_id && chat_id_blocked ) {
@@ -1228,7 +1228,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					if( chat_id == 0 )
 					{
 						int create_blocked = (mime_parser->m_is_send_by_messenger && !dc_is_contact_blocked(context, to_id))? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
-						dc_create_or_lookup_nchat_by_contact_id__(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
+						dc_create_or_lookup_nchat_by_contact_id(context, to_id, create_blocked, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked && !create_blocked ) {
 							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
@@ -1239,7 +1239,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				if( chat_id == 0 ) {
 					if( dc_array_get_cnt(to_ids) == 0 && to_self ) {
 						/* from_id == to_id == DC_CONTACT_ID_SELF - this is a self-sent messages, maybe an Autocrypt Setup Message */
-						dc_create_or_lookup_nchat_by_contact_id__(context, DC_CONTACT_ID_SELF, DC_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
+						dc_create_or_lookup_nchat_by_contact_id(context, DC_CONTACT_ID_SELF, DC_CHAT_NOT_BLOCKED, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
 							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;

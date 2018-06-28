@@ -124,7 +124,7 @@ void            dc_unarchive_chat                          (dc_context_t*, uint3
 size_t          dc_get_chat_cnt                            (dc_context_t*);
 void            dc_block_chat                              (dc_context_t*, uint32_t chat_id, int new_blocking);
 void            dc_unblock_chat                            (dc_context_t*, uint32_t chat_id);
-void            dc_create_or_lookup_nchat_by_contact_id__  (dc_context_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
+void            dc_create_or_lookup_nchat_by_contact_id    (dc_context_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
 void            dc_lookup_real_nchat_by_contact_id         (dc_context_t*, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked);
 uint32_t        dc_get_last_deaddrop_fresh_msg__           (dc_context_t*);
 int             dc_add_to_chat_contacts_table__            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
@@ -146,7 +146,7 @@ void            dc_suspend_smtp_thread                     (dc_context_t*, int s
 #define         DC_FROM_HANDSHAKE                          0x01
 int             dc_add_contact_to_chat_ex                  (dc_context_t*, uint32_t chat_id, uint32_t contact_id, int flags);
 
-uint32_t        dc_get_chat_id_by_grpid__                  (dc_context_t*, const char* grpid, int* ret_blocked, int* ret_verified);
+uint32_t        dc_get_chat_id_by_grpid                    (dc_context_t*, const char* grpid, int* ret_blocked, int* ret_verified);
 
 #define         DC_BAK_PREFIX                "delta-chat"
 #define         DC_BAK_SUFFIX                "bak"

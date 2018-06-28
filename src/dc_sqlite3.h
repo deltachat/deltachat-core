@@ -41,7 +41,6 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_id_FROM_CHATS_WHERE_grpid
 	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
 	,SELECT_param_FROM_msgs
 	,UPDATE_chats_SET_blocked_WHERE_chat_id

@@ -44,7 +44,6 @@
  */
 dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 {
-	int              locked        = 0;
 	char*            payload       = NULL;
 	char*            addr          = NULL; /* must be normalized, if set */
 	char*            fingerprint   = NULL; /* must be normalized, if set */
@@ -205,23 +204,17 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 		{
 			// _only_ fingerprint set ...
 			// (we could also do this before/instead of a secure-join, however, this may require complicated questions in the ui)
-			dc_sqlite3_lock(context->m_sql);
-			locked = 1;
+			if( dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
+				qr_parsed->m_state = DC_QR_FPR_OK;
+				qr_parsed->m_id    = dc_add_or_lookup_contact(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
 
-				if( dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
-					qr_parsed->m_state = DC_QR_FPR_OK;
-					qr_parsed->m_id    = dc_add_or_lookup_contact(context, NULL, peerstate->m_addr, DC_ORIGIN_UNHANDLED_QR_SCAN, NULL);
-
-					dc_create_or_lookup_nchat_by_contact_id__(context, qr_parsed->m_id, DC_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
-					device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
-				}
-				else {
-					qr_parsed->m_text1 = dc_format_fingerprint(fingerprint);
-					qr_parsed->m_state = DC_QR_FPR_WITHOUT_ADDR;
-				}
-
-			dc_sqlite3_unlock(context->m_sql);
-			locked = 0;
+				dc_create_or_lookup_nchat_by_contact_id(context, qr_parsed->m_id, DC_CHAT_DEADDROP_BLOCKED, &chat_id, NULL);
+				device_msg = dc_mprintf("%s verified.", peerstate->m_addr);
+			}
+			else {
+				qr_parsed->m_text1 = dc_format_fingerprint(fingerprint);
+				qr_parsed->m_state = DC_QR_FPR_WITHOUT_ADDR;
+			}
 		}
 		else
 		{
@@ -264,7 +257,6 @@ dc_lot_t* dc_check_qr(dc_context_t* context, const char* qr)
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(addr);
 	free(fingerprint);
 	dc_apeerstate_unref(peerstate);

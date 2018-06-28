@@ -43,7 +43,6 @@
 void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 {
 	sqlite3_stmt* stmt            = NULL;
-	int           locked          = 0;
 	uint32_t      contact_id      = 0;
 	uint32_t      contact_chat_id = 0;
 
@@ -59,21 +58,17 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 
 	if( peerstate->m_degrade_event & DC_DE_FINGERPRINT_CHANGED )
 	{
-		LOCK
+		stmt = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM contacts WHERE addr=?;");
+			sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
+			sqlite3_step(stmt);
+			contact_id = sqlite3_column_int(stmt, 0);
+		sqlite3_finalize(stmt);
 
-			stmt = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM contacts WHERE addr=?;");
-				sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
-				sqlite3_step(stmt);
-				contact_id = sqlite3_column_int(stmt, 0);
-			sqlite3_finalize(stmt);
+		if( contact_id == 0 ) {
+			goto cleanup;
+		}
 
-			if( contact_id == 0 ) {
-				goto cleanup;
-			}
-
-			dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
-
-		UNLOCK
+		dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
 
 		char* msg = dc_mprintf("Changed setup for %s", peerstate->m_addr);
 		dc_add_device_msg(context, contact_chat_id, msg);
@@ -82,7 +77,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 	}
 
 cleanup:
-	UNLOCK
+	;
 }
 
 
@@ -524,9 +519,7 @@ cleanup:
 
 	if( s_bobs_status == BOB_SUCCESS ) {
 		if( join_vg ) {
-			dc_sqlite3_lock(context->m_sql);
-				ret_chat_id = dc_get_chat_id_by_grpid__(context, qr_scan->m_text2, NULL, NULL);
-			dc_sqlite3_unlock(context->m_sql);
+			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->m_text2, NULL, NULL);
 		}
 		else {
 			ret_chat_id = contact_chat_id;
@@ -567,12 +560,10 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 	dc_log_info(context, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
-	LOCK
-		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
-		if( contact_chat_id_blocked ) {
-			dc_unblock_chat(context, contact_chat_id);
-		}
-	UNLOCK
+	dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
+	if( contact_chat_id_blocked ) {
+		dc_unblock_chat(context, contact_chat_id);
+	}
 
 	ret = DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
 
@@ -716,9 +707,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
 			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
-			LOCK
-				uint32_t verified_chat_id = dc_get_chat_id_by_grpid__(context, grpid, NULL, &is_verified);
-			UNLOCK
+			uint32_t verified_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified);
 			if( verified_chat_id == 0 || !is_verified ) {
 				dc_log_error(context, 0, "Verified chat not found.");
 				goto cleanup;
