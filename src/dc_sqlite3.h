@@ -34,13 +34,6 @@ extern "C" {
 #include <pthread.h>
 
 
-/* predefined statements */
-enum
-{
-	PREDEFINED_CNT /* must be last */
-};
-
-
 /**
  * Library-internal.
  *
@@ -52,7 +45,6 @@ enum
 typedef struct dc_sqlite3_t
 {
 	/** @privatesection */
-	sqlite3_stmt*   m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
 	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
 	pthread_mutex_t m_critical_;          /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
@@ -76,14 +68,10 @@ char*         dc_sqlite3_get_config       (dc_sqlite3_t*, const char* key, const
 int32_t       dc_sqlite3_get_config_int   (dc_sqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
-sqlite3_stmt* dc_sqlite3_predefine__      (dc_sqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
 sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
 int           dc_sqlite3_execute          (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
-
-/* reset all predefined statements, this is needed only in very rare cases, eg. when dropping a table and there are pending statements */
-void          dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t*);
 
 /* tools for locking, may be called nested, see also m_critical_ above.
 the user of dc_sqlite3 must make sure that the dc_sqlite3-object is only used by one thread at the same time.

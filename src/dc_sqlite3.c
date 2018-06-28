@@ -123,17 +123,12 @@ cleanup:
 dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 {
 	dc_sqlite3_t* sql = NULL;
-	int          i;
 
 	if( (sql=calloc(1, sizeof(dc_sqlite3_t)))==NULL ) {
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	sql->m_context          = context;
-
-	for( i = 0; i < PREDEFINED_CNT; i++ ) {
-		sql->m_pd[i] = NULL;
-	}
 
 	pthread_mutex_init(&sql->m_critical_, NULL);
 
@@ -481,21 +476,12 @@ cleanup:
 
 void dc_sqlite3_close__(dc_sqlite3_t* sql)
 {
-	int i;
-
 	if( sql == NULL ) {
 		return;
 	}
 
 	if( sql->m_cobj )
 	{
-		for( i = 0; i < PREDEFINED_CNT; i++ ) {
-			if( sql->m_pd[i] ) {
-				sqlite3_finalize(sql->m_pd[i]);
-				sql->m_pd[i] = NULL;
-			}
-		}
-
 		sqlite3_close(sql->m_cobj);
 		sql->m_cobj = NULL;
 	}
@@ -510,51 +496,6 @@ int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 		return 0;
 	}
 	return 1;
-}
-
-
-sqlite3_stmt* dc_sqlite3_predefine__(dc_sqlite3_t* sql, size_t idx, const char* querystr)
-{
-	/* Predefines a statement or resets and reuses a statement.
-
-	The same idx MUST NOT be used at the same time from different threads and
-	you MUST NOT call this function with different strings for the same index. */
-
-	if( sql == NULL || sql->m_cobj == NULL || idx >= PREDEFINED_CNT ) {
-		return NULL;
-	}
-
-	if( sql->m_pd[idx] ) {
-		sqlite3_reset(sql->m_pd[idx]);
-		return sql->m_pd[idx]; /* fine, already prepared before */
-	}
-
-	/*prepare for the first time - this requires the querystring*/
-	if( querystr == NULL ) {
-		return NULL;
-	}
-
-	if( sqlite3_prepare_v2(sql->m_cobj,
-	         querystr, -1 /*read `querystr` up to the first null-byte*/,
-	         &sql->m_pd[idx],
-	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
-	{
-		dc_sqlite3_log_error(sql, "Preparing statement \"%s\" failed.", querystr);
-		return NULL;
-	}
-
-	return sql->m_pd[idx];
-}
-
-
-void dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t* sql)
-{
-	int i;
-	for( i = 0; i < PREDEFINED_CNT; i++ ) {
-		if( sql->m_pd[i] ) {
-			sqlite3_reset(sql->m_pd[i]);
-		}
-	}
 }
 
 

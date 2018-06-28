@@ -1093,7 +1093,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	/* finalize/reset all statements - otherwise the table cannot be DROPped below */
 	sqlite3_finalize(stmt);
 	stmt = 0;
-	dc_sqlite3_reset_all_predefinitions(context->m_sql);
 
 	dc_sqlite3_execute(context->m_sql, "DROP TABLE backup_blobs;");
 	dc_sqlite3_execute(context->m_sql, "VACUUM;");
