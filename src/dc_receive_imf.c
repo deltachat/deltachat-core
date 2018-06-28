@@ -568,7 +568,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 	chat_id = create_group_record(context, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
 	for( i = 0; i < dc_array_get_cnt(member_ids); i++ ) {
-		dc_add_to_chat_contacts_table__(context, chat_id, dc_array_get_id(member_ids, i));
+		dc_add_to_chat_contacts_table(context, chat_id, dc_array_get_id(member_ids, i));
 	}
 
 	context->m_cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
@@ -887,13 +887,13 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 		sqlite3_finalize(stmt);
 
 		if( skip==NULL || strcasecmp(self_addr, skip) != 0 ) {
-			dc_add_to_chat_contacts_table__(context, chat_id, DC_CONTACT_ID_SELF);
+			dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF);
 		}
 
 		if( from_id > DC_CONTACT_ID_LAST_SPECIAL ) {
 			if( dc_contact_addr_equals(context, from_id, self_addr)==0
 			 && (skip==NULL || dc_contact_addr_equals(context, from_id, skip)==0) ) {
-				dc_add_to_chat_contacts_table__(context, chat_id, from_id);
+				dc_add_to_chat_contacts_table(context, chat_id, from_id);
 			}
 		}
 
@@ -902,7 +902,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 			uint32_t to_id = dc_array_get_id(to_ids, i); /* to_id is only once in to_ids and is non-special */
 			if( dc_contact_addr_equals(context, to_id, self_addr)==0
 			 && (skip==NULL || dc_contact_addr_equals(context, to_id, skip)==0) ) {
-				dc_add_to_chat_contacts_table__(context, chat_id, to_id);
+				dc_add_to_chat_contacts_table(context, chat_id, to_id);
 			}
 		}
 		send_EVENT_CHAT_MODIFIED = 1;

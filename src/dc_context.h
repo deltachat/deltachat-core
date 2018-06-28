@@ -117,7 +117,7 @@ size_t          dc_get_real_contact_cnt                    (dc_context_t*);
 uint32_t        dc_add_or_lookup_contact                   (dc_context_t*, const char* display_name /*can be NULL*/, const char* addr_spec, int origin, int* sth_modified);
 int             dc_get_contact_origin                      (dc_context_t*, uint32_t id, int* ret_blocked);
 int             dc_is_contact_blocked                      (dc_context_t*, uint32_t id);
-int             dc_real_contact_exists__                   (dc_context_t*, uint32_t id);
+int             dc_real_contact_exists                     (dc_context_t*, uint32_t id);
 int             dc_contact_addr_equals                     (dc_context_t*, uint32_t contact_id, const char* other_addr);
 void            dc_scaleup_contact_origin                  (dc_context_t*, uint32_t contact_id, int origin);
 void            dc_unarchive_chat                          (dc_context_t*, uint32_t chat_id);
@@ -127,7 +127,7 @@ void            dc_unblock_chat                            (dc_context_t*, uint3
 void            dc_create_or_lookup_nchat_by_contact_id    (dc_context_t*, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked);
 void            dc_lookup_real_nchat_by_contact_id         (dc_context_t*, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked);
 uint32_t        dc_get_last_deaddrop_fresh_msg             (dc_context_t*);
-int             dc_add_to_chat_contacts_table__            (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
+int             dc_add_to_chat_contacts_table              (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
 int             dc_is_contact_in_chat                      (dc_context_t*, uint32_t chat_id, uint32_t contact_id);
 int             dc_get_chat_contact_count                  (dc_context_t*, uint32_t chat_id);
 int             dc_is_group_explicitly_left                (dc_context_t*, const char* grpid);
