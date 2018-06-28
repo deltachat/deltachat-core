@@ -24,20 +24,27 @@
 #include "dc_apeerstate.h"
 
 
-/* This class wraps around SQLite.  Some hints to the underlying database:
+/* This class wraps around SQLite.
 
-- `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
-  files, caching is not that important; we rely on the system defaults here
-  (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
-  versions)
+We use a single handle for the database connections, mainly because
+we do not know from which threads the UI calls the dc_*() functions.
 
-- We use `sqlite3_last_insert_rowid()` to find out created records - for this
-  purpose, the primary ID has to be marked using `INTEGER PRIMARY KEY`, see
-  https://www.sqlite.org/c3ref/last_insert_rowid.html
+As the open the Database in serialized mode explicitly, in general, this is
+safe. However, there are some points to keep in mind:
 
-- Some words to the "param" fields:  These fields contains a string with
-  additonal, named parameters which must not be accessed by a search and/or
-  are very seldomly used. Moreover, this allows smart minor database updates. */
+1. Reading can be done at the same time from several threads, howver, only
+   one thread can write.  If a seconds thread tries to write, this thread
+   is halted until the first has finished writing, at most the timespan set
+   by sqlite3_busy_timeout().
+
+2. Transactions are possible using `BEGIN IMMEDIATE` (this causes the first
+   thread trying to write to block the others as described in 1.
+   Transaction cannot be nested, we recommend to use them only in the
+   top-level functions or not to use them.
+
+3. Using sqlite3_last_insert_rowid() causes race conditions.  If you need
+   this function, you have to wrap *all* INSERTs by a critical section.
+   We recommend not to use this function. */
 
 
 /*******************************************************************************
@@ -171,6 +178,11 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// So, most of the explicit lock/unlocks on dc_sqlite3_t object are no longer needed.
 	// However, locking is _also_ used for dc_context_t which _is_ still needed, so, we
 	// should remove locks only if we're really sure.
+	//
+	// `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
+	// files, caching is not that important; we rely on the system defaults here
+	// (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
+	// versions)
 	if( sqlite3_open_v2(dbfile, &sql->m_cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
 			NULL) != SQLITE_OK ) {
@@ -194,6 +206,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		{
 			dc_log_info(sql->m_context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
+			// the row with the type `INTEGER PRIMARY KEY` is an alias to the 64-bit-ROWID present in every table
+			// we re-use this ID for our own purposes.
+			// (the last inserted ROWID can be accessed using sqlite3_last_insert_rowid(), which, however, is
+			// not recommended as not thread-safe, see above)
 			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
 
