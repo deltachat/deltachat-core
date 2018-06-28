@@ -127,10 +127,11 @@ static void dc_add_or_lookup_contacts_by_address_list__(dc_context_t* context, c
  ******************************************************************************/
 
 
-static int is_known_rfc724_mid__(dc_context_t* context, const char* rfc724_mid)
+static int is_known_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
 {
+	int is_known = 0;
 	if( rfc724_mid ) {
-		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_msgs_WHERE_cm,
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT m.id FROM msgs m "
 			" LEFT JOIN chats c ON m.chat_id=c.id "
 			" WHERE m.rfc724_mid=? "
@@ -138,19 +139,20 @@ static int is_known_rfc724_mid__(dc_context_t* context, const char* rfc724_mid)
 			" AND c.blocked=0;");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
-			return 1;
+			is_known = 1;
 		}
+		sqlite3_finalize(stmt);
 	}
-	return 0;
+	return is_known;
 }
 
 
-static int is_known_rfc724_mid_in_list__(dc_context_t* context, const clist* mid_list)
+static int is_known_rfc724_mid_in_list(dc_context_t* context, const clist* mid_list)
 {
 	if( mid_list ) {
 		clistiter* cur;
 		for( cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur) ) {
-			if( is_known_rfc724_mid__(context, clist_content(cur)) ) {
+			if( is_known_rfc724_mid(context, clist_content(cur)) ) {
 				return 1;
 			}
 		}
@@ -160,7 +162,7 @@ static int is_known_rfc724_mid_in_list__(dc_context_t* context, const clist* mid
 }
 
 
-static int dc_is_reply_to_known_message__(dc_context_t* context, dc_mimeparser_t* mime_parser)
+static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* mime_parser)
 {
 	/* check if the message is a reply to a known message; the replies are identified by the Message-ID from
 	`In-Reply-To`/`References:` (to support non-Delta-Clients) or from `Chat-Predecessor:` (Delta clients, see comment in dc_chat.c) */
@@ -168,7 +170,7 @@ static int dc_is_reply_to_known_message__(dc_context_t* context, dc_mimeparser_t
 	struct mailimf_optional_field* optional_field;
 	if( (optional_field=dc_mimeparser_lookup_optional_field2(mime_parser, "Chat-Predecessor", "X-MrPredecessor")) != NULL )
 	{
-		if( is_known_rfc724_mid__(context, optional_field->fld_value) ) {
+		if( is_known_rfc724_mid(context, optional_field->fld_value) ) {
 			return 1;
 		}
 	}
@@ -179,7 +181,7 @@ static int dc_is_reply_to_known_message__(dc_context_t* context, dc_mimeparser_t
 	{
 		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
 		if( fld_in_reply_to ) {
-			if( is_known_rfc724_mid_in_list__(context, field->fld_data.fld_in_reply_to->mid_list) ) {
+			if( is_known_rfc724_mid_in_list(context, field->fld_data.fld_in_reply_to->mid_list) ) {
 				return 1;
 			}
 		}
@@ -190,7 +192,7 @@ static int dc_is_reply_to_known_message__(dc_context_t* context, dc_mimeparser_t
 	{
 		struct mailimf_references* fld_references = field->fld_data.fld_references;
 		if( fld_references ) {
-			if( is_known_rfc724_mid_in_list__(context, field->fld_data.fld_references->mid_list) ) {
+			if( is_known_rfc724_mid_in_list(context, field->fld_data.fld_references->mid_list) ) {
 				return 1;
 			}
 		}
@@ -207,18 +209,20 @@ static int dc_is_reply_to_known_message__(dc_context_t* context, dc_mimeparser_t
 
 static int is_msgrmsg_rfc724_mid__(dc_context_t* context, const char* rfc724_mid)
 {
+	int is_msgrmsg = 0;
 	if( rfc724_mid ) {
-		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_msgs_WHERE_mcm,
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT id FROM msgs "
 			" WHERE rfc724_mid=? "
 			" AND msgrmsg!=0 "
 			" AND chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
 		sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 		if( sqlite3_step(stmt) == SQLITE_ROW ) {
-			return 1;
+			is_msgrmsg = 1;
 		}
+		sqlite3_finalize(stmt);
 	}
-	return 0;
+	return is_msgrmsg;
 }
 
 
@@ -471,7 +475,7 @@ static char* create_adhoc_grp_id__(dc_context_t* context, dc_array_t* member_ids
 }
 
 
-static uint32_t create_group_record__(dc_context_t* context, const char* grpid, const char* grpname, int create_blocked, int create_verified)
+static uint32_t create_group_record(dc_context_t* context, const char* grpid, const char* grpname, int create_blocked, int create_verified)
 {
 	uint32_t      chat_id = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -561,7 +565,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 	}
 
 	/* create group record */
-	chat_id = create_group_record__(context, grpid, grpname, create_blocked, 0);
+	chat_id = create_group_record(context, grpid, grpname, create_blocked, 0);
 	chat_id_blocked = create_blocked;
 	for( i = 0; i < dc_array_get_cnt(member_ids); i++ ) {
 		dc_add_to_chat_contacts_table__(context, chat_id, dc_array_get_id(member_ids, i));
@@ -806,7 +810,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 			}
 		}
 
-		chat_id = create_group_record__(context, grpid, grpname, create_blocked, create_verified);
+		chat_id = create_group_record(context, grpid, grpname, create_blocked, create_verified);
 		chat_id_blocked  = create_blocked;
 		chat_id_verified = create_verified;
 		recreate_member_list = 1;
@@ -1184,7 +1188,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
 						}
-						else if( dc_is_reply_to_known_message__(context, mime_parser) ) {
+						else if( dc_is_reply_to_known_message(context, mime_parser) ) {
 							dc_scaleup_contact_origin(context, from_id, DC_ORIGIN_INCOMING_REPLY_TO); /* we do not want any chat to be created implicitly.  Because of the origin-scale-up, the contact requests will pop up and this should be just fine. */
 							dc_log_info(context, 0, "Message is a reply to a known message, mark sender as known.");
 							incoming_origin = DC_MAX(incoming_origin, DC_ORIGIN_INCOMING_REPLY_TO);

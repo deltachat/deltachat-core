@@ -339,7 +339,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	{
 		/* show normal chatlist  */
 		if( !(listflags & DC_GCL_NO_SPECIALS) ) {
-			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg__(chatlist->m_context);
+			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg(chatlist->m_context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
 				dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
 				dc_array_add_id(chatlist->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
