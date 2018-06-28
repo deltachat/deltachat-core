@@ -278,11 +278,8 @@ static int dc_is_reply_to_messenger_message__(dc_context_t* context, dc_mimepars
  ******************************************************************************/
 
 
-
-
-
-static void dc_calc_timestamps__(dc_context_t* context, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
-                                        time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
+static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t from_id, time_t message_timestamp, int is_fresh_msg,
+                               time_t* sort_timestamp, time_t* sent_timestamp, time_t* rcvd_timestamp)
 {
 	*rcvd_timestamp = time(NULL);
 
@@ -298,7 +295,7 @@ static void dc_calc_timestamps__(dc_context_t* context, uint32_t chat_id, uint32
 	(we do this check only for fresh messages, other messages may pop up whereever, this may happen eg. when restoring old messages or synchronizing different clients) */
 	if( is_fresh_msg )
 	{
-		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_timestamp_FROM_msgs_WHERE_timestamp,
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT MAX(timestamp) FROM msgs WHERE chat_id=? and from_id!=? AND timestamp>=?");
 		sqlite3_bind_int  (stmt,  1, chat_id);
 		sqlite3_bind_int  (stmt,  2, from_id);
@@ -314,6 +311,7 @@ static void dc_calc_timestamps__(dc_context_t* context, uint32_t chat_id, uint32
 				}
 			}
 		}
+		sqlite3_finalize(stmt);
 	}
 
 	/* use the (smeared) current time as the MAXIMUM */
@@ -1254,7 +1252,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 			/* correct message_timestamp, it should not be used before,
 			however, we cannot do this earlier as we need from_id to be set */
-			dc_calc_timestamps__(context, chat_id, from_id, sent_timestamp, (flags&DC_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
+			calc_timestamps(context, chat_id, from_id, sent_timestamp, (flags&DC_IMAP_SEEN)? 0 : 1 /*fresh message?*/,
 				&sort_timestamp, &sent_timestamp, &rcvd_timestamp);
 
 			/* unarchive chat */

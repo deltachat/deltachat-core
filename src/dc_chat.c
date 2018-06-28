@@ -215,7 +215,6 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 {
 	/* returns either the address or the number of chat members */
 	char*         ret = NULL;
-	sqlite3_stmt* stmt = NULL;
 
 	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
 		return dc_strdup("Err");
@@ -228,20 +227,18 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	else if( chat->m_type == DC_CHAT_TYPE_SINGLE )
 	{
 		int r;
-		dc_sqlite3_lock(chat->m_context->m_sql);
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->m_context->m_sql,
+			"SELECT c.addr FROM chats_contacts cc "
+			" LEFT JOIN contacts c ON c.id=cc.contact_id "
+			" WHERE cc.chat_id=?;");
+		sqlite3_bind_int(stmt, 1, chat->m_id);
 
-			stmt = dc_sqlite3_predefine__(chat->m_context->m_sql, SELECT_a_FROM_chats_contacts_WHERE_i,
-				"SELECT c.addr FROM chats_contacts cc "
-					" LEFT JOIN contacts c ON c.id=cc.contact_id "
-					" WHERE cc.chat_id=?;");
-			sqlite3_bind_int(stmt, 1, chat->m_id);
+		r = sqlite3_step(stmt);
+		if( r == SQLITE_ROW ) {
+			ret = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
+		}
 
-			r = sqlite3_step(stmt);
-			if( r == SQLITE_ROW ) {
-				ret = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
-			}
-
-		dc_sqlite3_unlock(chat->m_context->m_sql);
+		sqlite3_finalize(stmt);
 	}
 	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
@@ -393,44 +390,6 @@ int dc_chat_is_verified(dc_chat_t* chat)
 		return 0;
 	}
 	return (chat->m_type==DC_CHAT_TYPE_VERIFIED_GROUP);
-}
-
-
-int dc_chat_are_all_members_verified__(dc_chat_t* chat)
-{
-	int           chat_verified = 0;
-	sqlite3_stmt* stmt = NULL;
-
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
-		goto cleanup;
-	}
-
-	if( chat->m_id == DC_CHAT_ID_DEADDROP || chat->m_id == DC_CHAT_ID_STARRED ) {
-		goto cleanup; // deaddrop & co. are never verified
-	}
-
-	stmt = dc_sqlite3_predefine__(chat->m_context->m_sql, SELECT_verified_FROM_chats_contacts_WHERE_chat_id,
-		"SELECT c.id, LENGTH(ps.verified_key_fingerprint) "
-		" FROM chats_contacts cc"
-		" LEFT JOIN contacts c ON c.id=cc.contact_id"
-		" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
-		" WHERE cc.chat_id=?;");
-	sqlite3_bind_int(stmt, 1, chat->m_id);
-	while( sqlite3_step(stmt) == SQLITE_ROW )
-	{
-		uint32_t contact_id          = sqlite3_column_int(stmt, 0);
-		int      has_verified_key    = sqlite3_column_int(stmt, 1);
-		if( contact_id != DC_CONTACT_ID_SELF
-		 && !has_verified_key )
-		{
-			goto cleanup; // a single unverified contact results in an unverified chat
-		}
-	}
-
-	chat_verified = 1;
-
-cleanup:
-	return chat_verified;
 }
 
 

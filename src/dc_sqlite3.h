@@ -41,15 +41,6 @@ enum
 	,ROLLBACK_transaction
 	,COMMIT_transaction
 
-	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
-	,SELECT_param_FROM_msgs
-	,UPDATE_chats_SET_blocked_WHERE_chat_id
-
-	,SELECT_a_FROM_chats_contacts_WHERE_i
-	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
-	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
-	,INSERT_INTO_chats_contacts
-
 	,SELECT_i_FROM_msgs_WHERE_ctt
 	,SELECT_id_FROM_msgs_WHERE_cm
 	,SELECT_id_FROM_msgs_WHERE_mcm

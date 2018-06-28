@@ -53,7 +53,6 @@ struct _dc_chat
 
 int             dc_chat_load_from_db               (dc_chat_t*, uint32_t id);
 int             dc_chat_update_param               (dc_chat_t*);
-int             dc_chat_are_all_members_verified__ (dc_chat_t*);
 
 
 #define         DC_CHAT_TYPE_IS_MULTI(a)   ((a)==DC_CHAT_TYPE_GROUP || (a)==DC_CHAT_TYPE_VERIFIED_GROUP)

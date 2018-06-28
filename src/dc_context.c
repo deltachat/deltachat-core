@@ -1040,9 +1040,8 @@ dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
-	int           locked = 0;
 	dc_array_t*   ret = dc_array_new(context, 100);
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -1052,22 +1051,18 @@ dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 		goto cleanup; /* we could also create a list for all contacts in the deaddrop by searching contacts belonging to chats with chats.blocked=2, however, currently this is not needed */
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY,
-			"SELECT cc.contact_id FROM chats_contacts cc"
-				" LEFT JOIN contacts c ON c.id=cc.contact_id"
-				" WHERE cc.chat_id=?"
-				" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
-		sqlite3_bind_int(stmt, 1, chat_id);
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT cc.contact_id FROM chats_contacts cc"
+			" LEFT JOIN contacts c ON c.id=cc.contact_id"
+			" WHERE cc.chat_id=?"
+			" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -1757,7 +1752,7 @@ cleanup:
 static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 {
 	int last_is_encrypted = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(sql, SELECT_param_FROM_msgs,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql,
 		"SELECT param "
 		" FROM msgs "
 		" WHERE timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=?) "
@@ -1771,6 +1766,7 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 		}
 		dc_param_unref(msg_param);
 	}
+	sqlite3_finalize(stmt);
 	return last_is_encrypted;
 }
 
@@ -2427,11 +2423,14 @@ static int dc_real_group_exists(dc_context_t* context, uint32_t chat_id)
 int dc_add_to_chat_contacts_table__(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
 {
 	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_chats_contacts,
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO chats_contacts (chat_id, contact_id) VALUES(?, ?)");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, contact_id);
-	return (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
+	ret = (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
