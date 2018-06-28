@@ -100,7 +100,6 @@
  */
 char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 {
-	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
 	char*                  self_addr = NULL;
 	dc_key_t*              curr_private_key = dc_key_new();
@@ -134,9 +133,6 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	}
 
 	{
-		dc_sqlite3_lock(context->m_sql);
-		locked = 1;
-
 			self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
 			dc_key_load_self_private(curr_private_key, self_addr, context->m_sql);
 
@@ -144,9 +140,6 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 			if( payload_key_asc == NULL ) {
 				goto cleanup;
 			}
-
-		dc_sqlite3_unlock(context->m_sql);
-		locked = 0;
 
 		//printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",key_asc); // DEBUG OUTPUT
 
@@ -275,7 +268,6 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 cleanup:
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	if( payload_output ) { pgp_output_delete(payload_output); }
 	if( payload_mem ) { pgp_memory_free(payload_mem); }
@@ -711,10 +703,6 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 	int           id = 0, is_default = 0;
 	dc_key_t*      public_key = dc_key_new();
 	dc_key_t*      private_key = dc_key_new();
-	int           locked = 0;
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( (stmt=dc_sqlite3_prepare(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 			goto cleanup;
@@ -732,7 +720,6 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 		success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	dc_key_unref(public_key);
 	dc_key_unref(private_key);

@@ -939,7 +939,6 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 {
 	uint32_t    ret_msg_id = 0;
 	dc_msg_t*   msg = dc_msg_new();
-	int         locked = 0;
 	dc_array_t* list = NULL;
 	int         i, cnt;
 
@@ -947,19 +946,13 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_msg_load_from_db(msg, context, curr_msg_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db(msg, context, curr_msg_id) ) {
-			goto cleanup;
-		}
-
-		if( (list=dc_get_chat_media(context, msg->m_chat_id, msg->m_type, 0))==NULL ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( (list=dc_get_chat_media(context, msg->m_chat_id, msg->m_type, 0))==NULL ) {
+		goto cleanup;
+	}
 
 	cnt = dc_array_get_cnt(list);
 	for( i = 0; i < cnt; i++ ) {
@@ -983,7 +976,6 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_array_unref(list);
 	dc_msg_unref(msg);
 	return ret_msg_id;
@@ -2638,7 +2630,7 @@ cleanup:
 
 int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t contact_id, int flags)
 {
-	int              success   = 0, locked = 0;
+	int              success   = 0;
 	dc_contact_t*    contact   = dc_get_contact(context, contact_id);
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	dc_chat_t*       chat      = dc_chat_new(context);
@@ -2648,9 +2640,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || contact == NULL || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( 0==dc_real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
 		 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
@@ -2698,9 +2687,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			}
 		}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
-
 	/* send a status mail to all group members */
 	if( DO_SEND_STATUS_MAILS )
 	{
@@ -2717,7 +2703,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_chat_unref(chat);
 	dc_contact_unref(contact);
 	dc_apeerstate_unref(peerstate);
@@ -3786,25 +3771,19 @@ void dc_update_server_uid(dc_context_t* context, const char* rfc724_mid, const c
 dc_msg_t* dc_get_msg(dc_context_t* context, uint32_t msg_id)
 {
 	int success = 0;
-	int db_locked = 0;
 	dc_msg_t* obj = dc_msg_new();
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
+	if( !dc_msg_load_from_db(obj, context, msg_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db(obj, context, msg_id) ) {
-			goto cleanup;
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	if( success ) {
 		return obj;
 	}
@@ -4107,7 +4086,6 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
 	dc_sqlite3_begin_transaction(context->m_sql);
 
 		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
@@ -4122,7 +4100,6 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
 		sqlite3_finalize(stmt);
 
 	dc_sqlite3_commit(context->m_sql);
-	dc_sqlite3_unlock(context->m_sql);
 }
 
 

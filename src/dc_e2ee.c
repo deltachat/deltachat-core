@@ -235,8 +235,6 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 
 			dc_log_info(context, 0, "Generating keypair ...");
 
-			dc_sqlite3_unlock(context->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
-
 				/* The public key must contain the following:
 				- a signing-capable primary key Kp
 				- a user id
@@ -245,8 +243,6 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 				- a binding signature over Ke by Kp
 				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
 				key_created = dc_pgp_create_keypair(context, self_addr, public_key, private_key);
-
-			dc_sqlite3_lock(context->m_sql);
 
 			if( !key_created ) {
 				dc_log_warning(context, 0, "Cannot create keypair.");
@@ -282,16 +278,13 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 {
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
-	int      success = 0, locked = 0;
+	int      success = 0;
 	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
 			dc_log_warning(context, 0, "Cannot ensure secret key if context is not configured.");
@@ -305,7 +298,6 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 		success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_key_unref(public_key);
 	free(self_addr);
 	return success;
@@ -340,9 +332,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		/* init autocrypt header from db */
 		autocryptheader->m_prefer_encrypt = DC_PE_NOPREFERENCE;
@@ -398,9 +387,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		if( force_unencrypted ) {
 			do_encrypt = 0;
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
 		goto cleanup;

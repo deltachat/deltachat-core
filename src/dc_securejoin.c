@@ -334,7 +334,6 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	   ====   Step 1 in "Setup verified contact" protocol   ====
 	   ========================================================= */
 
-	int       locked               = 0;
 	char*     qr                   = NULL;
 	char*     self_addr            = NULL;
 	char*     self_addr_urlencoded = NULL;
@@ -352,9 +351,6 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	}
 
 	dc_ensure_secret_key_exists(context);
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
 		invitenumber = dc_token_lookup__(context, DC_TOKEN_INVITENUMBER, group_chat_id);
@@ -375,9 +371,6 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 		}
 
 		self_name = dc_sqlite3_get_config(context->m_sql, "displayname", "");
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	if( (fingerprint=get_self_fingerprint(context)) == NULL ) {
 		goto cleanup;
@@ -405,7 +398,6 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(self_addr_urlencoded);
 	free(self_addr);
 	free(self_name);
@@ -586,12 +578,10 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		LOCK
-			if( dc_token_exists__(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
-				dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
-				goto cleanup;
-			}
-		UNLOCK
+		if( dc_token_exists__(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
+			dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
+			goto cleanup;
+		}
 
 		dc_log_info(context, 0, "Secure-join requested.");
 
@@ -678,23 +668,17 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		LOCK
-			if( dc_token_exists__(context, DC_TOKEN_AUTH, auth) == 0 ) {
-				dc_sqlite3_unlock(context->m_sql);
-				locked = 0;
-				could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
-				goto cleanup;
-			}
+		if( dc_token_exists__(context, DC_TOKEN_AUTH, auth) == 0 ) {
+			could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
+			goto cleanup;
+		}
 
-			if( !mark_peer_as_verified(context, fingerprint) ) {
-				dc_sqlite3_unlock(context->m_sql);
-				locked = 0;
-				could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
-				goto cleanup;
-			}
+		if( !mark_peer_as_verified(context, fingerprint) ) {
+			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
+			goto cleanup;
+		}
 
-			dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
-		UNLOCK
+		dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_INVITED);
 
 		dc_log_info(context, 0, "Auth verified.");
 

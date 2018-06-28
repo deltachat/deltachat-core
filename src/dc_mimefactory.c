@@ -103,7 +103,7 @@ static void load_from__(dc_mimefactory_t* factory)
 
 int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 {
-	int           success = 0, locked = 0;
+	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
 	if( factory == NULL || msg_id <= DC_MSG_ID_LAST_SPECIAL
@@ -118,9 +118,6 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 	factory->m_recipients_addr  = clist_new();
 	factory->m_msg              = dc_msg_new();
 	factory->m_chat             = dc_chat_new(context);
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( dc_msg_load_from_db(factory->m_msg, context, msg_id)
 		 && dc_chat_load_from_db(factory->m_chat, factory->m_msg->m_chat_id) )
@@ -238,11 +235,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 			factory->m_increation = dc_msg_is_increation(factory->m_msg);
 		}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
-
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	return success;
 }
@@ -250,7 +243,7 @@ cleanup:
 
 int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 {
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_contact_t*  contact = dc_contact_new(factory->m_context);
 
 	if( factory == NULL ) {
@@ -262,9 +255,6 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 	factory->m_recipients_names = clist_new();
 	factory->m_recipients_addr  = clist_new();
 	factory->m_msg              = dc_msg_new();
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( !dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED) ) {
 			goto cleanup; /* MDNs not enabled - check this is late, in the job. the use may have changed its choice while offline ... */
@@ -292,14 +282,10 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		factory->m_timestamp = dc_create_smeared_timestamp__();
 		factory->m_rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, factory->m_from_addr);
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
-
 	success = 1;
 	factory->m_loaded = DC_MF_MDN_LOADED;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	return success;
 }
 

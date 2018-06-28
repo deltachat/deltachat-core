@@ -964,7 +964,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	time_t           sent_timestamp = DC_INVALID_TIMESTAMP;
 	time_t           rcvd_timestamp = DC_INVALID_TIMESTAMP;
 	dc_mimeparser_t* mime_parser = dc_mimeparser_new(context->m_blobdir, context);
-	int              db_locked = 0;
 	int              transaction_pending = 0;
 	const struct mailimf_field* field;
 
@@ -1018,8 +1017,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 		}
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
 	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
@@ -1134,12 +1131,10 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				assert( chat_id == 0 );
 				if( dc_mimeparser_lookup_field(mime_parser, "Secure-Join") ) {
 					dc_sqlite3_commit(context->m_sql);
-					dc_sqlite3_unlock(context->m_sql);
 						if( dc_handle_securejoin_handshake(context, mime_parser, from_id) == DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
 							hidden = 1;
 							state = DC_STATE_IN_SEEN;
 						}
-					dc_sqlite3_lock(context->m_sql);
 					dc_sqlite3_begin_transaction(context->m_sql);
 				}
 
@@ -1473,7 +1468,6 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 cleanup:
 	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	dc_mimeparser_unref(mime_parser);
 	free(rfc724_mid);

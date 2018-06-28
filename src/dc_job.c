@@ -305,9 +305,7 @@ static void mark_as_error(dc_context_t* context, dc_msg_t* msg)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		dc_update_msg_state(context, msg->m_id, DC_STATE_OUT_ERROR);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_update_msg_state(context, msg->m_id, DC_STATE_OUT_ERROR);
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, msg->m_chat_id, 0);
 }
 
