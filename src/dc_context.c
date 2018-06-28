@@ -2928,6 +2928,9 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 	uint32_t      row_id = 0;
 	int           dummy;
 	char*         addr = NULL;
+	char*         row_name = NULL;
+	char*         row_addr = NULL;
+	char*         row_authname = NULL;
 
 	if( sth_modified == NULL ) {
 		sth_modified = &dummy;
@@ -2956,19 +2959,19 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		const char  *row_name, *row_addr, *row_authname;
+
 		int         row_origin, update_addr = 0, update_name = 0, update_authname = 0;
 
 		row_id       = sqlite3_column_int(stmt, 0);
-		row_name     = (const char*)sqlite3_column_text(stmt, 1); if( row_name == NULL ) { row_name = ""; }
-		row_addr     = (const char*)sqlite3_column_text(stmt, 2); if( row_addr == NULL ) { row_addr = addr; }
+		row_name     = dc_strdup((char*)sqlite3_column_text(stmt, 1));
+		row_addr     = dc_strdup((char*)sqlite3_column_text(stmt, 2));
 		row_origin   = sqlite3_column_int(stmt, 3);
-		row_authname = (const char*)sqlite3_column_text(stmt, 4); if( row_authname == NULL ) { row_authname = ""; }
+		row_authname = dc_strdup((char*)sqlite3_column_text(stmt, 4));
 		sqlite3_finalize (stmt);
 		stmt = NULL;
 
 		if( name && name[0] ) {
-			if( row_name && row_name[0] ) {
+			if( row_name[0] ) {
 				if( origin>=row_origin && strcmp(name, row_name)!=0 ) {
 					update_name = 1;
 				}
@@ -3037,6 +3040,9 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 
 cleanup:
 	free(addr);
+	free(row_addr);
+	free(row_name);
+	free(row_authname);
 	sqlite3_finalize(stmt);
 	return row_id;
 }
