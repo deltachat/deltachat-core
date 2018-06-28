@@ -676,6 +676,8 @@ dc_chat_t* dc_get_chat(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
+	success = 1;
+
 cleanup:
 	if( success ) {
 		return obj;
@@ -3362,7 +3364,7 @@ void dc_marknoticed_contact(dc_context_t* context, uint32_t contact_id)
 
 void dc_block_chat(dc_context_t* context, uint32_t chat_id, int new_blocking)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;

@@ -186,6 +186,11 @@ static void stop_threads(dc_context_t* mailbox)
 	imap_foreground = 0;
 	dc_interrupt_imap_idle(mailbox);
 	dc_interrupt_smtp_idle(mailbox);
+
+	// wait until the threads are finished
+	while( imap_thread || smtp_thread ) {
+		usleep(100*1000);
+	}
 }
 
 
