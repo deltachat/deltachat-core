@@ -438,9 +438,13 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 						/* scan for attributes */
 						int attr_index = 0;
 						while( isspace(*p) ) { p++; } /* forward to first attribute name beginning */
-						for( ; *p && *p != '/' && *p != '>'; attr_index += 2 )
+						while (*p && *p!='/' && *p!='>')
 						{
 							char *beg_attr_name = p, *beg_attr_value = NULL, *beg_attr_value_new = NULL;
+							if ('='==*beg_attr_name) {
+								p++; // otherwise eg. `"val"=` causes a deadlock as the second `=` is no exit condition and is not skipped by strcspn()
+								continue;
+							}
 
 							p += strcspn(p, XML_WS "=/>"); /* get end of attribute name */
 							if( p != beg_attr_name )
@@ -506,6 +510,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 									attr[attr_index+1]       = beg_attr_value_new;
 									attr[attr_index+2]       = NULL; /* null-terminate list */
 									free_attr[attr_index>>1] = free_bits;
+									attr_index += 2;
 								}
 							}
 
