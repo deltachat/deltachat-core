@@ -315,7 +315,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
                     int min_verified,
                     struct mailmime* in_out_message, dc_e2ee_helper_t* helper)
 {
-	int                    locked = 0, col = 0, do_encrypt = 0;
+	int                     col = 0, do_encrypt = 0;
 	dc_aheader_t*           autocryptheader = dc_aheader_new();
 	struct mailimf_fields* imffields_unprotected = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	dc_keyring_t*           keyring = dc_keyring_new();
@@ -494,7 +494,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_aheader_unref(autocryptheader);
 	dc_keyring_unref(keyring);
 	dc_key_unref(sign_key);
@@ -802,7 +801,6 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	dc_aheader_t*          autocryptheader = NULL;
 	time_t                 message_time = 0;
 	dc_apeerstate_t*       peerstate = dc_apeerstate_new(context);
-	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	dc_keyring_t*          private_keyring = dc_keyring_new();
 	dc_keyring_t*          public_keyring_for_validate = dc_keyring_new();
@@ -926,7 +924,6 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	//mailmime_print(in_out_message);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
 	dc_aheader_unref(autocryptheader);
 	dc_apeerstate_unref(peerstate);

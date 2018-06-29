@@ -224,14 +224,10 @@ static void update_config_cache(dc_context_t* context, const char* key)
 int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
-	int db_locked = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || dbfile == NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
 
 		/* Open() sets up the object and connects to the given database
 		from which all configuration is read/written to. */
@@ -265,8 +261,6 @@ cleanup:
 			}
 		}
 
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	return success;
 }
 
@@ -287,19 +281,15 @@ void dc_close(dc_context_t* context)
 	dc_imap_disconnect(context->m_imap);
 	dc_smtp_disconnect(context->m_smtp);
 
-	dc_sqlite3_lock(context->m_sql);
+	if( dc_sqlite3_is_open(context->m_sql) ) {
+		dc_sqlite3_close__(context->m_sql);
+	}
 
-		if( dc_sqlite3_is_open(context->m_sql) ) {
-			dc_sqlite3_close__(context->m_sql);
-		}
+	free(context->m_dbfile);
+	context->m_dbfile = NULL;
 
-		free(context->m_dbfile);
-		context->m_dbfile = NULL;
-
-		free(context->m_blobdir);
-		context->m_blobdir = NULL;
-
-	dc_sqlite3_unlock(context->m_sql);
+	free(context->m_blobdir);
+	context->m_blobdir = NULL;
 }
 
 
@@ -1653,7 +1643,7 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 {
 	/* Up to 2017-11-02 deleting a group also implied leaving it, see above why we have changed this. */
-	int        locked = 0, pending_transaction = 0;
+	int        pending_transaction = 0;
 	dc_chat_t* obj = dc_chat_new(context);
 	char*      q3 = NULL;
 
@@ -1703,7 +1693,6 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 
 cleanup:
 	if( pending_transaction ) { dc_sqlite3_rollback(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_chat_unref(obj);
 	sqlite3_free(q3);
 }

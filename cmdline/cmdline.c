@@ -48,34 +48,30 @@ int dc_reset_tables(dc_context_t* context, int bits)
 
 	dc_log_info(context, 0, "Resetting tables (%i)...", bits);
 
-	dc_sqlite3_lock(context->m_sql);
+	if( bits & 1 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM jobs;");
+		dc_log_info(context, 0, "(1) Jobs reset.");
+	}
 
-		if( bits & 1 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM jobs;");
-			dc_log_info(context, 0, "(1) Jobs reset.");
-		}
+	if( bits & 2 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM acpeerstates;");
+		dc_log_info(context, 0, "(2) Peerstates reset.");
+	}
 
-		if( bits & 2 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM acpeerstates;");
-			dc_log_info(context, 0, "(2) Peerstates reset.");
-		}
+	if( bits & 4 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM keypairs;");
+		dc_log_info(context, 0, "(4) Private keypairs reset.");
+	}
 
-		if( bits & 4 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM keypairs;");
-			dc_log_info(context, 0, "(4) Private keypairs reset.");
-		}
-
-		if( bits & 8 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM chats_contacts;");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM leftgrps;");
-			dc_log_info(context, 0, "(8) Rest but server config reset.");
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
+	if( bits & 8 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats_contacts;");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM leftgrps;");
+		dc_log_info(context, 0, "(8) Rest but server config reset.");
+	}
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
@@ -101,11 +97,7 @@ static int dc_cleanup_contacts(dc_context_t* context)
 
 	dc_log_info(context, 0, "Cleaning up contacts ...");
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
 
 	return 1;
 }

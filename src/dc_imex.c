@@ -839,9 +839,9 @@ The macro avoids weird values of 0% or 100% while still working. */
 
 static int export_backup(dc_context_t* context, const char* dir)
 {
-	int            success = 0, locked = 0, closed = 0;
+	int            success = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
-	dc_sqlite3_t*   dest_sql = NULL;
+	dc_sqlite3_t*  dest_sql = NULL;
 	time_t         now = time(NULL);
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry;
@@ -868,8 +868,10 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+
+//dc_sqlite3_lock(context->m_sql); // TODO: check if this works while threads running
+//locked = 1;
+
 	dc_sqlite3_close__(context->m_sql);
 	closed = 1;
 
@@ -882,8 +884,9 @@ static int export_backup(dc_context_t* context, const char* dir)
 	/* unlock and re-open the source and make it availabe again for the normal use */
 	dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0);
 	closed = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+
+//dc_sqlite3_unlock(context->m_sql); // TODO: check if this works while threads running
+//locked = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
@@ -970,7 +973,8 @@ static int export_backup(dc_context_t* context, const char* dir)
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
 	if( closed ) { dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+
+//if( locked ) { dc_sqlite3_unlock(context->m_sql); }  // TODO: check if this works while threads running
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
@@ -1008,7 +1012,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	*/
 
 	int           success = 0;
-	int           locked = 0;
 	int           processed_files_count = 0, total_files_count = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
@@ -1023,8 +1026,9 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	}
 
 	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+
+//dc_sqlite3_lock(context->m_sql);  // TODO: check if this works while threads running
+//locked = 1;
 
 	if( dc_sqlite3_is_open(context->m_sql) ) {
 		dc_sqlite3_close__(context->m_sql);
@@ -1117,7 +1121,9 @@ cleanup:
 	free(repl_from);
 	free(repl_to);
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+
+// if( locked ) { dc_sqlite3_unlock(context->m_sql); }  // TODO: check if this works while threads running
+
 	return success;
 }
 

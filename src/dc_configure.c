@@ -363,7 +363,7 @@ cleanup:
 
 void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int             success = 0, locked = 0, i;
+	int             success = 0, i;
 	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;
 
 	dc_loginparam_t* param = NULL;
@@ -397,15 +397,9 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	dc_imap_disconnect(context->m_imap);
 	dc_smtp_disconnect(context->m_smtp);
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		//dc_sqlite3_set_config_int__(context->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
-		context->m_smtp->m_log_connect_errors = 1;
-		context->m_imap->m_log_connect_errors = 1;
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	//dc_sqlite3_set_config_int__(context->m_sql, "configured", 0); -- NO: we do _not_ reset this flag if it was set once; otherwise the user won't get back to his chats (as an alternative, we could change the UI).  Moreover, and not changeable in the UI, we use this flag to check if we shall search for backups.
+	context->m_smtp->m_log_connect_errors = 1;
+	context->m_imap->m_log_connect_errors = 1;
 
 	dc_log_info(context, 0, "Configure ...");
 
@@ -662,7 +656,6 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	PROGRESS(940)
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
 	if( imap_connected_here ) { dc_imap_disconnect(context->m_imap); }

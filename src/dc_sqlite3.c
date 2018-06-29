@@ -130,8 +130,6 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 
 	sql->m_context          = context;
 
-	pthread_mutex_init(&sql->m_critical_, NULL);
-
 	return sql;
 }
 
@@ -143,12 +141,9 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 	}
 
 	if( sql->m_cobj ) {
-		pthread_mutex_lock(&sql->m_critical_); /* as a very exeception, we do the locking inside the dc_sqlite3-class - normally, this should be done by the caller! */
-			dc_sqlite3_close__(sql);
-		pthread_mutex_unlock(&sql->m_critical_);
+		dc_sqlite3_close__(sql);
 	}
 
-	pthread_mutex_destroy(&sql->m_critical_);
 	free(sql);
 }
 
@@ -652,44 +647,6 @@ int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
     int ret = dc_sqlite3_set_config(sql, key, value_str);
     free(value_str);
     return ret;
-}
-
-
-/*******************************************************************************
- * Locking
- ******************************************************************************/
-
-
-#ifdef DC_USE_LOCK_DEBUG
-void dc_sqlite3_lockNdebug(dc_sqlite3_t* sql, const char* filename, int linenum) /* wait and lock */
-#else
-void dc_sqlite3_lock(dc_sqlite3_t* sql) /* wait and lock */
-#endif
-{
-	#ifdef DC_USE_LOCK_DEBUG
-		clock_t start = clock();
-		dc_log_info(sql->m_context, 0, "    waiting for lock at %s#L%i", filename, linenum);
-	#endif
-
-	pthread_mutex_lock(&sql->m_critical_);
-
-	#ifdef DC_USE_LOCK_DEBUG
-		dc_log_info(sql->m_context, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-	#endif
-}
-
-
-#ifdef DC_USE_LOCK_DEBUG
-void dc_sqlite3_unlockNdebug(dc_sqlite3_t* sql, const char* filename, int linenum)
-#else
-void dc_sqlite3_unlock(dc_sqlite3_t* sql)
-#endif
-{
-	#ifdef DC_USE_LOCK_DEBUG
-		dc_log_info(sql->m_context, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
-	#endif
-
-	pthread_mutex_unlock(&sql->m_critical_);
 }
 
 

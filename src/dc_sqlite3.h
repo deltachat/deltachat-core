@@ -47,7 +47,6 @@ typedef struct dc_sqlite3_t
 	/** @privatesection */
 	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
 	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
-	pthread_mutex_t m_critical_;          /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
 } dc_sqlite3_t;
 
@@ -72,20 +71,6 @@ sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* t
 int           dc_sqlite3_execute          (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
-
-/* tools for locking, may be called nested, see also m_critical_ above.
-the user of dc_sqlite3 must make sure that the dc_sqlite3-object is only used by one thread at the same time.
-In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
-Low-level-functions, eg. the dc_sqlite3-methods, do not lock. */
-#ifdef DC_USE_LOCK_DEBUG
-#define       dc_sqlite3_lock(a)          dc_sqlite3_lockNdebug((a), __FILE__, __LINE__)
-#define       dc_sqlite3_unlock(a)        dc_sqlite3_unlockNdebug((a), __FILE__, __LINE__)
-void          dc_sqlite3_lockNdebug       (dc_sqlite3_t*, const char* filename, int line);
-void          dc_sqlite3_unlockNdebug     (dc_sqlite3_t*, const char* filename, int line);
-#else
-void          dc_sqlite3_lock             (dc_sqlite3_t*); /* lock or wait; these calls must not be nested in a single thread */
-void          dc_sqlite3_unlock           (dc_sqlite3_t*);
-#endif
 
 void          dc_sqlite3_begin_transaction  (dc_sqlite3_t*);
 void          dc_sqlite3_commit             (dc_sqlite3_t*);
