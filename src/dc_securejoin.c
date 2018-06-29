@@ -31,8 +31,8 @@
 #include "dc_token.h"
 
 
-#define      LOCK                 { dc_sqlite3_lock  (context->m_sql); locked = 1; }
-#define      UNLOCK  if( locked ) { dc_sqlite3_unlock(context->m_sql); locked = 0; }
+#define      LOCK                 { pthread_mutex_lock(&context->m_bobs_qr_critical); locked = 1; }
+#define      UNLOCK  if( locked ) { pthread_mutex_unlock(&context->m_bobs_qr_critical); locked = 0; }
 
 
 /*******************************************************************************
@@ -288,20 +288,9 @@ static void secure_connection_established(dc_context_t* context, uint32_t contac
 }
 
 
-#define         VC_AUTH_REQUIRED     2
-#define         VC_CONTACT_CONFIRM   6
-static int      s_bob_expects = 0;
-
-static dc_lot_t* s_bobs_qr_scan = NULL; // should be surround eg. by dc_sqlite3_lock/unlock
-
-#define         BOB_ERROR       0
-#define         BOB_SUCCESS     1
-static int      s_bobs_status = 0;
-
-
 static void end_bobs_joining(dc_context_t* context, int status)
 {
-	s_bobs_status = status;
+	context->m_bobs_status = status;
 	dc_stop_ongoing_process(context);
 }
 
@@ -448,6 +437,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	uint32_t contact_chat_id   = 0;
 	dc_lot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
+	int      locked = 0;
 
 	dc_log_info(context, 0, "Requesting secure-join ...");
 
@@ -479,15 +469,15 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	join_vg = (qr_scan->m_state==DC_QR_ASK_VERIFYGROUP);
 
-	s_bobs_status = 0;
-	dc_sqlite3_lock(context->m_sql);
-		s_bobs_qr_scan = qr_scan;
-	dc_sqlite3_unlock(context->m_sql);
+	context->m_bobs_status = 0;
+	LOCK
+		context->m_bobs_qr_scan = qr_scan;
+	UNLOCK
 
 	if( fingerprint_equals_sender(context, qr_scan->m_fingerprint, contact_chat_id) ) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
 		dc_log_info(context, 0, "Taking protocol shortcut.");
-		s_bob_expects = VC_CONTACT_CONFIRM;
+		context->m_bob_expects = DC_VC_CONTACT_CONFIRM;
 		context->m_cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(context, contact_chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(context);
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
@@ -495,7 +485,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 		free(own_fingerprint);
 	}
 	else {
-		s_bob_expects = VC_AUTH_REQUIRED;
+		context->m_bob_expects = DC_VC_AUTH_REQUIRED;
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request" : "vc-request",
 			qr_scan->m_invitenumber, NULL, NULL); // Bob -> Alice
 	}
@@ -507,9 +497,9 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	}
 
 cleanup:
-	s_bob_expects = 0;
+	context->m_bob_expects = 0;
 
-	if( s_bobs_status == BOB_SUCCESS ) {
+	if( context->m_bobs_status == DC_BOB_SUCCESS ) {
 		if( join_vg ) {
 			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->m_text2, NULL, NULL);
 		}
@@ -518,9 +508,9 @@ cleanup:
 		}
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		s_bobs_qr_scan = NULL;
-	dc_sqlite3_unlock(context->m_sql);
+	LOCK
+		context->m_bobs_qr_scan = NULL;
+	UNLOCK
 
 	dc_lot_unref(qr_scan);
 
@@ -599,27 +589,29 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		LOCK
-			if( s_bobs_qr_scan == NULL || s_bob_expects != VC_AUTH_REQUIRED || (join_vg && s_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
+			if ( context->m_bobs_qr_scan==NULL
+			  || context->m_bob_expects!=DC_VC_AUTH_REQUIRED
+			  || (join_vg && context->m_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
 				dc_log_warning(context, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
-			scanned_fingerprint_of_alice = dc_strdup(s_bobs_qr_scan->m_fingerprint);
-			auth = dc_strdup(s_bobs_qr_scan->m_auth);
+			scanned_fingerprint_of_alice = dc_strdup(context->m_bobs_qr_scan->m_fingerprint);
+			auth = dc_strdup(context->m_bobs_qr_scan->m_auth);
 			if( join_vg ) {
-				grpid = dc_strdup(s_bobs_qr_scan->m_text2);
+				grpid = dc_strdup(context->m_bobs_qr_scan->m_text2);
 			}
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(context, contact_chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
-			end_bobs_joining(context, BOB_ERROR);
+			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
 
 		if( !fingerprint_equals_sender(context, scanned_fingerprint_of_alice, contact_chat_id) ) {
 			// MitM?
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side.");
-			end_bobs_joining(context, BOB_ERROR);
+			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
 
@@ -629,7 +621,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		context->m_cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
 
-		s_bob_expects = VC_CONTACT_CONFIRM;
+		context->m_bob_expects = DC_VC_CONTACT_CONFIRM;
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
 			auth, own_fingerprint, grpid); // Bob -> Alice
 	}
@@ -716,7 +708,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			ret = DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
 		}
 
-		if( s_bob_expects != VC_CONTACT_CONFIRM ) {
+		if (context->m_bob_expects!=DC_VC_CONTACT_CONFIRM) {
 			if( join_vg ) {
 				dc_log_info(context, 0, "vg-member-added received as broadcast.");
 			}
@@ -727,16 +719,16 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		LOCK
-			if( s_bobs_qr_scan == NULL || (join_vg && s_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
+			if (context->m_bobs_qr_scan==NULL || (join_vg && context->m_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP)) {
 				dc_log_warning(context, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}
-			scanned_fingerprint_of_alice = dc_strdup(s_bobs_qr_scan->m_fingerprint);
+			scanned_fingerprint_of_alice = dc_strdup(context->m_bobs_qr_scan->m_fingerprint);
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
-			end_bobs_joining(context, BOB_ERROR);
+			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
 
@@ -753,8 +745,8 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
-		s_bob_expects = 0;
-		end_bobs_joining(context, BOB_SUCCESS);
+		context->m_bob_expects = 0;
+		end_bobs_joining(context, DC_BOB_SUCCESS);
 	}
 
 	// delete the message, as SMTP and IMAP is done in separate threads it should be okay to delete the message just now.

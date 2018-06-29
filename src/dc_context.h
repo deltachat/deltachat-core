@@ -99,6 +99,15 @@ struct _dc_context
 	                                          /**< Internal */
 	int              m_log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
 
+	// QR code scanning (view from Bob, the joiner)
+	#define         DC_VC_AUTH_REQUIRED     2
+	#define         DC_VC_CONTACT_CONFIRM   6
+	int             m_bob_expects;
+	#define         DC_BOB_ERROR       0
+	#define         DC_BOB_SUCCESS     1
+	int             m_bobs_status;
+	dc_lot_t*       m_bobs_qr_scan;
+	pthread_mutex_t m_bobs_qr_critical;
 };
 
 

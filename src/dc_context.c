@@ -101,6 +101,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&context->m_bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->m_log_ringbuf_critical, NULL);
 	pthread_mutex_init(&context->m_imapidle_condmutex, NULL);
 	pthread_mutex_init(&context->m_smtpidle_condmutex, NULL);
@@ -162,6 +163,7 @@ void dc_context_unref(dc_context_t* context)
 	dc_smtp_unref(context->m_smtp);
 	dc_sqlite3_unref(context->m_sql);
 
+	pthread_mutex_destroy(&context->m_bobs_qr_critical);
 	pthread_mutex_destroy(&context->m_log_ringbuf_critical);
 	pthread_mutex_destroy(&context->m_imapidle_condmutex);
 	pthread_cond_destroy(&context->m_smtpidle_cond);
