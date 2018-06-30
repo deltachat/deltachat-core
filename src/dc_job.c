@@ -443,7 +443,7 @@ cleanup:
 }
 
 
-void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
+static void dc_suspend_smtp_thread(dc_context_t* context, int suspend)
 {
 	pthread_mutex_lock(&context->m_smtpidle_condmutex);
 		context->m_smtpidle_suspend = suspend;
@@ -539,6 +539,7 @@ static void dc_job_perform(dc_context_t* context, int thread)
 	sqlite3_stmt* select_stmt = NULL;
 	dc_job_t      job;
 	#define       THREAD_STR (thread==DC_IMAP_THREAD? "IMAP" : "SMTP")
+	#define       IS_EXCLUSIVE_JOB (DC_JOB_CONFIGURE_IMAP==job.m_action || DC_JOB_IMEX_IMAP==job.m_action)
 
 	memset(&job, 0, sizeof(dc_job_t));
 	job.m_param = dc_param_new();
@@ -560,6 +561,17 @@ static void dc_job_perform(dc_context_t* context, int thread)
 
 		dc_log_info(context, 0, "%s-job #%i, action %i started...", THREAD_STR, (int)job.m_job_id, (int)job.m_action);
 
+		// some configuration jobs are "exclusive":
+		// - they are always executed in the imap-thread and the smtp-thread is suspended during execution
+		// - they may change the database handle change the database handle; we do not keep old pointers therefore
+		// - they can be re-executed one time AT_ONCE, but they are not save in the database for later execution
+		if (IS_EXCLUSIVE_JOB) {
+			dc_job_kill_actions(context, job.m_action, 0);
+			sqlite3_finalize(select_stmt);
+			select_stmt = NULL;
+			dc_suspend_smtp_thread(context, 1);
+		}
+
 		for( int tries = 0; tries <= 1; tries++ )
 		{
 			job.m_try_again = DC_DONT_TRY_AGAIN; // this can be modified by a job using dc_job_try_again_later()
@@ -571,22 +583,8 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;
 				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (context, &job); break;
-
-				case DC_JOB_CONFIGURE_IMAP:
-					// normally, the job will be deleted when the function returns.
-					// however, on crashes, timouts etc. we do not want the job in the database.
-					dc_job_kill_actions(context, job.m_action, 0);
-					dc_job_do_DC_JOB_CONFIGURE_IMAP(context, &job);
-					break;
-
-				case DC_JOB_IMEX_IMAP:
-					// imex() may re-open the database, do not keep old pointers
-					// and do not continue with subsequent jobs.
-					dc_job_kill_actions(context, job.m_action, 0);
-					sqlite3_finalize(select_stmt);
-					select_stmt = NULL;
-					dc_job_do_DC_JOB_IMEX_IMAP(context, &job);
-					goto cleanup; // yes: in contrast to the other case no "break" here - the database may have been re-opened and stmt may be invalid.
+				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
+				case DC_JOB_IMEX_IMAP:            dc_job_do_DC_JOB_IMEX_IMAP            (context, &job); break;
 			}
 
 			if( job.m_try_again != DC_AT_ONCE ) {
@@ -594,8 +592,11 @@ static void dc_job_perform(dc_context_t* context, int thread)
 			}
 		}
 
-
-		if( job.m_try_again == DC_INCREATION_POLL )
+		if (IS_EXCLUSIVE_JOB) {
+			dc_suspend_smtp_thread(context, 0);
+			goto cleanup;
+		}
+		else if( job.m_try_again == DC_INCREATION_POLL )
 		{
 			// just try over next loop unconditionally, the ui typically interrupts idle when the file (video) is ready
 			dc_log_info(context, 0, "%s-job #%i not yet ready and will be delayed.", THREAD_STR, (int)job.m_job_id);

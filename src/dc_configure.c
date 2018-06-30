@@ -375,8 +375,6 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		goto cleanup;
 	}
 
-	dc_suspend_smtp_thread(context, 1);
-
 	if( !dc_alloc_ongoing(context) ) {
 		goto cleanup;
 	}
@@ -669,7 +667,6 @@ cleanup:
 	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
 	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
 
-	dc_suspend_smtp_thread(context, 0);
 	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
 
 	context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, success? 1000 : 0, 0);
