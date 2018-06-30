@@ -571,7 +571,22 @@ static void dc_job_perform(dc_context_t* context, int thread)
 				case DC_JOB_MARKSEEN_MSG_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MSG_ON_IMAP (context, &job); break;
 				case DC_JOB_MARKSEEN_MDN_ON_IMAP: dc_job_do_DC_JOB_MARKSEEN_MDN_ON_IMAP (context, &job); break;
 				case DC_JOB_SEND_MDN:             dc_job_do_DC_JOB_SEND_MDN             (context, &job); break;
-				case DC_JOB_CONFIGURE_IMAP:       dc_job_do_DC_JOB_CONFIGURE_IMAP       (context, &job); break;
+
+				case DC_JOB_CONFIGURE_IMAP:
+					// normally, the job will be deleted when the function returns.
+					// however, on crashes, timouts etc. we do not want the job in the database.
+					dc_job_kill_actions(context, job.m_action, 0);
+					dc_job_do_DC_JOB_CONFIGURE_IMAP(context, &job);
+					break;
+
+				case DC_JOB_IMEX_IMAP:
+					// imex() may re-open the database, do not keep old pointers
+					// and do not continue with subsequent jobs.
+					dc_job_kill_actions(context, job.m_action, 0);
+					sqlite3_finalize(select_stmt);
+					select_stmt = NULL;
+					dc_job_do_DC_JOB_IMEX_IMAP(context, &job);
+					goto cleanup; // yes: in contrast to the other case no "break" here - the database may have been re-opened and stmt may be invalid.
 			}
 
 			if( job.m_try_again != DC_AT_ONCE ) {

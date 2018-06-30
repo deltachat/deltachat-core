@@ -574,12 +574,14 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-backup")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-backup")==0 )
 	{
 		if( arg1 ) {
-			ret = dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL);
+			ret = COMMAND_SUCCEEDED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <backup-file> missing.");
@@ -587,11 +589,13 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-keys")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-keys")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{

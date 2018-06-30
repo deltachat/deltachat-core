@@ -33,6 +33,7 @@
 #include "dc_apeerstate.h"
 #include "dc_pgp.h"
 #include "dc_mimefactory.h"
+#include "dc_job.h"
 
 
 /*******************************************************************************
@@ -868,25 +869,16 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-
-//dc_sqlite3_lock(context->m_sql); // TODO: check if this works while threads running
-//locked = 1;
-
 	dc_sqlite3_close__(context->m_sql);
 	closed = 1;
 
-	/* copy file to backup directory */
-	dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
-	if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
-		goto cleanup; /* error already logged */
-	}
+		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
+		if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
+			goto cleanup; /* error already logged */
+		}
 
-	/* unlock and re-open the source and make it availabe again for the normal use */
 	dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0);
 	closed = 0;
-
-//dc_sqlite3_unlock(context->m_sql); // TODO: check if this works while threads running
-//locked = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
@@ -973,8 +965,6 @@ static int export_backup(dc_context_t* context, const char* dir)
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
 	if( closed ) { dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0); }
-
-//if( locked ) { dc_sqlite3_unlock(context->m_sql); }  // TODO: check if this works while threads running
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
@@ -1135,6 +1125,8 @@ cleanup:
 
 /**
  * Import/export things.
+ * For this purpose, the function creates a job that is executed in the IMAP-thread then;
+ * this requires to call dc_perform_imap_jobs() regulary.
  *
  * What to do is defined by the _what_ parameter which may be one of the following:
  *
@@ -1156,11 +1148,12 @@ cleanup:
  * - **DC_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
  *   The last imported key is made the default keys unless its name contains the string `legacy`.  Public keys are not imported.
  *
- * The function may take a long time until it finishes, so it might be a good idea to start it in a
- * separate thread. During its execution, the function sends out some events:
+ * While dc_imex() returns immediately, the started job may take a while,
+ * you can stop it using dc_stop_ongoing_process(). During execution of the job,
+ * some events are sent out:
  *
  * - A number of #DC_EVENT_IMEX_PROGRESS events are sent and may be used to create
- *   a progress bar or stuff like that.
+ *   a progress bar or stuff like that. Moreover, you'll be informed when the imex-job is done.
  *
  * - For each file written on export, the function sends #DC_EVENT_IMEX_FILE_WRITTEN
  *
@@ -1173,27 +1166,53 @@ cleanup:
  * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
  *     a slash (otherwise you'll get double slashes when receiving #DC_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
  * @param param2 Meaning depends on the DC_IMEX_* constants. Set to NULL if not used.
- * @return 1=success, 0=error or progress canceled.
+ * @return None.
  */
-int dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
+void dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
 {
-	int success = 0;
+	dc_param_t* param = dc_param_new();
+
+	dc_param_set_int(param, DC_PARAM_CMD,      what);
+	dc_param_set    (param, DC_PARAM_CMD_ARG,  param1);
+	dc_param_set    (param, DC_PARAM_CMD_ARG2, param2);
+
+	dc_job_kill_actions(context, DC_JOB_IMEX_IMAP, 0);
+	dc_job_add(context, DC_JOB_IMEX_IMAP, 0, param->m_packed, 0); // results in a call to dc_job_do_DC_JOB_IMEX_IMAP()
+
+	dc_param_unref(param);
+}
+
+
+void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
+{
+	int   success = 0;
+	int   ongoing_allocated_here = 0;
+	int   what = 0;
+	char* param1 = NULL;
+	char* param2 = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
+	dc_suspend_smtp_thread(context, 1);
+
 	if( !dc_alloc_ongoing(context) ) {
-		return 0; /* no cleanup as this would call dc_free_ongoing() */
+		goto cleanup;
 	}
+	ongoing_allocated_here = 1;
+
+	what   = dc_param_get_int(job->m_param, DC_PARAM_CMD,      0);
+	param1 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG,  NULL);
+	param2 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG2, NULL);
 
 	if( param1 == NULL ) {
 		dc_log_error(context, 0, "No Import/export dir/file given.");
-		return 0;
+		goto cleanup;
 	}
 
 	dc_log_info(context, 0, "Import/export process started.");
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 0, 0);
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 10, 0);
 
 	if( !dc_sqlite3_is_open(context->m_sql) ) {
 		dc_log_error(context, 0, "Import/export: Database not opened.");
@@ -1240,13 +1259,18 @@ int dc_imex(dc_context_t* context, int what, const char* param1, const char* par
 			goto cleanup;
 	}
 
+	dc_log_info(context, 0, "Import/export completed.");
+
 	success = 1;
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 1000, 0);
 
 cleanup:
-	dc_log_info(context, 0, "Import/export process ended.");
-	dc_free_ongoing(context);
-	return success;
+	free(param1);
+	free(param2);
+
+	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
+	dc_suspend_smtp_thread(context, 0);
+
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, success? 1000 : 0, 0);
 }
 
 

@@ -376,7 +376,6 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	dc_suspend_smtp_thread(context, 1);
-	dc_job_kill_actions(context, DC_JOB_CONFIGURE_IMAP, 0); // normally, the job will be deleted when the function returns. however, on crashes, timouts etc. we do not want the job in the database
 
 	if( !dc_alloc_ongoing(context) ) {
 		goto cleanup;
