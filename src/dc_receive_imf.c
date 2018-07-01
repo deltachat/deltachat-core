@@ -489,7 +489,7 @@ static uint32_t create_group_record(dc_context_t* context, const char* grpid, co
 	if( sqlite3_step(stmt)!=SQLITE_DONE ) {
 		goto cleanup;
 	}
-	chat_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+	chat_id = dc_sqlite3_get_rowid(context->m_sql, "chats", "grpid", grpid);
 
 cleanup:
 	sqlite3_finalize(stmt);
@@ -1322,7 +1322,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				txt_raw = NULL;
 
 				if( first_dblocal_id == 0 ) {
-					first_dblocal_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+					first_dblocal_id = dc_sqlite3_get_rowid(context->m_sql, "msgs", "rfc724_mid", rfc724_mid); // rfc724_mid is unique only for the first insert
 				}
 
 				carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);

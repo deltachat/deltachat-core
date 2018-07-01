@@ -71,10 +71,12 @@ sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* t
 int           dc_sqlite3_execute          (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
+uint32_t      dc_sqlite3_get_rowid        (dc_sqlite3_t*, const char* table, const char* field, const char* value);
 
 void          dc_sqlite3_begin_transaction  (dc_sqlite3_t*);
 void          dc_sqlite3_commit             (dc_sqlite3_t*);
 void          dc_sqlite3_rollback           (dc_sqlite3_t*);
+
 
 #ifdef __cplusplus
 } /* /extern "C" */

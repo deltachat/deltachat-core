@@ -1451,9 +1451,9 @@ void dc_create_or_lookup_nchat_by_contact_id(dc_context_t* context, uint32_t con
 
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
-	/* create chat record */
-	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", DC_CHAT_TYPE_SINGLE, chat_name,
-		contact_id==DC_CONTACT_ID_SELF? "K=1" : "", create_blocked);
+	/* create chat record; the grpid is only used to make dc_sqlite3_get_rowid() work (we cannot use last_insert_id() due multi-threading) */
+	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked, grpid) VALUES(%i, %Q, %Q, %i, %Q)", DC_CHAT_TYPE_SINGLE, chat_name,
+		contact_id==DC_CONTACT_ID_SELF? "K=1" : "", create_blocked, contact->m_addr);
 	assert( DC_PARAM_SELFTALK == 'K' );
 	stmt = dc_sqlite3_prepare(context->m_sql, q);
 	if( stmt == NULL) {
@@ -1464,7 +1464,7 @@ void dc_create_or_lookup_nchat_by_contact_id(dc_context_t* context, uint32_t con
 		goto cleanup;
     }
 
-    chat_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+    chat_id = dc_sqlite3_get_rowid(context->m_sql, "chats", "grpid", contact->m_addr);
 
 	sqlite3_free(q);
 	q = NULL;
@@ -1839,7 +1839,7 @@ static uint32_t dc_send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc
 		goto cleanup;
 	}
 
-	msg_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+	msg_id = dc_sqlite3_get_rowid(context->m_sql, "msgs", "rfc724_mid", rfc724_mid);
 	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
@@ -2279,13 +2279,14 @@ void dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text
 {
 	uint32_t      msg_id = 0;
 	sqlite3_stmt* stmt = NULL;
+	char*         rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, "@device");
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || text == NULL ) {
 		goto cleanup;
 	}
 
 	stmt = dc_sqlite3_prepare(context->m_sql,
-		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
+		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt,rfc724_mid) VALUES (?,?,?, ?,?,?, ?,?);");
 	sqlite3_bind_int  (stmt,  1, chat_id);
 	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
@@ -2293,13 +2294,15 @@ void dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text
 	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
 	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
 	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt,  8, rfc724_mid,  -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
 	}
-	msg_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+	msg_id = dc_sqlite3_get_rowid(context->m_sql, "msgs", "rfc724_mid", rfc724_mid);
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg_id);
 
 cleanup:
+	free(rfc724_mid);
 	sqlite3_finalize(stmt);
 }
 
@@ -2421,7 +2424,7 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		goto cleanup;
 	}
 
-	if( (chat_id=sqlite3_last_insert_rowid(context->m_sql->m_cobj)) == 0 ) {
+	if( (chat_id=dc_sqlite3_get_rowid(context->m_sql, "chats", "grpid", grpid)) == 0 ) {
 		goto cleanup;
 	}
 
@@ -2965,7 +2968,7 @@ uint32_t dc_add_or_lookup_contact( dc_context_t* context,
 		sqlite3_bind_int (stmt, 3, origin);
 		if( sqlite3_step(stmt) == SQLITE_DONE )
 		{
-			row_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+			row_id = dc_sqlite3_get_rowid(context->m_sql, "contacts", "addr", addr);
 			*sth_modified = CONTACT_CREATED;
 		}
 		else

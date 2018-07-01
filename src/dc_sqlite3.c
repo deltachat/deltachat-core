@@ -115,6 +115,20 @@ cleanup:
 }
 
 
+uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* field, const char* value)
+{
+	uint32_t id = 0;
+	char* q3 = sqlite3_mprintf("SELECT id FROM %s WHERE %s=%Q;", table, field, value);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, q3);
+	if (SQLITE_ROW==sqlite3_step(stmt)) {
+		id = sqlite3_column_int(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+	sqlite3_free(q3);
+	return id;
+}
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
