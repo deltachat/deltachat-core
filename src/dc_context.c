@@ -101,6 +101,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&context->m_bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->m_log_ringbuf_critical, NULL);
 	pthread_mutex_init(&context->m_imapidle_condmutex, NULL);
 	pthread_mutex_init(&context->m_smtpidle_condmutex, NULL);
@@ -162,6 +163,7 @@ void dc_context_unref(dc_context_t* context)
 	dc_smtp_unref(context->m_smtp);
 	dc_sqlite3_unref(context->m_sql);
 
+	pthread_mutex_destroy(&context->m_bobs_qr_critical);
 	pthread_mutex_destroy(&context->m_log_ringbuf_critical);
 	pthread_mutex_destroy(&context->m_imapidle_condmutex);
 	pthread_cond_destroy(&context->m_smtpidle_cond);
@@ -222,14 +224,10 @@ static void update_config_cache(dc_context_t* context, const char* key)
 int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 {
 	int success = 0;
-	int db_locked = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || dbfile == NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
 
 		/* Open() sets up the object and connects to the given database
 		from which all configuration is read/written to. */
@@ -263,8 +261,6 @@ cleanup:
 			}
 		}
 
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	return success;
 }
 
@@ -285,19 +281,15 @@ void dc_close(dc_context_t* context)
 	dc_imap_disconnect(context->m_imap);
 	dc_smtp_disconnect(context->m_smtp);
 
-	dc_sqlite3_lock(context->m_sql);
+	if( dc_sqlite3_is_open(context->m_sql) ) {
+		dc_sqlite3_close__(context->m_sql);
+	}
 
-		if( dc_sqlite3_is_open(context->m_sql) ) {
-			dc_sqlite3_close__(context->m_sql);
-		}
+	free(context->m_dbfile);
+	context->m_dbfile = NULL;
 
-		free(context->m_dbfile);
-		context->m_dbfile = NULL;
-
-		free(context->m_blobdir);
-		context->m_blobdir = NULL;
-
-	dc_sqlite3_unlock(context->m_sql);
+	free(context->m_blobdir);
+	context->m_blobdir = NULL;
 }
 
 
@@ -473,44 +465,40 @@ char* dc_get_info(dc_context_t* context)
 	l = dc_loginparam_new();
 	l2 = dc_loginparam_new();
 
-	dc_sqlite3_lock(context->m_sql);
+	dc_loginparam_read(l, context->m_sql, "");
+	dc_loginparam_read(l2, context->m_sql, "configured_" /*the trailing underscore is correct*/);
 
-		dc_loginparam_read(l, context->m_sql, "");
-		dc_loginparam_read(l2, context->m_sql, "configured_" /*the trailing underscore is correct*/);
+	displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
 
-		displayname     = dc_sqlite3_get_config(context->m_sql, "displayname", NULL);
+	chats           = dc_get_chat_cnt(context);
+	real_msgs       = dc_get_real_msg_cnt(context);
+	deaddrop_msgs   = dc_get_deaddrop_msg_cnt(context);
+	contacts        = dc_get_real_contact_cnt(context);
 
-		chats           = dc_get_chat_cnt__(context);
-		real_msgs       = dc_get_real_msg_cnt__(context);
-		deaddrop_msgs   = dc_get_deaddrop_msg_cnt__(context);
-		contacts        = dc_get_real_contact_cnt__(context);
+	is_configured   = dc_sqlite3_get_config_int(context->m_sql, "configured", 0);
 
-		is_configured   = dc_sqlite3_get_config_int(context->m_sql, "configured", 0);
+	dbversion       = dc_sqlite3_get_config_int(context->m_sql, "dbversion", 0);
 
-		dbversion       = dc_sqlite3_get_config_int(context->m_sql, "dbversion", 0);
+	e2ee_enabled    = context->m_e2ee_enabled;
 
-		e2ee_enabled    = context->m_e2ee_enabled;
+	mdns_enabled    = dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
 
-		mdns_enabled    = dc_sqlite3_get_config_int(context->m_sql, "mdns_enabled", DC_MDNS_DEFAULT_ENABLED);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
+	sqlite3_step(stmt);
+	prv_key_count = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
 
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM keypairs;");
-		sqlite3_step(stmt);
-		prv_key_count = sqlite3_column_int(stmt, 0);
-		sqlite3_finalize(stmt);
+	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM acpeerstates;");
+	sqlite3_step(stmt);
+	pub_key_count = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
 
-		stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM acpeerstates;");
-		sqlite3_step(stmt);
-		pub_key_count = sqlite3_column_int(stmt, 0);
-		sqlite3_finalize(stmt);
-
-		if( dc_key_load_self_public__(self_public, l2->m_addr, context->m_sql) ) {
-			fingerprint_str = dc_key_get_formatted_fingerprint(self_public);
-		}
-		else {
-			fingerprint_str = dc_strdup("<Not yet calculated>");
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
+	if( dc_key_load_self_public(self_public, l2->m_addr, context->m_sql) ) {
+		fingerprint_str = dc_key_get_formatted_fingerprint(self_public);
+	}
+	else {
+		fingerprint_str = dc_strdup("<Not yet calculated>");
+	}
 
 	l_readable_str = dc_loginparam_get_readable(l);
 	l2_readable_str = dc_loginparam_get_readable(l2);
@@ -594,14 +582,16 @@ char* dc_get_info(dc_context_t* context)
  ******************************************************************************/
 
 
-int dc_get_archived_count__(dc_context_t* context)
+int dc_get_archived_count(dc_context_t* context)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats_WHERE_archived,
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM chats WHERE blocked=0 AND archived=1;");
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		return sqlite3_column_int(stmt, 0);
+		ret = sqlite3_column_int(stmt, 0);
 	}
-	return 0;
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -629,25 +619,19 @@ int dc_get_archived_count__(dc_context_t* context)
 dc_chatlist_t* dc_get_chatlist(dc_context_t* context, int listflags, const char* query_str, uint32_t query_id)
 {
 	int            success = 0;
-	int            db_locked = 0;
 	dc_chatlist_t* obj = dc_chatlist_new(context);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
+	if( !dc_chatlist_load_from_db(obj, listflags, query_str, query_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_chatlist_load_from_db__(obj, listflags, query_str, query_id) ) {
-			goto cleanup;
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	if( success ) {
 		return obj;
 	}
@@ -674,25 +658,19 @@ cleanup:
 dc_chat_t* dc_get_chat(dc_context_t* context, uint32_t chat_id)
 {
 	int        success = 0;
-	int        db_locked = 0;
 	dc_chat_t* obj = dc_chat_new(context);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
+	if( !dc_chat_load_from_db(obj, chat_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_chat_load_from_db__(obj, chat_id) ) {
-			goto cleanup;
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	if( success ) {
 		return obj;
 	}
@@ -724,14 +702,11 @@ void dc_marknoticed_chat(dc_context_t* context, uint32_t chat_id)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_state_WHERE_chat_id_AND_state,
-			"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
-		sqlite3_bind_int(stmt, 1, chat_id);
-		sqlite3_step(stmt);
-
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE chat_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -755,20 +730,16 @@ uint32_t dc_get_chat_id_by_contact_id(dc_context_t* context, uint32_t contact_id
 		return 0;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_lookup_real_nchat_by_contact_id__(context, contact_id, &chat_id, &chat_id_blocked);
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_lookup_real_nchat_by_contact_id(context, contact_id, &chat_id, &chat_id_blocked);
 
 	return chat_id_blocked? 0 : chat_id; /* from outside view, chats only existing in the deaddrop do not exist */
 }
 
 
-uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int* ret_blocked, int* ret_verified)
+uint32_t dc_get_chat_id_by_grpid(dc_context_t* context, const char* grpid, int* ret_blocked, int* ret_verified)
 {
 	uint32_t      chat_id = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if(ret_blocked)  { *ret_blocked = 0;  }
 	if(ret_verified) { *ret_verified = 0; }
@@ -777,7 +748,7 @@ uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_CHATS_WHERE_grpid,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id, blocked, type FROM chats WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt)==SQLITE_ROW ) {
@@ -787,6 +758,7 @@ uint32_t dc_get_chat_id_by_grpid__(dc_context_t* context, const char* grpid, int
 	}
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return chat_id;
 }
 
@@ -810,39 +782,34 @@ uint32_t dc_create_chat_by_contact_id(dc_context_t* context, uint32_t contact_id
 {
 	uint32_t      chat_id = 0;
 	int           chat_blocked = 0;
-	int           send_event = 0, locked = 0;
+	int           send_event = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		dc_lookup_real_nchat_by_contact_id__(context, contact_id, &chat_id, &chat_blocked);
-		if( chat_id ) {
-			if( chat_blocked ) {
-				dc_unblock_chat__(context, chat_id); /* unblock chat (typically move it from the deaddrop to view) */
-				send_event = 1;
-			}
-			goto cleanup; /* success */
-		}
-
-        if( 0==dc_real_contact_exists__(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF ) {
-			dc_log_warning(context, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
-			goto cleanup;
-        }
-
-		dc_create_or_lookup_nchat_by_contact_id__(context, contact_id, DC_CHAT_NOT_BLOCKED, &chat_id, NULL);
-		if( chat_id ) {
+	dc_lookup_real_nchat_by_contact_id(context, contact_id, &chat_id, &chat_blocked);
+	if( chat_id ) {
+		if( chat_blocked ) {
+			dc_unblock_chat(context, chat_id); /* unblock chat (typically move it from the deaddrop to view) */
 			send_event = 1;
 		}
+		goto cleanup; /* success */
+	}
 
-		dc_scaleup_contact_origin__(context, contact_id, DC_ORIGIN_CREATE_CHAT);
+	if( 0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF ) {
+		dc_log_warning(context, 0, "Cannot create chat, contact %i does not exist.", (int)contact_id);
+		goto cleanup;
+	}
+
+	dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_NOT_BLOCKED, &chat_id, NULL);
+	if( chat_id ) {
+		send_event = 1;
+	}
+
+	dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_CREATE_CHAT);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	if( send_event ) {
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
@@ -878,7 +845,6 @@ cleanup:
  */
 uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
 {
-	int       locked     = 0;
 	uint32_t  chat_id    = 0;
 	int       send_event = 0;
 	dc_msg_t*  msg        = dc_msg_new();
@@ -888,49 +854,28 @@ uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_msg_load_from_db(msg, context, msg_id)
+	 || !dc_chat_load_from_db(chat, msg->m_chat_id)
+	 || chat->m_id <= DC_CHAT_ID_LAST_SPECIAL ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db__(msg, context, msg_id)
-		 || !dc_chat_load_from_db__(chat, msg->m_chat_id)
-		 || chat->m_id <= DC_CHAT_ID_LAST_SPECIAL ) {
-			goto cleanup;
-		}
+	chat_id = chat->m_id;
 
-		chat_id = chat->m_id;
+	if( chat->m_blocked ) {
+		dc_unblock_chat(context, chat->m_id);
+		send_event = 1;
+	}
 
-		if( chat->m_blocked ) {
-			dc_unblock_chat__(context, chat->m_id);
-			send_event = 1;
-		}
-
-		dc_scaleup_contact_origin__(context, msg->m_from_id, DC_ORIGIN_CREATE_CHAT);
+	dc_scaleup_contact_origin(context, msg->m_from_id, DC_ORIGIN_CREATE_CHAT);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_msg_unref(msg);
 	dc_chat_unref(chat);
 	if( send_event ) {
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 	}
 	return chat_id;
-}
-
-
-static dc_array_t* dc_get_chat_media__(dc_context_t* context, uint32_t chat_id, int msg_type, int or_msg_type)
-{
-	dc_array_t* ret = dc_array_new(context, 100);
-
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_WHERE_ctt,
-		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_bind_int(stmt, 2, msg_type);
-	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
-	while( sqlite3_step(stmt) == SQLITE_ROW ) {
-		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-	}
-
-	return ret;
 }
 
 
@@ -948,17 +893,21 @@ static dc_array_t* dc_get_chat_media__(dc_context_t* context, uint32_t chat_id, 
  */
 dc_array_t* dc_get_chat_media(dc_context_t* context, uint32_t chat_id, int msg_type, int or_msg_type)
 {
-	dc_array_t* ret = NULL;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return NULL;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
+	dc_array_t* ret = dc_array_new(context, 100);
 
-		ret = dc_get_chat_media__(context, chat_id, msg_type, or_msg_type);
-
-	dc_sqlite3_unlock(context->m_sql);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT id FROM msgs WHERE chat_id=? AND (type=? OR type=?) ORDER BY timestamp, id;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, msg_type);
+	sqlite3_bind_int(stmt, 3, or_msg_type>0? or_msg_type : msg_type);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
+	sqlite3_finalize(stmt);
 
 	return ret;
 }
@@ -982,7 +931,6 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 {
 	uint32_t    ret_msg_id = 0;
 	dc_msg_t*   msg = dc_msg_new();
-	int         locked = 0;
 	dc_array_t* list = NULL;
 	int         i, cnt;
 
@@ -990,19 +938,13 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_msg_load_from_db(msg, context, curr_msg_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db__(msg, context, curr_msg_id) ) {
-			goto cleanup;
-		}
-
-		if( (list=dc_get_chat_media__(context, msg->m_chat_id, msg->m_type, 0))==NULL ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( (list=dc_get_chat_media(context, msg->m_chat_id, msg->m_type, 0))==NULL ) {
+		goto cleanup;
+	}
 
 	cnt = dc_array_get_cnt(list);
 	for( i = 0; i < cnt; i++ ) {
@@ -1026,7 +968,6 @@ uint32_t dc_get_next_media(dc_context_t* context, uint32_t curr_msg_id, int dir)
 
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_array_unref(list);
 	dc_msg_unref(msg);
 	return ret_msg_id;
@@ -1055,9 +996,8 @@ dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 {
 	/* Normal chats do not include SELF.  Group chats do (as it may happen that one is deleted from a
 	groupchat but the chats stays visible, moreover, this makes displaying lists easier) */
-	int           locked = 0;
 	dc_array_t*   ret = dc_array_new(context, 100);
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -1067,22 +1007,18 @@ dc_array_t* dc_get_chat_contacts(dc_context_t* context, uint32_t chat_id)
 		goto cleanup; /* we could also create a list for all contacts in the deaddrop by searching contacts belonging to chats with chats.blocked=2, however, currently this is not needed */
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY,
-			"SELECT cc.contact_id FROM chats_contacts cc"
-				" LEFT JOIN contacts c ON c.id=cc.contact_id"
-				" WHERE cc.chat_id=?"
-				" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
-		sqlite3_bind_int(stmt, 1, chat_id);
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT cc.contact_id FROM chats_contacts cc"
+			" LEFT JOIN contacts c ON c.id=cc.contact_id"
+			" WHERE cc.chat_id=?"
+			" ORDER BY c.id=1, LOWER(c.name||c.addr), c.id;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -1097,7 +1033,7 @@ cleanup:
  */
 dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 {
-	int           show_deaddrop, success = 0, locked = 0;
+	int           show_deaddrop, success = 0;
 	dc_array_t*   ret = dc_array_new(context, 128);
 	sqlite3_stmt* stmt = NULL;
 
@@ -1105,31 +1041,25 @@ dc_array_t* dc_get_fresh_msgs(dc_context_t* context)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
 
-		show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT m.id"
+			" FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" LEFT JOIN chats c ON m.chat_id=c.id"
+			" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
+			" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
+	sqlite3_bind_int(stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
 
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh,
-			"SELECT m.id"
-				" FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.state=" DC_STRINGIFY(DC_STATE_IN_FRESH) " AND ct.blocked=0 AND (c.blocked=0 OR c.blocked=?)"
-				" ORDER BY m.timestamp DESC,m.id DESC;"); /* the list starts with the newest messages*/
-		sqlite3_bind_int(stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 
 	if( success ) {
 		return ret;
@@ -1161,7 +1091,7 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 {
 	//clock_t       start = clock();
 
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_array_t*   ret = dc_array_new(context, 512);
 	sqlite3_stmt* stmt = NULL;
 
@@ -1175,75 +1105,69 @@ dc_array_t* dc_get_chat_msgs(dc_context_t* context, uint32_t chat_id, uint32_t f
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( chat_id == DC_CHAT_ID_DEADDROP )
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				" LEFT JOIN chats ON m.chat_id=chats.id"
+				" LEFT JOIN contacts ON m.from_id=contacts.id"
+				" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
+				"   AND m.hidden=0 "
+				"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
+				"   AND contacts.blocked=0"
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+	}
+	else if( chat_id == DC_CHAT_ID_STARRED )
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.starred=1 "
+				"   AND m.hidden=0 "
+				"   AND ct.blocked=0"
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+	}
+	else
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp"
+				" FROM msgs m"
+				//" LEFT JOIN contacts ct ON m.from_id=ct.id"
+				" WHERE m.chat_id=? "
+				"   AND m.hidden=0 "
+				//"   AND ct.blocked=0" -- we hide blocked-contacts from starred and deaddrop, but we have to show them in groups (otherwise it may be hard to follow conversation, wa and tg do the same. however, maybe this needs discussion some time :)
+				" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
+		sqlite3_bind_int(stmt, 1, chat_id);
+	}
 
-		if( chat_id == DC_CHAT_ID_DEADDROP )
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_chats_contacts_WHERE_blocked,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					" LEFT JOIN chats ON m.chat_id=chats.id"
-					" LEFT JOIN contacts ON m.from_id=contacts.id"
-					" WHERE m.from_id!=" DC_STRINGIFY(DC_CONTACT_ID_SELF)
-					"   AND m.hidden=0 "
-					"   AND chats.blocked=" DC_STRINGIFY(DC_CHAT_DEADDROP_BLOCKED)
-					"   AND contacts.blocked=0"
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		}
-		else if( chat_id == DC_CHAT_ID_STARRED )
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.starred=1 "
-					"   AND m.hidden=0 "
-					"   AND ct.blocked=0"
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-		}
-		else
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c,
-				"SELECT m.id, m.timestamp"
-					" FROM msgs m"
-					//" LEFT JOIN contacts ct ON m.from_id=ct.id"
-					" WHERE m.chat_id=? "
-					"   AND m.hidden=0 "
-					//"   AND ct.blocked=0" -- we hide blocked-contacts from starred and deaddrop, but we have to show them in groups (otherwise it may be hard to follow conversation, wa and tg do the same. however, maybe this needs discussion some time :)
-					" ORDER BY m.timestamp,m.id;"); /* the list starts with the oldest message*/
-			sqlite3_bind_int(stmt, 1, chat_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW )
+	{
+		curr_id = sqlite3_column_int(stmt, 0);
+
+		/* add user marker */
+		if( curr_id == marker1before ) {
+			dc_array_add_id(ret, DC_MSG_ID_MARKER1);
 		}
 
-		while( sqlite3_step(stmt) == SQLITE_ROW )
-		{
-			curr_id = sqlite3_column_int(stmt, 0);
-
-			/* add user marker */
-			if( curr_id == marker1before ) {
-				dc_array_add_id(ret, DC_MSG_ID_MARKER1);
+		/* add daymarker, if needed */
+		if( flags&DC_GCM_ADDDAYMARKER ) {
+			curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
+			curr_day = curr_local_timestamp/SECONDS_PER_DAY;
+			if( curr_day != last_day ) {
+				dc_array_add_id(ret, DC_MSG_ID_DAYMARKER);
+				last_day = curr_day;
 			}
-
-			/* add daymarker, if needed */
-			if( flags&DC_GCM_ADDDAYMARKER ) {
-				curr_local_timestamp = (time_t)sqlite3_column_int64(stmt, 1) + cnv_to_local;
-				curr_day = curr_local_timestamp/SECONDS_PER_DAY;
-				if( curr_day != last_day ) {
-					dc_array_add_id(ret, DC_MSG_ID_DAYMARKER);
-					last_day = curr_day;
-				}
-			}
-
-			dc_array_add_id(ret, curr_id);
 		}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+		dc_array_add_id(ret, curr_id);
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 
 	//dc_log_info(context, 0, "Message list for chat #%i created in %.3f ms.", chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 
@@ -1280,7 +1204,7 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 {
 	//clock_t       start = clock();
 
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_array_t*   ret = dc_array_new(context, 100);
 	char*         strLikeInText = NULL, *strLikeBeg=NULL, *real_query = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -1299,60 +1223,53 @@ dc_array_t* dc_search_msgs(dc_context_t* context, uint32_t chat_id, const char* 
 	strLikeInText = dc_mprintf("%%%s%%", real_query);
 	strLikeBeg = dc_mprintf("%s%%", real_query); /*for the name search, we use "Name%" which is fast as it can use the index ("%Name%" could not). */
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	/* Incremental search with "LIKE %query%" cannot take advantages from any index
+	("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
+	An alternative may be the FULLTEXT sqlite stuff, however, this does not really help with incremental search.
+	An extra table with all words and a COLLATE NOCASE indexes may help, however,
+	this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
+	For now, we just expect the following query to be fast enough :-) */
+	if( chat_id ) {
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" WHERE m.chat_id=? "
+				" AND m.hidden=0 "
+				" AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
+			" ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
+		sqlite3_bind_int (stmt, 1, chat_id);
+		sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
+	}
+	else {
+		int show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.id, m.timestamp FROM msgs m"
+			" LEFT JOIN contacts ct ON m.from_id=ct.id"
+			" LEFT JOIN chats c ON m.chat_id=c.id"
+			" WHERE m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
+				" AND m.hidden=0 "
+				" AND (c.blocked=0 OR c.blocked=?)"
+				" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
+			" ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
+		sqlite3_bind_int (stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
+		sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
+	}
 
-		/* Incremental search with "LIKE %query%" cannot take advantages from any index
-		("query%" could for COLLATE NOCASE indexes, see http://www.sqlite.org/optoverview.html#like_opt )
-		An alternative may be the FULLTEXT sqlite stuff, however, this does not really help with incremental search.
-		An extra table with all words and a COLLATE NOCASE indexes may help, however,
-		this must be updated all the time and probably consumes more time than we can save in tenthousands of searches.
-		For now, we just expect the following query to be fast enough :-) */
-		if( chat_id ) {
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_WHERE_chat_id_AND_query,
-				"SELECT m.id, m.timestamp FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" WHERE m.chat_id=? "
-					" AND m.hidden=0 "
-					" AND ct.blocked=0 AND (txt LIKE ? OR ct.name LIKE ?)"
-				" ORDER BY m.timestamp,m.id;"); /* chats starts with the oldest message*/
-			sqlite3_bind_int (stmt, 1, chat_id);
-			sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
-		}
-		else {
-			int show_deaddrop = 0;//dc_sqlite3_get_config_int__(context->m_sql, "show_deaddrop", 0);
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_i_FROM_msgs_WHERE_query,
-				"SELECT m.id, m.timestamp FROM msgs m"
-				" LEFT JOIN contacts ct ON m.from_id=ct.id"
-				" LEFT JOIN chats c ON m.chat_id=c.id"
-				" WHERE m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
-					" AND m.hidden=0 "
-					" AND (c.blocked=0 OR c.blocked=?)"
-					" AND ct.blocked=0 AND (m.txt LIKE ? OR ct.name LIKE ?)"
-				" ORDER BY m.timestamp DESC,m.id DESC;"); /* chat overview starts with the newest message*/
-			sqlite3_bind_int (stmt, 1, show_deaddrop? DC_CHAT_DEADDROP_BLOCKED : 0);
-			sqlite3_bind_text(stmt, 2, strLikeInText, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 3, strLikeBeg, -1, SQLITE_STATIC);
-		}
-
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	free(strLikeInText);
 	free(strLikeBeg);
 	free(real_query);
+	sqlite3_finalize(stmt);
 
 	//dc_log_info(context, 0, "Message list for search \"%s\" in chat #%i created in %.3f ms.", query, chat_id, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-
 
 	if( success ) {
 		return ret;
@@ -1424,30 +1341,12 @@ cleanup:
 }
 
 
-int dc_get_fresh_msg_count__(dc_context_t* context, uint32_t chat_id)
+uint32_t dc_get_last_deaddrop_fresh_msg(dc_context_t* context)
 {
+	uint32_t      ret = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id,
-		"SELECT COUNT(*) FROM msgs "
-		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH)
-		"   AND hidden=0 "
-		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
-	sqlite3_bind_int(stmt, 1, chat_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	return sqlite3_column_int(stmt, 0);
-}
-
-
-uint32_t dc_get_last_deaddrop_fresh_msg__(dc_context_t* context)
-{
-	sqlite3_stmt* stmt = NULL;
-
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_msgs_WHERE_fresh_AND_deaddrop,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT m.id "
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
@@ -1457,51 +1356,44 @@ uint32_t dc_get_last_deaddrop_fresh_msg__(dc_context_t* context)
 		" ORDER BY m.timestamp DESC, m.id DESC;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-int dc_get_total_msg_count__(dc_context_t* context, uint32_t chat_id)
+size_t dc_get_chat_cnt(dc_context_t* context)
 {
+	size_t        ret = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_chat_id,
-		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
-	}
-
-	return sqlite3_column_int(stmt, 0);
-}
-
-
-size_t dc_get_chat_cnt__(dc_context_t* context)
-{
-	sqlite3_stmt* stmt;
-
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0; /* no database, no chats - this is no error (needed eg. for information) */
+		goto cleanup; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) " AND blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-void dc_lookup_real_nchat_by_contact_id__(dc_context_t* context, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked)
+void dc_lookup_real_nchat_by_contact_id(dc_context_t* context, uint32_t contact_id, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	/* checks for "real" chats or self-chat */
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( ret_chat_id )      { *ret_chat_id = 0;      }
 	if( ret_chat_blocked ) { *ret_chat_blocked = 0; }
@@ -1510,25 +1402,25 @@ void dc_lookup_real_nchat_by_contact_id__(dc_context_t* context, uint32_t contac
 		return; /* no database, no chats - this is no error (needed eg. for information) */
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_chats_WHERE_contact_id,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT c.id, c.blocked"
 			" FROM chats c"
 			" INNER JOIN chats_contacts j ON c.id=j.chat_id"
 			" WHERE c.type=" DC_STRINGIFY(DC_CHAT_TYPE_SINGLE) " AND c.id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) " AND j.contact_id=?;");
 	sqlite3_bind_int(stmt, 1, contact_id);
-
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
 		if( ret_chat_id )      { *ret_chat_id      = sqlite3_column_int(stmt, 0); }
 		if( ret_chat_blocked ) { *ret_chat_blocked = sqlite3_column_int(stmt, 1); }
 	}
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
+void dc_create_or_lookup_nchat_by_contact_id(dc_context_t* context, uint32_t contact_id, int create_blocked, uint32_t* ret_chat_id, int* ret_chat_blocked)
 {
 	uint32_t      chat_id = 0;
 	int           chat_blocked = 0;
-	dc_contact_t*  contact = NULL;
+	dc_contact_t* contact = NULL;
 	char*         chat_name;
 	char*         q = NULL;
 	sqlite3_stmt* stmt = NULL;
@@ -1544,7 +1436,7 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 		return;
 	}
 
-	dc_lookup_real_nchat_by_contact_id__(context, contact_id, &chat_id, &chat_blocked);
+	dc_lookup_real_nchat_by_contact_id(context, contact_id, &chat_id, &chat_blocked);
 	if( chat_id != 0 ) {
 		if( ret_chat_id )      { *ret_chat_id      = chat_id;      }
 		if( ret_chat_blocked ) { *ret_chat_blocked = chat_blocked; }
@@ -1553,15 +1445,15 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 
 	/* get fine chat name */
 	contact = dc_contact_new(context);
-	if( !dc_contact_load_from_db__(contact, context->m_sql, contact_id) ) {
+	if( !dc_contact_load_from_db(contact, context->m_sql, contact_id) ) {
 		goto cleanup;
 	}
 
 	chat_name = (contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr;
 
-	/* create chat record */
-	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked) VALUES(%i, %Q, %Q, %i)", DC_CHAT_TYPE_SINGLE, chat_name,
-		contact_id==DC_CONTACT_ID_SELF? "K=1" : "", create_blocked);
+	/* create chat record; the grpid is only used to make dc_sqlite3_get_rowid() work (we cannot use last_insert_id() due multi-threading) */
+	q = sqlite3_mprintf("INSERT INTO chats (type, name, param, blocked, grpid) VALUES(%i, %Q, %Q, %i, %Q)", DC_CHAT_TYPE_SINGLE, chat_name,
+		contact_id==DC_CONTACT_ID_SELF? "K=1" : "", create_blocked, contact->m_addr);
 	assert( DC_PARAM_SELFTALK == 'K' );
 	stmt = dc_sqlite3_prepare(context->m_sql, q);
 	if( stmt == NULL) {
@@ -1572,14 +1464,14 @@ void dc_create_or_lookup_nchat_by_contact_id__(dc_context_t* context, uint32_t c
 		goto cleanup;
     }
 
-    chat_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+    chat_id = dc_sqlite3_get_rowid(context->m_sql, "chats", "grpid", contact->m_addr);
 
 	sqlite3_free(q);
 	q = NULL;
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	/* add contact IDs to the new chat record (may be replaced by dc_add_to_chat_contacts_table__()) */
+	/* add contact IDs to the new chat record (may be replaced by dc_add_to_chat_contacts_table()) */
 	q = sqlite3_mprintf("INSERT INTO chats_contacts (chat_id, contact_id) VALUES(%i, %i)", chat_id, contact_id);
 	stmt = dc_sqlite3_prepare(context->m_sql, q);
 
@@ -1602,11 +1494,13 @@ cleanup:
 }
 
 
-void dc_unarchive_chat__(dc_context_t* context, uint32_t chat_id)
+void dc_unarchive_chat(dc_context_t* context, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_chats_SET_unarchived, "UPDATE chats SET archived=0 WHERE id=?");
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+	    "UPDATE chats SET archived=0 WHERE id=?");
 	sqlite3_bind_int (stmt, 1, chat_id);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -1621,16 +1515,24 @@ void dc_unarchive_chat__(dc_context_t* context, uint32_t chat_id)
  */
 int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
 {
-	int ret;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		ret = dc_get_total_msg_count__(context, chat_id);
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM msgs WHERE chat_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
 
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -1646,16 +1548,28 @@ int dc_get_total_msg_count(dc_context_t* context, uint32_t chat_id)
  */
 int dc_get_fresh_msg_count(dc_context_t* context, uint32_t chat_id)
 {
-	int ret;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		ret = dc_get_fresh_msg_count__(context, chat_id);
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM msgs "
+		" WHERE state=" DC_STRINGIFY(DC_STATE_IN_FRESH)
+		"   AND hidden=0 "
+		"   AND chat_id=?;"); /* we have an index over the state-column, this should be sufficient as there are typically only few fresh messages */
+	sqlite3_bind_int(stmt, 1, chat_id);
 
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
+
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -1684,13 +1598,12 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "UPDATE chats SET archived=? WHERE id=?;");
-		sqlite3_bind_int  (stmt, 1, archive);
-		sqlite3_bind_int  (stmt, 2, chat_id);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-	dc_sqlite3_unlock(context->m_sql);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+		"UPDATE chats SET archived=? WHERE id=?;");
+	sqlite3_bind_int  (stmt, 1, archive);
+	sqlite3_bind_int  (stmt, 2, chat_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 }
@@ -1730,7 +1643,7 @@ void dc_archive_chat(dc_context_t* context, uint32_t chat_id, int archive)
 void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 {
 	/* Up to 2017-11-02 deleting a group also implied leaving it, see above why we have changed this. */
-	int        locked = 0, pending_transaction = 0;
+	int        pending_transaction = 0;
 	dc_chat_t* obj = dc_chat_new(context);
 	char*      q3 = NULL;
 
@@ -1738,14 +1651,11 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-        if( !dc_chat_load_from_db__(obj, chat_id) ) {
+        if( !dc_chat_load_from_db(obj, chat_id) ) {
 			goto cleanup;
         }
 
-		dc_sqlite3_begin_transaction__(context->m_sql);
+		dc_sqlite3_begin_transaction(context->m_sql);
 		pending_transaction = 1;
 
 			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
@@ -1776,17 +1686,13 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 			sqlite3_free(q3);
 			q3 = NULL;
 
-		dc_sqlite3_commit__(context->m_sql);
+		dc_sqlite3_commit(context->m_sql);
 		pending_transaction = 0;
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 cleanup:
-	if( pending_transaction ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	if( pending_transaction ) { dc_sqlite3_rollback(context->m_sql); }
 	dc_chat_unref(obj);
 	sqlite3_free(q3);
 }
@@ -1800,7 +1706,7 @@ cleanup:
 static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 {
 	int last_is_encrypted = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(sql, SELECT_param_FROM_msgs,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql,
 		"SELECT param "
 		" FROM msgs "
 		" WHERE timestamp=(SELECT MAX(timestamp) FROM msgs WHERE chat_id=?) "
@@ -1814,14 +1720,15 @@ static int last_msg_in_chat_encrypted(dc_sqlite3_t* sql, uint32_t chat_id)
 		}
 		dc_param_unref(msg_param);
 	}
+	sqlite3_finalize(stmt);
 	return last_is_encrypted;
 }
 
 
-static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
+static uint32_t dc_send_msg_raw(dc_context_t* context, dc_chat_t* chat, const dc_msg_t* msg, time_t timestamp)
 {
 	char*         rfc724_mid = NULL;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 	uint32_t      msg_id = 0, to_id = 0;
 
 	if( !DC_CHAT_TYPE_CAN_SEND(chat->m_type) ) {
@@ -1829,7 +1736,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 		goto cleanup;
 	}
 
-	if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) && !dc_is_contact_in_chat__(context, chat->m_id, DC_CONTACT_ID_SELF) ) {
+	if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) && !dc_is_contact_in_chat(context, chat->m_id, DC_CONTACT_ID_SELF) ) {
 		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 		goto cleanup;
 	}
@@ -1846,7 +1753,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 
 	if( chat->m_type == DC_CHAT_TYPE_SINGLE )
 	{
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_c_FROM_chats_contacts_WHERE_c,
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT contact_id FROM chats_contacts WHERE chat_id=?;");
 		sqlite3_bind_int(stmt, 1, chat->m_id);
 		if( sqlite3_step(stmt) != SQLITE_ROW ) {
@@ -1854,13 +1761,15 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 			goto cleanup;
 		}
 		to_id = sqlite3_column_int(stmt, 0);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
 		if( dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
 			/* mark group as being no longer unpromoted */
 			dc_param_set(chat->m_param, DC_PARAM_UNPROMOTED, NULL);
-			dc_chat_update_param__(chat);
+			dc_chat_update_param(chat);
 		}
 	}
 
@@ -1869,7 +1778,7 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	if( context->m_e2ee_enabled && dc_param_get_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, 0)==0 )
 	{
 		int can_encrypt = 1, all_mutual = 1; /* be optimistic */
-		sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc,
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"SELECT ps.prefer_encrypted "
 			 " FROM chats_contacts cc "
 			 " LEFT JOIN contacts c ON cc.contact_id=c.id "
@@ -1891,6 +1800,8 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 				}
 			}
 		}
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 
 		if( can_encrypt )
 		{
@@ -1911,10 +1822,10 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 	dc_param_set(msg->m_param, DC_PARAM_ERRONEOUS_E2EE, NULL); /* reset eg. on forwarding */
 
 	/* add message to the database */
-	stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_mcftttstpb,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO msgs (rfc724_mid,chat_id,from_id,to_id, timestamp,type,state, txt,param,hidden) VALUES (?,?,?,?, ?,?,?, ?,?,?);");
 	sqlite3_bind_text (stmt,  1, rfc724_mid, -1, SQLITE_STATIC);
-	sqlite3_bind_int  (stmt,  2, DC_CHAT_ID_MSGS_IN_CREATION);
+	sqlite3_bind_int  (stmt,  2, chat->m_id);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_SELF);
 	sqlite3_bind_int  (stmt,  4, to_id);
 	sqlite3_bind_int64(stmt,  5, timestamp);
@@ -1928,14 +1839,12 @@ static uint32_t dc_send_msg_i__(dc_context_t* context, dc_chat_t* chat, const dc
 		goto cleanup;
 	}
 
-	msg_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
-
-	/* finalize message object on database, we set the chat ID late as we don't know it sooner */
-	dc_update_msg_chat_id__(context, msg_id, chat->m_id);
+	msg_id = dc_sqlite3_get_rowid(context->m_sql, "msgs", "rfc724_mid", rfc724_mid);
 	dc_job_add(context, DC_JOB_SEND_MSG_TO_SMTP, msg_id, NULL, 0);
 
 cleanup:
 	free(rfc724_mid);
+	sqlite3_finalize(stmt);
 	return msg_id;
 }
 
@@ -1962,8 +1871,8 @@ cleanup:
  */
 uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* msg)
 {
-	int   locked = 0, transaction_pending = 0;
-	char* pathNfilename = NULL;
+	char*      pathNfilename = NULL;
+	dc_chat_t* chat = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg == NULL || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		return 0;
@@ -2046,36 +1955,22 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
-	transaction_pending = 1;
+	dc_unarchive_chat(context, chat_id);
 
-		dc_unarchive_chat__(context, chat_id);
+	context->m_smtp->m_log_connect_errors = 1;
 
-		context->m_smtp->m_log_connect_errors = 1;
-
-		{
-			dc_chat_t* chat = dc_chat_new(context);
-			if( dc_chat_load_from_db__(chat, chat_id) ) {
-				msg->m_id = dc_send_msg_i__(context, chat, msg, dc_create_smeared_timestamp__());
-				if( msg ->m_id == 0 ) {
-					goto cleanup; /* error already logged */
-				}
-			}
-			dc_chat_unref(chat);
+	chat = dc_chat_new(context);
+	if( dc_chat_load_from_db(chat, chat_id) ) {
+		msg->m_id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp__());
+		if( msg ->m_id == 0 ) {
+			goto cleanup; /* error already logged */
 		}
-
-	dc_sqlite3_commit__(context->m_sql);
-	transaction_pending = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	}
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	dc_chat_unref(chat);
 	free(pathNfilename);
 	return msg->m_id;
 }
@@ -2375,61 +2270,40 @@ cleanup:
 }
 
 
-/* similar to dc_add_device_msg() but without locking and without sending
- * an event.
- */
-uint32_t dc_add_device_msg__(dc_context_t* context, uint32_t chat_id, const char* text, time_t timestamp)
-{
-	sqlite3_stmt* stmt = NULL;
-
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || text == NULL ) {
-		return 0;
-	}
-
-	stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_cftttst,
-		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt) VALUES (?,?,?, ?,?,?, ?);");
-	sqlite3_bind_int  (stmt,  1, chat_id);
-	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
-	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
-	sqlite3_bind_int64(stmt,  4, timestamp);
-	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
-	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
-	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
-		return 0;
-	}
-
-	return sqlite3_last_insert_rowid(context->m_sql->m_cobj);
-}
-
-
 /*
  * Log a device message.
  * Such a message is typically shown in the "middle" of the chat, the user can check this using dc_msg_is_info().
  * Texts are typically "Alice has added Bob to the group" or "Alice fingerprint verified."
  */
-uint32_t dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text)
+void dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text)
 {
 	uint32_t      msg_id = 0;
-	int           locked = 0;
+	sqlite3_stmt* stmt = NULL;
+	char*         rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, "@device");
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || text == NULL ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		dc_add_device_msg__(context, chat_id, text, dc_create_smeared_timestamp__());
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
-
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"INSERT INTO msgs (chat_id,from_id,to_id, timestamp,type,state, txt,rfc724_mid) VALUES (?,?,?, ?,?,?, ?,?);");
+	sqlite3_bind_int  (stmt,  1, chat_id);
+	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
+	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
+	sqlite3_bind_int64(stmt,  4, dc_create_smeared_timestamp__());
+	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
+	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
+	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt,  8, rfc724_mid,  -1, SQLITE_STATIC);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto cleanup;
+	}
+	msg_id = dc_sqlite3_get_rowid(context->m_sql, "msgs", "rfc724_mid", rfc724_mid);
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg_id);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
-	return msg_id;
+	free(rfc724_mid);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -2438,21 +2312,23 @@ cleanup:
  ******************************************************************************/
 
 
-#define IS_SELF_IN_GROUP__ (dc_is_contact_in_chat__(context, chat_id, DC_CONTACT_ID_SELF)==1)
+#define IS_SELF_IN_GROUP     (dc_is_contact_in_chat(context, chat_id, DC_CONTACT_ID_SELF)==1)
 #define DO_SEND_STATUS_MAILS (dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==0)
 
 
-int dc_is_group_explicitly_left__(dc_context_t* context, const char* grpid)
+int dc_is_group_explicitly_left(dc_context_t* context, const char* grpid)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_FROM_leftgrps_WHERE_grpid, "SELECT id FROM leftgrps WHERE grpid=?;");
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM leftgrps WHERE grpid=?;");
 	sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
-	return (sqlite3_step(stmt)==SQLITE_ROW);
+	int ret = (sqlite3_step(stmt)==SQLITE_ROW);
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-void dc_set_group_explicitly_left__(dc_context_t* context, const char* grpid)
+void dc_set_group_explicitly_left(dc_context_t* context, const char* grpid)
 {
-	if( !dc_is_group_explicitly_left__(context, grpid) )
+	if( !dc_is_group_explicitly_left(context, grpid) )
 	{
 		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql, "INSERT INTO leftgrps (grpid) VALUES(?);");
 		sqlite3_bind_text (stmt, 1, grpid, -1, SQLITE_STATIC);
@@ -2462,10 +2338,10 @@ void dc_set_group_explicitly_left__(dc_context_t* context, const char* grpid)
 }
 
 
-static int dc_real_group_exists__(dc_context_t* context, uint32_t chat_id)
+static int dc_real_group_exists(dc_context_t* context, uint32_t chat_id)
 {
 	// check if a group or a verified group exists under the given ID
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 	int           ret = 0;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL
@@ -2473,28 +2349,31 @@ static int dc_real_group_exists__(dc_context_t* context, uint32_t chat_id)
 		return 0;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_chats_WHERE_id,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id FROM chats "
 		" WHERE id=? "
 		"   AND (type=" DC_STRINGIFY(DC_CHAT_TYPE_GROUP) " OR type=" DC_STRINGIFY(DC_CHAT_TYPE_VERIFIED_GROUP) ");");
 	sqlite3_bind_int(stmt, 1, chat_id);
-
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
 		ret = 1;
 	}
+	sqlite3_finalize(stmt);
 
 	return ret;
 }
 
 
-int dc_add_to_chat_contacts_table__(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
+int dc_add_to_chat_contacts_table(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
 {
 	/* add a contact to a chat; the function does not check the type or if any of the record exist or are already added to the chat! */
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_chats_contacts,
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"INSERT INTO chats_contacts (chat_id, contact_id) VALUES(?, ?)");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, contact_id);
-	return (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
+	ret = (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -2524,7 +2403,6 @@ int dc_add_to_chat_contacts_table__(dc_context_t* context, uint32_t chat_id, uin
 uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* chat_name)
 {
 	uint32_t      chat_id = 0;
-	int           locked = 0;
 	char*         draft_txt = NULL, *grpid = NULL;
 	sqlite3_stmt* stmt = NULL;
 
@@ -2532,33 +2410,29 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		return 0;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	draft_txt = dc_stock_str_repl_string(DC_STR_NEWGROUPDRAFT, chat_name);
+	grpid = dc_create_id();
 
-		draft_txt = dc_stock_str_repl_string(DC_STR_NEWGROUPDRAFT, chat_name);
-		grpid = dc_create_id();
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/ );
+	sqlite3_bind_int  (stmt, 1, verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
+	sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 3, time(NULL));
+	sqlite3_bind_text (stmt, 4, draft_txt, -1, SQLITE_STATIC);
+	sqlite3_bind_text (stmt, 5, grpid, -1, SQLITE_STATIC);
+	if(  sqlite3_step(stmt)!=SQLITE_DONE ) {
+		goto cleanup;
+	}
 
-		stmt = dc_sqlite3_prepare(context->m_sql,
-			"INSERT INTO chats (type, name, draft_timestamp, draft_txt, grpid, param) VALUES(?, ?, ?, ?, ?, 'U=1');" /*U=DC_PARAM_UNPROMOTED*/ );
-		sqlite3_bind_int  (stmt, 1, verified? DC_CHAT_TYPE_VERIFIED_GROUP : DC_CHAT_TYPE_GROUP);
-		sqlite3_bind_text (stmt, 2, chat_name, -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 3, time(NULL));
-		sqlite3_bind_text (stmt, 4, draft_txt, -1, SQLITE_STATIC);
-		sqlite3_bind_text (stmt, 5, grpid, -1, SQLITE_STATIC);
-		if(  sqlite3_step(stmt)!=SQLITE_DONE ) {
-			goto cleanup;
-		}
+	if( (chat_id=dc_sqlite3_get_rowid(context->m_sql, "chats", "grpid", grpid)) == 0 ) {
+		goto cleanup;
+	}
 
-		if( (chat_id=sqlite3_last_insert_rowid(context->m_sql->m_cobj)) == 0 ) {
-			goto cleanup;
-		}
-
-		if( dc_add_to_chat_contacts_table__(context, chat_id, DC_CONTACT_ID_SELF) ) {
-			goto cleanup;
-		}
+	if( dc_add_to_chat_contacts_table(context, chat_id, DC_CONTACT_ID_SELF) ) {
+		goto cleanup;
+	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	free(draft_txt);
 	free(grpid);
@@ -2588,7 +2462,7 @@ cleanup:
 int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_name)
 {
 	/* the function only sets the names of group chats; normal chats get their names from the contacts */
-	int        success = 0, locked = 0;
+	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
 	dc_msg_t*  msg = dc_msg_new();
 	char*      q3 = NULL;
@@ -2597,31 +2471,25 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( 0==dc_real_group_exists(context, chat_id)
+	 || 0==dc_chat_load_from_db(chat, chat_id) ) {
+		goto cleanup;
+	}
 
-		if( 0==dc_real_group_exists__(context, chat_id)
-		 || 0==dc_chat_load_from_db__(chat, chat_id) ) {
-			goto cleanup;
-		}
+	if( strcmp(chat->m_name, new_name)==0 ) {
+		success = 1;
+		goto cleanup; /* name not modified */
+	}
 
-		if( strcmp(chat->m_name, new_name)==0 ) {
-			success = 1;
-			goto cleanup; /* name not modified */
-		}
+	if( !IS_SELF_IN_GROUP ) {
+		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+	}
 
-		if( !IS_SELF_IN_GROUP__ ) {
-			dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
-			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
-		}
-
-		q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", new_name, chat_id);
-		if( !dc_sqlite3_execute(context->m_sql, q3) ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	q3 = sqlite3_mprintf("UPDATE chats SET name=%Q WHERE id=%i;", new_name, chat_id);
+	if( !dc_sqlite3_execute(context->m_sql, q3) ) {
+		goto cleanup;
+	}
 
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
@@ -2637,7 +2505,6 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_free(q3);
 	dc_chat_unref(chat);
 	dc_msg_unref(msg);
@@ -2664,7 +2531,7 @@ cleanup:
  */
 int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const char* new_image /*NULL=remove image*/)
 {
-	int        success = 0, locked = 0;;
+	int        success = 0;
 	dc_chat_t* chat = dc_chat_new(context);
 	dc_msg_t*  msg = dc_msg_new();
 
@@ -2672,26 +2539,20 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( 0==dc_real_group_exists(context, chat_id)
+	 || 0==dc_chat_load_from_db(chat, chat_id) ) {
+		goto cleanup;
+	}
 
-		if( 0==dc_real_group_exists__(context, chat_id)
-		 || 0==dc_chat_load_from_db__(chat, chat_id) ) {
-			goto cleanup;
-		}
+	if( !IS_SELF_IN_GROUP ) {
+		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+	}
 
-		if( !IS_SELF_IN_GROUP__ ) {
-			dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
-			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
-		}
-
-		dc_param_set(chat->m_param, DC_PARAM_PROFILE_IMAGE, new_image/*may be NULL*/);
-		if( !dc_chat_update_param__(chat) ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	dc_param_set(chat->m_param, DC_PARAM_PROFILE_IMAGE, new_image/*may be NULL*/);
+	if( !dc_chat_update_param(chat) ) {
+		goto cleanup;
+	}
 
 	/* send a status mail to all group members, also needed for outself to allow multi-client */
 	if( DO_SEND_STATUS_MAILS )
@@ -2708,32 +2569,23 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_chat_unref(chat);
 	dc_msg_unref(msg);
 	return success;
 }
 
 
-int dc_get_chat_contact_count__(dc_context_t* context, uint32_t chat_id)
+int dc_get_chat_contact_count(dc_context_t* context, uint32_t chat_id)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id,
+	int ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM chats_contacts WHERE chat_id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	if( sqlite3_step(stmt) == SQLITE_ROW ) {
-		return sqlite3_column_int(stmt, 0);
+		ret = sqlite3_column_int(stmt, 0);
 	}
-	return 0;
-}
-
-
-int dc_is_contact_in_chat__(dc_context_t* context, uint32_t chat_id, uint32_t contact_id)
-{
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id,
-		"SELECT contact_id FROM chats_contacts WHERE chat_id=? AND contact_id=?;");
-	sqlite3_bind_int(stmt, 1, chat_id);
-	sqlite3_bind_int(stmt, 2, contact_id);
-	return (sqlite3_step(stmt) == SQLITE_ROW)? 1 : 0;
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -2751,25 +2603,28 @@ int dc_is_contact_in_chat(dc_context_t* context, uint32_t chat_id, uint32_t cont
 {
 	/* this function works for group and for normal chats, however, it is more useful for group chats.
 	DC_CONTACT_ID_SELF may be used to check, if the user itself is in a group chat (DC_CONTACT_ID_SELF is not added to normal chats) */
-	int ret = 0;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
-		return 0;
+		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT contact_id FROM chats_contacts WHERE chat_id=? AND contact_id=?;");
+	sqlite3_bind_int(stmt, 1, chat_id);
+	sqlite3_bind_int(stmt, 2, contact_id);
+	ret = (sqlite3_step(stmt) == SQLITE_ROW)? 1 : 0;
 
-		ret = dc_is_contact_in_chat__(context, chat_id, contact_id);
-
-	dc_sqlite3_unlock(context->m_sql);
-
+cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
 
 int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t contact_id, int flags)
 {
-	int              success   = 0, locked = 0;
+	int              success   = 0;
 	dc_contact_t*    contact   = dc_get_contact(context, contact_id);
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	dc_chat_t*       chat      = dc_chat_new(context);
@@ -2780,16 +2635,13 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		if( 0==dc_real_group_exists__(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
-		 || (0==dc_real_contact_exists__(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
-		 || 0==dc_chat_load_from_db__(chat, chat_id) ) {
+		if( 0==dc_real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
+		 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
+		 || 0==dc_chat_load_from_db(chat, chat_id) ) {
 			goto cleanup;
 		}
 
-		if( !IS_SELF_IN_GROUP__ ) {
+		if( !IS_SELF_IN_GROUP ) {
 			dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
 			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
 		}
@@ -2797,7 +2649,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		if( (flags&DC_FROM_HANDSHAKE) && dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0)==1 ) {
 			// after a handshake, force sending the `Chat-Group-Member-Added` message
 			dc_param_set(chat->m_param, DC_PARAM_UNPROMOTED, NULL);
-			dc_chat_update_param__(chat);
+			dc_chat_update_param(chat);
 		}
 
 		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", "");
@@ -2805,7 +2657,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			goto cleanup; /* ourself is added using DC_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
 		}
 
-		if( dc_is_contact_in_chat__(context, chat_id, contact_id) )
+		if( dc_is_contact_in_chat(context, chat_id, contact_id) )
 		{
 			if( !(flags&DC_FROM_HANDSHAKE) ) {
 				success = 1;
@@ -2817,20 +2669,17 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		{
 			if( chat->m_type == DC_CHAT_TYPE_VERIFIED_GROUP )
 			{
-				if( !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr)
+				if( !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr)
 				 || dc_contact_is_verified__(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
 					dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 					goto cleanup;
 				}
 			}
 
-			if( 0==dc_add_to_chat_contacts_table__(context, chat_id, contact_id) ) {
+			if( 0==dc_add_to_chat_contacts_table(context, chat_id, contact_id) ) {
 				goto cleanup;
 			}
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	/* send a status mail to all group members */
 	if( DO_SEND_STATUS_MAILS )
@@ -2848,7 +2697,6 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_chat_unref(chat);
 	dc_contact_unref(contact);
 	dc_apeerstate_unref(peerstate);
@@ -2896,7 +2744,7 @@ int dc_add_contact_to_chat(dc_context_t* context, uint32_t chat_id, uint32_t con
  */
 int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_t contact_id /*may be DC_CONTACT_ID_SELF*/)
 {
-	int           success = 0, locked = 0;
+	int           success = 0;
 	dc_contact_t* contact = dc_get_contact(context, contact_id);
 	dc_chat_t*    chat = dc_chat_new(context);
 	dc_msg_t*     msg = dc_msg_new();
@@ -2906,21 +2754,15 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 		goto cleanup; /* we do not check if "contact_id" exists but just delete all records with the id from chats_contacts */
 	}                 /* this allows to delete pending references to deleted contacts.  Of course, this should _not_ happen. */
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( 0==dc_real_group_exists(context, chat_id)
+	 || 0==dc_chat_load_from_db(chat, chat_id) ) {
+		goto cleanup;
+	}
 
-		if( 0==dc_real_group_exists__(context, chat_id)
-		 || 0==dc_chat_load_from_db__(chat, chat_id) ) {
-			goto cleanup;
-		}
-
-		if( !IS_SELF_IN_GROUP__ ) {
-			dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
-			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	if( !IS_SELF_IN_GROUP ) {
+		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+	}
 
 	/* send a status mail to all group members - we need to do this before we update the database -
 	otherwise the !IS_SELF_IN_GROUP__-check in dc_chat_send_msg() will fail. */
@@ -2930,7 +2772,7 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 		{
 			msg->m_type = DC_MSG_TEXT;
 			if( contact->m_id == DC_CONTACT_ID_SELF ) {
-				dc_set_group_explicitly_left__(context, chat->m_grpid);
+				dc_set_group_explicitly_left(context, chat->m_grpid);
 				msg->m_text = dc_stock_str(DC_STR_MSGGROUPLEFT);
 			}
 			else {
@@ -2943,23 +2785,16 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 		}
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
-		if( !dc_sqlite3_execute(context->m_sql, q3) ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i AND contact_id=%i;", chat_id, contact_id);
+	if( !dc_sqlite3_execute(context->m_sql, q3) ) {
+		goto cleanup;
+	}
 
 	context->m_cb(context, DC_EVENT_CHAT_MODIFIED, chat_id, 0);
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_free(q3);
 	dc_chat_unref(chat);
 	dc_contact_unref(contact);
@@ -2973,7 +2808,7 @@ cleanup:
  ******************************************************************************/
 
 
-int dc_real_contact_exists__(dc_context_t* context, uint32_t contact_id)
+int dc_real_contact_exists(dc_context_t* context, uint32_t contact_id)
 {
 	sqlite3_stmt* stmt = NULL;
 	int           ret = 0;
@@ -2997,7 +2832,7 @@ cleanup:
 }
 
 
-size_t dc_get_real_contact_cnt__(dc_context_t* context)
+size_t dc_get_real_contact_cnt(dc_context_t* context)
 {
 	size_t        ret = 0;
 	sqlite3_stmt* stmt = NULL;
@@ -3020,11 +2855,11 @@ cleanup:
 }
 
 
-uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
-                                           const char*  name /*can be NULL, the caller may use dc_normalize_name() before*/,
-                                           const char*  addr__,
-                                           int          origin,
-                                           int*         sth_modified )
+uint32_t dc_add_or_lookup_contact( dc_context_t* context,
+                                   const char*   name /*can be NULL, the caller may use dc_normalize_name() before*/,
+                                   const char*   addr__,
+                                   int           origin,
+                                   int*          sth_modified )
 {
 	#define       CONTACT_MODIFIED 1
 	#define       CONTACT_CREATED  2
@@ -3032,6 +2867,9 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 	uint32_t      row_id = 0;
 	int           dummy;
 	char*         addr = NULL;
+	char*         row_name = NULL;
+	char*         row_addr = NULL;
+	char*         row_authname = NULL;
 
 	if( sth_modified == NULL ) {
 		sth_modified = &dummy;
@@ -3055,22 +2893,24 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 
 	/* insert email-address to database or modify the record with the given email-address.
 	we treat all email-addresses case-insensitive. */
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_inao_FROM_contacts_a,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT id, name, addr, origin, authname FROM contacts WHERE addr=? COLLATE NOCASE;");
 	sqlite3_bind_text(stmt, 1, (const char*)addr, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		const char  *row_name, *row_addr, *row_authname;
+
 		int         row_origin, update_addr = 0, update_name = 0, update_authname = 0;
 
 		row_id       = sqlite3_column_int(stmt, 0);
-		row_name     = (const char*)sqlite3_column_text(stmt, 1); if( row_name == NULL ) { row_name = ""; }
-		row_addr     = (const char*)sqlite3_column_text(stmt, 2); if( row_addr == NULL ) { row_addr = addr; }
+		row_name     = dc_strdup((char*)sqlite3_column_text(stmt, 1));
+		row_addr     = dc_strdup((char*)sqlite3_column_text(stmt, 2));
 		row_origin   = sqlite3_column_int(stmt, 3);
-		row_authname = (const char*)sqlite3_column_text(stmt, 4); if( row_authname == NULL ) { row_authname = ""; }
+		row_authname = dc_strdup((char*)sqlite3_column_text(stmt, 4));
+		sqlite3_finalize (stmt);
+		stmt = NULL;
 
 		if( name && name[0] ) {
-			if( row_name && row_name[0] ) {
+			if( row_name[0] ) {
 				if( origin>=row_origin && strcmp(name, row_name)!=0 ) {
 					update_name = 1;
 				}
@@ -3090,7 +2930,7 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 
 		if( update_name || update_authname || update_addr || origin>row_origin )
 		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_contacts_nao_WHERE_i,
+			stmt = dc_sqlite3_prepare(context->m_sql,
 				"UPDATE contacts SET name=?, addr=?, origin=?, authname=? WHERE id=?;");
 			sqlite3_bind_text(stmt, 1, update_name?       name   : row_name, -1, SQLITE_STATIC);
 			sqlite3_bind_text(stmt, 2, update_addr?       addr   : row_addr, -1, SQLITE_STATIC);
@@ -3098,12 +2938,14 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 			sqlite3_bind_text(stmt, 4, update_authname?   name   : row_authname, -1, SQLITE_STATIC);
 			sqlite3_bind_int (stmt, 5, row_id);
 			sqlite3_step     (stmt);
+			sqlite3_finalize (stmt);
+			stmt = NULL;
 
 			if( update_name )
 			{
 				/* Update the contact name also if it is used as a group name.
 				This is one of the few duplicated data, however, getting the chat list is easier this way.*/
-				stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_chats_SET_n_WHERE_c,
+				stmt = dc_sqlite3_prepare(context->m_sql,
 					"UPDATE chats SET name=? WHERE type=? AND id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 				sqlite3_bind_int (stmt, 2, DC_CHAT_TYPE_SINGLE);
@@ -3116,14 +2958,17 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 	}
 	else
 	{
-		stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_contacts_neo,
+		sqlite3_finalize (stmt);
+		stmt = NULL;
+
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"INSERT INTO contacts (name, addr, origin) VALUES(?, ?, ?);");
 		sqlite3_bind_text(stmt, 1, name? name : "", -1, SQLITE_STATIC); /* avoid NULL-fields in column */
 		sqlite3_bind_text(stmt, 2, addr,    -1, SQLITE_STATIC);
 		sqlite3_bind_int (stmt, 3, origin);
 		if( sqlite3_step(stmt) == SQLITE_DONE )
 		{
-			row_id = sqlite3_last_insert_rowid(context->m_sql->m_cobj);
+			row_id = dc_sqlite3_get_rowid(context->m_sql, "contacts", "addr", addr);
 			*sth_modified = CONTACT_CREATED;
 		}
 		else
@@ -3134,31 +2979,36 @@ uint32_t dc_add_or_lookup_contact__( dc_context_t* context,
 
 cleanup:
 	free(addr);
+	free(row_addr);
+	free(row_name);
+	free(row_authname);
+	sqlite3_finalize(stmt);
 	return row_id;
 }
 
 
-void dc_scaleup_contact_origin__(dc_context_t* context, uint32_t contact_id, int origin)
+void dc_scaleup_contact_origin(dc_context_t* context, uint32_t contact_id, int origin)
 {
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_contacts_SET_origin_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE contacts SET origin=? WHERE id=? AND origin<?;");
 	sqlite3_bind_int(stmt, 1, origin);
 	sqlite3_bind_int(stmt, 2, contact_id);
 	sqlite3_bind_int(stmt, 3, origin);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
-int dc_is_contact_blocked__(dc_context_t* context, uint32_t contact_id)
+int dc_is_contact_blocked(dc_context_t* context, uint32_t contact_id)
 {
-	int          is_blocked = 0;
+	int           is_blocked = 0;
 	dc_contact_t* contact = dc_contact_new(context);
 
-	if( dc_contact_load_from_db__(contact, context->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
+	if( dc_contact_load_from_db(contact, context->m_sql, contact_id) ) {
 		if( contact->m_blocked ) {
 			is_blocked = 1;
 		}
@@ -3169,7 +3019,7 @@ int dc_is_contact_blocked__(dc_context_t* context, uint32_t contact_id)
 }
 
 
-int dc_get_contact_origin__(dc_context_t* context, uint32_t contact_id, int* ret_blocked)
+int dc_get_contact_origin(dc_context_t* context, uint32_t contact_id, int* ret_blocked)
 {
 	int          ret = 0;
 	int          dummy; if( ret_blocked==NULL ) { ret_blocked = &dummy; }
@@ -3177,7 +3027,7 @@ int dc_get_contact_origin__(dc_context_t* context, uint32_t contact_id, int* ret
 
 	*ret_blocked = 0;
 
-	if( !dc_contact_load_from_db__(contact, context->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
+	if( !dc_contact_load_from_db(contact, context->m_sql, contact_id) ) { /* we could optimize this by loading only the needed fields */
 		goto cleanup;
 	}
 
@@ -3224,13 +3074,9 @@ uint32_t dc_create_contact(dc_context_t* context, const char* name, const char* 
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
+	contact_id = dc_add_or_lookup_contact(context, name, addr, DC_ORIGIN_MANUALLY_CREATED, &sth_modified);
 
-		contact_id = dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_MANUALLY_CREATED, &sth_modified);
-
-		blocked = dc_is_contact_blocked__(context, contact_id);
-
-	dc_sqlite3_unlock(context->m_sql);
+	blocked = dc_is_contact_blocked(context, contact_id);
 
 	context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, sth_modified==CONTACT_CREATED? contact_id : 0, 0);
 
@@ -3276,24 +3122,20 @@ int dc_add_address_book(dc_context_t* context, const char* adr_book) /* format: 
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		iCnt = carray_count(lines);
 		for( i = 0; i+1 < iCnt; i += 2 ) {
 			char* name = (char*)carray_get(lines, i);
 			char* addr = (char*)carray_get(lines, i+1);
 			dc_normalize_name(name);
-			dc_add_or_lookup_contact__(context, name, addr, DC_ORIGIN_ADRESS_BOOK, &sth_modified);
+			dc_add_or_lookup_contact(context, name, addr, DC_ORIGIN_ADRESS_BOOK, &sth_modified);
 			if( sth_modified ) {
 				modify_cnt++;
 			}
 		}
 
-		dc_sqlite3_commit__(context->m_sql);
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 
 cleanup:
 	dc_free_splitted_lines(lines);
@@ -3320,63 +3162,56 @@ cleanup:
  */
 dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const char* query)
 {
-	int           locked = 0;
 	char*         self_addr = NULL;
 	char*         self_name = NULL;
 	char*         self_name2 = NULL;
 	int           add_self = 0;
-	dc_array_t*    ret = dc_array_new(context, 100);
+	dc_array_t*   ret = dc_array_new(context, 100);
 	char*         s3strLikeCmd = NULL;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", ""); /* we add DC_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
 
-		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", ""); /* we add DC_CONTACT_ID_SELF explicitly; so avoid doubles if the address is present as a normal entry for some case */
-
-		if( (listflags&DC_GCL_VERIFIED_ONLY) || query )
-		{
-			if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query? query : ""))==NULL ) {
-				goto cleanup;
-			}
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_WHERE_query_ORDER_BY,
-				"SELECT c.id FROM contacts c"
-					" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
-					" WHERE c.addr!=? AND c.id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in dc_search_msgs() about the LIKE operator */
-					" AND (1=? OR LENGTH(ps.verified_key_fingerprint)!=0) "
-					" ORDER BY LOWER(c.name||c.addr),c.id;");
-			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
-			sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
-			sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
-
-			self_name  = dc_sqlite3_get_config(context->m_sql, "displayname", "");
-			self_name2 = dc_stock_str(DC_STR_SELF);
-			if( query==NULL || dc_str_contains(self_addr, query) || dc_str_contains(self_name, query) || dc_str_contains(self_name2, query) ) {
-				add_self = 1;
-			}
+	if( (listflags&DC_GCL_VERIFIED_ONLY) || query )
+	{
+		if( (s3strLikeCmd=sqlite3_mprintf("%%%s%%", query? query : ""))==NULL ) {
+			goto cleanup;
 		}
-		else
-		{
-			stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_ORDER_BY,
-				"SELECT id FROM contacts"
-					" WHERE addr!=? AND id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
-					" ORDER BY LOWER(name||addr),id;");
-			sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT c.id FROM contacts c"
+				" LEFT JOIN acpeerstates ps ON c.addr=ps.addr "
+				" WHERE c.addr!=? AND c.id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND c.origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND c.blocked=0 AND (c.name LIKE ? OR c.addr LIKE ?)" /* see comments in dc_search_msgs() about the LIKE operator */
+				" AND (1=? OR LENGTH(ps.verified_key_fingerprint)!=0) "
+				" ORDER BY LOWER(c.name||c.addr),c.id;");
+		sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 2, s3strLikeCmd, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, s3strLikeCmd, -1, SQLITE_STATIC);
+		sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
 
+		self_name  = dc_sqlite3_get_config(context->m_sql, "displayname", "");
+		self_name2 = dc_stock_str(DC_STR_SELF);
+		if( query==NULL || dc_str_contains(self_addr, query) || dc_str_contains(self_name, query) || dc_str_contains(self_name2, query) ) {
 			add_self = 1;
 		}
+	}
+	else
+	{
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT id FROM contacts"
+				" WHERE addr!=? AND id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND origin>=" DC_STRINGIFY(DC_ORIGIN_MIN_CONTACT_LIST) " AND blocked=0"
+				" ORDER BY LOWER(name||addr),id;");
+		sqlite3_bind_text(stmt, 1, self_addr, -1, SQLITE_STATIC);
 
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
+		add_self = 1;
+	}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 	/* to the end of the list, add self - this is to be in sync with member lists and to allow the user to start a self talk */
 	if( (listflags&DC_GCL_ADD_SELF) && add_self ) {
@@ -3384,7 +3219,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	sqlite3_free(s3strLikeCmd);
 	free(self_addr);
 	free(self_name);
@@ -3403,27 +3238,24 @@ cleanup:
  */
 dc_array_t* dc_get_blocked_contacts(dc_context_t* context)
 {
-	dc_array_t*    ret = dc_array_new(context, 100);
-	sqlite3_stmt* stmt;
+	dc_array_t*   ret = dc_array_new(context, 100);
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_id_FROM_contacts_WHERE_blocked,
-			"SELECT id FROM contacts"
-				" WHERE id>? AND blocked!=0"
-				" ORDER BY LOWER(name||addr),id;");
-		sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_LAST_SPECIAL);
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT id FROM contacts"
+			" WHERE id>? AND blocked!=0"
+			" ORDER BY LOWER(name||addr),id;");
+	sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_LAST_SPECIAL);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_array_add_id(ret, sqlite3_column_int(stmt, 0));
+	}
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -3437,30 +3269,24 @@ cleanup:
  */
 int dc_get_blocked_count(dc_context_t* context)
 {
-	int           ret = 0, locked = 0;
-	sqlite3_stmt* stmt;
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_contacts_WHERE_blocked,
-			"SELECT COUNT(*) FROM contacts"
-				" WHERE id>? AND blocked!=0");
-		sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_LAST_SPECIAL);
-		if( sqlite3_step(stmt) != SQLITE_ROW ) {
-			goto cleanup;
-		}
-		ret = sqlite3_column_int(stmt, 0);
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM contacts"
+			" WHERE id>? AND blocked!=0");
+	sqlite3_bind_int(stmt, 1, DC_CONTACT_ID_LAST_SPECIAL);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		goto cleanup;
+	}
+	ret = sqlite3_column_int(stmt, 0);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	return ret;
 }
 
@@ -3482,25 +3308,12 @@ dc_contact_t* dc_get_contact(dc_context_t* context, uint32_t contact_id)
 {
 	dc_contact_t* ret = dc_contact_new(context);
 
-	dc_sqlite3_lock(context->m_sql);
-
-		if( !dc_contact_load_from_db__(ret, context->m_sql, contact_id) ) {
-			dc_contact_unref(ret);
-			ret = NULL;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
+	if( !dc_contact_load_from_db(ret, context->m_sql, contact_id) ) {
+		dc_contact_unref(ret);
+		ret = NULL;
+	}
 
 	return ret; /* may be NULL */
-}
-
-
-static void marknoticed_contact__(dc_context_t* context, uint32_t contact_id)
-{
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_state_WHERE_from_id_AND_state,
-		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE from_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
-	sqlite3_bind_int(stmt, 1, contact_id);
-	sqlite3_step(stmt);
 }
 
 
@@ -3519,33 +3332,35 @@ void dc_marknoticed_contact(dc_context_t* context, uint32_t contact_id)
     if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
     }
-    dc_sqlite3_lock(context->m_sql);
 
-		marknoticed_contact__(context, contact_id);
-
-    dc_sqlite3_unlock(context->m_sql);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+		"UPDATE msgs SET state=" DC_STRINGIFY(DC_STATE_IN_NOTICED) " WHERE from_id=? AND state=" DC_STRINGIFY(DC_STATE_IN_FRESH) ";");
+	sqlite3_bind_int(stmt, 1, contact_id);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_block_chat__(dc_context_t* context, uint32_t chat_id, int new_blocking)
+void dc_block_chat(dc_context_t* context, uint32_t chat_id, int new_blocking)
 {
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_chats_SET_blocked_WHERE_chat_id,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE chats SET blocked=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, new_blocking);
 	sqlite3_bind_int(stmt, 2, chat_id);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_unblock_chat__(dc_context_t* context, uint32_t chat_id)
+void dc_unblock_chat(dc_context_t* context, uint32_t chat_id)
 {
-	dc_block_chat__(context, chat_id, DC_CHAT_NOT_BLOCKED);
+	dc_block_chat(context, chat_id, DC_CHAT_NOT_BLOCKED);
 }
 
 
@@ -3561,9 +3376,7 @@ void dc_unblock_chat__(dc_context_t* context, uint32_t chat_id)
  */
 void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocking)
 {
-	int           locked = 0;
 	int           send_event = 0;
-	int           transaction_pending = 0;
 	dc_contact_t* contact = dc_contact_new(context);
 	sqlite3_stmt* stmt = NULL;
 
@@ -3571,28 +3384,24 @@ void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocki
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-
-		if( dc_contact_load_from_db__(contact, context->m_sql, contact_id)
+		if( dc_contact_load_from_db(contact, context->m_sql, contact_id)
 		 && contact->m_blocked != new_blocking )
 		{
-			dc_sqlite3_begin_transaction__(context->m_sql);
-			transaction_pending = 1;
-
-				stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_contacts_SET_b_WHERE_i,
+				stmt = dc_sqlite3_prepare(context->m_sql,
 					"UPDATE contacts SET blocked=? WHERE id=?;");
 				sqlite3_bind_int(stmt, 1, new_blocking);
 				sqlite3_bind_int(stmt, 2, contact_id);
 				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
 					goto cleanup;
 				}
+				sqlite3_finalize(stmt);
+				stmt = NULL;
 
 				/* also (un)block all chats with _only_ this contact - we do not delete them to allow a non-destructive blocking->unblocking.
 				(Maybe, beside normal chats (type=100) we should also block group chats with only this user.
 				However, I'm not sure about this point; it may be confusing if the user wants to add other people;
 				this would result in recreating the same group...) */
-				stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_chats_SET_blocked_WHERE_contact_id,
+				stmt = dc_sqlite3_prepare(context->m_sql,
 					"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
 				sqlite3_bind_int(stmt, 1, new_blocking);
 				sqlite3_bind_int(stmt, 2, DC_CHAT_TYPE_SINGLE);
@@ -3602,24 +3411,17 @@ void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocki
 				}
 
 				/* mark all messages from the blocked contact as being noticed (this is to remove the deaddrop popup) */
-				marknoticed_contact__(context, contact_id);
-
-			dc_sqlite3_commit__(context->m_sql);
-			transaction_pending = 0;
+				dc_marknoticed_contact(context, contact_id);
 
 			send_event = 1;
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	if( send_event ) {
 		context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, 0, 0);
 	}
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	dc_contact_unref(contact);
 }
 
@@ -3656,7 +3458,6 @@ static void cat_fingerprint(dc_strbuilder_t* ret, const char* addr, const char* 
  */
 char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 {
-	int              locked = 0;
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	dc_contact_t*    contact = dc_contact_new(context);
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
@@ -3673,19 +3474,13 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	dc_strbuilder_t  ret;
 	dc_strbuilder_init(&ret, 0);
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	if( !dc_contact_load_from_db(contact, context->m_sql, contact_id) ) {
+		goto cleanup;
+	}
+	dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr);
+	dc_loginparam_read(loginparam, context->m_sql, "configured_");
 
-		if( !dc_contact_load_from_db__(contact, context->m_sql, contact_id) ) {
-			goto cleanup;
-		}
-		dc_apeerstate_load_by_addr__(peerstate, context->m_sql, contact->m_addr);
-		dc_loginparam_read(loginparam, context->m_sql, "configured_");
-
-		dc_key_load_self_public__(self_key, loginparam->m_addr, context->m_sql);
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	dc_key_load_self_public(self_key, loginparam->m_addr, context->m_sql);
 
 	if( dc_apeerstate_peek_key(peerstate, DC_NOT_VERIFIED) )
 	{
@@ -3695,11 +3490,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		if( self_key->m_binary == NULL ) {
 			dc_pgp_rand_seed(context, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
 			dc_ensure_secret_key_exists(context);
-			dc_sqlite3_lock(context->m_sql);
-			locked = 1;
-				dc_key_load_self_public__(self_key, loginparam->m_addr, context->m_sql);
-			dc_sqlite3_unlock(context->m_sql);
-			locked = 0;
+			dc_key_load_self_public(self_key, loginparam->m_addr, context->m_sql);
 		}
 
 		dc_strbuilder_cat(&ret, " ");
@@ -3734,7 +3525,6 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	}
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	dc_contact_unref(contact);
 	dc_loginparam_unref(loginparam);
@@ -3759,59 +3549,57 @@ cleanup:
  */
 int dc_delete_contact(dc_context_t* context, uint32_t contact_id)
 {
-	int           locked = 0, success = 0;
-	sqlite3_stmt* stmt;
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	/* we can only delete contacts that are not in use anywhere; this function is mainly for the user who has just
+	created an contact manually and wants to delete it a moment later */
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM chats_contacts WHERE contact_id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
+		goto cleanup;
+	}
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		/* we can only delete contacts that are not in use anywhere; this function is mainly for the user who has just
-		created an contact manually and wants to delete it a moment later */
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id,
-			"SELECT COUNT(*) FROM chats_contacts WHERE contact_id=?;");
-		sqlite3_bind_int(stmt, 1, contact_id);
-		if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
-			goto cleanup;
-		}
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT COUNT(*) FROM msgs WHERE from_id=? OR to_id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
+	sqlite3_bind_int(stmt, 2, contact_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
+		goto cleanup;
+	}
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_ft,
-			"SELECT COUNT(*) FROM msgs WHERE from_id=? OR to_id=?;");
-		sqlite3_bind_int(stmt, 1, contact_id);
-		sqlite3_bind_int(stmt, 2, contact_id);
-		if( sqlite3_step(stmt) != SQLITE_ROW || sqlite3_column_int(stmt, 0) >= 1 ) {
-			goto cleanup;
-		}
-
-		stmt = dc_sqlite3_predefine__(context->m_sql, DELETE_FROM_contacts_WHERE_id,
-			"DELETE FROM contacts WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, contact_id);
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"DELETE FROM contacts WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, contact_id);
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		goto cleanup;
+	}
 
 	context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, 0, 0);
 
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	return success;
 }
 
 
-int dc_contact_addr_equals__(dc_context_t* context, uint32_t contact_id, const char* other_addr)
+int dc_contact_addr_equals(dc_context_t* context, uint32_t contact_id, const char* other_addr)
 {
 	int addr_are_equal = 0;
 	if( other_addr ) {
 		dc_contact_t* contact = dc_contact_new(context);
-		if( dc_contact_load_from_db__(contact, context->m_sql, contact_id) ) {
+		if( dc_contact_load_from_db(contact, context->m_sql, contact_id) ) {
 			if( contact->m_addr ) {
 				if( strcasecmp(contact->m_addr, other_addr)==0 ) {
 					addr_are_equal = 1;
@@ -3829,33 +3617,38 @@ int dc_contact_addr_equals__(dc_context_t* context, uint32_t contact_id, const c
  ******************************************************************************/
 
 
-void dc_update_msg_chat_id__(dc_context_t* context, uint32_t msg_id, uint32_t chat_id)
+void dc_update_msg_chat_id(dc_context_t* context, uint32_t msg_id, uint32_t chat_id)
 {
-    sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_chat_id_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE msgs SET chat_id=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 	sqlite3_bind_int(stmt, 2, msg_id);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_update_msg_state__(dc_context_t* context, uint32_t msg_id, int state)
+void dc_update_msg_state(dc_context_t* context, uint32_t msg_id, int state)
 {
-    sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_state_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE msgs SET state=? WHERE id=?;");
 	sqlite3_bind_int(stmt, 1, state);
 	sqlite3_bind_int(stmt, 2, msg_id);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
-size_t dc_get_real_msg_cnt__(dc_context_t* context)
+size_t dc_get_real_msg_cnt(dc_context_t* context)
 {
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
 	if( context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_assigned,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) "
 		" FROM msgs m "
 		" LEFT JOIN chats c ON c.id=m.chat_id "
@@ -3863,45 +3656,63 @@ size_t dc_get_real_msg_cnt__(dc_context_t* context)
 		" AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL)
 		" AND c.blocked=0;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		dc_sqlite3_log_error(context->m_sql, "dc_get_real_msg_cnt__() failed.");
-		return 0;
+		dc_sqlite3_log_error(context->m_sql, "dc_get_real_msg_cnt() failed.");
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-size_t dc_get_deaddrop_msg_cnt__(dc_context_t* context)
+size_t dc_get_deaddrop_msg_cnt(dc_context_t* context)
 {
+	sqlite3_stmt* stmt = NULL;
+	size_t        ret = 0;
+
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_unassigned,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id WHERE c.blocked=2;");
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-int dc_rfc724_mid_cnt__(dc_context_t* context, const char* rfc724_mid)
+int dc_rfc724_mid_cnt(dc_context_t* context, const char* rfc724_mid)
 {
+	/* check the number of messages with the same rfc724_mid */
+	int           ret = 0;
+	sqlite3_stmt* stmt = NULL;
+
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql->m_cobj==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	/* check the number of messages with the same rfc724_mid */
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	return sqlite3_column_int(stmt, 0);
+	ret = sqlite3_column_int(stmt, 0);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
@@ -3909,29 +3720,35 @@ int dc_rfc724_mid_cnt__(dc_context_t* context, const char* rfc724_mid)
 so, we should even keep unuseful messages in the database (we can leave the other fields empty to save space) */
 uint32_t dc_rfc724_mid_exists__(dc_context_t* context, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_ss_FROM_msgs_WHERE_m,
+	uint32_t ret = 0;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT server_folder, server_uid, id FROM msgs WHERE rfc724_mid=?;");
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		if( ret_server_folder ) { *ret_server_folder = NULL; }
 		if( ret_server_uid )    { *ret_server_uid    = 0; }
-		return 0;
+		goto cleanup;
 	}
 
 	if( ret_server_folder ) { *ret_server_folder = dc_strdup((char*)sqlite3_column_text(stmt, 0)); }
 	if( ret_server_uid )    { *ret_server_uid = sqlite3_column_int(stmt, 1); /* may be 0 */ }
-	return sqlite3_column_int(stmt, 2);
+	ret = sqlite3_column_int(stmt, 2);
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return ret;
 }
 
 
-void dc_update_server_uid__(dc_context_t* context, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
+void dc_update_server_uid(dc_context_t* context, const char* rfc724_mid, const char* server_folder, uint32_t server_uid)
 {
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_ss_WHERE_rfc724_mid,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
 		"UPDATE msgs SET server_folder=?, server_uid=? WHERE rfc724_mid=?;"); /* we update by "rfc724_mid" instead of "id" as there may be several db-entries refering to the same "rfc724_mid" */
 	sqlite3_bind_text(stmt, 1, server_folder, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, server_uid);
 	sqlite3_bind_text(stmt, 3, rfc724_mid, -1, SQLITE_STATIC);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -3948,25 +3765,19 @@ void dc_update_server_uid__(dc_context_t* context, const char* rfc724_mid, const
 dc_msg_t* dc_get_msg(dc_context_t* context, uint32_t msg_id)
 {
 	int success = 0;
-	int db_locked = 0;
 	dc_msg_t* obj = dc_msg_new();
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	db_locked = 1;
+	if( !dc_msg_load_from_db(obj, context, msg_id) ) {
+		goto cleanup;
+	}
 
-		if( !dc_msg_load_from_db__(obj, context, msg_id) ) {
-			goto cleanup;
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( db_locked ) { dc_sqlite3_unlock(context->m_sql); }
-
 	if( success ) {
 		return obj;
 	}
@@ -3997,82 +3808,76 @@ cleanup:
 char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 {
 	dc_strbuilder_t ret;
-	int             locked = 0;
-	sqlite3_stmt*   stmt;
+	sqlite3_stmt*   stmt = NULL;
 	dc_msg_t*       msg = dc_msg_new();
 	dc_contact_t*   contact_from = dc_contact_new(context);
 	char            *rawtxt = NULL, *p;
-
 	dc_strbuilder_init(&ret, 0);
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	dc_msg_load_from_db(msg, context, msg_id);
+	dc_contact_load_from_db(contact_from, context->m_sql, msg->m_from_id);
 
-		dc_msg_load_from_db__(msg, context, msg_id);
-		dc_contact_load_from_db__(contact_from, context->m_sql, msg->m_from_id);
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT txt_raw FROM msgs WHERE id=?;");
+	sqlite3_bind_int(stmt, 1, msg_id);
+	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+		p = dc_mprintf("Cannot load message #%i.", (int)msg_id); dc_strbuilder_cat(&ret, p); free(p);
+		goto cleanup;
+	}
+	rawtxt = dc_strdup((char*)sqlite3_column_text(stmt, 0));
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_txt_raw_FROM_msgs_WHERE_id,
-			"SELECT txt_raw FROM msgs WHERE id=?;");
-		sqlite3_bind_int(stmt, 1, msg_id);
-		if( sqlite3_step(stmt) != SQLITE_ROW ) {
-			p = dc_mprintf("Cannot load message #%i.", (int)msg_id); dc_strbuilder_cat(&ret, p); free(p);
-			goto cleanup;
+	#ifdef __ANDROID__
+		p = strchr(rawtxt, '\n');
+		if( p ) {
+			char* subject = rawtxt;
+			*p = 0;
+			p++;
+			rawtxt = dc_mprintf("<b>%s</b>\n%s", subject, p);
+			free(subject);
 		}
+	#endif
 
-		rawtxt = dc_strdup((char*)sqlite3_column_text(stmt, 0));
+	dc_trim(rawtxt);
+	dc_truncate_str(rawtxt, DC_MAX_GET_INFO_LEN);
 
-		#ifdef __ANDROID__
-			p = strchr(rawtxt, '\n');
-			if( p ) {
-				char* subject = rawtxt;
-				*p = 0;
-				p++;
-				rawtxt = dc_mprintf("<b>%s</b>\n%s", subject, p);
-				free(subject);
-			}
-		#endif
+	/* add time */
+	dc_strbuilder_cat(&ret, "Sent: ");
+	p = dc_timestamp_to_str(dc_msg_get_timestamp(msg)); dc_strbuilder_cat(&ret, p); free(p);
+	dc_strbuilder_cat(&ret, "\n");
 
-		dc_trim(rawtxt);
-		dc_truncate_str(rawtxt, DC_MAX_GET_INFO_LEN);
-
-		/* add time */
-		dc_strbuilder_cat(&ret, "Sent: ");
-		p = dc_timestamp_to_str(dc_msg_get_timestamp(msg)); dc_strbuilder_cat(&ret, p); free(p);
+	if( msg->m_from_id != DC_CONTACT_ID_SELF ) {
+		dc_strbuilder_cat(&ret, "Received: ");
+		p = dc_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); dc_strbuilder_cat(&ret, p); free(p);
 		dc_strbuilder_cat(&ret, "\n");
+	}
 
-		if( msg->m_from_id != DC_CONTACT_ID_SELF ) {
-			dc_strbuilder_cat(&ret, "Received: ");
-			p = dc_timestamp_to_str(msg->m_timestamp_rcvd? msg->m_timestamp_rcvd : msg->m_timestamp); dc_strbuilder_cat(&ret, p); free(p);
-			dc_strbuilder_cat(&ret, "\n");
-		}
+	if( msg->m_from_id == DC_CONTACT_ID_DEVICE || msg->m_to_id == DC_CONTACT_ID_DEVICE ) {
+		goto cleanup; // device-internal message, no further details needed
+	}
 
-		if( msg->m_from_id == DC_CONTACT_ID_DEVICE || msg->m_to_id == DC_CONTACT_ID_DEVICE ) {
-			goto cleanup; // device-internal message, no further details needed
-		}
+	/* add mdn's time and readers */
+	stmt = dc_sqlite3_prepare(context->m_sql,
+		"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
+	sqlite3_bind_int (stmt, 1, msg_id);
+	while( sqlite3_step(stmt) == SQLITE_ROW ) {
+		dc_strbuilder_cat(&ret, "Read: ");
+		p = dc_timestamp_to_str(sqlite3_column_int64(stmt, 1)); dc_strbuilder_cat(&ret, p); free(p);
+		dc_strbuilder_cat(&ret, " by ");
 
-		/* add mdn's time and readers */
-		stmt = dc_sqlite3_prepare(context->m_sql,
-			"SELECT contact_id, timestamp_sent FROM msgs_mdns WHERE msg_id=?;");
-		sqlite3_bind_int (stmt, 1, msg_id);
-		while( sqlite3_step(stmt) == SQLITE_ROW ) {
-			dc_strbuilder_cat(&ret, "Read: ");
-			p = dc_timestamp_to_str(sqlite3_column_int64(stmt, 1)); dc_strbuilder_cat(&ret, p); free(p);
-			dc_strbuilder_cat(&ret, " by ");
-
-			dc_contact_t* contact = dc_contact_new(context);
-				dc_contact_load_from_db__(contact, context->m_sql, sqlite3_column_int64(stmt, 0));
-				p = dc_contact_get_display_name(contact); dc_strbuilder_cat(&ret, p); free(p);
-			dc_contact_unref(contact);
-			dc_strbuilder_cat(&ret, "\n");
-		}
-		sqlite3_finalize(stmt);
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+		dc_contact_t* contact = dc_contact_new(context);
+			dc_contact_load_from_db(contact, context->m_sql, sqlite3_column_int64(stmt, 0));
+			p = dc_contact_get_display_name(contact); dc_strbuilder_cat(&ret, p); free(p);
+		dc_contact_unref(contact);
+		dc_strbuilder_cat(&ret, "\n");
+	}
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	/* add state */
 	p = NULL;
@@ -4169,7 +3974,7 @@ char* dc_get_msg_info(dc_context_t* context, uint32_t msg_id)
 	#endif
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	sqlite3_finalize(stmt);
 	dc_msg_unref(msg);
 	dc_contact_unref(contact_from);
 	free(rawtxt);
@@ -4192,26 +3997,24 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 	dc_msg_t*      msg = dc_msg_new();
 	dc_chat_t*     chat = dc_chat_new(context);
 	dc_contact_t*  contact = dc_contact_new(context);
-	int           locked = 0, transaction_pending = 0;
-	carray*       created_db_entries = carray_new(16);
-	char*         idsstr = NULL, *q3 = NULL;
-	sqlite3_stmt* stmt = NULL;
-	time_t        curr_timestamp;
+	int            transaction_pending = 0;
+	carray*        created_db_entries = carray_new(16);
+	char*          idsstr = NULL, *q3 = NULL;
+	sqlite3_stmt*  stmt = NULL;
+	time_t         curr_timestamp;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_ids==NULL || msg_cnt <= 0 || chat_id <= DC_CHAT_ID_LAST_SPECIAL ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
-		dc_unarchive_chat__(context, chat_id);
+		dc_unarchive_chat(context, chat_id);
 
 		context->m_smtp->m_log_connect_errors = 1;
 
-		if( !dc_chat_load_from_db__(chat, chat_id) ) {
+		if( !dc_chat_load_from_db(chat, chat_id) ) {
 			goto cleanup;
 		}
 
@@ -4223,7 +4026,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 		while( sqlite3_step(stmt)==SQLITE_ROW )
 		{
 			int src_msg_id = sqlite3_column_int(stmt, 0);
-			if( !dc_msg_load_from_db__(msg, context, src_msg_id) ) {
+			if( !dc_msg_load_from_db(msg, context, src_msg_id) ) {
 				goto cleanup;
 			}
 
@@ -4231,17 +4034,16 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			dc_param_set    (msg->m_param, DC_PARAM_GUARANTEE_E2EE, NULL);
 			dc_param_set    (msg->m_param, DC_PARAM_FORCE_PLAINTEXT, NULL);
 
-			uint32_t new_msg_id = dc_send_msg_i__(context, chat, msg, curr_timestamp++);
+			uint32_t new_msg_id = dc_send_msg_raw(context, chat, msg, curr_timestamp++);
 			carray_add(created_db_entries, (void*)(uintptr_t)chat_id, NULL);
 			carray_add(created_db_entries, (void*)(uintptr_t)new_msg_id, NULL);
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	transaction_pending = 0;
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
 	if( created_db_entries ) {
 		size_t i, icnt = carray_count(created_db_entries);
 		for( i = 0; i < icnt; i += 2 ) {
@@ -4278,20 +4080,20 @@ void dc_star_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt, i
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(context->m_sql,
+			"UPDATE msgs SET starred=? WHERE id=?;");
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, UPDATE_msgs_SET_starred_WHERE_id,
-				"UPDATE msgs SET starred=? WHERE id=?;");
+			sqlite3_reset(stmt);
 			sqlite3_bind_int(stmt, 1, star);
 			sqlite3_bind_int(stmt, 2, msg_ids[i]);
 			sqlite3_step(stmt);
 		}
+		sqlite3_finalize(stmt);
 
-	dc_sqlite3_commit__(context->m_sql);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 }
 
 
@@ -4318,17 +4120,15 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 		return;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			dc_update_msg_chat_id__(context, msg_ids[i], DC_CHAT_ID_TRASH);
+			dc_update_msg_chat_id(context, msg_ids[i], DC_CHAT_ID_TRASH);
 			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, msg_ids[i], NULL, 0);
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 }
 
 
@@ -4351,39 +4151,38 @@ void dc_delete_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
  */
 void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt)
 {
-	int locked = 0;
 	int transaction_pending = 0;
 	int i = 0;
 	int send_event = 0;
 	int curr_state = 0;
 	int curr_blocked = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_ids == NULL || msg_cnt <= 0 ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
-	dc_sqlite3_begin_transaction__(context->m_sql);
+	dc_sqlite3_begin_transaction(context->m_sql);
 	transaction_pending = 1;
 
+		stmt = dc_sqlite3_prepare(context->m_sql,
+			"SELECT m.state, c.blocked "
+			" FROM msgs m "
+			" LEFT JOIN chats c ON c.id=m.chat_id "
+			" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL));
 		for( i = 0; i < msg_cnt; i++ )
 		{
-			sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id,
-				"SELECT m.state, c.blocked "
-				" FROM msgs m "
-				" LEFT JOIN chats c ON c.id=m.chat_id "
-				" WHERE m.id=? AND m.chat_id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL));
+			sqlite3_reset(stmt);
 			sqlite3_bind_int(stmt, 1, msg_ids[i]);
 			if( sqlite3_step(stmt) != SQLITE_ROW ) {
-				goto cleanup;
+				continue;
 			}
 			curr_state   = sqlite3_column_int(stmt, 0);
 			curr_blocked = sqlite3_column_int(stmt, 1);
 			if( curr_blocked == 0 )
 			{
 				if( curr_state == DC_STATE_IN_FRESH || curr_state == DC_STATE_IN_NOTICED ) {
-					dc_update_msg_state__(context, msg_ids[i], DC_STATE_IN_SEEN);
+					dc_update_msg_state(context, msg_ids[i], DC_STATE_IN_SEEN);
 					dc_log_info(context, 0, "Seen message #%i.", msg_ids[i]);
 					dc_job_add(context, DC_JOB_MARKSEEN_MSG_ON_IMAP, msg_ids[i], NULL, 0); /* results in a call to dc_markseen_msg_on_imap() */
 					send_event = 1;
@@ -4393,16 +4192,14 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 			{
 				/* message may be in contact requests, mark as NOTICED, this does not force IMAP updated nor send MDNs */
 				if( curr_state == DC_STATE_IN_FRESH ) {
-					dc_update_msg_state__(context, msg_ids[i], DC_STATE_IN_NOTICED);
+					dc_update_msg_state(context, msg_ids[i], DC_STATE_IN_NOTICED);
 					send_event = 1;
 				}
 			}
 		}
 
-	dc_sqlite3_commit__(context->m_sql);
+	dc_sqlite3_commit(context->m_sql);
 	transaction_pending = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	/* the event is needed eg. to remove the deaddrop from the chatlist */
 	if( send_event ) {
@@ -4410,67 +4207,79 @@ void dc_markseen_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cn
 	}
 
 cleanup:
-	if( transaction_pending ) { dc_sqlite3_rollback__(context->m_sql); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+	if( transaction_pending ) { dc_sqlite3_rollback(context->m_sql); }
+	sqlite3_finalize(stmt);
 }
 
 
-int dc_mdn_from_ext__(dc_context_t* context, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
-                                     uint32_t* ret_chat_id,
-                                     uint32_t* ret_msg_id)
+int dc_mdn_from_ext(dc_context_t* context, uint32_t from_id, const char* rfc724_mid, time_t timestamp_sent,
+                    uint32_t* ret_chat_id, uint32_t* ret_msg_id)
 {
+	int           read_by_all = 0;
+	sqlite3_stmt* stmt = NULL;
+
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || from_id <= DC_CONTACT_ID_LAST_SPECIAL || rfc724_mid == NULL || ret_chat_id==NULL || ret_msg_id==NULL
 	 || *ret_chat_id != 0 || *ret_msg_id != 0 ) {
-		return 0;
+		goto cleanup;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT m.id, c.id, c.type, m.state FROM msgs m "
 		" LEFT JOIN chats c ON m.chat_id=c.id "
 		" WHERE rfc724_mid=? AND from_id=1 "
 		" ORDER BY m.id;"); /* the ORDER BY makes sure, if one rfc724_mid is splitted into its parts, we always catch the same one. However, we do not send multiparts, we do not request MDNs for multiparts, and should not receive read requests for multiparts. So this is currently more theoretical. */
 	sqlite3_bind_text(stmt, 1, rfc724_mid, -1, SQLITE_STATIC);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
-
 	*ret_msg_id    = sqlite3_column_int(stmt, 0);
 	*ret_chat_id   = sqlite3_column_int(stmt, 1);
 	int chat_type  = sqlite3_column_int(stmt, 2);
 	int msg_state  = sqlite3_column_int(stmt, 3);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	if( msg_state!=DC_STATE_OUT_PENDING && msg_state!=DC_STATE_OUT_DELIVERED ) {
-		return 0; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
+		goto cleanup; /* eg. already marked as MDNS_RCVD. however, it is importent, that the message ID is set above as this will allow the caller eg. to move the message away */
 	}
 
 	// collect receipt senders, we do this also for normal chats as we may want to show the timestamp
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_c_FROM_msgs_mdns_WHERE_mc,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT contact_id FROM msgs_mdns WHERE msg_id=? AND contact_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	sqlite3_bind_int(stmt, 2, from_id);
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		stmt = dc_sqlite3_predefine__(context->m_sql, INSERT_INTO_msgs_mdns,
+	int mdn_already_in_table = (sqlite3_step(stmt) == SQLITE_ROW)? 1 : 0;
+	sqlite3_finalize(stmt);
+	stmt = NULL;
+
+	if( !mdn_already_in_table ) {
+		stmt = dc_sqlite3_prepare(context->m_sql,
 			"INSERT INTO msgs_mdns (msg_id, contact_id, timestamp_sent) VALUES (?, ?, ?);");
 		sqlite3_bind_int  (stmt, 1, *ret_msg_id);
 		sqlite3_bind_int  (stmt, 2, from_id);
 		sqlite3_bind_int64(stmt, 3, timestamp_sent);
 		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 
 	// Normal chat? that's quite easy.
 	if( chat_type == DC_CHAT_TYPE_SINGLE ) {
-		dc_update_msg_state__(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
-		return 1; /* send event about new state */
+		dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
+		read_by_all = 1;
+		goto cleanup; /* send event about new state */
 	}
 
 	// Group chat: get the number of receipt senders
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_COUNT_FROM_msgs_mdns_WHERE_m,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT COUNT(*) FROM msgs_mdns WHERE msg_id=?;");
 	sqlite3_bind_int(stmt, 1, *ret_msg_id);
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0; /* error */
+		goto cleanup; /* error */
 	}
 	int ist_cnt  = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
 	/*
 	Groupsize:  Min. MDNs
@@ -4484,12 +4293,16 @@ int dc_mdn_from_ext__(dc_context_t* context, uint32_t from_id, const char* rfc72
 
 	(S=Sender, R=Recipient)
 	*/
-	int soll_cnt = (dc_get_chat_contact_count__(context, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
+	int soll_cnt = (dc_get_chat_contact_count(context, *ret_chat_id)+1/*for rounding, SELF is already included!*/) / 2;
 	if( ist_cnt < soll_cnt ) {
-		return 0; /* wait for more receipts */
+		goto cleanup; /* wait for more receipts */
 	}
 
 	/* got enough receipts :-) */
-	dc_update_msg_state__(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
-	return 1;
+	dc_update_msg_state(context, *ret_msg_id, DC_STATE_OUT_MDN_RCVD);
+	read_by_all = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return read_by_all;
 }

@@ -24,20 +24,27 @@
 #include "dc_apeerstate.h"
 
 
-/* This class wraps around SQLite.  Some hints to the underlying database:
+/* This class wraps around SQLite.
 
-- `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
-  files, caching is not that important; we rely on the system defaults here
-  (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
-  versions)
+We use a single handle for the database connections, mainly because
+we do not know from which threads the UI calls the dc_*() functions.
 
-- We use `sqlite3_last_insert_rowid()` to find out created records - for this
-  purpose, the primary ID has to be marked using `INTEGER PRIMARY KEY`, see
-  https://www.sqlite.org/c3ref/last_insert_rowid.html
+As the open the Database in serialized mode explicitly, in general, this is
+safe. However, there are some points to keep in mind:
 
-- Some words to the "param" fields:  These fields contains a string with
-  additonal, named parameters which must not be accessed by a search and/or
-  are very seldomly used. Moreover, this allows smart minor database updates. */
+1. Reading can be done at the same time from several threads, howver, only
+   one thread can write.  If a seconds thread tries to write, this thread
+   is halted until the first has finished writing, at most the timespan set
+   by sqlite3_busy_timeout().
+
+2. Transactions are possible using `BEGIN IMMEDIATE` (this causes the first
+   thread trying to write to block the others as described in 1.
+   Transaction cannot be nested, we recommend to use them only in the
+   top-level functions or not to use them.
+
+3. Using sqlite3_last_insert_rowid() causes race conditions.  If you need
+   this function, you have to wrap *all* INSERTs by a critical section.
+   We recommend not to use this function. */
 
 
 /*******************************************************************************
@@ -108,6 +115,20 @@ cleanup:
 }
 
 
+uint32_t dc_sqlite3_get_rowid(dc_sqlite3_t* sql, const char* table, const char* field, const char* value)
+{
+	uint32_t id = 0;
+	char* q3 = sqlite3_mprintf("SELECT id FROM %s WHERE %s=%Q;", table, field, value);
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, q3);
+	if (SQLITE_ROW==sqlite3_step(stmt)) {
+		id = sqlite3_column_int(stmt, 0);
+	}
+	sqlite3_finalize(stmt);
+	sqlite3_free(q3);
+	return id;
+}
+
+
 /*******************************************************************************
  * Main interface
  ******************************************************************************/
@@ -116,19 +137,12 @@ cleanup:
 dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 {
 	dc_sqlite3_t* sql = NULL;
-	int          i;
 
 	if( (sql=calloc(1, sizeof(dc_sqlite3_t)))==NULL ) {
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
 	sql->m_context          = context;
-
-	for( i = 0; i < PREDEFINED_CNT; i++ ) {
-		sql->m_pd[i] = NULL;
-	}
-
-	pthread_mutex_init(&sql->m_critical_, NULL);
 
 	return sql;
 }
@@ -141,12 +155,9 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 	}
 
 	if( sql->m_cobj ) {
-		pthread_mutex_lock(&sql->m_critical_); /* as a very exeception, we do the locking inside the dc_sqlite3-class - normally, this should be done by the caller! */
-			dc_sqlite3_close__(sql);
-		pthread_mutex_unlock(&sql->m_critical_);
+		dc_sqlite3_close__(sql);
 	}
 
-	pthread_mutex_destroy(&sql->m_critical_);
 	free(sql);
 }
 
@@ -171,6 +182,11 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// So, most of the explicit lock/unlocks on dc_sqlite3_t object are no longer needed.
 	// However, locking is _also_ used for dc_context_t which _is_ still needed, so, we
 	// should remove locks only if we're really sure.
+	//
+	// `PRAGMA cache_size` and `PRAGMA page_size`: As we save BLOBs in external
+	// files, caching is not that important; we rely on the system defaults here
+	// (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
+	// versions)
 	if( sqlite3_open_v2(dbfile, &sql->m_cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
 			NULL) != SQLITE_OK ) {
@@ -194,6 +210,10 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		{
 			dc_log_info(sql->m_context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
+			// the row with the type `INTEGER PRIMARY KEY` is an alias to the 64-bit-ROWID present in every table
+			// we re-use this ID for our own purposes.
+			// (the last inserted ROWID can be accessed using sqlite3_last_insert_rowid(), which, however, is
+			// not recommended as not thread-safe, see above)
 			dc_sqlite3_execute(sql, "CREATE TABLE config (id INTEGER PRIMARY KEY, keyname TEXT, value TEXT);");
 			dc_sqlite3_execute(sql, "CREATE INDEX config_index1 ON config (keyname);");
 
@@ -444,9 +464,9 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
 					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->m_context);
-						if( dc_apeerstate_load_by_addr__(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
+						if( dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
 						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
-							dc_apeerstate_save_to_db__(peerstate, sql, 0/*don't create*/);
+							dc_apeerstate_save_to_db(peerstate, sql, 0/*don't create*/);
 						}
 					dc_apeerstate_unref(peerstate);
 				}
@@ -465,21 +485,12 @@ cleanup:
 
 void dc_sqlite3_close__(dc_sqlite3_t* sql)
 {
-	int i;
-
 	if( sql == NULL ) {
 		return;
 	}
 
 	if( sql->m_cobj )
 	{
-		for( i = 0; i < PREDEFINED_CNT; i++ ) {
-			if( sql->m_pd[i] ) {
-				sqlite3_finalize(sql->m_pd[i]);
-				sql->m_pd[i] = NULL;
-			}
-		}
-
 		sqlite3_close(sql->m_cobj);
 		sql->m_cobj = NULL;
 	}
@@ -494,51 +505,6 @@ int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 		return 0;
 	}
 	return 1;
-}
-
-
-sqlite3_stmt* dc_sqlite3_predefine__(dc_sqlite3_t* sql, size_t idx, const char* querystr)
-{
-	/* Predefines a statement or resets and reuses a statement.
-
-	The same idx MUST NOT be used at the same time from different threads and
-	you MUST NOT call this function with different strings for the same index. */
-
-	if( sql == NULL || sql->m_cobj == NULL || idx >= PREDEFINED_CNT ) {
-		return NULL;
-	}
-
-	if( sql->m_pd[idx] ) {
-		sqlite3_reset(sql->m_pd[idx]);
-		return sql->m_pd[idx]; /* fine, already prepared before */
-	}
-
-	/*prepare for the first time - this requires the querystring*/
-	if( querystr == NULL ) {
-		return NULL;
-	}
-
-	if( sqlite3_prepare_v2(sql->m_cobj,
-	         querystr, -1 /*read `querystr` up to the first null-byte*/,
-	         &sql->m_pd[idx],
-	         NULL /*tail not interesing, we use only single statements*/) != SQLITE_OK )
-	{
-		dc_sqlite3_log_error(sql, "Preparing statement \"%s\" failed.", querystr);
-		return NULL;
-	}
-
-	return sql->m_pd[idx];
-}
-
-
-void dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t* sql)
-{
-	int i;
-	for( i = 0; i < PREDEFINED_CNT; i++ ) {
-		if( sql->m_pd[i] ) {
-			sqlite3_reset(sql->m_pd[i]);
-		}
-	}
 }
 
 
@@ -699,97 +665,38 @@ int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
 
 
 /*******************************************************************************
- * Locking
- ******************************************************************************/
-
-
-#ifdef DC_USE_LOCK_DEBUG
-void dc_sqlite3_lockNdebug(dc_sqlite3_t* sql, const char* filename, int linenum) /* wait and lock */
-#else
-void dc_sqlite3_lock(dc_sqlite3_t* sql) /* wait and lock */
-#endif
-{
-	#ifdef DC_USE_LOCK_DEBUG
-		clock_t start = clock();
-		dc_log_info(sql->m_context, 0, "    waiting for lock at %s#L%i", filename, linenum);
-	#endif
-
-	pthread_mutex_lock(&sql->m_critical_);
-
-	#ifdef DC_USE_LOCK_DEBUG
-		dc_log_info(sql->m_context, 0, "{{{ LOCK AT %s#L%i after %.3f ms", filename, linenum, (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
-	#endif
-}
-
-
-#ifdef DC_USE_LOCK_DEBUG
-void dc_sqlite3_unlockNdebug(dc_sqlite3_t* sql, const char* filename, int linenum)
-#else
-void dc_sqlite3_unlock(dc_sqlite3_t* sql)
-#endif
-{
-	#ifdef DC_USE_LOCK_DEBUG
-		dc_log_info(sql->m_context, 0, "    UNLOCK AT %s#L%i }}}", filename, linenum);
-	#endif
-
-	pthread_mutex_unlock(&sql->m_critical_);
-}
-
-
-/*******************************************************************************
  * Transactions
  ******************************************************************************/
 
 
-void dc_sqlite3_begin_transaction__(dc_sqlite3_t* sql)
+void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	sql->m_transactionCount++; /* this is safe, as the database should be locked when using a transaction */
-
-	if( sql->m_transactionCount == 1 )
-	{
-		stmt = dc_sqlite3_predefine__(sql, BEGIN_transaction, "BEGIN;");
-		if( sqlite3_step(stmt) != SQLITE_DONE ) {
-			dc_sqlite3_log_error(sql, "Cannot begin transaction.");
-		}
+	// `BEGIN IMMEDIATE` ensures, only one thread may write.
+	// all other calls to `BEGIN IMMEDIATE` will try over until sqlite3_busy_timeout() is reached.
+	// CAVE: This also implies that transactions MUST NOT be nested.
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "BEGIN IMMEDIATE;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot begin transaction.");
 	}
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_sqlite3_rollback__(dc_sqlite3_t* sql)
+void dc_sqlite3_rollback(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	if( sql->m_transactionCount >= 1 )
-	{
-		if( sql->m_transactionCount == 1 )
-		{
-			stmt = dc_sqlite3_predefine__(sql, ROLLBACK_transaction, "ROLLBACK;");
-			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
-			}
-		}
-
-		sql->m_transactionCount--;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "ROLLBACK;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
 	}
+	sqlite3_finalize(stmt);
 }
 
 
-void dc_sqlite3_commit__(dc_sqlite3_t* sql)
+void dc_sqlite3_commit(dc_sqlite3_t* sql)
 {
-	sqlite3_stmt* stmt;
-
-	if( sql->m_transactionCount >= 1 )
-	{
-		if( sql->m_transactionCount == 1 )
-		{
-			stmt = dc_sqlite3_predefine__(sql, COMMIT_transaction, "COMMIT;");
-			if( sqlite3_step(stmt) != SQLITE_DONE ) {
-				dc_sqlite3_log_error(sql, "Cannot commit transaction.");
-			}
-		}
-
-		sql->m_transactionCount--;
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "COMMIT;");
+	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+		dc_sqlite3_log_error(sql, "Cannot commit transaction.");
 	}
+	sqlite3_finalize(stmt);
 }

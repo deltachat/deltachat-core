@@ -202,7 +202,7 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 		goto cleanup;
 	}
 
-	if( !dc_key_load_self_public__(public_key, self_addr, context->m_sql) )
+	if( !dc_key_load_self_public(public_key, self_addr, context->m_sql) )
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
 		if( s_in_key_creation ) { goto cleanup; }
@@ -235,8 +235,6 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 
 			dc_log_info(context, 0, "Generating keypair ...");
 
-			dc_sqlite3_unlock(context->m_sql); /* SIC! unlock database during creation - otherwise the GUI may hang */
-
 				/* The public key must contain the following:
 				- a signing-capable primary key Kp
 				- a user id
@@ -245,8 +243,6 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 				- a binding signature over Ke by Kp
 				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
 				key_created = dc_pgp_create_keypair(context, self_addr, public_key, private_key);
-
-			dc_sqlite3_lock(context->m_sql);
 
 			if( !key_created ) {
 				dc_log_warning(context, 0, "Cannot create keypair.");
@@ -259,7 +255,7 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 				goto cleanup;
 			}
 
-			if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, 1/*set default*/, context->m_sql) ) {
+			if( !dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->m_sql) ) {
 				dc_log_warning(context, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
@@ -282,16 +278,13 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 {
 	/* normally, the key is generated as soon as the first mail is send
 	(this is to gain some extra-random-seed by the message content and the timespan between program start and message sending) */
-	int      success = 0, locked = 0;
+	int      success = 0;
 	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
 			dc_log_warning(context, 0, "Cannot ensure secret key if context is not configured.");
@@ -305,7 +298,6 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 		success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_key_unref(public_key);
 	free(self_addr);
 	return success;
@@ -323,7 +315,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
                     int min_verified,
                     struct mailmime* in_out_message, dc_e2ee_helper_t* helper)
 {
-	int                    locked = 0, col = 0, do_encrypt = 0;
+	int                     col = 0, do_encrypt = 0;
 	dc_aheader_t*           autocryptheader = dc_aheader_new();
 	struct mailimf_fields* imffields_unprotected = NULL; /*just a pointer into mailmime structure, must not be freed*/
 	dc_keyring_t*           keyring = dc_keyring_new();
@@ -340,9 +332,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		/* init autocrypt header from db */
 		autocryptheader->m_prefer_encrypt = DC_PE_NOPREFERENCE;
@@ -372,7 +361,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 				{
 					; // encrypt to SELF, this key is added below
 				}
-				else if( dc_apeerstate_load_by_addr__(peerstate, context->m_sql, recipient_addr)
+				else if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, recipient_addr)
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
 				      && (peerstate->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
 				{
@@ -390,7 +379,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		if( do_encrypt ) {
 			dc_keyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !dc_key_load_self_private__(sign_key, autocryptheader->m_addr, context->m_sql) ) {
+			if( !dc_key_load_self_private(sign_key, autocryptheader->m_addr, context->m_sql) ) {
 				do_encrypt = 0;
 			}
 		}
@@ -398,9 +387,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		if( force_unencrypted ) {
 			do_encrypt = 0;
 		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
 		goto cleanup;
@@ -508,7 +494,6 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	dc_aheader_unref(autocryptheader);
 	dc_keyring_unref(keyring);
 	dc_key_unref(sign_key);
@@ -765,16 +750,14 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 					{
 						/* valid recipient: update peerstate */
 						dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
-						dc_sqlite3_lock(context->m_sql);
-							if( !dc_apeerstate_load_by_addr__(peerstate, context->m_sql, gossip_header->m_addr) ) {
-								dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-								dc_apeerstate_save_to_db__(peerstate, context->m_sql, 1/*create*/);
-							}
-							else {
-								dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
-								dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*do not create*/);
-							}
-						dc_sqlite3_unlock(context->m_sql);
+						if( !dc_apeerstate_load_by_addr(peerstate, context->m_sql, gossip_header->m_addr) ) {
+							dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
+							dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
+						}
+						else {
+							dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
+							dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*do not create*/);
+						}
 
 						if( peerstate->m_degrade_event ) {
 							dc_handle_degrade_event(context, peerstate);
@@ -818,7 +801,6 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	dc_aheader_t*          autocryptheader = NULL;
 	time_t                 message_time = 0;
 	dc_apeerstate_t*       peerstate = dc_apeerstate_new(context);
-	int                    locked = 0;
 	char*                  from = NULL, *self_addr = NULL;
 	dc_keyring_t*          private_keyring = dc_keyring_new();
 	dc_keyring_t*          public_keyring_for_validate = dc_keyring_new();
@@ -863,48 +845,43 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	}
 
 	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
-		/* apply Autocrypt:-header */
-		if( message_time > 0
-		 && from )
-		{
-			if( dc_apeerstate_load_by_addr__(peerstate, context->m_sql, from) ) {
-				if( autocryptheader ) {
-					dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
-					dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*no not create*/);
-				}
-				else {
-					if( message_time > peerstate->m_last_seen_autocrypt
-					 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
-						dc_apeerstate_degrade_encryption(peerstate, message_time);
-						dc_apeerstate_save_to_db__(peerstate, context->m_sql, 0/*no not create*/);
-					}
+	/* apply Autocrypt:-header */
+	if( message_time > 0
+	 && from )
+	{
+		if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, from) ) {
+			if( autocryptheader ) {
+				dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
+				dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
+			}
+			else {
+				if( message_time > peerstate->m_last_seen_autocrypt
+				 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
+					dc_apeerstate_degrade_encryption(peerstate, message_time);
+					dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
 				}
 			}
-			else if( autocryptheader ) {
-				dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
-				dc_apeerstate_save_to_db__(peerstate, context->m_sql, 1/*create*/);
-			}
 		}
-
-		/* load private key for decryption */
-		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
-			goto cleanup;
+		else if( autocryptheader ) {
+			dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
+			dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
 		}
+	}
 
-		if( !dc_keyring_load_self_private_for_decrypting__(private_keyring, self_addr, context->m_sql) ) {
-			goto cleanup;
-		}
+	/* load private key for decryption */
+	if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
+		goto cleanup;
+	}
 
-		/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-		if( peerstate->m_last_seen == 0 ) {
-			dc_apeerstate_load_by_addr__(peerstate, context->m_sql, from);
-		}
+	if( !dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->m_sql) ) {
+		goto cleanup;
+	}
 
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
+	if( peerstate->m_last_seen == 0 ) {
+		dc_apeerstate_load_by_addr(peerstate, context->m_sql, from);
+	}
 
 	if( peerstate->m_degrade_event ) {
 		dc_handle_degrade_event(context, peerstate);
@@ -947,7 +924,6 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	//mailmime_print(in_out_message);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
 	dc_aheader_unref(autocryptheader);
 	dc_apeerstate_unref(peerstate);

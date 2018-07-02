@@ -97,9 +97,9 @@ int              dc_apeerstate_recalc_fingerprint   (dc_apeerstate_t*);
 #define          DC_PS_PUBLIC_KEY 1
 int              dc_apeerstate_set_verified         (dc_apeerstate_t*, int which_key, const char* fingerprint, int verfied);
 
-int              dc_apeerstate_load_by_addr__       (dc_apeerstate_t*, dc_sqlite3_t*, const char* addr);
-int              dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t*, dc_sqlite3_t*, const char* fingerprint);
-int              dc_apeerstate_save_to_db__         (const dc_apeerstate_t*, dc_sqlite3_t*, int create);
+int              dc_apeerstate_load_by_addr         (dc_apeerstate_t*, dc_sqlite3_t*, const char* addr);
+int              dc_apeerstate_load_by_fingerprint  (dc_apeerstate_t*, dc_sqlite3_t*, const char* fingerprint);
+int              dc_apeerstate_save_to_db           (const dc_apeerstate_t*, dc_sqlite3_t*, int create);
 
 int              dc_apeerstate_has_verified_key     (const dc_apeerstate_t*, const dc_hash_t* fingerprints);
 

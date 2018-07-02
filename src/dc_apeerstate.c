@@ -107,18 +107,18 @@ static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_st
 }
 
 
-int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* addr)
+int dc_apeerstate_load_by_addr(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* addr)
 {
 	int           success = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( peerstate==NULL || sql == NULL || addr == NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	dc_apeerstate_empty(peerstate);
 
-	stmt = dc_sqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_addr,
+	stmt = dc_sqlite3_prepare(sql,
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE addr=? COLLATE NOCASE;");
@@ -131,22 +131,23 @@ int dc_apeerstate_load_by_addr__(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, 
 	success = 1;
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return success;
 }
 
 
-int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* fingerprint)
+int dc_apeerstate_load_by_fingerprint(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, const char* fingerprint)
 {
 	int           success = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( peerstate==NULL || sql == NULL || fingerprint == NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	dc_apeerstate_empty(peerstate);
 
-	stmt = dc_sqlite3_predefine__(sql, SELECT_fields_FROM_acpeerstates_WHERE_fingerprint,
+	stmt = dc_sqlite3_prepare(sql,
 		"SELECT " PEERSTATE_FIELDS
 		 " FROM acpeerstates "
 		 " WHERE public_key_fingerprint=? COLLATE NOCASE "
@@ -163,28 +164,31 @@ int dc_apeerstate_load_by_fingerprint__(dc_apeerstate_t* peerstate, dc_sqlite3_t
 	success = 1;
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return success;
 }
 
 
-int dc_apeerstate_save_to_db__(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, int create)
+int dc_apeerstate_save_to_db(const dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, int create)
 {
 	int           success = 0;
-	sqlite3_stmt* stmt;
+	sqlite3_stmt* stmt = NULL;
 
 	if( peerstate==NULL || sql==NULL || peerstate->m_addr==NULL ) {
 		return 0;
 	}
 
 	if( create ) {
-		stmt = dc_sqlite3_predefine__(sql, INSERT_INTO_acpeerstates_a, "INSERT INTO acpeerstates (addr) VALUES(?);");
+		stmt = dc_sqlite3_prepare(sql, "INSERT INTO acpeerstates (addr) VALUES(?);");
 		sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 
 	if( (peerstate->m_to_save&DC_SAVE_ALL) || create )
 	{
-		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_lcpp_WHERE_a,
+		stmt = dc_sqlite3_prepare(sql,
 			"UPDATE acpeerstates "
 			"   SET last_seen=?, last_seen_autocrypt=?, prefer_encrypted=?, "
 			"       public_key=?, gossip_timestamp=?, gossip_key=?, public_key_fingerprint=?, gossip_key_fingerprint=?, verified_key=?, verified_key_fingerprint=? "
@@ -203,10 +207,12 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* peerstate, dc_sqlite3_t* s
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 	else if( peerstate->m_to_save&DC_SAVE_TIMESTAMPS )
 	{
-		stmt = dc_sqlite3_predefine__(sql, UPDATE_acpeerstates_SET_l_WHERE_a,
+		stmt = dc_sqlite3_prepare(sql,
 			"UPDATE acpeerstates SET last_seen=?, last_seen_autocrypt=?, gossip_timestamp=? WHERE addr=?;");
 		sqlite3_bind_int64(stmt, 1, peerstate->m_last_seen);
 		sqlite3_bind_int64(stmt, 2, peerstate->m_last_seen_autocrypt);
@@ -215,11 +221,14 @@ int dc_apeerstate_save_to_db__(const dc_apeerstate_t* peerstate, dc_sqlite3_t* s
 		if( sqlite3_step(stmt) != SQLITE_DONE ) {
 			goto cleanup;
 		}
+		sqlite3_finalize(stmt);
+		stmt = NULL;
 	}
 
 	success = 1;
 
 cleanup:
+	sqlite3_finalize(stmt);
 	return success;
 }
 

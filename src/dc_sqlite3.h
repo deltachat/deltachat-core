@@ -34,110 +34,6 @@ extern "C" {
 #include <pthread.h>
 
 
-/* predefined statements */
-enum
-{
-	 BEGIN_transaction = 0 /* must be first */
-	,ROLLBACK_transaction
-	,COMMIT_transaction
-
-	,SELECT_inao_FROM_contacts_a
-	,SELECT_na_FROM_chats_contacs_JOIN_contacts_WHERE_cc
-	,SELECT_p_FROM_chats_contacs_JOIN_contacts_peerstates_WHERE_cc
-	,SELECT_id_FROM_contacts_ORDER_BY
-	,SELECT_id_FROM_contacts_WHERE_query_ORDER_BY
-	,SELECT_COUNT_FROM_contacts_WHERE_blocked
-	,SELECT_id_FROM_contacts_WHERE_blocked
-	,INSERT_INTO_contacts_neo
-	,UPDATE_contacts_nao_WHERE_i
-	,UPDATE_contacts_SET_origin_WHERE_id
-	,UPDATE_contacts_SET_b_WHERE_i
-	,DELETE_FROM_contacts_WHERE_id
-
-	,SELECT_COUNT_FROM_chats
-	,SELECT_COUNT_FROM_chats_WHERE_archived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_archived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_unarchived
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_query
-	,SELECT_ii_FROM_chats_LEFT_JOIN_msgs_WHERE_contact_id
-	,SELECT_itndd_FROM_chats_WHERE_i
-	,SELECT_id_FROM_chats_WHERE_id
-	,SELECT_id_FROM_chats_WHERE_contact_id
-	,SELECT_id_FROM_CHATS_WHERE_grpid
-	,SELECT_timestamp_FROM_msgs_WHERE_timestamp
-	,SELECT_param_FROM_msgs
-	,SELECT_it_FROM_msgs_JOIN_chats_WHERE_rfc724
-	,SELECT_MAX_timestamp_FROM_msgs
-	,SELECT_rfc724_FROM_msgs_ORDER_BY_timestamp_LIMIT_1
-	,UPDATE_chats_SET_n_WHERE_c
-	,UPDATE_chats_SET_blocked_WHERE_chat_id
-	,UPDATE_chats_SET_blocked_WHERE_contact_id
-	,UPDATE_chats_SET_unarchived
-
-	,SELECT_a_FROM_chats_contacts_WHERE_i
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_chat_id
-	,SELECT_COUNT_FROM_chats_contacts_WHERE_contact_id
-	,SELECT_verified_FROM_chats_contacts_WHERE_chat_id
-	,SELECT_c_FROM_chats_contacts_WHERE_c
-	,SELECT_contact_id_FROM_chats_contacts_WHERE_chat_id_ORDER_BY
-	,SELECT_void_FROM_chats_contacts_WHERE_chat_id_AND_contact_id
-	,INSERT_INTO_chats_contacts
-
-	,SELECT_COUNT_FROM_msgs_WHERE_assigned
-	,SELECT_COUNT_FROM_msgs_WHERE_unassigned
-	,SELECT_COUNT_FROM_msgs_WHERE_state_AND_chat_id
-	,SELECT_COUNT_FROM_msgs_WHERE_chat_id
-	,SELECT_COUNT_FROM_msgs_WHERE_rfc724_mid
-	,SELECT_COUNT_FROM_msgs_WHERE_ft
-	,SELECT_i_FROM_msgs_WHERE_ctt
-	,SELECT_id_FROM_msgs_WHERE_cm
-	,SELECT_id_FROM_msgs_WHERE_mcm
-	,SELECT_id_FROM_msgs_WHERE_fresh_AND_deaddrop
-	,SELECT_txt_raw_FROM_msgs_WHERE_id
-	,SELECT_ircftttstpb_FROM_msg_WHERE_i
-	,SELECT_ss_FROM_msgs_WHERE_m
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_c
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_starred
-	,SELECT_i_FROM_msgs_LEFT_JOIN_contacts_WHERE_fresh
-	,SELECT_i_FROM_msgs_LEFT_JOIN_chats_contacts_WHERE_blocked
-	,SELECT_i_FROM_msgs_WHERE_query
-	,SELECT_i_FROM_msgs_WHERE_chat_id_AND_query
-	,INSERT_INTO_msgs_msscftttsmttpb
-	,INSERT_INTO_msgs_cftttst
-	,INSERT_INTO_msgs_mcftttstpb
-	,UPDATE_msgs_SET_chat_id_WHERE_id
-	,UPDATE_msgs_SET_state_WHERE_id
-	,SELECT_state_blocked_FROM_msgs_LEFT_JOIN_chats_WHERE_id
-	,UPDATE_msgs_SET_state_WHERE_chat_id_AND_state
-	,UPDATE_msgs_SET_state_WHERE_from_id_AND_state
-	,UPDATE_msgs_SET_ss_WHERE_rfc724_mid
-	,UPDATE_msgs_SET_param_WHERE_id
-	,UPDATE_msgs_SET_starred_WHERE_id
-	,DELETE_FROM_msgs_WHERE_id
-	,DELETE_FROM_msgs_WHERE_rfc724_mid
-
-	,SELECT_c_FROM_msgs_mdns_WHERE_mc
-	,INSERT_INTO_msgs_mdns
-	,SELECT_COUNT_FROM_msgs_mdns_WHERE_m
-	,DELETE_FROM_msgs_mdns_WHERE_m
-
-	,SELECT_FROM_leftgrps_WHERE_grpid
-
-	,INSERT_INTO_acpeerstates_a
-	,SELECT_fields_FROM_acpeerstates_WHERE_addr
-	,SELECT_fields_FROM_acpeerstates_WHERE_fingerprint
-	,UPDATE_acpeerstates_SET_l_WHERE_a
-	,UPDATE_acpeerstates_SET_lcpp_WHERE_a
-
-	,INSERT_INTO_keypairs_aippc
-	,SELECT_private_key_FROM_keypairs_WHERE_default
-	,SELECT_private_key_FROM_keypairs_ORDER_BY_default
-	,SELECT_public_key_FROM_keypairs_WHERE_default
-
-	,PREDEFINED_CNT /* must be last */
-};
-
-
 /**
  * Library-internal.
  *
@@ -149,11 +45,8 @@ enum
 typedef struct dc_sqlite3_t
 {
 	/** @privatesection */
-	sqlite3_stmt*   m_pd[PREDEFINED_CNT]; /**< prepared statements - this is the favourite way for the caller to use SQLite */
 	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
-	int             m_transactionCount;   /**< helper for transactions */
 	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
-	pthread_mutex_t m_critical_;        /**< the user must make sure, only one thread uses sqlite at the same time! for this purpose, all calls must be enclosed by a locked m_critical; use dc_sqlite3_lock() for this purpose */
 
 } dc_sqlite3_t;
 
@@ -174,33 +67,16 @@ char*         dc_sqlite3_get_config       (dc_sqlite3_t*, const char* key, const
 int32_t       dc_sqlite3_get_config_int   (dc_sqlite3_t*, const char* key, int32_t def);
 
 /* tools, these functions are compatible to the corresponding sqlite3_* functions */
-sqlite3_stmt* dc_sqlite3_predefine__      (dc_sqlite3_t*, size_t idx, const char* sql); /*the result is resetted as needed and must not be freed. CAVE: you must not call this function with different strings for the same index!*/
 sqlite3_stmt* dc_sqlite3_prepare          (dc_sqlite3_t*, const char* sql); /* the result mus be freed using sqlite3_finalize() */
 int           dc_sqlite3_execute          (dc_sqlite3_t*, const char* sql);
 int           dc_sqlite3_table_exists__   (dc_sqlite3_t*, const char* name);
 void          dc_sqlite3_log_error        (dc_sqlite3_t*, const char* msg, ...);
+uint32_t      dc_sqlite3_get_rowid        (dc_sqlite3_t*, const char* table, const char* field, const char* value);
 
-/* reset all predefined statements, this is needed only in very rare cases, eg. when dropping a table and there are pending statements */
-void          dc_sqlite3_reset_all_predefinitions(dc_sqlite3_t*);
+void          dc_sqlite3_begin_transaction  (dc_sqlite3_t*);
+void          dc_sqlite3_commit             (dc_sqlite3_t*);
+void          dc_sqlite3_rollback           (dc_sqlite3_t*);
 
-/* tools for locking, may be called nested, see also m_critical_ above.
-the user of dc_sqlite3 must make sure that the dc_sqlite3-object is only used by one thread at the same time.
-In general, we will lock the hightest level as possible - this avoids deadlocks and massive on/off lockings.
-Low-level-functions, eg. the dc_sqlite3-methods, do not lock. */
-#ifdef DC_USE_LOCK_DEBUG
-#define       dc_sqlite3_lock(a)          dc_sqlite3_lockNdebug((a), __FILE__, __LINE__)
-#define       dc_sqlite3_unlock(a)        dc_sqlite3_unlockNdebug((a), __FILE__, __LINE__)
-void          dc_sqlite3_lockNdebug       (dc_sqlite3_t*, const char* filename, int line);
-void          dc_sqlite3_unlockNdebug     (dc_sqlite3_t*, const char* filename, int line);
-#else
-void          dc_sqlite3_lock             (dc_sqlite3_t*); /* lock or wait; these calls must not be nested in a single thread */
-void          dc_sqlite3_unlock           (dc_sqlite3_t*);
-#endif
-
-/* nestable transactions, only the outest is really used */
-void          dc_sqlite3_begin_transaction__(dc_sqlite3_t*);
-void          dc_sqlite3_commit__           (dc_sqlite3_t*);
-void          dc_sqlite3_rollback__         (dc_sqlite3_t*);
 
 #ifdef __cplusplus
 } /* /extern "C" */

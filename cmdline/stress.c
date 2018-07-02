@@ -36,6 +36,7 @@ $ valgrind --leak-check=full --tool=memcheck ./deltachat-core <db>
 #include "../src/dc_apeerstate.h"
 #include "../src/dc_aheader.h"
 #include "../src/dc_keyring.h"
+#include "../src/dc_saxparser.h"
 
 
 /* some data used for testing
@@ -174,6 +175,16 @@ static const char* s_em_setupfile =
 
 void stress_functions(dc_context_t* context)
 {
+	/* test dc_saxparser_t
+	 **************************************************************************/
+
+	{
+		dc_saxparser_t saxparser;
+		dc_saxparser_init(&saxparser, NULL);
+		dc_saxparser_parse(&saxparser, "<tag attr=val="); // should not crash or cause a deadlock
+		dc_saxparser_parse(&saxparser, "<tag attr=\"val\"="); // should not crash or cause a deadlock
+	}
+
 	/* test dc_simplify_t and dc_saxparser_t (indirectly used by dc_simplify_t)
 	 **************************************************************************/
 

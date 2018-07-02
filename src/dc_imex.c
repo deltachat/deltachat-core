@@ -33,6 +33,7 @@
 #include "dc_apeerstate.h"
 #include "dc_pgp.h"
 #include "dc_mimefactory.h"
+#include "dc_job.h"
 
 
 /*******************************************************************************
@@ -100,7 +101,6 @@
  */
 char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 {
-	int                    locked = 0;
 	sqlite3_stmt*          stmt = NULL;
 	char*                  self_addr = NULL;
 	dc_key_t*              curr_private_key = dc_key_new();
@@ -134,19 +134,13 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	}
 
 	{
-		dc_sqlite3_lock(context->m_sql);
-		locked = 1;
-
 			self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-			dc_key_load_self_private__(curr_private_key, self_addr, context->m_sql);
+			dc_key_load_self_private(curr_private_key, self_addr, context->m_sql);
 
 			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if( payload_key_asc == NULL ) {
 				goto cleanup;
 			}
-
-		dc_sqlite3_unlock(context->m_sql);
-		locked = 0;
 
 		//printf("\n~~~~~~~~~~~~~~~~~~~~SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n%s~~~~~~~~~~~~~~~~~~~~/SETUP-PAYLOAD~~~~~~~~~~~~~~~~~~~~\n",key_asc); // DEBUG OUTPUT
 
@@ -275,7 +269,6 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 cleanup:
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	if( payload_output ) { pgp_output_delete(payload_output); }
 	if( payload_mem ) { pgp_memory_free(payload_mem); }
@@ -548,11 +541,10 @@ cleanup:
 static int set_self_key(dc_context_t* context, const char* armored, int set_default)
 {
 	int            success      = 0;
-	int            locked       = 0;
 	char*          buf          = NULL;
 	const char*    buf_headerline, *buf_preferencrypt, *buf_base64; // pointers inside buf, MUST NOT be free()'d
-	dc_key_t*       private_key  = dc_key_new();
-	dc_key_t*       public_key   = dc_key_new();
+	dc_key_t*      private_key  = dc_key_new();
+	dc_key_t*      public_key   = dc_key_new();
 	sqlite3_stmt*  stmt         = NULL;
 	char*          self_addr    = NULL;
 
@@ -571,28 +563,22 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	}
 
 	/* add keypair; before this, delete other keypairs with the same binary key and reset defaults */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+	stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+	sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	stmt = NULL;
 
-		stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-		sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-		sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-		stmt = NULL;
+	if( set_default ) {
+		dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+	}
 
-		if( set_default ) {
-			dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
-		}
-
-		self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-		if( !dc_key_save_self_keypair__(public_key, private_key, self_addr, set_default, context->m_sql) ) {
-			dc_log_error(context, 0, "Cannot save keypair.");
-			goto cleanup;
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
+	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
+	if( !dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->m_sql) ) {
+		dc_log_error(context, 0, "Cannot save keypair.");
+		goto cleanup;
+	}
 
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
 	if( buf_preferencrypt ) {
@@ -607,7 +593,6 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	free(buf);
 	free(self_addr);
@@ -719,10 +704,6 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 	int           id = 0, is_default = 0;
 	dc_key_t*      public_key = dc_key_new();
 	dc_key_t*      private_key = dc_key_new();
-	int           locked = 0;
-
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 
 		if( (stmt=dc_sqlite3_prepare(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 			goto cleanup;
@@ -740,7 +721,6 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 		success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 	sqlite3_finalize(stmt);
 	dc_key_unref(public_key);
 	dc_key_unref(private_key);
@@ -860,9 +840,9 @@ The macro avoids weird values of 0% or 100% while still working. */
 
 static int export_backup(dc_context_t* context, const char* dir)
 {
-	int            success = 0, locked = 0, closed = 0;
+	int            success = 0, closed = 0;
 	char*          dest_pathNfilename = NULL;
-	dc_sqlite3_t*   dest_sql = NULL;
+	dc_sqlite3_t*  dest_sql = NULL;
 	time_t         now = time(NULL);
 	DIR*           dir_handle = NULL;
 	struct dirent* dir_entry;
@@ -889,22 +869,16 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
 	dc_sqlite3_close__(context->m_sql);
 	closed = 1;
 
-	/* copy file to backup directory */
-	dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
-	if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
-		goto cleanup; /* error already logged */
-	}
+		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
+		if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
+			goto cleanup; /* error already logged */
+		}
 
-	/* unlock and re-open the source and make it availabe again for the normal use */
 	dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0);
 	closed = 0;
-	dc_sqlite3_unlock(context->m_sql);
-	locked = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
@@ -991,7 +965,6 @@ static int export_backup(dc_context_t* context, const char* dir)
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
 	if( closed ) { dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0); }
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
@@ -1029,7 +1002,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	*/
 
 	int           success = 0;
-	int           locked = 0;
 	int           processed_files_count = 0, total_files_count = 0;
 	sqlite3_stmt* stmt = NULL;
 	char*         pathNfilename = NULL;
@@ -1044,8 +1016,9 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	}
 
 	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
-	dc_sqlite3_lock(context->m_sql);
-	locked = 1;
+
+//dc_sqlite3_lock(context->m_sql);  // TODO: check if this works while threads running
+//locked = 1;
 
 	if( dc_sqlite3_is_open(context->m_sql) ) {
 		dc_sqlite3_close__(context->m_sql);
@@ -1101,7 +1074,6 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	/* finalize/reset all statements - otherwise the table cannot be DROPped below */
 	sqlite3_finalize(stmt);
 	stmt = 0;
-	dc_sqlite3_reset_all_predefinitions(context->m_sql);
 
 	dc_sqlite3_execute(context->m_sql, "DROP TABLE backup_blobs;");
 	dc_sqlite3_execute(context->m_sql, "VACUUM;");
@@ -1139,7 +1111,9 @@ cleanup:
 	free(repl_from);
 	free(repl_to);
 	sqlite3_finalize(stmt);
-	if( locked ) { dc_sqlite3_unlock(context->m_sql); }
+
+// if( locked ) { dc_sqlite3_unlock(context->m_sql); }  // TODO: check if this works while threads running
+
 	return success;
 }
 
@@ -1151,6 +1125,8 @@ cleanup:
 
 /**
  * Import/export things.
+ * For this purpose, the function creates a job that is executed in the IMAP-thread then;
+ * this requires to call dc_perform_imap_jobs() regulary.
  *
  * What to do is defined by the _what_ parameter which may be one of the following:
  *
@@ -1172,11 +1148,12 @@ cleanup:
  * - **DC_IMEX_IMPORT_SELF_KEYS** (2) - Import private keys found in the directory given as `param1`.
  *   The last imported key is made the default keys unless its name contains the string `legacy`.  Public keys are not imported.
  *
- * The function may take a long time until it finishes, so it might be a good idea to start it in a
- * separate thread. During its execution, the function sends out some events:
+ * While dc_imex() returns immediately, the started job may take a while,
+ * you can stop it using dc_stop_ongoing_process(). During execution of the job,
+ * some events are sent out:
  *
  * - A number of #DC_EVENT_IMEX_PROGRESS events are sent and may be used to create
- *   a progress bar or stuff like that.
+ *   a progress bar or stuff like that. Moreover, you'll be informed when the imex-job is done.
  *
  * - For each file written on export, the function sends #DC_EVENT_IMEX_FILE_WRITTEN
  *
@@ -1189,27 +1166,51 @@ cleanup:
  * @param param1 Meaning depends on the DC_IMEX_* constants. If this parameter is a directory, it should not end with
  *     a slash (otherwise you'll get double slashes when receiving #DC_EVENT_IMEX_FILE_WRITTEN). Set to NULL if not used.
  * @param param2 Meaning depends on the DC_IMEX_* constants. Set to NULL if not used.
- * @return 1=success, 0=error or progress canceled.
+ * @return None.
  */
-int dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
+void dc_imex(dc_context_t* context, int what, const char* param1, const char* param2)
 {
-	int success = 0;
+	dc_param_t* param = dc_param_new();
+
+	dc_param_set_int(param, DC_PARAM_CMD,      what);
+	dc_param_set    (param, DC_PARAM_CMD_ARG,  param1);
+	dc_param_set    (param, DC_PARAM_CMD_ARG2, param2);
+
+	dc_job_kill_actions(context, DC_JOB_IMEX_IMAP, 0);
+	dc_job_add(context, DC_JOB_IMEX_IMAP, 0, param->m_packed, 0); // results in a call to dc_job_do_DC_JOB_IMEX_IMAP()
+
+	dc_param_unref(param);
+}
+
+
+void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
+{
+	int   success = 0;
+	int   ongoing_allocated_here = 0;
+	int   what = 0;
+	char* param1 = NULL;
+	char* param2 = NULL;
 
 	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
 	if( !dc_alloc_ongoing(context) ) {
-		return 0; /* no cleanup as this would call dc_free_ongoing() */
+		goto cleanup;
 	}
+	ongoing_allocated_here = 1;
+
+	what   = dc_param_get_int(job->m_param, DC_PARAM_CMD,      0);
+	param1 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG,  NULL);
+	param2 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG2, NULL);
 
 	if( param1 == NULL ) {
 		dc_log_error(context, 0, "No Import/export dir/file given.");
-		return 0;
+		goto cleanup;
 	}
 
 	dc_log_info(context, 0, "Import/export process started.");
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 0, 0);
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 10, 0);
 
 	if( !dc_sqlite3_is_open(context->m_sql) ) {
 		dc_log_error(context, 0, "Import/export: Database not opened.");
@@ -1256,13 +1257,17 @@ int dc_imex(dc_context_t* context, int what, const char* param1, const char* par
 			goto cleanup;
 	}
 
+	dc_log_info(context, 0, "Import/export completed.");
+
 	success = 1;
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 1000, 0);
 
 cleanup:
-	dc_log_info(context, 0, "Import/export process ended.");
-	dc_free_ongoing(context);
-	return success;
+	free(param1);
+	free(param2);
+
+	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
+
+	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, success? 1000 : 0, 0);
 }
 
 

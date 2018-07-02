@@ -311,7 +311,6 @@ cleanup:
 int dc_contact_is_verified(const dc_contact_t* contact)
 {
 	int              contact_verified = DC_NOT_VERIFIED;
-	int              locked           = 0;
 	dc_apeerstate_t* peerstate        = NULL;
 
 	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
@@ -320,17 +319,13 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 
 	peerstate = dc_apeerstate_new(contact->m_context);
 
-	dc_sqlite3_lock(contact->m_context->m_sql);
-	locked = 1;
+	if( !dc_apeerstate_load_by_addr(peerstate, contact->m_context->m_sql, contact->m_addr) ) {
+		goto cleanup;
+	}
 
-		if( !dc_apeerstate_load_by_addr__(peerstate, contact->m_context->m_sql, contact->m_addr) ) {
-			goto cleanup;
-		}
-
-		contact_verified = dc_contact_is_verified__(contact, peerstate);
+	contact_verified = dc_contact_is_verified__(contact, peerstate);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(contact->m_context->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	return contact_verified;
 }
@@ -459,7 +454,7 @@ char* dc_normalize_addr(const char* email_addr__)
  *
  * @private @memberof dc_contact_t
  */
-int dc_contact_load_from_db__(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
+int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t contact_id)
 {
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;

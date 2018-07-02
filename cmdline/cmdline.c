@@ -48,34 +48,30 @@ int dc_reset_tables(dc_context_t* context, int bits)
 
 	dc_log_info(context, 0, "Resetting tables (%i)...", bits);
 
-	dc_sqlite3_lock(context->m_sql);
+	if( bits & 1 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM jobs;");
+		dc_log_info(context, 0, "(1) Jobs reset.");
+	}
 
-		if( bits & 1 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM jobs;");
-			dc_log_info(context, 0, "(1) Jobs reset.");
-		}
+	if( bits & 2 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM acpeerstates;");
+		dc_log_info(context, 0, "(2) Peerstates reset.");
+	}
 
-		if( bits & 2 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM acpeerstates;");
-			dc_log_info(context, 0, "(2) Peerstates reset.");
-		}
+	if( bits & 4 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM keypairs;");
+		dc_log_info(context, 0, "(4) Private keypairs reset.");
+	}
 
-		if( bits & 4 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM keypairs;");
-			dc_log_info(context, 0, "(4) Private keypairs reset.");
-		}
-
-		if( bits & 8 ) {
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM chats_contacts;");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-			dc_sqlite3_execute(context->m_sql, "DELETE FROM leftgrps;");
-			dc_log_info(context, 0, "(8) Rest but server config reset.");
-		}
-
-	dc_sqlite3_unlock(context->m_sql);
+	if( bits & 8 ) {
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats_contacts;");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+		dc_sqlite3_execute(context->m_sql, "DELETE FROM leftgrps;");
+		dc_log_info(context, 0, "(8) Rest but server config reset.");
+	}
 
 	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
@@ -101,11 +97,7 @@ static int dc_cleanup_contacts(dc_context_t* context)
 
 	dc_log_info(context, 0, "Cleaning up contacts ...");
 
-	dc_sqlite3_lock(context->m_sql);
-
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
-
-	dc_sqlite3_unlock(context->m_sql);
+	dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
 
 	return 1;
 }
@@ -141,7 +133,7 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	encryption is disabled as soon as the first messages comes from the partner */
 	dc_aheader_t*    header = dc_aheader_new();
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
-	int              locked = 0, success = 0;
+	int              success = 0;
 
 	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
 		goto cleanup;
@@ -157,22 +149,18 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	}
 
 	/* update/create peerstate */
-	dc_sqlite3_lock(mailbox->m_sql);
-	locked = 1;
+	if( dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr) ) {
+		dc_apeerstate_apply_header(peerstate, header, time(NULL));
+		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 0);
+	}
+	else {
+		dc_apeerstate_init_from_header(peerstate, header, time(NULL));
+		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 1);
+	}
 
-		if( dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr) ) {
-			dc_apeerstate_apply_header(peerstate, header, time(NULL));
-			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 0);
-		}
-		else {
-			dc_apeerstate_init_from_header(peerstate, header, time(NULL));
-			dc_apeerstate_save_to_db__(peerstate, mailbox->m_sql, 1);
-		}
-
-		success = 1;
+	success = 1;
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(mailbox->m_sql); }
 	dc_apeerstate_unref(peerstate);
 	dc_aheader_unref(header);
 	return success;
@@ -347,9 +335,7 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 			int verified_state = dc_contact_is_verified(contact);
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = dc_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
-			dc_sqlite3_lock(mailbox->m_sql);
-				int peerstate_ok = dc_apeerstate_load_by_addr__(peerstate, mailbox->m_sql, addr);
-			dc_sqlite3_unlock(mailbox->m_sql);
+			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr);
 			if( peerstate_ok && contact_id != DC_CONTACT_ID_SELF ) {
 				char* pe = NULL;
 				switch( peerstate->m_prefer_encrypt ) {
@@ -588,12 +574,14 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-backup")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-backup")==0 )
 	{
 		if( arg1 ) {
-			ret = dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL);
+			ret = COMMAND_SUCCEEDED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <backup-file> missing.");
@@ -601,11 +589,13 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-keys")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-keys")==0 )
 	{
-		ret = dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{

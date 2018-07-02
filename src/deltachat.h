@@ -317,7 +317,7 @@ dc_contact_t*   dc_get_contact               (dc_context_t*, uint32_t contact_id
 #define         DC_IMEX_IMPORT_SELF_KEYS      2 // param1 is a directory where the keys are searched in and read from
 #define         DC_IMEX_EXPORT_BACKUP        11 // param1 is a directory where the backup is written to
 #define         DC_IMEX_IMPORT_BACKUP        12 // param1 is the file with the backup to import
-int             dc_imex                      (dc_context_t*, int what, const char* param1, const char* param2);
+void            dc_imex                      (dc_context_t*, int what, const char* param1, const char* param2);
 char*           dc_imex_has_backup           (dc_context_t*, const char* dir);
 int             dc_check_password            (dc_context_t*, const char* pw);
 char*           dc_initiate_key_transfer     (dc_context_t*);
@@ -699,7 +699,7 @@ time_t          dc_lot_get_timestamp     (dc_lot_t*);
 /**
  * Inform about the import/export progress started by dc_imex().
  *
- * @param data1 Permille
+ * @param data1 0=error, 1-999=progress in permille, 1000=success and done
  * @param data2 0
  * @return 0
  */

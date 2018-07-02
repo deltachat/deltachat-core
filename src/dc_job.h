@@ -36,7 +36,8 @@ extern "C" {
 #define DC_JOB_MARKSEEN_MDN_ON_IMAP   120
 #define DC_JOB_MARKSEEN_MSG_ON_IMAP   130
 #define DC_JOB_SEND_MSG_TO_IMAP       700
-#define DC_JOB_CONFIGURE_IMAP         900    // ... high priority
+#define DC_JOB_CONFIGURE_IMAP         900
+#define DC_JOB_IMEX_IMAP              910    // ... high priority
 
 
 // jobs in the SMTP-thread
@@ -84,6 +85,7 @@ void     dc_job_try_again_later       (dc_job_t*, int try_again);
 
 // the other dc_job_do_DC_JOB_*() functions are declared static in the c-file
 void     dc_job_do_DC_JOB_CONFIGURE_IMAP (dc_context_t*, dc_job_t*);
+void     dc_job_do_DC_JOB_IMEX_IMAP      (dc_context_t*, dc_job_t*);
 
 
 #ifdef __cplusplus

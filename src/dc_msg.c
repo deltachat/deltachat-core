@@ -821,7 +821,7 @@ cleanup:
                       " m.param,m.starred,m.hidden,c.blocked "
 
 
-static int dc_msg_set_from_stmt__(dc_msg_t* msg, sqlite3_stmt* row, int row_offset) /* field order must be DC_MSG_FIELDS */
+static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset) /* field order must be DC_MSG_FIELDS */
 {
 	dc_msg_empty(msg);
 
@@ -862,31 +862,36 @@ static int dc_msg_set_from_stmt__(dc_msg_t* msg, sqlite3_stmt* row, int row_offs
  *
  * @private @memberof dc_msg_t
  */
-int dc_msg_load_from_db__(dc_msg_t* msg, dc_context_t* context, uint32_t id)
+int dc_msg_load_from_db(dc_msg_t* msg, dc_context_t* context, uint32_t id)
 {
-	sqlite3_stmt* stmt;
+	int           success = 0;
+	sqlite3_stmt* stmt = NULL;
 
 	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC || context==NULL || context->m_sql==NULL ) {
-		return 0;
+		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_predefine__(context->m_sql, SELECT_ircftttstpb_FROM_msg_WHERE_i,
+	stmt = dc_sqlite3_prepare(context->m_sql,
 		"SELECT " DC_MSG_FIELDS
 		" FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id"
 		" WHERE m.id=?;");
 	sqlite3_bind_int(stmt, 1, id);
 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
-		return 0;
+		goto cleanup;
 	}
 
-	if( !dc_msg_set_from_stmt__(msg, stmt, 0) ) { /* also calls dc_msg_empty() */
-		return 0;
+	if( !dc_msg_set_from_stmt(msg, stmt, 0) ) { /* also calls dc_msg_empty() */
+		goto cleanup;
 	}
 
 	msg->m_context = context;
 
-	return 1;
+	success = 1;
+
+cleanup:
+	sqlite3_finalize(stmt);
+	return success;
 }
 
 
@@ -1029,25 +1034,6 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 }
 
 
-int dc_msg_is_increation__(const dc_msg_t* msg)
-{
-	int is_increation = 0;
-	if( DC_MSG_NEEDS_ATTACHMENT(msg->m_type) )
-	{
-		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
-		if( pathNfilename ) {
-			char* totest = dc_mprintf("%s.increation", pathNfilename);
-			if( dc_file_exist(totest) ) {
-				is_increation = 1;
-			}
-			free(totest);
-			free(pathNfilename);
-		}
-	}
-	return is_increation;
-}
-
-
 /**
  * Check if a message is still in creation.  The user can mark files as being
  * in creation by simply creating a file `<filename>.increation`. If
@@ -1064,37 +1050,42 @@ int dc_msg_is_increation__(const dc_msg_t* msg)
  */
 int dc_msg_is_increation(const dc_msg_t* msg)
 {
-	/* surrounds dc_msg_is_increation__() with locking and error checking */
+	/* surrounds dc_msg_is_increation() with locking and error checking */
 	int is_increation = 0;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg==NULL || msg->m_magic!=DC_MSG_MAGIC || msg->m_context==NULL ) {
 		return 0;
 	}
 
-	if( msg->m_context && DC_MSG_NEEDS_ATTACHMENT(msg->m_type) /*additional check for speed reasons*/ )
+	if( DC_MSG_NEEDS_ATTACHMENT(msg->m_type) )
 	{
-		dc_sqlite3_lock(msg->m_context->m_sql);
-
-			is_increation = dc_msg_is_increation__(msg);
-
-		dc_sqlite3_unlock(msg->m_context->m_sql);
+		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+		if( pathNfilename ) {
+			char* totest = dc_mprintf("%s.increation", pathNfilename);
+			if( dc_file_exist(totest) ) {
+				is_increation = 1;
+			}
+			free(totest);
+			free(pathNfilename);
+		}
 	}
 
 	return is_increation;
 }
 
 
-void dc_msg_save_param_to_disk__(dc_msg_t* msg)
+void dc_msg_save_param_to_disk(dc_msg_t* msg)
 {
 	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC || msg->m_context == NULL || msg->m_context->m_sql == NULL ) {
 		return;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_predefine__(msg->m_context->m_sql, UPDATE_msgs_SET_param_WHERE_id,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(msg->m_context->m_sql,
 		"UPDATE msgs SET param=? WHERE id=?;");
 	sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
 	sqlite3_bind_int (stmt, 2, msg->m_id);
 	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 }
 
 
@@ -1121,32 +1112,24 @@ void dc_msg_save_param_to_disk__(dc_msg_t* msg)
  */
 void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int duration)
 {
-	int locked = 0;
-
 	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_sqlite3_lock(msg->m_context->m_sql);
-	locked = 1;
+	if( width > 0 ) {
+		dc_param_set_int(msg->m_param, DC_PARAM_WIDTH, width);
+	}
 
-		if( width > 0 ) {
-			dc_param_set_int(msg->m_param, DC_PARAM_WIDTH, width);
-		}
+	if( height > 0 ) {
+		dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height);
+	}
 
-		if( height > 0 ) {
-			dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height);
-		}
+	if( duration > 0 ) {
+		dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
+	}
 
-		if( duration > 0 ) {
-			dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
-		}
-
-		dc_msg_save_param_to_disk__(msg);
-
-	dc_sqlite3_unlock(msg->m_context->m_sql);
-	locked = 0;
+	dc_msg_save_param_to_disk(msg);
 
 cleanup:
-	if( locked ) { dc_sqlite3_unlock(msg->m_context->m_sql); }
+	;
 }
