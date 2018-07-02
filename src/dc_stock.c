@@ -81,7 +81,7 @@ char* dc_stock_str(dc_context_t* context, int id) /* get the string with the giv
 {
 	char* ret = NULL;
 	if( context ) {
-		ret = (char*)context->m_cb(context, DC_EVENT_GET_STRING, id, 0);
+		ret = (char*)context->cb(context, DC_EVENT_GET_STRING, id, 0);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, 0);
@@ -120,7 +120,7 @@ char* dc_stock_str_repl_pl(dc_context_t* context, int id, int cnt)
 {
 	char* ret = NULL;
 	if( context ) {
-		ret = (char*)context->m_cb(context, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
+		ret = (char*)context->cb(context, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, cnt);

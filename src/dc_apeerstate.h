@@ -44,34 +44,34 @@ typedef struct dc_aheader_t dc_aheader_t;
 typedef struct dc_apeerstate_t
 {
 	/** @privatesection */
-	dc_context_t*  m_context;
+	dc_context_t*  context;
 
-	char*          m_addr;
-	time_t         m_last_seen;  /* may be 0 if the peer was created by gossipping */
+	char*          addr;
+	time_t         last_seen;  /* may be 0 if the peer was created by gossipping */
 
-	time_t         m_last_seen_autocrypt;
-	int            m_prefer_encrypt;
+	time_t         last_seen_autocrypt;
+	int            prefer_encrypt;
 
 	#define        DC_NOT_VERIFIED      0
 	#define        DC_BIDIRECT_VERIFIED 2
 
-	dc_key_t*      m_public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
-	char*          m_public_key_fingerprint;
+	dc_key_t*      public_key; /* may be NULL, however, in the database, either public_key or gossip_key is set */
+	char*          public_key_fingerprint;
 
-	dc_key_t*      m_gossip_key; /* may be NULL */
-	time_t         m_gossip_timestamp;
-	char*          m_gossip_key_fingerprint;
+	dc_key_t*      gossip_key; /* may be NULL */
+	time_t         gossip_timestamp;
+	char*          gossip_key_fingerprint;
 
-	dc_key_t*      m_verified_key; // may be NULL
-	char*          m_verified_key_fingerprint;
+	dc_key_t*      verified_key; // may be NULL
+	char*          verified_key_fingerprint;
 
 	#define        DC_SAVE_TIMESTAMPS 0x01
 	#define        DC_SAVE_ALL        0x02
-	int            m_to_save;
+	int            to_save;
 
 	#define        DC_DE_ENCRYPTION_PAUSED   0x01 // recoverable by an incoming encrypted mail
 	#define        DC_DE_FINGERPRINT_CHANGED 0x02 // recoverable by a new verify
-	int            m_degrade_event;
+	int            degrade_event;
 
 } dc_apeerstate_t;
 

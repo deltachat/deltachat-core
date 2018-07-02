@@ -47,10 +47,10 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	chat->m_magic    = DC_CHAT_MAGIC;
-	chat->m_context  = context;
-	chat->m_type     = DC_CHAT_TYPE_UNDEFINED;
-	chat->m_param    = dc_param_new();
+	chat->magic    = DC_CHAT_MAGIC;
+	chat->context  = context;
+	chat->type     = DC_CHAT_TYPE_UNDEFINED;
+	chat->param    = dc_param_new();
 
     return chat;
 }
@@ -67,13 +67,13 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
  */
 void dc_chat_unref(dc_chat_t* chat)
 {
-	if( chat==NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat==NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return;
 	}
 
 	dc_chat_empty(chat);
-	dc_param_unref(chat->m_param);
-	chat->m_magic = 0;
+	dc_param_unref(chat->param);
+	chat->magic = 0;
 	free(chat);
 }
 
@@ -89,27 +89,27 @@ void dc_chat_unref(dc_chat_t* chat)
  */
 void dc_chat_empty(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return;
 	}
 
-	free(chat->m_name);
-	chat->m_name = NULL;
+	free(chat->name);
+	chat->name = NULL;
 
-	chat->m_draft_timestamp = 0;
+	chat->draft_timestamp = 0;
 
-	free(chat->m_draft_text);
-	chat->m_draft_text = NULL;
+	free(chat->draft_text);
+	chat->draft_text = NULL;
 
-	chat->m_type = DC_CHAT_TYPE_UNDEFINED;
-	chat->m_id   = 0;
+	chat->type = DC_CHAT_TYPE_UNDEFINED;
+	chat->id   = 0;
 
-	free(chat->m_grpid);
-	chat->m_grpid = NULL;
+	free(chat->grpid);
+	chat->grpid = NULL;
 
-	chat->m_blocked = 0;
+	chat->blocked = 0;
 
-	dc_param_set_packed(chat->m_param, NULL);
+	dc_param_set_packed(chat->param, NULL);
 }
 
 
@@ -136,11 +136,11 @@ void dc_chat_empty(dc_chat_t* chat)
  */
 uint32_t dc_chat_get_id(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
 
-	return chat->m_id;
+	return chat->id;
 }
 
 
@@ -151,7 +151,7 @@ uint32_t dc_chat_get_id(dc_chat_t* chat)
  *
  * - DC_CHAT_TYPE_SINGLE (100) - a normal chat is a chat with a single contact,
  *   chats_contacts contains one record for the user.  DC_CONTACT_ID_SELF
- *   (see dc_contact_t::m_id) is added _only_ for a self talk.
+ *   (see dc_contact_t::id) is added _only_ for a self talk.
  *
  * - DC_CHAT_TYPE_GROUP  (120) - a group chat, chats_contacts conain all group
  *   members, incl. DC_CONTACT_ID_SELF
@@ -167,10 +167,10 @@ uint32_t dc_chat_get_id(dc_chat_t* chat)
  */
 int dc_chat_get_type(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return DC_CHAT_TYPE_UNDEFINED;
 	}
-	return chat->m_type;
+	return chat->type;
 }
 
 
@@ -191,11 +191,11 @@ int dc_chat_get_type(dc_chat_t* chat)
  */
 char* dc_chat_get_name(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return dc_strdup("Err");
 	}
 
-	return dc_strdup(chat->m_name);
+	return dc_strdup(chat->name);
 }
 
 
@@ -216,22 +216,22 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	/* returns either the address or the number of chat members */
 	char*         ret = NULL;
 
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return dc_strdup("Err");
 	}
 
-	if( chat->m_type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
+	if( chat->type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->param, DC_PARAM_SELFTALK) )
 	{
-		ret = dc_stock_str(chat->m_context, DC_STR_SELFTALK_SUBTITLE);
+		ret = dc_stock_str(chat->context, DC_STR_SELFTALK_SUBTITLE);
 	}
-	else if( chat->m_type == DC_CHAT_TYPE_SINGLE )
+	else if( chat->type == DC_CHAT_TYPE_SINGLE )
 	{
 		int r;
-		sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->m_context->m_sql,
+		sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->context->sql,
 			"SELECT c.addr FROM chats_contacts cc "
 			" LEFT JOIN contacts c ON c.id=cc.contact_id "
 			" WHERE cc.chat_id=?;");
-		sqlite3_bind_int(stmt, 1, chat->m_id);
+		sqlite3_bind_int(stmt, 1, chat->id);
 
 		r = sqlite3_step(stmt);
 		if( r == SQLITE_ROW ) {
@@ -240,17 +240,17 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 
 		sqlite3_finalize(stmt);
 	}
-	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
+	else if( DC_CHAT_TYPE_IS_MULTI(chat->type) )
 	{
 		int cnt = 0;
-		if( chat->m_id == DC_CHAT_ID_DEADDROP )
+		if( chat->id == DC_CHAT_ID_DEADDROP )
 		{
-			ret = dc_stock_str(chat->m_context, DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
+			ret = dc_stock_str(chat->context, DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
 		}
 		else
 		{
-			cnt = dc_get_chat_contact_count(chat->m_context, chat->m_id);
-			ret = dc_stock_str_repl_pl(chat->m_context, DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
+			cnt = dc_get_chat_contact_count(chat->context, chat->id);
+			ret = dc_stock_str_repl_pl(chat->context, DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 		}
 	}
 
@@ -272,11 +272,11 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
  */
 char* dc_chat_get_profile_image(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return NULL;
 	}
 
-	return dc_param_get(chat->m_param, DC_PARAM_PROFILE_IMAGE, NULL);
+	return dc_param_get(chat->param, DC_PARAM_PROFILE_IMAGE, NULL);
 }
 
 
@@ -295,10 +295,10 @@ char* dc_chat_get_profile_image(dc_chat_t* chat)
  */
 char* dc_chat_get_draft(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return NULL;
 	}
-	return dc_strdup_keep_null(chat->m_draft_text); /* may be NULL */
+	return dc_strdup_keep_null(chat->draft_text); /* may be NULL */
 }
 
 
@@ -316,10 +316,10 @@ char* dc_chat_get_draft(dc_chat_t* chat)
  */
 time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
-	return chat->m_draft_timestamp;
+	return chat->draft_timestamp;
 }
 
 
@@ -342,10 +342,10 @@ time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
  */
 int dc_chat_get_archived(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
-	return chat->m_archived;
+	return chat->archived;
 }
 
 
@@ -366,10 +366,10 @@ int dc_chat_get_archived(dc_chat_t* chat)
  */
 int dc_chat_is_unpromoted(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
-	return dc_param_get_int(chat->m_param, DC_PARAM_UNPROMOTED, 0);
+	return dc_param_get_int(chat->param, DC_PARAM_UNPROMOTED, 0);
 }
 
 
@@ -386,10 +386,10 @@ int dc_chat_is_unpromoted(dc_chat_t* chat)
  */
 int dc_chat_is_verified(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
-	return (chat->m_type==DC_CHAT_TYPE_VERIFIED_GROUP);
+	return (chat->type==DC_CHAT_TYPE_VERIFIED_GROUP);
 }
 
 
@@ -405,10 +405,10 @@ int dc_chat_is_verified(dc_chat_t* chat)
  */
 int dc_chat_is_self_talk(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
 		return 0;
 	}
-	return dc_param_exists(chat->m_param, DC_PARAM_SELFTALK);
+	return dc_param_exists(chat->param, DC_PARAM_SELFTALK);
 }
 
 
@@ -420,10 +420,10 @@ int dc_chat_is_self_talk(dc_chat_t* chat)
 int dc_chat_update_param(dc_chat_t* chat)
 {
 	int success = 0;
-	sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->m_context->m_sql,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->context->sql,
 		"UPDATE chats SET param=? WHERE id=?");
-	sqlite3_bind_text(stmt, 1, chat->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int (stmt, 2, chat->m_id);
+	sqlite3_bind_text(stmt, 1, chat->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, chat->id);
 	success = (sqlite3_step(stmt)==SQLITE_DONE)? 1 : 0;
 	sqlite3_finalize(stmt);
 	return success;
@@ -435,50 +435,50 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	int         row_offset = 0;
 	const char* draft_text = NULL;
 
-	if( chat == NULL || chat->m_magic != DC_CHAT_MAGIC || row == NULL ) {
+	if( chat == NULL || chat->magic != DC_CHAT_MAGIC || row == NULL ) {
 		return 0;
 	}
 
 	dc_chat_empty(chat);
 
 	#define CHAT_FIELDS " c.id,c.type,c.name, c.draft_timestamp,c.draft_txt,c.grpid,c.param,c.archived, c.blocked "
-	chat->m_id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
-	chat->m_type            =                    sqlite3_column_int  (row, row_offset++);
-	chat->m_name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	chat->m_draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
+	chat->id              =                    sqlite3_column_int  (row, row_offset++); /* the columns are defined in CHAT_FIELDS */
+	chat->type            =                    sqlite3_column_int  (row, row_offset++);
+	chat->name            =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	chat->draft_timestamp =                    sqlite3_column_int64(row, row_offset++);
 	draft_text              =       (const char*)sqlite3_column_text (row, row_offset++);
-	chat->m_grpid           =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	dc_param_set_packed(chat->m_param,    (char*)sqlite3_column_text (row, row_offset++));
-	chat->m_archived        =                    sqlite3_column_int  (row, row_offset++);
-	chat->m_blocked         =                    sqlite3_column_int  (row, row_offset++);
+	chat->grpid           =   dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	dc_param_set_packed(chat->param,    (char*)sqlite3_column_text (row, row_offset++));
+	chat->archived        =                    sqlite3_column_int  (row, row_offset++);
+	chat->blocked         =                    sqlite3_column_int  (row, row_offset++);
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
-	Also make sure, m_draft_text and m_draft_timestamp are set together */
-	if( chat->m_draft_timestamp && draft_text && draft_text[0] ) {
-		chat->m_draft_text = dc_strdup(draft_text);
+	Also make sure, draft_text and draft_timestamp are set together */
+	if( chat->draft_timestamp && draft_text && draft_text[0] ) {
+		chat->draft_text = dc_strdup(draft_text);
 	}
 	else {
-		chat->m_draft_timestamp = 0;
+		chat->draft_timestamp = 0;
 	}
 
 	/* correct the title of some special groups */
-	if( chat->m_id == DC_CHAT_ID_DEADDROP ) {
-		free(chat->m_name);
-		chat->m_name = dc_stock_str(chat->m_context, DC_STR_DEADDROP);
+	if( chat->id == DC_CHAT_ID_DEADDROP ) {
+		free(chat->name);
+		chat->name = dc_stock_str(chat->context, DC_STR_DEADDROP);
 	}
-	else if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
-		free(chat->m_name);
-		char* tempname = dc_stock_str(chat->m_context, DC_STR_ARCHIVEDCHATS);
-			chat->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count(chat->m_context));
+	else if( chat->id == DC_CHAT_ID_ARCHIVED_LINK ) {
+		free(chat->name);
+		char* tempname = dc_stock_str(chat->context, DC_STR_ARCHIVEDCHATS);
+			chat->name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count(chat->context));
 		free(tempname);
 	}
-	else if( chat->m_id == DC_CHAT_ID_STARRED ) {
-		free(chat->m_name);
-		chat->m_name = dc_stock_str(chat->m_context, DC_STR_STARREDMSGS);
+	else if( chat->id == DC_CHAT_ID_STARRED ) {
+		free(chat->name);
+		chat->name = dc_stock_str(chat->context, DC_STR_STARREDMSGS);
 	}
-	else if( dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) ) {
-		free(chat->m_name);
-		chat->m_name = dc_stock_str(chat->m_context, DC_STR_SELF);
+	else if( dc_param_exists(chat->param, DC_PARAM_SELFTALK) ) {
+		free(chat->name);
+		chat->name = dc_stock_str(chat->context, DC_STR_SELF);
 	}
 
 	return row_offset; /* success, return the next row offset */
@@ -504,13 +504,13 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if( chat==NULL || chat->m_magic != DC_CHAT_MAGIC ) {
+	if( chat==NULL || chat->magic != DC_CHAT_MAGIC ) {
 		goto cleanup;
 	}
 
 	dc_chat_empty(chat);
 
-	stmt = dc_sqlite3_prepare(chat->m_context->m_sql,
+	stmt = dc_sqlite3_prepare(chat->context->sql,
 		"SELECT " CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 

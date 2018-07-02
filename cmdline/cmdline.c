@@ -42,38 +42,38 @@ your library */
  */
 int dc_reset_tables(dc_context_t* context, int bits)
 {
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
 	dc_log_info(context, 0, "Resetting tables (%i)...", bits);
 
 	if( bits & 1 ) {
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM jobs;");
+		dc_sqlite3_execute(context->sql, "DELETE FROM jobs;");
 		dc_log_info(context, 0, "(1) Jobs reset.");
 	}
 
 	if( bits & 2 ) {
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM acpeerstates;");
+		dc_sqlite3_execute(context->sql, "DELETE FROM acpeerstates;");
 		dc_log_info(context, 0, "(2) Peerstates reset.");
 	}
 
 	if( bits & 4 ) {
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM keypairs;");
+		dc_sqlite3_execute(context->sql, "DELETE FROM keypairs;");
 		dc_log_info(context, 0, "(4) Private keypairs reset.");
 	}
 
 	if( bits & 8 ) {
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM chats_contacts;");
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
-		dc_sqlite3_execute(context->m_sql, "DELETE FROM leftgrps;");
+		dc_sqlite3_execute(context->sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) ";"); /* the other IDs are reserved - leave these rows to make sure, the IDs are not used by normal contacts*/
+		dc_sqlite3_execute(context->sql, "DELETE FROM chats WHERE id>" DC_STRINGIFY(DC_CHAT_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->sql, "DELETE FROM chats_contacts;");
+		dc_sqlite3_execute(context->sql, "DELETE FROM msgs WHERE id>" DC_STRINGIFY(DC_MSG_ID_LAST_SPECIAL) ";");
+		dc_sqlite3_execute(context->sql, "DELETE FROM config WHERE keyname LIKE 'imap.%' OR keyname LIKE 'configured%';");
+		dc_sqlite3_execute(context->sql, "DELETE FROM leftgrps;");
 		dc_log_info(context, 0, "(8) Rest but server config reset.");
 	}
 
-	context->m_cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
+	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
 	return 1;
 }
@@ -91,13 +91,13 @@ int dc_reset_tables(dc_context_t* context, int bits)
  */
 static int dc_cleanup_contacts(dc_context_t* context)
 {
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
 	dc_log_info(context, 0, "Cleaning up contacts ...");
 
-	dc_sqlite3_execute(context->m_sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
+	dc_sqlite3_execute(context->sql, "DELETE FROM contacts WHERE id>" DC_STRINGIFY(DC_CONTACT_ID_LAST_SPECIAL) " AND blocked=0 AND NOT EXISTS (SELECT contact_id FROM chats_contacts where contacts.id = chats_contacts.contact_id) AND NOT EXISTS (select from_id from msgs WHERE msgs.from_id = contacts.id);");
 
 	return 1;
 }
@@ -109,7 +109,7 @@ static int dc_poke_eml_file(dc_context_t* context, const char* filename)
 	char*   data = NULL;
 	size_t  data_bytes;
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
@@ -140,22 +140,22 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	}
 
 	/* create a fake autocrypt header */
-	header->m_addr             = dc_strdup(addr);
-	header->m_prefer_encrypt   = DC_PE_MUTUAL;
-	if( !dc_key_set_from_file(header->m_public_key, public_key_file, mailbox)
-	 || !dc_pgp_is_valid_key(mailbox, header->m_public_key) ) {
+	header->addr             = dc_strdup(addr);
+	header->prefer_encrypt   = DC_PE_MUTUAL;
+	if( !dc_key_set_from_file(header->public_key, public_key_file, mailbox)
+	 || !dc_pgp_is_valid_key(mailbox, header->public_key) ) {
 		dc_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
 
 	/* update/create peerstate */
-	if( dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr) ) {
+	if( dc_apeerstate_load_by_addr(peerstate, mailbox->sql, addr) ) {
 		dc_apeerstate_apply_header(peerstate, header, time(NULL));
-		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 0);
+		dc_apeerstate_save_to_db(peerstate, mailbox->sql, 0);
 	}
 	else {
 		dc_apeerstate_init_from_header(peerstate, header, time(NULL));
-		dc_apeerstate_save_to_db(peerstate, mailbox->m_sql, 1);
+		dc_apeerstate_save_to_db(peerstate, mailbox->sql, 1);
 	}
 
 	success = 1;
@@ -194,7 +194,7 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 		return 0;
 	}
 
-	if( !dc_sqlite3_is_open(mailbox->m_sql) ) {
+	if( !dc_sqlite3_is_open(mailbox->sql) ) {
         dc_log_error(mailbox, 0, "Import: Database not opened.");
 		goto cleanup;
 	}
@@ -203,10 +203,10 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	if( spec )
 	{
 		real_spec = dc_strdup(spec);
-		dc_sqlite3_set_config(mailbox->m_sql, "import_spec", real_spec);
+		dc_sqlite3_set_config(mailbox->sql, "import_spec", real_spec);
 	}
 	else {
-		real_spec = dc_sqlite3_get_config(mailbox->m_sql, "import_spec", NULL); /* may still NULL */
+		real_spec = dc_sqlite3_get_config(mailbox->sql, "import_spec", NULL); /* may still NULL */
 		if( real_spec == NULL ) {
 			dc_log_error(mailbox, 0, "Import: No file or folder given.");
 			goto cleanup;
@@ -255,7 +255,7 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 
 	dc_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, real_spec);
 	if( read_cnt > 0 ) {
-		mailbox->m_cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+		mailbox->cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
 
 	success = 1;
@@ -335,14 +335,14 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 			int verified_state = dc_contact_is_verified(contact);
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = dc_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
-			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, mailbox->m_sql, addr);
+			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, mailbox->sql, addr);
 			if( peerstate_ok && contact_id != DC_CONTACT_ID_SELF ) {
 				char* pe = NULL;
-				switch( peerstate->m_prefer_encrypt ) {
+				switch( peerstate->prefer_encrypt ) {
 					case DC_PE_MUTUAL:       pe = dc_strdup("mutual");                                         break;
 					case DC_PE_NOPREFERENCE: pe = dc_strdup("no-preference");                                  break;
 					case DC_PE_RESET:        pe = dc_strdup("reset");                                          break;
-					default:                 pe = dc_mprintf("unknown-value (%i)", peerstate->m_prefer_encrypt); break;
+					default:                 pe = dc_mprintf("unknown-value (%i)", peerstate->prefer_encrypt); break;
 				}
 				line2 = dc_mprintf(", prefer-encrypt=%s", pe);
 				free(pe);
@@ -374,8 +374,8 @@ void dc_cmdline_skip_auth()
 
 static const char* chat_prefix(const dc_chat_t* chat)
 {
-	     if( chat->m_type == DC_CHAT_TYPE_GROUP ) { return "Group"; }
-	else if( chat->m_type == DC_CHAT_TYPE_VERIFIED_GROUP ) { return "VerifiedGroup"; }
+	     if( chat->type == DC_CHAT_TYPE_GROUP ) { return "Group"; }
+	else if( chat->type == DC_CHAT_TYPE_VERIFIED_GROUP ) { return "VerifiedGroup"; }
 	else { return "Single"; }
 }
 
@@ -393,8 +393,8 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		goto cleanup;
 	}
 
-	if( mailbox->m_cmdline_sel_chat_id ) {
-		sel_chat = dc_get_chat(mailbox, mailbox->m_cmdline_sel_chat_id);
+	if( mailbox->cmdline_sel_chat_id ) {
+		sel_chat = dc_get_chat(mailbox, mailbox->cmdline_sel_chat_id);
 	}
 
 	/* split commandline into command and first argument
@@ -567,14 +567,14 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "has-backup")==0 )
 	{
-		ret = dc_imex_has_backup(mailbox, mailbox->m_blobdir);
+		ret = dc_imex_has_backup(mailbox, mailbox->blobdir);
 		if( ret == NULL ) {
 			ret = dc_strdup("No backup found.");
 		}
 	}
 	else if( strcmp(cmd, "export-backup")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->m_blobdir, NULL);
+		dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-backup")==0 )
@@ -589,18 +589,18 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-keys")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-keys")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->m_blobdir, NULL);
+		dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
 		char* setup_code = dc_create_setup_code(mailbox);
-		char* file_name = dc_mprintf("%s/autocrypt-setup-message.html", mailbox->m_blobdir);
+		char* file_name = dc_mprintf("%s/autocrypt-setup-message.html", mailbox->blobdir);
 		char* file_content = NULL;
 			if( (file_content=dc_render_setup_file(mailbox, setup_code)) != NULL
 			 && dc_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
@@ -739,10 +739,10 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 && arg1[0] ) {
 			/* select a chat (argument 1 = ID of chat to select) */
 			if( sel_chat ) { dc_chat_unref(sel_chat); sel_chat = NULL; }
-			mailbox->m_cmdline_sel_chat_id = atoi(arg1);
-			sel_chat = dc_get_chat(mailbox, mailbox->m_cmdline_sel_chat_id); /* may be NULL */
+			mailbox->cmdline_sel_chat_id = atoi(arg1);
+			sel_chat = dc_get_chat(mailbox, mailbox->cmdline_sel_chat_id); /* may be NULL */
 			if( sel_chat==NULL ) {
-				mailbox->m_cmdline_sel_chat_id = 0;
+				mailbox->cmdline_sel_chat_id = 0;
 			}
 		}
 
@@ -1170,7 +1170,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			}
 			dc_chatlist_unref(chatlist);
 
-			ret = strbuilder.m_buf;
+			ret = strbuilder.buf;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <contact-id> missing.");
@@ -1203,7 +1203,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			dc_lot_t* res = dc_check_qr(mailbox, arg1);
-				ret = dc_mprintf("state=%i, id=%i, text1=%s, text2=%s", (int)res->m_state, res->m_id, res->m_text1? res->m_text1:"", res->m_text2? res->m_text2:"");
+				ret = dc_mprintf("state=%i, id=%i, text1=%s, text2=%s", (int)res->state, res->id, res->text1? res->text1:"", res->text2? res->text2:"");
 			dc_lot_unref(res);
 		}
 		else {
@@ -1214,7 +1214,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int event = atoi(arg1);
-			uintptr_t r = mailbox->m_cb(mailbox, event, 0, 0);
+			uintptr_t r = mailbox->cb(mailbox, event, 0, 0);
 			ret = dc_mprintf("Sending event %i, received value %i.", (int)event, (int)r);
 		}
 		else {

@@ -37,17 +37,17 @@ extern "C" {
 struct _dc_chat
 {
 	/** @privatesection */
-	uint32_t        m_magic;
-	uint32_t        m_id;
-	int             m_type;             /**< Chat type. Use dc_chat_get_type() to access this field. */
-	char*           m_name;             /**< Name of the chat. Use dc_chat_get_name() to access this field. NULL if unset. */
-	char*           m_draft_text;	    /**< Draft text. NULL if there is no draft. */
-	time_t          m_draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
-	int             m_archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
-	dc_context_t*   m_context;          /**< The context object the chat belongs to. */
-	char*           m_grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
-	int             m_blocked;          /**< One of DC_CHAT_*_BLOCKED */
-	dc_param_t*     m_param;            /**< Additional parameters for a chat. Should not be used directly. */
+	uint32_t        magic;
+	uint32_t        id;
+	int             type;             /**< Chat type. Use dc_chat_get_type() to access this field. */
+	char*           name;             /**< Name of the chat. Use dc_chat_get_name() to access this field. NULL if unset. */
+	char*           draft_text;	    /**< Draft text. NULL if there is no draft. */
+	time_t          draft_timestamp;  /**< Timestamp of the draft. 0 if there is no draft. */
+	int             archived;         /**< Archived state. Better use dc_chat_get_archived() to access this object. */
+	dc_context_t*   context;          /**< The context object the chat belongs to. */
+	char*           grpid;            /**< Group ID that is used by all clients. Only used if the chat is a group. NULL if unset */
+	int             blocked;          /**< One of DC_CHAT_*_BLOCKED */
+	dc_param_t*     param;            /**< Additional parameters for a chat. Should not be used directly. */
 };
 
 

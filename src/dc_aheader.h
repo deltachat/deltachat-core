@@ -35,9 +35,9 @@ extern "C" {
  */
 typedef struct dc_aheader_t
 {
-	char*          m_addr;
-	dc_key_t*      m_public_key; /* != NULL */
-	int            m_prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
+	char*          addr;
+	dc_key_t*      public_key; /* != NULL */
+	int            prefer_encrypt; /* YES, NO or NOPREFERENCE if attribute is missing */
 } dc_aheader_t;
 
 

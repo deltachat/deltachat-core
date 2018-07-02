@@ -47,10 +47,10 @@ dc_msg_t* dc_msg_new()
 		exit(15); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	msg->m_magic     = DC_MSG_MAGIC;
-	msg->m_type      = DC_MSG_UNDEFINED;
-	msg->m_state     = DC_STATE_UNDEFINED;
-	msg->m_param     = dc_param_new();
+	msg->magic     = DC_MSG_MAGIC;
+	msg->type      = DC_MSG_UNDEFINED;
+	msg->state     = DC_STATE_UNDEFINED;
+	msg->param     = dc_param_new();
 
 	return msg;
 }
@@ -65,13 +65,13 @@ dc_msg_t* dc_msg_new()
  */
 void dc_msg_unref(dc_msg_t* msg)
 {
-	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg==NULL || msg->magic != DC_MSG_MAGIC ) {
 		return;
 	}
 
 	dc_msg_empty(msg);
-	dc_param_unref(msg->m_param);
-	msg->m_magic = 0;
+	dc_param_unref(msg->param);
+	msg->magic = 0;
 	free(msg);
 }
 
@@ -85,24 +85,24 @@ void dc_msg_unref(dc_msg_t* msg)
  */
 void dc_msg_empty(dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return;
 	}
 
-	free(msg->m_text);
-	msg->m_text = NULL;
+	free(msg->text);
+	msg->text = NULL;
 
-	free(msg->m_rfc724_mid);
-	msg->m_rfc724_mid = NULL;
+	free(msg->rfc724_mid);
+	msg->rfc724_mid = NULL;
 
-	free(msg->m_server_folder);
-	msg->m_server_folder = NULL;
+	free(msg->server_folder);
+	msg->server_folder = NULL;
 
-	dc_param_set_packed(msg->m_param, NULL);
+	dc_param_set_packed(msg->param, NULL);
 
-	msg->m_context = NULL;
+	msg->context = NULL;
 
-	msg->m_hidden = 0;
+	msg->hidden = 0;
 }
 
 
@@ -120,10 +120,10 @@ void dc_msg_empty(dc_msg_t* msg)
  */
 uint32_t dc_msg_get_id(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_id;
+	return msg->id;
 }
 
 
@@ -143,10 +143,10 @@ uint32_t dc_msg_get_id(const dc_msg_t* msg)
  */
 uint32_t dc_msg_get_from_id(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_from_id;
+	return msg->from_id;
 }
 
 
@@ -162,10 +162,10 @@ uint32_t dc_msg_get_from_id(const dc_msg_t* msg)
  */
 uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_chat_blocked? DC_CHAT_ID_DEADDROP : msg->m_chat_id;
+	return msg->chat_blocked? DC_CHAT_ID_DEADDROP : msg->chat_id;
 }
 
 
@@ -180,10 +180,10 @@ uint32_t dc_msg_get_chat_id(const dc_msg_t* msg)
  */
 int dc_msg_get_type(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return DC_MSG_UNDEFINED;
 	}
-	return msg->m_type;
+	return msg->type;
 }
 
 
@@ -216,10 +216,10 @@ int dc_msg_get_type(const dc_msg_t* msg)
  */
 int dc_msg_get_state(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return DC_STATE_UNDEFINED;
 	}
-	return msg->m_state;
+	return msg->state;
 }
 
 
@@ -235,11 +235,11 @@ int dc_msg_get_state(const dc_msg_t* msg)
  */
 time_t dc_msg_get_timestamp(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
 
-	return msg->m_timestamp_sent? msg->m_timestamp_sent : msg->m_timestamp;
+	return msg->timestamp_sent? msg->timestamp_sent : msg->timestamp;
 }
 
 
@@ -266,11 +266,11 @@ char* dc_msg_get_text(const dc_msg_t* msg)
 {
 	char* ret;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	ret = dc_strdup(msg->m_text);
+	ret = dc_strdup(msg->text);
 	dc_truncate_str(ret, DC_MAX_GET_TEXT_LEN); /* we do not do this on load: (1) for speed reasons (2) we may decide to process the full text on other places */
 	return ret;
 }
@@ -293,11 +293,11 @@ char* dc_msg_get_file(const dc_msg_t* msg)
 {
 	char* ret = NULL;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
-	ret = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+	ret = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 
 cleanup:
 	return ret? ret : dc_strdup(NULL);
@@ -318,11 +318,11 @@ char* dc_msg_get_filename(const dc_msg_t* msg)
 {
 	char* ret = NULL, *pathNfilename = NULL;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
-	pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+	pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 	if( pathNfilename == NULL ) {
 		goto cleanup;
 	}
@@ -349,13 +349,13 @@ char* dc_msg_get_filemime(const dc_msg_t* msg)
 	char* ret = NULL;
 	char* file = NULL;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
-	ret = dc_param_get(msg->m_param, DC_PARAM_MIMETYPE, NULL);
+	ret = dc_param_get(msg->param, DC_PARAM_MIMETYPE, NULL);
 	if( ret == NULL ) {
-		file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+		file = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 		if( file == NULL ) {
 			goto cleanup;
 		}
@@ -387,11 +387,11 @@ uint64_t dc_msg_get_filebytes(const dc_msg_t* msg)
 	uint64_t ret = 0;
 	char*    file = NULL;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
-	file = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+	file = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 	if( file == NULL ) {
 		goto cleanup;
 	}
@@ -409,9 +409,9 @@ cleanup:
  *
  * The information is returned by a dc_lot_t object with the following fields:
  *
- * - dc_lot_t::m_text1: Author of the media.  For voice messages, this is the sender.
+ * - dc_lot_t::text1: Author of the media.  For voice messages, this is the sender.
  *   For music messages, the information are read from the filename. NULL if unknown.
- * - dc_lot_t::m_text2: Title of the media.  For voice messages, this is the date.
+ * - dc_lot_t::text2: Title of the media.  For voice messages, this is the date.
  *   For music messages, the information are read from the filename. NULL if unknown.
  *
  * Currently, we do not read ID3 and such at this stage, the needed libraries are too complicated and oversized.
@@ -427,35 +427,35 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 	char*        pathNfilename = NULL;
 	dc_contact_t* contact = NULL;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC || msg->m_context == NULL ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC || msg->context == NULL ) {
 		goto cleanup;
 	}
 
-	if( msg->m_type == DC_MSG_VOICE )
+	if( msg->type == DC_MSG_VOICE )
 	{
-		if( (contact = dc_get_contact(msg->m_context, msg->m_from_id))==NULL ) {
+		if( (contact = dc_get_contact(msg->context, msg->from_id))==NULL ) {
 			goto cleanup;
 		}
-		ret->m_text1 = dc_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
-		ret->m_text2 = dc_stock_str(msg->m_context, DC_STR_VOICEMESSAGE);
+		ret->text1 = dc_strdup((contact->name&&contact->name[0])? contact->name : contact->addr);
+		ret->text2 = dc_stock_str(msg->context, DC_STR_VOICEMESSAGE);
 	}
 	else
 	{
-		ret->m_text1 = dc_param_get(msg->m_param, DC_PARAM_AUTHORNAME, NULL);
-		ret->m_text2 = dc_param_get(msg->m_param, DC_PARAM_TRACKNAME, NULL);
-		if( ret->m_text1 && ret->m_text1[0] && ret->m_text2 && ret->m_text2[0] ) {
+		ret->text1 = dc_param_get(msg->param, DC_PARAM_AUTHORNAME, NULL);
+		ret->text2 = dc_param_get(msg->param, DC_PARAM_TRACKNAME, NULL);
+		if( ret->text1 && ret->text1[0] && ret->text2 && ret->text2[0] ) {
 			goto cleanup;
 		}
-		free(ret->m_text1); ret->m_text1 = NULL;
-		free(ret->m_text2); ret->m_text2 = NULL;
+		free(ret->text1); ret->text1 = NULL;
+		free(ret->text2); ret->text2 = NULL;
 
-		pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+		pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 		if( pathNfilename == NULL ) {
 			goto cleanup;
 		}
-		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
-		if( ret->m_text1 == NULL && ret->m_text2 != NULL ) {
-			ret->m_text1 = dc_stock_str(msg->m_context, DC_STR_AUDIO);
+		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->text1, &ret->text2);
+		if( ret->text1 == NULL && ret->text2 != NULL ) {
+			ret->text1 = dc_stock_str(msg->context, DC_STR_AUDIO);
 		}
 	}
 
@@ -482,10 +482,10 @@ cleanup:
  */
 int dc_msg_get_width(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return dc_param_get_int(msg->m_param, DC_PARAM_WIDTH, 0);
+	return dc_param_get_int(msg->param, DC_PARAM_WIDTH, 0);
 }
 
 
@@ -505,10 +505,10 @@ int dc_msg_get_width(const dc_msg_t* msg)
  */
 int dc_msg_get_height(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return dc_param_get_int(msg->m_param, DC_PARAM_HEIGHT, 0);
+	return dc_param_get_int(msg->param, DC_PARAM_HEIGHT, 0);
 }
 
 
@@ -525,10 +525,10 @@ int dc_msg_get_height(const dc_msg_t* msg)
  */
 int dc_msg_get_duration(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return dc_param_get_int(msg->m_param, DC_PARAM_DURATION, 0);
+	return dc_param_get_int(msg->param, DC_PARAM_DURATION, 0);
 }
 
 
@@ -544,21 +544,21 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
 	/* a padlock guarantees that the message is e2ee _and_ answers will be as well */
 	int show_encryption_state = 0;
 
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC || msg->m_context == NULL ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC || msg->context == NULL ) {
 		return 0;
 	}
 
-	if( msg->m_context->m_e2ee_enabled ) {
+	if( msg->context->e2ee_enabled ) {
 		show_encryption_state = 1;
 	}
 	else {
-		dc_chat_t* chat = dc_get_chat(msg->m_context, msg->m_chat_id);
+		dc_chat_t* chat = dc_get_chat(msg->context, msg->chat_id);
 		show_encryption_state = dc_chat_is_verified(chat);
 		dc_chat_unref(chat);
 	}
 
 	if( show_encryption_state ) {
-		if( dc_param_get_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) != 0 ) {
+		if( dc_param_get_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 0) != 0 ) {
 			return 1;
 		}
 	}
@@ -572,14 +572,14 @@ int dc_msg_get_showpadlock(const dc_msg_t* msg)
  *
  * The summary is returned by a dc_lot_t object with the following fields:
  *
- * - dc_lot_t::m_text1: contains the username or the string "Me".
- *   The string may be colored by having a look at m_text1_meaning.
+ * - dc_lot_t::text1: contains the username or the string "Me".
+ *   The string may be colored by having a look at text1_meaning.
  *   If the name should not be displayed, the element is NULL.
- * - dc_lot_t::m_text1_meaning: one of DC_TEXT1_USERNAME or DC_TEXT1_SELF.
- *   Typically used to show dc_lot_t::m_text1 with different colors. 0 if not applicable.
- * - dc_lot_t::m_text2: contains an excerpt of the message text.
- * - dc_lot_t::m_timestamp: the timestamp of the message.
- * - dc_lot_t::m_state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).
+ * - dc_lot_t::text1_meaning: one of DC_TEXT1_USERNAME or DC_TEXT1_SELF.
+ *   Typically used to show dc_lot_t::text1 with different colors. 0 if not applicable.
+ * - dc_lot_t::text2: contains an excerpt of the message text.
+ * - dc_lot_t::timestamp: the timestamp of the message.
+ * - dc_lot_t::state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).
  *
  * Typically used to display a search result. See also dc_chatlist_get_summary() to display a list of chats.
  *
@@ -595,22 +595,22 @@ dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 	dc_contact_t*  contact = NULL;
 	dc_chat_t*     chat_to_delete = NULL;
 
-	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg==NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
 	if( chat == NULL ) {
-		if( (chat_to_delete=dc_get_chat(msg->m_context, msg->m_chat_id)) == NULL ) {
+		if( (chat_to_delete=dc_get_chat(msg->context, msg->chat_id)) == NULL ) {
 			goto cleanup;
 		}
 		chat = chat_to_delete;
 	}
 
-	if( msg->m_from_id != DC_CONTACT_ID_SELF && DC_CHAT_TYPE_IS_MULTI(chat->m_type) ) {
-		contact = dc_get_contact(chat->m_context, msg->m_from_id);
+	if( msg->from_id != DC_CONTACT_ID_SELF && DC_CHAT_TYPE_IS_MULTI(chat->type) ) {
+		contact = dc_get_contact(chat->context, msg->from_id);
 	}
 
-	dc_lot_fill(ret, msg, chat, contact, msg->m_context);
+	dc_lot_fill(ret, msg, chat, contact, msg->context);
 
 cleanup:
 	dc_contact_unref(contact);
@@ -631,11 +631,11 @@ cleanup:
  */
 char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
 {
-	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg==NULL || msg->magic != DC_MSG_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	return dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters, msg->m_context);
+	return dc_msg_get_summarytext_by_raw(msg->type, msg->text, msg->param, approx_characters, msg->context);
 }
 
 
@@ -651,10 +651,10 @@ char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
  */
 int dc_msg_is_sent(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return (msg->m_state >= DC_STATE_OUT_DELIVERED)? 1 : 0;
+	return (msg->state >= DC_STATE_OUT_DELIVERED)? 1 : 0;
 }
 
 
@@ -672,10 +672,10 @@ int dc_msg_is_sent(const dc_msg_t* msg)
  */
 int dc_msg_is_starred(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return msg->m_starred? 1 : 0;
+	return msg->starred? 1 : 0;
 }
 
 
@@ -697,10 +697,10 @@ int dc_msg_is_starred(const dc_msg_t* msg)
  */
 int dc_msg_is_forwarded(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
-	return dc_param_get_int(msg->m_param, DC_PARAM_FORWARDED, 0)? 1 : 0;
+	return dc_param_get_int(msg->param, DC_PARAM_FORWARDED, 0)? 1 : 0;
 }
 
 
@@ -722,14 +722,14 @@ int dc_msg_is_forwarded(const dc_msg_t* msg)
  */
 int dc_msg_is_info(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		return 0;
 	}
 
-	int cmd = dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0);
+	int cmd = dc_param_get_int(msg->param, DC_PARAM_CMD, 0);
 
-	if( msg->m_from_id == DC_CONTACT_ID_DEVICE
-	 || msg->m_to_id == DC_CONTACT_ID_DEVICE
+	if( msg->from_id == DC_CONTACT_ID_DEVICE
+	 || msg->to_id == DC_CONTACT_ID_DEVICE
 	 || (cmd && cmd != DC_CMD_AUTOCRYPT_SETUP_MESSAGE) ) {
 		return 1;
 	}
@@ -754,11 +754,11 @@ int dc_msg_is_info(const dc_msg_t* msg)
  */
 int dc_msg_is_setupmessage(const dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC || msg->m_type != DC_MSG_FILE ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC || msg->type != DC_MSG_FILE ) {
 		return 0;
 	}
 
-	return dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
+	return dc_param_get_int(msg->param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE? 1 : 0;
 }
 
 
@@ -793,7 +793,7 @@ char* dc_msg_get_setupcodebegin(const dc_msg_t* msg)
 		goto cleanup;
 	}
 
-	if( !dc_read_file(filename, (void**)&buf, &buf_bytes, msg->m_context) || buf == NULL || buf_bytes <= 0 ) {
+	if( !dc_read_file(filename, (void**)&buf, &buf_bytes, msg->context) || buf == NULL || buf_bytes <= 0 ) {
 		goto cleanup;
 	}
 
@@ -825,30 +825,30 @@ static int dc_msg_set_from_stmt(dc_msg_t* msg, sqlite3_stmt* row, int row_offset
 {
 	dc_msg_empty(msg);
 
-	msg->m_id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	msg->m_rfc724_mid   =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	msg->m_server_folder=    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
-	msg->m_server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	msg->m_chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->id           =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->rfc724_mid   =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->server_folder=    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->server_uid   =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->chat_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
 
-	msg->m_from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	msg->m_to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
-	msg->m_timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
-	msg->m_timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
-	msg->m_timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->from_id      =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->to_id        =           (uint32_t)sqlite3_column_int  (row, row_offset++);
+	msg->timestamp    =             (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->timestamp_sent =           (time_t)sqlite3_column_int64(row, row_offset++);
+	msg->timestamp_rcvd =           (time_t)sqlite3_column_int64(row, row_offset++);
 
-	msg->m_type         =                     sqlite3_column_int  (row, row_offset++);
-	msg->m_state        =                     sqlite3_column_int  (row, row_offset++);
-	msg->m_is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
-	msg->m_text         =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
+	msg->type         =                     sqlite3_column_int  (row, row_offset++);
+	msg->state        =                     sqlite3_column_int  (row, row_offset++);
+	msg->is_msgrmsg   =                     sqlite3_column_int  (row, row_offset++);
+	msg->text         =    dc_strdup((char*)sqlite3_column_text (row, row_offset++));
 
-	dc_param_set_packed( msg->m_param, (char*)sqlite3_column_text (row, row_offset++));
-	msg->m_starred      =                     sqlite3_column_int  (row, row_offset++);
-	msg->m_hidden       =                     sqlite3_column_int  (row, row_offset++);
-	msg->m_chat_blocked =                     sqlite3_column_int  (row, row_offset++);
+	dc_param_set_packed( msg->param, (char*)sqlite3_column_text (row, row_offset++));
+	msg->starred      =                     sqlite3_column_int  (row, row_offset++);
+	msg->hidden       =                     sqlite3_column_int  (row, row_offset++);
+	msg->chat_blocked =                     sqlite3_column_int  (row, row_offset++);
 
-	if( msg->m_chat_blocked == 2 ) {
-		dc_truncate_n_unwrap_str(msg->m_text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
+	if( msg->chat_blocked == 2 ) {
+		dc_truncate_n_unwrap_str(msg->text, 256 /* 256 characters is about a half screen on a 5" smartphone display */,
 			0/*unwrap*/);
 	}
 
@@ -867,11 +867,11 @@ int dc_msg_load_from_db(dc_msg_t* msg, dc_context_t* context, uint32_t id)
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if( msg==NULL || msg->m_magic != DC_MSG_MAGIC || context==NULL || context->m_sql==NULL ) {
+	if( msg==NULL || msg->magic != DC_MSG_MAGIC || context==NULL || context->sql==NULL ) {
 		goto cleanup;
 	}
 
-	stmt = dc_sqlite3_prepare(context->m_sql,
+	stmt = dc_sqlite3_prepare(context->sql,
 		"SELECT " DC_MSG_FIELDS
 		" FROM msgs m LEFT JOIN chats c ON c.id=m.chat_id"
 		" WHERE m.id=?;");
@@ -885,7 +885,7 @@ int dc_msg_load_from_db(dc_msg_t* msg, dc_context_t* context, uint32_t id)
 		goto cleanup;
 	}
 
-	msg->m_context = context;
+	msg->context = context;
 
 	success = 1;
 
@@ -1053,13 +1053,13 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 	/* surrounds dc_msg_is_increation() with locking and error checking */
 	int is_increation = 0;
 
-	if( msg==NULL || msg->m_magic!=DC_MSG_MAGIC || msg->m_context==NULL ) {
+	if( msg==NULL || msg->magic!=DC_MSG_MAGIC || msg->context==NULL ) {
 		return 0;
 	}
 
-	if( DC_MSG_NEEDS_ATTACHMENT(msg->m_type) )
+	if( DC_MSG_NEEDS_ATTACHMENT(msg->type) )
 	{
-		char* pathNfilename = dc_param_get(msg->m_param, DC_PARAM_FILE, NULL);
+		char* pathNfilename = dc_param_get(msg->param, DC_PARAM_FILE, NULL);
 		if( pathNfilename ) {
 			char* totest = dc_mprintf("%s.increation", pathNfilename);
 			if( dc_file_exist(totest) ) {
@@ -1076,14 +1076,14 @@ int dc_msg_is_increation(const dc_msg_t* msg)
 
 void dc_msg_save_param_to_disk(dc_msg_t* msg)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC || msg->m_context == NULL || msg->m_context->m_sql == NULL ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC || msg->context == NULL || msg->context->sql == NULL ) {
 		return;
 	}
 
-	sqlite3_stmt* stmt = dc_sqlite3_prepare(msg->m_context->m_sql,
+	sqlite3_stmt* stmt = dc_sqlite3_prepare(msg->context->sql,
 		"UPDATE msgs SET param=? WHERE id=?;");
-	sqlite3_bind_text(stmt, 1, msg->m_param->m_packed, -1, SQLITE_STATIC);
-	sqlite3_bind_int (stmt, 2, msg->m_id);
+	sqlite3_bind_text(stmt, 1, msg->param->packed, -1, SQLITE_STATIC);
+	sqlite3_bind_int (stmt, 2, msg->id);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 }
@@ -1112,20 +1112,20 @@ void dc_msg_save_param_to_disk(dc_msg_t* msg)
  */
 void dc_msg_latefiling_mediasize(dc_msg_t* msg, int width, int height, int duration)
 {
-	if( msg == NULL || msg->m_magic != DC_MSG_MAGIC ) {
+	if( msg == NULL || msg->magic != DC_MSG_MAGIC ) {
 		goto cleanup;
 	}
 
 	if( width > 0 ) {
-		dc_param_set_int(msg->m_param, DC_PARAM_WIDTH, width);
+		dc_param_set_int(msg->param, DC_PARAM_WIDTH, width);
 	}
 
 	if( height > 0 ) {
-		dc_param_set_int(msg->m_param, DC_PARAM_HEIGHT, height);
+		dc_param_set_int(msg->param, DC_PARAM_HEIGHT, height);
 	}
 
 	if( duration > 0 ) {
-		dc_param_set_int(msg->m_param, DC_PARAM_DURATION, duration);
+		dc_param_set_int(msg->param, DC_PARAM_DURATION, duration);
 	}
 
 	dc_msg_save_param_to_disk(msg);

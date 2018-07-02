@@ -37,9 +37,9 @@ typedef struct dc_keyring_t
 {
 	/** @privatesection */
 
-	dc_key_t** m_keys; /**< Keys in the keyring. Only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid. */
-	int        m_count;
-	int        m_allocated;
+	dc_key_t** keys; /**< Keys in the keyring. Only pointers to keys, the caller is responsible for freeing them and should make sure, the pointers are valid as long as the keyring is valid. */
+	int        count;
+	int        allocated;
 } dc_keyring_t;
 
 dc_keyring_t* dc_keyring_new  ();

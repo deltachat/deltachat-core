@@ -60,62 +60,62 @@ struct _dc_context
 {
 	/** @privatesection */
 	#define          DC_CONTEXT_MAGIC         0x11a11807
-	uint32_t         m_magic;                 /**< @private */
+	uint32_t         magic;                 /**< @private */
 
-	void*            m_userdata;              /**< Use data, may be used for any purpose. The same pointer as given to dc_context_new(), may be used by the caller for any purpose. */
+	void*            userdata;              /**< Use data, may be used for any purpose. The same pointer as given to dc_context_new(), may be used by the caller for any purpose. */
 
-	char*            m_dbfile;                /**< The database file. This is the file given to dc_context_new(). */
-	char*            m_blobdir;               /**< Full path of the blob directory. This is the directory given to dc_context_new() or a directory in the same directory as dc_context_t::m_dbfile. */
+	char*            dbfile;                /**< The database file. This is the file given to dc_context_new(). */
+	char*            blobdir;               /**< Full path of the blob directory. This is the directory given to dc_context_new() or a directory in the same directory as dc_context_t::dbfile. */
 
-	dc_sqlite3_t*    m_sql;                   /**< Internal SQL object, never NULL */
+	dc_sqlite3_t*    sql;                   /**< Internal SQL object, never NULL */
 
-	dc_imap_t*       m_imap;                  /**< Internal IMAP object, never NULL */
-	pthread_mutex_t  m_imapidle_condmutex;
-	int              m_perform_imap_jobs_needed;
+	dc_imap_t*       imap;                  /**< Internal IMAP object, never NULL */
+	pthread_mutex_t  imapidle_condmutex;
+	int              perform_imap_jobs_needed;
 
-	dc_smtp_t*       m_smtp;                  /**< Internal SMTP object, never NULL */
-	pthread_cond_t   m_smtpidle_cond;
-	pthread_mutex_t  m_smtpidle_condmutex;
-	int              m_smtpidle_condflag;
-	int              m_smtpidle_suspend;
-	int              m_smtpidle_in_idleing;
+	dc_smtp_t*       smtp;                  /**< Internal SMTP object, never NULL */
+	pthread_cond_t   smtpidle_cond;
+	pthread_mutex_t  smtpidle_condmutex;
+	int              smtpidle_condflag;
+	int              smtpidle_suspend;
+	int              smtpidle_in_idleing;
 	#define          DC_JOBS_NEEDED_AT_ONCE   1
 	#define          DC_JOBS_NEEDED_AVOID_DOS 2
-	int              m_perform_smtp_jobs_needed;
+	int              perform_smtp_jobs_needed;
 
-	dc_callback_t    m_cb;                    /**< Internal */
+	dc_callback_t    cb;                    /**< Internal */
 
-	char*            m_os_name;               /**< Internal, may be NULL */
+	char*            os_name;               /**< Internal, may be NULL */
 
-	uint32_t         m_cmdline_sel_chat_id;   /**< Internal */
+	uint32_t         cmdline_sel_chat_id;   /**< Internal */
 
-	int              m_e2ee_enabled;          /**< Internal */
+	int              e2ee_enabled;          /**< Internal */
 
 	#define          DC_LOG_RINGBUF_SIZE 200
-	pthread_mutex_t  m_log_ringbuf_critical;  /**< Internal */
-	char*            m_log_ringbuf[DC_LOG_RINGBUF_SIZE];
+	pthread_mutex_t  log_ringbuf_critical;  /**< Internal */
+	char*            log_ringbuf[DC_LOG_RINGBUF_SIZE];
 	                                          /**< Internal */
-	time_t           m_log_ringbuf_times[DC_LOG_RINGBUF_SIZE];
+	time_t           log_ringbuf_times[DC_LOG_RINGBUF_SIZE];
 	                                          /**< Internal */
-	int              m_log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
+	int              log_ringbuf_pos;       /**< Internal. The oldest position resp. the position that is overwritten next */
 
 	// QR code scanning (view from Bob, the joiner)
-	#define         DC_VC_AUTH_REQUIRED     2
-	#define         DC_VC_CONTACT_CONFIRM   6
-	int             m_bob_expects;
-	#define         DC_BOB_ERROR       0
-	#define         DC_BOB_SUCCESS     1
-	int             m_bobs_status;
-	dc_lot_t*       m_bobs_qr_scan;
-	pthread_mutex_t m_bobs_qr_critical;
+	#define          DC_VC_AUTH_REQUIRED     2
+	#define          DC_VC_CONTACT_CONFIRM   6
+	int              bob_expects;
+	#define          DC_BOB_ERROR       0
+	#define          DC_BOB_SUCCESS     1
+	int              bobs_status;
+	dc_lot_t*        bobs_qr_scan;
+	pthread_mutex_t  bobs_qr_critical;
 
 	// time smearing - to keep messages in order, we may modify the time by some seconds
-	time_t          m_last_smeared_timestamp;
-	pthread_mutex_t m_smear_critical;
+	time_t           last_smeared_timestamp;
+	pthread_mutex_t  smear_critical;
 
 	// handling ongoing processes initiated by the user
-	int             m_ongoing_running;
-	int             m_shall_stop_ongoing;
+	int              ongoing_running;
+	int              shall_stop_ongoing;
 };
 
 
@@ -174,13 +174,13 @@ uint32_t        dc_get_chat_id_by_grpid                    (dc_context_t*, const
 
 typedef struct dc_e2ee_helper_t {
 	// encryption
-	int   m_encryption_successfull;
-	void* m_cdata_to_free;
+	int        encryption_successfull;
+	void*      cdata_to_free;
 
 	// decryption
-	int        m_encrypted;  // encrypted without problems
-	dc_hash_t* m_signatures; // fingerprints of valid signatures
-	dc_hash_t* m_gossipped_addr;
+	int        encrypted;  // encrypted without problems
+	dc_hash_t* signatures; // fingerprints of valid signatures
+	dc_hash_t* gossipped_addr;
 
 } dc_e2ee_helper_t;
 
@@ -197,8 +197,8 @@ extern int      dc_shall_stop_ongoing;
 int             dc_alloc_ongoing     (dc_context_t*);
 void            dc_free_ongoing      (dc_context_t*);
 
-#define         dc_is_online(m)             ((m)->m_cb((m), DC_EVENT_IS_OFFLINE, 0, 0)==0)
-#define         dc_is_offline(m)            ((m)->m_cb((m), DC_EVENT_IS_OFFLINE, 0, 0)!=0)
+#define         dc_is_online(m)             ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)==0)
+#define         dc_is_offline(m)            ((m)->cb((m), DC_EVENT_IS_OFFLINE, 0, 0)!=0)
 
 
 /* library private: secure-join */

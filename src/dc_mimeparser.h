@@ -42,13 +42,13 @@ typedef struct dc_e2ee_helper_t dc_e2ee_helper_t;
 typedef struct dc_mimepart_t
 {
 	/** @privatesection */
-	int                 m_type; /*one of DC_MSG_* */
-	int                 m_is_meta; /*meta parts contain eg. profile or group images and are only present if there is at least one "normal" part*/
-	int                 m_int_mimetype;
-	char*               m_msg;
-	char*               m_msg_raw;
-	int                 m_bytes;
-	dc_param_t*          m_param;
+	int                 type; /*one of DC_MSG_* */
+	int                 is_meta; /*meta parts contain eg. profile or group images and are only present if there is at least one "normal" part*/
+	int                 int_mimetype;
+	char*               msg;
+	char*               msg_raw;
+	int                 bytes;
+	dc_param_t*          param;
 
 } dc_mimepart_t;
 
@@ -58,29 +58,29 @@ typedef struct dc_mimeparser_t
 	/** @privatesection */
 
 	/* data, read-only, must not be free()'d (it is free()'d when the dc_mimeparser_t object gets destructed) */
-	carray*                m_parts;             /* array of dc_mimepart_t objects */
-	struct mailmime*       m_mimeroot;
+	carray*                parts;             /* array of dc_mimepart_t objects */
+	struct mailmime*       mimeroot;
 
-	dc_hash_t               m_header;            /* memoryhole-compliant header */
-	struct mailimf_fields* m_header_root;       /* must NOT be freed, do not use for query, merged into m_header, a pointer somewhere to the MIME data*/
-	struct mailimf_fields* m_header_protected;  /* MUST be freed, do not use for query, merged into m_header  */
+	dc_hash_t              header;            /* memoryhole-compliant header */
+	struct mailimf_fields* header_root;       /* must NOT be freed, do not use for query, merged into header, a pointer somewhere to the MIME data*/
+	struct mailimf_fields* header_protected;  /* MUST be freed, do not use for query, merged into header  */
 
-	char*                  m_subject;
-	int                    m_is_send_by_messenger;
+	char*                  subject;
+	int                    is_send_by_messenger;
 
-	int                    m_decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
+	int                    decrypting_failed; /* set, if there are multipart/encrypted parts left after decryption */
 
-	dc_e2ee_helper_t* m_e2ee_helper;
+	dc_e2ee_helper_t*      e2ee_helper;
 
-	const char*            m_blobdir;
+	const char*            blobdir;
 
-	int                    m_is_forwarded;
+	int                    is_forwarded;
 
-	dc_context_t*           m_context;
+	dc_context_t*          context;
 
-	carray*                m_reports;           /* array of mailmime objects */
+	carray*                reports;           /* array of mailmime objects */
 
-	int                    m_is_system_message;
+	int                    is_system_message;
 
 } dc_mimeparser_t;
 

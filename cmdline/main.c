@@ -72,7 +72,7 @@ static uintptr_t receive_event(dc_context_t* mailbox, int event, uintptr_t data1
 		case DC_EVENT_HTTP_GET:
 			{
 				char* ret = NULL;
-				char* tempFile = dc_get_fine_pathNfilename(mailbox->m_blobdir, "curl.result");
+				char* tempFile = dc_get_fine_pathNfilename(mailbox->blobdir, "curl.result");
 				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
 				int error = system(cmd);
 				if( error == 0 ) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */

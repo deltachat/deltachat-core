@@ -32,7 +32,7 @@
  * dc_strbuilder_catf() - the buffer is reallocated as needed.
  *
  * When you're done with string building, the ready-to-use, null-terminates
- * string can be found at dc_strbuilder_t::m_buf, you can do whatever you like
+ * string can be found at dc_strbuilder_t::buf, you can do whatever you like
  * with this buffer, however, never forget to call free() when done.
  *
  * @param strbuilder The object to initialze.
@@ -48,16 +48,16 @@ void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
 		return;
 	}
 
-	strbuilder->m_allocated    = DC_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
-	strbuilder->m_buf          = malloc(strbuilder->m_allocated);
+	strbuilder->allocated    = DC_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
+	strbuilder->buf          = malloc(strbuilder->allocated);
 
-    if( strbuilder->m_buf==NULL ) {
+    if( strbuilder->buf==NULL ) {
 		exit(38);
 	}
 
-	strbuilder->m_buf[0]       = 0;
-	strbuilder->m_free         = strbuilder->m_allocated - 1 /*the nullbyte! */;
-	strbuilder->m_eos          = strbuilder->m_buf;
+	strbuilder->buf[0]       = 0;
+	strbuilder->free         = strbuilder->allocated - 1 /*the nullbyte! */;
+	strbuilder->eos          = strbuilder->buf;
 }
 
 
@@ -70,9 +70,9 @@ void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
  *      dc_strbuilder_init().
  * @param text Null-terminated string to add to the end of the string-builder-string.
  * @return Returns a pointer to the copy of the given text.
- *     The returned pointer is a pointer inside dc_strbuilder_t::m_buf and MUST NOT
+ *     The returned pointer is a pointer inside dc_strbuilder_t::buf and MUST NOT
  *     be freed.  If the string-builder was empty before, the returned
- *     pointer is equal to dc_strbuilder_t::m_buf.
+ *     pointer is equal to dc_strbuilder_t::buf.
  *     If the given text is NULL, NULL is returned and the string-builder-object is not modified.
  */
 char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
@@ -84,26 +84,26 @@ char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
 
 	int len = strlen(text);
 
-	if( len > strbuilder->m_free ) {
-		int add_bytes  = DC_MAX(len, strbuilder->m_allocated);
-		int old_offset = (int)(strbuilder->m_eos - strbuilder->m_buf);
+	if( len > strbuilder->free ) {
+		int add_bytes  = DC_MAX(len, strbuilder->allocated);
+		int old_offset = (int)(strbuilder->eos - strbuilder->buf);
 
-		strbuilder->m_allocated = strbuilder->m_allocated + add_bytes;
-		strbuilder->m_buf       = realloc(strbuilder->m_buf, strbuilder->m_allocated+add_bytes);
+		strbuilder->allocated = strbuilder->allocated + add_bytes;
+		strbuilder->buf       = realloc(strbuilder->buf, strbuilder->allocated+add_bytes);
 
-        if( strbuilder->m_buf==NULL ) {
+        if( strbuilder->buf==NULL ) {
 			exit(39);
 		}
 
-		strbuilder->m_free      = strbuilder->m_free + add_bytes;
-		strbuilder->m_eos       = strbuilder->m_buf + old_offset;
+		strbuilder->free      = strbuilder->free + add_bytes;
+		strbuilder->eos       = strbuilder->buf + old_offset;
 	}
 
-	char* ret = strbuilder->m_eos;
+	char* ret = strbuilder->eos;
 
-	strcpy(strbuilder->m_eos, text);
-	strbuilder->m_eos += len;
-	strbuilder->m_free -= len;
+	strcpy(strbuilder->eos, text);
+	strbuilder->eos += len;
+	strbuilder->free -= len;
 
 	return ret;
 }
@@ -157,7 +157,7 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
 
 /**
  * Set the string to a lenght of 0. This does not free the buffer;
- * if you want to free the buffer, you have to call free() on dc_strbuilder_t::m_buf.
+ * if you want to free the buffer, you have to call free() on dc_strbuilder_t::buf.
  *
  * @param strbuilder The object to initialze. Must be initialized with
  *      dc_strbuilder_init().
@@ -165,7 +165,7 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
  */
 void dc_strbuilder_empty(dc_strbuilder_t* strbuilder)
 {
-	strbuilder->m_buf[0] = 0;
-	strbuilder->m_free   = strbuilder->m_allocated - 1 /*the nullbyte! */;
-	strbuilder->m_eos    = strbuilder->m_buf;
+	strbuilder->buf[0] = 0;
+	strbuilder->free   = strbuilder->allocated - 1 /*the nullbyte! */;
+	strbuilder->eos    = strbuilder->buf;
 }

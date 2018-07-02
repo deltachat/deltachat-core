@@ -134,19 +134,19 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		int footer_mark = 0;
 		for( l = l_first; l <= l_last; l++ )
 		{
-			/* hide standard footer, "-- " - we do not set m_is_cut_at_end if we find this mark */
+			/* hide standard footer, "-- " - we do not set is_cut_at_end if we find this mark */
 			line = (char*)carray_get(lines, l);
 			if( strcmp(line, "-- ")==0
 			 || strcmp(line, "--  ")==0 ) { /* quoted-printable may encode `-- ` to `-- =20` which is converted back to `--  ` ... */
 				footer_mark = 1;
 			}
 
-			/* also hide some non-standard footers - they got m_is_cut_at_end set, however  */
+			/* also hide some non-standard footers - they got is_cut_at_end set, however  */
 			if( strcmp(line, "--")==0
 			 || strcmp(line, "---")==0
 			 || strcmp(line, "----")==0 ) {
 				footer_mark = 1;
-				simplify->m_is_cut_at_end = 1;
+				simplify->is_cut_at_end = 1;
 			}
 
 			if( footer_mark ) {
@@ -165,7 +165,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		 && strncmp(line1, "From: ", 6)==0
 		 && line2[0] == 0 )
 		{
-            simplify->m_is_forwarded = 1; /* nothing is cutted, the forward state should displayed explicitly in the ui */
+            simplify->is_forwarded = 1; /* nothing is cutted, the forward state should displayed explicitly in the ui */
             l_first += 3;
 		}
 	}
@@ -182,7 +182,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		 || strncmp(line, "~~~~~", 5)==0 )
 		{
 			l_last = l - 1; /* if l_last is -1, there are no lines */
-			simplify->m_is_cut_at_end = 1;
+			simplify->is_cut_at_end = 1;
 			break; /* done */
 		}
 	}
@@ -204,7 +204,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		if( l_lastQuotedLine != -1 )
 		{
 			l_last = l_lastQuotedLine-1; /* if l_last is -1, there are no lines */
-			simplify->m_is_cut_at_end = 1;
+			simplify->is_cut_at_end = 1;
 
 			if( l_last > 0 ) {
 				if( is_empty_line((char*)carray_get(lines, l_last)) ) { /* allow one empty line between quote and quote headline (eg. mails from Jürgen) */
@@ -244,7 +244,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		if( l_lastQuotedLine != -1 )
 		{
 			l_first = l_lastQuotedLine + 1;
-			simplify->m_is_cut_at_begin = 1;
+			simplify->is_cut_at_begin = 1;
 		}
 	}
 
@@ -252,7 +252,7 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 	dc_strbuilder_t ret;
 	dc_strbuilder_init(&ret, strlen(buf_terminated));
 
-	if( simplify->m_is_cut_at_begin ) {
+	if( simplify->is_cut_at_begin ) {
 		dc_strbuilder_cat(&ret, DC_EDITORIAL_ELLIPSE " ");
 	}
 
@@ -284,14 +284,14 @@ static char* dc_simplify_simplify_plain_text(dc_simplify_t* simplify, const char
 		}
 	}
 
-	if( simplify->m_is_cut_at_end
-	 && (!simplify->m_is_cut_at_begin || content_lines_added) /* avoid two `[...]` without content */ ) {
+	if( simplify->is_cut_at_end
+	 && (!simplify->is_cut_at_begin || content_lines_added) /* avoid two `[...]` without content */ ) {
 		dc_strbuilder_cat(&ret, " " DC_EDITORIAL_ELLIPSE);
 	}
 
 	dc_free_splitted_lines(lines);
 
-	return ret.m_buf;
+	return ret.buf;
 }
 
 
@@ -309,9 +309,9 @@ char* dc_simplify_simplify(dc_simplify_t* simplify, const char* in_unterminated,
 		return dc_strdup("");
 	}
 
-	simplify->m_is_forwarded    = 0;
-	simplify->m_is_cut_at_begin = 0;
-	simplify->m_is_cut_at_end   = 0;
+	simplify->is_forwarded    = 0;
+	simplify->is_cut_at_begin = 0;
+	simplify->is_cut_at_end   = 0;
 
 	out = strndup((char*)in_unterminated, in_bytes); /* strndup() makes sure, the string is null-terminated */
 	if( out == NULL ) {

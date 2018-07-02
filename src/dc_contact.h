@@ -36,8 +36,8 @@ struct _dc_contact
 {
 	/** @privatesection */
 
-	uint32_t        m_magic;
-	dc_context_t*    m_context;
+	uint32_t        magic;
+	dc_context_t*   context;
 
 	/**
 	 * The contact ID.
@@ -47,12 +47,12 @@ struct _dc_contact
 	 *
 	 * Normal contact IDs are larger than these special ones (larger than DC_CONTACT_ID_LAST_SPECIAL).
 	 */
-	uint32_t        m_id;
-	char*           m_name;     /**< Contact name.  It is recommended to use dc_contact_get_name(), dc_contact_get_display_name() or dc_contact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #m_authname. */
-	char*           m_authname; /**< Name authorized by the contact himself. Only this name may be spread to others, e.g. in To:-lists. May be NULL or empty. It is recommended to use dc_contact_get_name(),  dc_contact_get_display_name() or dc_contact_get_name_n_addr() to access this field. */
-	char*           m_addr;     /**< E-Mail-Address of the contact. It is recommended to use dc_contact_get_addr() to access this field. May be NULL. */
-	int             m_blocked;  /**< Blocked state. Use dc_contact_is_blocked() to access this field. */
-	int             m_origin;   /**< The origin/source of the contact. One of the DC_ORIGIN_* constants. */
+	uint32_t        id;
+	char*           name;     /**< Contact name.  It is recommended to use dc_contact_get_name(), dc_contact_get_display_name() or dc_contact_get_name_n_addr() to access this field. May be NULL or empty, initially set to #authname. */
+	char*           authname; /**< Name authorized by the contact himself. Only this name may be spread to others, e.g. in To:-lists. May be NULL or empty. It is recommended to use dc_contact_get_name(),  dc_contact_get_display_name() or dc_contact_get_name_n_addr() to access this field. */
+	char*           addr;     /**< E-Mail-Address of the contact. It is recommended to use dc_contact_get_addr() to access this field. May be NULL. */
+	int             blocked;  /**< Blocked state. Use dc_contact_is_blocked() to access this field. */
+	int             origin;   /**< The origin/source of the contact. One of the DC_ORIGIN_* constants. */
 };
 
 

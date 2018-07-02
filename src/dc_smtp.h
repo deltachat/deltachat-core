@@ -34,14 +34,14 @@ extern "C" {
 
 typedef struct dc_smtp_t
 {
-	mailsmtp*       m_hEtpan;
-	char*           m_from;
-	int             m_esmtp;
+	mailsmtp*       hEtpan;
+	char*           from;
+	int             esmtp;
 
-	int             m_log_connect_errors;
-	int             m_log_usual_error;
+	int             log_connect_errors;
+	int             log_usual_error;
 
-	dc_context_t*   m_context; /* only for logging! */
+	dc_context_t*   context; /* only for logging! */
 } dc_smtp_t;
 
 dc_smtp_t*   dc_smtp_new          (dc_context_t*);

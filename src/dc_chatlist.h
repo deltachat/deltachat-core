@@ -31,11 +31,11 @@ extern "C" {
 struct _dc_chatlist
 {
 	/** @privatesection */
-	uint32_t        m_magic;
-	dc_context_t*   m_context; /**< The context, the chatlist belongs to */
+	uint32_t        magic;
+	dc_context_t*   context; /**< The context, the chatlist belongs to */
 	#define         DC_CHATLIST_IDS_PER_RESULT 2
-	size_t          m_cnt;
-	dc_array_t*     m_chatNlastmsg_ids;
+	size_t          cnt;
+	dc_array_t*     chatNlastmsg_ids;
 };
 
 

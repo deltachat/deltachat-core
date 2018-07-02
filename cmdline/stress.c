@@ -248,7 +248,7 @@ void stress_functions(dc_context_t* context)
 	**************************************************************************/
 
 	{
-		dc_mimeparser_t* mimeparser = dc_mimeparser_new(context->m_blobdir, context);
+		dc_mimeparser_t* mimeparser = dc_mimeparser_new(context->blobdir, context);
 
 		const char* raw =
 			"Content-Type: multipart/mixed; boundary=\"==break==\";\n"
@@ -271,7 +271,7 @@ void stress_functions(dc_context_t* context)
 
 		dc_mimeparser_parse(mimeparser, raw, strlen(raw));
 
-		assert( strcmp(mimeparser->m_subject, "inner-subject")==0 );
+		assert( strcmp(mimeparser->subject, "inner-subject")==0 );
 
 		struct mailimf_optional_field* of = dc_mimeparser_lookup_optional_field(mimeparser, "X-Special-A");
 		assert( strcmp(of->fld_value, "special-a")==0 );
@@ -282,7 +282,7 @@ void stress_functions(dc_context_t* context)
 		of = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Version");
 		assert( strcmp(of->fld_value, "1.0")==0 );
 
-		assert( carray_count(mimeparser->m_parts) == 1 );
+		assert( carray_count(mimeparser->parts) == 1 );
 
 		dc_mimeparser_unref(mimeparser);
 	}
@@ -573,14 +573,14 @@ void stress_functions(dc_context_t* context)
 		dc_param_set_int(p1, 'b', 2);
 		dc_param_set    (p1, 'c', NULL);
 		dc_param_set_int(p1, 'd', 4);
-		assert( strcmp(p1->m_packed, "a=foo\nb=2\nd=4")==0 );
+		assert( strcmp(p1->packed, "a=foo\nb=2\nd=4")==0 );
 
 		dc_param_set    (p1, 'b', NULL);
-		assert( strcmp(p1->m_packed, "a=foo\nd=4")==0 );
+		assert( strcmp(p1->packed, "a=foo\nd=4")==0 );
 
 		dc_param_set    (p1, 'a', NULL);
 		dc_param_set    (p1, 'd', NULL);
-		assert( strcmp(p1->m_packed, "")==0 );
+		assert( strcmp(p1->packed, "")==0 );
 
 		dc_param_unref(p1);
 	}
@@ -595,24 +595,24 @@ void stress_functions(dc_context_t* context)
 
 		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=mutual; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 );
-		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
-		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
-		assert( ah->m_prefer_encrypt==DC_PE_MUTUAL );
+		assert( ah->addr && strcmp(ah->addr, "a@b.example.org")==0 );
+		assert( ah->public_key->bytes==10 && strncmp((char*)ah->public_key->binary, "Delta Chat", 10)==0 );
+		assert( ah->prefer_encrypt==DC_PE_MUTUAL );
 
 		rendered = dc_aheader_render(ah);
 		assert( rendered && strcmp(rendered, "addr=a@b.example.org; prefer-encrypt=mutual; keydata= RGVsdGEgQ2hhdA==")==0 );
 
 		ah_ok = dc_aheader_set_from_string(ah, " _foo; __FOO=BAR ;;; addr = a@b.example.org ;\r\n   prefer-encrypt = mutual ; keydata = RG VsdGEgQ\r\n2hhdA==");
 		assert( ah_ok == 1 );
-		assert( ah->m_addr && strcmp(ah->m_addr, "a@b.example.org")==0 );
-		assert( ah->m_public_key->m_bytes==10 && strncmp((char*)ah->m_public_key->m_binary, "Delta Chat", 10)==0 );
-		assert( ah->m_prefer_encrypt==DC_PE_MUTUAL );
+		assert( ah->addr && strcmp(ah->addr, "a@b.example.org")==0 );
+		assert( ah->public_key->bytes==10 && strncmp((char*)ah->public_key->binary, "Delta Chat", 10)==0 );
+		assert( ah->prefer_encrypt==DC_PE_MUTUAL );
 
 		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; prefer-encrypt=ignoreUnknownValues; keydata=RGVsdGEgQ2hhdA==");
 		assert( ah_ok == 1 ); /* only "yes" or "no" are valid for prefer-encrypt ... */
 
 		ah_ok = dc_aheader_set_from_string(ah, "addr=a@b.example.org; keydata=RGVsdGEgQ2hhdA==");
-		assert( ah_ok == 1 && ah->m_prefer_encrypt==DC_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
+		assert( ah_ok == 1 && ah->prefer_encrypt==DC_PE_NOPREFERENCE ); /* ... "nopreference" is use if the attribute is missing (see Autocrypt-Level0) */
 
 		ah_ok = dc_aheader_set_from_string(ah, "");
 		assert( ah_ok == 0 );
@@ -774,8 +774,8 @@ void stress_functions(dc_context_t* context)
 		dc_pgp_create_keypair(context, "foo@bar.de", public_key, private_key);
 		assert( dc_pgp_is_valid_key(context, public_key) );
 		assert( dc_pgp_is_valid_key(context, private_key) );
-		//{char *t1=dc_key_render_asc(public_key); printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-public.der", public_key->m_binary, public_key->m_bytes, mailbox);free(t1);}
-		//{char *t1=dc_key_render_asc(private_key);printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-private.der",private_key->m_binary,private_key->m_bytes,mailbox);free(t1);}
+		//{char *t1=dc_key_render_asc(public_key); printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-public.asc", t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-public.der", public_key->binary, public_key->bytes, mailbox);free(t1);}
+		//{char *t1=dc_key_render_asc(private_key);printf("%s",t1);dc_write_file("/home/bpetersen/temp/stress-private.asc",t1,strlen(t1),mailbox);dc_write_file("/home/bpetersen/temp/stress-private.der",private_key->binary,private_key->bytes,mailbox);free(t1);}
 
 		{
 			dc_key_t *test_key = dc_key_new();
@@ -909,15 +909,15 @@ void stress_functions(dc_context_t* context)
 
 		dc_lot_t* res = dc_check_qr(context, qr);
 		assert( res );
-		assert( res->m_state == DC_QR_ASK_VERIFYCONTACT || res->m_state == DC_QR_FPR_MISMATCH || res->m_state == DC_QR_FPR_WITHOUT_ADDR );
+		assert( res->state == DC_QR_ASK_VERIFYCONTACT || res->state == DC_QR_FPR_MISMATCH || res->state == DC_QR_FPR_WITHOUT_ADDR );
 
 		dc_lot_unref(res);
 		free(qr);
 
 		res = dc_check_qr(context, "BEGIN:VCARD\nVERSION:3.0\nN:Last;First\nEMAIL;TYPE=INTERNET:stress@test.local\nEND:VCARD");
 		assert( res );
-		assert( res->m_state == DC_QR_ADDR );
-		assert( res->m_id != 0 );
+		assert( res->state == DC_QR_ADDR );
+		assert( res->id != 0 );
 		dc_lot_unref(res);
 	}
 }

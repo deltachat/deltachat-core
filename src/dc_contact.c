@@ -45,8 +45,8 @@ dc_contact_t* dc_contact_new(dc_context_t* context)
 		exit(19); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	contact->m_magic   = DC_CONTACT_MAGIC;
-	contact->m_context = context;
+	contact->magic   = DC_CONTACT_MAGIC;
+	contact->context = context;
 
 	return contact;
 }
@@ -63,12 +63,12 @@ dc_contact_t* dc_contact_new(dc_context_t* context)
  */
 void dc_contact_unref(dc_contact_t* contact)
 {
-	if( contact==NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact==NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return;
 	}
 
 	dc_contact_empty(contact);
-	contact->m_magic = 0;
+	contact->magic = 0;
 	free(contact);
 }
 
@@ -86,23 +86,23 @@ void dc_contact_unref(dc_contact_t* contact)
  */
 void dc_contact_empty(dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return;
 	}
 
-	contact->m_id = 0;
+	contact->id = 0;
 
-	free(contact->m_name); /* it is safe to call free(NULL) */
-	contact->m_name = NULL;
+	free(contact->name); /* it is safe to call free(NULL) */
+	contact->name = NULL;
 
-	free(contact->m_authname);
-	contact->m_authname = NULL;
+	free(contact->authname);
+	contact->authname = NULL;
 
-	free(contact->m_addr);
-	contact->m_addr = NULL;
+	free(contact->addr);
+	contact->addr = NULL;
 
-	contact->m_origin = 0;
-	contact->m_blocked = 0;
+	contact->origin = 0;
+	contact->blocked = 0;
 }
 
 
@@ -122,10 +122,10 @@ void dc_contact_empty(dc_contact_t* contact)
  */
 uint32_t dc_contact_get_id(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return 0;
 	}
-	return contact->m_id;
+	return contact->id;
 }
 
 
@@ -140,11 +140,11 @@ uint32_t dc_contact_get_id(const dc_contact_t* contact)
  */
 char* dc_contact_get_addr(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	return dc_strdup(contact->m_addr);
+	return dc_strdup(contact->addr);
 }
 
 
@@ -164,11 +164,11 @@ char* dc_contact_get_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	return dc_strdup(contact->m_name);
+	return dc_strdup(contact->name);
 }
 
 
@@ -187,15 +187,15 @@ char* dc_contact_get_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_display_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	if( contact->m_name && contact->m_name[0] ) {
-		return dc_strdup(contact->m_name);
+	if( contact->name && contact->name[0] ) {
+		return dc_strdup(contact->name);
 	}
 
-	return dc_strdup(contact->m_addr);
+	return dc_strdup(contact->addr);
 }
 
 
@@ -218,15 +218,15 @@ char* dc_contact_get_display_name(const dc_contact_t* contact)
  */
 char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	if( contact->m_name && contact->m_name[0] ) {
-		return dc_mprintf("%s (%s)", contact->m_name, contact->m_addr);
+	if( contact->name && contact->name[0] ) {
+		return dc_mprintf("%s (%s)", contact->name, contact->addr);
 	}
 
-	return dc_strdup(contact->m_addr);
+	return dc_strdup(contact->addr);
 }
 
 
@@ -243,15 +243,15 @@ char* dc_contact_get_name_n_addr(const dc_contact_t* contact)
  */
 char* dc_contact_get_first_name(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return dc_strdup(NULL);
 	}
 
-	if( contact->m_name && contact->m_name[0] ) {
-		return dc_get_first_name(contact->m_name);
+	if( contact->name && contact->name[0] ) {
+		return dc_get_first_name(contact->name);
 	}
 
-	return dc_strdup(contact->m_addr);
+	return dc_strdup(contact->addr);
 }
 
 
@@ -268,10 +268,10 @@ char* dc_contact_get_first_name(const dc_contact_t* contact)
  */
 int dc_contact_is_blocked(const dc_contact_t* contact)
 {
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		return 0;
 	}
-	return contact->m_blocked;
+	return contact->blocked;
 }
 
 
@@ -279,16 +279,16 @@ int dc_contact_n_peerstate_are_verified(const dc_contact_t* contact, const dc_ap
 {
 	int             contact_verified = DC_NOT_VERIFIED;
 
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
-	if( contact->m_id == DC_CONTACT_ID_SELF ) {
+	if( contact->id == DC_CONTACT_ID_SELF ) {
 		contact_verified = DC_BIDIRECT_VERIFIED;
 		goto cleanup; // we're always sort of secured-verified as we could verify the key on this device any time with the key on this device
 	}
 
-	contact_verified = peerstate->m_verified_key? DC_BIDIRECT_VERIFIED : 0;
+	contact_verified = peerstate->verified_key? DC_BIDIRECT_VERIFIED : 0;
 
 cleanup:
 	return contact_verified;
@@ -313,13 +313,13 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 	int              contact_verified = DC_NOT_VERIFIED;
 	dc_apeerstate_t* peerstate        = NULL;
 
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC ) {
 		goto cleanup;
 	}
 
-	peerstate = dc_apeerstate_new(contact->m_context);
+	peerstate = dc_apeerstate_new(contact->context);
 
-	if( !dc_apeerstate_load_by_addr(peerstate, contact->m_context->m_sql, contact->m_addr) ) {
+	if( !dc_apeerstate_load_by_addr(peerstate, contact->context->sql, contact->addr) ) {
 		goto cleanup;
 	}
 
@@ -459,7 +459,7 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if( contact == NULL || contact->m_magic != DC_CONTACT_MAGIC || sql == NULL ) {
+	if( contact == NULL || contact->magic != DC_CONTACT_MAGIC || sql == NULL ) {
 		goto cleanup;
 	}
 
@@ -467,9 +467,9 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 
 	if( contact_id == DC_CONTACT_ID_SELF )
 	{
-		contact->m_id   = contact_id;
-		contact->m_name = dc_stock_str(contact->m_context, DC_STR_SELF);
-		contact->m_addr = dc_sqlite3_get_config(sql, "configured_addr", "");
+		contact->id   = contact_id;
+		contact->name = dc_stock_str(contact->context, DC_STR_SELF);
+		contact->addr = dc_sqlite3_get_config(sql, "configured_addr", "");
 	}
 	else
 	{
@@ -482,12 +482,12 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 			goto cleanup;
 		}
 
-		contact->m_id               = contact_id;
-		contact->m_name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
-		contact->m_addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
-		contact->m_origin           =                  sqlite3_column_int  (stmt, 2);
-		contact->m_blocked          =                  sqlite3_column_int  (stmt, 3);
-		contact->m_authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
+		contact->id               = contact_id;
+		contact->name             = dc_strdup((char*)sqlite3_column_text (stmt, 0));
+		contact->addr             = dc_strdup((char*)sqlite3_column_text (stmt, 1));
+		contact->origin           =                  sqlite3_column_int  (stmt, 2);
+		contact->blocked          =                  sqlite3_column_int  (stmt, 3);
+		contact->authname         = dc_strdup((char*)sqlite3_column_text (stmt, 4));
 	}
 
 	success = 1;

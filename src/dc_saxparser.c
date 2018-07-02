@@ -247,7 +247,7 @@ static void call_text_cb(dc_saxparser_t* saxparser, char* text, size_t len, char
 
 		text[len] = '\0';
 		text_new = xml_decode(text, type);
-		saxparser->m_text_cb(saxparser->m_userdata, text_new, len);
+		saxparser->text_cb(saxparser->userdata, text_new, len);
 		if( text != text_new ) { free(text_new); }
 
 		text[len] = bak;
@@ -294,10 +294,10 @@ const char* dc_attr_find(char** attr, const char* key)
 
 void dc_saxparser_init(dc_saxparser_t* saxparser, void* userdata)
 {
-	saxparser->m_userdata    = userdata;
-	saxparser->m_starttag_cb = def_starttag_cb;
-	saxparser->m_endtag_cb   = def_endtag_cb;
-	saxparser->m_text_cb     = def_text_cb;
+	saxparser->userdata    = userdata;
+	saxparser->starttag_cb = def_starttag_cb;
+	saxparser->endtag_cb   = def_endtag_cb;
+	saxparser->text_cb     = def_text_cb;
 }
 
 
@@ -307,8 +307,8 @@ void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_startt
 		return;
 	}
 
-	saxparser->m_starttag_cb = starttag_cb? starttag_cb : def_starttag_cb;
-	saxparser->m_endtag_cb   = endtag_cb?   endtag_cb   : def_endtag_cb;
+	saxparser->starttag_cb = starttag_cb? starttag_cb : def_starttag_cb;
+	saxparser->endtag_cb   = endtag_cb?   endtag_cb   : def_endtag_cb;
 }
 
 
@@ -318,7 +318,7 @@ void dc_saxparser_set_text_handler (dc_saxparser_t* saxparser, dc_saxparser_text
 		return;
 	}
 
-	saxparser->m_text_cb = text_cb? text_cb : def_text_cb;
+	saxparser->text_cb = text_cb? text_cb : def_text_cb;
 }
 
 
@@ -418,7 +418,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 						bak = *p;
 						*p = '\0'; /* null-terminate tag name temporary, eg. a covered `>` may get important downwards */
 						dc_strlower_in_place(beg_tag_name);
-						saxparser->m_endtag_cb(saxparser->m_userdata, beg_tag_name);
+						saxparser->endtag_cb(saxparser->userdata, beg_tag_name);
 						*p = bak;
 					}
 				}
@@ -520,7 +520,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 						char bak = *after_tag_name; /* backup the character as it may be `/` or `>` which gets important downwards */
 						*after_tag_name = 0;
 						dc_strlower_in_place(beg_tag_name);
-						saxparser->m_starttag_cb(saxparser->m_userdata, beg_tag_name, attr);
+						saxparser->starttag_cb(saxparser->userdata, beg_tag_name, attr);
 						*after_tag_name = bak;
 
 						/* self-closing tag */
@@ -529,7 +529,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 						{
 							p++;
 							*after_tag_name = 0;
-							saxparser->m_endtag_cb(saxparser->m_userdata, beg_tag_name); /* already lowercase from starttag_cb()-call */
+							saxparser->endtag_cb(saxparser->userdata, beg_tag_name); /* already lowercase from starttag_cb()-call */
 						}
 					}
 

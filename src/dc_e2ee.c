@@ -198,11 +198,11 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || public_key == NULL ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || public_key == NULL ) {
 		goto cleanup;
 	}
 
-	if( !dc_key_load_self_public(public_key, self_addr, context->m_sql) )
+	if( !dc_key_load_self_public(public_key, self_addr, context->sql) )
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
 		if( s_in_key_creation ) { goto cleanup; }
@@ -255,7 +255,7 @@ static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* p
 				goto cleanup;
 			}
 
-			if( !dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->m_sql) ) {
+			if( !dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->sql) ) {
 				dc_log_warning(context, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
@@ -282,11 +282,11 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
 		goto cleanup;
 	}
 
-		if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
+		if( (self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL ) {
 			dc_log_warning(context, 0, "Cannot ensure secret key if context is not configured.");
 			goto cleanup;
 		}
@@ -327,29 +327,29 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
 	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
 		goto cleanup;
 	}
 
 		/* init autocrypt header from db */
-		autocryptheader->m_prefer_encrypt = DC_PE_NOPREFERENCE;
-		if( context->m_e2ee_enabled ) {
-			autocryptheader->m_prefer_encrypt = DC_PE_MUTUAL;
+		autocryptheader->prefer_encrypt = DC_PE_NOPREFERENCE;
+		if( context->e2ee_enabled ) {
+			autocryptheader->prefer_encrypt = DC_PE_MUTUAL;
 		}
 
-		autocryptheader->m_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-		if( autocryptheader->m_addr == NULL ) {
+		autocryptheader->addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
+		if( autocryptheader->addr == NULL ) {
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key__(context, autocryptheader->m_public_key, autocryptheader->m_addr, in_out_message/*only for random-seed*/) ) {
+		if( !load_or_generate_self_public_key__(context, autocryptheader->public_key, autocryptheader->addr, in_out_message/*only for random-seed*/) ) {
 			goto cleanup;
 		}
 
 		/* load peerstate information etc. */
-		if( autocryptheader->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed )
+		if( autocryptheader->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed )
 		{
 			do_encrypt = 1;
 			clistiter*      iter1;
@@ -357,13 +357,13 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 				const char* recipient_addr = clist_content(iter1);
 				dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 				dc_key_t* key_to_use = NULL;
-				if( strcasecmp(recipient_addr, autocryptheader->m_addr) == 0 )
+				if( strcasecmp(recipient_addr, autocryptheader->addr) == 0 )
 				{
 					; // encrypt to SELF, this key is added below
 				}
-				else if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, recipient_addr)
+				else if( dc_apeerstate_load_by_addr(peerstate, context->sql, recipient_addr)
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
-				      && (peerstate->m_prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
+				      && (peerstate->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
 				{
 					dc_keyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					dc_array_add_ptr(peerstates, peerstate);
@@ -378,8 +378,8 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		}
 
 		if( do_encrypt ) {
-			dc_keyring_add(keyring, autocryptheader->m_public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !dc_key_load_self_private(sign_key, autocryptheader->m_addr, context->m_sql) ) {
+			dc_keyring_add(keyring, autocryptheader->public_key); /* we always add ourself as otherwise forwarded messages are not readable */
+			if( !dc_key_load_self_private(sign_key, autocryptheader->addr, context->sql) ) {
 				do_encrypt = 0;
 			}
 		}
@@ -462,7 +462,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		if( !dc_pgp_pk_encrypt(context, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
 			goto cleanup;
 		}
-		helper->m_cdata_to_free = ctext;
+		helper->cdata_to_free = ctext;
 		//char* t2=dc_null_terminate(ctext,ctext_bytes);printf("ENCRYPTED:\n%s\n",t2);free(t2); // DEBUG OUTPUT
 
 		/* create MIME-structure that will contain the encrypted text */
@@ -484,7 +484,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 		mailmime_free(message_to_encrypt);
 		//MMAPString* t3=mmap_string_new("");mailmime_write_mem(t3,&col,in_out_message);char* t4=dc_null_terminate(t3->str,t3->len); printf("ENCRYPTED+MIME_ENCODED:\n%s\n",t4);free(t4);mmap_string_free(t3); // DEBUG OUTPUT
 
-		helper->m_encryption_successfull = 1;
+		helper->encryption_successfull = 1;
 	}
 
 	char* p = dc_aheader_render(autocryptheader);
@@ -510,21 +510,21 @@ void dc_e2ee_thanks(dc_e2ee_helper_t* helper)
 		return;
 	}
 
-	free(helper->m_cdata_to_free);
-	helper->m_cdata_to_free = NULL;
+	free(helper->cdata_to_free);
+	helper->cdata_to_free = NULL;
 
-	if( helper->m_gossipped_addr )
+	if( helper->gossipped_addr )
 	{
-		dc_hash_clear(helper->m_gossipped_addr);
-		free(helper->m_gossipped_addr);
-		helper->m_gossipped_addr = NULL;
+		dc_hash_clear(helper->gossipped_addr);
+		free(helper->gossipped_addr);
+		helper->gossipped_addr = NULL;
 	}
 
-	if( helper->m_signatures )
+	if( helper->signatures )
 	{
-		dc_hash_clear(helper->m_signatures);
-		free(helper->m_signatures);
-		helper->m_signatures = NULL;
+		dc_hash_clear(helper->signatures);
+		free(helper->signatures);
+		helper->signatures = NULL;
 	}
 }
 
@@ -739,27 +739,27 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 			{
 				dc_aheader_t* gossip_header = dc_aheader_new();
 				if( dc_aheader_set_from_string(gossip_header, optional_field->fld_value)
-				 && dc_pgp_is_valid_key(context, gossip_header->m_public_key) )
+				 && dc_pgp_is_valid_key(context, gossip_header->public_key) )
 				{
 					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
 					if( recipients == NULL ) {
 						recipients = mailimf_get_recipients(imffields);
 					}
 
-					if( dc_hash_find(recipients, gossip_header->m_addr, strlen(gossip_header->m_addr)) )
+					if( dc_hash_find(recipients, gossip_header->addr, strlen(gossip_header->addr)) )
 					{
 						/* valid recipient: update peerstate */
 						dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
-						if( !dc_apeerstate_load_by_addr(peerstate, context->m_sql, gossip_header->m_addr) ) {
+						if( !dc_apeerstate_load_by_addr(peerstate, context->sql, gossip_header->addr) ) {
 							dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
-							dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
+							dc_apeerstate_save_to_db(peerstate, context->sql, 1/*create*/);
 						}
 						else {
 							dc_apeerstate_apply_gossip(peerstate, gossip_header, message_time);
-							dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*do not create*/);
+							dc_apeerstate_save_to_db(peerstate, context->sql, 0/*do not create*/);
 						}
 
-						if( peerstate->m_degrade_event ) {
+						if( peerstate->degrade_event ) {
 							dc_handle_degrade_event(context, peerstate);
 						}
 
@@ -771,11 +771,11 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 							gossipped_addr = malloc(sizeof(dc_hash_t));
 							dc_hash_init(gossipped_addr, DC_HASH_STRING, 1/*copy key*/);
 						}
-						dc_hash_insert(gossipped_addr, gossip_header->m_addr, strlen(gossip_header->m_addr), (void*)1);
+						dc_hash_insert(gossipped_addr, gossip_header->addr, strlen(gossip_header->addr), (void*)1);
 					}
 					else
 					{
-						dc_log_info(context, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->m_addr);
+						dc_log_info(context, 0, "Ignoring gossipped \"%s\" as the address is not in To/Cc list.", gossip_header->addr);
 					}
 				}
 				dc_aheader_unref(gossip_header);
@@ -808,7 +808,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 
 	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || in_out_message==NULL
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || in_out_message==NULL
 	 || helper == NULL || imffields==NULL ) {
 		goto cleanup;
 	}
@@ -838,7 +838,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 
 	autocryptheader = dc_aheader_new_from_imffields(from, imffields);
 	if( autocryptheader ) {
-		if( !dc_pgp_is_valid_key(context, autocryptheader->m_public_key) ) {
+		if( !dc_pgp_is_valid_key(context, autocryptheader->public_key) ) {
 			dc_aheader_unref(autocryptheader);
 			autocryptheader = NULL;
 		}
@@ -850,67 +850,67 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	if( message_time > 0
 	 && from )
 	{
-		if( dc_apeerstate_load_by_addr(peerstate, context->m_sql, from) ) {
+		if( dc_apeerstate_load_by_addr(peerstate, context->sql, from) ) {
 			if( autocryptheader ) {
 				dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
-				dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
+				dc_apeerstate_save_to_db(peerstate, context->sql, 0/*no not create*/);
 			}
 			else {
-				if( message_time > peerstate->m_last_seen_autocrypt
+				if( message_time > peerstate->last_seen_autocrypt
 				 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
 					dc_apeerstate_degrade_encryption(peerstate, message_time);
-					dc_apeerstate_save_to_db(peerstate, context->m_sql, 0/*no not create*/);
+					dc_apeerstate_save_to_db(peerstate, context->sql, 0/*no not create*/);
 				}
 			}
 		}
 		else if( autocryptheader ) {
 			dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
-			dc_apeerstate_save_to_db(peerstate, context->m_sql, 1/*create*/);
+			dc_apeerstate_save_to_db(peerstate, context->sql, 1/*create*/);
 		}
 	}
 
 	/* load private key for decryption */
-	if( (self_addr=dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL))==NULL ) {
+	if( (self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL ) {
 		goto cleanup;
 	}
 
-	if( !dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->m_sql) ) {
+	if( !dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->sql) ) {
 		goto cleanup;
 	}
 
 	/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-	if( peerstate->m_last_seen == 0 ) {
-		dc_apeerstate_load_by_addr(peerstate, context->m_sql, from);
+	if( peerstate->last_seen == 0 ) {
+		dc_apeerstate_load_by_addr(peerstate, context->sql, from);
 	}
 
-	if( peerstate->m_degrade_event ) {
+	if( peerstate->degrade_event ) {
 		dc_handle_degrade_event(context, peerstate);
 	}
 
 	// offer both, gossip and public, for signature validation.
 	// the caller may check the signature fingerprints as needed later.
-	dc_keyring_add(public_keyring_for_validate, peerstate->m_gossip_key);
-	dc_keyring_add(public_keyring_for_validate, peerstate->m_public_key);
+	dc_keyring_add(public_keyring_for_validate, peerstate->gossip_key);
+	dc_keyring_add(public_keyring_for_validate, peerstate->public_key);
 
 	/* finally, decrypt.  If sth. was decrypted, decrypt_recursive() returns "true" and we start over to decrypt maybe just added parts. */
-	helper->m_signatures = malloc(sizeof(dc_hash_t));
-	dc_hash_init(helper->m_signatures, DC_HASH_STRING, 1/*copy key*/);
+	helper->signatures = malloc(sizeof(dc_hash_t));
+	dc_hash_init(helper->signatures, DC_HASH_STRING, 1/*copy key*/);
 
 	int iterations = 0;
 	while( iterations < 10 ) {
 		int has_unencrypted_parts = 0;
 		if( !decrypt_recursive(context, in_out_message, private_keyring,
 		        public_keyring_for_validate,
-		        helper->m_signatures, &gossip_headers, &has_unencrypted_parts) ) {
+		        helper->signatures, &gossip_headers, &has_unencrypted_parts) ) {
 			break;
 		}
 
 		// if we're here, sth. was encrypted. if we're on top-level, and there are no
 		// additional unencrypted parts in the message the encryption was fine
-		// (signature is handled separately and returned as m_signatures)
+		// (signature is handled separately and returned as `signatures`)
 		if( iterations == 0
 		 && !has_unencrypted_parts ) {
-			helper->m_encrypted = 1;
+			helper->encrypted = 1;
 		}
 
 		iterations++;
@@ -918,7 +918,7 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 
 	/* check for Autocrypt-Gossip */
 	if( gossip_headers ) {
-		helper->m_gossipped_addr = update_gossip_peerstates(context, message_time, imffields, gossip_headers);
+		helper->gossipped_addr = update_gossip_peerstates(context, message_time, imffields, gossip_headers);
 	}
 
 	//mailmime_print(in_out_message);

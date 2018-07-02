@@ -35,17 +35,17 @@ typedef struct dc_loginparam_t
 	/**  @privatesection */
 
 	/* IMAP/POP3 - all pointers may be NULL if unset, public read */
-	char*         m_addr;
-	char*         m_mail_server;
-	char*         m_mail_user;
-	char*         m_mail_pw;
-	uint16_t      m_mail_port;
+	char*         addr;
+	char*         mail_server;
+	char*         mail_user;
+	char*         mail_pw;
+	uint16_t      mail_port;
 
 	/* SMTP - all pointers may be NULL if unset, public read */
-	char*         m_send_server;
-	char*         m_send_user;
-	char*         m_send_pw;
-	int           m_send_port;
+	char*         send_server;
+	char*         send_user;
+	char*         send_pw;
+	int           send_port;
 
 	/* Server options*/
 	#define       DC_LP_AUTH_XOAUTH2                 0x2
@@ -65,7 +65,7 @@ typedef struct dc_loginparam_t
 	#define       DC_NO_EXTRA_IMAP_UPLOAD      0x2000000
 	#define       DC_NO_MOVE_TO_CHATS          0x4000000
 
-	int           m_server_flags;
+	int           server_flags;
 } dc_loginparam_t;
 
 

@@ -43,7 +43,7 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 {
 	char* msg = NULL;
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -72,15 +72,15 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 	}
 
 	/* finally, log */
-	context->m_cb(context, event, (uintptr_t)code, (uintptr_t)msg);
+	context->cb(context, event, (uintptr_t)code, (uintptr_t)msg);
 
 	/* remember the last N log entries */
-	pthread_mutex_lock(&context->m_log_ringbuf_critical);
-		free(context->m_log_ringbuf[context->m_log_ringbuf_pos]);
-		context->m_log_ringbuf[context->m_log_ringbuf_pos] = msg;
-		context->m_log_ringbuf_times[context->m_log_ringbuf_pos] = time(NULL);
-		context->m_log_ringbuf_pos = (context->m_log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
-	pthread_mutex_unlock(&context->m_log_ringbuf_critical);
+	pthread_mutex_lock(&context->log_ringbuf_critical);
+		free(context->log_ringbuf[context->log_ringbuf_pos]);
+		context->log_ringbuf[context->log_ringbuf_pos] = msg;
+		context->log_ringbuf_times[context->log_ringbuf_pos] = time(NULL);
+		context->log_ringbuf_pos = (context->log_ringbuf_pos+1) % DC_LOG_RINGBUF_SIZE;
+	pthread_mutex_unlock(&context->log_ringbuf_critical);
 }
 
 
@@ -114,7 +114,7 @@ void dc_log_error(dc_context_t* context, int code, const char* msg, ...)
 
 void dc_log_error_if(int* condition, dc_context_t* context, int code, const char* msg, ...)
 {
-	if( condition == NULL || context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( condition == NULL || context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return;
 	}
 
@@ -122,7 +122,7 @@ void dc_log_error_if(int* condition, dc_context_t* context, int code, const char
 	va_start(va, msg);
 		if( *condition ) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
-			if( context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+			if( context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
 				log_vprintf(context, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
 			}
 			else {

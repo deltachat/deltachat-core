@@ -792,8 +792,8 @@ static dc_mimepart_t* dc_mimepart_new(void)
 		exit(33);
 	}
 
-	mimepart->m_type    = DC_MSG_UNDEFINED;
-	mimepart->m_param   = dc_param_new();
+	mimepart->type    = DC_MSG_UNDEFINED;
+	mimepart->param   = dc_param_new();
 
 	return mimepart;
 }
@@ -805,17 +805,17 @@ static void dc_mimepart_unref(dc_mimepart_t* mimepart)
 		return;
 	}
 
-	if( mimepart->m_msg ) {
-		free(mimepart->m_msg);
-		mimepart->m_msg = NULL;
+	if( mimepart->msg ) {
+		free(mimepart->msg);
+		mimepart->msg = NULL;
 	}
 
-	if( mimepart->m_msg_raw ) {
-		free(mimepart->m_msg_raw);
-		mimepart->m_msg_raw = NULL;
+	if( mimepart->msg_raw ) {
+		free(mimepart->msg_raw);
+		mimepart->msg_raw = NULL;
 	}
 
-	dc_param_unref(mimepart->m_param);
+	dc_param_unref(mimepart->param);
 	free(mimepart);
 }
 
@@ -843,13 +843,13 @@ dc_mimeparser_t* dc_mimeparser_new(const char* blobdir, dc_context_t* context)
 		exit(30);
 	}
 
-	mimeparser->m_context = context;
-	mimeparser->m_parts   = carray_new(16);
-	mimeparser->m_blobdir = blobdir; /* no need to copy the string at the moment */
-	mimeparser->m_reports = carray_new(16);
-	mimeparser->m_e2ee_helper = calloc(1, sizeof(dc_e2ee_helper_t));
+	mimeparser->context = context;
+	mimeparser->parts   = carray_new(16);
+	mimeparser->blobdir = blobdir; /* no need to copy the string at the moment */
+	mimeparser->reports = carray_new(16);
+	mimeparser->e2ee_helper = calloc(1, sizeof(dc_e2ee_helper_t));
 
-	dc_hash_init(&mimeparser->m_header, DC_HASH_STRING, 0/* do not copy key */);
+	dc_hash_init(&mimeparser->header, DC_HASH_STRING, 0/* do not copy key */);
 
 	return mimeparser;
 }
@@ -873,9 +873,9 @@ void dc_mimeparser_unref(dc_mimeparser_t* mimeparser)
 	}
 
 	dc_mimeparser_empty(mimeparser);
-	if( mimeparser->m_parts )   { carray_free(mimeparser->m_parts); }
-	if( mimeparser->m_reports ) { carray_free(mimeparser->m_reports); }
-	free(mimeparser->m_e2ee_helper);
+	if( mimeparser->parts )   { carray_free(mimeparser->parts); }
+	if( mimeparser->reports ) { carray_free(mimeparser->reports); }
+	free(mimeparser->e2ee_helper);
 	free(mimeparser);
 }
 
@@ -898,60 +898,60 @@ void dc_mimeparser_empty(dc_mimeparser_t* mimeparser)
 		return;
 	}
 
-	if( mimeparser->m_parts )
+	if( mimeparser->parts )
 	{
-		int i, cnt = carray_count(mimeparser->m_parts);
+		int i, cnt = carray_count(mimeparser->parts);
 		for( i = 0; i < cnt; i++ ) {
-			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
 			if( part ) {
 				dc_mimepart_unref(part);
 			}
 		}
-		carray_set_size(mimeparser->m_parts, 0);
+		carray_set_size(mimeparser->parts, 0);
 	}
 
-	mimeparser->m_header_root  = NULL; /* a pointer somewhere to the MIME data, must NOT be freed */
-	dc_hash_clear(&mimeparser->m_header);
+	mimeparser->header_root  = NULL; /* a pointer somewhere to the MIME data, must NOT be freed */
+	dc_hash_clear(&mimeparser->header);
 
-	if( mimeparser->m_header_protected ) {
-		mailimf_fields_free(mimeparser->m_header_protected); /* allocated as needed, MUST be freed */
-		mimeparser->m_header_protected = NULL;
+	if( mimeparser->header_protected ) {
+		mailimf_fields_free(mimeparser->header_protected); /* allocated as needed, MUST be freed */
+		mimeparser->header_protected = NULL;
 	}
 
-	mimeparser->m_is_send_by_messenger  = 0;
-	mimeparser->m_is_system_message = 0;
+	mimeparser->is_send_by_messenger  = 0;
+	mimeparser->is_system_message = 0;
 
-	free(mimeparser->m_subject);
-	mimeparser->m_subject = NULL;
+	free(mimeparser->subject);
+	mimeparser->subject = NULL;
 
-	if( mimeparser->m_mimeroot )
+	if( mimeparser->mimeroot )
 	{
-		mailmime_free(mimeparser->m_mimeroot);
-		mimeparser->m_mimeroot = NULL;
+		mailmime_free(mimeparser->mimeroot);
+		mimeparser->mimeroot = NULL;
 	}
 
-	mimeparser->m_is_forwarded = 0;
+	mimeparser->is_forwarded = 0;
 
-	if( mimeparser->m_reports ) {
-		carray_set_size(mimeparser->m_reports, 0);
+	if( mimeparser->reports ) {
+		carray_set_size(mimeparser->reports, 0);
 	}
 
-	mimeparser->m_decrypting_failed = 0;
+	mimeparser->decrypting_failed = 0;
 
-	dc_e2ee_thanks(mimeparser->m_e2ee_helper);
+	dc_e2ee_thanks(mimeparser->e2ee_helper);
 }
 
 
 static void do_add_single_part(dc_mimeparser_t* parser, dc_mimepart_t* part)
 {
 	/* add a single part to the list of parts, the parser takes the ownership of the part, so you MUST NOT unref it after calling this function. */
-	if( parser->m_e2ee_helper->m_encrypted && dc_hash_count(parser->m_e2ee_helper->m_signatures)>0 ) {
-		dc_param_set_int(part->m_param, DC_PARAM_GUARANTEE_E2EE, 1);
+	if( parser->e2ee_helper->encrypted && dc_hash_count(parser->e2ee_helper->signatures)>0 ) {
+		dc_param_set_int(part->param, DC_PARAM_GUARANTEE_E2EE, 1);
 	}
-	else if( parser->m_e2ee_helper->m_encrypted ) {
-		dc_param_set_int(part->m_param, DC_PARAM_ERRONEOUS_E2EE, DC_E2EE_NO_VALID_SIGNATURE);
+	else if( parser->e2ee_helper->encrypted ) {
+		dc_param_set_int(part->param, DC_PARAM_ERRONEOUS_E2EE, DC_E2EE_NO_VALID_SIGNATURE);
 	}
-	carray_add(parser->m_parts, (void*)part, NULL);
+	carray_add(parser->parts, (void*)part, NULL);
 }
 
 
@@ -963,32 +963,32 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	char*         pathNfilename = NULL;
 
 	/* create a free file name to use */
-	if( (pathNfilename=dc_get_fine_pathNfilename(parser->m_blobdir, desired_filename)) == NULL ) {
+	if( (pathNfilename=dc_get_fine_pathNfilename(parser->blobdir, desired_filename)) == NULL ) {
 		goto cleanup;
 	}
 
 	/* copy data to file */
-	if( dc_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->m_context)==0 ) {
+	if( dc_write_file(pathNfilename, decoded_data, decoded_data_bytes, parser->context)==0 ) {
 		goto cleanup;
 	}
 
 	part = dc_mimepart_new();
-	part->m_type  = msg_type;
-	part->m_int_mimetype = mime_type;
-	part->m_bytes = decoded_data_bytes;
-	dc_param_set(part->m_param, DC_PARAM_FILE, pathNfilename);
+	part->type  = msg_type;
+	part->int_mimetype = mime_type;
+	part->bytes = decoded_data_bytes;
+	dc_param_set(part->param, DC_PARAM_FILE, pathNfilename);
 	if( DC_MSG_MAKE_FILENAME_SEARCHABLE(msg_type) ) {
-		part->m_msg = dc_get_filename(pathNfilename);
+		part->msg = dc_get_filename(pathNfilename);
 	}
 	else if( DC_MSG_MAKE_SUFFIX_SEARCHABLE(msg_type) ) {
-		part->m_msg = dc_get_filesuffix_lc(pathNfilename);
+		part->msg = dc_get_filesuffix_lc(pathNfilename);
 	}
 
 	if( mime_type == DC_MIMETYPE_IMAGE ) {
 		uint32_t w = 0, h = 0;
 		if( dc_get_filemeta(decoded_data, decoded_data_bytes, &w, &h) ) {
-			dc_param_set_int(part->m_param, DC_PARAM_WIDTH, w);
-			dc_param_set_int(part->m_param, DC_PARAM_HEIGHT, h);
+			dc_param_set_int(part->param, DC_PARAM_WIDTH, w);
+			dc_param_set_int(part->param, DC_PARAM_HEIGHT, h);
 		}
 	}
 
@@ -996,8 +996,8 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
 	if( msg_type == DC_MSG_AUDIO ) {
 		char* author = NULL, *title = NULL;
 		dc_msg_get_authorNtitle_from_filename(desired_filename, &author, &title);
-		dc_param_set(part->m_param, DC_PARAM_AUTHORNAME, author);
-		dc_param_set(part->m_param, DC_PARAM_TRACKNAME, title);
+		dc_param_set(part->param, DC_PARAM_AUTHORNAME, author);
+		dc_param_set(part->param, DC_PARAM_TRACKNAME, title);
 		free(author);
 		free(title);
 	}
@@ -1014,7 +1014,7 @@ cleanup:
 static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, struct mailmime* mime)
 {
 	dc_mimepart_t*               part = NULL;
-	int                          old_part_count = carray_count(mimeparser->m_parts);
+	int                          old_part_count = carray_count(mimeparser->parts);
 
 	int                          mime_type;
 	struct mailmime_data*        mime_data;
@@ -1065,7 +1065,7 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					size_t ret_bytes = 0;
 					int r = charconv_buffer("utf-8", charset, decoded_data, decoded_data_bytes, &charset_buffer, &ret_bytes);
 					if( r != MAIL_CHARCONV_NO_ERROR ) {
-						dc_log_warning(mimeparser->m_context, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
+						dc_log_warning(mimeparser->context, 0, "Cannot convert %i bytes from \"%s\" to \"utf-8\"; errorcode is %i.", /* if this warning comes up for usual character sets, maybe libetpan is compiled without iconv? */
 							(int)decoded_data_bytes, charset, (int)r); /* continue, however */
 					}
 					else if( charset_buffer==NULL || ret_bytes <= 0 ) {
@@ -1110,10 +1110,10 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 				if( simplified_txt && simplified_txt[0] )
 				{
 					part = dc_mimepart_new();
-					part->m_type = DC_MSG_TEXT;
-					part->m_int_mimetype = mime_type;
-					part->m_msg = simplified_txt;
-					part->m_msg_raw = strndup(decoded_data, decoded_data_bytes);
+					part->type = DC_MSG_TEXT;
+					part->int_mimetype = mime_type;
+					part->msg = simplified_txt;
+					part->msg_raw = strndup(decoded_data, decoded_data_bytes);
 					do_add_single_part(mimeparser, part);
 					part = NULL;
 				}
@@ -1122,8 +1122,8 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					free(simplified_txt);
 				}
 
-				if( simplifier->m_is_forwarded ) {
-					mimeparser->m_is_forwarded = 1;
+				if( simplifier->is_forwarded ) {
+					mimeparser->is_forwarded = 1;
 				}
 			}
 			break;
@@ -1171,12 +1171,12 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 					}
 				}
 
-				if( strlen(filename_parts.m_buf) ) {
+				if( strlen(filename_parts.buf) ) {
 					free(desired_filename);
-					desired_filename = dc_decode_ext_header(filename_parts.m_buf);
+					desired_filename = dc_decode_ext_header(filename_parts.buf);
 				}
 
-				free(filename_parts.m_buf);
+				free(filename_parts.buf);
 
 				/* try to get file name from `Content-Type: ... name=...` */
 				if( desired_filename==NULL ) {
@@ -1215,7 +1215,7 @@ cleanup:
 	free(desired_filename);
 	dc_mimepart_unref(part);
 
-	return carray_count(mimeparser->m_parts)>old_part_count? 1 : 0; /* any part added? */
+	return carray_count(mimeparser->parts)>old_part_count? 1 : 0; /* any part added? */
 }
 
 
@@ -1235,19 +1235,19 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 		 && mime->mm_content_type->ct_type->tp_data.tp_discrete_type->dt_type==MAILMIME_DISCRETE_TYPE_TEXT
 		 && mime->mm_content_type->ct_subtype
 		 && strcmp(mime->mm_content_type->ct_subtype, "rfc822-headers")==0 ) {
-			dc_log_info(mimeparser->m_context, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
+			dc_log_info(mimeparser->context, 0, "Protected headers found in text/rfc822-headers attachment: Will be ignored."); /* we want the protected headers in the normal header of the payload */
 			return 0;
 		}
 
-		if( mimeparser->m_header_protected==NULL ) { /* use the most outer protected header - this is typically created in sync with the normal, unprotected header */
+		if( mimeparser->header_protected==NULL ) { /* use the most outer protected header - this is typically created in sync with the normal, unprotected header */
 			size_t dummy = 0;
-			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &mimeparser->m_header_protected)!=MAILIMF_NO_ERROR
-			 || mimeparser->m_header_protected==NULL ) {
-				dc_log_warning(mimeparser->m_context, 0, "Protected headers parsing error.");
+			if( mailimf_envelope_and_optional_fields_parse(mime->mm_mime_start, mime->mm_length, &dummy, &mimeparser->header_protected)!=MAILIMF_NO_ERROR
+			 || mimeparser->header_protected==NULL ) {
+				dc_log_warning(mimeparser->context, 0, "Protected headers parsing error.");
 			}
 		}
 		else {
-			dc_log_info(mimeparser->m_context, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
+			dc_log_info(mimeparser->context, 0, "Protected headers found in MIME header: Will be ignored as we already found an outer one.");
 		}
 	}
 
@@ -1304,15 +1304,15 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 				case DC_MIMETYPE_MP_NOT_DECRYPTABLE:
 					{
 						dc_mimepart_t* part = dc_mimepart_new();
-						part->m_type = DC_MSG_TEXT;
+						part->type = DC_MSG_TEXT;
 
-						char* msg_body = dc_stock_str(mimeparser->m_context, DC_STR_CANTDECRYPT_MSG_BODY);
-						part->m_msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, msg_body);
+						char* msg_body = dc_stock_str(mimeparser->context, DC_STR_CANTDECRYPT_MSG_BODY);
+						part->msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, msg_body);
 						free(msg_body);
 
-						carray_add(mimeparser->m_parts, (void*)part, NULL);
+						carray_add(mimeparser->parts, (void*)part, NULL);
 						any_part_added = 1;
-						mimeparser->m_decrypting_failed = 1;
+						mimeparser->decrypting_failed = 1;
 					}
 					break;
 
@@ -1335,7 +1335,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 						if( report_type && report_type->pa_value
 						 && strcmp(report_type->pa_value, "disposition-notification") == 0 )
 						{
-							carray_add(mimeparser->m_reports, (void*)mime, NULL);
+							carray_add(mimeparser->reports, (void*)mime, NULL);
 						}
 						else
 						{
@@ -1365,7 +1365,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 								}
 							}
 							if( plain_cnt==1 && html_cnt==1 )  {
-								dc_log_warning(mimeparser->m_context, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
+								dc_log_warning(mimeparser->context, 0, "HACK: multipart/mixed message found with PLAIN and HTML, we'll skip the HTML part as this seems to be unwanted.");
 								skip_part = html_part;
 							}
 						}
@@ -1385,9 +1385,9 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 			break;
 
 		case MAILMIME_MESSAGE:
-			if( mimeparser->m_header_root == NULL )
+			if( mimeparser->header_root == NULL )
 			{
-				mimeparser->m_header_root = mime->mm_data.mm_message.mm_fields;
+				mimeparser->header_root = mime->mm_data.mm_message.mm_fields;
 			}
 
 			if( mime->mm_data.mm_message.mm_msg_mime )
@@ -1484,98 +1484,98 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 	dc_mimeparser_empty(mimeparser);
 
 	/* parse body */
-	r = mailmime_parse(body_not_terminated, body_bytes, &index, &mimeparser->m_mimeroot);
-	if(r != MAILIMF_NO_ERROR || mimeparser->m_mimeroot == NULL ) {
+	r = mailmime_parse(body_not_terminated, body_bytes, &index, &mimeparser->mimeroot);
+	if(r != MAILIMF_NO_ERROR || mimeparser->mimeroot == NULL ) {
 		goto cleanup;
 	}
 
-	//printf("before decryption:\n"); mailmime_print(mimeparser->m_mimeroot);
+	//printf("before decryption:\n"); mailmime_print(mimeparser->mimeroot);
 
 	/* decrypt, if possible; handle Autocrypt:-header
 	(decryption may modifiy the given object) */
-	dc_e2ee_decrypt(mimeparser->m_context, mimeparser->m_mimeroot, mimeparser->m_e2ee_helper);
+	dc_e2ee_decrypt(mimeparser->context, mimeparser->mimeroot, mimeparser->e2ee_helper);
 
-	//printf("after decryption:\n"); mailmime_print(mimeparser->m_mimeroot);
+	//printf("after decryption:\n"); mailmime_print(mimeparser->mimeroot);
 
-	/* recursively check, whats parsed, this also sets up m_header_old */
-	dc_mimeparser_parse_mime_recursive(mimeparser, mimeparser->m_mimeroot);
+	/* recursively check, whats parsed, this also sets up header_old */
+	dc_mimeparser_parse_mime_recursive(mimeparser, mimeparser->mimeroot);
 
 	// TOCHECK: text parts may be moved to the beginning of the list - either here or in do_add_single_part()
 	//       usecase: eg. the Buchungsbestätigungen of Deutsch Bahn have the PDF before the explaining text.
 	//       may also be handy for extracting binaries from uuencoded text and just add the rest text after the binaries.
 
 	/* setup header */
-	hash_header(&mimeparser->m_header, mimeparser->m_header_root, mimeparser->m_context);
-	hash_header(&mimeparser->m_header, mimeparser->m_header_protected, mimeparser->m_context); /* overwrite the original header with the protected one */
+	hash_header(&mimeparser->header, mimeparser->header_root, mimeparser->context);
+	hash_header(&mimeparser->header, mimeparser->header_protected, mimeparser->context); /* overwrite the original header with the protected one */
 
 	/* set some basic data */
 	{
 		struct mailimf_field* field = dc_mimeparser_lookup_field(mimeparser, "Subject");
 		if( field && field->fld_type == MAILIMF_FIELD_SUBJECT ) {
-			mimeparser->m_subject = dc_decode_header_words(field->fld_data.fld_subject->sbj_value);
+			mimeparser->subject = dc_decode_header_words(field->fld_data.fld_subject->sbj_value);
 		}
 	}
 
 	if( dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Version", "X-MrMsg") ) {
-		mimeparser->m_is_send_by_messenger = 1;
+		mimeparser->is_send_by_messenger = 1;
 	}
 
 	if( dc_mimeparser_lookup_field(mimeparser, "Autocrypt-Setup-Message") ) {
 		/* Autocrypt-Setup-Message header found - check if there is an application/autocrypt-setup part */
 		int i, has_setup_file = 0;
-		for( i = 0; i < carray_count(mimeparser->m_parts); i++ ) {
-			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
-			if( part->m_int_mimetype==DC_MIMETYPE_AC_SETUP_FILE ) {
+		for( i = 0; i < carray_count(mimeparser->parts); i++ ) {
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+			if( part->int_mimetype==DC_MIMETYPE_AC_SETUP_FILE ) {
 				has_setup_file = 1;
 			}
 		}
 		if( has_setup_file ) {
 			/* delete all parts but the application/autocrypt-setup part */
-			mimeparser->m_is_system_message = DC_CMD_AUTOCRYPT_SETUP_MESSAGE;
-			for( i = 0; i < carray_count(mimeparser->m_parts); i++ ) {
-				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
-				if( part->m_int_mimetype!=DC_MIMETYPE_AC_SETUP_FILE ) {
+			mimeparser->is_system_message = DC_CMD_AUTOCRYPT_SETUP_MESSAGE;
+			for( i = 0; i < carray_count(mimeparser->parts); i++ ) {
+				dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+				if( part->int_mimetype!=DC_MIMETYPE_AC_SETUP_FILE ) {
 					dc_mimepart_unref(part);
-					carray_delete_slow(mimeparser->m_parts, i);
+					carray_delete_slow(mimeparser->parts, i);
 					i--; /* start over with the same index */
 				}
 			}
 		}
-		mimeparser->m_is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
+		mimeparser->is_send_by_messenger = 0; /* do not treat a setup message as a messenger message (eg. do not move setup messages to the Chats-folder; there may be a 3rd device that wants to handle it) */
 	}
 
 	/* prepend subject to message? */
-	if( mimeparser->m_subject )
+	if( mimeparser->subject )
 	{
 		int prepend_subject = 1;
-		if( !mimeparser->m_decrypting_failed /* if decryption has failed, we always prepend the subject as this may contain cleartext hints from non-Delta MUAs. */ )
+		if( !mimeparser->decrypting_failed /* if decryption has failed, we always prepend the subject as this may contain cleartext hints from non-Delta MUAs. */ )
 		{
-			char* p = strchr(mimeparser->m_subject, ':');
-			if( (p-mimeparser->m_subject) == 2 /*Re: etc.*/
-			 || (p-mimeparser->m_subject) == 3 /*Fwd: etc.*/
-			 || mimeparser->m_is_send_by_messenger
-			 || strstr(mimeparser->m_subject, DC_CHAT_PREFIX)!=NULL ) {
+			char* p = strchr(mimeparser->subject, ':');
+			if( (p-mimeparser->subject) == 2 /*Re: etc.*/
+			 || (p-mimeparser->subject) == 3 /*Fwd: etc.*/
+			 || mimeparser->is_send_by_messenger
+			 || strstr(mimeparser->subject, DC_CHAT_PREFIX)!=NULL ) {
 				prepend_subject = 0;
 			}
 		}
 
 		if( prepend_subject )
 		{
-			char* subj = dc_strdup(mimeparser->m_subject);
+			char* subj = dc_strdup(mimeparser->subject);
 			char* p = strchr(subj, '['); /* do not add any tags as "[checked by XYZ]" */
 			if( p ) {
 				*p = 0;
 			}
 			dc_trim(subj);
 			if( subj[0] ) {
-				int i, icnt = carray_count(mimeparser->m_parts); /* should be at least one - maybe empty - part */
+				int i, icnt = carray_count(mimeparser->parts); /* should be at least one - maybe empty - part */
 				for( i = 0; i < icnt; i++ ) {
-					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
-					if( part->m_type == DC_MSG_TEXT ) {
+					dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+					if( part->type == DC_MSG_TEXT ) {
 						#define DC_NDASH "\xE2\x80\x93"
-						char* new_txt = dc_mprintf("%s " DC_NDASH " %s", subj, part->m_msg);
-						free(part->m_msg);
-						part->m_msg = new_txt;
+						char* new_txt = dc_mprintf("%s " DC_NDASH " %s", subj, part->msg);
+						free(part->msg);
+						part->msg = new_txt;
 						break;
 					}
 				}
@@ -1585,35 +1585,35 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 	}
 
 	/* add forward information to every part */
-	if( mimeparser->m_is_forwarded ) {
-		int i, icnt = carray_count(mimeparser->m_parts); /* should be at least one - maybe empty - part */
+	if( mimeparser->is_forwarded ) {
+		int i, icnt = carray_count(mimeparser->parts); /* should be at least one - maybe empty - part */
 		for( i = 0; i < icnt; i++ ) {
-			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
-			dc_param_set_int(part->m_param, DC_PARAM_FORWARDED, 1);
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+			dc_param_set_int(part->param, DC_PARAM_FORWARDED, 1);
 		}
 	}
 
-	if( carray_count(mimeparser->m_parts)==1 )
+	if( carray_count(mimeparser->parts)==1 )
 	{
 		/* mark audio as voice message, if appropriate (we have to do this on global level as we do not know the global header in the recursice parse).
 		and read some additional parameters */
-		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, 0);
-		if( part->m_type == DC_MSG_AUDIO ) {
+		dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+		if( part->type == DC_MSG_AUDIO ) {
 			if( dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Voice-Message", "X-MrVoiceMessage") ) {
-				free(part->m_msg);
-				part->m_msg = strdup("ogg"); /* DC_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
-				part->m_type = DC_MSG_VOICE;
-				dc_param_set(part->m_param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
-				dc_param_set(part->m_param, DC_PARAM_TRACKNAME, NULL);
+				free(part->msg);
+				part->msg = strdup("ogg"); /* DC_MSG_AUDIO adds sets the whole filename which is useless. however, the extension is useful. */
+				part->type = DC_MSG_VOICE;
+				dc_param_set(part->param, DC_PARAM_AUTHORNAME, NULL); /* remove unneeded information */
+				dc_param_set(part->param, DC_PARAM_TRACKNAME, NULL);
 			}
 		}
 
-		if( part->m_type == DC_MSG_AUDIO || part->m_type == DC_MSG_VOICE || part->m_type == DC_MSG_VIDEO ) {
+		if( part->type == DC_MSG_AUDIO || part->type == DC_MSG_VOICE || part->type == DC_MSG_VIDEO ) {
 			const struct mailimf_optional_field* field = dc_mimeparser_lookup_optional_field2(mimeparser, "Chat-Duration", "X-MrDurationMs");
 			if( field ) {
 				int duration_ms = atoi(field->fld_value);
 				if( duration_ms > 0 && duration_ms < 24*60*60*1000 ) {
-					dc_param_set_int(part->m_param, DC_PARAM_DURATION, duration_ms);
+					dc_param_set_int(part->param, DC_PARAM_DURATION, duration_ms);
 				}
 			}
 		}
@@ -1621,21 +1621,21 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 
 	/* some special system message? */
 	if( dc_mimeparser_lookup_field(mimeparser, "Chat-Group-Image")
-	 && carray_count(mimeparser->m_parts)>=1 ) {
-		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->m_parts, 0);
-		if( textpart->m_type == DC_MSG_TEXT ) {
-			dc_param_set_int(textpart->m_param, DC_PARAM_CMD, DC_CMD_GROUPIMAGE_CHANGED);
-			if( carray_count(mimeparser->m_parts)>=2 ) {
-				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mimeparser->m_parts, 1);
-				if( imgpart->m_type == DC_MSG_IMAGE ) {
-					imgpart->m_is_meta = 1;
+	 && carray_count(mimeparser->parts)>=1 ) {
+		dc_mimepart_t* textpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 0);
+		if( textpart->type == DC_MSG_TEXT ) {
+			dc_param_set_int(textpart->param, DC_PARAM_CMD, DC_CMD_GROUPIMAGE_CHANGED);
+			if( carray_count(mimeparser->parts)>=2 ) {
+				dc_mimepart_t* imgpart = (dc_mimepart_t*)carray_get(mimeparser->parts, 1);
+				if( imgpart->type == DC_MSG_IMAGE ) {
+					imgpart->is_meta = 1;
 				}
 			}
 		}
 	}
 
 	/* check, if the message asks for a MDN */
-	if( !mimeparser->m_decrypting_failed )
+	if( !mimeparser->decrypting_failed )
 	{
 		const struct mailimf_optional_field* dn_field = dc_mimeparser_lookup_optional_field(mimeparser, "Chat-Disposition-Notification-To"); /* we use "Chat-Disposition-Notification-To" as replies to "Disposition-Notification-To" are weired in many cases, are just freetext and/or do not follow any standard. */
 		if( dn_field && dc_mimeparser_get_last_nonmeta(mimeparser)/*just check if the mail is not empty*/ )
@@ -1660,7 +1660,7 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 								Moreover the last one is handy as it is the one typically displayed if the message is larger) */
 								dc_mimepart_t* part = dc_mimeparser_get_last_nonmeta(mimeparser);
 								if( part ) {
-									dc_param_set_int(part->m_param, DC_PARAM_WANTS_MDN, 1);
+									dc_param_set_int(part->param, DC_PARAM_WANTS_MDN, 1);
 								}
 							}
 							free(from_addr);
@@ -1675,11 +1675,11 @@ void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_termi
 
 	/* Cleanup - and try to create at least an empty part if there are no parts yet */
 cleanup:
-	if( !dc_mimeparser_has_nonmeta(mimeparser) && carray_count(mimeparser->m_reports)==0 ) {
+	if( !dc_mimeparser_has_nonmeta(mimeparser) && carray_count(mimeparser->reports)==0 ) {
 		dc_mimepart_t* part = dc_mimepart_new();
-		part->m_type = DC_MSG_TEXT;
-		part->m_msg = dc_strdup(mimeparser->m_subject? mimeparser->m_subject : "Empty message");
-		carray_add(mimeparser->m_parts, (void*)part, NULL);
+		part->type = DC_MSG_TEXT;
+		part->msg = dc_strdup(mimeparser->subject? mimeparser->subject : "Empty message");
+		carray_add(mimeparser->parts, (void*)part, NULL);
 	}
 }
 
@@ -1698,7 +1698,7 @@ cleanup:
  */
 struct mailimf_field* dc_mimeparser_lookup_field(dc_mimeparser_t* mimeparser, const char* field_name)
 {
-	return (struct mailimf_field*)dc_hash_find_str(&mimeparser->m_header, field_name);
+	return (struct mailimf_field*)dc_hash_find_str(&mimeparser->header, field_name);
 }
 
 
@@ -1718,7 +1718,7 @@ struct mailimf_field* dc_mimeparser_lookup_field(dc_mimeparser_t* mimeparser, co
  */
 struct mailimf_optional_field* dc_mimeparser_lookup_optional_field(dc_mimeparser_t* mimeparser, const char* field_name)
 {
-	struct mailimf_field* field = dc_hash_find_str(&mimeparser->m_header, field_name);
+	struct mailimf_field* field = dc_hash_find_str(&mimeparser->header, field_name);
 	if( field && field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
 		return field->fld_data.fld_optional_field;
 	}
@@ -1738,7 +1738,7 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparse
 
 
 /**
- * Gets the _last_ part _not_ flagged with m_is_meta.
+ * Gets the _last_ part _not_ flagged with is_meta.
  *
  * If you just want to check if there is a non-meta part preset, you can also
  * use the macro dc_mimeparser_has_nonmeta().
@@ -1747,16 +1747,16 @@ struct mailimf_optional_field* dc_mimeparser_lookup_optional_field2(dc_mimeparse
  *
  * @param mimeparser The MIME-parser object.
  *
- * @return The last part that is not flagged with m_is_meta. The returned value
+ * @return The last part that is not flagged with is_meta. The returned value
  *     must not be freed.  If there is no such part, NULL is returned.
  */
 dc_mimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* mimeparser)
 {
-	if( mimeparser && mimeparser->m_parts ) {
-		int i, icnt = carray_count(mimeparser->m_parts);
+	if( mimeparser && mimeparser->parts ) {
+		int i, icnt = carray_count(mimeparser->parts);
 		for( i = icnt-1; i >= 0; i-- ) {
-			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->m_parts, i);
-			if( part && !part->m_is_meta ) {
+			dc_mimepart_t* part = (dc_mimepart_t*)carray_get(mimeparser->parts, i);
+			if( part && !part->is_meta ) {
 				return part;
 			}
 		}
@@ -1861,12 +1861,12 @@ int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 	char*                       from_addr_norm = NULL;
 	dc_hash_t*                   recipients   = NULL;
 
-	if( mimeparser == NULL || mimeparser->m_header_root == NULL ) {
+	if( mimeparser == NULL || mimeparser->header_root == NULL ) {
 		goto cleanup;
 	}
 
 	/* get From: and check there is exactly one sender */
-	if( (fld=mailimf_find_field(mimeparser->m_header_root, MAILIMF_FIELD_FROM)) == NULL
+	if( (fld=mailimf_find_field(mimeparser->header_root, MAILIMF_FIELD_FROM)) == NULL
 	 || (fld_from=fld->fld_data.fld_from) == NULL
 	 || fld_from->frm_mb_list == NULL
 	 || fld_from->frm_mb_list->mb_list == NULL
@@ -1882,7 +1882,7 @@ int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 	from_addr_norm = dc_normalize_addr(mb->mb_addr_spec);
 
 	/* get To:/Cc: and check there is exactly one recipent */
-	recipients = mailimf_get_recipients(mimeparser->m_header_root);
+	recipients = mailimf_get_recipients(mimeparser->header_root);
 	if( dc_hash_count(recipients) != 1 ) {
 		goto cleanup;
 	}

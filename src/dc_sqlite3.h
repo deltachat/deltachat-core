@@ -45,8 +45,8 @@ extern "C" {
 typedef struct dc_sqlite3_t
 {
 	/** @privatesection */
-	sqlite3*        m_cobj;               /**< is the database given as dbfile to Open() */
-	dc_context_t*   m_context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
+	sqlite3*        cobj;               /**< is the database given as dbfile to Open() */
+	dc_context_t*   context;            /**< used for logging and to acquire wakelocks, there may be N dc_sqlite3_t objects per context! In practise, we use 2 on backup, 1 otherwise. */
 
 } dc_sqlite3_t;
 

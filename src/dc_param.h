@@ -39,7 +39,7 @@ extern "C" {
 typedef struct dc_param_t
 {
 	/** @privatesection */
-	char*           m_packed;    /**< Always set, never NULL. */
+	char*           packed;    /**< Always set, never NULL. */
 } dc_param_t;
 
 

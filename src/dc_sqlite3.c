@@ -59,8 +59,8 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 	va_list     va;
 
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(sql->m_context, 0, "Bad log format string \"%s\".", msg_format); }
-			dc_log_error(sql->m_context, 0, "%s SQLite says: %s", msg, sql->m_cobj? sqlite3_errmsg(sql->m_cobj) : notSetUp);
+		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
+			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
 }
@@ -70,11 +70,11 @@ sqlite3_stmt* dc_sqlite3_prepare(dc_sqlite3_t* sql, const char* querystr)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if( sql == NULL || querystr == NULL || sql->m_cobj == NULL ) {
+	if( sql == NULL || querystr == NULL || sql->cobj == NULL ) {
 		return NULL;
 	}
 
-	if( sqlite3_prepare_v2(sql->m_cobj,
+	if( sqlite3_prepare_v2(sql->cobj,
 	         querystr, -1 /*read `querystr` up to the first null-byte*/,
 	         &stmt,
 	         NULL /*tail not interesting, we use only single statements*/) != SQLITE_OK )
@@ -142,7 +142,7 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	sql->m_context          = context;
+	sql->context          = context;
 
 	return sql;
 }
@@ -154,7 +154,7 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 		return;
 	}
 
-	if( sql->m_cobj ) {
+	if( sql->cobj ) {
 		dc_sqlite3_close__(sql);
 	}
 
@@ -169,12 +169,12 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	}
 
 	if( sqlite3_threadsafe() == 0 ) {
-		dc_log_error(sql->m_context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
+		dc_log_error(sql->context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
 		goto cleanup;
 	}
 
-	if( sql->m_cobj ) {
-		dc_log_error(sql->m_context, 0, "Cannot open, database \"%s\" already opened.", dbfile);
+	if( sql->cobj ) {
+		dc_log_error(sql->context, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
 	}
 
@@ -187,7 +187,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// files, caching is not that important; we rely on the system defaults here
 	// (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
 	// versions)
-	if( sqlite3_open_v2(dbfile, &sql->m_cobj,
+	if( sqlite3_open_v2(dbfile, &sql->cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
 			NULL) != SQLITE_OK ) {
 		dc_sqlite3_log_error(sql, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by dc_sqlite3_log_error()) */
@@ -199,7 +199,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// and try over until it gets write access or the given timeout is elapsed.
 	// If the second process does not get write access within the given timeout, sqlite3_step() will return the error SQLITE_BUSY.
 	// (without a busy_timeout, sqlite3_step() would return SQLITE_BUSY at once)
-	sqlite3_busy_timeout(sql->m_cobj, 10*1000);
+	sqlite3_busy_timeout(sql->cobj, 10*1000);
 
 	if( !(flags&DC_OPEN_READONLY) )
 	{
@@ -208,7 +208,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		/* Init tables to dbversion=0 */
 		if( !dc_sqlite3_table_exists__(sql, "config") )
 		{
-			dc_log_info(sql->m_context, 0, "First time init: creating tables in \"%s\".", dbfile);
+			dc_log_info(sql->context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
 			// the row with the type `INTEGER PRIMARY KEY` is an alias to the 64-bit-ROWID present in every table
 			// we re-use this ID for our own purposes.
@@ -463,7 +463,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		{
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
 				while( sqlite3_step(stmt) == SQLITE_ROW ) {
-					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->m_context);
+					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->context);
 						if( dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
 						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
 							dc_apeerstate_save_to_db(peerstate, sql, 0/*don't create*/);
@@ -474,7 +474,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		}
 	}
 
-	dc_log_info(sql->m_context, 0, "Opened \"%s\".", dbfile);
+	dc_log_info(sql->context, 0, "Opened \"%s\".", dbfile);
 	return 1;
 
 cleanup:
@@ -489,19 +489,19 @@ void dc_sqlite3_close__(dc_sqlite3_t* sql)
 		return;
 	}
 
-	if( sql->m_cobj )
+	if( sql->cobj )
 	{
-		sqlite3_close(sql->m_cobj);
-		sql->m_cobj = NULL;
+		sqlite3_close(sql->cobj);
+		sql->cobj = NULL;
 	}
 
-	dc_log_info(sql->m_context, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
+	dc_log_info(sql->context, 0, "Database closed."); /* We log the information even if not real closing took place; this is to detect logic errors. */
 }
 
 
 int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 {
-	if( sql == NULL || sql->m_cobj == NULL ) {
+	if( sql == NULL || sql->cobj == NULL ) {
 		return 0;
 	}
 	return 1;
@@ -516,7 +516,7 @@ int dc_sqlite3_table_exists__(dc_sqlite3_t* sql, const char* name)
 	int           sqlState;
 
 	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
-		dc_log_error(sql->m_context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
+		dc_log_error(sql->context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
@@ -557,12 +557,12 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 	sqlite3_stmt* stmt;
 
 	if( key == NULL ) {
-		dc_log_error(sql->m_context, 0, "dc_sqlite3_set_config(): Bad parameter.");
+		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
 	if( !dc_sqlite3_is_open(sql) ) {
-		dc_log_error(sql->m_context, 0, "dc_sqlite3_set_config(): Database not ready.");
+		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
@@ -590,7 +590,7 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 			sqlite3_finalize(stmt);
 		}
 		else {
-			dc_log_error(sql->m_context, 0, "dc_sqlite3_set_config(): Cannot read value.");
+			dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Cannot read value.");
 			return 0;
 		}
 	}
@@ -604,7 +604,7 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 	}
 
 	if( state != SQLITE_DONE )  {
-		dc_log_error(sql->m_context, 0, "dc_sqlite3_set_config(): Cannot change value.");
+		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Cannot change value.");
 		return 0;
 	}
 

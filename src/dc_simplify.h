@@ -31,9 +31,9 @@ extern "C" {
 
 typedef struct dc_simplify_t
 {
-	int m_is_forwarded;
-	int m_is_cut_at_begin;
-	int m_is_cut_at_end;
+	int is_forwarded;
+	int is_cut_at_begin;
+	int is_cut_at_end;
 } dc_simplify_t;
 
 

@@ -74,7 +74,7 @@ dc_param_t* dc_param_new()
 		exit(28); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	param->m_packed = calloc(1, 1);
+	param->packed = calloc(1, 1);
 
     return param;
 }
@@ -93,7 +93,7 @@ void dc_param_unref(dc_param_t* param)
 	}
 
 	dc_param_empty(param);
-	free(param->m_packed);
+	free(param->packed);
 	free(param);
 }
 
@@ -111,7 +111,7 @@ void dc_param_empty(dc_param_t* param)
 		return;
 	}
 
-	param->m_packed[0] = 0;
+	param->packed[0] = 0;
 }
 
 
@@ -135,8 +135,8 @@ void dc_param_set_packed(dc_param_t* param, const char* packed)
 	dc_param_empty(param);
 
 	if( packed ) {
-		free(param->m_packed);
-		param->m_packed = dc_strdup(packed);
+		free(param->packed);
+		param->packed = dc_strdup(packed);
 	}
 }
 
@@ -154,9 +154,9 @@ void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
 	dc_param_empty(param);
 
 	if( urlencoded ) {
-		free(param->m_packed);
-		param->m_packed = dc_strdup(urlencoded);
-		dc_str_replace(&param->m_packed, "&", "\n");
+		free(param->packed);
+		param->packed = dc_strdup(urlencoded);
+		dc_str_replace(&param->packed, "&", "\n");
 	}
 }
 
@@ -177,7 +177,7 @@ int dc_param_exists(dc_param_t* param, int key)
 		return 0;
 	}
 
-	return find_param(param->m_packed, key, &p2)? 1 : 0;
+	return find_param(param->packed, key, &p2)? 1 : 0;
 }
 
 
@@ -198,7 +198,7 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
 		return def? dc_strdup(def) : NULL;
 	}
 
-	p1 = find_param(param->m_packed, key, &p2);
+	p1 = find_param(param->packed, key, &p2);
 	if( p1 == NULL ) {
 		return def? dc_strdup(def) : NULL;
 	}
@@ -256,7 +256,7 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 		return;
 	}
 
-	old1 = param->m_packed;
+	old1 = param->packed;
 	old2 = NULL;
 
 	/* remove existing parameter from packed string, if any */
@@ -295,8 +295,8 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 			old2?         old2 : "");
 	}
 
-	free(param->m_packed);
-	param->m_packed = new1;
+	free(param->packed);
+	param->packed = new1;
 }
 
 

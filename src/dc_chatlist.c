@@ -43,9 +43,9 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
 		exit(20);
 	}
 
-	chatlist->m_magic   = DC_CHATLIST_MAGIC;
-	chatlist->m_context = context;
-	if( (chatlist->m_chatNlastmsg_ids=dc_array_new(context, 128))==NULL ) {
+	chatlist->magic   = DC_CHATLIST_MAGIC;
+	chatlist->context = context;
+	if( (chatlist->chatNlastmsg_ids=dc_array_new(context, 128))==NULL ) {
 		exit(32);
 	}
 
@@ -65,13 +65,13 @@ dc_chatlist_t* dc_chatlist_new(dc_context_t* context)
  */
 void dc_chatlist_unref(dc_chatlist_t* chatlist)
 {
-	if( chatlist==NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
+	if( chatlist==NULL || chatlist->magic != DC_CHATLIST_MAGIC ) {
 		return;
 	}
 
 	dc_chatlist_empty(chatlist);
-	dc_array_unref(chatlist->m_chatNlastmsg_ids);
-	chatlist->m_magic = 0;
+	dc_array_unref(chatlist->chatNlastmsg_ids);
+	chatlist->magic = 0;
 	free(chatlist);
 }
 
@@ -87,12 +87,12 @@ void dc_chatlist_unref(dc_chatlist_t* chatlist)
  */
 void dc_chatlist_empty(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC ) {
 		return;
 	}
 
-	chatlist->m_cnt = 0;
-	dc_array_empty(chatlist->m_chatNlastmsg_ids);
+	chatlist->cnt = 0;
+	dc_array_empty(chatlist->chatNlastmsg_ids);
 }
 
 
@@ -107,11 +107,11 @@ void dc_chatlist_empty(dc_chatlist_t* chatlist)
  */
 size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC ) {
 		return 0;
 	}
 
-	return chatlist->m_cnt;
+	return chatlist->cnt;
 }
 
 
@@ -131,11 +131,11 @@ size_t dc_chatlist_get_cnt(dc_chatlist_t* chatlist)
  */
 uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt ) {
 		return 0;
 	}
 
-	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT);
+	return dc_array_get_id(chatlist->chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT);
 }
 
 
@@ -155,11 +155,11 @@ uint32_t dc_chatlist_get_chat_id(dc_chatlist_t* chatlist, size_t index)
  */
 uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
 {
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_chatNlastmsg_ids == NULL || index >= chatlist->m_cnt ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->chatNlastmsg_ids == NULL || index >= chatlist->cnt ) {
 		return 0;
 	}
 
-	return dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
+	return dc_array_get_id(chatlist->chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
 }
 
 
@@ -168,19 +168,19 @@ uint32_t dc_chatlist_get_msg_id(dc_chatlist_t* chatlist, size_t index)
  *
  * The summary is returned by a dc_lot_t object with the following fields:
  *
- * - dc_lot_t::m_text1: contains the username or the strings "Me", "Draft" and so on.
- *   The string may be colored by having a look at m_text1_meaning.
+ * - dc_lot_t::text1: contains the username or the strings "Me", "Draft" and so on.
+ *   The string may be colored by having a look at text1_meaning.
  *   If there is no such name or it should not be displayed, the element is NULL.
  *
- * - dc_lot_t::m_text1_meaning: one of DC_TEXT1_USERNAME, DC_TEXT1_SELF or DC_TEXT1_DRAFT.
- *   Typically used to show dc_lot_t::m_text1 with different colors. 0 if not applicable.
+ * - dc_lot_t::text1_meaning: one of DC_TEXT1_USERNAME, DC_TEXT1_SELF or DC_TEXT1_DRAFT.
+ *   Typically used to show dc_lot_t::text1 with different colors. 0 if not applicable.
  *
- * - dc_lot_t::m_text2: contains an excerpt of the message text or strings as
+ * - dc_lot_t::text2: contains an excerpt of the message text or strings as
  *   "No messages".  May be NULL of there is no such text (eg. for the archive link)
  *
- * - dc_lot_t::m_timestamp: the timestamp of the message.  0 if not applicable.
+ * - dc_lot_t::timestamp: the timestamp of the message.  0 if not applicable.
  *
- * - dc_lot_t::m_state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).  0 if not applicable.
+ * - dc_lot_t::state: The state of the message as one of the DC_STATE_* constants (see #dc_msg_get_state()).  0 if not applicable.
  *
  * @memberof dc_chatlist_t
  *
@@ -205,18 +205,18 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	dc_contact_t*  lastcontact = NULL;
 	dc_chat_t*     chat_to_delete = NULL;
 
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || index >= chatlist->m_cnt ) {
-		ret->m_text2 = dc_strdup("ErrBadChatlistIndex");
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || index >= chatlist->cnt ) {
+		ret->text2 = dc_strdup("ErrBadChatlistIndex");
 		goto cleanup;
 	}
 
-	lastmsg_id = dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
+	lastmsg_id = dc_array_get_id(chatlist->chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT+1);
 
 	if( chat==NULL ) {
-		chat = dc_chat_new(chatlist->m_context);
+		chat = dc_chat_new(chatlist->context);
 		chat_to_delete = chat;
-		if( !dc_chat_load_from_db(chat, dc_array_get_id(chatlist->m_chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT)) ) {
-			ret->m_text2 = dc_strdup("ErrCannotReadChat");
+		if( !dc_chat_load_from_db(chat, dc_array_get_id(chatlist->chatNlastmsg_ids, index*DC_CHATLIST_IDS_PER_RESULT)) ) {
+			ret->text2 = dc_strdup("ErrCannotReadChat");
 			goto cleanup;
 		}
 	}
@@ -224,41 +224,41 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	if( lastmsg_id )
 	{
 		lastmsg = dc_msg_new();
-		dc_msg_load_from_db(lastmsg, chatlist->m_context, lastmsg_id);
+		dc_msg_load_from_db(lastmsg, chatlist->context, lastmsg_id);
 
-		if( lastmsg->m_from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
+		if( lastmsg->from_id != DC_CONTACT_ID_SELF  &&  DC_CHAT_TYPE_IS_MULTI(chat->type) )
 		{
-			lastcontact = dc_contact_new(chatlist->m_context);
-			dc_contact_load_from_db(lastcontact, chatlist->m_context->m_sql, lastmsg->m_from_id);
+			lastcontact = dc_contact_new(chatlist->context);
+			dc_contact_load_from_db(lastcontact, chatlist->context->sql, lastmsg->from_id);
 		}
 	}
 
-	if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK )
+	if( chat->id == DC_CHAT_ID_ARCHIVED_LINK )
 	{
-		ret->m_text2 = dc_strdup(NULL);
+		ret->text2 = dc_strdup(NULL);
 	}
-	else if( chat->m_draft_timestamp
-	      && chat->m_draft_text
-	      && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
+	else if( chat->draft_timestamp
+	      && chat->draft_text
+	      && (lastmsg==NULL || chat->draft_timestamp>lastmsg->timestamp) )
 	{
 		/* show the draft as the last message */
-		ret->m_text1 = dc_stock_str(chatlist->m_context, DC_STR_DRAFT);
-		ret->m_text1_meaning = DC_TEXT1_DRAFT;
+		ret->text1 = dc_stock_str(chatlist->context, DC_STR_DRAFT);
+		ret->text1_meaning = DC_TEXT1_DRAFT;
 
-		ret->m_text2 = dc_strdup(chat->m_draft_text);
-		dc_truncate_n_unwrap_str(ret->m_text2, DC_SUMMARY_CHARACTERS, 1/*unwrap*/);
+		ret->text2 = dc_strdup(chat->draft_text);
+		dc_truncate_n_unwrap_str(ret->text2, DC_SUMMARY_CHARACTERS, 1/*unwrap*/);
 
-		ret->m_timestamp = chat->m_draft_timestamp;
+		ret->timestamp = chat->draft_timestamp;
 	}
-	else if( lastmsg == NULL || lastmsg->m_from_id == 0 )
+	else if( lastmsg == NULL || lastmsg->from_id == 0 )
 	{
 		/* no messages */
-		ret->m_text2 = dc_stock_str(chatlist->m_context, DC_STR_NOMESSAGES);
+		ret->text2 = dc_stock_str(chatlist->context, DC_STR_NOMESSAGES);
 	}
 	else
 	{
 		/* show the last message */
-		dc_lot_fill(ret, lastmsg, chat, lastcontact, chatlist->m_context);
+		dc_lot_fill(ret, lastmsg, chat, lastcontact, chatlist->context);
 	}
 
 cleanup:
@@ -280,10 +280,10 @@ cleanup:
  */
 dc_context_t* dc_chatlist_get_context(dc_chatlist_t* chatlist)
 {
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC ) {
 		return NULL;
 	}
-	return chatlist->m_context;
+	return chatlist->context;
 }
 
 
@@ -303,7 +303,7 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	sqlite3_stmt* stmt = NULL;
 	char*         strLikeCmd = NULL, *query = NULL;
 
-	if( chatlist == NULL || chatlist->m_magic != DC_CHATLIST_MAGIC || chatlist->m_context == NULL ) {
+	if( chatlist == NULL || chatlist->magic != DC_CHATLIST_MAGIC || chatlist->context == NULL ) {
 		goto cleanup;
 	}
 
@@ -325,29 +325,29 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 	if( query_contact_id )
 	{
 		// show chats shared with a given contact
-		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
+		stmt = dc_sqlite3_prepare(chatlist->context->sql,
 			QUR1 " AND c.id IN(SELECT chat_id FROM chats_contacts WHERE contact_id=?) " QUR2);
 		sqlite3_bind_int(stmt, 1, query_contact_id);
 	}
 	else if( listflags & DC_GCL_ARCHIVED_ONLY )
 	{
 		/* show archived chats */
-		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
+		stmt = dc_sqlite3_prepare(chatlist->context->sql,
 			QUR1 " AND c.archived=1 " QUR2);
 	}
 	else if( query__==NULL )
 	{
 		/* show normal chatlist  */
 		if( !(listflags & DC_GCL_NO_SPECIALS) ) {
-			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg(chatlist->m_context);
+			uint32_t last_deaddrop_fresh_msg_id = dc_get_last_deaddrop_fresh_msg(chatlist->context);
 			if( last_deaddrop_fresh_msg_id > 0 ) {
-				dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
-				dc_array_add_id(chatlist->m_chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
+				dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_DEADDROP); /* show deaddrop with the last fresh message */
+				dc_array_add_id(chatlist->chatNlastmsg_ids, last_deaddrop_fresh_msg_id);
 			}
 			add_archived_link_item = 1;
 		}
 
-		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
+		stmt = dc_sqlite3_prepare(chatlist->context->sql,
 			QUR1 " AND c.archived=0 " QUR2);
 	}
 	else
@@ -360,28 +360,28 @@ int dc_chatlist_load_from_db(dc_chatlist_t* chatlist, int listflags, const char*
 			goto cleanup;
 		}
 		strLikeCmd = dc_mprintf("%%%s%%", query);
-		stmt = dc_sqlite3_prepare(chatlist->m_context->m_sql,
+		stmt = dc_sqlite3_prepare(chatlist->context->sql,
 			QUR1 " AND c.name LIKE ? " QUR2);
 		sqlite3_bind_text(stmt, 1, strLikeCmd, -1, SQLITE_STATIC);
 	}
 
     while( sqlite3_step(stmt) == SQLITE_ROW )
     {
-		dc_array_add_id(chatlist->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
-		dc_array_add_id(chatlist->m_chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
+		dc_array_add_id(chatlist->chatNlastmsg_ids, sqlite3_column_int(stmt, 0));
+		dc_array_add_id(chatlist->chatNlastmsg_ids, sqlite3_column_int(stmt, 1));
     }
 
-    if( add_archived_link_item && dc_get_archived_count(chatlist->m_context)>0 )
+    if( add_archived_link_item && dc_get_archived_count(chatlist->context)>0 )
     {
-		dc_array_add_id(chatlist->m_chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
-		dc_array_add_id(chatlist->m_chatNlastmsg_ids, 0);
+		dc_array_add_id(chatlist->chatNlastmsg_ids, DC_CHAT_ID_ARCHIVED_LINK);
+		dc_array_add_id(chatlist->chatNlastmsg_ids, 0);
     }
 
-	chatlist->m_cnt = dc_array_get_cnt(chatlist->m_chatNlastmsg_ids)/DC_CHATLIST_IDS_PER_RESULT;
+	chatlist->cnt = dc_array_get_cnt(chatlist->chatNlastmsg_ids)/DC_CHATLIST_IDS_PER_RESULT;
 	success = 1;
 
 cleanup:
-	//dc_log_info(chatlist->m_context, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
+	//dc_log_info(chatlist->context, 0, "Chatlist for search \"%s\" created in %.3f ms.", query__?query__:"", (double)(clock()-start)*1000.0/CLOCKS_PER_SEC);
 	sqlite3_finalize(stmt);
 	free(query);
 	free(strLikeCmd);

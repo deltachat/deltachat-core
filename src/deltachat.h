@@ -448,12 +448,12 @@ typedef struct _dc_msg dc_msg_t;
 
 #define         DC_MSG_UNDEFINED             0
 #define         DC_MSG_TEXT                  10
-#define         DC_MSG_IMAGE                 20 // m_param may contain FILE, WIDTH, HEIGHT
+#define         DC_MSG_IMAGE                 20 // param may contain FILE, WIDTH, HEIGHT
 #define         DC_MSG_GIF                   21 //   - " -
-#define         DC_MSG_AUDIO                 40 // m_param may contain FILE, DURATION
+#define         DC_MSG_AUDIO                 40 // param may contain FILE, DURATION
 #define         DC_MSG_VOICE                 41 //   - " -
-#define         DC_MSG_VIDEO                 50 // m_param may contain FILE, WIDTH, HEIGHT, DURATION
-#define         DC_MSG_FILE                  60 // m_param may contain FILE
+#define         DC_MSG_VIDEO                 50 // param may contain FILE, WIDTH, HEIGHT, DURATION
+#define         DC_MSG_FILE                  60 // param may contain FILE
 
 
 #define         DC_STATE_UNDEFINED           0

@@ -51,30 +51,30 @@ typedef struct dc_mimefactory_t {
 	/** @privatesection */
 
 	/* in: parameters, set eg. by dc_mimefactory_load_msg() */
-	char*        m_from_addr;
-	char*        m_from_displayname;
-	char*        m_selfstatus;
-	clist*       m_recipients_names;
-	clist*       m_recipients_addr;
-	time_t       m_timestamp;
-	char*        m_rfc724_mid;
+	char*         from_addr;
+	char*         from_displayname;
+	char*         selfstatus;
+	clist*        recipients_names;
+	clist*        recipients_addr;
+	time_t        timestamp;
+	char*         rfc724_mid;
 
 	/* what is loaded? */
-	dc_mimefactory_loaded_t m_loaded;
+	dc_mimefactory_loaded_t loaded;
 
-	dc_msg_t*     m_msg;
-	dc_chat_t*    m_chat;
-	int          m_increation;
-	char*        m_predecessor;
-	char*        m_references;
-	int          m_req_mdn;
+	dc_msg_t*     msg;
+	dc_chat_t*    chat;
+	int           increation;
+	char*         predecessor;
+	char*         references;
+	int           req_mdn;
 
 	/* out: after a successfull dc_mimefactory_render(), here's the data */
-	MMAPString*  m_out;
-	int          m_out_encrypted;
+	MMAPString*   out;
+	int           out_encrypted;
 
 	/* private */
-	dc_context_t* m_context;
+	dc_context_t* context;
 
 } dc_mimefactory_t;
 

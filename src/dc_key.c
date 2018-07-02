@@ -50,14 +50,14 @@ static void dc_key_empty(dc_key_t* key) /* only use before calling setters; take
 		return;
 	}
 
-	if( key->m_type==DC_KEY_PRIVATE ) {
-		dc_wipe_secret_mem(key->m_binary, key->m_bytes);
+	if( key->type==DC_KEY_PRIVATE ) {
+		dc_wipe_secret_mem(key->binary, key->bytes);
 	}
 
-	free(key->m_binary);
-	key->m_binary = NULL;
-	key->m_bytes = 0;
-	key->m_type = DC_KEY_PUBLIC;
+	free(key->binary);
+	key->binary = NULL;
+	key->bytes = 0;
+	key->type = DC_KEY_PUBLIC;
 }
 
 
@@ -105,13 +105,13 @@ int dc_key_set_from_binary(dc_key_t* key, const void* data, int bytes, int type)
     if( key==NULL || data==NULL || bytes <= 0 ) {
 		return 0;
     }
-    key->m_binary = malloc(bytes);
-    if( key->m_binary == NULL ) {
+    key->binary = malloc(bytes);
+    if( key->binary == NULL ) {
 		exit(40);
     }
-    memcpy(key->m_binary, data, bytes);
-    key->m_bytes = bytes;
-    key->m_type = type;
+    memcpy(key->binary, data, bytes);
+    key->bytes = bytes;
+    key->type = type;
     return 1;
 }
 
@@ -122,7 +122,7 @@ int dc_key_set_from_key(dc_key_t* key, const dc_key_t* o)
 	if( key==NULL || o==NULL ) {
 		return 0;
 	}
-	return dc_key_set_from_binary(key, o->m_binary, o->m_bytes, o->m_type);
+	return dc_key_set_from_binary(key, o->binary, o->bytes, o->type);
 }
 
 
@@ -209,19 +209,19 @@ cleanup:
 int dc_key_equals(const dc_key_t* key, const dc_key_t* o)
 {
 	if( key==NULL || o==NULL
-	 || key->m_binary==NULL || key->m_bytes<=0 || o->m_binary==NULL || o->m_bytes<=0 ) {
+	 || key->binary==NULL || key->bytes<=0 || o->binary==NULL || o->bytes<=0 ) {
 		return 0; /*error*/
 	}
 
-	if( key->m_bytes != o->m_bytes ) {
+	if( key->bytes != o->bytes ) {
 		return 0; /*different size -> the keys cannot be equal*/
 	}
 
-	if( key->m_type != o->m_type ) {
+	if( key->type != o->type ) {
 		return 0; /* cannot compare public with private keys */
 	}
 
-	return memcmp(key->m_binary, o->m_binary, o->m_bytes)==0? 1 : 0;
+	return memcmp(key->binary, o->binary, o->bytes)==0? 1 : 0;
 }
 
 
@@ -236,7 +236,7 @@ int dc_key_save_self_keypair(const dc_key_t* public_key, const dc_key_t* private
 	sqlite3_stmt* stmt = NULL;
 
 	if( public_key==NULL || private_key==NULL || addr==NULL || sql==NULL
-	 || public_key->m_binary==NULL || private_key->m_binary==NULL ) {
+	 || public_key->binary==NULL || private_key->binary==NULL ) {
 		goto cleanup;
 	}
 
@@ -244,8 +244,8 @@ int dc_key_save_self_keypair(const dc_key_t* public_key, const dc_key_t* private
 		"INSERT INTO keypairs (addr, is_default, public_key, private_key, created) VALUES (?,?,?,?,?);");
 	sqlite3_bind_text (stmt, 1, addr, -1, SQLITE_STATIC);
 	sqlite3_bind_int  (stmt, 2, is_default);
-	sqlite3_bind_blob (stmt, 3, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-	sqlite3_bind_blob (stmt, 4, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 3, public_key->binary, public_key->bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 4, private_key->binary, private_key->bytes, SQLITE_STATIC);
 	sqlite3_bind_int64(stmt, 5, time(NULL));
 	if( sqlite3_step(stmt) != SQLITE_DONE ) {
 		goto cleanup;
@@ -389,7 +389,7 @@ char* dc_key_render_base64(const dc_key_t* key, int break_every, const char* bre
 	if( key==NULL ) {
 		return NULL;
 	}
-	return dc_render_base64(key->m_binary, key->m_bytes, break_every, break_chars, add_checksum);
+	return dc_render_base64(key->binary, key->bytes, break_every, break_chars, add_checksum);
 }
 
 
@@ -407,10 +407,10 @@ char* dc_key_render_asc(const dc_key_t* key, const char* add_header_lines /*must
 	}
 
 	ret = dc_mprintf("-----BEGIN PGP %s KEY BLOCK-----\r\n%s\r\n%s\r\n-----END PGP %s KEY BLOCK-----\r\n",
-		key->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE",
+		key->type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE",
 		add_header_lines? add_header_lines : "",
 		base64,
-		key->m_type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE");
+		key->type==DC_KEY_PUBLIC? "PUBLIC" : "PRIVATE");
 
 cleanup:
 	free(base64);
@@ -463,7 +463,7 @@ char* dc_format_fingerprint(const char* fingerprint)
 		}
     }
 
-	return ret.m_buf;
+	return ret.buf;
 }
 
 
@@ -486,7 +486,7 @@ char* dc_normalize_fingerprint(const char* in)
 		p1++;
 	}
 
-	return out.m_buf;
+	return out.buf;
 }
 
 

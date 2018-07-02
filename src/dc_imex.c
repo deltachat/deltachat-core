@@ -119,7 +119,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	char*                  ret_setupfilecontent = NULL;
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || passphrase==NULL
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || passphrase==NULL
 	 || strlen(passphrase)<2 || curr_private_key==NULL ) {
 		goto cleanup;
 	}
@@ -134,10 +134,10 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	}
 
 	{
-			self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-			dc_key_load_self_private(curr_private_key, self_addr, context->m_sql);
+			self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
+			dc_key_load_self_private(curr_private_key, self_addr, context->sql);
 
-			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->m_e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
+			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
 			if( payload_key_asc == NULL ) {
 				goto cleanup;
 			}
@@ -379,7 +379,7 @@ char* dc_create_setup_code(dc_context_t* context)
 		dc_strbuilder_catf(&ret, "%s%04i", i?"-":"", (int)random_val);
 	}
 
-	return ret.m_buf;
+	return ret.buf;
 }
 
 
@@ -398,7 +398,7 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 	while( *p1 ) {
 		if( *p1 >= '0' && *p1 <= '9' ) {
 			dc_strbuilder_catf(&out, "%c", *p1);
-			outlen = strlen(out.m_buf);
+			outlen = strlen(out.buf);
 			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
 				dc_strbuilder_cat(&out, "-");
 			}
@@ -406,7 +406,7 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 		p1++;
 	}
 
-	return out.m_buf;
+	return out.buf;
 }
 
 
@@ -468,7 +468,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	if( !dc_alloc_ongoing(context) ) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
-	#define CHECK_EXIT if( context->m_shall_stop_ongoing ) { goto cleanup; }
+	#define CHECK_EXIT if( context->shall_stop_ongoing ) { goto cleanup; }
 
 	if( (setup_code=dc_create_setup_code(context)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
@@ -482,7 +482,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if( (setup_file_name=dc_get_fine_pathNfilename(context->m_blobdir, "autocrypt-setup-message.html")) == NULL
+	if( (setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html")) == NULL
 	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context) ) {
 		goto cleanup;
 	}
@@ -492,11 +492,11 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	}
 
 	msg = dc_msg_new();
-	msg->m_type = DC_MSG_FILE;
-	dc_param_set    (msg->m_param, DC_PARAM_FILE,              setup_file_name);
-	dc_param_set    (msg->m_param, DC_PARAM_MIMETYPE,          "application/autocrypt-setup");
-	dc_param_set_int(msg->m_param, DC_PARAM_CMD,               DC_CMD_AUTOCRYPT_SETUP_MESSAGE);
-	dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT,   DC_FP_NO_AUTOCRYPT_HEADER);
+	msg->type = DC_MSG_FILE;
+	dc_param_set    (msg->param, DC_PARAM_FILE,              setup_file_name);
+	dc_param_set    (msg->param, DC_PARAM_MIMETYPE,          "application/autocrypt-setup");
+	dc_param_set_int(msg->param, DC_PARAM_CMD,               DC_CMD_AUTOCRYPT_SETUP_MESSAGE);
+	dc_param_set_int(msg->param, DC_PARAM_FORCE_PLAINTEXT,   DC_FP_NO_AUTOCRYPT_HEADER);
 
 	CHECK_EXIT
 
@@ -563,19 +563,19 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	}
 
 	/* add keypair; before this, delete other keypairs with the same binary key and reset defaults */
-	stmt = dc_sqlite3_prepare(context->m_sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
-	sqlite3_bind_blob (stmt, 1, public_key->m_binary, public_key->m_bytes, SQLITE_STATIC);
-	sqlite3_bind_blob (stmt, 2, private_key->m_binary, private_key->m_bytes, SQLITE_STATIC);
+	stmt = dc_sqlite3_prepare(context->sql, "DELETE FROM keypairs WHERE public_key=? OR private_key=?;");
+	sqlite3_bind_blob (stmt, 1, public_key->binary, public_key->bytes, SQLITE_STATIC);
+	sqlite3_bind_blob (stmt, 2, private_key->binary, private_key->bytes, SQLITE_STATIC);
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
 	if( set_default ) {
-		dc_sqlite3_execute(context->m_sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
+		dc_sqlite3_execute(context->sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
 	}
 
-	self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL);
-	if( !dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->m_sql) ) {
+	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
+	if( !dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->sql) ) {
 		dc_log_error(context, 0, "Cannot save keypair.");
 		goto cleanup;
 	}
@@ -632,7 +632,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 	char*    armored_key = NULL;
 	char*    norm_sc     = NULL;
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
 		goto cleanup;
 	}
 
@@ -642,7 +642,7 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 		goto cleanup;
 	}
 
-	if( !dc_read_file(filename, (void**)&filecontent, &filebytes, msg->m_context) || filecontent == NULL || filebytes <= 0 ) {
+	if( !dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent == NULL || filebytes <= 0 ) {
 		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
@@ -682,15 +682,15 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 {
 	char* file_name;
 	if( is_default ) {
-		file_name = dc_mprintf("%s/%s-key-default.asc", dir, key->m_type==DC_KEY_PUBLIC? "public" : "private");
+		file_name = dc_mprintf("%s/%s-key-default.asc", dir, key->type==DC_KEY_PUBLIC? "public" : "private");
 	}
 	else {
-		file_name = dc_mprintf("%s/%s-key-%i.asc", dir, key->m_type==DC_KEY_PUBLIC? "public" : "private", id);
+		file_name = dc_mprintf("%s/%s-key-%i.asc", dir, key->type==DC_KEY_PUBLIC? "public" : "private", id);
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
 	dc_delete_file(file_name, context);
 	if( dc_key_render_asc_to_file(key, file_name, context) ) {
-		context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
+		context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
 	}
 	free(file_name);
@@ -705,7 +705,7 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 	dc_key_t*      public_key = dc_key_new();
 	dc_key_t*      private_key = dc_key_new();
 
-		if( (stmt=dc_sqlite3_prepare(context->m_sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+		if( (stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
 			goto cleanup;
 		}
 
@@ -754,7 +754,7 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	char*          buf2 = NULL;
 	const char*    buf2_headerline; // a pointer inside buf2, MUST NOT be free()'d
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || dir_name==NULL ) {
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || dir_name==NULL ) {
 		goto cleanup;
 	}
 	if( (dir_handle=opendir(dir_name))==NULL ) {
@@ -835,7 +835,7 @@ The macro avoids weird values of 0% or 100% while still working. */
 	int permille = (processed_files_count*1000)/total_files_count; \
 	if( permille <  10 ) { permille =  10; } \
 	if( permille > 990 ) { permille = 990; } \
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, permille, 0);
+	context->cb(context, DC_EVENT_IMEX_PROGRESS, permille, 0);
 
 
 static int export_backup(dc_context_t* context, const char* dir)
@@ -869,15 +869,15 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-	dc_sqlite3_close__(context->m_sql);
+	dc_sqlite3_close__(context->sql);
 	closed = 1;
 
-		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->m_dbfile, dest_pathNfilename);
-		if( !dc_copy_file(context->m_dbfile, dest_pathNfilename, context) ) {
+		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->dbfile, dest_pathNfilename);
+		if( !dc_copy_file(context->dbfile, dest_pathNfilename, context) ) {
 			goto cleanup; /* error already logged */
 		}
 
-	dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0);
+	dc_sqlite3_open__(context->sql, context->dbfile, 0);
 	closed = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
@@ -894,8 +894,8 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 	/* scan directory, pass 1: collect file info */
 	total_files_count = 0;
-	if( (dir_handle=opendir(context->m_blobdir))==NULL ) {
-		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->m_blobdir);
+	if( (dir_handle=opendir(context->blobdir))==NULL ) {
+		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->blobdir);
 		goto cleanup;
 	}
 
@@ -909,15 +909,15 @@ static int export_backup(dc_context_t* context, const char* dir)
 	if( total_files_count>0 )
 	{
 		/* scan directory, pass 2: copy files */
-		if( (dir_handle=opendir(context->m_blobdir))==NULL ) {
-			dc_log_error(context, 0, "Backup: Cannot copy from blob-directory \"%s\".", context->m_blobdir);
+		if( (dir_handle=opendir(context->blobdir))==NULL ) {
+			dc_log_error(context, 0, "Backup: Cannot copy from blob-directory \"%s\".", context->blobdir);
 			goto cleanup;
 		}
 
 		stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
-			if( context->m_shall_stop_ongoing ) {
+			if( context->shall_stop_ongoing ) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -935,7 +935,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 			//dc_log_info(context, 0, "Backup \"%s\".", name);
 			free(curr_pathNfilename);
-			curr_pathNfilename = dc_mprintf("%s/%s", context->m_blobdir, name);
+			curr_pathNfilename = dc_mprintf("%s/%s", context->blobdir, name);
 			free(buf);
 			if( !dc_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0 ) {
 				continue;
@@ -952,19 +952,19 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 	else
 	{
-		dc_log_info(context, 0, "Backup: No files to copy.", context->m_blobdir);
+		dc_log_info(context, 0, "Backup: No files to copy.", context->blobdir);
 	}
 
 	/* done - set some special config values (do this last to avoid importing crashed backups) */
 	dc_sqlite3_set_config_int(dest_sql, "backup_time", now);
-	dc_sqlite3_set_config    (dest_sql, "backup_for", context->m_blobdir);
+	dc_sqlite3_set_config    (dest_sql, "backup_for", context->blobdir);
 
-	context->m_cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
+	context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)dest_pathNfilename, 0);
 	success = 1;
 
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
-	if( closed ) { dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0); }
+	if( closed ) { dc_sqlite3_open__(context->sql, context->dbfile, 0); }
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close__(dest_sql);
@@ -1008,7 +1008,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	char*         repl_from = NULL;
 	char*         repl_to = NULL;
 
-	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->m_dbfile);
+	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->dbfile);
 
 	if( dc_is_configured(context) ) {
 		dc_log_error(context, 0, "Cannot import backups to accounts in use.");
@@ -1017,41 +1017,41 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 	/* close and delete the original file - FIXME: we should import to a .bak file and rename it on success. however, currently it is not clear it the import exists in the long run (may be replaced by a restore-from-imap) */
 
-//dc_sqlite3_lock(context->m_sql);  // TODO: check if this works while threads running
+//dc_sqlite3_lock(context->sql);  // TODO: check if this works while threads running
 //locked = 1;
 
-	if( dc_sqlite3_is_open(context->m_sql) ) {
-		dc_sqlite3_close__(context->m_sql);
+	if( dc_sqlite3_is_open(context->sql) ) {
+		dc_sqlite3_close__(context->sql);
 	}
 
-	dc_delete_file(context->m_dbfile, context);
+	dc_delete_file(context->dbfile, context);
 
-	if( dc_file_exist(context->m_dbfile) ) {
+	if( dc_file_exist(context->dbfile) ) {
 		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
 	/* copy the database file */
-	if( !dc_copy_file(backup_to_import, context->m_dbfile, context) ) {
+	if( !dc_copy_file(backup_to_import, context->dbfile, context) ) {
 		goto cleanup; /* error already logged */
 	}
 
 	/* re-open copied database file */
-	if( !dc_sqlite3_open__(context->m_sql, context->m_dbfile, 0) ) {
+	if( !dc_sqlite3_open__(context->sql, context->dbfile, 0) ) {
 		goto cleanup;
 	}
 
 	/* copy all blobs to files */
-	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT COUNT(*) FROM backup_blobs;");
+	stmt = dc_sqlite3_prepare(context->sql, "SELECT COUNT(*) FROM backup_blobs;");
 	sqlite3_step(stmt);
 	total_files_count = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
+	stmt = dc_sqlite3_prepare(context->sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		if( context->m_shall_stop_ongoing ) {
+		if( context->shall_stop_ongoing ) {
 			goto cleanup;
 		}
 
@@ -1063,7 +1063,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
         if( file_bytes > 0 && file_content ) {
 			free(pathNfilename);
-			pathNfilename = dc_mprintf("%s/%s", context->m_blobdir, file_name);
+			pathNfilename = dc_mprintf("%s/%s", context->blobdir, file_name);
 			if( !dc_write_file(pathNfilename, file_content, file_bytes, context) ) {
 				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
@@ -1075,15 +1075,15 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	sqlite3_finalize(stmt);
 	stmt = 0;
 
-	dc_sqlite3_execute(context->m_sql, "DROP TABLE backup_blobs;");
-	dc_sqlite3_execute(context->m_sql, "VACUUM;");
+	dc_sqlite3_execute(context->sql, "DROP TABLE backup_blobs;");
+	dc_sqlite3_execute(context->sql, "VACUUM;");
 
 	/* rewrite references to the blobs */
-	repl_from = dc_sqlite3_get_config(context->m_sql, "backup_for", NULL);
-	if( repl_from && strlen(repl_from)>1 && context->m_blobdir && strlen(context->m_blobdir)>1 )
+	repl_from = dc_sqlite3_get_config(context->sql, "backup_for", NULL);
+	if( repl_from && strlen(repl_from)>1 && context->blobdir && strlen(context->blobdir)>1 )
 	{
 		ensure_no_slash(repl_from);
-		repl_to = dc_strdup(context->m_blobdir);
+		repl_to = dc_strdup(context->blobdir);
 		ensure_no_slash(repl_to);
 
 		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
@@ -1092,15 +1092,15 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 		assert( 'i' == DC_PARAM_PROFILE_IMAGE );
 
 		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
-			dc_sqlite3_execute(context->m_sql, q3);
+			dc_sqlite3_execute(context->sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE chats SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute(context->m_sql, q3);
+			dc_sqlite3_execute(context->sql, q3);
 		sqlite3_free(q3);
 
 		q3 = sqlite3_mprintf("UPDATE contacts SET param=replace(param, 'i=%q/', 'i=%q/');", repl_from, repl_to);
-			dc_sqlite3_execute(context->m_sql, q3);
+			dc_sqlite3_execute(context->sql, q3);
 		sqlite3_free(q3);
 	}
 
@@ -1112,7 +1112,7 @@ cleanup:
 	free(repl_to);
 	sqlite3_finalize(stmt);
 
-// if( locked ) { dc_sqlite3_unlock(context->m_sql); }  // TODO: check if this works while threads running
+// if( locked ) { dc_sqlite3_unlock(context->sql); }  // TODO: check if this works while threads running
 
 	return success;
 }
@@ -1177,7 +1177,7 @@ void dc_imex(dc_context_t* context, int what, const char* param1, const char* pa
 	dc_param_set    (param, DC_PARAM_CMD_ARG2, param2);
 
 	dc_job_kill_actions(context, DC_JOB_IMEX_IMAP, 0);
-	dc_job_add(context, DC_JOB_IMEX_IMAP, 0, param->m_packed, 0); // results in a call to dc_job_do_DC_JOB_IMEX_IMAP()
+	dc_job_add(context, DC_JOB_IMEX_IMAP, 0, param->packed, 0); // results in a call to dc_job_do_DC_JOB_IMEX_IMAP()
 
 	dc_param_unref(param);
 }
@@ -1191,7 +1191,7 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	char* param1 = NULL;
 	char* param2 = NULL;
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC || context->m_sql==NULL ) {
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || context->sql==NULL ) {
 		goto cleanup;
 	}
 
@@ -1200,9 +1200,9 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 	ongoing_allocated_here = 1;
 
-	what   = dc_param_get_int(job->m_param, DC_PARAM_CMD,      0);
-	param1 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG,  NULL);
-	param2 = dc_param_get    (job->m_param, DC_PARAM_CMD_ARG2, NULL);
+	what   = dc_param_get_int(job->param, DC_PARAM_CMD,      0);
+	param1 = dc_param_get    (job->param, DC_PARAM_CMD_ARG,  NULL);
+	param2 = dc_param_get    (job->param, DC_PARAM_CMD_ARG2, NULL);
 
 	if( param1 == NULL ) {
 		dc_log_error(context, 0, "No Import/export dir/file given.");
@@ -1210,9 +1210,9 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	}
 
 	dc_log_info(context, 0, "Import/export process started.");
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, 10, 0);
+	context->cb(context, DC_EVENT_IMEX_PROGRESS, 10, 0);
 
-	if( !dc_sqlite3_is_open(context->m_sql) ) {
+	if( !dc_sqlite3_is_open(context->sql) ) {
 		dc_log_error(context, 0, "Import/export: Database not opened.");
 		goto cleanup;
 	}
@@ -1267,7 +1267,7 @@ cleanup:
 
 	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
 
-	context->m_cb(context, DC_EVENT_IMEX_PROGRESS, success? 1000 : 0, 0);
+	context->cb(context, DC_EVENT_IMEX_PROGRESS, success? 1000 : 0, 0);
 }
 
 
@@ -1330,7 +1330,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	char*          curr_pathNfilename = NULL;
 	dc_sqlite3_t*  test_sql = NULL;
 
-	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		return NULL;
 	}
 
@@ -1391,21 +1391,21 @@ int dc_check_password(dc_context_t* context, const char* test_pw)
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	int              success = 0;
 
-	if( context==NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
+	if( context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
-	dc_loginparam_read(loginparam, context->m_sql, "configured_");
+	dc_loginparam_read(loginparam, context->sql, "configured_");
 
-	if( (loginparam->m_mail_pw==NULL || loginparam->m_mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
+	if( (loginparam->mail_pw==NULL || loginparam->mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
 		/* both empty or unset */
 		success = 1;
 	}
-	else if( loginparam->m_mail_pw==NULL || test_pw==NULL ) {
+	else if( loginparam->mail_pw==NULL || test_pw==NULL ) {
 		/* one set, the other not */
 		success = 0;
 	}
-	else if( strcmp(loginparam->m_mail_pw, test_pw)==0 ) {
+	else if( strcmp(loginparam->mail_pw, test_pw)==0 ) {
 		/* string-compared passwords are equal */
 		success = 1;
 	}

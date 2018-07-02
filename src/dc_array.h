@@ -32,11 +32,11 @@ struct _dc_array
 {
 	/** @privatesection */
 
-	uint32_t        m_magic;
-	dc_context_t*   m_context;     /**< The context the array belongs to. May be NULL when NULL is given to dc_array_new(). */
-	size_t          m_allocated;   /**< The number of allocated items. Initially ~ 200. */
-	size_t          m_count;       /**< The number of used items. Initially 0. */
-	uintptr_t*      m_array;       /**< The data items, can be used between m_data[0] and m_data[m_cnt-1]. Never NULL. */
+	uint32_t        magic;
+	dc_context_t*   context;     /**< The context the array belongs to. May be NULL when NULL is given to dc_array_new(). */
+	size_t          allocated;   /**< The number of allocated items. Initially ~ 200. */
+	size_t          count;       /**< The number of used items. Initially 0. */
+	uintptr_t*      array;       /**< The data items, can be used between data[0] and data[cnt-1]. Never NULL. */
 };
 
 

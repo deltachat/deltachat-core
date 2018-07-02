@@ -39,9 +39,9 @@ typedef struct sqlite3_stmt sqlite3_stmt;
  */
 typedef struct dc_key_t
 {
-	void*          m_binary;
-	int            m_bytes;
-	int            m_type;
+	void*          binary;
+	int            bytes;
+	int            type;
 
 	/** @privatesection */
 	int            _m_heap_refcnt; /* !=0 for objects created with dc_key_new(), 0 for stack objects  */

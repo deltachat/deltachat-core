@@ -50,10 +50,10 @@ void dc_keyring_unref(dc_keyring_t* keyring)
 		return;
 	}
 
-	for( i = 0; i < keyring->m_count; i++ ) {
-		dc_key_unref(keyring->m_keys[i]);
+	for( i = 0; i < keyring->count; i++ ) {
+		dc_key_unref(keyring->keys[i]);
 	}
-	free(keyring->m_keys);
+	free(keyring->keys);
 	free(keyring);
 }
 
@@ -65,16 +65,16 @@ void dc_keyring_add(dc_keyring_t* keyring, dc_key_t* to_add)
 	}
 
 	/* expand array, if needed */
-	if( keyring->m_count == keyring->m_allocated ) {
-		int newsize = (keyring->m_allocated * 2) + 10;
-		if( (keyring->m_keys=realloc(keyring->m_keys, newsize*sizeof(dc_key_t*)))==NULL ) {
+	if( keyring->count == keyring->allocated ) {
+		int newsize = (keyring->allocated * 2) + 10;
+		if( (keyring->keys=realloc(keyring->keys, newsize*sizeof(dc_key_t*)))==NULL ) {
 			exit(41);
 		}
-		keyring->m_allocated = newsize;
+		keyring->allocated = newsize;
 	}
 
-	keyring->m_keys[keyring->m_count] = dc_key_ref(to_add);
-	keyring->m_count++;
+	keyring->keys[keyring->count] = dc_key_ref(to_add);
+	keyring->count++;
 }
 
 

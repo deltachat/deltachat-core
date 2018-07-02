@@ -65,11 +65,11 @@ typedef struct dc_job_t
 {
 	/** @privatesection */
 
-	uint32_t   m_job_id;
-	int        m_action;
-	uint32_t   m_foreign_id;
-	dc_param_t* m_param;
-	int        m_try_again;
+	uint32_t    job_id;
+	int         action;
+	uint32_t    foreign_id;
+	dc_param_t* param;
+	int         try_again;
 } dc_job_t;
 
 

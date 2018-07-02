@@ -761,8 +761,8 @@ struct mailimap_date_time* dc_timestamp_to_mailimap_date_time(time_t timeval)
 #define DC_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
 
 
-#define SMEAR_LOCK   { pthread_mutex_lock(&context->m_smear_critical); }
-#define SMEAR_UNLOCK { pthread_mutex_unlock(&context->m_smear_critical); }
+#define SMEAR_LOCK   { pthread_mutex_lock(&context->smear_critical); }
+#define SMEAR_UNLOCK { pthread_mutex_unlock(&context->smear_critical); }
 
 
 time_t dc_create_smeared_timestamp(dc_context_t* context)
@@ -770,13 +770,13 @@ time_t dc_create_smeared_timestamp(dc_context_t* context)
 	time_t now = time(NULL);
 	time_t ret = now;
 	SMEAR_LOCK
-		if( ret <= context->m_last_smeared_timestamp ) {
-			ret = context->m_last_smeared_timestamp+1;
+		if( ret <= context->last_smeared_timestamp ) {
+			ret = context->last_smeared_timestamp+1;
 			if( (ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
 				ret = now + DC_MAX_SECONDS_TO_LEND_FROM_FUTURE;
 			}
 		}
-		context->m_last_smeared_timestamp = ret;
+		context->last_smeared_timestamp = ret;
 	SMEAR_UNLOCK
 	return ret;
 }
@@ -788,8 +788,8 @@ time_t dc_create_smeared_timestamps(dc_context_t* context, int count)
 	time_t now = time(NULL);
 	time_t start = now + DC_MIN(count, DC_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
 	SMEAR_LOCK
-		start = DC_MAX(context->m_last_smeared_timestamp+1, start);
-		context->m_last_smeared_timestamp = start+(count-1);
+		start = DC_MAX(context->last_smeared_timestamp+1, start);
+		context->last_smeared_timestamp = start+(count-1);
 	SMEAR_UNLOCK
 	return start;
 }
@@ -800,8 +800,8 @@ time_t dc_smeared_time(dc_context_t* context)
 	/* function returns a corrected time(NULL) */
 	time_t now = time(NULL);
 	SMEAR_LOCK
-		if( context->m_last_smeared_timestamp >= now ) {
-			now = context->m_last_smeared_timestamp+1;
+		if( context->last_smeared_timestamp >= now ) {
+			now = context->last_smeared_timestamp+1;
 		}
 	SMEAR_UNLOCK
 	return now;

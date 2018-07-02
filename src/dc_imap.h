@@ -50,47 +50,45 @@ typedef struct dc_imap_t
 {
 	/** @privatesection */
 
-	char*                 m_imap_server;
-	int                   m_imap_port;
-	char*                 m_imap_user;
-	char*                 m_imap_pw;
-	int                   m_server_flags;
+	char*                 imap_server;
+	int                   imap_port;
+	char*                 imap_user;
+	char*                 imap_pw;
+	int                   server_flags;
 
-	int                   m_connected;
-	mailimap*             m_hEtpan;   /* normally, if connected, m_hEtpan is also set; however, if a reconnection is required, we may lost this handle */
+	int                   connected;
+	mailimap*             hEtpan;   /* normally, if connected, hEtpan is also set; however, if a reconnection is required, we may lost this handle */
 
-	time_t                m_last_fullread_time;
+	time_t                last_fullread_time;
 
-	int                   m_idle_set_up;
-	char*                 m_selected_folder;
-	int                   m_selected_folder_needs_expunge;
-	int                   m_should_reconnect;
+	int                   idle_set_up;
+	char*                 selected_folder;
+	int                   selected_folder_needs_expunge;
+	int                   should_reconnect;
 
-	int                   m_can_idle;
-	int                   m_has_xlist;
-	char*                 m_moveto_folder;// Folder, where reveived chat messages should go to.  Normally DC_CHATS_FOLDER, may be NULL to leave them in the INBOX
-	char*                 m_sent_folder;  // Folder, where send messages should go to.  Normally DC_CHATS_FOLDER.
-	char                  m_imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
+	int                   can_idle;
+	int                   has_xlist;
+	char*                 moveto_folder;// Folder, where reveived chat messages should go to.  Normally DC_CHATS_FOLDER, may be NULL to leave them in the INBOX
+	char*                 sent_folder;  // Folder, where send messages should go to.  Normally DC_CHATS_FOLDER.
+	char                  imap_delimiter;/* IMAP Path separator. Set as a side-effect in list_folders__ */
 
-	pthread_cond_t        m_watch_cond;
-	pthread_mutex_t       m_watch_condmutex;
-	int                   m_watch_condflag;
+	pthread_cond_t        watch_cond;
+	pthread_mutex_t       watch_condmutex;
+	int                   watch_condflag;
 
-	//time_t                m_enter_watch_wait_time;
+	struct mailimap_fetch_type* fetch_type_uid;
+	struct mailimap_fetch_type* fetch_type_message_id;
+	struct mailimap_fetch_type* fetch_type_body;
+	struct mailimap_fetch_type* fetch_type_flags;
 
-	struct mailimap_fetch_type* m_fetch_type_uid;
-	struct mailimap_fetch_type* m_fetch_type_message_id;
-	struct mailimap_fetch_type* m_fetch_type_body;
-	struct mailimap_fetch_type* m_fetch_type_flags;
+	dc_get_config_t       get_config;
+	dc_set_config_t       set_config;
+	dc_receive_imf_t      receive_imf;
+	void*                 userData;
+	dc_context_t*         context;
 
-	dc_get_config_t       m_get_config;
-	dc_set_config_t       m_set_config;
-	dc_receive_imf_t      m_receive_imf;
-	void*                 m_userData;
-	dc_context_t*          m_context;
-
-	int                   m_log_connect_errors;
-	int                   m_skip_log_capabilities;
+	int                   log_connect_errors;
+	int                   skip_log_capabilities;
 
 } dc_imap_t;
 

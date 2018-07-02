@@ -29,10 +29,10 @@ extern "C" {
 
 typedef struct dc_strbuilder_t
 {
-	char* m_buf;
-	int   m_allocated;
-	int   m_free;
-	char* m_eos;
+	char* buf;
+	int   allocated;
+	int   free;
+	char* eos;
 } dc_strbuilder_t;
 
 

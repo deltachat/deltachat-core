@@ -58,16 +58,16 @@ void dc_loginparam_empty(dc_loginparam_t* loginparam)
 		return; /* ok, but nothing to do */
 	}
 
-	free(loginparam->m_addr);        loginparam->m_addr        = NULL;
-	free(loginparam->m_mail_server); loginparam->m_mail_server = NULL;
-	                          loginparam->m_mail_port   = 0;
-	free(loginparam->m_mail_user);   loginparam->m_mail_user   = NULL;
-	free(loginparam->m_mail_pw);     loginparam->m_mail_pw     = NULL;
-	free(loginparam->m_send_server); loginparam->m_send_server = NULL;
-	                          loginparam->m_send_port   = 0;
-	free(loginparam->m_send_user);   loginparam->m_send_user   = NULL;
-	free(loginparam->m_send_pw);     loginparam->m_send_pw     = NULL;
-	                          loginparam->m_server_flags= 0;
+	free(loginparam->addr);        loginparam->addr        = NULL;
+	free(loginparam->mail_server); loginparam->mail_server = NULL;
+	                          loginparam->mail_port   = 0;
+	free(loginparam->mail_user);   loginparam->mail_user   = NULL;
+	free(loginparam->mail_pw);     loginparam->mail_pw     = NULL;
+	free(loginparam->send_server); loginparam->send_server = NULL;
+	                          loginparam->send_port   = 0;
+	free(loginparam->send_user);   loginparam->send_user   = NULL;
+	free(loginparam->send_pw);     loginparam->send_pw     = NULL;
+	                          loginparam->server_flags= 0;
 }
 
 
@@ -78,19 +78,19 @@ void dc_loginparam_read(dc_loginparam_t* loginparam, dc_sqlite3_t* sql, const ch
 
 	dc_loginparam_empty(loginparam);
 
-	LP_PREFIX("addr");        loginparam->m_addr        = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("addr");        loginparam->addr        = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("mail_server"); loginparam->m_mail_server = dc_sqlite3_get_config      (sql, key, NULL);
-	LP_PREFIX("mail_port");   loginparam->m_mail_port   = dc_sqlite3_get_config_int  (sql, key, 0);
-	LP_PREFIX("mail_user");   loginparam->m_mail_user   = dc_sqlite3_get_config      (sql, key, NULL);
-	LP_PREFIX("mail_pw");     loginparam->m_mail_pw     = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("mail_server"); loginparam->mail_server = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("mail_port");   loginparam->mail_port   = dc_sqlite3_get_config_int  (sql, key, 0);
+	LP_PREFIX("mail_user");   loginparam->mail_user   = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("mail_pw");     loginparam->mail_pw     = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("send_server"); loginparam->m_send_server = dc_sqlite3_get_config      (sql, key, NULL);
-	LP_PREFIX("send_port");   loginparam->m_send_port   = dc_sqlite3_get_config_int  (sql, key, 0);
-	LP_PREFIX("send_user");   loginparam->m_send_user   = dc_sqlite3_get_config      (sql, key, NULL);
-	LP_PREFIX("send_pw");     loginparam->m_send_pw     = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("send_server"); loginparam->send_server = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("send_port");   loginparam->send_port   = dc_sqlite3_get_config_int  (sql, key, 0);
+	LP_PREFIX("send_user");   loginparam->send_user   = dc_sqlite3_get_config      (sql, key, NULL);
+	LP_PREFIX("send_pw");     loginparam->send_pw     = dc_sqlite3_get_config      (sql, key, NULL);
 
-	LP_PREFIX("server_flags");loginparam->m_server_flags= dc_sqlite3_get_config_int  (sql, key, 0);
+	LP_PREFIX("server_flags");loginparam->server_flags= dc_sqlite3_get_config_int  (sql, key, 0);
 
 	sqlite3_free(key);
 }
@@ -100,19 +100,19 @@ void dc_loginparam_write(const dc_loginparam_t* loginparam, dc_sqlite3_t* sql, c
 {
 	char* key = NULL;
 
-	LP_PREFIX("addr");         dc_sqlite3_set_config      (sql, key, loginparam->m_addr);
+	LP_PREFIX("addr");         dc_sqlite3_set_config      (sql, key, loginparam->addr);
 
-	LP_PREFIX("mail_server");  dc_sqlite3_set_config      (sql, key, loginparam->m_mail_server);
-	LP_PREFIX("mail_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->m_mail_port);
-	LP_PREFIX("mail_user");    dc_sqlite3_set_config      (sql, key, loginparam->m_mail_user);
-	LP_PREFIX("mail_pw");      dc_sqlite3_set_config      (sql, key, loginparam->m_mail_pw);
+	LP_PREFIX("mail_server");  dc_sqlite3_set_config      (sql, key, loginparam->mail_server);
+	LP_PREFIX("mail_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->mail_port);
+	LP_PREFIX("mail_user");    dc_sqlite3_set_config      (sql, key, loginparam->mail_user);
+	LP_PREFIX("mail_pw");      dc_sqlite3_set_config      (sql, key, loginparam->mail_pw);
 
-	LP_PREFIX("send_server");  dc_sqlite3_set_config      (sql, key, loginparam->m_send_server);
-	LP_PREFIX("send_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->m_send_port);
-	LP_PREFIX("send_user");    dc_sqlite3_set_config      (sql, key, loginparam->m_send_user);
-	LP_PREFIX("send_pw");      dc_sqlite3_set_config      (sql, key, loginparam->m_send_pw);
+	LP_PREFIX("send_server");  dc_sqlite3_set_config      (sql, key, loginparam->send_server);
+	LP_PREFIX("send_port");    dc_sqlite3_set_config_int  (sql, key, loginparam->send_port);
+	LP_PREFIX("send_user");    dc_sqlite3_set_config      (sql, key, loginparam->send_user);
+	LP_PREFIX("send_pw");      dc_sqlite3_set_config      (sql, key, loginparam->send_pw);
 
-	LP_PREFIX("server_flags"); dc_sqlite3_set_config_int  (sql, key, loginparam->m_server_flags);
+	LP_PREFIX("server_flags"); dc_sqlite3_set_config_int  (sql, key, loginparam->server_flags);
 
 	sqlite3_free(key);
 }
@@ -150,9 +150,9 @@ static char* get_readable_flags(int flags)
 		}
 	}
 
-	if( strbuilder.m_buf[0]==0 ) { dc_strbuilder_cat(&strbuilder, "0"); }
-	dc_trim(strbuilder.m_buf);
-	return strbuilder.m_buf;
+	if( strbuilder.buf[0]==0 ) { dc_strbuilder_cat(&strbuilder, "0"); }
+	dc_trim(strbuilder.buf);
+	return strbuilder.buf;
 }
 
 
@@ -165,20 +165,20 @@ char* dc_loginparam_get_readable(const dc_loginparam_t* loginparam)
 		return dc_strdup(NULL);
 	}
 
-	char* flags_readable = get_readable_flags(loginparam->m_server_flags);
+	char* flags_readable = get_readable_flags(loginparam->server_flags);
 
 	char* ret = dc_mprintf("%s %s:%s:%s:%i %s:%s:%s:%i %s",
-		loginparam->m_addr? loginparam->m_addr : unset,
+		loginparam->addr? loginparam->addr : unset,
 
-		loginparam->m_mail_user? loginparam->m_mail_user : unset,
-		loginparam->m_mail_pw? pw : unset,
-		loginparam->m_mail_server? loginparam->m_mail_server : unset,
-		loginparam->m_mail_port,
+		loginparam->mail_user? loginparam->mail_user : unset,
+		loginparam->mail_pw? pw : unset,
+		loginparam->mail_server? loginparam->mail_server : unset,
+		loginparam->mail_port,
 
-		loginparam->m_send_user? loginparam->m_send_user : unset,
-		loginparam->m_send_pw? pw : unset,
-		loginparam->m_send_server? loginparam->m_send_server : unset,
-		loginparam->m_send_port,
+		loginparam->send_user? loginparam->send_user : unset,
+		loginparam->send_pw? pw : unset,
+		loginparam->send_server? loginparam->send_server : unset,
+		loginparam->send_port,
 
 		flags_readable);
 

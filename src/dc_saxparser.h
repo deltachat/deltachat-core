@@ -34,10 +34,10 @@ typedef void (*dc_saxparser_text_cb_t)     (void* userdata, const char* text, in
 
 typedef struct dc_saxparser_t
 {
-	dc_saxparser_starttag_cb_t m_starttag_cb;
-	dc_saxparser_endtag_cb_t   m_endtag_cb;
-	dc_saxparser_text_cb_t     m_text_cb;
-	void*                      m_userdata;
+	dc_saxparser_starttag_cb_t starttag_cb;
+	dc_saxparser_endtag_cb_t   endtag_cb;
+	dc_saxparser_text_cb_t     text_cb;
+	void*                      userdata;
 } dc_saxparser_t;
 
 

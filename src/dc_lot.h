@@ -31,18 +31,18 @@ extern "C" {
 struct _dc_lot
 {
 	/** @privatesection */
-	uint32_t        m_magic;           /**< The magic is used to avoid passing structures of different types. */
-	int             m_text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	char*           m_text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
-	char*           m_text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
-	time_t          m_timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
-	int             m_state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	uint32_t        magic;           /**< The magic is used to avoid passing structures of different types. */
+	int             text1_meaning;   /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	char*           text1;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
+	char*           text2;           /**< The meaning of this string is defined by the creator of the object. The string is freed with dc_lot_unref(). NULL if not applicable. */
+	time_t          timestamp;       /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	int             state;           /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
 
-	uint32_t        m_id;              /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
+	uint32_t        id;              /**< The meaning of this value is defined by the creator of the object. 0 if not applicable. */
 
-	char*           m_fingerprint;     /**< used for qr code scanning only */
-	char*           m_invitenumber;    /**< used for qr code scanning only */
-	char*           m_auth;            /**< used for qr code scanning only */
+	char*           fingerprint;     /**< used for qr code scanning only */
+	char*           invitenumber;    /**< used for qr code scanning only */
+	char*           auth;            /**< used for qr code scanning only */
 };
 
 

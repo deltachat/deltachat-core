@@ -34,8 +34,8 @@ dc_lot_t* dc_lot_new()
 		exit(27); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	lot->m_magic = DC_LOT_MAGIC;
-	lot->m_text1_meaning  = 0;
+	lot->magic = DC_LOT_MAGIC;
+	lot->text1_meaning  = 0;
 
     return lot;
 }
@@ -53,41 +53,41 @@ dc_lot_t* dc_lot_new()
  */
 void dc_lot_unref(dc_lot_t* set)
 {
-	if( set==NULL || set->m_magic != DC_LOT_MAGIC ) {
+	if( set==NULL || set->magic != DC_LOT_MAGIC ) {
 		return;
 	}
 
 	dc_lot_empty(set);
-	set->m_magic = 0;
+	set->magic = 0;
 	free(set);
 }
 
 
 void dc_lot_empty(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return;
 	}
 
-	free(lot->m_text1);
-	lot->m_text1 = NULL;
-	lot->m_text1_meaning = 0;
+	free(lot->text1);
+	lot->text1 = NULL;
+	lot->text1_meaning = 0;
 
-	free(lot->m_text2);
-	lot->m_text2 = NULL;
+	free(lot->text2);
+	lot->text2 = NULL;
 
-	free(lot->m_fingerprint);
-	lot->m_fingerprint = NULL;
+	free(lot->fingerprint);
+	lot->fingerprint = NULL;
 
-	free(lot->m_invitenumber);
-	lot->m_invitenumber = NULL;
+	free(lot->invitenumber);
+	lot->invitenumber = NULL;
 
-	free(lot->m_auth);
-	lot->m_auth = NULL;
+	free(lot->auth);
+	lot->auth = NULL;
 
-	lot->m_timestamp = 0;
-	lot->m_state = 0;
-	lot->m_id = 0;
+	lot->timestamp = 0;
+	lot->state = 0;
+	lot->id = 0;
 }
 
 
@@ -100,10 +100,10 @@ void dc_lot_empty(dc_lot_t* lot)
  */
 char* dc_lot_get_text1(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return NULL;
 	}
-	return dc_strdup_keep_null(lot->m_text1);
+	return dc_strdup_keep_null(lot->text1);
 }
 
 
@@ -118,10 +118,10 @@ char* dc_lot_get_text1(dc_lot_t* lot)
  */
 char* dc_lot_get_text2(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return NULL;
 	}
-	return dc_strdup_keep_null(lot->m_text2);
+	return dc_strdup_keep_null(lot->text2);
 }
 
 
@@ -136,10 +136,10 @@ char* dc_lot_get_text2(dc_lot_t* lot)
  */
 int dc_lot_get_text1_meaning(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
-	return lot->m_text1_meaning;
+	return lot->text1_meaning;
 }
 
 
@@ -154,10 +154,10 @@ int dc_lot_get_text1_meaning(dc_lot_t* lot)
  */
 int dc_lot_get_state(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
-	return lot->m_state;
+	return lot->state;
 }
 
 
@@ -170,10 +170,10 @@ int dc_lot_get_state(dc_lot_t* lot)
  */
 uint32_t dc_lot_get_id(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
-	return lot->m_id;
+	return lot->id;
 }
 
 
@@ -188,48 +188,48 @@ uint32_t dc_lot_get_id(dc_lot_t* lot)
  */
 time_t dc_lot_get_timestamp(dc_lot_t* lot)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC ) {
 		return 0;
 	}
-	return lot->m_timestamp;
+	return lot->timestamp;
 }
 
 
 void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact, dc_context_t* context)
 {
-	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC || msg == NULL ) {
+	if( lot == NULL || lot->magic != DC_LOT_MAGIC || msg == NULL ) {
 		return;
 	}
 
-	if( msg->m_from_id == DC_CONTACT_ID_SELF )
+	if( msg->from_id == DC_CONTACT_ID_SELF )
 	{
 		if( dc_msg_is_info(msg) ) {
-			lot->m_text1 = NULL;
-			lot->m_text1_meaning = 0;
+			lot->text1 = NULL;
+			lot->text1_meaning = 0;
 		}
 		else {
-			lot->m_text1 = dc_stock_str(context, DC_STR_SELF);
-			lot->m_text1_meaning = DC_TEXT1_SELF;
+			lot->text1 = dc_stock_str(context, DC_STR_SELF);
+			lot->text1_meaning = DC_TEXT1_SELF;
 		}
 	}
 	else if( chat == NULL )
 	{
-		lot->m_text1 = NULL;
-		lot->m_text1_meaning = 0;
+		lot->text1 = NULL;
+		lot->text1_meaning = 0;
 	}
-	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
+	else if( DC_CHAT_TYPE_IS_MULTI(chat->type) )
 	{
 		if( dc_msg_is_info(msg) || contact==NULL ) {
-			lot->m_text1 = NULL;
-			lot->m_text1_meaning = 0;
+			lot->text1 = NULL;
+			lot->text1_meaning = 0;
 		}
 		else {
-			lot->m_text1 = dc_contact_get_first_name(contact);
-			lot->m_text1_meaning = DC_TEXT1_USERNAME;
+			lot->text1 = dc_contact_get_first_name(contact);
+			lot->text1_meaning = DC_TEXT1_USERNAME;
 		}
 	}
 
-	lot->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_SUMMARY_CHARACTERS, context);
-	lot->m_timestamp = dc_msg_get_timestamp(msg);
-	lot->m_state     = msg->m_state;
+	lot->text2     = dc_msg_get_summarytext_by_raw(msg->type, msg->text, msg->param, DC_SUMMARY_CHARACTERS, context);
+	lot->timestamp = dc_msg_get_timestamp(msg);
+	lot->state     = msg->state;
 }

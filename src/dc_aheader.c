@@ -42,14 +42,14 @@ void dc_aheader_empty(dc_aheader_t* aheader)
 		return;
 	}
 
-	aheader->m_prefer_encrypt = 0;
+	aheader->prefer_encrypt = 0;
 
-	free(aheader->m_addr);
-	aheader->m_addr = NULL;
+	free(aheader->addr);
+	aheader->addr = NULL;
 
-	if( aheader->m_public_key->m_binary ) {
-		dc_key_unref(aheader->m_public_key);
-		aheader->m_public_key = dc_key_new();
+	if( aheader->public_key->binary ) {
+		dc_key_unref(aheader->public_key);
+		aheader->public_key = dc_key_new();
 	}
 }
 
@@ -69,15 +69,15 @@ char* dc_aheader_render(const dc_aheader_t* aheader)
 	dc_strbuilder_t ret;
 	dc_strbuilder_init(&ret, 0);
 
-	if( aheader==NULL || aheader->m_addr==NULL || aheader->m_public_key->m_binary==NULL || aheader->m_public_key->m_type!=DC_KEY_PUBLIC ) {
+	if( aheader==NULL || aheader->addr==NULL || aheader->public_key->binary==NULL || aheader->public_key->type!=DC_KEY_PUBLIC ) {
 		goto cleanup;
 	}
 
 	dc_strbuilder_cat(&ret, "addr=");
-	dc_strbuilder_cat(&ret, aheader->m_addr);
+	dc_strbuilder_cat(&ret, aheader->addr);
 	dc_strbuilder_cat(&ret, "; ");
 
-	if( aheader->m_prefer_encrypt==DC_PE_MUTUAL ) {
+	if( aheader->prefer_encrypt==DC_PE_MUTUAL ) {
 		dc_strbuilder_cat(&ret, "prefer-encrypt=mutual; ");
 	}
 
@@ -85,7 +85,7 @@ char* dc_aheader_render(const dc_aheader_t* aheader)
 
 	/* adds a whitespace every 78 characters, this allows libEtPan to wrap the lines according to RFC 5322
 	(which may insert a linebreak before every whitespace) */
-	if( (keybase64_wrapped = dc_key_render_base64(aheader->m_public_key, 78, " ", 0/*no checksum*/)) == NULL ) {
+	if( (keybase64_wrapped = dc_key_render_base64(aheader->public_key, 78, " ", 0/*no checksum*/)) == NULL ) {
 		goto cleanup;
 	}
 
@@ -94,9 +94,9 @@ char* dc_aheader_render(const dc_aheader_t* aheader)
 	success = 1;
 
 cleanup:
-	if( !success ) { free(ret.m_buf); ret.m_buf = NULL; }
+	if( !success ) { free(ret.buf); ret.buf = NULL; }
 	free(keybase64_wrapped);
-	return ret.m_buf; /* NULL on errors, this may happen for various reasons */
+	return ret.buf; /* NULL on errors, this may happen for various reasons */
 }
 
 
@@ -112,10 +112,10 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	{
 		if( value == NULL
 		 || strlen(value) < 3 || strchr(value, '@')==NULL || strchr(value, '.')==NULL /* rough check if email-address is valid */
-		 || aheader->m_addr /* email already given */ ) {
+		 || aheader->addr /* email already given */ ) {
 			return 0;
 		}
-		aheader->m_addr = dc_normalize_addr(value);
+		aheader->addr = dc_normalize_addr(value);
 		return 1;
 	}
 	#if 0 /* autocrypt 11/2017 no longer uses the type attribute and it will make the autocrypt header invalid */
@@ -133,7 +133,7 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	else if( strcasecmp(name, "prefer-encrypt")==0 )
 	{
 		if( value && strcasecmp(value, "mutual")==0 ) {
-			aheader->m_prefer_encrypt = DC_PE_MUTUAL;
+			aheader->prefer_encrypt = DC_PE_MUTUAL;
 			return 1;
 		}
 		return 1; /* An Autocrypt level 0 client that sees the attribute with any other value (or that does not see the attribute at all) should interpret the value as nopreference.*/
@@ -141,10 +141,10 @@ static int add_attribute(dc_aheader_t* aheader, const char* name, const char* va
 	else if( strcasecmp(name, "keydata")==0 )
 	{
 		if( value == NULL
-		 || aheader->m_public_key->m_binary || aheader->m_public_key->m_bytes ) {
+		 || aheader->public_key->binary || aheader->public_key->bytes ) {
 			return 0; /* there is already a k*/
 		}
-		return dc_key_set_from_base64(aheader->m_public_key, value, DC_KEY_PUBLIC);
+		return dc_key_set_from_base64(aheader->public_key, value, DC_KEY_PUBLIC);
 	}
 	else if( name[0]=='_' )
 	{
@@ -178,7 +178,7 @@ int dc_aheader_set_from_string(dc_aheader_t* aheader, const char* header_str__)
 		goto cleanup;
 	}
 
-	aheader->m_prefer_encrypt = DC_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
+	aheader->prefer_encrypt = DC_PE_NOPREFERENCE; /* value to use if the prefer-encrypted header is missing */
 
 	header_str = dc_strdup(header_str__);
 	p = header_str;
@@ -218,7 +218,7 @@ int dc_aheader_set_from_string(dc_aheader_t* aheader, const char* header_str__)
 	}
 
 	/* all needed data found? */
-	if( aheader->m_addr && aheader->m_public_key->m_binary ) {
+	if( aheader->addr && aheader->public_key->binary ) {
 		success = 1;
 	}
 
@@ -245,7 +245,7 @@ dc_aheader_t* dc_aheader_new()
 		exit(37); /* cannot allocate little memory, unrecoverable error */
 	}
 
-	aheader->m_public_key = dc_key_new();
+	aheader->public_key = dc_key_new();
 
 	return aheader;
 }
@@ -260,8 +260,8 @@ void dc_aheader_unref(dc_aheader_t* aheader)
 		return;
 	}
 
-	free(aheader->m_addr);
-	dc_key_unref(aheader->m_public_key);
+	free(aheader->addr);
+	dc_key_unref(aheader->public_key);
 	free(aheader);
 }
 
@@ -289,7 +289,7 @@ dc_aheader_t* dc_aheader_new_from_imffields(const char* wanted_from, const struc
 				/* header found, check if it is valid and matched the wanted address */
 				dc_aheader_t* test = dc_aheader_new();
 				if( !dc_aheader_set_from_string(test, optional_field->fld_value)
-				 || strcasecmp(test->m_addr, wanted_from)!=0 ) {
+				 || strcasecmp(test->addr, wanted_from)!=0 ) {
 					dc_aheader_unref(test);
 					test = NULL;
 				}

@@ -419,18 +419,18 @@ int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
 	if( context==NULL || raw_key==NULL
-	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
+	 || raw_key->binary == NULL || raw_key->bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
 		goto cleanup;
 	}
 
-	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
+	pgp_memory_add(keysmem, raw_key->binary, raw_key->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
-	if( raw_key->m_type == DC_KEY_PUBLIC && public_keys->keyc >= 1 ) {
+	if( raw_key->type == DC_KEY_PUBLIC && public_keys->keyc >= 1 ) {
 		key_is_valid = 1;
 	}
-	else if( raw_key->m_type == DC_KEY_PRIVATE && private_keys->keyc >= 1 ) {
+	else if( raw_key->type == DC_KEY_PRIVATE && private_keys->keyc >= 1 ) {
 		key_is_valid = 1;
 	}
 
@@ -450,15 +450,15 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
 	if( raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
-	 || raw_key->m_binary == NULL || raw_key->m_bytes <= 0
+	 || raw_key->binary == NULL || raw_key->bytes <= 0
 	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
 		goto cleanup;
 	}
 
-	pgp_memory_add(keysmem, raw_key->m_binary, raw_key->m_bytes);
+	pgp_memory_add(keysmem, raw_key->binary, raw_key->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( raw_key->m_type != DC_KEY_PUBLIC || public_keys->keyc <= 0 ) {
+	if( raw_key->type != DC_KEY_PUBLIC || public_keys->keyc <= 0 ) {
 		goto cleanup;
 	}
 
@@ -496,10 +496,10 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 		goto cleanup;
 	}
 
-	pgp_memory_add(keysmem, private_in->m_binary, private_in->m_bytes);
+	pgp_memory_add(keysmem, private_in->binary, private_in->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( private_in->m_type!=DC_KEY_PRIVATE || private_keys->keyc <= 0 ) {
+	if( private_in->type!=DC_KEY_PRIVATE || private_keys->keyc <= 0 ) {
 		dc_log_warning(context, 0, "Split key: Given key is no private key.");
 		goto cleanup;
 	}
@@ -551,7 +551,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	int             i, success = 0;
 
 	if( context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
-	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->m_count<=0
+	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->count<=0
 	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL ) {
 		goto cleanup;
 	}
@@ -560,9 +560,9 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	*ret_ctext_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_public_keys_for_encryption->m_count; i++ ) {
+	for( i = 0; i < raw_public_keys_for_encryption->count; i++ ) {
 		pgp_memory_clear(keysmem);
-		pgp_memory_add(keysmem, raw_public_keys_for_encryption->m_keys[i]->m_binary, raw_public_keys_for_encryption->m_keys[i]->m_bytes);
+		pgp_memory_add(keysmem, raw_public_keys_for_encryption->keys[i]->binary, raw_public_keys_for_encryption->keys[i]->bytes);
 		pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
 	}
 
@@ -579,7 +579,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 
 		if( raw_private_key_for_signing ) {
 			pgp_memory_clear(keysmem);
-			pgp_memory_add(keysmem, raw_private_key_for_signing->m_binary, raw_private_key_for_signing->m_bytes);
+			pgp_memory_add(keysmem, raw_private_key_for_signing->binary, raw_private_key_for_signing->bytes);
 			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
 			if( private_keys->keyc <= 0 ) {
 				dc_log_warning(context, 0, "No key for signing found.");
@@ -645,7 +645,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	int               i, success = 0;
 
 	if( context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
-	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->m_count<=0
+	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->count<=0
 	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
 		goto cleanup;
 	}
@@ -654,9 +654,9 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	*ret_plain_bytes       = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_private_keys_for_decryption->m_count; i++ ) {
+	for( i = 0; i < raw_private_keys_for_decryption->count; i++ ) {
 		pgp_memory_clear(keysmem); /* a simple concatenate of private binary keys fails (works for public keys, however, we don't do it there either) */
-		pgp_memory_add(keysmem, raw_private_keys_for_decryption->m_keys[i]->m_binary, raw_private_keys_for_decryption->m_keys[i]->m_bytes);
+		pgp_memory_add(keysmem, raw_private_keys_for_decryption->keys[i]->binary, raw_private_keys_for_decryption->keys[i]->bytes);
 		pgp_filter_keys_from_mem(&s_io, dummy_keys/*should stay empty*/, private_keys, NULL, 0, keysmem);
 	}
 
@@ -666,9 +666,9 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	}
 
 	if( raw_public_keys_for_validation ) {
-		for( i = 0; i < raw_public_keys_for_validation->m_count; i++ ) {
+		for( i = 0; i < raw_public_keys_for_validation->count; i++ ) {
 			pgp_memory_clear(keysmem);
-			pgp_memory_add(keysmem, raw_public_keys_for_validation->m_keys[i]->m_binary, raw_public_keys_for_validation->m_keys[i]->m_bytes);
+			pgp_memory_add(keysmem, raw_public_keys_for_validation->keys[i]->binary, raw_public_keys_for_validation->keys[i]->bytes);
 			pgp_filter_keys_from_mem(&s_io, public_keys, dummy_keys/*should stay empty*/, NULL, 0, keysmem);
 		}
 	}

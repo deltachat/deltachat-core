@@ -31,8 +31,8 @@
 #include "dc_token.h"
 
 
-#define      LOCK                 { pthread_mutex_lock(&context->m_bobs_qr_critical); locked = 1; }
-#define      UNLOCK  if( locked ) { pthread_mutex_unlock(&context->m_bobs_qr_critical); locked = 0; }
+#define      LOCK                 { pthread_mutex_lock(&context->bobs_qr_critical); locked = 1; }
+#define      UNLOCK  if( locked ) { pthread_mutex_unlock(&context->bobs_qr_critical); locked = 0; }
 
 
 /*******************************************************************************
@@ -56,10 +56,10 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 	//   with things they cannot fix, so the user is just kicked from the verified group
 	//   (and he will know this and can fix this)
 
-	if( peerstate->m_degrade_event & DC_DE_FINGERPRINT_CHANGED )
+	if( peerstate->degrade_event & DC_DE_FINGERPRINT_CHANGED )
 	{
-		stmt = dc_sqlite3_prepare(context->m_sql, "SELECT id FROM contacts WHERE addr=?;");
-			sqlite3_bind_text(stmt, 1, peerstate->m_addr, -1, SQLITE_STATIC);
+		stmt = dc_sqlite3_prepare(context->sql, "SELECT id FROM contacts WHERE addr=?;");
+			sqlite3_bind_text(stmt, 1, peerstate->addr, -1, SQLITE_STATIC);
 			sqlite3_step(stmt);
 			contact_id = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
@@ -70,10 +70,10 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 
 		dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_DEADDROP_BLOCKED, &contact_chat_id, NULL);
 
-		char* msg = dc_mprintf("Changed setup for %s", peerstate->m_addr);
+		char* msg = dc_mprintf("Changed setup for %s", peerstate->addr);
 		dc_add_device_msg(context, contact_chat_id, msg);
 		free(msg);
-		context->m_cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
+		context->cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 	}
 
 cleanup:
@@ -88,23 +88,23 @@ cleanup:
 
 static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expected_fingerprint)
 {
-	if( !mimeparser->m_e2ee_helper->m_encrypted ) {
-		dc_log_warning(mimeparser->m_context, 0, "Message not encrypted.");
+	if( !mimeparser->e2ee_helper->encrypted ) {
+		dc_log_warning(mimeparser->context, 0, "Message not encrypted.");
 		return 0;
 	}
 
-	if( dc_hash_count(mimeparser->m_e2ee_helper->m_signatures)<=0 ) {
-		dc_log_warning(mimeparser->m_context, 0, "Message not signed.");
+	if( dc_hash_count(mimeparser->e2ee_helper->signatures)<=0 ) {
+		dc_log_warning(mimeparser->context, 0, "Message not signed.");
 		return 0;
 	}
 
 	if( expected_fingerprint == NULL ) {
-		dc_log_warning(mimeparser->m_context, 0, "Fingerprint for comparison missing.");
+		dc_log_warning(mimeparser->context, 0, "Fingerprint for comparison missing.");
 		return 0;
 	}
 
-	if( dc_hash_find_str(mimeparser->m_e2ee_helper->m_signatures, expected_fingerprint) == NULL ) {
-		dc_log_warning(mimeparser->m_context, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
+	if( dc_hash_find_str(mimeparser->e2ee_helper->signatures, expected_fingerprint) == NULL ) {
+		dc_log_warning(mimeparser->context, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
 
@@ -118,8 +118,8 @@ static char* get_self_fingerprint(dc_context_t* context)
 	dc_key_t* self_key    = dc_key_new();
 	char*     fingerprint = NULL;
 
-	if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL
-	 || !dc_key_load_self_public(self_key, self_addr, context->m_sql) ) {
+	if( (self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL
+	 || !dc_key_load_self_public(self_key, self_addr, context->sql) ) {
 		goto cleanup;
 	}
 
@@ -163,14 +163,14 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 		goto cleanup;
 	}
 
-	if( !dc_contact_load_from_db(contact, context->m_sql, dc_array_get_id(contacts, 0))
-	 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr) ) {
+	if( !dc_contact_load_from_db(contact, context->sql, dc_array_get_id(contacts, 0))
+	 || !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr) ) {
 		goto cleanup;
 	}
 
 	fingerprint_normalized = dc_normalize_fingerprint(fingerprint);
 
-	if( strcasecmp(fingerprint_normalized, peerstate->m_public_key_fingerprint) == 0 ) {
+	if( strcasecmp(fingerprint_normalized, peerstate->public_key_fingerprint) == 0 ) {
 		fingerprint_equal = 1;
 	}
 
@@ -187,7 +187,7 @@ static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 	int              success = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
-	if( !dc_apeerstate_load_by_fingerprint(peerstate, context->m_sql, fingerprint) ) {
+	if( !dc_apeerstate_load_by_fingerprint(peerstate, context->sql, fingerprint) ) {
 		goto cleanup;
 	}
 
@@ -198,10 +198,10 @@ static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 	// set MUTUAL as an out-of-band-verification is a strong hint that encryption is wanted.
 	// the state may be corrected by the Autocrypt headers as usual later;
 	// maybe it is a good idea to add the prefer-encrypt-state to the QR code.
-	peerstate->m_prefer_encrypt = DC_PE_MUTUAL;
-	peerstate->m_to_save       |= DC_SAVE_ALL;
+	peerstate->prefer_encrypt = DC_PE_MUTUAL;
+	peerstate->to_save       |= DC_SAVE_ALL;
 
-	dc_apeerstate_save_to_db(peerstate, context->m_sql, 0);
+	dc_apeerstate_save_to_db(peerstate, context->sql, 0);
 	success = 1;
 
 cleanup:
@@ -226,29 +226,29 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 {
 	dc_msg_t* msg = dc_msg_new();
 
-	msg->m_type = DC_MSG_TEXT;
-	msg->m_text = dc_mprintf("Secure-Join: %s", step);
-	msg->m_hidden = 1;
-	dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_SECUREJOIN_MESSAGE);
-	dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, step);
+	msg->type = DC_MSG_TEXT;
+	msg->text = dc_mprintf("Secure-Join: %s", step);
+	msg->hidden = 1;
+	dc_param_set_int(msg->param, DC_PARAM_CMD,       DC_CMD_SECUREJOIN_MESSAGE);
+	dc_param_set    (msg->param, DC_PARAM_CMD_ARG, step);
 
 	if( param2 ) {
-		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
+		dc_param_set(msg->param, DC_PARAM_CMD_ARG2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
 	}
 
 	if( fingerprint ) {
-		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG3, fingerprint);
+		dc_param_set(msg->param, DC_PARAM_CMD_ARG3, fingerprint);
 	}
 
 	if( grpid ) {
-		dc_param_set(msg->m_param, DC_PARAM_CMD_ARG4, grpid);
+		dc_param_set(msg->param, DC_PARAM_CMD_ARG4, grpid);
 	}
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
-		dc_param_set_int(msg->m_param, DC_PARAM_FORCE_PLAINTEXT, DC_FP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
+		dc_param_set_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, DC_FP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
-		dc_param_set_int(msg->m_param, DC_PARAM_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
+		dc_param_set_int(msg->param, DC_PARAM_GUARANTEE_E2EE, 1); /* all but the first message MUST be encrypted */
 	}
 
 	dc_send_msg_object(context, contact_chat_id, msg);
@@ -261,7 +261,7 @@ static void could_not_establish_secure_connection(dc_context_t* context, uint32_
 {
 	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->m_addr : "?");
+	char*        msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -276,12 +276,12 @@ static void secure_connection_established(dc_context_t* context, uint32_t contac
 {
 	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = dc_mprintf("Secure connection to %s established.", contact? contact->m_addr : "?");
+	char*        msg        = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
 	// in addition to DC_EVENT_MSGS_CHANGED (sent by dc_add_device_msg()), also send DC_EVENT_CHAT_MODIFIED to update all views
-	context->m_cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
+	context->cb(context, DC_EVENT_CHAT_MODIFIED, contact_chat_id, 0);
 
 	free(msg);
 	dc_contact_unref(contact);
@@ -290,7 +290,7 @@ static void secure_connection_established(dc_context_t* context, uint32_t contac
 
 static void end_bobs_joining(dc_context_t* context, int status)
 {
-	context->m_bobs_status = status;
+	context->bobs_status = status;
 	dc_stop_ongoing_process(context);
 }
 
@@ -335,7 +335,7 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	char*     group_name           = NULL;
 	char*     group_name_urlencoded= NULL;
 
-	if( context == NULL || context->m_magic!=DC_CONTEXT_MAGIC ) {
+	if( context == NULL || context->magic!=DC_CONTEXT_MAGIC ) {
 		goto cleanup;
 	}
 
@@ -354,12 +354,12 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 			dc_token_save__(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
-		if( (self_addr = dc_sqlite3_get_config(context->m_sql, "configured_addr", NULL)) == NULL ) {
+		if( (self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL ) {
 			dc_log_error(context, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
-		self_name = dc_sqlite3_get_config(context->m_sql, "displayname", "");
+		self_name = dc_sqlite3_get_config(context->sql, "displayname", "");
 
 	if( (fingerprint=get_self_fingerprint(context)) == NULL ) {
 		goto cleanup;
@@ -372,13 +372,13 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if( chat == NULL || chat->m_type != DC_CHAT_TYPE_VERIFIED_GROUP ) {
+		if( chat == NULL || chat->type != DC_CHAT_TYPE_VERIFIED_GROUP ) {
 			dc_log_error(context, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
 		group_name = dc_chat_get_name(chat);
 		group_name_urlencoded = dc_urlencode(group_name);
-		qr = dc_mprintf(DC_OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->m_grpid, invitenumber, auth);
+		qr = dc_mprintf(DC_OPENPGP4FPR_SCHEME "%s#a=%s&g=%s&x=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, group_name_urlencoded, chat->grpid, invitenumber, auth);
 	}
 	else
 	{
@@ -404,7 +404,7 @@ cleanup:
 /**
  * Join an out-of-band-verification initiated on another device with dc_get_securejoin_qr().
  * This function is typically called when dc_check_qr() returns
- * lot.m_state=DC_QR_ASK_VERIFYCONTACT or lot.m_state=DC_QR_ASK_VERIFYGROUP.
+ * lot.state=DC_QR_ASK_VERIFYCONTACT or lot.state=DC_QR_ASK_VERIFYGROUP.
  *
  * This function takes some time and sends and receives several messages.
  * You should call it in a separate thread; if you want to abort it, you should
@@ -433,7 +433,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	int      ret_chat_id       = 0;
 	int      ongoing_allocated = 0;
-	#define  CHECK_EXIT        if( context->m_shall_stop_ongoing ) { goto cleanup; }
+	#define  CHECK_EXIT        if( context->shall_stop_ongoing ) { goto cleanup; }
 	uint32_t contact_chat_id   = 0;
 	dc_lot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
@@ -448,46 +448,46 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	}
 
 	if( ((qr_scan=dc_check_qr(context, qr))==NULL)
-	 || (qr_scan->m_state!=DC_QR_ASK_VERIFYCONTACT && qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
+	 || (qr_scan->state!=DC_QR_ASK_VERIFYCONTACT && qr_scan->state!=DC_QR_ASK_VERIFYGROUP) ) {
 		dc_log_error(context, 0, "Unknown QR code.");
 		goto cleanup;
 	}
 
-	if( (contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->m_id)) == 0 ) {
+	if( (contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->id)) == 0 ) {
 		dc_log_error(context, 0, "Unknown contact.");
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( context->m_cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+	if( context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
 		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	join_vg = (qr_scan->m_state==DC_QR_ASK_VERIFYGROUP);
+	join_vg = (qr_scan->state==DC_QR_ASK_VERIFYGROUP);
 
-	context->m_bobs_status = 0;
+	context->bobs_status = 0;
 	LOCK
-		context->m_bobs_qr_scan = qr_scan;
+		context->bobs_qr_scan = qr_scan;
 	UNLOCK
 
-	if( fingerprint_equals_sender(context, qr_scan->m_fingerprint, contact_chat_id) ) {
+	if( fingerprint_equals_sender(context, qr_scan->fingerprint, contact_chat_id) ) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
 		dc_log_info(context, 0, "Taking protocol shortcut.");
-		context->m_bob_expects = DC_VC_CONTACT_CONFIRM;
-		context->m_cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(context, contact_chat_id), 4);
+		context->bob_expects = DC_VC_CONTACT_CONFIRM;
+		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, chat_id_2_contact_id(context, contact_chat_id), 4);
 		char* own_fingerprint = get_self_fingerprint(context);
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
-			qr_scan->m_auth, own_fingerprint, join_vg? qr_scan->m_text2 : NULL); // Bob -> Alice
+			qr_scan->auth, own_fingerprint, join_vg? qr_scan->text2 : NULL); // Bob -> Alice
 		free(own_fingerprint);
 	}
 	else {
-		context->m_bob_expects = DC_VC_AUTH_REQUIRED;
+		context->bob_expects = DC_VC_AUTH_REQUIRED;
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request" : "vc-request",
-			qr_scan->m_invitenumber, NULL, NULL); // Bob -> Alice
+			qr_scan->invitenumber, NULL, NULL); // Bob -> Alice
 	}
 
 	while( 1 ) {
@@ -497,11 +497,11 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	}
 
 cleanup:
-	context->m_bob_expects = 0;
+	context->bob_expects = 0;
 
-	if( context->m_bobs_status == DC_BOB_SUCCESS ) {
+	if( context->bobs_status == DC_BOB_SUCCESS ) {
 		if( join_vg ) {
-			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->m_text2, NULL, NULL);
+			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->text2, NULL, NULL);
 		}
 		else {
 			ret_chat_id = contact_chat_id;
@@ -509,7 +509,7 @@ cleanup:
 	}
 
 	LOCK
-		context->m_bobs_qr_scan = NULL;
+		context->bobs_qr_scan = NULL;
 	UNLOCK
 
 	dc_lot_unref(qr_scan);
@@ -575,7 +575,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		dc_log_info(context, 0, "Secure-join requested.");
 
-		context->m_cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 3);
 
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required",
 			NULL, NULL, NULL); // Alice -> Bob
@@ -589,21 +589,21 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
 		LOCK
-			if ( context->m_bobs_qr_scan==NULL
-			  || context->m_bob_expects!=DC_VC_AUTH_REQUIRED
-			  || (join_vg && context->m_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP) ) {
+			if ( context->bobs_qr_scan==NULL
+			  || context->bob_expects!=DC_VC_AUTH_REQUIRED
+			  || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP) ) {
 				dc_log_warning(context, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
-			scanned_fingerprint_of_alice = dc_strdup(context->m_bobs_qr_scan->m_fingerprint);
-			auth = dc_strdup(context->m_bobs_qr_scan->m_auth);
+			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
+			auth = dc_strdup(context->bobs_qr_scan->auth);
 			if( join_vg ) {
-				grpid = dc_strdup(context->m_bobs_qr_scan->m_text2);
+				grpid = dc_strdup(context->bobs_qr_scan->text2);
 			}
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
-			could_not_establish_secure_connection(context, contact_chat_id, mimeparser->m_e2ee_helper->m_encrypted? "No valid signature." : "Not encrypted.");
+			could_not_establish_secure_connection(context, contact_chat_id, mimeparser->e2ee_helper->encrypted? "No valid signature." : "Not encrypted.");
 			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
@@ -619,9 +619,9 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		own_fingerprint = get_self_fingerprint(context);
 
-		context->m_cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
+		context->cb(context, DC_EVENT_SECUREJOIN_JOINER_PROGRESS, contact_id, 4);
 
-		context->m_bob_expects = DC_VC_CONTACT_CONFIRM;
+		context->bob_expects = DC_VC_CONTACT_CONFIRM;
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
 			auth, own_fingerprint, grpid); // Bob -> Alice
 	}
@@ -676,8 +676,8 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		secure_connection_established(context, contact_chat_id);
 
-		context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
-		context->m_cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
+		context->cb(context, DC_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
+		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 6);
 
 		if( join_vg ) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
@@ -708,7 +708,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			ret = DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
 		}
 
-		if (context->m_bob_expects!=DC_VC_CONTACT_CONFIRM) {
+		if (context->bob_expects!=DC_VC_CONTACT_CONFIRM) {
 			if( join_vg ) {
 				dc_log_info(context, 0, "vg-member-added received as broadcast.");
 			}
@@ -719,11 +719,11 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		LOCK
-			if (context->m_bobs_qr_scan==NULL || (join_vg && context->m_bobs_qr_scan->m_state!=DC_QR_ASK_VERIFYGROUP)) {
+			if (context->bobs_qr_scan==NULL || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP)) {
 				dc_log_warning(context, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}
-			scanned_fingerprint_of_alice = dc_strdup(context->m_bobs_qr_scan->m_fingerprint);
+			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
 		UNLOCK
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
@@ -743,9 +743,9 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		secure_connection_established(context, contact_chat_id);
 
-		context->m_cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
+		context->cb(context, DC_EVENT_CONTACTS_CHANGED, 0/*no select event*/, 0);
 
-		context->m_bob_expects = 0;
+		context->bob_expects = 0;
 		end_bobs_joining(context, DC_BOB_SUCCESS);
 	}
 
