@@ -80,9 +80,9 @@ struct mailimap_date_time* dc_timestamp_to_mailimap_date_time (time_t);
 long                       dc_gm2local_offset                 (void);
 
 /* timesmearing */
-time_t dc_smeared_time__             (void);
-time_t dc_create_smeared_timestamp__ (void);
-time_t dc_create_smeared_timestamps__(int count);
+time_t dc_smeared_time               (dc_context_t*);
+time_t dc_create_smeared_timestamp   (dc_context_t*);
+time_t dc_create_smeared_timestamps  (dc_context_t*, int count);
 
 /* Message-ID tools */
 #define DC_CREATE_ID_LEN                   11

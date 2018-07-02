@@ -279,7 +279,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 
 		load_from__(factory);
 
-		factory->m_timestamp = dc_create_smeared_timestamp__();
+		factory->m_timestamp = dc_create_smeared_timestamp(context);
 		factory->m_rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, factory->m_from_addr);
 
 	success = 1;

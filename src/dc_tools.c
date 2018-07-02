@@ -758,44 +758,52 @@ struct mailimap_date_time* dc_timestamp_to_mailimap_date_time(time_t timeval)
  ******************************************************************************/
 
 
-static time_t s_last_smeared_timestamp = 0;
 #define DC_MAX_SECONDS_TO_LEND_FROM_FUTURE   5
 
 
-time_t dc_create_smeared_timestamp__(void)
+#define SMEAR_LOCK   { pthread_mutex_lock(&context->m_smear_critical); }
+#define SMEAR_UNLOCK { pthread_mutex_unlock(&context->m_smear_critical); }
+
+
+time_t dc_create_smeared_timestamp(dc_context_t* context)
 {
 	time_t now = time(NULL);
 	time_t ret = now;
-	if( ret <= s_last_smeared_timestamp ) {
-		ret = s_last_smeared_timestamp+1;
-		if( (ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
-			ret = now + DC_MAX_SECONDS_TO_LEND_FROM_FUTURE;
+	SMEAR_LOCK
+		if( ret <= context->m_last_smeared_timestamp ) {
+			ret = context->m_last_smeared_timestamp+1;
+			if( (ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
+				ret = now + DC_MAX_SECONDS_TO_LEND_FROM_FUTURE;
+			}
 		}
-	}
-	s_last_smeared_timestamp = ret;
+		context->m_last_smeared_timestamp = ret;
+	SMEAR_UNLOCK
 	return ret;
 }
 
 
-time_t dc_create_smeared_timestamps__(int count)
+time_t dc_create_smeared_timestamps(dc_context_t* context, int count)
 {
 	/* get a range to timestamps that can be used uniquely */
 	time_t now = time(NULL);
 	time_t start = now + DC_MIN(count, DC_MAX_SECONDS_TO_LEND_FROM_FUTURE) - count;
-	start = DC_MAX(s_last_smeared_timestamp+1, start);
-
-	s_last_smeared_timestamp = start+(count-1);
+	SMEAR_LOCK
+		start = DC_MAX(context->m_last_smeared_timestamp+1, start);
+		context->m_last_smeared_timestamp = start+(count-1);
+	SMEAR_UNLOCK
 	return start;
 }
 
 
-time_t dc_smeared_time__(void)
+time_t dc_smeared_time(dc_context_t* context)
 {
 	/* function returns a corrected time(NULL) */
 	time_t now = time(NULL);
-	if( s_last_smeared_timestamp >= now ) {
-		now = s_last_smeared_timestamp+1;
-	}
+	SMEAR_LOCK
+		if( context->m_last_smeared_timestamp >= now ) {
+			now = context->m_last_smeared_timestamp+1;
+		}
+	SMEAR_UNLOCK
 	return now;
 }
 

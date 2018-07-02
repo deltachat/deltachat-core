@@ -101,6 +101,7 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 		exit(23); /* cannot allocate little memory, unrecoverable error */
 	}
 
+	pthread_mutex_init(&context->m_smear_critical, NULL);
 	pthread_mutex_init(&context->m_bobs_qr_critical, NULL);
 	pthread_mutex_init(&context->m_log_ringbuf_critical, NULL);
 	pthread_mutex_init(&context->m_imapidle_condmutex, NULL);
@@ -163,6 +164,7 @@ void dc_context_unref(dc_context_t* context)
 	dc_smtp_unref(context->m_smtp);
 	dc_sqlite3_unref(context->m_sql);
 
+	pthread_mutex_destroy(&context->m_smear_critical);
 	pthread_mutex_destroy(&context->m_bobs_qr_critical);
 	pthread_mutex_destroy(&context->m_log_ringbuf_critical);
 	pthread_mutex_destroy(&context->m_imapidle_condmutex);
@@ -1961,7 +1963,7 @@ uint32_t dc_send_msg_object(dc_context_t* context, uint32_t chat_id, dc_msg_t* m
 
 	chat = dc_chat_new(context);
 	if( dc_chat_load_from_db(chat, chat_id) ) {
-		msg->m_id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp__());
+		msg->m_id = dc_send_msg_raw(context, chat, msg, dc_create_smeared_timestamp(context));
 		if( msg ->m_id == 0 ) {
 			goto cleanup; /* error already logged */
 		}
@@ -2290,7 +2292,7 @@ void dc_add_device_msg(dc_context_t* context, uint32_t chat_id, const char* text
 	sqlite3_bind_int  (stmt,  1, chat_id);
 	sqlite3_bind_int  (stmt,  2, DC_CONTACT_ID_DEVICE);
 	sqlite3_bind_int  (stmt,  3, DC_CONTACT_ID_DEVICE);
-	sqlite3_bind_int64(stmt,  4, dc_create_smeared_timestamp__());
+	sqlite3_bind_int64(stmt,  4, dc_create_smeared_timestamp(context));
 	sqlite3_bind_int  (stmt,  5, DC_MSG_TEXT);
 	sqlite3_bind_int  (stmt,  6, DC_STATE_IN_NOTICED);
 	sqlite3_bind_text (stmt,  7, text,  -1, SQLITE_STATIC);
@@ -4018,7 +4020,7 @@ void dc_forward_msgs(dc_context_t* context, const uint32_t* msg_ids, int msg_cnt
 			goto cleanup;
 		}
 
-		curr_timestamp = dc_create_smeared_timestamps__(msg_cnt);
+		curr_timestamp = dc_create_smeared_timestamps(context, msg_cnt);
 
 		idsstr = dc_arr_to_string(msg_ids, msg_cnt);
 		q3 = sqlite3_mprintf("SELECT id FROM msgs WHERE id IN(%s) ORDER BY timestamp,id", idsstr);

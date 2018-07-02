@@ -319,8 +319,8 @@ static void calc_timestamps(dc_context_t* context, uint32_t chat_id, uint32_t fr
 	}
 
 	/* use the (smeared) current time as the MAXIMUM */
-	if( *sort_timestamp >= dc_smeared_time__() ) {
-		*sort_timestamp = dc_create_smeared_timestamp__();
+	if( *sort_timestamp >= dc_smeared_time(context) ) {
+		*sort_timestamp = dc_create_smeared_timestamp(context);
 	}
 }
 

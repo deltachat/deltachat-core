@@ -108,6 +108,10 @@ struct _dc_context
 	int             m_bobs_status;
 	dc_lot_t*       m_bobs_qr_scan;
 	pthread_mutex_t m_bobs_qr_critical;
+
+	// time smearing - to keep messages in order, we may modify the time by some seconds
+	time_t          m_last_smeared_timestamp;
+	pthread_mutex_t m_smear_critical;
 };
 
 
