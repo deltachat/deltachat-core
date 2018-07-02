@@ -275,7 +275,7 @@ int dc_contact_is_blocked(const dc_contact_t* contact)
 }
 
 
-int dc_contact_is_verified__(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
+int dc_contact_n_peerstate_are_verified(const dc_contact_t* contact, const dc_apeerstate_t* peerstate)
 {
 	int             contact_verified = DC_NOT_VERIFIED;
 
@@ -323,7 +323,7 @@ int dc_contact_is_verified(const dc_contact_t* contact)
 		goto cleanup;
 	}
 
-	contact_verified = dc_contact_is_verified__(contact, peerstate);
+	contact_verified = dc_contact_n_peerstate_are_verified(contact, peerstate);
 
 cleanup:
 	dc_apeerstate_unref(peerstate);

@@ -2672,7 +2672,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 			if( chat->m_type == DC_CHAT_TYPE_VERIFIED_GROUP )
 			{
 				if( !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr)
-				 || dc_contact_is_verified__(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
+				 || dc_contact_n_peerstate_are_verified(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
 					dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 					goto cleanup;
 				}

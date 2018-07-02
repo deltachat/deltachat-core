@@ -599,7 +599,7 @@ static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* m
 	// ensure, the contact is verified
 	if( !dc_contact_load_from_db(contact, context->m_sql, from_id)
 	 || !dc_apeerstate_load_by_addr(peerstate, context->m_sql, contact->m_addr)
-	 || dc_contact_is_verified__(contact, peerstate) < DC_BIDIRECT_VERIFIED ) {
+	 || dc_contact_n_peerstate_are_verified(contact, peerstate) < DC_BIDIRECT_VERIFIED ) {
 		dc_log_warning(context, 0, "Cannot verifiy group; sender is not verified.");
 		goto cleanup;
 	}
