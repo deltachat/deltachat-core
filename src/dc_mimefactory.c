@@ -89,7 +89,7 @@ void dc_mimefactory_empty(dc_mimefactory_t* factory)
 }
 
 
-static void load_from__(dc_mimefactory_t* factory)
+static void load_from(dc_mimefactory_t* factory)
 {
 	factory->from_addr        = dc_sqlite3_get_config(factory->context->sql, "configured_addr", NULL);
 	factory->from_displayname = dc_sqlite3_get_config(factory->context->sql, "displayname", NULL);
@@ -122,7 +122,7 @@ int dc_mimefactory_load_msg(dc_mimefactory_t* factory, uint32_t msg_id)
 		if( dc_msg_load_from_db(factory->msg, context, msg_id)
 		 && dc_chat_load_from_db(factory->chat, factory->msg->chat_id) )
 		{
-			load_from__(factory);
+			load_from(factory);
 
 			factory->req_mdn = 0;
 
@@ -277,7 +277,7 @@ int dc_mimefactory_load_mdn(dc_mimefactory_t* factory, uint32_t msg_id)
 		clist_append(factory->recipients_names, (void*)((contact->authname&&contact->authname[0])? dc_strdup(contact->authname) : NULL));
 		clist_append(factory->recipients_addr,  (void*)dc_strdup(contact->addr));
 
-		load_from__(factory);
+		load_from(factory);
 
 		factory->timestamp = dc_create_smeared_timestamp(context);
 		factory->rfc724_mid = dc_create_outgoing_rfc724_mid(NULL, factory->from_addr);

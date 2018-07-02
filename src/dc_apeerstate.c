@@ -75,7 +75,7 @@ static void dc_apeerstate_empty(dc_apeerstate_t* peerstate)
 }
 
 
-static void dc_apeerstate_set_from_stmt__(dc_apeerstate_t* peerstate, sqlite3_stmt* stmt)
+static void dc_apeerstate_set_from_stmt(dc_apeerstate_t* peerstate, sqlite3_stmt* stmt)
 {
 	#define PEERSTATE_FIELDS "addr, last_seen, last_seen_autocrypt, prefer_encrypted, public_key, gossip_timestamp, gossip_key, public_key_fingerprint, gossip_key_fingerprint, verified_key, verified_key_fingerprint"
 	peerstate->addr                     = dc_strdup((char*)sqlite3_column_text  (stmt, 0));
@@ -126,7 +126,7 @@ int dc_apeerstate_load_by_addr(dc_apeerstate_t* peerstate, dc_sqlite3_t* sql, co
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
-	dc_apeerstate_set_from_stmt__(peerstate, stmt);
+	dc_apeerstate_set_from_stmt(peerstate, stmt);
 
 	success = 1;
 
@@ -159,7 +159,7 @@ int dc_apeerstate_load_by_fingerprint(dc_apeerstate_t* peerstate, dc_sqlite3_t* 
 	if( sqlite3_step(stmt) != SQLITE_ROW ) {
 		goto cleanup;
 	}
-	dc_apeerstate_set_from_stmt__(peerstate, stmt);
+	dc_apeerstate_set_from_stmt(peerstate, stmt);
 
 	success = 1;
 
@@ -550,7 +550,7 @@ cleanup:
  * @param verified DC_BIDIRECT_VERIFIED (2): contact verfied in both directions
  *
  * @return 1=the given fingerprint is equal to the peer's fingerprint and
- *     the verified-state is set; you should call dc_apeerstate_save_to_db__()
+ *     the verified-state is set; you should call dc_apeerstate_save_to_db()
  *     to permanently store this state.
  *     0=the given fingerprint is not eqial to the peer's fingerprint,
  *     verified-state not changed.

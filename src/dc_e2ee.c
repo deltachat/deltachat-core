@@ -191,7 +191,7 @@ static int contains_report(struct mailmime* mime)
  ******************************************************************************/
 
 
-static int load_or_generate_self_public_key__(dc_context_t* context, dc_key_t* public_key, const char* self_addr,
+static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* public_key, const char* self_addr,
                                               struct mailmime* random_data_mime /*for an extra-seed of the random generator. For speed reasons, only give _available_ pointers here, do not create any data - in very most cases, the key is not generated!*/)
 {
 	static int s_in_key_creation = 0; /* avoid double creation (we unlock the database during creation) */
@@ -291,7 +291,7 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key__(context, public_key, self_addr, NULL/*no random text data for seeding available*/) ) {
+		if( !load_or_generate_self_public_key(context, public_key, self_addr, NULL/*no random text data for seeding available*/) ) {
 			goto cleanup;
 		}
 
@@ -344,7 +344,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key__(context, autocryptheader->public_key, autocryptheader->addr, in_out_message/*only for random-seed*/) ) {
+		if( !load_or_generate_self_public_key(context, autocryptheader->public_key, autocryptheader->addr, in_out_message/*only for random-seed*/) ) {
 			goto cleanup;
 		}
 

@@ -944,7 +944,7 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 	}
 	*p1 = 0;
 
-	#define DC_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id__() */
+	#define DC_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id() */
 	grpid_len = strlen(grpid);
 	if( grpid_len!=DC_CREATE_ID_LEN && grpid_len!=DC_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;

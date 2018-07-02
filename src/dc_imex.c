@@ -869,7 +869,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 	}
 
 	/* temporary lock and close the source (we just make a copy of the whole file, this is the fastest and easiest approach) */
-	dc_sqlite3_close__(context->sql);
+	dc_sqlite3_close(context->sql);
 	closed = 1;
 
 		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->dbfile, dest_pathNfilename);
@@ -877,16 +877,16 @@ static int export_backup(dc_context_t* context, const char* dir)
 			goto cleanup; /* error already logged */
 		}
 
-	dc_sqlite3_open__(context->sql, context->dbfile, 0);
+	dc_sqlite3_open(context->sql, context->dbfile, 0);
 	closed = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
 	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
-	 || !dc_sqlite3_open__(dest_sql, dest_pathNfilename, 0) ) {
+	 || !dc_sqlite3_open(dest_sql, dest_pathNfilename, 0) ) {
 		goto cleanup; /* error already logged */
 	}
 
-	if( !dc_sqlite3_table_exists__(dest_sql, "backup_blobs") ) {
+	if( !dc_sqlite3_table_exists(dest_sql, "backup_blobs") ) {
 		if( !dc_sqlite3_execute(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
 			goto cleanup; /* error already logged */
 		}
@@ -964,10 +964,10 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 cleanup:
 	if( dir_handle ) { closedir(dir_handle); }
-	if( closed ) { dc_sqlite3_open__(context->sql, context->dbfile, 0); }
+	if( closed ) { dc_sqlite3_open(context->sql, context->dbfile, 0); }
 
 	sqlite3_finalize(stmt);
-	dc_sqlite3_close__(dest_sql);
+	dc_sqlite3_close(dest_sql);
 	dc_sqlite3_unref(dest_sql);
 	if( delete_dest_file ) { dc_delete_file(dest_pathNfilename, context); }
 	free(dest_pathNfilename);
@@ -1021,7 +1021,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 //locked = 1;
 
 	if( dc_sqlite3_is_open(context->sql) ) {
-		dc_sqlite3_close__(context->sql);
+		dc_sqlite3_close(context->sql);
 	}
 
 	dc_delete_file(context->dbfile, context);
@@ -1037,7 +1037,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	}
 
 	/* re-open copied database file */
-	if( !dc_sqlite3_open__(context->sql, context->dbfile, 0) ) {
+	if( !dc_sqlite3_open(context->sql, context->dbfile, 0) ) {
 		goto cleanup;
 	}
 
@@ -1350,7 +1350,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 
 			dc_sqlite3_unref(test_sql);
 			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
-			 && dc_sqlite3_open__(test_sql, curr_pathNfilename, DC_OPEN_READONLY) )
+			 && dc_sqlite3_open(test_sql, curr_pathNfilename, DC_OPEN_READONLY) )
 			{
 				time_t curr_backup_time = dc_sqlite3_get_config_int(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
 				if( curr_backup_time > 0

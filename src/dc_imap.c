@@ -31,8 +31,8 @@
 #include "dc_loginparam.h"
 
 
-static int  setup_handle_if_needed__ (dc_imap_t*);
-static void unsetup_handle__         (dc_imap_t*);
+static int  setup_handle_if_needed   (dc_imap_t*);
+static void unsetup_handle           (dc_imap_t*);
 
 
 /*******************************************************************************
@@ -198,7 +198,7 @@ typedef struct dc_imapfolder_t
 } dc_imapfolder_t;
 
 
-static clist* list_folders__(dc_imap_t* imap)
+static clist* list_folders(dc_imap_t* imap)
 {
 	clist*     imap_list = NULL;
 	clistiter* iter1;
@@ -294,7 +294,7 @@ static void free_folders(clist* folders)
 }
 
 
-static int init_chat_folders__(dc_imap_t* imap)
+static int init_chat_folders(dc_imap_t* imap)
 {
 	int        success = 0;
 	clist*     folder_list = NULL;
@@ -316,7 +316,7 @@ static int init_chat_folders__(dc_imap_t* imap)
 	free(imap->moveto_folder);
 	imap->moveto_folder = NULL;
 	//this sets imap->imap_delimiter as side-effect
-	folder_list = list_folders__(imap);
+	folder_list = list_folders(imap);
 
 	//as a fallback, the chats_folder is created under INBOX as required e.g. for DomainFactory
 	char fallback_folder[64];
@@ -387,7 +387,7 @@ cleanup:
 }
 
 
-static int select_folder__(dc_imap_t* imap, const char* folder /*may be NULL*/)
+static int select_folder(dc_imap_t* imap, const char* folder /*may be NULL*/)
 {
 	if( imap == NULL ) {
 		return 0;
@@ -429,19 +429,19 @@ static int select_folder__(dc_imap_t* imap, const char* folder /*may be NULL*/)
 }
 
 
-static uint32_t search_uid__(dc_imap_t* imap, const char* message_id)
+static uint32_t search_uid(dc_imap_t* imap, const char* message_id)
 {
 	/* Search Message-ID in all folders.
 	On success, the folder containing the message is selected and the UID is returned.
 	On failure, 0 is returned and any or none folder is selected. */
-	clist                       *folders = list_folders__(imap), *search_result = NULL;
+	clist                       *folders = list_folders(imap), *search_result = NULL;
 	clistiter                   *cur, *cur2;
 	struct mailimap_search_key  *key = mailimap_search_key_new_header(strdup("Message-ID"), dc_mprintf("<%s>", message_id));
 	uint32_t                    uid = 0;
 	for( cur = clist_begin(folders); cur != NULL ; cur = clist_next(cur) )
 	{
 		dc_imapfolder_t* folder = (dc_imapfolder_t*)clist_content(cur);
-		if( select_folder__(imap, folder->name_to_select) )
+		if( select_folder(imap, folder->name_to_select) )
 		{
 			int r = mailimap_uid_search(imap->hEtpan, "utf-8", key, &search_result);
 			if( !is_error(imap, r) && search_result ) {
@@ -706,7 +706,7 @@ static int fetch_from_single_folder(dc_imap_t* imap, const char* folder)
 		goto cleanup;
 	}
 
-	if( select_folder__(imap, folder)==0 ) {
+	if( select_folder(imap, folder)==0 ) {
 		dc_log_warning(imap->context, 0, "Cannot select folder \"%s\".", folder);
 		goto cleanup;
 	}
@@ -825,7 +825,7 @@ static int fetch_from_all_folders(dc_imap_t* imap)
 	clistiter* cur;
 	int        total_cnt = 0;
 
-		folder_list = list_folders__(imap);
+		folder_list = list_folders(imap);
 
 	/* first, read the INBOX, this looks much better on the initial load as the INBOX
 	has the most recent mails.  Moreover, this is for speed reasons, as the other folders only have few new messages. */
@@ -865,7 +865,7 @@ int dc_imap_fetch(dc_imap_t* imap)
 		return 0;
 	}
 
-	setup_handle_if_needed__(imap);
+	setup_handle_if_needed(imap);
 
 	#define FULL_FETCH_EVERY_SECONDS (22*60)
 
@@ -922,7 +922,7 @@ static void fake_idle(dc_imap_t* imap)
 		// check for new messages. fetch_from_single_folder() has the side-effect that messages
 		// are also downloaded, however, typically this would take place in the FETCH command
 		// following IDLE otherwise, so this seems okay here.
-		if( setup_handle_if_needed__(imap) ) { // the handle may not be set up if configure is not yet done
+		if( setup_handle_if_needed(imap) ) { // the handle may not be set up if configure is not yet done
 			if( fetch_from_single_folder(imap, "INBOX") ) {
 				do_fake_idle = 0;
 			}
@@ -943,7 +943,7 @@ void dc_imap_idle(dc_imap_t* imap)
 
 	if( imap->can_idle )
 	{
-		setup_handle_if_needed__(imap);
+		setup_handle_if_needed(imap);
 
 		if( imap->idle_set_up==0 && imap->hEtpan && imap->hEtpan->imap_stream ) {
 			r = mailstream_setup_idle(imap->hEtpan->imap_stream);
@@ -955,7 +955,7 @@ void dc_imap_idle(dc_imap_t* imap)
 			imap->idle_set_up = 1;
 		}
 
-		if( !imap->idle_set_up || !select_folder__(imap, "INBOX") ) {
+		if( !imap->idle_set_up || !select_folder(imap, "INBOX") ) {
 			dc_log_warning(imap->context, 0, "IMAP-IDLE not setup.");
 			fake_idle(imap);
 			return;
@@ -1027,7 +1027,7 @@ void dc_imap_interrupt_idle(dc_imap_t* imap)
  ******************************************************************************/
 
 
-static int setup_handle_if_needed__(dc_imap_t* imap)
+static int setup_handle_if_needed(dc_imap_t* imap)
 {
 	int r, success = 0;
 
@@ -1036,7 +1036,7 @@ static int setup_handle_if_needed__(dc_imap_t* imap)
 	}
 
     if( imap->should_reconnect ) {
-		unsetup_handle__(imap);
+		unsetup_handle(imap);
     }
 
     if( imap->hEtpan ) {
@@ -1114,7 +1114,7 @@ static int setup_handle_if_needed__(dc_imap_t* imap)
 
 cleanup:
 	if( success == 0 ) {
-		unsetup_handle__(imap);
+		unsetup_handle(imap);
 	}
 
 	imap->should_reconnect = 0;
@@ -1122,7 +1122,7 @@ cleanup:
 }
 
 
-static void unsetup_handle__(dc_imap_t* imap)
+static void unsetup_handle(dc_imap_t* imap)
 {
 	if( imap==NULL ) {
 		return;
@@ -1157,7 +1157,7 @@ static void unsetup_handle__(dc_imap_t* imap)
  ******************************************************************************/
 
 
-static void free_connect_param__(dc_imap_t* imap)
+static void free_connect_param(dc_imap_t* imap)
 {
 	free(imap->imap_server);
 	imap->imap_server = NULL;
@@ -1201,11 +1201,11 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 	imap->imap_pw      = dc_strdup(lp->mail_pw);
 	imap->server_flags = lp->server_flags;
 
-	if( !setup_handle_if_needed__(imap) ) {
+	if( !setup_handle_if_needed(imap) ) {
 		goto cleanup;
 	}
 
-	/* we set the following flags here and not in setup_handle_if_needed__() as they must not change during connection */
+	/* we set the following flags here and not in setup_handle_if_needed() as they must not change during connection */
 	imap->can_idle = mailimap_has_idle(imap->hEtpan);
 	imap->has_xlist = mailimap_has_xlist(imap->hEtpan);
 
@@ -1241,8 +1241,8 @@ int dc_imap_connect(dc_imap_t* imap, const dc_loginparam_t* lp)
 
 cleanup:
 	if( success == 0 ) {
-		unsetup_handle__(imap);
-		free_connect_param__(imap);
+		unsetup_handle(imap);
+		free_connect_param(imap);
 	}
 	return success;
 }
@@ -1256,8 +1256,8 @@ void dc_imap_disconnect(dc_imap_t* imap)
 
 	if( imap->connected )
 	{
-		unsetup_handle__(imap);
-		free_connect_param__(imap);
+		unsetup_handle(imap);
+		free_connect_param(imap);
 		imap->connected = 0;
 	}
 }
@@ -1365,12 +1365,12 @@ int dc_imap_append_msg(dc_imap_t* imap, time_t timestamp, const char* data_not_t
 
 	dc_log_info(imap->context, 0, "Appending message to IMAP-server...");
 
-	if( !init_chat_folders__(imap) ) {
+	if( !init_chat_folders(imap) ) {
 		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot find out IMAP-sent-folder.");
 		goto cleanup;
 	}
 
-	if( !select_folder__(imap, imap->sent_folder) ) {
+	if( !select_folder(imap, imap->sent_folder) ) {
 		dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Cannot select IMAP-folder \"%s\".", imap->sent_folder);
 		imap->sent_folder[0] = 0; /* force re-init */
 		goto cleanup;
@@ -1411,7 +1411,7 @@ cleanup:
 }
 
 
-static int add_flag__(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* flag)
+static int add_flag(dc_imap_t* imap, uint32_t server_uid, struct mailimap_flag* flag)
 {
 	int                              r;
 	struct mailimap_flag_list*       flag_list = NULL;
@@ -1466,12 +1466,12 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 
 	dc_log_info(imap->context, 0, "Marking message %s/%i as seen...", folder, (int)server_uid);
 
-	if( select_folder__(imap, folder)==0 ) {
+	if( select_folder(imap, folder)==0 ) {
 		dc_log_warning(imap->context, 0, "Cannot select folder.");
 		goto cleanup;
 	}
 
-	if( add_flag__(imap, server_uid, mailimap_flag_new_seen())==0 ) {
+	if( add_flag(imap, server_uid, mailimap_flag_new_seen())==0 ) {
 		dc_log_warning(imap->context, 0, "Cannot mark message as seen.");
 		goto cleanup;
 	}
@@ -1511,7 +1511,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 				clistiter* cur=clist_begin(fetch_result);
 				if( cur ) {
 					if( !peek_flag_keyword((struct mailimap_msg_att*)clist_content(cur), "$MDNSent") ) {
-						add_flag__(imap, server_uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")));
+						add_flag(imap, server_uid, mailimap_flag_new_flag_keyword(dc_strdup("$MDNSent")));
 						*ret_ms_flags |= DC_MS_MDNSent_JUST_SET;
 					}
 				}
@@ -1528,7 +1528,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 
 	if( (ms_flags&DC_MS_ALSO_MOVE) && (imap->server_flags&DC_NO_MOVE_TO_CHATS)==0 )
 	{
-		init_chat_folders__(imap);
+		init_chat_folders(imap);
 		if( imap->moveto_folder && strcmp(folder, imap->moveto_folder)==0 )
 		{
 			dc_log_info(imap->context, 0, "Message %s/%i is already in %s...", folder, (int)server_uid, imap->moveto_folder);
@@ -1544,7 +1544,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 			uint32_t             res_uid = 0;
 			struct mailimap_set* res_setsrc = NULL;
 			struct mailimap_set* res_setdest = NULL;
-			r = mailimap_uidplus_uid_move(imap->hEtpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag__() above */
+			r = mailimap_uidplus_uid_move(imap->hEtpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest); /* the correct folder is already selected in add_flag() above */
 			if( is_error(imap, r) ) {
 								dc_log_info(imap->context, 0, "Cannot move message, fallback to COPY/DELETE %s/%i to %s...", folder, (int)server_uid, imap->moveto_folder);
 								r = mailimap_uidplus_uid_copy(imap->hEtpan, set, imap->moveto_folder, &res_uid, &res_setsrc, &res_setdest);
@@ -1554,7 +1554,7 @@ int dc_imap_markseen_msg(dc_imap_t* imap, const char* folder, uint32_t server_ui
 								}
 								else {
 									dc_log_info(imap->context, 0, "Deleting msg ...");
-									if( add_flag__(imap, server_uid, mailimap_flag_new_deleted())==0 ) {
+									if( add_flag(imap, server_uid, mailimap_flag_new_deleted())==0 ) {
 											dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\".");/* maybe the message is already deleted */
 									}
 
@@ -1608,7 +1608,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 	dc_log_info(imap->context, 0, "Marking message \"%s\", %s/%i for deletion...", rfc724_mid, folder, (int)server_uid);
 
-	if( select_folder__(imap, folder)==0 ) {
+	if( select_folder(imap, folder)==0 ) {
 		dc_log_warning(imap->context, 0, "Cannot select folder \"%s\".", folder); /* maybe the folder does no longer exist */
 		goto cleanup;
 	}
@@ -1616,7 +1616,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	/* check if Folder+UID matches the Message-ID (to detect if the messages
 	was moved around by other MUAs and in place of an UIDVALIDITY check)
 	(we also detect messages moved around when we do a fetch-all, see
-	dc_update_server_uid__() in receive_imf(), however this may take a while) */
+	dc_update_server_uid() in receive_imf(), however this may take a while) */
 	if( server_uid )
 	{
 		clistiter* cur = NULL;
@@ -1639,7 +1639,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 	try to search for it in all folders (the message may be moved by another MUA to a folder we do not sync or the sync is a moment ago) */
 	if( server_uid == 0 ) {
 		dc_log_info(imap->context, 0, "Searching UID by Message-ID \"%s\"...", rfc724_mid);
-		if( (server_uid=search_uid__(imap, rfc724_mid))==0 ) {
+		if( (server_uid=search_uid(imap, rfc724_mid))==0 ) {
 			dc_log_warning(imap->context, 0, "Message-ID \"%s\" not found in any folder, cannot delete message.", rfc724_mid);
 			goto cleanup;
 		}
@@ -1648,7 +1648,7 @@ int dc_imap_delete_msg(dc_imap_t* imap, const char* rfc724_mid, const char* fold
 
 
 	/* mark the message for deletion */
-	if( add_flag__(imap, server_uid, mailimap_flag_new_deleted())==0 ) {
+	if( add_flag(imap, server_uid, mailimap_flag_new_deleted())==0 ) {
 		dc_log_warning(imap->context, 0, "Cannot mark message as \"Deleted\"."); /* maybe the message is already deleted */
 		goto cleanup;
 	}

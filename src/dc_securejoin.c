@@ -342,16 +342,16 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	dc_ensure_secret_key_exists(context);
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
-		invitenumber = dc_token_lookup__(context, DC_TOKEN_INVITENUMBER, group_chat_id);
+		invitenumber = dc_token_lookup(context, DC_TOKEN_INVITENUMBER, group_chat_id);
 		if( invitenumber == NULL ) {
 			invitenumber = dc_create_id();
-			dc_token_save__(context, DC_TOKEN_INVITENUMBER, group_chat_id, invitenumber);
+			dc_token_save(context, DC_TOKEN_INVITENUMBER, group_chat_id, invitenumber);
 		}
 
-		auth = dc_token_lookup__(context, DC_TOKEN_AUTH, group_chat_id);
+		auth = dc_token_lookup(context, DC_TOKEN_AUTH, group_chat_id);
 		if( auth == NULL ) {
 			auth = dc_create_id();
-			dc_token_save__(context, DC_TOKEN_AUTH, group_chat_id, auth);
+			dc_token_save(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
 		if( (self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL ) {
@@ -568,7 +568,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		if( dc_token_exists__(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
+		if( dc_token_exists(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
 			dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
@@ -660,7 +660,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		if( dc_token_exists__(context, DC_TOKEN_AUTH, auth) == 0 ) {
+		if( dc_token_exists(context, DC_TOKEN_AUTH, auth) == 0 ) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
 			goto cleanup;
 		}
@@ -756,7 +756,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		if( (field=dc_mimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
 			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
 			if( fld_message_id && fld_message_id->mid_value ) {
-				dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, dc_rfc724_mid_exists__(context, fld_message_id->mid_value, NULL, NULL), NULL, 0);
+				dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, dc_rfc724_mid_exists(context, fld_message_id->mid_value, NULL, NULL), NULL, 0);
 			}
 		}
 	}

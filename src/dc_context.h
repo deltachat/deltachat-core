@@ -152,7 +152,7 @@ void            dc_set_group_explicitly_left               (dc_context_t*, const
 size_t          dc_get_real_msg_cnt                        (dc_context_t*); /* the number of messages assigned to real chat (!=deaddrop, !=trash) */
 size_t          dc_get_deaddrop_msg_cnt                    (dc_context_t*);
 int             dc_rfc724_mid_cnt                          (dc_context_t*, const char* rfc724_mid);
-uint32_t        dc_rfc724_mid_exists__                     (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
+uint32_t        dc_rfc724_mid_exists                       (dc_context_t*, const char* rfc724_mid, char** ret_server_folder, uint32_t* ret_server_uid);
 void            dc_update_server_uid                       (dc_context_t*, const char* rfc724_mid, const char* server_folder, uint32_t server_uid);
 void            dc_update_msg_chat_id                      (dc_context_t*, uint32_t msg_id, uint32_t chat_id);
 void            dc_update_msg_state                        (dc_context_t*, uint32_t msg_id, int state);
@@ -212,7 +212,7 @@ void            dc_handle_degrade_event       (dc_context_t*, dc_apeerstate_t*);
 
 
 /* library private: key-history */
-void            dc_add_to_keyhistory__(dc_context_t*, const char* rfc724_mid, time_t, const char* addr, const char* fingerprint);
+void            dc_add_to_keyhistory(dc_context_t*, const char* rfc724_mid, time_t, const char* addr, const char* fingerprint);
 
 
 #ifdef __cplusplus

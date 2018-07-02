@@ -392,7 +392,7 @@ static void dc_job_do_DC_JOB_SEND_MSG_TO_SMTP(dc_context_t* context, dc_job_t* j
 		}
 
 		// TODO: add to keyhistory
-		dc_add_to_keyhistory__(context, NULL, 0, NULL, NULL);
+		dc_add_to_keyhistory(context, NULL, 0, NULL, NULL);
 
 	dc_sqlite3_commit(context->sql);
 

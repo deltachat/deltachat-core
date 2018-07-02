@@ -36,7 +36,7 @@
  ******************************************************************************/
 
 
-static void add_or_lookup_contact_by_addr__(dc_context_t* context, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
+static void add_or_lookup_contact_by_addr(dc_context_t* context, const char* display_name_enc, const char* addr_spec, int origin, dc_array_t* ids, int* check_self)
 {
 	/* is addr_spec equal to SELF? */
 	int dummy;
@@ -77,7 +77,7 @@ static void add_or_lookup_contact_by_addr__(dc_context_t* context, const char* d
 }
 
 
-static void dc_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* context, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
+static void dc_add_or_lookup_contacts_by_mailbox_list(dc_context_t* context, const struct mailimf_mailbox_list* mb_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -88,13 +88,13 @@ static void dc_add_or_lookup_contacts_by_mailbox_list__(dc_context_t* context, c
 	for( cur = clist_begin(mb_list->mb_list); cur!=NULL ; cur=clist_next(cur) ) {
 		struct mailimf_mailbox* mb = (struct mailimf_mailbox*)clist_content(cur);
 		if( mb ) {
-			add_or_lookup_contact_by_addr__(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
+			add_or_lookup_contact_by_addr(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 		}
 	}
 }
 
 
-static void dc_add_or_lookup_contacts_by_address_list__(dc_context_t* context, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
+static void dc_add_or_lookup_contacts_by_address_list(dc_context_t* context, const struct mailimf_address_list* adr_list, int origin, dc_array_t* ids, int* check_self)
 {
 	clistiter* cur;
 
@@ -108,13 +108,13 @@ static void dc_add_or_lookup_contacts_by_address_list__(dc_context_t* context, c
 			if( adr->ad_type == MAILIMF_ADDRESS_MAILBOX ) {
 				struct mailimf_mailbox* mb = adr->ad_data.ad_mailbox; /* can be NULL */
 				if( mb ) {
-					add_or_lookup_contact_by_addr__(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
+					add_or_lookup_contact_by_addr(context, mb->mb_display_name, mb->mb_addr_spec, origin, ids, check_self);
 				}
 			}
 			else if( adr->ad_type == MAILIMF_ADDRESS_GROUP ) {
 				struct mailimf_group* group = adr->ad_data.ad_group; /* can be NULL */
 				if( group && group->grp_mb_list /*can be NULL*/ ) {
-					dc_add_or_lookup_contacts_by_mailbox_list__(context, group->grp_mb_list, origin, ids, check_self);
+					dc_add_or_lookup_contacts_by_mailbox_list(context, group->grp_mb_list, origin, ids, check_self);
 				}
 			}
 		}
@@ -207,7 +207,7 @@ static int dc_is_reply_to_known_message(dc_context_t* context, dc_mimeparser_t* 
  ******************************************************************************/
 
 
-static int is_msgrmsg_rfc724_mid__(dc_context_t* context, const char* rfc724_mid)
+static int is_msgrmsg_rfc724_mid(dc_context_t* context, const char* rfc724_mid)
 {
 	int is_msgrmsg = 0;
 	if( rfc724_mid ) {
@@ -226,12 +226,12 @@ static int is_msgrmsg_rfc724_mid__(dc_context_t* context, const char* rfc724_mid
 }
 
 
-static int is_msgrmsg_rfc724_mid_in_list__(dc_context_t* context, const clist* mid_list)
+static int is_msgrmsg_rfc724_mid_in_list(dc_context_t* context, const clist* mid_list)
 {
 	if( mid_list ) {
 		clistiter* cur;
 		for( cur = clist_begin(mid_list); cur!=NULL ; cur=clist_next(cur) ) {
-			if( is_msgrmsg_rfc724_mid__(context, clist_content(cur)) ) {
+			if( is_msgrmsg_rfc724_mid(context, clist_content(cur)) ) {
 				return 1;
 			}
 		}
@@ -241,11 +241,11 @@ static int is_msgrmsg_rfc724_mid_in_list__(dc_context_t* context, const clist* m
 }
 
 
-static int dc_is_reply_to_messenger_message__(dc_context_t* context, dc_mimeparser_t* mime_parser)
+static int dc_is_reply_to_messenger_message(dc_context_t* context, dc_mimeparser_t* mime_parser)
 {
 	/* function checks, if the message defined by mime_parser references a message send by us from Delta Chat.
 
-	This is similar to is_reply_to_known_message__() but
+	This is similar to is_reply_to_known_message() but
 	- checks also if any of the referenced IDs are send by a messenger
 	- it is okay, if the referenced messages are moved to trash here
 	- no check for the Chat-* headers (function is only called if it is no messenger message itself) */
@@ -256,7 +256,7 @@ static int dc_is_reply_to_messenger_message__(dc_context_t* context, dc_mimepars
 	{
 		struct mailimf_in_reply_to* fld_in_reply_to = field->fld_data.fld_in_reply_to;
 		if( fld_in_reply_to ) {
-			if( is_msgrmsg_rfc724_mid_in_list__(context, field->fld_data.fld_in_reply_to->mid_list) ) {
+			if( is_msgrmsg_rfc724_mid_in_list(context, field->fld_data.fld_in_reply_to->mid_list) ) {
 				return 1;
 			}
 		}
@@ -267,7 +267,7 @@ static int dc_is_reply_to_messenger_message__(dc_context_t* context, dc_mimepars
 	{
 		struct mailimf_references* fld_references = field->fld_data.fld_references;
 		if( fld_references ) {
-			if( is_msgrmsg_rfc724_mid_in_list__(context, field->fld_data.fld_references->mid_list) ) {
+			if( is_msgrmsg_rfc724_mid_in_list(context, field->fld_data.fld_references->mid_list) ) {
 				return 1;
 			}
 		}
@@ -408,7 +408,7 @@ cleanup:
 }
 
 
-static char* create_adhoc_grp_id__(dc_context_t* context, dc_array_t* member_ids /*including SELF*/)
+static char* create_adhoc_grp_id(dc_context_t* context, dc_array_t* member_ids /*including SELF*/)
 {
 	/* algorithm:
 	- sort normalized, lowercased, e-mail addresses alphabetically
@@ -502,7 +502,7 @@ cleanup:
  ******************************************************************************/
 
 
-static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_t* mime_parser, int create_blocked,
+static void create_or_lookup_adhoc_group(dc_context_t* context, dc_mimeparser_t* mime_parser, int create_blocked,
                                            int32_t from_id, const dc_array_t* to_ids,/*does not contain SELF*/
                                            uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
@@ -552,7 +552,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 
 	/* create a new ad-hoc group
 	- there is no need to check if this group exists; otherwise we would have catched it above */
-	if( (grpid = create_adhoc_grp_id__(context, member_ids)) == NULL ) {
+	if( (grpid = create_adhoc_grp_id(context, member_ids)) == NULL ) {
 		goto cleanup;
 	}
 
@@ -586,7 +586,7 @@ cleanup:
 }
 
 
-static int check_verified_properties__(dc_context_t* context, dc_mimeparser_t* mimeparser,
+static int check_verified_properties(dc_context_t* context, dc_mimeparser_t* mimeparser,
                                        uint32_t from_id, const dc_array_t* to_ids)
 {
 	int              everythings_okay = 0;
@@ -675,14 +675,14 @@ corresponding chat_id.  If the chat_id is not existant, it is created.
 If the message contains groups commands (name, profile image, changed members),
 they are executed as well.
 
-if no group-id could be extracted from the message, create_or_lookup_adhoc_group__() is called
+if no group-id could be extracted from the message, create_or_lookup_adhoc_group() is called
 which tries to create or find out the chat_id by:
 - is there a group with the same recipients? if so, use this (if there are multiple, use the most recent one)
 - create an ad-hoc group based on the recipient list
 
 So when the function returns, the caller has the group id matching the current
 state of the group. */
-static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mime_parser, int create_blocked,
+static void create_or_lookup_group(dc_context_t* context, dc_mimeparser_t* mime_parser, int create_blocked,
                                      int32_t from_id, const dc_array_t* to_ids,
                                      uint32_t* ret_chat_id, int* ret_chat_id_blocked)
 {
@@ -740,7 +740,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 
 					if( grpid == NULL )
 					{
-						create_or_lookup_adhoc_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+						create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 						goto cleanup;
 					}
 				}
@@ -772,7 +772,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	/* check, if we have a chat with this group ID */
 	if( (chat_id=dc_get_chat_id_by_grpid(context, grpid, &chat_id_blocked, &chat_id_verified))!=0 ) {
 		if( chat_id_verified
-		 && !check_verified_properties__(context, mime_parser, from_id, to_ids) ) {
+		 && !check_verified_properties(context, mime_parser, from_id, to_ids) ) {
 			chat_id          = 0; // force the creation of an unverified ad-hoc group.
 			chat_id_blocked  = 0;
 			chat_id_verified = 0;
@@ -787,7 +787,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	if not, the message does not go to the group chat but to the normal chat with the sender */
 	if( chat_id!=0 && !dc_is_contact_in_chat(context, chat_id, from_id) ) {
 		chat_id = 0;
-		create_or_lookup_adhoc_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+		create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		goto cleanup;
 	}
 
@@ -805,7 +805,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 	{
 		int create_verified = 0;
 		if( dc_mimeparser_lookup_field(mime_parser, "Chat-Verified") ) {
-			if( check_verified_properties__(context, mime_parser, from_id, to_ids) ) {
+			if( check_verified_properties(context, mime_parser, from_id, to_ids) ) {
 				create_verified = 1;
 			}
 		}
@@ -823,7 +823,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 			chat_id = DC_CHAT_ID_TRASH; /* we got a message for a chat we've deleted - do not show this even as a normal chat */
 		}
 		else {
-			create_or_lookup_adhoc_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+			create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 		}
 		goto cleanup;
 	}
@@ -918,7 +918,7 @@ static void create_or_lookup_group__(dc_context_t* context, dc_mimeparser_t* mim
 		int is_contact_cnt = dc_get_chat_contact_count(context, chat_id);
 		if( is_contact_cnt > 3 /* to_ids_cnt==1 may be "From: A, To: B, SELF" as SELF is not counted in to_ids_cnt. So everything up to 3 is no error. */ ) {
 			chat_id = 0;
-			create_or_lookup_adhoc_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+			create_or_lookup_adhoc_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 			goto cleanup;
 		}
 	}
@@ -1030,7 +1030,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			{
 				int check_self;
 				dc_array_t* from_list = dc_array_new(context, 16);
-				dc_add_or_lookup_contacts_by_mailbox_list__(context, fld_from->frm_mb_list, DC_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
+				dc_add_or_lookup_contacts_by_mailbox_list(context, fld_from->frm_mb_list, DC_ORIGIN_INCOMING_UNKNOWN_FROM, from_list, &check_self);
 				if( check_self )
 				{
 					incoming = 0;
@@ -1059,7 +1059,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			struct mailimf_to* fld_to = field->fld_data.fld_to; /* can be NULL */
 			if( fld_to )
 			{
-				dc_add_or_lookup_contacts_by_address_list__(context, fld_to->to_addr_list /*!= NULL*/,
+				dc_add_or_lookup_contacts_by_address_list(context, fld_to->to_addr_list /*!= NULL*/,
 					outgoing? DC_ORIGIN_OUTGOING_TO : (incoming_origin>=DC_ORIGIN_MIN_VERIFIED? DC_ORIGIN_INCOMING_TO : DC_ORIGIN_INCOMING_UNKNOWN_TO), to_ids, &to_self);
 			}
 		}
@@ -1078,7 +1078,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			{
 				struct mailimf_cc* fld_cc = field->fld_data.fld_cc;
 				if( fld_cc ) {
-					dc_add_or_lookup_contacts_by_address_list__(context, fld_cc->cc_addr_list,
+					dc_add_or_lookup_contacts_by_address_list(context, fld_cc->cc_addr_list,
 						outgoing? DC_ORIGIN_OUTGOING_CC : (incoming_origin>=DC_ORIGIN_MIN_VERIFIED? DC_ORIGIN_INCOMING_CC : DC_ORIGIN_INCOMING_UNKNOWN_CC), to_ids, NULL);
 				}
 			}
@@ -1106,7 +1106,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			{
 				char*    old_server_folder = NULL;
 				uint32_t old_server_uid = 0;
-				if( dc_rfc724_mid_exists__(context, rfc724_mid, &old_server_folder, &old_server_uid) ) {
+				if( dc_rfc724_mid_exists(context, rfc724_mid, &old_server_folder, &old_server_uid) ) {
 					if( strcmp(old_server_folder, server_folder)!=0 || old_server_uid!=server_uid ) {
 						dc_sqlite3_rollback(context->sql);
 						transaction_pending = 0;
@@ -1150,7 +1150,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 					/* try to create a group
 					(groups appear automatically only if the _sender_ is known, see core issue #54) */
 					int create_blocked = ((test_normal_chat_id&&test_normal_chat_id_blocked==DC_CHAT_NOT_BLOCKED) || incoming_origin>=DC_ORIGIN_MIN_START_NEW_NCHAT/*always false, for now*/)? DC_CHAT_NOT_BLOCKED : DC_CHAT_DEADDROP_BLOCKED;
-					create_or_lookup_group__(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
+					create_or_lookup_group(context, mime_parser, create_blocked, from_id, to_ids, &chat_id, &chat_id_blocked);
 					if( chat_id && chat_id_blocked && !create_blocked ) {
 						dc_unblock_chat(context, chat_id);
 						chat_id_blocked = 0;
@@ -1215,7 +1215,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 
 					if( chat_id == 0 )
 					{
-						create_or_lookup_group__(context, mime_parser, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
+						create_or_lookup_group(context, mime_parser, DC_CHAT_NOT_BLOCKED, from_id, to_ids, &chat_id, &chat_id_blocked);
 						if( chat_id && chat_id_blocked ) {
 							dc_unblock_chat(context, chat_id);
 							chat_id_blocked = 0;
@@ -1266,7 +1266,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			}
 			else
 			{
-				if( dc_is_reply_to_messenger_message__(context, mime_parser) )
+				if( dc_is_reply_to_messenger_message(context, mime_parser) )
 				{
 					dc_log_info(context, 0, "Message is a reply to a messenger message.");
 					msgrmsg = 2; /* 2=no, but is reply to messenger message */
@@ -1343,7 +1343,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				}
 				else if( chat_id_blocked ) {
 					create_event_to_send = DC_EVENT_MSGS_CHANGED;
-					/*if( dc_sqlite3_get_config_int__(context->sql, "show_deaddrop", 0)!=0 ) {
+					/*if( dc_sqlite3_get_config_int(context->sql, "show_deaddrop", 0)!=0 ) {
 						create_event_to_send = DC_EVENT_INCOMING_MSG;
 					}*/
 				}

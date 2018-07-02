@@ -155,14 +155,14 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 	}
 
 	if( sql->cobj ) {
-		dc_sqlite3_close__(sql);
+		dc_sqlite3_close(sql);
 	}
 
 	free(sql);
 }
 
 
-int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
+int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 {
 	if( sql == NULL || dbfile == NULL ) {
 		goto cleanup;
@@ -206,7 +206,7 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		int dbversion_before_update = 0;
 
 		/* Init tables to dbversion=0 */
-		if( !dc_sqlite3_table_exists__(sql, "config") )
+		if( !dc_sqlite3_table_exists(sql, "config") )
 		{
 			dc_log_info(sql->context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
@@ -279,9 +279,9 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" param TEXT DEFAULT '');");
 			dc_sqlite3_execute(sql, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
 
-			if( !dc_sqlite3_table_exists__(sql, "config") || !dc_sqlite3_table_exists__(sql, "contacts")
-			 || !dc_sqlite3_table_exists__(sql, "chats") || !dc_sqlite3_table_exists__(sql, "chats_contacts")
-			 || !dc_sqlite3_table_exists__(sql, "msgs") || !dc_sqlite3_table_exists__(sql, "jobs") )
+			if( !dc_sqlite3_table_exists(sql, "config") || !dc_sqlite3_table_exists(sql, "contacts")
+			 || !dc_sqlite3_table_exists(sql, "chats") || !dc_sqlite3_table_exists(sql, "chats_contacts")
+			 || !dc_sqlite3_table_exists(sql, "msgs") || !dc_sqlite3_table_exists(sql, "jobs") )
 			{
 				dc_sqlite3_log_error(sql, "Cannot create tables in new database \"%s\".", dbfile);
 				goto cleanup; /* cannot create the tables - maybe we cannot write? */
@@ -478,12 +478,12 @@ int dc_sqlite3_open__(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	return 1;
 
 cleanup:
-	dc_sqlite3_close__(sql);
+	dc_sqlite3_close(sql);
 	return 0;
 }
 
 
-void dc_sqlite3_close__(dc_sqlite3_t* sql)
+void dc_sqlite3_close(dc_sqlite3_t* sql)
 {
 	if( sql == NULL ) {
 		return;
@@ -508,7 +508,7 @@ int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 }
 
 
-int dc_sqlite3_table_exists__(dc_sqlite3_t* sql, const char* name)
+int dc_sqlite3_table_exists(dc_sqlite3_t* sql, const char* name)
 {
 	int           ret = 0;
 	char*         querystr = NULL;

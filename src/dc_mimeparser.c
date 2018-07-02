@@ -1800,7 +1800,7 @@ dc_mimepart_t* dc_mimeparser_get_last_nonmeta(dc_mimeparser_t* mimeparser)
  * - if we know the sender, we should show them in the normal chat of the sender as this will lose the
  *   context of the mail
  *
- * - for unknown senders, mailing list messages are often replies to known messages (see is_reply_to_known_message__()) -
+ * - for unknown senders, mailing list messages are often replies to known messages (see is_reply_to_known_message()) -
  *   which gives the sender some trust. this should not happen for mailing list messages.
  *   this may result in unwanted messages and contacts added to the address book that are not known.
  *
