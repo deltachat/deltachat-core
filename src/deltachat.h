@@ -100,7 +100,7 @@ extern "C" {
  * dc_configure() returns immediately, the configuration itself may take a while and is done by a job
  * in the imap-thread you've defined above. Once done, the #DC_EVENT_CONFIGURE_PROGRESS reports
  * success to the event_handler_func() that is also defined above.
- * NB: The configuration resullt is saved in the database, on subsequent starts
+ * NB: The configuration result is saved in the database, on subsequent starts
  * it is not needed to call dc_configure() (you can check this using dc_is_configured()).
  *
  * Now you can **send the first message:**
