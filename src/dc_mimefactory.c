@@ -96,7 +96,7 @@ static void load_from__(dc_mimefactory_t* factory)
 
 	factory->m_selfstatus       = dc_sqlite3_get_config(factory->m_context->m_sql, "selfstatus", NULL);
 	if( factory->m_selfstatus == NULL ) {
-		factory->m_selfstatus = dc_stock_str(DC_STR_STATUSLINE);
+		factory->m_selfstatus = dc_stock_str(factory->m_context, DC_STR_STATUSLINE);
 	}
 }
 
@@ -436,12 +436,13 @@ cleanup:
 
 static char* get_subject(const dc_chat_t* chat, const dc_msg_t* msg, int afwd_email)
 {
-	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_APPROX_SUBJECT_CHARS);
+	dc_context_t* context = chat? chat->m_context : NULL;
+	char *ret, *raw_subject = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_APPROX_SUBJECT_CHARS, context);
 	const char* fwd = afwd_email? "Fwd: " : "";
 
 	if( dc_param_get_int(msg->m_param, DC_PARAM_CMD, 0) == DC_CMD_AUTOCRYPT_SETUP_MESSAGE )
 	{
-		ret = dc_stock_str(DC_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
+		ret = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT); /* do not add the "Chat:" prefix for setup messages */
 	}
 	else if( DC_CHAT_TYPE_IS_MULTI(chat->m_type) )
 	{
@@ -599,7 +600,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 
 		if( command == DC_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
 			mailimf_fields_add(imf_fields, mailimf_field_new_custom(strdup("Autocrypt-Setup-Message"), strdup("v1")));
-			placeholdertext = dc_stock_str(DC_STR_AC_SETUP_MSG_BODY);
+			placeholdertext = dc_stock_str(factory->m_context, DC_STR_AC_SETUP_MSG_BODY);
 		}
 
 		if( command == DC_CMD_SECUREJOIN_MESSAGE ) {
@@ -719,12 +720,12 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 		/* first body part: always human-readable, always REQUIRED by RFC 6522 */
 		char *p1 = NULL, *p2 = NULL;
 		if( dc_param_get_int(factory->m_msg->m_param, DC_PARAM_GUARANTEE_E2EE, 0) ) {
-			p1 = dc_stock_str(DC_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
+			p1 = dc_stock_str(factory->m_context, DC_STR_ENCRYPTEDMSG); /* we SHOULD NOT spread encrypted subjects, date etc. in potentially unencrypted MDNs */
 		}
 		else {
 			p1 = dc_msg_get_summarytext(factory->m_msg, DC_APPROX_SUBJECT_CHARS);
 		}
-		p2 = dc_stock_str_repl_string(DC_STR_READRCPT_MAILBODY, p1);
+		p2 = dc_stock_str_repl_string(factory->m_context, DC_STR_READRCPT_MAILBODY, p1);
 		message_text = dc_mprintf("%s" LINEEND, p2);
 		free(p2);
 		free(p1);
@@ -772,7 +773,7 @@ int dc_mimefactory_render(dc_mimefactory_t* factory)
 	 *************************************************************************/
 
 	if( factory->m_loaded==DC_MF_MDN_LOADED ) {
-		char* e = dc_stock_str(DC_STR_READRCPT); subject_str = dc_mprintf(DC_CHAT_PREFIX " %s", e); free(e);
+		char* e = dc_stock_str(factory->m_context, DC_STR_READRCPT); subject_str = dc_mprintf(DC_CHAT_PREFIX " %s", e); free(e);
 	}
 	else {
 		subject_str = get_subject(factory->m_chat, factory->m_msg, afwd_email);

@@ -33,9 +33,6 @@ errors from here. */
  ******************************************************************************/
 
 
-dc_context_t* s_localize_mb_obj = NULL;
-
-
 static char* default_string(int id, int qty)
 {
 	switch( id ) {
@@ -80,11 +77,11 @@ static char* default_string(int id, int qty)
 }
 
 
-char* dc_stock_str(int id) /* get the string with the given ID, the result must be free()'d! */
+char* dc_stock_str(dc_context_t* context, int id) /* get the string with the given ID, the result must be free()'d! */
 {
 	char* ret = NULL;
-	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
-		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, DC_EVENT_GET_STRING, id, 0);
+	if( context ) {
+		ret = (char*)context->m_cb(context, DC_EVENT_GET_STRING, id, 0);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, 0);
@@ -93,37 +90,37 @@ char* dc_stock_str(int id) /* get the string with the given ID, the result must 
 }
 
 
-char* dc_stock_str_repl_string(int id, const char* to_insert)
+char* dc_stock_str_repl_string(dc_context_t* context, int id, const char* to_insert)
 {
-	char* p1 = dc_stock_str(id);
+	char* p1 = dc_stock_str(context, id);
 	dc_str_replace(&p1, "%1$s", to_insert);
 	return p1;
 }
 
 
-char* dc_stock_str_repl_int(int id, int to_insert_int)
+char* dc_stock_str_repl_int(dc_context_t* context, int id, int to_insert_int)
 {
 	char* ret, *to_insert_str = dc_mprintf("%i", (int)to_insert_int);
-	ret = dc_stock_str_repl_string(id, to_insert_str);
+	ret = dc_stock_str_repl_string(context, id, to_insert_str);
 	free(to_insert_str);
 	return ret;
 }
 
 
-char* dc_stock_str_repl_string2(int id, const char* to_insert, const char* to_insert2)
+char* dc_stock_str_repl_string2(dc_context_t* context, int id, const char* to_insert, const char* to_insert2)
 {
-	char* p1 = dc_stock_str(id);
+	char* p1 = dc_stock_str(context, id);
 	dc_str_replace(&p1, "%1$s", to_insert);
 	dc_str_replace(&p1, "%2$s", to_insert2);
 	return p1;
 }
 
 
-char* dc_stock_str_repl_pl(int id, int cnt)
+char* dc_stock_str_repl_pl(dc_context_t* context, int id, int cnt)
 {
 	char* ret = NULL;
-	if( s_localize_mb_obj && s_localize_mb_obj->m_cb ) {
-		ret = (char*)s_localize_mb_obj->m_cb(s_localize_mb_obj, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
+	if( context ) {
+		ret = (char*)context->m_cb(context, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
 	}
 	if( ret == NULL ) {
 		ret = default_string(id, cnt);

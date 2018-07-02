@@ -195,7 +195,7 @@ time_t dc_lot_get_timestamp(dc_lot_t* lot)
 }
 
 
-void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact)
+void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, const dc_contact_t* contact, dc_context_t* context)
 {
 	if( lot == NULL || lot->m_magic != DC_LOT_MAGIC || msg == NULL ) {
 		return;
@@ -208,7 +208,7 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 			lot->m_text1_meaning = 0;
 		}
 		else {
-			lot->m_text1 = dc_stock_str(DC_STR_SELF);
+			lot->m_text1 = dc_stock_str(context, DC_STR_SELF);
 			lot->m_text1_meaning = DC_TEXT1_SELF;
 		}
 	}
@@ -229,7 +229,7 @@ void dc_lot_fill(dc_lot_t* lot, const dc_msg_t* msg, const dc_chat_t* chat, cons
 		}
 	}
 
-	lot->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_SUMMARY_CHARACTERS);
+	lot->m_text2     = dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, DC_SUMMARY_CHARACTERS, context);
 	lot->m_timestamp = dc_msg_get_timestamp(msg);
 	lot->m_state     = msg->m_state;
 }

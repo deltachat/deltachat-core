@@ -96,7 +96,7 @@ struct _dc_msg
 
 int             dc_msg_load_from_db                   (dc_msg_t*, dc_context_t*, uint32_t id);
 int             dc_msg_is_increation                  (const dc_msg_t*);
-char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes); /* the returned value must be free()'d */
+char*           dc_msg_get_summarytext_by_raw         (int type, const char* text, dc_param_t*, int approx_bytes, dc_context_t*); /* the returned value must be free()'d */
 void            dc_msg_save_param_to_disk             (dc_msg_t*);
 void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename, int* ret_msgtype, char** ret_mime);
 void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);

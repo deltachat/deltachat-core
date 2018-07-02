@@ -561,7 +561,7 @@ static void create_or_lookup_adhoc_group__(dc_context_t* context, dc_mimeparser_
 		grpname = dc_strdup(mime_parser->m_subject);
 	}
 	else {
-		grpname = dc_stock_str_repl_pl(DC_STR_MEMBER,  dc_array_get_cnt(member_ids));
+		grpname = dc_stock_str_repl_pl(context, DC_STR_MEMBER,  dc_array_get_cnt(member_ids));
 	}
 
 	/* create group record */

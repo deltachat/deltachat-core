@@ -238,8 +238,8 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	/* wrap HTML-commands with instructions around the encrypted payload */
 
 	{
-		char* setup_message_title = dc_stock_str(DC_STR_AC_SETUP_MSG_SUBJECT);
-		char* setup_message_body = dc_stock_str(DC_STR_AC_SETUP_MSG_BODY);
+		char* setup_message_title = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT);
+		char* setup_message_body = dc_stock_str(context, DC_STR_AC_SETUP_MSG_BODY);
 
 		dc_str_replace(&setup_message_body, "\r", NULL);
 		dc_str_replace(&setup_message_body, "\n", "<br>");

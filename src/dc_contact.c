@@ -468,7 +468,7 @@ int dc_contact_load_from_db(dc_contact_t* contact, dc_sqlite3_t* sql, uint32_t c
 	if( contact_id == DC_CONTACT_ID_SELF )
 	{
 		contact->m_id   = contact_id;
-		contact->m_name = dc_stock_str(DC_STR_SELF);
+		contact->m_name = dc_stock_str(contact->m_context, DC_STR_SELF);
 		contact->m_addr = dc_sqlite3_get_config(sql, "configured_addr", "");
 	}
 	else

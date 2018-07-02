@@ -71,29 +71,25 @@ extern "C" {
 #define DC_STR_SELFTALK_SUBTITLE          50
 
 
-/* should be set up by dc_context_new() */
-extern dc_context_t* s_localize_mb_obj;
-
-
 /* Return the string with the given ID by calling DC_EVENT_GET_STRING.
 The result must be free()'d! */
-char* dc_stock_str (int id);
+char* dc_stock_str (dc_context_t*, int id);
 
 
 /* Replaces the first `%1$s` in the given String-ID by the given value.
 The result must be free()'d! */
-char* dc_stock_str_repl_string (int id, const char* value);
-char* dc_stock_str_repl_int    (int id, int value);
+char* dc_stock_str_repl_string (dc_context_t*, int id, const char* value);
+char* dc_stock_str_repl_int    (dc_context_t*, int id, int value);
 
 
 /* Replaces the first `%1$s` and `%2$s` in the given String-ID by the two given strings.
 The result must be free()'d! */
-char* dc_stock_str_repl_string2 (int id, const char*, const char*);
+char* dc_stock_str_repl_string2 (dc_context_t*, int id, const char*, const char*);
 
 
 /* Return a string with a correct plural form by callint DC_EVENT_GET_QUANTITY_STRING.
 The result must be free()'d! */
-char* dc_stock_str_repl_pl (int id, int cnt);
+char* dc_stock_str_repl_pl (dc_context_t*, int id, int cnt);
 
 
 #ifdef __cplusplus

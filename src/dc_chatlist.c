@@ -242,7 +242,7 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	      && (lastmsg==NULL || chat->m_draft_timestamp>lastmsg->m_timestamp) )
 	{
 		/* show the draft as the last message */
-		ret->m_text1 = dc_stock_str(DC_STR_DRAFT);
+		ret->m_text1 = dc_stock_str(chatlist->m_context, DC_STR_DRAFT);
 		ret->m_text1_meaning = DC_TEXT1_DRAFT;
 
 		ret->m_text2 = dc_strdup(chat->m_draft_text);
@@ -253,12 +253,12 @@ dc_lot_t* dc_chatlist_get_summary(dc_chatlist_t* chatlist, size_t index, dc_chat
 	else if( lastmsg == NULL || lastmsg->m_from_id == 0 )
 	{
 		/* no messages */
-		ret->m_text2 = dc_stock_str(DC_STR_NOMESSAGES);
+		ret->m_text2 = dc_stock_str(chatlist->m_context, DC_STR_NOMESSAGES);
 	}
 	else
 	{
 		/* show the last message */
-		dc_lot_fill(ret, lastmsg, chat, lastcontact);
+		dc_lot_fill(ret, lastmsg, chat, lastcontact, chatlist->m_context);
 	}
 
 cleanup:

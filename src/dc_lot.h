@@ -48,7 +48,7 @@ struct _dc_lot
 
 /* library-internal */
 #define DC_SUMMARY_CHARACTERS 160 /* in practice, the user additionally cuts the string himself pixel-accurate */
-void            dc_lot_fill      (dc_lot_t*, const dc_msg_t*, const dc_chat_t*, const dc_contact_t*);
+void            dc_lot_fill      (dc_lot_t*, const dc_msg_t*, const dc_chat_t*, const dc_contact_t*, dc_context_t*);
 
 
 #ifdef __cplusplus

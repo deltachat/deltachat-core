@@ -437,7 +437,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 			goto cleanup;
 		}
 		ret->m_text1 = dc_strdup((contact->m_name&&contact->m_name[0])? contact->m_name : contact->m_addr);
-		ret->m_text2 = dc_stock_str(DC_STR_VOICEMESSAGE);
+		ret->m_text2 = dc_stock_str(msg->m_context, DC_STR_VOICEMESSAGE);
 	}
 	else
 	{
@@ -455,7 +455,7 @@ dc_lot_t* dc_msg_get_mediainfo(const dc_msg_t* msg)
 		}
 		dc_msg_get_authorNtitle_from_filename(pathNfilename, &ret->m_text1, &ret->m_text2);
 		if( ret->m_text1 == NULL && ret->m_text2 != NULL ) {
-			ret->m_text1 = dc_stock_str(DC_STR_AUDIO);
+			ret->m_text1 = dc_stock_str(msg->m_context, DC_STR_AUDIO);
 		}
 	}
 
@@ -610,7 +610,7 @@ dc_lot_t* dc_msg_get_summary(const dc_msg_t* msg, const dc_chat_t* chat)
 		contact = dc_get_contact(chat->m_context, msg->m_from_id);
 	}
 
-	dc_lot_fill(ret, msg, chat, contact);
+	dc_lot_fill(ret, msg, chat, contact, msg->m_context);
 
 cleanup:
 	dc_contact_unref(contact);
@@ -635,7 +635,7 @@ char* dc_msg_get_summarytext(const dc_msg_t* msg, int approx_characters)
 		return dc_strdup(NULL);
 	}
 
-	return dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters);
+	return dc_msg_get_summarytext_by_raw(msg->m_type, msg->m_text, msg->m_param, approx_characters, msg->m_context);
 }
 
 
@@ -971,7 +971,7 @@ void dc_msg_get_authorNtitle_from_filename(const char* pathNfilename, char** ret
 }
 
 
-char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* param, int approx_characters)
+char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* param, int approx_characters, dc_context_t* context)
 {
 	/* get a summary text, result must be free()'d, never returns NULL. */
 	char* ret = NULL;
@@ -979,19 +979,19 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 
 	switch( type ) {
 		case DC_MSG_IMAGE:
-			ret = dc_stock_str(DC_STR_IMAGE);
+			ret = dc_stock_str(context, DC_STR_IMAGE);
 			break;
 
 		case DC_MSG_GIF:
-			ret = dc_stock_str(DC_STR_GIF);
+			ret = dc_stock_str(context, DC_STR_GIF);
 			break;
 
 		case DC_MSG_VIDEO:
-			ret = dc_stock_str(DC_STR_VIDEO);
+			ret = dc_stock_str(context, DC_STR_VIDEO);
 			break;
 
 		case DC_MSG_VOICE:
-			ret = dc_stock_str(DC_STR_VOICEMESSAGE);
+			ret = dc_stock_str(context, DC_STR_VOICEMESSAGE);
 			break;
 
 		case DC_MSG_AUDIO:
@@ -999,18 +999,18 @@ char* dc_msg_get_summarytext_by_raw(int type, const char* text, dc_param_t* para
 				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				dc_msg_get_authorNtitle_from_filename(pathNfilename, NULL, &value);
 			}
-			label = dc_stock_str(DC_STR_AUDIO);
+			label = dc_stock_str(context, DC_STR_AUDIO);
 			ret = dc_mprintf("%s: %s", label, value);
 			break;
 
 		case DC_MSG_FILE:
 			if( dc_param_get_int(param, DC_PARAM_CMD, 0)==DC_CMD_AUTOCRYPT_SETUP_MESSAGE ) {
-				ret = dc_stock_str(DC_STR_AC_SETUP_MSG_SUBJECT);
+				ret = dc_stock_str(context, DC_STR_AC_SETUP_MSG_SUBJECT);
 			}
 			else {
 				pathNfilename = dc_param_get(param, DC_PARAM_FILE, "ErrFilename");
 				value = dc_get_filename(pathNfilename);
-				label = dc_stock_str(DC_STR_FILE);
+				label = dc_stock_str(context, DC_STR_FILE);
 				ret = dc_mprintf("%s: %s", label, value);
 			}
 			break;

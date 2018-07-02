@@ -1306,7 +1306,7 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 						dc_mimepart_t* part = dc_mimepart_new();
 						part->m_type = DC_MSG_TEXT;
 
-						char* msg_body = dc_stock_str(DC_STR_CANTDECRYPT_MSG_BODY);
+						char* msg_body = dc_stock_str(mimeparser->m_context, DC_STR_CANTDECRYPT_MSG_BODY);
 						part->m_msg = dc_mprintf(DC_EDITORIAL_OPEN "%s" DC_EDITORIAL_CLOSE, msg_body);
 						free(msg_body);
 

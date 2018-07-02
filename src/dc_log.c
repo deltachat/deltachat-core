@@ -50,11 +50,11 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 	/* format message from variable parameters or translate very comming errors */
 	if( code == DC_ERROR_SELF_NOT_IN_GROUP )
 	{
-		msg = dc_stock_str(DC_STR_SELFNOTINGRP);
+		msg = dc_stock_str(context, DC_STR_SELFNOTINGRP);
 	}
 	else if( code == DC_ERROR_NO_NETWORK )
 	{
-		msg = dc_stock_str(DC_STR_NONETWORK);
+		msg = dc_stock_str(context, DC_STR_NONETWORK);
 	}
 	else if( msg_format )
 	{

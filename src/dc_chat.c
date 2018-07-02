@@ -222,7 +222,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 
 	if( chat->m_type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) )
 	{
-		ret = dc_stock_str(DC_STR_SELFTALK_SUBTITLE);
+		ret = dc_stock_str(chat->m_context, DC_STR_SELFTALK_SUBTITLE);
 	}
 	else if( chat->m_type == DC_CHAT_TYPE_SINGLE )
 	{
@@ -245,12 +245,12 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		int cnt = 0;
 		if( chat->m_id == DC_CHAT_ID_DEADDROP )
 		{
-			ret = dc_stock_str(DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
+			ret = dc_stock_str(chat->m_context, DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
 		}
 		else
 		{
 			cnt = dc_get_chat_contact_count(chat->m_context, chat->m_id);
-			ret = dc_stock_str_repl_pl(DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
+			ret = dc_stock_str_repl_pl(chat->m_context, DC_STR_MEMBER, cnt /*SELF is included in group chats (if not removed)*/);
 		}
 	}
 
@@ -464,21 +464,21 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	/* correct the title of some special groups */
 	if( chat->m_id == DC_CHAT_ID_DEADDROP ) {
 		free(chat->m_name);
-		chat->m_name = dc_stock_str(DC_STR_DEADDROP);
+		chat->m_name = dc_stock_str(chat->m_context, DC_STR_DEADDROP);
 	}
 	else if( chat->m_id == DC_CHAT_ID_ARCHIVED_LINK ) {
 		free(chat->m_name);
-		char* tempname = dc_stock_str(DC_STR_ARCHIVEDCHATS);
+		char* tempname = dc_stock_str(chat->m_context, DC_STR_ARCHIVEDCHATS);
 			chat->m_name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count(chat->m_context));
 		free(tempname);
 	}
 	else if( chat->m_id == DC_CHAT_ID_STARRED ) {
 		free(chat->m_name);
-		chat->m_name = dc_stock_str(DC_STR_STARREDMSGS);
+		chat->m_name = dc_stock_str(chat->m_context, DC_STR_STARREDMSGS);
 	}
 	else if( dc_param_exists(chat->m_param, DC_PARAM_SELFTALK) ) {
 		free(chat->m_name);
-		chat->m_name = dc_stock_str(DC_STR_SELF);
+		chat->m_name = dc_stock_str(chat->m_context, DC_STR_SELF);
 	}
 
 	return row_offset; /* success, return the next row offset */

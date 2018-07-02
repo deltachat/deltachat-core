@@ -132,10 +132,6 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	dc_pgp_rand_seed(context, seed, sizeof(seed));
 	}
 
-	if( s_localize_mb_obj==NULL ) {
-		s_localize_mb_obj = context;
-	}
-
 	return context;
 }
 
@@ -178,10 +174,6 @@ void dc_context_unref(dc_context_t* context)
 	free(context->m_os_name);
 	context->m_magic = 0;
 	free(context);
-
-	if( s_localize_mb_obj==context ) {
-		s_localize_mb_obj = NULL;
-	}
 }
 
 
@@ -2412,7 +2404,7 @@ uint32_t dc_create_group_chat(dc_context_t* context, int verified, const char* c
 		return 0;
 	}
 
-	draft_txt = dc_stock_str_repl_string(DC_STR_NEWGROUPDRAFT, chat_name);
+	draft_txt = dc_stock_str_repl_string(context, DC_STR_NEWGROUPDRAFT, chat_name);
 	grpid = dc_create_id();
 
 	stmt = dc_sqlite3_prepare(context->m_sql,
@@ -2497,7 +2489,7 @@ int dc_set_chat_name(dc_context_t* context, uint32_t chat_id, const char* new_na
 	if( DO_SEND_STATUS_MAILS )
 	{
 		msg->m_type = DC_MSG_TEXT;
-		msg->m_text = dc_stock_str_repl_string2(DC_STR_MSGGRPNAME, chat->m_name, new_name);
+		msg->m_text = dc_stock_str_repl_string2(context, DC_STR_MSGGRPNAME, chat->m_name, new_name);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD, DC_CMD_GROUPNAME_CHANGED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
@@ -2562,7 +2554,7 @@ int dc_set_chat_profile_image(dc_context_t* context, uint32_t chat_id, const cha
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_GROUPIMAGE_CHANGED);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, new_image);
 		msg->m_type = DC_MSG_TEXT;
-		msg->m_text = dc_stock_str(new_image? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
+		msg->m_text = dc_stock_str(context, new_image? DC_STR_MSGGRPIMGCHANGED : DC_STR_MSGGRPIMGDELETED);
 		msg->m_id = dc_send_msg_object(context, chat_id, msg);
 		context->m_cb(context, DC_EVENT_MSGS_CHANGED, chat_id, msg->m_id);
 	}
@@ -2687,7 +2679,7 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 	if( DO_SEND_STATUS_MAILS )
 	{
 		msg->m_type = DC_MSG_TEXT;
-		msg->m_text = dc_stock_str_repl_string(DC_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
+		msg->m_text = dc_stock_str_repl_string(context, DC_STR_MSGADDMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_MEMBER_ADDED_TO_GROUP);
 		dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG ,contact->m_addr);
 		dc_param_set_int(msg->m_param, DC_PARAM_CMD_ARG2,flags); // combine the Secure-Join protocol headers with the Chat-Group-Member-Added header
@@ -2775,10 +2767,10 @@ int dc_remove_contact_from_chat(dc_context_t* context, uint32_t chat_id, uint32_
 			msg->m_type = DC_MSG_TEXT;
 			if( contact->m_id == DC_CONTACT_ID_SELF ) {
 				dc_set_group_explicitly_left(context, chat->m_grpid);
-				msg->m_text = dc_stock_str(DC_STR_MSGGROUPLEFT);
+				msg->m_text = dc_stock_str(context, DC_STR_MSGGROUPLEFT);
 			}
 			else {
-				msg->m_text = dc_stock_str_repl_string(DC_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
+				msg->m_text = dc_stock_str_repl_string(context, DC_STR_MSGDELMEMBER, (contact->m_authname&&contact->m_authname[0])? contact->m_authname : contact->m_addr);
 			}
 			dc_param_set_int(msg->m_param, DC_PARAM_CMD,       DC_CMD_MEMBER_REMOVED_FROM_GROUP);
 			dc_param_set    (msg->m_param, DC_PARAM_CMD_ARG, contact->m_addr);
@@ -3195,7 +3187,7 @@ dc_array_t* dc_get_contacts(dc_context_t* context, uint32_t listflags, const cha
 		sqlite3_bind_int (stmt, 4, (listflags&DC_GCL_VERIFIED_ONLY)? 0/*force checking for verified_key*/ : 1/*force statement being always true*/);
 
 		self_name  = dc_sqlite3_get_config(context->m_sql, "displayname", "");
-		self_name2 = dc_stock_str(DC_STR_SELF);
+		self_name2 = dc_stock_str(context, DC_STR_SELF);
 		if( query==NULL || dc_str_contains(self_addr, query) || dc_str_contains(self_name, query) || dc_str_contains(self_name2, query) ) {
 			add_self = 1;
 		}
@@ -3487,7 +3479,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 	if( dc_apeerstate_peek_key(peerstate, DC_NOT_VERIFIED) )
 	{
 		// E2E available :)
-		p = dc_stock_str(peerstate->m_prefer_encrypt == DC_PE_MUTUAL? DC_STR_E2E_PREFERRED : DC_STR_E2E_AVAILABLE); dc_strbuilder_cat(&ret, p); free(p);
+		p = dc_stock_str(context, peerstate->m_prefer_encrypt == DC_PE_MUTUAL? DC_STR_E2E_PREFERRED : DC_STR_E2E_AVAILABLE); dc_strbuilder_cat(&ret, p); free(p);
 
 		if( self_key->m_binary == NULL ) {
 			dc_pgp_rand_seed(context, peerstate->m_addr, strlen(peerstate->m_addr) /*just some random data*/);
@@ -3496,7 +3488,7 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		}
 
 		dc_strbuilder_cat(&ret, " ");
-		p = dc_stock_str(DC_STR_FINGERPRINTS); dc_strbuilder_cat(&ret, p); free(p);
+		p = dc_stock_str(context, DC_STR_FINGERPRINTS); dc_strbuilder_cat(&ret, p); free(p);
 		dc_strbuilder_cat(&ret, ":");
 
 		fingerprint_self = dc_key_get_formatted_fingerprint(self_key);
@@ -3518,11 +3510,11 @@ char* dc_get_contact_encrinfo(dc_context_t* context, uint32_t contact_id)
 		if( !(loginparam->m_server_flags&DC_LP_IMAP_SOCKET_PLAIN)
 		 && !(loginparam->m_server_flags&DC_LP_SMTP_SOCKET_PLAIN) )
 		{
-			p = dc_stock_str(DC_STR_ENCR_TRANSP); dc_strbuilder_cat(&ret, p); free(p);
+			p = dc_stock_str(context, DC_STR_ENCR_TRANSP); dc_strbuilder_cat(&ret, p); free(p);
 		}
 		else
 		{
-			p = dc_stock_str(DC_STR_ENCR_NONE); dc_strbuilder_cat(&ret, p); free(p);
+			p = dc_stock_str(context, DC_STR_ENCR_NONE); dc_strbuilder_cat(&ret, p); free(p);
 		}
 	}
 
