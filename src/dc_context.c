@@ -116,6 +116,8 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	context->m_smtp     = dc_smtp_new(context);
 	context->m_os_name  = dc_strdup_keep_null(os_name);
 
+	context->m_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
+
 	dc_pgp_init(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation

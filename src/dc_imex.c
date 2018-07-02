@@ -468,7 +468,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	if( !dc_alloc_ongoing(context) ) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
-	#define CHECK_EXIT if( dc_shall_stop_ongoing ) { goto cleanup; }
+	#define CHECK_EXIT if( context->m_shall_stop_ongoing ) { goto cleanup; }
 
 	if( (setup_code=dc_create_setup_code(context)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
@@ -917,7 +917,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 		stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
 		while( (dir_entry=readdir(dir_handle))!=NULL )
 		{
-			if( dc_shall_stop_ongoing ) {
+			if( context->m_shall_stop_ongoing ) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -1051,7 +1051,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = dc_sqlite3_prepare(context->m_sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
 	while( sqlite3_step(stmt) == SQLITE_ROW )
 	{
-		if( dc_shall_stop_ongoing ) {
+		if( context->m_shall_stop_ongoing ) {
 			goto cleanup;
 		}
 

@@ -112,6 +112,10 @@ struct _dc_context
 	// time smearing - to keep messages in order, we may modify the time by some seconds
 	time_t          m_last_smeared_timestamp;
 	pthread_mutex_t m_smear_critical;
+
+	// handling ongoing processes initiated by the user
+	int             m_ongoing_running;
+	int             m_shall_stop_ongoing;
 };
 
 

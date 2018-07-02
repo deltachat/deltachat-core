@@ -381,7 +381,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	ongoing_allocated_here = 1;
 
 	#define PROGRESS(p) \
-				if( dc_shall_stop_ongoing ) { goto cleanup; } \
+				if( context->m_shall_stop_ongoing ) { goto cleanup; } \
 				context->m_cb(context, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
 	if( !dc_sqlite3_is_open(context->m_sql) ) {
@@ -739,21 +739,19 @@ int dc_is_configured(dc_context_t* context)
  * Request an ongoing process to start.
  * Returns 0=process started, 1=not started, there is running another process
  */
-static int s_ongoing_running = 0;
-int        dc_shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
 int dc_alloc_ongoing(dc_context_t* context)
 {
 	if( context == NULL || context->m_magic != DC_CONTEXT_MAGIC ) {
 		return 0;
 	}
 
-	if( s_ongoing_running || dc_shall_stop_ongoing == 0 ) {
+	if( context->m_ongoing_running || context->m_shall_stop_ongoing == 0 ) {
 		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
 
-	s_ongoing_running     = 1;
-	dc_shall_stop_ongoing = 0;
+	context->m_ongoing_running    = 1;
+	context->m_shall_stop_ongoing = 0;
 	return 1;
 }
 
@@ -768,8 +766,8 @@ void dc_free_ongoing(dc_context_t* context)
 		return;
 	}
 
-	s_ongoing_running     = 0;
-	dc_shall_stop_ongoing = 1; /* avoids dc_stop_ongoing_process() to stop the thread */
+	context->m_ongoing_running    = 0;
+	context->m_shall_stop_ongoing = 1; /* avoids dc_stop_ongoing_process() to stop the thread */
 }
 
 
@@ -803,10 +801,10 @@ void dc_stop_ongoing_process(dc_context_t* context)
 		return;
 	}
 
-	if( s_ongoing_running && dc_shall_stop_ongoing==0 )
+	if( context->m_ongoing_running && context->m_shall_stop_ongoing==0 )
 	{
 		dc_log_info(context, 0, "Signaling the ongoing process to stop ASAP.");
-		dc_shall_stop_ongoing = 1;
+		context->m_shall_stop_ongoing = 1;
 	}
 	else
 	{

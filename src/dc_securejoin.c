@@ -433,7 +433,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	int      ret_chat_id       = 0;
 	int      ongoing_allocated = 0;
-	#define  CHECK_EXIT        if( dc_shall_stop_ongoing ) { goto cleanup; }
+	#define  CHECK_EXIT        if( context->m_shall_stop_ongoing ) { goto cleanup; }
 	uint32_t contact_chat_id   = 0;
 	dc_lot_t* qr_scan           = NULL;
 	int      join_vg           = 0;
