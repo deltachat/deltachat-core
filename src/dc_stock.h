@@ -69,6 +69,8 @@ extern "C" {
 #define DC_STR_AC_SETUP_MSG_SUBJECT       42
 #define DC_STR_AC_SETUP_MSG_BODY          43
 #define DC_STR_SELFTALK_SUBTITLE          50
+#define DC_STR_CANNOT_LOGIN               60
+#define DC_STR_SERVER_RESPONSE            61
 
 
 /* Return the string with the given ID by calling DC_EVENT_GET_STRING.

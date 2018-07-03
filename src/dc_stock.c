@@ -72,6 +72,8 @@ static char* default_string(int id, int qty)
 		case DC_STR_AC_SETUP_MSG_BODY:     return dc_strdup("This is the Autocrypt Setup Message used to transfer your key between clients.\n\nTo decrypt and use your key, open the message in an Autocrypt-compliant client and enter the setup code presented on the generating device.");
 		case DC_STR_SELFTALK_SUBTITLE:     return dc_strdup("Messages I sent to myself");
 		case DC_STR_CANTDECRYPT_MSG_BODY:  return dc_strdup("This message was encrypted for another setup.");
+		case DC_STR_CANNOT_LOGIN:          return dc_strdup("Cannot not login as %1$s.");
+		case DC_STR_SERVER_RESPONSE:       return dc_strdup("Response from %1$s: %2$s");
 	}
 	return dc_strdup("ErrStr");
 }

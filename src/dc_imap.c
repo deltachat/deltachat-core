@@ -60,6 +60,37 @@ static int is_error(dc_imap_t* imap, int code)
 }
 
 
+static char* get_error_msg(dc_imap_t* imap, const char* what_failed, int code)
+{
+	char*           stock = NULL;
+	dc_strbuilder_t msg;
+	dc_strbuilder_init(&msg, 1000);
+
+	switch (code) {
+		case MAILIMAP_ERROR_LOGIN:
+			stock = dc_stock_str_repl_string(imap->context, DC_STR_CANNOT_LOGIN, imap->imap_user);
+			dc_strbuilder_cat(&msg, stock);
+			break;
+
+		default:
+			dc_strbuilder_catf(&msg, "%s, IMAP-error #%i", what_failed, code);
+			break;
+	}
+	free(stock);
+	stock = NULL;
+
+	if (imap->hEtpan->imap_response) {
+		dc_strbuilder_cat(&msg, "\n\n");
+		stock = dc_stock_str_repl_string2(imap->context, DC_STR_SERVER_RESPONSE, imap->imap_server, imap->hEtpan->imap_response);
+		dc_strbuilder_cat(&msg, stock);
+	}
+	free(stock);
+	stock = NULL;
+
+	return msg.buf;
+}
+
+
 static void get_config_lastseenuid(dc_imap_t* imap, const char* folder, uint32_t* uidvalidity, uint32_t* lastseenuid)
 {
 	*uidvalidity = 0;
@@ -1104,7 +1135,9 @@ static int setup_handle_if_needed(dc_imap_t* imap)
 		}
 
 		if( is_error(imap, r) ) {
-			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "Could not login as %s: %s (Error #%i)", imap->imap_user, imap->hEtpan->imap_response? imap->hEtpan->imap_response : "Unknown error.", (int)r);
+			char* msg = get_error_msg(imap, "Cannot login", r);
+			dc_log_error_if(&imap->log_connect_errors, imap->context, 0, "%s", msg);
+			free(msg);
 			goto cleanup;
 		}
 
