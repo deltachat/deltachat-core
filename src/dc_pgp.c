@@ -36,11 +36,8 @@ So, we do not see a simple alternative - but everyone is welcome to implement
 one :-) */
 
 
-#include <openssl/ssl.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
 #include <netpgp-extra.h>
+#include <openssl/rand.h>
 #include "dc_context.h"
 #include "dc_key.h"
 #include "dc_keyring.h"
@@ -48,29 +45,26 @@ one :-) */
 #include "dc_hash.h"
 
 
+static int      s_io_initialized = 0;
 static pgp_io_t s_io;
 
 
-void dc_pgp_init(dc_context_t* context)
+void dc_pgp_init(void)
 {
-	#ifdef __APPLE__
-		OPENSSL_init();
-	#else
-		SSL_library_init(); /* older, but more compatible function, simply defined as OPENSSL_init_ssl().
-							SSL_library_init() should be called from the main thread before OpenSSL is called from other threads.
-							libEtPan may call SSL_library_init() again later, however, this should be no problem.
-							SSL_library_init() always returns "1", so it is safe to discard the return value */
-	#endif
+	if( s_io_initialized ) {
+		return;
+	}
 
-	/* setup i/o structure */
 	memset(&s_io, 0, sizeof(pgp_io_t));
 	s_io.outs = stdout;
 	s_io.errs = stderr;
 	s_io.res  = stderr;
+
+	s_io_initialized = 1;
 }
 
 
-void dc_pgp_exit(dc_context_t* context)
+void dc_pgp_exit(void)
 {
 }
 

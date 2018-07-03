@@ -226,6 +226,7 @@ int             dc_set_config_int            (dc_context_t*, const char* key, in
 int32_t         dc_get_config_int            (dc_context_t*, const char* key, int32_t def);
 char*           dc_get_info                  (dc_context_t*);
 char*           dc_get_version_str           (void);
+void            dc_openssl_init_not_required (void);
 
 
 // connect

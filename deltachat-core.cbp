@@ -492,6 +492,9 @@
 		<Unit filename="src/dc_msg.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/dc_openssl.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/dc_param.c">
 			<Option compilerVar="CC" />
 		</Unit>

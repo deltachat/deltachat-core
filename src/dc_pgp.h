@@ -37,8 +37,8 @@ typedef struct dc_keyring_t dc_keyring_t;
 #define DC_E2EE_NO_VALID_SIGNATURE 0x02
 
 /* misc. */
-void dc_pgp_init             (dc_context_t*);
-void dc_pgp_exit             (dc_context_t*);
+void dc_pgp_init             (void);
+void dc_pgp_exit             (void);
 void dc_pgp_rand_seed        (dc_context_t*, const void* buf, size_t bytes);
 int  dc_split_armored_data  (char* buf, const char** ret_headerline, const char** ret_setupcodebegin, const char** ret_preferencrypt, const char** ret_base64);
 

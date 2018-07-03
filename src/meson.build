@@ -25,6 +25,7 @@ lib_src = [
   'dc_mimefactory.c',
   'dc_mimeparser.c',
   'dc_msg.c',
+  'dc_openssl.c',
   'dc_param.c',
   'dc_pgp.c',
   'dc_saxparser.c',

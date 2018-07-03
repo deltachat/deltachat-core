@@ -28,6 +28,7 @@
 #include "dc_context.h"
 #include "dc_imap.h"
 #include "dc_smtp.h"
+#include "dc_openssl.h"
 #include "dc_mimefactory.h"
 #include "dc_tools.h"
 #include "dc_job.h"
@@ -109,16 +110,17 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	pthread_cond_init(&context->smtpidle_cond, NULL);
 
 	context->magic    = DC_CONTEXT_MAGIC;
-	context->sql      = dc_sqlite3_new(context);
-	context->cb       = cb? cb : cb_dummy;
 	context->userdata = userdata;
-	context->imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
-	context->smtp     = dc_smtp_new(context);
+	context->cb       = cb? cb : cb_dummy;
 	context->os_name  = dc_strdup_keep_null(os_name);
-
 	context->shall_stop_ongoing = 1; /* the value 1 avoids dc_stop_ongoing_process() from stopping already stopped threads */
 
-	dc_pgp_init(context);
+	dc_openssl_init(); // OpenSSL is used by libEtPan and by netpgp, init before using these parts.
+
+	dc_pgp_init();
+	context->sql      = dc_sqlite3_new(context);
+	context->imap     = dc_imap_new(cb_get_config, cb_set_config, cb_receive_imf, (void*)context, context);
+	context->smtp     = dc_smtp_new(context);
 
 	/* Random-seed.  An additional seed with more random data is done just before key generation
 	(the timespan between this call and the key generation time is typically random.
@@ -150,7 +152,7 @@ void dc_context_unref(dc_context_t* context)
 		return;
 	}
 
-	dc_pgp_exit(context);
+	dc_pgp_exit();
 
 	if( dc_is_open(context) ) {
 		dc_close(context);
@@ -159,6 +161,8 @@ void dc_context_unref(dc_context_t* context)
 	dc_imap_unref(context->imap);
 	dc_smtp_unref(context->smtp);
 	dc_sqlite3_unref(context->sql);
+
+	dc_openssl_exit();
 
 	pthread_mutex_destroy(&context->smear_critical);
 	pthread_mutex_destroy(&context->bobs_qr_critical);
