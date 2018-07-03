@@ -124,15 +124,13 @@ dc_context_t* dc_context_new(dc_callback_t cb, void* userdata, const char* os_na
 	(the timespan between this call and the key generation time is typically random.
 	Moreover, later, we add a hash of the first message data to the random-seed
 	(it would be okay to seed with even more sensible data, the seed values cannot be recovered from the PRNG output, see OpenSSL's RAND_seed() ) */
-	{
 	uintptr_t seed[5];
 	seed[0] = (uintptr_t)time(NULL);     /* time */
 	seed[1] = (uintptr_t)seed;           /* stack */
-	seed[2] = (uintptr_t)context;            /* heap */
+	seed[2] = (uintptr_t)context;        /* heap */
 	seed[3] = (uintptr_t)pthread_self(); /* thread ID */
 	seed[4] = (uintptr_t)getpid();       /* process ID */
 	dc_pgp_rand_seed(context, seed, sizeof(seed));
-	}
 
 	return context;
 }
@@ -225,37 +223,37 @@ int dc_open(dc_context_t* context, const char* dbfile, const char* blobdir)
 		goto cleanup;
 	}
 
-		/* Open() sets up the object and connects to the given database
-		from which all configuration is read/written to. */
+	/* Open() sets up the object and connects to the given database
+	from which all configuration is read/written to. */
 
-		/* Create/open sqlite database */
-		if( !dc_sqlite3_open(context->sql, dbfile, 0) ) {
-			goto cleanup;
-		}
+	/* Create/open sqlite database */
+	if( !dc_sqlite3_open(context->sql, dbfile, 0) ) {
+		goto cleanup;
+	}
 
-		/* backup dbfile name */
-		context->dbfile = dc_strdup(dbfile);
+	/* backup dbfile name */
+	context->dbfile = dc_strdup(dbfile);
 
-		/* set blob-directory
-		(to avoid double slashed, the given directory should not end with an slash) */
-		if( blobdir && blobdir[0] ) {
-			context->blobdir = dc_strdup(blobdir);
-		}
-		else {
-			context->blobdir = dc_mprintf("%s-blobs", dbfile);
-			dc_create_folder(context->blobdir, context);
-		}
+	/* set blob-directory
+	(to avoid double slashed, the given directory should not end with an slash) */
+	if( blobdir && blobdir[0] ) {
+		context->blobdir = dc_strdup(blobdir);
+	}
+	else {
+		context->blobdir = dc_mprintf("%s-blobs", dbfile);
+		dc_create_folder(context->blobdir, context);
+	}
 
-		update_config_cache(context, NULL);
+	update_config_cache(context, NULL);
 
-		success = 1;
+	success = 1;
 
 cleanup:
-		if( !success ) {
-			if( dc_sqlite3_is_open(context->sql) ) {
-				dc_sqlite3_close(context->sql);
-			}
+	if( !success ) {
+		if( dc_sqlite3_is_open(context->sql) ) {
+			dc_sqlite3_close(context->sql);
 		}
+	}
 
 	return success;
 }
@@ -824,7 +822,7 @@ cleanup:
  * there may be more messages moved to the chat from the deaddrop. To get the
  * chat messages, use dc_get_chat_msgs().
  *
- * If the user should be start asked the chat is created, he should just be
+ * If the user is asked before creation, he should be
  * asked whether he wants to chat with the _contact_ belonging to the message;
  * the group names may be really weired when take from the subject of implicit
  * groups and this may look confusing.
@@ -841,8 +839,8 @@ cleanup:
  */
 uint32_t dc_create_chat_by_msg_id(dc_context_t* context, uint32_t msg_id)
 {
-	uint32_t  chat_id    = 0;
-	int       send_event = 0;
+	uint32_t   chat_id    = 0;
+	int        send_event = 0;
 	dc_msg_t*  msg        = dc_msg_new();
 	dc_chat_t* chat       = dc_chat_new(context);
 
@@ -1647,43 +1645,43 @@ void dc_delete_chat(dc_context_t* context, uint32_t chat_id)
 		goto cleanup;
 	}
 
-        if( !dc_chat_load_from_db(obj, chat_id) ) {
+	if( !dc_chat_load_from_db(obj, chat_id) ) {
+		goto cleanup;
+	}
+
+	dc_sqlite3_begin_transaction(context->sql);
+	pending_transaction = 1;
+
+		q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
+		if( !dc_sqlite3_execute(context->sql, q3) ) {
 			goto cleanup;
-        }
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
 
-		dc_sqlite3_begin_transaction(context->sql);
-		pending_transaction = 1;
+		q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
+		if( !dc_sqlite3_execute(context->sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
 
-			q3 = sqlite3_mprintf("DELETE FROM msgs_mdns WHERE msg_id IN (SELECT id FROM msgs WHERE chat_id=%i);", chat_id);
-			if( !dc_sqlite3_execute(context->sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
+		q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
+		if( !dc_sqlite3_execute(context->sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
 
-			q3 = sqlite3_mprintf("DELETE FROM msgs WHERE chat_id=%i;", chat_id);
-			if( !dc_sqlite3_execute(context->sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
+		q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
+		if( !dc_sqlite3_execute(context->sql, q3) ) {
+			goto cleanup;
+		}
+		sqlite3_free(q3);
+		q3 = NULL;
 
-			q3 = sqlite3_mprintf("DELETE FROM chats_contacts WHERE chat_id=%i;", chat_id);
-			if( !dc_sqlite3_execute(context->sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
-
-			q3 = sqlite3_mprintf("DELETE FROM chats WHERE id=%i;", chat_id);
-			if( !dc_sqlite3_execute(context->sql, q3) ) {
-				goto cleanup;
-			}
-			sqlite3_free(q3);
-			q3 = NULL;
-
-		dc_sqlite3_commit(context->sql);
-		pending_transaction = 0;
+	dc_sqlite3_commit(context->sql);
+	pending_transaction = 0;
 
 	context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0);
 
@@ -2631,51 +2629,51 @@ int dc_add_contact_to_chat_ex(dc_context_t* context, uint32_t chat_id, uint32_t 
 		goto cleanup;
 	}
 
-		if( 0==dc_real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
-		 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
-		 || 0==dc_chat_load_from_db(chat, chat_id) ) {
+	if( 0==dc_real_group_exists(context, chat_id) /*this also makes sure, not contacts are added to special or normal chats*/
+	 || (0==dc_real_contact_exists(context, contact_id) && contact_id!=DC_CONTACT_ID_SELF)
+	 || 0==dc_chat_load_from_db(chat, chat_id) ) {
+		goto cleanup;
+	}
+
+	if( !IS_SELF_IN_GROUP ) {
+		dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
+		goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
+	}
+
+	if( (flags&DC_FROM_HANDSHAKE) && dc_param_get_int(chat->param, DC_PARAM_UNPROMOTED, 0)==1 ) {
+		// after a handshake, force sending the `Chat-Group-Member-Added` message
+		dc_param_set(chat->param, DC_PARAM_UNPROMOTED, NULL);
+		dc_chat_update_param(chat);
+	}
+
+	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
+	if( strcasecmp(contact->addr, self_addr)==0 ) {
+		goto cleanup; /* ourself is added using DC_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
+	}
+
+	if( dc_is_contact_in_chat(context, chat_id, contact_id) )
+	{
+		if( !(flags&DC_FROM_HANDSHAKE) ) {
+			success = 1;
 			goto cleanup;
 		}
-
-		if( !IS_SELF_IN_GROUP ) {
-			dc_log_error(context, DC_ERROR_SELF_NOT_IN_GROUP, NULL);
-			goto cleanup; /* we shoud respect this - whatever we send to the group, it gets discarded anyway! */
-		}
-
-		if( (flags&DC_FROM_HANDSHAKE) && dc_param_get_int(chat->param, DC_PARAM_UNPROMOTED, 0)==1 ) {
-			// after a handshake, force sending the `Chat-Group-Member-Added` message
-			dc_param_set(chat->param, DC_PARAM_UNPROMOTED, NULL);
-			dc_chat_update_param(chat);
-		}
-
-		self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", "");
-		if( strcasecmp(contact->addr, self_addr)==0 ) {
-			goto cleanup; /* ourself is added using DC_CONTACT_ID_SELF, do not add it explicitly. if SELF is not in the group, members cannot be added at all. */
-		}
-
-		if( dc_is_contact_in_chat(context, chat_id, contact_id) )
+		// else continue and send status mail
+	}
+	else
+	{
+		if( chat->type == DC_CHAT_TYPE_VERIFIED_GROUP )
 		{
-			if( !(flags&DC_FROM_HANDSHAKE) ) {
-				success = 1;
-				goto cleanup;
-			}
-			// else continue and send status mail
-		}
-		else
-		{
-			if( chat->type == DC_CHAT_TYPE_VERIFIED_GROUP )
-			{
-				if( !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
-				 || dc_contact_n_peerstate_are_verified(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
-					dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
-					goto cleanup;
-				}
-			}
-
-			if( 0==dc_add_to_chat_contacts_table(context, chat_id, contact_id) ) {
+			if( !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)
+			 || dc_contact_n_peerstate_are_verified(contact, peerstate) != DC_BIDIRECT_VERIFIED ) {
+				dc_log_error(context, 0, "Only bidirectional verified contacts can be added to verfied groups.");
 				goto cleanup;
 			}
 		}
+
+		if( 0==dc_add_to_chat_contacts_table(context, chat_id, contact_id) ) {
+			goto cleanup;
+		}
+	}
 
 	/* send a status mail to all group members */
 	if( DO_SEND_STATUS_MAILS )
@@ -3383,31 +3381,31 @@ void dc_block_contact(dc_context_t* context, uint32_t contact_id, int new_blocki
 		if( dc_contact_load_from_db(contact, context->sql, contact_id)
 		 && contact->blocked != new_blocking )
 		{
-				stmt = dc_sqlite3_prepare(context->sql,
-					"UPDATE contacts SET blocked=? WHERE id=?;");
-				sqlite3_bind_int(stmt, 1, new_blocking);
-				sqlite3_bind_int(stmt, 2, contact_id);
-				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
-					goto cleanup;
-				}
-				sqlite3_finalize(stmt);
-				stmt = NULL;
+			stmt = dc_sqlite3_prepare(context->sql,
+				"UPDATE contacts SET blocked=? WHERE id=?;");
+			sqlite3_bind_int(stmt, 1, new_blocking);
+			sqlite3_bind_int(stmt, 2, contact_id);
+			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+				goto cleanup;
+			}
+			sqlite3_finalize(stmt);
+			stmt = NULL;
 
-				/* also (un)block all chats with _only_ this contact - we do not delete them to allow a non-destructive blocking->unblocking.
-				(Maybe, beside normal chats (type=100) we should also block group chats with only this user.
-				However, I'm not sure about this point; it may be confusing if the user wants to add other people;
-				this would result in recreating the same group...) */
-				stmt = dc_sqlite3_prepare(context->sql,
-					"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
-				sqlite3_bind_int(stmt, 1, new_blocking);
-				sqlite3_bind_int(stmt, 2, DC_CHAT_TYPE_SINGLE);
-				sqlite3_bind_int(stmt, 3, contact_id);
-				if( sqlite3_step(stmt)!=SQLITE_DONE ) {
-					goto cleanup;
-				}
+			/* also (un)block all chats with _only_ this contact - we do not delete them to allow a non-destructive blocking->unblocking.
+			(Maybe, beside normal chats (type=100) we should also block group chats with only this user.
+			However, I'm not sure about this point; it may be confusing if the user wants to add other people;
+			this would result in recreating the same group...) */
+			stmt = dc_sqlite3_prepare(context->sql,
+				"UPDATE chats SET blocked=? WHERE type=? AND id IN (SELECT chat_id FROM chats_contacts WHERE contact_id=?);");
+			sqlite3_bind_int(stmt, 1, new_blocking);
+			sqlite3_bind_int(stmt, 2, DC_CHAT_TYPE_SINGLE);
+			sqlite3_bind_int(stmt, 3, contact_id);
+			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+				goto cleanup;
+			}
 
-				/* mark all messages from the blocked contact as being noticed (this is to remove the deaddrop popup) */
-				dc_marknoticed_contact(context, contact_id);
+			/* mark all messages from the blocked contact as being noticed (this is to remove the deaddrop popup) */
+			dc_marknoticed_contact(context, contact_id);
 
 			send_event = 1;
 		}

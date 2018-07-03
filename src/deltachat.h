@@ -164,13 +164,16 @@ extern "C" {
  *
  * - For padding between functions, classes etc. use 2 empty lines
  *
- * - Source files are encoded as UTF-8 with Unix line endings (a simple `LF`, `0x0A` or
- *   `\n`)
+ * - Source files are encoded as UTF-8 with Unix line endings
+ *   (a simple `LF`, `0x0A` or `\n`)
  *
- * If you need any further assistance, please do not hesitate to contact us through the channes shown at https://delta.chat
+ * If you need any further assistance, please do not hesitate to contact us
+ * through the channels shown at https://delta.chat
  *
  * Please keep in mind, that your derived work must be released under a
- * **GPL-compatible licence**.  For details, please have a look at the [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE) accompanying the source code.
+ * **GPL-compatible licence**.  For details, please have a look at the
+ * [LICENSE file](https://github.com/deltachat/deltachat-core/blob/master/LICENSE)
+ * accompanying the source code.
  *
  * See you.
  */
