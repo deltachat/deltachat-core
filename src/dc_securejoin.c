@@ -519,6 +519,17 @@ cleanup:
 }
 
 
+/**
+ * Handle incoming handshake messages. Called from receive_imf().
+ * Assume, when dc_handle_securejoin_handshake() is called, the message is not yet filed in the database.
+ *
+ * @private @memberof dc_context_t
+ * @param context The context object.
+ * @param mimeparser The mail.
+ * @param contact_id Contact-id of the sender (typically the From: header)
+ * @return bitfield of DC_HANDSHAKE_STOP_NORMAL_PROCESSING, DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING, DC_HANDSHAKE_ADD_DELETE_JOB;
+ *     0 if the message is no secure join message
+ */
 int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
 	int          locked = 0;
@@ -547,7 +558,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		dc_unblock_chat(context, contact_chat_id);
 	}
 
-	ret = DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING;
+	ret = DC_HANDSHAKE_STOP_NORMAL_PROCESSING;
 
 	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
 	{
@@ -705,7 +716,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		if( join_vg ) {
 			// vg-member-added is just part of a Chat-Group-Member-Added which should be kept in any way, eg. for multi-client
-			ret = DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
+			ret = DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
 		}
 
 		if (context->bob_expects!=DC_VC_CONTACT_CONFIRM) {
@@ -749,16 +760,10 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		end_bobs_joining(context, DC_BOB_SUCCESS);
 	}
 
-	// delete the message, as SMTP and IMAP is done in separate threads it should be okay to delete the message just now.
-	// for errors, we do not the corresponding message at all, it may come eg. from another device or may be useful to find out what was going wrong.
-	if( ret == DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
-		struct mailimf_field* field;
-		if( (field=dc_mimeparser_lookup_field(mimeparser, "Message-ID"))!=NULL && field->fld_type==MAILIMF_FIELD_MESSAGE_ID ) {
-			struct mailimf_message_id* fld_message_id = field->fld_data.fld_message_id;
-			if( fld_message_id && fld_message_id->mid_value ) {
-				dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, dc_rfc724_mid_exists(context, fld_message_id->mid_value, NULL, NULL), NULL, 0);
-			}
-		}
+	// for errors, we do not the corresponding message at all,
+	// it may come eg. from another device or may be useful to find out what was going wrong.
+	if (ret & DC_HANDSHAKE_STOP_NORMAL_PROCESSING) {
+		ret |= DC_HANDSHAKE_ADD_DELETE_JOB;
 	}
 
 cleanup:

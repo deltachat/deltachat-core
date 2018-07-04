@@ -955,6 +955,7 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 	int              chat_id_blocked = 0;
 	int              state   = DC_STATE_UNDEFINED;
 	int              hidden = 0;
+	int              add_delete_job = 0;
 
 	sqlite3_stmt*    stmt = NULL;
 	size_t           i, icnt;
@@ -1127,12 +1128,14 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 				state = (flags&DC_IMAP_SEEN)? DC_STATE_IN_SEEN : DC_STATE_IN_FRESH;
 				to_id = DC_CONTACT_ID_SELF;
 
-				// handshake messages must be processed before chats are crated (eg. contacs may be marked as verified)
+				// handshake messages must be processed before chats are created (eg. contacs may be marked as verified)
 				assert( chat_id == 0 );
 				if( dc_mimeparser_lookup_field(mime_parser, "Secure-Join") ) {
 					dc_sqlite3_commit(context->sql);
-						if( dc_handle_securejoin_handshake(context, mime_parser, from_id) == DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING ) {
+						int handshake = dc_handle_securejoin_handshake(context, mime_parser, from_id);
+						if (handshake & DC_HANDSHAKE_STOP_NORMAL_PROCESSING) {
 							hidden = 1;
+							add_delete_job = (handshake & DC_HANDSHAKE_ADD_DELETE_JOB);
 							state = DC_STATE_IN_SEEN;
 						}
 					dc_sqlite3_begin_transaction(context->sql);
@@ -1462,6 +1465,9 @@ void dc_receive_imf(dc_context_t* context, const char* imf_raw_not_terminated, s
 			free(emlname);
 		}
 
+		if( add_delete_job ) {
+			dc_job_add(context, DC_JOB_DELETE_MSG_ON_IMAP, first_dblocal_id, NULL, 0);
+		}
 
 	dc_sqlite3_commit(context->sql);
 	transaction_pending = 0;

@@ -202,8 +202,9 @@ void            dc_free_ongoing      (dc_context_t*);
 
 
 /* library private: secure-join */
-#define         DC_IS_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 1
-#define         DC_IS_HANDSHAKE_STOP_NORMAL_PROCESSING     2
+#define         DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING 0x01
+#define         DC_HANDSHAKE_STOP_NORMAL_PROCESSING     0x02
+#define         DC_HANDSHAKE_ADD_DELETE_JOB             0x04
 int             dc_handle_securejoin_handshake(dc_context_t*, dc_mimeparser_t*, uint32_t contact_id);
 void            dc_handle_degrade_event       (dc_context_t*, dc_apeerstate_t*);
 
