@@ -39,7 +39,7 @@ static pthread_mutex_t* s_mutex_buf         = NULL;
  * dc_context_new() the first time.  When the last context-object is deleted
  * using dc_context_unref(), the OpenSSL library will be released as well.
  *
- * If your app needs OpenSSL on your own outside these calls, you have to initialize the
+ * If your app needs OpenSSL on its own _outside_ these calls, you have to initialize the
  * OpenSSL-library yourself and skip the initialisation in deltachat-core by calling
  * dc_openssl_init_not_required() _before_ calling dc_context_new() the first time.
  *

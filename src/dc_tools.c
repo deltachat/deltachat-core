@@ -859,7 +859,8 @@ char* dc_create_id(void)
 
 char* dc_create_dummy_references_mid()
 {
-	char* msgid = dc_create_id(), *ret = NULL;
+	char* msgid = dc_create_id();
+	char* ret = NULL;
 	ret = dc_mprintf("Rf.%s@mr.thread", msgid);
 	free(msgid);
 	return ret;

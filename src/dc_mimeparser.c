@@ -432,8 +432,8 @@ dc_hash_t* mailimf_get_recipients(struct mailimf_fields* imffields)
 	for( cur1 = clist_begin(imffields->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
 	{
 		struct mailimf_field*        fld = (struct mailimf_field*)clist_content(cur1);
-		struct mailimf_to*           fld_to;
-		struct mailimf_cc*           fld_cc;
+		struct mailimf_to*           fld_to = NULL;
+		struct mailimf_cc*           fld_cc = NULL;
 		struct mailimf_address_list* addr_list = NULL;
 		switch( fld->fld_type )
 		{
@@ -558,10 +558,9 @@ struct mailimf_fields* mailmime_find_mailimf_fields(struct mailmime* mime)
 		return NULL;
 	}
 
-	clistiter* cur;
 	switch (mime->mm_type) {
 		case MAILMIME_MULTIPLE:
-			for(cur = clist_begin(mime->mm_data.mm_multipart.mm_mp_list) ; cur != NULL ; cur = clist_next(cur)) {
+			for (clistiter* cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL ; cur=clist_next(cur)) {
 				struct mailimf_fields* header = mailmime_find_mailimf_fields(clist_content(cur));
 				if( header ) {
 					return header;
@@ -960,7 +959,7 @@ static void do_add_single_file_part(dc_mimeparser_t* parser, int msg_type, int m
                                     const char* desired_filename)
 {
 	dc_mimepart_t* part = NULL;
-	char*         pathNfilename = NULL;
+	char*          pathNfilename = NULL;
 
 	/* create a free file name to use */
 	if( (pathNfilename=dc_get_fine_pathNfilename(parser->blobdir, desired_filename)) == NULL ) {
@@ -1018,8 +1017,9 @@ static int dc_mimeparser_add_single_part_if_known(dc_mimeparser_t* mimeparser, s
 
 	int                          mime_type;
 	struct mailmime_data*        mime_data;
-	char*                        file_suffix = NULL, *desired_filename = NULL;
-	int                          msg_type;
+	char*                        file_suffix = NULL;
+	char*                        desired_filename = NULL;
+	int                          msg_type = 0;
 
 	char*                        transfer_decoding_buffer = NULL; /* mmap_string_unref()'d if set */
 	char*                        charset_buffer = NULL; /* charconv_buffer_free()'d if set (just calls mmap_string_unref()) */
@@ -1222,7 +1222,7 @@ cleanup:
 static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struct mailmime* mime)
 {
 	int        any_part_added = 0;
-	clistiter* cur;
+	clistiter* cur = NULL;
 
 	if( mimeparser == NULL || mime == NULL ) {
 		return 0;
@@ -1403,16 +1403,15 @@ static int dc_mimeparser_parse_mime_recursive(dc_mimeparser_t* mimeparser, struc
 
 static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_context_t* context)
 {
-	if( in == NULL ) {
+	if (NULL==in) {
 		return;
 	}
 
-	clistiter* cur1;
-	for( cur1 = clist_begin(in->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	for (clistiter* cur1=clist_begin(in->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
 		const char *key = NULL;
-		switch( field->fld_type )
+		switch (field->fld_type)
 		{
 			case MAILIMF_FIELD_RETURN_PATH: key = "Return-Path"; break;
 			case MAILIMF_FIELD_ORIG_DATE:   key = "Date";        break;
@@ -1478,7 +1477,7 @@ static void hash_header(dc_hash_t* out, const struct mailimf_fields* in, dc_cont
  */
 void dc_mimeparser_parse(dc_mimeparser_t* mimeparser, const char* body_not_terminated, size_t body_bytes)
 {
-	int r;
+	int    r = 0;
 	size_t index = 0;
 
 	dc_mimeparser_empty(mimeparser);
@@ -1855,11 +1854,11 @@ int dc_mimeparser_is_mailinglist_message(dc_mimeparser_t* mimeparser)
 int dc_mimeparser_sender_equals_recipient(dc_mimeparser_t* mimeparser)
 {
 	int                         sender_equals_recipient = 0;
-	const struct mailimf_field* fld;
-	const struct mailimf_from*  fld_from;
-	struct mailimf_mailbox*     mb;
+	const struct mailimf_field* fld = NULL;
+	const struct mailimf_from*  fld_from = NULL;
+	struct mailimf_mailbox*     mb = NULL;
 	char*                       from_addr_norm = NULL;
-	dc_hash_t*                   recipients   = NULL;
+	dc_hash_t*                  recipients   = NULL;
 
 	if( mimeparser == NULL || mimeparser->header_root == NULL ) {
 		goto cleanup;
