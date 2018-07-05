@@ -83,6 +83,7 @@ int          dc_contact_n_peerstate_are_verified(const dc_contact_t*, const dc_a
 void         dc_normalize_name                (char* full_name);
 char*        dc_normalize_addr                (const char* email_addr);
 char*        dc_get_first_name                (const char* full_name);
+int          dc_addr_is_self                  (dc_context_t*, const char* addr);
 
 
 #ifdef __cplusplus

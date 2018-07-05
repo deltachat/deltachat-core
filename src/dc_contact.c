@@ -496,3 +496,33 @@ cleanup:
 	sqlite3_finalize(stmt);
 	return success;
 }
+
+
+/**
+ * Check if a given e-mail-address is equal to the configured-self-address.
+ *
+ * @private @memberof dc_contact_t
+ */
+int dc_addr_is_self(dc_context_t* context, const char* addr)
+{
+	int   ret             = 0;
+	char* normalized_addr = NULL;
+	char* self_addr       = NULL;
+
+	if (context==NULL || addr==NULL) {
+		goto cleanup;
+	}
+
+	normalized_addr = dc_normalize_addr(addr);
+
+	if (NULL==(self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))) {
+		goto cleanup;
+	}
+
+	ret = strcasecmp(normalized_addr, self_addr)==0? 1 : 0;
+
+cleanup:
+	free(self_addr);
+	free(normalized_addr);
+	return ret;
+}
