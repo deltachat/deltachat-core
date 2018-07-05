@@ -47,7 +47,7 @@ static int s_do_log_info = 1;
 #define ANSI_NORMAL "\e[0m"
 
 
-static uintptr_t receive_event(dc_context_t* mailbox, int event, uintptr_t data1, uintptr_t data2)
+static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
 {
 	switch( event )
 	{
@@ -72,12 +72,12 @@ static uintptr_t receive_event(dc_context_t* mailbox, int event, uintptr_t data1
 		case DC_EVENT_HTTP_GET:
 			{
 				char* ret = NULL;
-				char* tempFile = dc_get_fine_pathNfilename(mailbox->blobdir, "curl.result");
+				char* tempFile = dc_get_fine_pathNfilename(context->blobdir, "curl.result");
 				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
 				int error = system(cmd);
 				if( error == 0 ) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
 					size_t bytes = 0;
-					dc_read_file(tempFile, (void**)&ret, &bytes, mailbox);
+					dc_read_file(tempFile, (void**)&ret, &bytes, context);
 				}
 				free(cmd);
 				free(tempFile);
@@ -129,15 +129,15 @@ static pthread_t imap_thread     = 0;
 static int       imap_foreground = 1;
 static void* imap_thread_entry_point (void* entry_arg)
 {
-	dc_context_t* mailbox = (dc_context_t*)entry_arg;
+	dc_context_t* context = (dc_context_t*)entry_arg;
 
 	while( 1 ) {
 		// perform_jobs(), fetch() and idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
-		dc_perform_imap_jobs(mailbox);
-		dc_perform_imap_fetch(mailbox);
+		dc_perform_imap_jobs(context);
+		dc_perform_imap_fetch(context);
 		if( imap_foreground ) {
-			dc_perform_imap_idle(mailbox); // this may take hours ...
+			dc_perform_imap_idle(context); // this may take hours ...
 		}
 		else {
 			break;
@@ -152,12 +152,12 @@ static void* imap_thread_entry_point (void* entry_arg)
 static pthread_t smtp_thread = 0;
 static void* smtp_thread_entry_point (void* entry_arg)
 {
-	dc_context_t* mailbox = (dc_context_t*)entry_arg;
+	dc_context_t* context = (dc_context_t*)entry_arg;
 
 	while( 1 ) {
-		dc_perform_smtp_jobs(mailbox);
+		dc_perform_smtp_jobs(context);
 		if( imap_foreground ) {
-			dc_perform_smtp_idle(mailbox); // this may take hours ...
+			dc_perform_smtp_idle(context); // this may take hours ...
 		}
 		else {
 			break;
@@ -169,23 +169,23 @@ static void* smtp_thread_entry_point (void* entry_arg)
 }
 
 
-static void start_threads(dc_context_t* mailbox)
+static void start_threads(dc_context_t* context)
 {
 	if( !imap_thread ) {
-		pthread_create(&imap_thread, NULL, imap_thread_entry_point, mailbox);
+		pthread_create(&imap_thread, NULL, imap_thread_entry_point, context);
 	}
 
 	if( !smtp_thread ) {
-		pthread_create(&smtp_thread, NULL, smtp_thread_entry_point, mailbox);
+		pthread_create(&smtp_thread, NULL, smtp_thread_entry_point, context);
 	}
 }
 
 
-static void stop_threads(dc_context_t* mailbox)
+static void stop_threads(dc_context_t* context)
 {
 	imap_foreground = 0;
-	dc_interrupt_imap_idle(mailbox);
-	dc_interrupt_smtp_idle(mailbox);
+	dc_interrupt_imap_idle(context);
+	dc_interrupt_smtp_idle(context);
 
 	// wait until the threads are finished
 	while( imap_thread || smtp_thread ) {
@@ -218,13 +218,13 @@ static char* read_cmd(void)
 int main(int argc, char ** argv)
 {
 	char*         cmd = NULL;
-	dc_context_t* mailbox = dc_context_new(receive_event, NULL, "CLI");
+	dc_context_t* context = dc_context_new(receive_event, NULL, "CLI");
 
-	dc_cmdline_skip_auth(mailbox); /* disable the need to enter the command `auth <password>` for all mailboxes. */
+	dc_cmdline_skip_auth(context); /* disable the need to enter the command `auth <password>` for all mailboxes. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
 	if( argc == 2 ) {
-		if( !dc_open(mailbox, argv[1], NULL) ) {
+		if( !dc_open(context, argv[1], NULL) ) {
 			printf("ERROR: Cannot open %s.\n", argv[1]);
 		}
 	}
@@ -233,7 +233,7 @@ int main(int argc, char ** argv)
 	}
 
 	s_do_log_info = 0;
-	stress_functions(mailbox);
+	stress_functions(context);
 	s_do_log_info = 1;
 
 	printf("Delta Chat Core is awaiting your commands.\n");
@@ -251,11 +251,11 @@ int main(int argc, char ** argv)
 		if( strcmp(cmd, "connect")==0 )
 		{
 			imap_foreground = 1;
-			start_threads(mailbox);
+			start_threads(context);
 		}
 		else if( strcmp(cmd, "disconnect")==0 )
 		{
-			stop_threads(mailbox);
+			stop_threads(context);
 		}
 		else if( strcmp(cmd, "poll")==0 )
 		{
@@ -264,8 +264,8 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "configure")==0 )
 		{
 			imap_foreground = 1;
-			start_threads(mailbox);
-			dc_configure(mailbox);
+			start_threads(context);
+			dc_configure(context);
 		}
 		else if( strcmp(cmd, "clear")==0 )
 		{
@@ -275,8 +275,8 @@ int main(int argc, char ** argv)
 		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
 		{
 			imap_foreground = 1;
-			start_threads(mailbox);
-			char* qrstr  = dc_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
+			start_threads(context);
+			char* qrstr  = dc_get_securejoin_qr(context, arg1? atoi(arg1) : 0);
 			if( qrstr && qrstr[0] ) {
 				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
 					for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
@@ -288,6 +288,14 @@ int main(int argc, char ** argv)
 			}
 			free(qrstr);
 		}
+		else if( strcmp(cmd, "joinqr")==0 )
+		{
+			imap_foreground = 1;
+			start_threads(context);
+			if( arg1 ) {
+				dc_join_securejoin(context, arg1);
+			}
+		}
 		else if( strcmp(cmd, "exit")==0 )
 		{
 			break;
@@ -298,7 +306,7 @@ int main(int argc, char ** argv)
 		}
 		else
 		{
-			char* execute_result = dc_cmdline(mailbox, cmdline);
+			char* execute_result = dc_cmdline(context, cmdline);
 			if( execute_result ) {
 				printf("%s\n", execute_result);
 				free(execute_result);
@@ -307,10 +315,10 @@ int main(int argc, char ** argv)
 	}
 
 	free(cmd);
-	stop_threads(mailbox);
-	dc_close(mailbox);
-	dc_context_unref(mailbox);
-	mailbox = NULL;
+	stop_threads(context);
+	dc_close(context);
+	dc_context_unref(context);
+	context = NULL;
 	return 0;
 }
 

@@ -132,8 +132,8 @@ cleanup:
 
 static uint32_t chat_id_2_contact_id(dc_context_t* context, uint32_t contact_chat_id)
 {
-	uint32_t   contact_id = 0;
-	dc_array_t* contacts = dc_get_chat_contacts(context, contact_chat_id);
+	uint32_t    contact_id = 0;
+	dc_array_t* contacts   = dc_get_chat_contacts(context, contact_chat_id);
 
 	if( dc_array_get_cnt(contacts) != 1 ) {
 		goto cleanup;
@@ -180,7 +180,7 @@ cleanup:
 
 static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 {
-	int              success = 0;
+	int              success   = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
 	if( !dc_apeerstate_load_by_fingerprint(peerstate, context->sql, fingerprint) ) {
@@ -255,9 +255,9 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 
 static void could_not_establish_secure_connection(dc_context_t* context, uint32_t contact_chat_id, const char* details)
 {
-	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
+	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
+	char*         msg        = dc_mprintf("Could not establish secure connection to %s.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -270,9 +270,9 @@ static void could_not_establish_secure_connection(dc_context_t* context, uint32_
 
 static void secure_connection_established(dc_context_t* context, uint32_t contact_chat_id)
 {
-	uint32_t     contact_id = chat_id_2_contact_id(context, contact_chat_id);
+	uint32_t      contact_id = chat_id_2_contact_id(context, contact_chat_id);
 	dc_contact_t* contact    = dc_get_contact(context, contact_id);
-	char*        msg        = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
+	char*         msg        = dc_mprintf("Secure connection to %s established.", contact? contact->addr : "?");
 
 	dc_add_device_msg(context, contact_chat_id, msg);
 
@@ -319,17 +319,17 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	   ====   Step 1 in "Setup verified contact" protocol   ====
 	   ========================================================= */
 
-	char*     qr                   = NULL;
-	char*     self_addr            = NULL;
-	char*     self_addr_urlencoded = NULL;
-	char*     self_name            = NULL;
-	char*     self_name_urlencoded = NULL;
-	char*     fingerprint          = NULL;
-	char*     invitenumber         = NULL;
-	char*     auth                 = NULL;
+	char*      qr                   = NULL;
+	char*      self_addr            = NULL;
+	char*      self_addr_urlencoded = NULL;
+	char*      self_name            = NULL;
+	char*      self_name_urlencoded = NULL;
+	char*      fingerprint          = NULL;
+	char*      invitenumber         = NULL;
+	char*      auth                 = NULL;
 	dc_chat_t* chat                 = NULL;
-	char*     group_name           = NULL;
-	char*     group_name_urlencoded= NULL;
+	char*      group_name           = NULL;
+	char*      group_name_urlencoded= NULL;
 
 	if( context == NULL || context->magic!=DC_CONTEXT_MAGIC ) {
 		goto cleanup;
@@ -382,6 +382,8 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 		qr = dc_mprintf(DC_OPENPGP4FPR_SCHEME "%s#a=%s&n=%s&i=%s&s=%s", fingerprint, self_addr_urlencoded, self_name_urlencoded, invitenumber, auth);
 	}
 
+	dc_log_info(context, 0, "Generated QR code: %s", qr);
+
 cleanup:
 	free(self_addr_urlencoded);
 	free(self_addr);
@@ -410,15 +412,8 @@ cleanup:
  * @param context The context object
  * @param qr The text of the scanned QR code. Typically, the same string as given
  *     to dc_check_qr().
- * @return 0=Out-of-band verification failed or aborted, 1=Out-of-band
- *     verification successfull, the UI may redirect to the corresponding chat
- *     where a new system message with the state was added.
- *
- *     TODO: check if we should say to the caller, which activity to show after
- *     vc-request:
- *     - for a qr-scan while group-creation, returning to the chatlist might be better
- *     - for a qr-scan to add a contact (even without handshake), opening the created normal-chat is better
- *     (for vg-request always the new group is shown, this is perfect)
+ * @return Chat-id of the joined chat, the UI may redirect to the this chat.
+ *     If the out-of-band verification failed or was aborted, 0 is returned.
  */
 uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 {

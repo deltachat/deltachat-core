@@ -127,12 +127,12 @@ cleanup:
 }
 
 
-static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* public_key_file)
+static int poke_public_key(dc_context_t* context, const char* addr, const char* public_key_file)
 {
 	/* mainly for testing: if the partner does not support Autocrypt,
 	encryption is disabled as soon as the first messages comes from the partner */
 	dc_aheader_t*    header = dc_aheader_new();
-	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 	int              success = 0;
 
 	if( addr==NULL || public_key_file==NULL || peerstate==NULL || header==NULL ) {
@@ -142,20 +142,20 @@ static int poke_public_key(dc_context_t* mailbox, const char* addr, const char* 
 	/* create a fake autocrypt header */
 	header->addr             = dc_strdup(addr);
 	header->prefer_encrypt   = DC_PE_MUTUAL;
-	if( !dc_key_set_from_file(header->public_key, public_key_file, mailbox)
-	 || !dc_pgp_is_valid_key(mailbox, header->public_key) ) {
-		dc_log_warning(mailbox, 0, "No valid key found in \"%s\".", public_key_file);
+	if( !dc_key_set_from_file(header->public_key, public_key_file, context)
+	 || !dc_pgp_is_valid_key(context, header->public_key) ) {
+		dc_log_warning(context, 0, "No valid key found in \"%s\".", public_key_file);
 		goto cleanup;
 	}
 
 	/* update/create peerstate */
-	if( dc_apeerstate_load_by_addr(peerstate, mailbox->sql, addr) ) {
+	if( dc_apeerstate_load_by_addr(peerstate, context->sql, addr) ) {
 		dc_apeerstate_apply_header(peerstate, header, time(NULL));
-		dc_apeerstate_save_to_db(peerstate, mailbox->sql, 0);
+		dc_apeerstate_save_to_db(peerstate, context->sql, 0);
 	}
 	else {
 		dc_apeerstate_init_from_header(peerstate, header, time(NULL));
-		dc_apeerstate_save_to_db(peerstate, mailbox->sql, 1);
+		dc_apeerstate_save_to_db(peerstate, context->sql, 1);
 	}
 
 	success = 1;
@@ -167,20 +167,17 @@ cleanup:
 }
 
 
-/*
+/**
  * Import a file to the database.
  * For testing, import a folder with eml-files, a single eml-file, e-mail plus public key and so on.
  * For normal importing, use dc_imex().
  *
  * @private @memberof dc_context_t
- *
- * @param mailbox Mailbox object as created by dc_new().
- *
+ * @param context The context as created by dc_context_new().
  * @param spec The file or directory to import. NULL for the last command.
- *
  * @return 1=success, 0=error.
  */
-static int poke_spec(dc_context_t* mailbox, const char* spec)
+static int poke_spec(dc_context_t* context, const char* spec)
 {
 	int            success = 0;
 	char*          real_spec = NULL;
@@ -190,12 +187,12 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	int            read_cnt = 0;
 	char*          name;
 
-	if( mailbox == NULL ) {
+	if( context == NULL ) {
 		return 0;
 	}
 
-	if( !dc_sqlite3_is_open(mailbox->sql) ) {
-        dc_log_error(mailbox, 0, "Import: Database not opened.");
+	if( !dc_sqlite3_is_open(context->sql) ) {
+        dc_log_error(context, 0, "Import: Database not opened.");
 		goto cleanup;
 	}
 
@@ -203,12 +200,12 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	if( spec )
 	{
 		real_spec = dc_strdup(spec);
-		dc_sqlite3_set_config(mailbox->sql, "import_spec", real_spec);
+		dc_sqlite3_set_config(context->sql, "import_spec", real_spec);
 	}
 	else {
-		real_spec = dc_sqlite3_get_config(mailbox->sql, "import_spec", NULL); /* may still NULL */
+		real_spec = dc_sqlite3_get_config(context->sql, "import_spec", NULL); /* may still NULL */
 		if( real_spec == NULL ) {
-			dc_log_error(mailbox, 0, "Import: No file or folder given.");
+			dc_log_error(context, 0, "Import: No file or folder given.");
 			goto cleanup;
 		}
 	}
@@ -216,7 +213,7 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	suffix = dc_get_filesuffix_lc(real_spec);
 	if( suffix && strcmp(suffix, "eml")==0 ) {
 		/* import a single file */
-		if( dc_poke_eml_file(mailbox, real_spec) ) { /* errors are logged in any case */
+		if( dc_poke_eml_file(context, real_spec) ) { /* errors are logged in any case */
 			read_cnt++;
 		}
 	}
@@ -224,11 +221,11 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 		/* import a publix key */
 		char* separator = strchr(real_spec, ' ');
 		if( separator==NULL ) {
-			dc_log_error(mailbox, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
+			dc_log_error(context, 0, "Import: Key files must be specified as \"<addr> <key-file>\".");
 			goto cleanup;
 		}
 		*separator = 0;
-		if( poke_public_key(mailbox, real_spec, separator+1) ) {
+		if( poke_public_key(context, real_spec, separator+1) ) {
 			read_cnt++;
 		}
 		*separator = ' ';
@@ -236,7 +233,7 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 	else {
 		/* import a directory */
 		if( (dir=opendir(real_spec))==NULL ) {
-			dc_log_error(mailbox, 0, "Import: Cannot open directory \"%s\".", real_spec);
+			dc_log_error(context, 0, "Import: Cannot open directory \"%s\".", real_spec);
 			goto cleanup;
 		}
 
@@ -244,8 +241,8 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 			name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			if( strlen(name)>=4 && strcmp(&name[strlen(name)-4], ".eml")==0 ) {
 				char* path_plus_name = dc_mprintf("%s/%s", real_spec, name);
-				dc_log_info(mailbox, 0, "Import: %s", path_plus_name);
-				if( dc_poke_eml_file(mailbox, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
+				dc_log_info(context, 0, "Import: %s", path_plus_name);
+				if( dc_poke_eml_file(context, path_plus_name) ) { /* no abort on single errors errors are logged in any case */
 					read_cnt++;
 				}
 				free(path_plus_name);
@@ -253,9 +250,9 @@ static int poke_spec(dc_context_t* mailbox, const char* spec)
 		}
 	}
 
-	dc_log_info(mailbox, 0, "Import: %i items read from \"%s\".", read_cnt, real_spec);
+	dc_log_info(context, 0, "Import: %i items read from \"%s\".", read_cnt, real_spec);
 	if( read_cnt > 0 ) {
-		mailbox->cb(mailbox, DC_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
+		context->cb(context, DC_EVENT_MSGS_CHANGED, 0, 0); /* even if read_cnt>0, the number of messages added to the database may be 0. While we regard this issue using IMAP, we ignore it here. */
 	}
 
 	success = 1;
@@ -268,20 +265,20 @@ cleanup:
 }
 
 
-static void log_msglist(dc_context_t* mailbox, dc_array_t* msglist)
+static void log_msglist(dc_context_t* context, dc_array_t* msglist)
 {
 	int i, cnt = dc_array_get_cnt(msglist), lines_out = 0;
 	for( i = 0; i < cnt; i++ )
 	{
 		uint32_t msg_id = dc_array_get_id(msglist, i);
 		if( msg_id == DC_MSG_ID_DAYMARKER ) {
-			dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++;
+			dc_log_info(context, 0, "--------------------------------------------------------------------------------"); lines_out++;
 		}
 		else if( msg_id > 0 ) {
-			if( lines_out==0 ) { dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); lines_out++; }
+			if( lines_out==0 ) { dc_log_info(context, 0, "--------------------------------------------------------------------------------"); lines_out++; }
 
-			dc_msg_t* msg = dc_get_msg(mailbox, msg_id);
-			dc_contact_t* contact = dc_get_contact(mailbox, dc_msg_get_from_id(msg));
+			dc_msg_t* msg = dc_get_msg(context, msg_id);
+			dc_contact_t* contact = dc_get_contact(context, dc_msg_get_from_id(msg));
 			char* contact_name = dc_contact_get_name(contact);
 			int contact_id = dc_contact_get_id(contact);
 
@@ -295,7 +292,7 @@ static void log_msglist(dc_context_t* mailbox, dc_array_t* msglist)
 
 			char* temp2 = dc_timestamp_to_str(dc_msg_get_timestamp(msg));
 			char* msgtext = dc_msg_get_text(msg);
-				dc_log_info(mailbox, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
+				dc_log_info(context, 0, "Msg#%i%s: %s (Contact#%i): %s %s%s%s%s [%s]",
 					(int)dc_msg_get_id(msg),
 					dc_msg_get_showpadlock(msg)? "\xF0\x9F\x94\x92" : "",
 					contact_name,
@@ -315,27 +312,27 @@ static void log_msglist(dc_context_t* mailbox, dc_array_t* msglist)
 		}
 	}
 
-	if( lines_out > 0 ) { dc_log_info(mailbox, 0, "--------------------------------------------------------------------------------"); }
+	if( lines_out > 0 ) { dc_log_info(context, 0, "--------------------------------------------------------------------------------"); }
 }
 
 
-static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
+static void log_contactlist(dc_context_t* context, dc_array_t* contacts)
 {
 	int              i, cnt = dc_array_get_cnt(contacts);
 	dc_contact_t*    contact = NULL;
-	dc_apeerstate_t* peerstate = dc_apeerstate_new(mailbox);
+	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
 	for( i = 0; i < cnt; i++ ) {
 		uint32_t contact_id = dc_array_get_id(contacts, i);
 		char* line = NULL;
 		char* line2 = NULL;
-		if( (contact=dc_get_contact(mailbox, contact_id))!=NULL ) {
+		if( (contact=dc_get_contact(context, contact_id))!=NULL ) {
 			char* name = dc_contact_get_name(contact);
 			char* addr = dc_contact_get_addr(contact);
 			int verified_state = dc_contact_is_verified(contact);
 			const char* verified_str = verified_state? (verified_state==2? " √√":" √"): "";
 			line = dc_mprintf("%s%s <%s>", (name&&name[0])? name : "<name unset>", verified_str, (addr&&addr[0])? addr : "addr unset");
-			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, mailbox->sql, addr);
+			int peerstate_ok = dc_apeerstate_load_by_addr(peerstate, context->sql, addr);
 			if( peerstate_ok && contact_id != DC_CONTACT_ID_SELF ) {
 				char* pe = NULL;
 				switch( peerstate->prefer_encrypt ) {
@@ -354,7 +351,7 @@ static void log_contactlist(dc_context_t* mailbox, dc_array_t* contacts)
 		else {
 			line = dc_strdup("Read error.");
 		}
-		dc_log_info(mailbox, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
+		dc_log_info(context, 0, "Contact#%i: %s%s", (int)contact_id, line, line2? line2:"");
 		free(line);
 		free(line2);
 	}
@@ -380,7 +377,7 @@ static const char* chat_prefix(const dc_chat_t* chat)
 }
 
 
-char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
+char* dc_cmdline(dc_context_t* context, const char* cmdline)
 {
 	#define      COMMAND_FAILED    ((char*)1)
 	#define      COMMAND_SUCCEEDED ((char*)2)
@@ -389,12 +386,12 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	dc_chat_t*   sel_chat = NULL;
 
 
-	if( mailbox == NULL || cmdline == NULL || cmdline[0]==0 ) {
+	if( context == NULL || cmdline == NULL || cmdline[0]==0 ) {
 		goto cleanup;
 	}
 
-	if( mailbox->cmdline_sel_chat_id ) {
-		sel_chat = dc_get_chat(mailbox, mailbox->cmdline_sel_chat_id);
+	if( context->cmdline_sel_chat_id ) {
+		sel_chat = dc_get_chat(context, context->cmdline_sel_chat_id);
 	}
 
 	/* split commandline into command and first argument
@@ -478,7 +475,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 				"======================================Misc.==\n"
 				"getqr [<chat-id>]\n"
 				"getbadqr\n"
-				"checkqr <qr-contenct>\n"
+				"checkqr <qr-content>\n"
 				"event <event-id to test>\n"
 				"fileinfo <file>\n"
 				"clear -- clear screen\n" /* must be implemented by  the caller */
@@ -490,7 +487,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( !s_is_auth )
 	{
 		if( strcmp(cmd, "auth")==0 ) {
-			char* is_pw = dc_get_config(mailbox, "mail_pw", "");
+			char* is_pw = dc_get_config(context, "mail_pw", "");
 			if( strcmp(arg1, is_pw)==0 ) {
 				s_is_auth = 1;
 				ret = COMMAND_SUCCEEDED;
@@ -516,8 +513,8 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "open")==0 )
 	{
 		if( arg1 ) {
-			dc_close(mailbox);
-			ret = dc_open(mailbox, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			dc_close(context);
+			ret = dc_open(context, arg1, NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <file> missing.");
@@ -525,12 +522,12 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "close")==0 )
 	{
-		dc_close(mailbox);
+		dc_close(context);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "initiate-key-transfer")==0 )
 	{
-		char* setup_code = dc_initiate_key_transfer(mailbox);
+		char* setup_code = dc_initiate_key_transfer(context);
 			ret = setup_code? dc_mprintf("Setup code for the transferred setup message: %s", setup_code) : COMMAND_FAILED;
 		free(setup_code);
 	}
@@ -538,7 +535,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			uint32_t  msg_id = (uint32_t)atoi(arg1);
-			dc_msg_t* msg = dc_get_msg(mailbox, msg_id);
+			dc_msg_t* msg = dc_get_msg(context, msg_id);
 			if( dc_msg_is_setupmessage(msg) ) {
 				char* setupcodebegin = dc_msg_get_setupcodebegin(msg);
 					ret = dc_mprintf("The setup code for setup message Msg#%i starts with: %s", msg_id, setupcodebegin);
@@ -559,7 +556,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 ) { arg2 = strrchr(arg1, ' '); }
 		if( arg1 && arg2 ) {
 			*arg2 = 0; arg2++;
-			ret = dc_continue_key_transfer(mailbox, atoi(arg1), arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = dc_continue_key_transfer(context, atoi(arg1), arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Arguments <msg-id> <setup-code> expected.");
@@ -567,20 +564,20 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "has-backup")==0 )
 	{
-		ret = dc_imex_has_backup(mailbox, mailbox->blobdir);
+		ret = dc_imex_has_backup(context, context->blobdir);
 		if( ret == NULL ) {
 			ret = dc_strdup("No backup found.");
 		}
 	}
 	else if( strcmp(cmd, "export-backup")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_EXPORT_BACKUP, mailbox->blobdir, NULL);
+		dc_imex(context, DC_IMEX_EXPORT_BACKUP, context->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-backup")==0 )
 	{
 		if( arg1 ) {
-			dc_imex(mailbox, DC_IMEX_IMPORT_BACKUP, arg1, NULL);
+			dc_imex(context, DC_IMEX_IMPORT_BACKUP, arg1, NULL);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -589,21 +586,21 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "export-keys")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_EXPORT_SELF_KEYS, mailbox->blobdir, NULL);
+		dc_imex(context, DC_IMEX_EXPORT_SELF_KEYS, context->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "import-keys")==0 )
 	{
-		dc_imex(mailbox, DC_IMEX_IMPORT_SELF_KEYS, mailbox->blobdir, NULL);
+		dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, context->blobdir, NULL);
 		ret = COMMAND_SUCCEEDED;
 	}
 	else if( strcmp(cmd, "export-setup")==0 )
 	{
-		char* setup_code = dc_create_setup_code(mailbox);
-		char* file_name = dc_mprintf("%s/autocrypt-setup-message.html", mailbox->blobdir);
+		char* setup_code = dc_create_setup_code(context);
+		char* file_name = dc_mprintf("%s/autocrypt-setup-message.html", context->blobdir);
 		char* file_content = NULL;
-			if( (file_content=dc_render_setup_file(mailbox, setup_code)) != NULL
-			 && dc_write_file(file_name, file_content, strlen(file_content), mailbox) ) {
+			if( (file_content=dc_render_setup_file(context, setup_code)) != NULL
+			 && dc_write_file(file_name, file_content, strlen(file_content), context) ) {
 				ret = dc_mprintf("Setup message written to: %s\nSetup code: %s", file_name, setup_code);
 			}
 			else {
@@ -615,7 +612,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "poke")==0 )
 	{
-		ret = poke_spec(mailbox, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		ret = poke_spec(context, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 	else if( strcmp(cmd, "reset")==0 )
 	{
@@ -625,7 +622,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 				ret = dc_strdup("ERROR: <bits> must be lower than 16.");
 			}
 			else {
-				ret = dc_reset_tables(mailbox, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+				ret = dc_reset_tables(context, bits)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 		}
 		else {
@@ -640,7 +637,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 				*arg2 = 0;
 				arg2++;
 			}
-			ret = dc_set_config(mailbox, arg1, arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = dc_set_config(context, arg1, arg2)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <key> missing.");
@@ -649,7 +646,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "get")==0 )
 	{
 		if( arg1 ) {
-			char* val = dc_get_config(mailbox, arg1, "<unset>");
+			char* val = dc_get_config(context, arg1, "<unset>");
 			if( val ) {
 				ret = dc_mprintf("%s=%s", arg1, val);
 				free(val);
@@ -664,7 +661,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "info")==0 )
 	{
-		ret = dc_get_info(mailbox);
+		ret = dc_get_info(context);
 		if( ret == NULL ) {
 			ret = COMMAND_FAILED;
 		}
@@ -677,20 +674,20 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listchats")==0 || strcmp(cmd, "listarchived")==0 || strcmp(cmd, "chats")==0 )
 	{
 		int listflags = strcmp(cmd, "listarchived")==0? DC_GCL_ARCHIVED_ONLY : 0;
-		dc_chatlist_t* chatlist = dc_get_chatlist(mailbox, listflags, arg1, 0);
+		dc_chatlist_t* chatlist = dc_get_chatlist(context, listflags, arg1, 0);
 		if( chatlist ) {
 			int i, cnt = dc_chatlist_get_cnt(chatlist);
 			if( cnt>0 ) {
-				dc_log_info(mailbox, 0, "================================================================================");
+				dc_log_info(context, 0, "================================================================================");
 				for( i = cnt-1; i >= 0; i-- )
 				{
-					dc_chat_t* chat = dc_get_chat(mailbox, dc_chatlist_get_chat_id(chatlist, i));
+					dc_chat_t* chat = dc_get_chat(context, dc_chatlist_get_chat_id(chatlist, i));
 
 					char* temp_subtitle = dc_chat_get_subtitle(chat);
 					char* temp_name = dc_chat_get_name(chat);
-						dc_log_info(mailbox, 0, "%s#%i: %s [%s] [%i fresh]",
+						dc_log_info(context, 0, "%s#%i: %s [%s] [%i fresh]",
 							chat_prefix(chat),
-							(int)dc_chat_get_id(chat), temp_name, temp_subtitle, (int)dc_get_fresh_msg_count(mailbox, dc_chat_get_id(chat)));
+							(int)dc_chat_get_id(chat), temp_name, temp_subtitle, (int)dc_get_fresh_msg_count(context, dc_chat_get_id(chat)));
 					free(temp_subtitle);
 					free(temp_name);
 
@@ -710,7 +707,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 						char* timestr = dc_timestamp_to_str(dc_lot_get_timestamp(lot));
 						char* text1 = dc_lot_get_text1(lot);
 						char* text2 = dc_lot_get_text2(lot);
-							dc_log_info(mailbox, 0, "%s%s%s%s [%s]",
+							dc_log_info(context, 0, "%s%s%s%s [%s]",
 								text1? text1 : "",
 								text1? ": " : "",
 								text2? text2 : "",
@@ -724,7 +721,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 
 					dc_chat_unref(chat);
 
-					dc_log_info(mailbox, 0, "================================================================================");
+					dc_log_info(context, 0, "================================================================================");
 				}
 			}
 			ret = dc_mprintf("%i chats.", (int)cnt);
@@ -739,34 +736,34 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 && arg1[0] ) {
 			/* select a chat (argument 1 = ID of chat to select) */
 			if( sel_chat ) { dc_chat_unref(sel_chat); sel_chat = NULL; }
-			mailbox->cmdline_sel_chat_id = atoi(arg1);
-			sel_chat = dc_get_chat(mailbox, mailbox->cmdline_sel_chat_id); /* may be NULL */
+			context->cmdline_sel_chat_id = atoi(arg1);
+			sel_chat = dc_get_chat(context, context->cmdline_sel_chat_id); /* may be NULL */
 			if( sel_chat==NULL ) {
-				mailbox->cmdline_sel_chat_id = 0;
+				context->cmdline_sel_chat_id = 0;
 			}
 		}
 
 		/* show chat */
 		if( sel_chat ) {
-			dc_array_t* msglist = dc_get_chat_msgs(mailbox, dc_chat_get_id(sel_chat), DC_GCM_ADDDAYMARKER, 0);
+			dc_array_t* msglist = dc_get_chat_msgs(context, dc_chat_get_id(sel_chat), DC_GCM_ADDDAYMARKER, 0);
 			char* temp2 = dc_chat_get_subtitle(sel_chat);
 			char* temp_name = dc_chat_get_name(sel_chat);
-				dc_log_info(mailbox, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), dc_chat_get_id(sel_chat), temp_name, temp2);
+				dc_log_info(context, 0, "%s#%i: %s [%s]", chat_prefix(sel_chat), dc_chat_get_id(sel_chat), temp_name, temp2);
 			free(temp_name);
 			free(temp2);
 			if( msglist ) {
-				log_msglist(mailbox, msglist);
+				log_msglist(context, msglist);
 				dc_array_unref(msglist);
 			}
 			if( dc_chat_get_draft_timestamp(sel_chat) ) {
 				char* timestr = dc_timestamp_to_str(dc_chat_get_draft_timestamp(sel_chat));
 				char* drafttext = dc_chat_get_draft(sel_chat);
-					dc_log_info(mailbox, 0, "Draft: %s [%s]", drafttext, timestr);
+					dc_log_info(context, 0, "Draft: %s [%s]", drafttext, timestr);
 				free(drafttext);
 				free(timestr);
 			}
-			ret = dc_mprintf("%i messages.", dc_get_total_msg_count(mailbox, dc_chat_get_id(sel_chat)));
-			dc_marknoticed_chat(mailbox, dc_chat_get_id(sel_chat));
+			ret = dc_mprintf("%i messages.", dc_get_total_msg_count(context, dc_chat_get_id(sel_chat)));
+			dc_marknoticed_chat(context, dc_chat_get_id(sel_chat));
 		}
 		else {
 			ret = dc_strdup("No chat selected.");
@@ -776,7 +773,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int contact_id = atoi(arg1);
-			int chat_id = dc_create_chat_by_contact_id(mailbox, contact_id);
+			int chat_id = dc_create_chat_by_contact_id(context, contact_id);
 			ret = chat_id!=0? dc_mprintf("Single#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
@@ -787,9 +784,9 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int msg_id = atoi(arg1);
-			int chat_id = dc_create_chat_by_msg_id(mailbox, msg_id);
+			int chat_id = dc_create_chat_by_msg_id(context, msg_id);
 			if( chat_id != 0 ) {
-				dc_chat_t* chat = dc_get_chat(mailbox, chat_id);
+				dc_chat_t* chat = dc_get_chat(context, chat_id);
 					ret = dc_mprintf("%s#%lu created successfully.", chat_prefix(chat), chat_id);
 				dc_chat_unref(chat);
 			}
@@ -804,7 +801,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "creategroup")==0 )
 	{
 		if( arg1 ) {
-			int chat_id = dc_create_group_chat(mailbox, 0, arg1);
+			int chat_id = dc_create_group_chat(context, 0, arg1);
 			ret = chat_id!=0? dc_mprintf("Group#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
@@ -814,7 +811,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "createverified")==0 )
 	{
 		if( arg1 ) {
-			int chat_id = dc_create_group_chat(mailbox, 1, arg1);
+			int chat_id = dc_create_group_chat(context, 1, arg1);
 			ret = chat_id!=0? dc_mprintf("VerifiedGroup#%lu created successfully.", chat_id) : COMMAND_FAILED;
 		}
 		else {
@@ -826,7 +823,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
-				if( dc_add_contact_to_chat(mailbox, dc_chat_get_id(sel_chat), contact_id) ) {
+				if( dc_add_contact_to_chat(context, dc_chat_get_id(sel_chat), contact_id) ) {
 					ret = dc_strdup("Contact added to chat.");
 				}
 				else {
@@ -846,7 +843,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( sel_chat ) {
 			if( arg1 ) {
 				int contact_id = atoi(arg1);
-				if( dc_remove_contact_from_chat(mailbox, dc_chat_get_id(sel_chat), contact_id) ) {
+				if( dc_remove_contact_from_chat(context, dc_chat_get_id(sel_chat), contact_id) ) {
 					ret = dc_strdup("Contact added to chat.");
 				}
 				else {
@@ -865,7 +862,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				ret = dc_set_chat_name(mailbox, dc_chat_get_id(sel_chat), arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+				ret = dc_set_chat_name(context, dc_chat_get_id(sel_chat), arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 			}
 			else {
 				ret = dc_strdup("ERROR: Argument <name> missing.");
@@ -878,7 +875,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "groupimage")==0 )
 	{
 		if( sel_chat ) {
-			ret = dc_set_chat_profile_image(mailbox, dc_chat_get_id(sel_chat), (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = dc_set_chat_profile_image(context, dc_chat_get_id(sel_chat), (arg1&&arg1[0])?arg1:NULL)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("No chat selected.");
@@ -887,10 +884,10 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "chatinfo")==0 )
 	{
 		if( sel_chat ) {
-			dc_array_t* contacts = dc_get_chat_contacts(mailbox, dc_chat_get_id(sel_chat));
+			dc_array_t* contacts = dc_get_chat_contacts(context, dc_chat_get_id(sel_chat));
 			if( contacts ) {
-				dc_log_info(mailbox, 0, "Memberlist:");
-				log_contactlist(mailbox, contacts);
+				dc_log_info(context, 0, "Memberlist:");
+				log_contactlist(context, contacts);
 				ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
 			}
 			else {
@@ -905,7 +902,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( dc_send_text_msg(mailbox, dc_chat_get_id(sel_chat), arg1) ) {
+				if( dc_send_text_msg(context, dc_chat_get_id(sel_chat), arg1) ) {
 					ret = dc_strdup("Message sent.");
 				}
 				else {
@@ -924,7 +921,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( dc_send_image_msg(mailbox, dc_chat_get_id(sel_chat), arg1, NULL, 0, 0) ) {
+				if( dc_send_image_msg(context, dc_chat_get_id(sel_chat), arg1, NULL, 0, 0) ) {
 					ret = dc_strdup("Image sent.");
 				}
 				else {
@@ -943,7 +940,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				if( dc_send_file_msg(mailbox, dc_chat_get_id(sel_chat), arg1, NULL) ) {
+				if( dc_send_file_msg(context, dc_chat_get_id(sel_chat), arg1, NULL) ) {
 					ret = dc_strdup("File sent.");
 				}
 				else {
@@ -961,9 +958,9 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmsgs")==0 )
 	{
 		if( arg1 ) {
-			dc_array_t* msglist = dc_search_msgs(mailbox, sel_chat? dc_chat_get_id(sel_chat) : 0, arg1);
+			dc_array_t* msglist = dc_search_msgs(context, sel_chat? dc_chat_get_id(sel_chat) : 0, arg1);
 			if( msglist ) {
-				log_msglist(mailbox, msglist);
+				log_msglist(context, msglist);
 				ret = dc_mprintf("%i messages.", (int)dc_array_get_cnt(msglist));
 				dc_array_unref(msglist);
 			}
@@ -976,11 +973,11 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( sel_chat ) {
 			if( arg1 && arg1[0] ) {
-				dc_set_draft(mailbox, dc_chat_get_id(sel_chat), arg1);
+				dc_set_draft(context, dc_chat_get_id(sel_chat), arg1);
 				ret = dc_strdup("Draft saved.");
 			}
 			else {
-				dc_set_draft(mailbox, dc_chat_get_id(sel_chat), NULL);
+				dc_set_draft(context, dc_chat_get_id(sel_chat), NULL);
 				ret = dc_strdup("Draft deleted.");
 			}
 		}
@@ -991,7 +988,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "listmedia")==0 )
 	{
 		if( sel_chat ) {
-			dc_array_t* images = dc_get_chat_media(mailbox, dc_chat_get_id(sel_chat), DC_MSG_IMAGE, DC_MSG_VIDEO);
+			dc_array_t* images = dc_get_chat_media(context, dc_chat_get_id(sel_chat), DC_MSG_IMAGE, DC_MSG_VIDEO);
 			int i, icnt = dc_array_get_cnt(images);
 			ret = dc_mprintf("%i images or videos: ", icnt);
 			for( i = 0; i < icnt; i++ ) {
@@ -1009,7 +1006,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int chat_id = atoi(arg1);
-			dc_archive_chat(mailbox, chat_id, strcmp(cmd, "archive")==0? 1 : 0);
+			dc_archive_chat(context, chat_id, strcmp(cmd, "archive")==0? 1 : 0);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1020,7 +1017,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int chat_id = atoi(arg1);
-			dc_delete_chat(mailbox, chat_id);
+			dc_delete_chat(context, chat_id);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1037,7 +1034,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			int id = atoi(arg1);
-			ret = dc_get_msg_info(mailbox, id);
+			ret = dc_get_msg_info(context, id);
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <msg-id> missing.");
@@ -1045,9 +1042,9 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "listfresh")==0 )
 	{
-		dc_array_t* msglist = dc_get_fresh_msgs(mailbox);
+		dc_array_t* msglist = dc_get_fresh_msgs(context);
 		if( msglist ) {
-			log_msglist(mailbox, msglist);
+			log_msglist(context, msglist);
 			ret = dc_mprintf("%i fresh messages.", (int)dc_array_get_cnt(msglist));
 			dc_array_unref(msglist);
 		}
@@ -1060,7 +1057,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			*arg2 = 0; arg2++;
 			uint32_t msg_ids[1], chat_id = atoi(arg2);
 			msg_ids[0] = atoi(arg1);
-			dc_forward_msgs(mailbox, msg_ids, 1, chat_id);
+			dc_forward_msgs(context, msg_ids, 1, chat_id);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1072,7 +1069,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			uint32_t msg_ids[1];
 			msg_ids[0] = atoi(arg1);
-			dc_markseen_msgs(mailbox, msg_ids, 1);
+			dc_markseen_msgs(context, msg_ids, 1);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1084,7 +1081,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			uint32_t msg_ids[1];
 			msg_ids[0] = atoi(arg1);
-			dc_star_msgs(mailbox, msg_ids, 1, strcmp(cmd, "star")==0? 1 : 0);
+			dc_star_msgs(context, msg_ids, 1, strcmp(cmd, "star")==0? 1 : 0);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1096,7 +1093,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 ) {
 			uint32_t ids[1];
 			ids[0] = atoi(arg1);
-			dc_delete_msgs(mailbox, ids, 1);
+			dc_delete_msgs(context, ids, 1);
 			ret = COMMAND_SUCCEEDED;
 		}
 		else {
@@ -1111,9 +1108,9 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 
 	else if( strcmp(cmd, "listcontacts")==0 || strcmp(cmd, "contacts")==0 || strcmp(cmd, "listverified")==0 )
 	{
-		dc_array_t* contacts = dc_get_contacts(mailbox, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY : 0, arg1);
+		dc_array_t* contacts = dc_get_contacts(context, strcmp(cmd, "listverified")==0? DC_GCL_VERIFIED_ONLY : 0, arg1);
 		if( contacts ) {
-			log_contactlist(mailbox, contacts);
+			log_contactlist(context, contacts);
 			ret = dc_mprintf("%i contacts.", (int)dc_array_get_cnt(contacts));
 			dc_array_unref(contacts);
 		}
@@ -1128,12 +1125,12 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 		if( arg1 && arg2 ) {
 			*arg2 = 0; arg2++;
 			char* book = dc_mprintf("%s\n%s", arg1, arg2);
-				dc_add_address_book(mailbox, book);
+				dc_add_address_book(context, book);
 				ret = COMMAND_SUCCEEDED;
 			free(book);
 		}
 		else if( arg1 ) {
-			ret = dc_create_contact(mailbox, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = dc_create_contact(context, NULL, arg1)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Arguments [<name>] <addr> expected.");
@@ -1146,24 +1143,24 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			dc_strbuilder_t strbuilder;
 			dc_strbuilder_init(&strbuilder, 0);
 
-			dc_contact_t* contact = dc_get_contact(mailbox, contact_id);
+			dc_contact_t* contact = dc_get_contact(context, contact_id);
 			char* nameNaddr = dc_contact_get_name_n_addr(contact);
 			dc_strbuilder_catf(&strbuilder, "Contact info for: %s:\n\n", nameNaddr);
 			free(nameNaddr);
 			dc_contact_unref(contact);
 
-			char* encrinfo = dc_get_contact_encrinfo(mailbox, contact_id);
+			char* encrinfo = dc_get_contact_encrinfo(context, contact_id);
 			dc_strbuilder_cat(&strbuilder, encrinfo);
 			free(encrinfo);
 
-			dc_chatlist_t* chatlist = dc_get_chatlist(mailbox, 0, NULL, contact_id);
+			dc_chatlist_t* chatlist = dc_get_chatlist(context, 0, NULL, contact_id);
 			int chatlist_cnt = dc_chatlist_get_cnt(chatlist);
 			if( chatlist_cnt > 0 ) {
 				dc_strbuilder_catf(&strbuilder, "\n\n%i chats shared with Contact#%i: ", chatlist_cnt, contact_id);
 				for( int i = 0; i < chatlist_cnt; i++ ) {
 					if( i ) { dc_strbuilder_cat(&strbuilder, ", ");  }
 
-					dc_chat_t* chat = dc_get_chat(mailbox, dc_chatlist_get_chat_id(chatlist, i));
+					dc_chat_t* chat = dc_get_chat(context, dc_chatlist_get_chat_id(chatlist, i));
 						dc_strbuilder_catf(&strbuilder, "%s#%i", chat_prefix(chat), dc_chat_get_id(chat));
 					dc_chat_unref(chat);
 				}
@@ -1179,7 +1176,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	else if( strcmp(cmd, "delcontact")==0 )
 	{
 		if( arg1 ) {
-			ret = dc_delete_contact(mailbox, atoi(arg1))? COMMAND_SUCCEEDED : COMMAND_FAILED;
+			ret = dc_delete_contact(context, atoi(arg1))? COMMAND_SUCCEEDED : COMMAND_FAILED;
 		}
 		else {
 			ret = dc_strdup("ERROR: Argument <contact-id> missing.");
@@ -1187,7 +1184,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	}
 	else if( strcmp(cmd, "cleanupcontacts")==0 )
 	{
-		ret = dc_cleanup_contacts(mailbox)? COMMAND_SUCCEEDED : COMMAND_FAILED;
+		ret = dc_cleanup_contacts(context)? COMMAND_SUCCEEDED : COMMAND_FAILED;
 	}
 
 	/*******************************************************************************
@@ -1196,13 +1193,13 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 
 	else if( strcmp(cmd, "getqr")==0 )
 	{
-		ret = dc_get_securejoin_qr(mailbox, arg1? atoi(arg1) : 0);
+		ret = dc_get_securejoin_qr(context, arg1? atoi(arg1) : 0);
 		if( ret == NULL || ret[0]==0 ) { free(ret); ret = COMMAND_FAILED; }
 	}
 	else if( strcmp(cmd, "checkqr")==0 )
 	{
 		if( arg1 ) {
-			dc_lot_t* res = dc_check_qr(mailbox, arg1);
+			dc_lot_t* res = dc_check_qr(context, arg1);
 				ret = dc_mprintf("state=%i, id=%i, text1=%s, text2=%s", (int)res->state, res->id, res->text1? res->text1:"", res->text2? res->text2:"");
 			dc_lot_unref(res);
 		}
@@ -1210,11 +1207,11 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 			ret = dc_strdup("ERROR: Argument <qr-content> missing.");
 		}
 	}
-	else if( strcmp(cmd, "event")==0 )
+	else if ( strcmp(cmd, "event")==0 )
 	{
 		if( arg1 ) {
 			int event = atoi(arg1);
-			uintptr_t r = mailbox->cb(mailbox, event, 0, 0);
+			uintptr_t r = context->cb(context, event, 0, 0);
 			ret = dc_mprintf("Sending event %i, received value %i.", (int)event, (int)r);
 		}
 		else {
@@ -1225,7 +1222,7 @@ char* dc_cmdline(dc_context_t* mailbox, const char* cmdline)
 	{
 		if( arg1 ) {
 			unsigned char* buf = NULL; size_t buf_bytes; uint32_t w, h;
-			if( dc_read_file(arg1, (void**)&buf, &buf_bytes, mailbox) ) {
+			if( dc_read_file(arg1, (void**)&buf, &buf_bytes, context) ) {
 				dc_get_filemeta(buf, buf_bytes, &w, &h);
 				ret = dc_mprintf("width=%i, height=%i", (int)w, (int)h);
 			}
