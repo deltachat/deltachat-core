@@ -715,12 +715,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		}
 
 		if (context->bob_expects!=DC_VC_CONTACT_CONFIRM) {
-			if( join_vg ) {
-				dc_log_info(context, 0, "vg-member-added received as broadcast.");
-			}
-			else {
-				dc_log_warning(context, 0, "Unexpected secure-join mail order.");
-			}
+			dc_log_info(context, 0, "Message belongs to a different handshake.");
 			goto cleanup;
 		}
 
@@ -738,14 +733,19 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		// TODO: for the broadcasted vg-member-added, make sure, the message is ours (eg. by comparing Chat-Group-Member-Added against SELF)
-
 		if( !mark_peer_as_verified(context, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 			goto cleanup;
 		}
 
 		dc_scaleup_contact_origin(context, contact_id, DC_ORIGIN_SECUREJOIN_JOINED);
+
+		if (join_vg) {
+			if (!dc_addr_is_self(context, lookup_field(mimeparser, "Chat-Group-Member-Added"))) {
+				dc_log_info(context, 0, "Message belongs to a different handshake (scaled up contact anyway to allow creation of group).");
+				goto cleanup;
+			}
+		}
 
 		secure_connection_established(context, contact_chat_id);
 
