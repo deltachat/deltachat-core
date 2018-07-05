@@ -94,14 +94,14 @@ static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char*
 		moz_ac->tag_server = (moz_ac->out_imap_set==0 && (p1=dc_attr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
 		moz_ac->tag_config = 0;
 	}
-	else if (strcmp(tag, "outgoingserver") == 0) {
+	else if (strcmp(tag, "outgoingserver")==0) {
 		moz_ac->tag_server = moz_ac->out_smtp_set==0? MOZ_SERVER_SMTP : 0;
 		moz_ac->tag_config = 0;
 	}
-	else if (strcmp(tag, "hostname") == 0 ) { moz_ac->tag_config = MOZ_HOSTNAME; }
-	else if (strcmp(tag, "port") == 0     ) { moz_ac->tag_config = MOZ_PORT; }
-	else if (strcmp(tag, "sockettype") == 0) { moz_ac->tag_config = MOZ_SOCKETTYPE; }
-	else if (strcmp(tag, "username") == 0 ) { moz_ac->tag_config = MOZ_USERNAME; }
+	else if (strcmp(tag, "hostname")==0)   { moz_ac->tag_config = MOZ_HOSTNAME; }
+	else if (strcmp(tag, "port")==0 )      { moz_ac->tag_config = MOZ_PORT; }
+	else if (strcmp(tag, "sockettype")==0) { moz_ac->tag_config = MOZ_SOCKETTYPE; }
+	else if (strcmp(tag, "username")==0)   { moz_ac->tag_config = MOZ_USERNAME; }
 }
 
 
@@ -248,12 +248,12 @@ static void outlk_autodiscover_starttag_cb(void* userdata, const char* tag, char
 {
 	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
 
-	     if (strcmp(tag, "protocol") == 0  ) { outlk_clean_config(outlk_ad); } /* this also cleans "redirecturl", however, this is not problem as the protocol block is only valid for action "settings". */
-	else if (strcmp(tag, "type") == 0      ) { outlk_ad->tag_config = OUTLK_TYPE; }
-	else if (strcmp(tag, "server") == 0    ) { outlk_ad->tag_config = OUTLK_SERVER; }
-	else if (strcmp(tag, "port") == 0      ) { outlk_ad->tag_config = OUTLK_PORT; }
-	else if (strcmp(tag, "ssl") == 0       ) { outlk_ad->tag_config = OUTLK_SSL; }
-	else if (strcmp(tag, "redirecturl") == 0) { outlk_ad->tag_config = OUTLK_REDIRECTURL; }
+	     if (strcmp(tag, "protocol")==0)    { outlk_clean_config(outlk_ad); } /* this also cleans "redirecturl", however, this is not problem as the protocol block is only valid for action "settings". */
+	else if (strcmp(tag, "type")==0)        { outlk_ad->tag_config = OUTLK_TYPE; }
+	else if (strcmp(tag, "server")==0)      { outlk_ad->tag_config = OUTLK_SERVER; }
+	else if (strcmp(tag, "port")==0)        { outlk_ad->tag_config = OUTLK_PORT; }
+	else if (strcmp(tag, "ssl")==0)         { outlk_ad->tag_config = OUTLK_SSL; }
+	else if (strcmp(tag, "redirecturl")==0) { outlk_ad->tag_config = OUTLK_REDIRECTURL; }
 }
 
 
@@ -306,7 +306,8 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 
 static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* url__, const dc_loginparam_t* param_in)
 {
-	char*                 xml_raw = NULL, *url = dc_strdup(url__);
+	char*                 xml_raw = NULL;
+	char*                 url = dc_strdup(url__);
 	outlk_autodiscover_t  outlk_ad;
 	int                   i;
 
@@ -365,12 +366,14 @@ cleanup:
 
 void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 {
-	int             success = 0, i;
-	int             imap_connected_here = 0, smtp_connected_here = 0, ongoing_allocated_here = 0;
+	int              success = 0, i;
+	int              imap_connected_here = 0;
+	int              smtp_connected_here = 0;
+	int              ongoing_allocated_here = 0;
 
 	dc_loginparam_t* param = NULL;
-	char*           param_domain = NULL; /* just a pointer inside param, must not be freed! */
-	char*           param_addr_urlencoded = NULL;
+	char*            param_domain = NULL; /* just a pointer inside param, must not be freed! */
+	char*            param_addr_urlencoded = NULL;
 	dc_loginparam_t* param_autoconfig = NULL;
 
 	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
@@ -390,8 +393,6 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		dc_log_error(context, 0, "Cannot configure, database not opened.");
 		goto cleanup;
 	}
-
-	/* disconnect */
 
 	dc_imap_disconnect(context->imap);
 	dc_smtp_disconnect(context->smtp);
