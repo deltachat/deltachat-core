@@ -153,7 +153,7 @@ void dc_openssl_exit(void)
 {
 	pthread_mutex_lock(&s_init_lock);
 
-		if (s_init_counter>0 )
+		if (s_init_counter>0)
 		{
 			s_init_counter--;
 			if (s_init_counter==0 && !s_init_not_required)

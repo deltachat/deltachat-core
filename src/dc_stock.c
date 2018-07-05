@@ -35,7 +35,7 @@ errors from here. */
 
 static char* default_string(int id, int qty)
 {
-	switch( id ) {
+	switch (id) {
 		case DC_STR_NOMESSAGES:            return dc_strdup("No messages.");
 		case DC_STR_SELF:                  return dc_strdup("Me");
 		case DC_STR_DRAFT:                 return dc_strdup("Draft");
@@ -82,10 +82,10 @@ static char* default_string(int id, int qty)
 char* dc_stock_str(dc_context_t* context, int id) /* get the string with the given ID, the result must be free()'d! */
 {
 	char* ret = NULL;
-	if( context ) {
+	if (context) {
 		ret = (char*)context->cb(context, DC_EVENT_GET_STRING, id, 0);
 	}
-	if( ret == NULL ) {
+	if (ret == NULL) {
 		ret = default_string(id, 0);
 	}
 	return ret;
@@ -121,10 +121,10 @@ char* dc_stock_str_repl_string2(dc_context_t* context, int id, const char* to_in
 char* dc_stock_str_repl_pl(dc_context_t* context, int id, int cnt)
 {
 	char* ret = NULL;
-	if( context ) {
+	if (context) {
 		ret = (char*)context->cb(context, DC_EVENT_GET_QUANTITY_STRING, id, cnt);
 	}
-	if( ret == NULL ) {
+	if (ret == NULL) {
 		ret = default_string(id, cnt);
 	}
 	return ret;

@@ -44,14 +44,14 @@
  */
 void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
 {
-	if( strbuilder==NULL ) {
+	if (strbuilder==NULL) {
 		return;
 	}
 
 	strbuilder->allocated    = DC_MAX(init_bytes, 128); /* use a small default minimum, we may use _many_ of these objects at the same time */
 	strbuilder->buf          = malloc(strbuilder->allocated);
 
-    if( strbuilder->buf==NULL ) {
+    if (strbuilder->buf==NULL) {
 		exit(38);
 	}
 
@@ -78,20 +78,20 @@ void dc_strbuilder_init(dc_strbuilder_t* strbuilder, int init_bytes)
 char* dc_strbuilder_cat(dc_strbuilder_t* strbuilder, const char* text)
 {
 	// this function MUST NOT call logging functions as it is used to output the log
-	if( strbuilder==NULL || text==NULL ) {
+	if (strbuilder==NULL || text==NULL) {
 		return NULL;
 	}
 
 	int len = strlen(text);
 
-	if( len > strbuilder->free ) {
+	if (len > strbuilder->free) {
 		int add_bytes  = DC_MAX(len, strbuilder->allocated);
 		int old_offset = (int)(strbuilder->eos - strbuilder->buf);
 
 		strbuilder->allocated = strbuilder->allocated + add_bytes;
 		strbuilder->buf       = realloc(strbuilder->buf, strbuilder->allocated+add_bytes);
 
-        if( strbuilder->buf==NULL ) {
+        if (strbuilder->buf==NULL) {
 			exit(39);
 		}
 
@@ -134,14 +134,14 @@ void dc_strbuilder_catf(dc_strbuilder_t* strbuilder, const char* format, ...)
 
 	char_cnt_without_zero = vsnprintf(testbuf, 0, format, argp);
 	va_end(argp);
-	if( char_cnt_without_zero < 0) {
+	if (char_cnt_without_zero < 0) {
 		va_end(argp_copy);
 		dc_strbuilder_cat(strbuilder, "ErrFmt");
 		return;
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
-	if( buf == NULL ) {
+	if (buf == NULL) {
 		va_end(argp_copy);
 		dc_strbuilder_cat(strbuilder, "ErrMem");
 		return;

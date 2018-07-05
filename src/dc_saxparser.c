@@ -154,14 +154,14 @@ static char* xml_decode(char* s, char type)
 		}
 	}
 
-	for (s = r; ; ) {
-		while( *s && *s != '&' /*&& (*s != '%' || type != '%')*/ && !isspace(*s)) s++;
+	for (s = r; ;) {
+		while (*s && *s != '&' /*&& (*s != '%' || type != '%')*/ && !isspace(*s)) s++;
 
-		if( ! *s )
+		if (! *s)
 		{
 			break;
 		}
-		else if( type != 'c' && ! strncmp(s, "&#", 2) )
+		else if (type != 'c' && ! strncmp(s, "&#", 2))
 		{
 			/* character reference */
 			if (s[2] == 'x') c = strtol(s + 3, &e, 16); /* base 16 */
@@ -178,8 +178,8 @@ static char* xml_decode(char* s, char type)
 
 			memmove(s, strchr(s, ';') + 1, strlen(strchr(s, ';')));
 		}
-		else if( (*s == '&' && (type == '&' || type == ' ' /*|| type == '*'*/))
-		    /*|| (*s == '%' && type == '%')*/ )
+		else if ((*s == '&' && (type == '&' || type == ' ' /*|| type == '*'*/))
+		    /*|| (*s == '%' && type == '%')*/)
 		{
 			/* entity reference */
 			for (b = 0; s_ent[b] && strncmp(s + 1, s_ent[b], strlen(s_ent[b])); b += 2)
@@ -189,13 +189,13 @@ static char* xml_decode(char* s, char type)
 				if ((c = strlen(s_ent[b])) - 1 > (e = strchr(s, ';')) - s) {
 					/* the replacement is larger than the entity: enlarge buffer */
 					l = (d = (s - r)) + c + strlen(e); /* new length */
-					if( r == original_buf ) {
-						char* new_ret = malloc(l); if( new_ret == NULL ) { return r; }
+					if (r == original_buf) {
+						char* new_ret = malloc(l); if (new_ret == NULL) { return r; }
 						strcpy(new_ret, r);
 						r = new_ret;
 					}
 					else {
-						char* new_ret = realloc(r, l); if( new_ret == NULL ) { return r; }
+						char* new_ret = realloc(r, l); if (new_ret == NULL) { return r; }
 						r = new_ret;
 					}
 					e = strchr((s = r + d), ';'); /* fix up pointers */
@@ -241,14 +241,14 @@ static void def_text_cb     (void* userdata, const char* text, int len) { }
 
 static void call_text_cb(dc_saxparser_t* saxparser, char* text, size_t len, char type)
 {
-	if( text && len )
+	if (text && len)
 	{
 		char bak = text[len], *text_new;
 
 		text[len] = '\0';
 		text_new = xml_decode(text, type);
 		saxparser->text_cb(saxparser->userdata, text_new, len);
-		if( text != text_new ) { free(text_new); }
+		if (text != text_new) { free(text_new); }
 
 		text[len] = bak;
 	}
@@ -262,9 +262,9 @@ static void do_free_attr(char** attr, int* free_attr)
 	#define FREE_KEY    0x01
 	#define FREE_VALUE  0x02
 	int i = 0;
-	while( attr[i] ) {
-		if( free_attr[i>>1]&FREE_KEY   && attr[i]   ) { free(attr[i]);   }
-		if( free_attr[i>>1]&FREE_VALUE && attr[i+1] ) { free(attr[i+1]); }
+	while (attr[i]) {
+		if (free_attr[i>>1]&FREE_KEY   && attr[i] ) { free(attr[i]);   }
+		if (free_attr[i>>1]&FREE_VALUE && attr[i+1]) { free(attr[i+1]); }
 		i += 2;
 	}
 	attr[0] = NULL; /* set list to zero-length */
@@ -278,13 +278,13 @@ static void do_free_attr(char** attr, int* free_attr)
 
 const char* dc_attr_find(char** attr, const char* key)
 {
-	if( attr && key ) {
+	if (attr && key) {
 		int i = 0;
-		while( attr[i] && strcmp(key, attr[i]) ) {
+		while (attr[i] && strcmp(key, attr[i])) {
 			i += 2;
 		}
 
-		if( attr[i] ) {
+		if (attr[i]) {
 			return attr[i + 1];
 		}
 	}
@@ -303,7 +303,7 @@ void dc_saxparser_init(dc_saxparser_t* saxparser, void* userdata)
 
 void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_starttag_cb_t starttag_cb, dc_saxparser_endtag_cb_t endtag_cb)
 {
-	if( saxparser == NULL ) {
+	if (saxparser == NULL) {
 		return;
 	}
 
@@ -314,7 +314,7 @@ void dc_saxparser_set_tag_handler(dc_saxparser_t* saxparser, dc_saxparser_startt
 
 void dc_saxparser_set_text_handler (dc_saxparser_t* saxparser, dc_saxparser_text_cb_t text_cb)
 {
-	if( saxparser == NULL ) {
+	if (saxparser == NULL) {
 		return;
 	}
 
@@ -332,36 +332,36 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 
 	attr[0] = NULL; /* null-terminate list, this also terminates "free_values" */
 
-	if( saxparser == NULL ) {
+	if (saxparser == NULL) {
 		return;
 	}
 
 	buf_start = dc_strdup(buf_start__); /* we make a copy as we can easily null-terminate tag names and attributes "in place" */
 	last_text_start = buf_start;
 	p               = buf_start;
-	while( *p )
+	while (*p)
 	{
-		if( *p == '<' )
+		if (*p == '<')
 		{
 			call_text_cb(saxparser, last_text_start, p - last_text_start, '&'); /* flush pending text */
 
 			p++;
-			if( strncmp(p, "!--", 3) == 0 )
+			if (strncmp(p, "!--", 3) == 0)
 			{
 				/* skip <!-- ... --> comment
 				 **************************************************************/
 
 				p = strstr(p, "-->");
-				if( p == NULL ) { goto cleanup; }
+				if (p == NULL) { goto cleanup; }
 				p += 3;
 			}
-			else if( strncmp(p, "![CDATA[", 8) == 0 )
+			else if (strncmp(p, "![CDATA[", 8) == 0)
 			{
 				/* process <![CDATA[ ... ]]> text
 				 **************************************************************/
 
 				char* text_beg = p + 8;
-				if( (p = strstr(p, "]]>"))!=NULL ) /* `]]>` itself is not allowed in CDATA and must be escaped by dividing into two CDATA parts  */ {
+				if ((p = strstr(p, "]]>"))!=NULL) /* `]]>` itself is not allowed in CDATA and must be escaped by dividing into two CDATA parts  */ {
 					call_text_cb(saxparser, text_beg, p-text_beg, 'c');
 					p += 3;
 				}
@@ -370,18 +370,18 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 					goto cleanup;
 				}
 			}
-			else if( strncmp(p, "!DOCTYPE", 8) == 0 )
+			else if (strncmp(p, "!DOCTYPE", 8) == 0)
 			{
 				/* skip <!DOCTYPE ...> or <!DOCTYPE name [ ... ]>
 				 **************************************************************/
 
-				while( *p && *p != '[' && *p != '>'  ) p++; /* search for [ or >, whatever comes first */
-				if( *p == 0 ) {
+				while (*p && *p != '[' && *p != '>' ) p++; /* search for [ or >, whatever comes first */
+				if (*p == 0) {
 					goto cleanup; /* unclosed doctype */
 				}
-				else if( *p == '[' ) {
+				else if (*p == '[') {
 					p = strstr(p, "]>"); /* search end of inline doctype */
-					if( p == NULL ) {
+					if (p == NULL) {
 						goto cleanup; /* unclosed inline doctype */
 					}
 					else {
@@ -392,19 +392,19 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 					p++;
 				}
 			}
-			else if( *p == '?' )
+			else if (*p == '?')
 			{
 				/* skip <? ... ?> processing instruction
 				 **************************************************************/
 
 				p = strstr(p, "?>");
-				if( p == NULL ) { goto cleanup; } /* unclosed processing instruction */
+				if (p == NULL) { goto cleanup; } /* unclosed processing instruction */
 				p += 2;
 			}
 			else
 			{
 				p += strspn(p, XML_WS); /* skip whitespace between `<` and tagname */
-				if( *p == '/' )
+				if (*p == '/')
 				{
 					/* process </tag> end tag
 					 **************************************************************/
@@ -413,7 +413,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 					p += strspn(p, XML_WS); /* skip whitespace between `/` and tagname */
 					char* beg_tag_name = p;
 					p += strcspn(p, XML_WS "/>"); /* find character after tagname */
-					if( p != beg_tag_name )
+					if (p != beg_tag_name)
 					{
 						bak = *p;
 						*p = '\0'; /* null-terminate tag name temporary, eg. a covered `>` may get important downwards */
@@ -431,13 +431,13 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 
 					char* beg_tag_name = p;
 					p += strcspn(p, XML_WS "/>"); /* find character after tagname */
-					if( p != beg_tag_name )
+					if (p != beg_tag_name)
 					{
 						char* after_tag_name = p;
 
 						/* scan for attributes */
 						int attr_index = 0;
-						while( isspace(*p) ) { p++; } /* forward to first attribute name beginning */
+						while (isspace(*p)) { p++; } /* forward to first attribute name beginning */
 						while (*p && *p!='/' && *p!='>')
 						{
 							char *beg_attr_name = p, *beg_attr_value = NULL, *beg_attr_value_new = NULL;
@@ -447,23 +447,23 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 							}
 
 							p += strcspn(p, XML_WS "=/>"); /* get end of attribute name */
-							if( p != beg_attr_name )
+							if (p != beg_attr_name)
 							{
 								/* attribute found */
 								char* after_attr_name = p;
 								p += strspn(p, XML_WS); /* skip whitespace between attribute name and possible `=` */
-								if( *p == '=' )
+								if (*p == '=')
 								{
 									p += strspn(p, XML_WS "="); /* skip spaces and equal signs */
 									char quote = *p;
-									if( quote == '"' || quote == '\'' )
+									if (quote == '"' || quote == '\'')
 									{
 										/* quoted attribute value */
 										p++;
 										beg_attr_value = p;
 
-										while( *p && *p != quote ) { p++; }
-										if( *p ) {
+										while (*p && *p != quote) { p++; }
+										if (*p) {
 											*p = '\0'; /* null terminate attribute val */
 											p++;
 										}
@@ -479,7 +479,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 										*p = '\0';
 											char* temp = dc_strdup(beg_attr_value);
 											beg_attr_value_new = xml_decode(temp, ' ');
-											if( beg_attr_value_new!=temp ) { free(temp); }
+											if (beg_attr_value_new!=temp) { free(temp); }
 										*p = bak;
 									}
 								}
@@ -489,11 +489,11 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 								}
 
 								/* add attribute */
-								if( attr_index < MAX_ATTR )
+								if (attr_index < MAX_ATTR)
 								{
 									char* beg_attr_name_new = beg_attr_name;
 									int   free_bits = (beg_attr_value_new != beg_attr_value)? FREE_VALUE : 0;
-									if( after_attr_name == p ) {
+									if (after_attr_name == p) {
 										/* take care not to overwrite the current pointer (happens eg. for `<tag attrWithoutValue>` */
 										bak = *after_attr_name;
 										*after_attr_name = '\0';
@@ -514,7 +514,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 								}
 							}
 
-							while( isspace(*p) ) { p++; } /* forward to attribute name beginning */
+							while (isspace(*p)) { p++; } /* forward to attribute name beginning */
 						}
 
 						char bak = *after_tag_name; /* backup the character as it may be `/` or `>` which gets important downwards */
@@ -525,7 +525,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 
 						/* self-closing tag */
 						p += strspn(p, XML_WS); /* skip whitespace before possible `/` */
-						if( *p == '/' )
+						if (*p == '/')
 						{
 							p++;
 							*after_tag_name = 0;
@@ -536,7 +536,7 @@ void dc_saxparser_parse(dc_saxparser_t* saxparser, const char* buf_start__)
 				} /* end of processing start-tag */
 
 				p = strchr(p, '>');
-				if( p == NULL ) { goto cleanup; } /* unclosed start-tag or end-tag */
+				if (p == NULL) { goto cleanup; } /* unclosed start-tag or end-tag */
 				p++;
 
 			} /* end of processing start-tag or end-tag */

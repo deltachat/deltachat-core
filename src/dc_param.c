@@ -33,16 +33,16 @@ static char* find_param(char* haystack, int key, char** ret_p2)
 
 	/* let p1 point to the start of the */
 	p1 = haystack;
-	while( 1 ) {
-		if( p1 == NULL || *p1 == 0 ) {
+	while (1) {
+		if (p1 == NULL || *p1 == 0) {
 			return NULL;
 		}
-		else if( *p1 == key && p1[1] == '=' ) {
+		else if (*p1 == key && p1[1] == '=') {
 			break;
 		}
 		else {
 			p1 = strchr(p1, '\n'); /* if `\r\n` is used, this `\r` is also skipped by this*/
-			if( p1 ) {
+			if (p1) {
 				p1++;
 			}
 		}
@@ -50,7 +50,7 @@ static char* find_param(char* haystack, int key, char** ret_p2)
 
 	/* let p2 point to the character _after_ the value - eiter `\n` or `\0` */
 	p2 = strchr(p1, '\n');
-	if( p2 == NULL ) {
+	if (p2 == NULL) {
 		p2 = &p1[strlen(p1)];
 	}
 
@@ -70,7 +70,7 @@ dc_param_t* dc_param_new()
 {
 	dc_param_t* param;
 
-	if( (param=calloc(1, sizeof(dc_param_t)))==NULL ) {
+	if ((param=calloc(1, sizeof(dc_param_t)))==NULL) {
 		exit(28); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -88,7 +88,7 @@ dc_param_t* dc_param_new()
  */
 void dc_param_unref(dc_param_t* param)
 {
-	if( param==NULL ) {
+	if (param==NULL) {
 		return;
 	}
 
@@ -107,7 +107,7 @@ void dc_param_unref(dc_param_t* param)
  */
 void dc_param_empty(dc_param_t* param)
 {
-	if( param == NULL ) {
+	if (param == NULL) {
 		return;
 	}
 
@@ -128,13 +128,13 @@ void dc_param_empty(dc_param_t* param)
  */
 void dc_param_set_packed(dc_param_t* param, const char* packed)
 {
-	if( param == NULL ) {
+	if (param == NULL) {
 		return;
 	}
 
 	dc_param_empty(param);
 
-	if( packed ) {
+	if (packed) {
 		free(param->packed);
 		param->packed = dc_strdup(packed);
 	}
@@ -147,13 +147,13 @@ void dc_param_set_packed(dc_param_t* param, const char* packed)
  */
 void dc_param_set_urlencoded(dc_param_t* param, const char* urlencoded)
 {
-	if( param == NULL ) {
+	if (param == NULL) {
 		return;
 	}
 
 	dc_param_empty(param);
 
-	if( urlencoded ) {
+	if (urlencoded) {
 		free(param->packed);
 		param->packed = dc_strdup(urlencoded);
 		dc_str_replace(&param->packed, "&", "\n");
@@ -173,7 +173,7 @@ int dc_param_exists(dc_param_t* param, int key)
 {
 	char *p2;
 
-	if( param == NULL || key == 0 ) {
+	if (param == NULL || key == 0) {
 		return 0;
 	}
 
@@ -194,12 +194,12 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
 {
 	char *p1, *p2, bak, *ret;
 
-	if( param == NULL || key == 0 ) {
+	if (param == NULL || key == 0) {
 		return def? dc_strdup(def) : NULL;
 	}
 
 	p1 = find_param(param->packed, key, &p2);
-	if( p1 == NULL ) {
+	if (p1 == NULL) {
 		return def? dc_strdup(def) : NULL;
 	}
 
@@ -225,12 +225,12 @@ char* dc_param_get(dc_param_t* param, int key, const char* def)
  */
 int32_t dc_param_get_int(dc_param_t* param, int key, int32_t def)
 {
-	if( param == NULL || key == 0 ) {
+	if (param == NULL || key == 0) {
 		return def;
 	}
 
     char* str = dc_param_get(param, key, NULL);
-    if( str == NULL ) {
+    if (str == NULL) {
 		return def;
     }
     int32_t ret = atol(str);
@@ -252,7 +252,7 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 {
 	char *old1, *old2, *new1 = NULL;
 
-	if( param == NULL || key == 0 ) {
+	if (param == NULL || key == 0) {
 		return;
 	}
 
@@ -260,14 +260,14 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 	old2 = NULL;
 
 	/* remove existing parameter from packed string, if any */
-	if( old1 ) {
+	if (old1) {
 		char *p1, *p2;
 		p1 = find_param(old1, key, &p2);
-		if( p1 != NULL ) {
+		if (p1 != NULL) {
 			*p1 = 0;
 			old2 = p2;
 		}
-		else if( value==NULL ) {
+		else if (value==NULL) {
 			return; /* parameter does not exist and should be cleared -> done. */
 		}
 	}
@@ -275,11 +275,11 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
 	dc_rtrim(old1); /* trim functions are null-pointer-safe */
 	dc_ltrim(old2);
 
-	if( old1 && old1[0]==0 ) { old1 = NULL; }
-	if( old2 && old2[0]==0 ) { old2 = NULL; }
+	if (old1 && old1[0]==0) { old1 = NULL; }
+	if (old2 && old2[0]==0) { old2 = NULL; }
 
 	/* create new string */
-	if( value ) {
+	if (value) {
 		new1 = dc_mprintf("%s%s%c=%s%s%s",
 			old1?  old1 : "",
 			old1?  "\n" : "",
@@ -311,12 +311,12 @@ void dc_param_set(dc_param_t* param, int key, const char* value)
  */
 void dc_param_set_int(dc_param_t* param, int key, int32_t value)
 {
-	if( param == NULL || key == 0 ) {
+	if (param == NULL || key == 0) {
 		return;
 	}
 
     char* value_str = dc_mprintf("%i", (int)value);
-    if( value_str == NULL ) {
+    if (value_str == NULL) {
 		return;
     }
     dc_param_set(param, key, value_str);

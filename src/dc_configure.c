@@ -40,7 +40,7 @@ static char* read_autoconf_file(dc_context_t* context, const char* url)
 	char* filecontent = NULL;
 	dc_log_info(context, 0, "Testing %s ...", url);
 	filecontent = (char*)context->cb(context, DC_EVENT_HTTP_GET, (uintptr_t)url, 0);
-	if( filecontent == NULL ) {
+	if (filecontent == NULL) {
 		dc_log_info(context, 0, "Can't read file."); /* this is not a warning or an error, we're just testing */
 		return NULL;
 	}
@@ -90,18 +90,18 @@ static void moz_autoconfigure_starttag_cb(void* userdata, const char* tag, char*
 	moz_autoconfigure_t* moz_ac = (moz_autoconfigure_t*)userdata;
 	const char*          p1;
 
-	if( strcmp(tag, "incomingserver")==0 ) {
+	if (strcmp(tag, "incomingserver")==0) {
 		moz_ac->tag_server = (moz_ac->out_imap_set==0 && (p1=dc_attr_find(attr, "type"))!=NULL && strcasecmp(p1, "imap")==0)? MOZ_SERVER_IMAP : 0;
 		moz_ac->tag_config = 0;
 	}
-	else if( strcmp(tag, "outgoingserver") == 0 ) {
+	else if (strcmp(tag, "outgoingserver") == 0) {
 		moz_ac->tag_server = moz_ac->out_smtp_set==0? MOZ_SERVER_SMTP : 0;
 		moz_ac->tag_config = 0;
 	}
-	else if( strcmp(tag, "hostname") == 0   ) { moz_ac->tag_config = MOZ_HOSTNAME; }
-	else if( strcmp(tag, "port") == 0       ) { moz_ac->tag_config = MOZ_PORT; }
-	else if( strcmp(tag, "sockettype") == 0 ) { moz_ac->tag_config = MOZ_SOCKETTYPE; }
-	else if( strcmp(tag, "username") == 0   ) { moz_ac->tag_config = MOZ_USERNAME; }
+	else if (strcmp(tag, "hostname") == 0 ) { moz_ac->tag_config = MOZ_HOSTNAME; }
+	else if (strcmp(tag, "port") == 0     ) { moz_ac->tag_config = MOZ_PORT; }
+	else if (strcmp(tag, "sockettype") == 0) { moz_ac->tag_config = MOZ_SOCKETTYPE; }
+	else if (strcmp(tag, "username") == 0 ) { moz_ac->tag_config = MOZ_USERNAME; }
 }
 
 
@@ -115,27 +115,27 @@ static void moz_autoconfigure_text_cb(void* userdata, const char* text, int len)
 	dc_str_replace(&val, "%EMAILLOCALPART%", moz_ac->in_emaillocalpart);
 	dc_str_replace(&val, "%EMAILDOMAIN%",    moz_ac->in_emaildomain);
 
-	if( moz_ac->tag_server == MOZ_SERVER_IMAP ) {
-		switch( moz_ac->tag_config ) {
+	if (moz_ac->tag_server == MOZ_SERVER_IMAP) {
+		switch (moz_ac->tag_config) {
 			case MOZ_HOSTNAME: free(moz_ac->out->mail_server); moz_ac->out->mail_server = val; val = NULL; break;
 			case MOZ_PORT:                                     moz_ac->out->mail_port   = atoi(val);       break;
 			case MOZ_USERNAME: free(moz_ac->out->mail_user);   moz_ac->out->mail_user   = val; val = NULL; break;
 			case MOZ_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_PLAIN; }
+				if (strcasecmp(val, "ssl")==0)      { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_SSL; }
+				if (strcasecmp(val, "starttls")==0) { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_STARTTLS; }
+				if (strcasecmp(val, "plain")==0)    { moz_ac->out->server_flags |=DC_LP_IMAP_SOCKET_PLAIN; }
 				break;
 		}
 	}
-	else if( moz_ac->tag_server == MOZ_SERVER_SMTP ) {
-		switch( moz_ac->tag_config ) {
+	else if (moz_ac->tag_server == MOZ_SERVER_SMTP) {
+		switch (moz_ac->tag_config) {
 			case MOZ_HOSTNAME: free(moz_ac->out->send_server); moz_ac->out->send_server = val; val = NULL; break;
 			case MOZ_PORT:                                     moz_ac->out->send_port   = atoi(val);       break;
 			case MOZ_USERNAME: free(moz_ac->out->send_user);   moz_ac->out->send_user   = val; val = NULL; break;
 			case MOZ_SOCKETTYPE:
-				if( strcasecmp(val, "ssl")==0 )      { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_SSL; }
-				if( strcasecmp(val, "starttls")==0 ) { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_STARTTLS; }
-				if( strcasecmp(val, "plain")==0 )    { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_PLAIN; }
+				if (strcasecmp(val, "ssl")==0)      { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_SSL; }
+				if (strcasecmp(val, "starttls")==0) { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_STARTTLS; }
+				if (strcasecmp(val, "plain")==0)    { moz_ac->out->server_flags |=DC_LP_SMTP_SOCKET_PLAIN; }
 				break;
 		}
 	}
@@ -148,12 +148,12 @@ static void moz_autoconfigure_endtag_cb(void* userdata, const char* tag)
 {
 	moz_autoconfigure_t* moz_ac = (moz_autoconfigure_t*)userdata;
 
-	if( strcmp(tag, "incomingserver")==0 ) {
+	if (strcmp(tag, "incomingserver")==0) {
 		moz_ac->tag_server = 0;
 		moz_ac->tag_config = 0;
 		moz_ac->out_imap_set = 1;
 	}
-	else if( strcmp(tag, "outgoingserver")==0 ) {
+	else if (strcmp(tag, "outgoingserver")==0) {
 		moz_ac->tag_server = 0;
 		moz_ac->tag_config = 0;
 		moz_ac->out_smtp_set = 1;
@@ -171,12 +171,12 @@ static dc_loginparam_t* moz_autoconfigure(dc_context_t* context, const char* url
 
 	memset(&moz_ac, 0, sizeof(moz_autoconfigure_t));
 
-	if( (xml_raw=read_autoconf_file(context, url))==NULL ) {
+	if ((xml_raw=read_autoconf_file(context, url))==NULL) {
 		goto cleanup;
 	}
 
 	moz_ac.in                = param_in;
-	moz_ac.in_emaillocalpart = dc_strdup(param_in->addr); char* p = strchr(moz_ac.in_emaillocalpart, '@'); if( p == NULL ) { goto cleanup; } *p = 0;
+	moz_ac.in_emaillocalpart = dc_strdup(param_in->addr); char* p = strchr(moz_ac.in_emaillocalpart, '@'); if (p == NULL) { goto cleanup; } *p = 0;
 	moz_ac.in_emaildomain    = dc_strdup(p+1);
 	moz_ac.out               = dc_loginparam_new();
 
@@ -186,10 +186,10 @@ static dc_loginparam_t* moz_autoconfigure(dc_context_t* context, const char* url
 	dc_saxparser_set_text_handler(&saxparser, moz_autoconfigure_text_cb);
 	dc_saxparser_parse           (&saxparser, xml_raw);
 
-	if( moz_ac.out->mail_server == NULL
+	if (moz_ac.out->mail_server == NULL
 	 || moz_ac.out->mail_port   == 0
 	 || moz_ac.out->send_server == NULL
-	 || moz_ac.out->send_port   == 0 )
+	 || moz_ac.out->send_port   == 0)
 	{
 		{ char* r = dc_loginparam_get_readable(moz_ac.out); dc_log_warning(context, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 
@@ -237,7 +237,7 @@ typedef struct outlk_autodiscover_t
 static void outlk_clean_config(outlk_autodiscover_t* outlk_ad)
 {
 	int i;
-	for( i = 0; i < _OUTLK_COUNT_; i++ ) {
+	for (i = 0; i < _OUTLK_COUNT_; i++) {
 		free(outlk_ad->config[i]);
 		outlk_ad->config[i] = NULL;
 	}
@@ -248,12 +248,12 @@ static void outlk_autodiscover_starttag_cb(void* userdata, const char* tag, char
 {
 	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
 
-	     if( strcmp(tag, "protocol") == 0    ) { outlk_clean_config(outlk_ad); } /* this also cleans "redirecturl", however, this is not problem as the protocol block is only valid for action "settings". */
-	else if( strcmp(tag, "type") == 0        ) { outlk_ad->tag_config = OUTLK_TYPE; }
-	else if( strcmp(tag, "server") == 0      ) { outlk_ad->tag_config = OUTLK_SERVER; }
-	else if( strcmp(tag, "port") == 0        ) { outlk_ad->tag_config = OUTLK_PORT; }
-	else if( strcmp(tag, "ssl") == 0         ) { outlk_ad->tag_config = OUTLK_SSL; }
-	else if( strcmp(tag, "redirecturl") == 0 ) { outlk_ad->tag_config = OUTLK_REDIRECTURL; }
+	     if (strcmp(tag, "protocol") == 0  ) { outlk_clean_config(outlk_ad); } /* this also cleans "redirecturl", however, this is not problem as the protocol block is only valid for action "settings". */
+	else if (strcmp(tag, "type") == 0      ) { outlk_ad->tag_config = OUTLK_TYPE; }
+	else if (strcmp(tag, "server") == 0    ) { outlk_ad->tag_config = OUTLK_SERVER; }
+	else if (strcmp(tag, "port") == 0      ) { outlk_ad->tag_config = OUTLK_PORT; }
+	else if (strcmp(tag, "ssl") == 0       ) { outlk_ad->tag_config = OUTLK_SSL; }
+	else if (strcmp(tag, "redirecturl") == 0) { outlk_ad->tag_config = OUTLK_REDIRECTURL; }
 }
 
 
@@ -273,27 +273,27 @@ static void outlk_autodiscover_endtag_cb(void* userdata, const char* tag)
 {
 	outlk_autodiscover_t* outlk_ad = (outlk_autodiscover_t*)userdata;
 
-	if( strcmp(tag, "protocol")==0 )
+	if (strcmp(tag, "protocol")==0)
 	{
 		/* copy collected confituration to out (we have to delay this as we do not know when the <type> tag appears in the sax-stream) */
-		if( outlk_ad->config[OUTLK_TYPE] )
+		if (outlk_ad->config[OUTLK_TYPE])
 		{
 			int port    = dc_atoi_null_is_0(outlk_ad->config[OUTLK_PORT]),
-			    ssl_on  = (outlk_ad->config[OUTLK_SSL] && strcasecmp(outlk_ad->config[OUTLK_SSL], "on" )==0),
+			    ssl_on  = (outlk_ad->config[OUTLK_SSL] && strcasecmp(outlk_ad->config[OUTLK_SSL], "on")==0),
 			    ssl_off = (outlk_ad->config[OUTLK_SSL] && strcasecmp(outlk_ad->config[OUTLK_SSL], "off")==0);
 
-			if( strcasecmp(outlk_ad->config[OUTLK_TYPE], "imap")==0 && outlk_ad->out_imap_set==0 ) {
+			if (strcasecmp(outlk_ad->config[OUTLK_TYPE], "imap")==0 && outlk_ad->out_imap_set==0) {
                 outlk_ad->out->mail_server = dc_strdup_keep_null(outlk_ad->config[OUTLK_SERVER]);
                 outlk_ad->out->mail_port   = port;
-                     if( ssl_on  ) { outlk_ad->out->server_flags |= DC_LP_IMAP_SOCKET_SSL;   }
-                else if( ssl_off ) { outlk_ad->out->server_flags |= DC_LP_IMAP_SOCKET_PLAIN; }
+                     if (ssl_on) { outlk_ad->out->server_flags |= DC_LP_IMAP_SOCKET_SSL;   }
+                else if (ssl_off) { outlk_ad->out->server_flags |= DC_LP_IMAP_SOCKET_PLAIN; }
                 outlk_ad->out_imap_set = 1;
 			}
-			else if( strcasecmp(outlk_ad->config[OUTLK_TYPE], "smtp")==0 && outlk_ad->out_smtp_set==0 ) {
+			else if (strcasecmp(outlk_ad->config[OUTLK_TYPE], "smtp")==0 && outlk_ad->out_smtp_set==0) {
                 outlk_ad->out->send_server = dc_strdup_keep_null(outlk_ad->config[OUTLK_SERVER]);
                 outlk_ad->out->send_port   = port;
-                     if( ssl_on  ) { outlk_ad->out->server_flags |= DC_LP_SMTP_SOCKET_SSL;   }
-                else if( ssl_off ) { outlk_ad->out->server_flags |= DC_LP_SMTP_SOCKET_PLAIN; }
+                     if (ssl_on) { outlk_ad->out->server_flags |= DC_LP_SMTP_SOCKET_SSL;   }
+                else if (ssl_off) { outlk_ad->out->server_flags |= DC_LP_SMTP_SOCKET_PLAIN; }
                 outlk_ad->out_smtp_set = 1;
 			}
 		}
@@ -310,11 +310,11 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* ur
 	outlk_autodiscover_t  outlk_ad;
 	int                   i;
 
-	for( i = 0; i < 10 /* follow up to 10 xml-redirects (http-redirects are followed in read_autoconf_file() */; i++ )
+	for (i = 0; i < 10 /* follow up to 10 xml-redirects (http-redirects are followed in read_autoconf_file() */; i++)
 	{
 		memset(&outlk_ad, 0, sizeof(outlk_autodiscover_t));
 
-		if( (xml_raw=read_autoconf_file(context, url))==NULL ) {
+		if ((xml_raw=read_autoconf_file(context, url))==NULL) {
 			goto cleanup;
 		}
 
@@ -327,7 +327,7 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* ur
 		dc_saxparser_set_text_handler(&saxparser, outlk_autodiscover_text_cb);
 		dc_saxparser_parse           (&saxparser, xml_raw);
 
-		if( outlk_ad.config[OUTLK_REDIRECTURL] && outlk_ad.config[OUTLK_REDIRECTURL][0] ) {
+		if (outlk_ad.config[OUTLK_REDIRECTURL] && outlk_ad.config[OUTLK_REDIRECTURL][0]) {
 			free(url);
 			url = dc_strdup(outlk_ad.config[OUTLK_REDIRECTURL]);
 			dc_loginparam_unref(outlk_ad.out);
@@ -339,10 +339,10 @@ static dc_loginparam_t* outlk_autodiscover(dc_context_t* context, const char* ur
 		}
 	}
 
-	if( outlk_ad.out->mail_server == NULL
+	if (outlk_ad.out->mail_server == NULL
 	 || outlk_ad.out->mail_port   == 0
 	 || outlk_ad.out->send_server == NULL
-	 || outlk_ad.out->send_port   == 0 )
+	 || outlk_ad.out->send_port   == 0)
 	{
 		{ char* r = dc_loginparam_get_readable(outlk_ad.out); dc_log_warning(context, 0, "Bad or incomplete autoconfig: %s", r); free(r); }
 		dc_loginparam_unref(outlk_ad.out); /* autoconfig failed for the given URL */
@@ -373,20 +373,20 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	char*           param_addr_urlencoded = NULL;
 	dc_loginparam_t* param_autoconfig = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
-	if( !dc_alloc_ongoing(context) ) {
+	if (!dc_alloc_ongoing(context)) {
 		goto cleanup;
 	}
 	ongoing_allocated_here = 1;
 
 	#define PROGRESS(p) \
-				if( context->shall_stop_ongoing ) { goto cleanup; } \
+				if (context->shall_stop_ongoing) { goto cleanup; } \
 				context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, (p)<1? 1 : ((p)>999? 999 : (p)), 0);
 
-	if( !dc_sqlite3_is_open(context->sql) ) {
+	if (!dc_sqlite3_is_open(context->sql)) {
 		dc_log_error(context, 0, "Cannot configure, database not opened.");
 		goto cleanup;
 	}
@@ -404,7 +404,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	PROGRESS(0)
 
-	if( context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+	if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
 		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
@@ -418,14 +418,14 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	dc_loginparam_read(param, context->sql, "");
 
-	if( param->addr == NULL ) {
+	if (param->addr == NULL) {
 		dc_log_error(context, 0, "Please enter the email address.");
 		goto cleanup;
 	}
 	dc_trim(param->addr);
 
 	param_domain = strchr(param->addr, '@');
-	if( param_domain==NULL || param_domain[0]==0 ) {
+	if (param_domain==NULL || param_domain[0]==0) {
 		dc_log_error(context, 0, "Bad email-address.");
 		goto cleanup;
 	}
@@ -435,7 +435,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 
 	/* if no password is given, assume an empty password.
 	(in general, unset values are NULL, not the empty string, this allows to use eg. empty user names or empty passwords) */
-	if( param->mail_pw == NULL ) {
+	if (param->mail_pw == NULL) {
 		param->mail_pw = dc_strdup(NULL);
 	}
 
@@ -445,18 +445,18 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/* 2.  Autoconfig
 	 **************************************************************************/
 
-	if( param->mail_server  == NULL
+	if (param->mail_server  == NULL
 	 && param->mail_port    == 0
 	/*&&param->mail_user    == NULL -- the user can enter a loginname which is used by autoconfig then */
 	 && param->send_server  == NULL
 	 && param->send_port    == 0
 	 && param->send_user    == NULL
 	/*&&param->send_pw      == NULL -- the password cannot be auto-configured and is no criterion for autoconfig or not */
-	 && param->server_flags == 0 )
+	 && param->server_flags == 0)
 	{
 		/* A.  Search configurations from the domain used in the email-address */
-		for( i = 0; i <= 1; i++ ) {
-			if( param_autoconfig==NULL ) {
+		for (i = 0; i <= 1; i++) {
+			if (param_autoconfig==NULL) {
 				char* url = dc_mprintf("%s://autoconfig.%s/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); /* Thunderbird may or may not use SSL */
 				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
@@ -464,8 +464,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 			}
 		}
 
-		for( i = 0; i <= 1; i++ ) {
-			if( param_autoconfig==NULL ) {
+		for (i = 0; i <= 1; i++) {
+			if (param_autoconfig==NULL) {
 				char* url = dc_mprintf("%s://%s/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=%s", i==0?"https":"http", param_domain, param_addr_urlencoded); // the doc does not mention `emailaddress=`, however, Thunderbird adds it, see https://releases.mozilla.org/pub/thunderbird/ ,  which makes some sense
 				param_autoconfig = moz_autoconfigure(context, url, param);
 				free(url);
@@ -473,8 +473,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 			}
 		}
 
-		for( i = 0; i <= 1; i++ ) {
-			if( param_autoconfig==NULL ) {
+		for (i = 0; i <= 1; i++) {
+			if (param_autoconfig==NULL) {
 				char* url = dc_mprintf("https://%s%s/autodiscover/autodiscover.xml", i==0?"":"autodiscover.", param_domain); /* Outlook uses always SSL but different domains */
 				param_autoconfig = outlk_autodiscover(context, url, param);
 				free(url);
@@ -483,7 +483,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		}
 
 		/* B.  If we have no configuration yet, search configuration in Thunderbird's centeral database */
-		if( param_autoconfig==NULL )
+		if (param_autoconfig==NULL)
 		{
 			char* url = dc_mprintf("https://autoconfig.thunderbird.net/v1.1/%s", param_domain); /* always SSL for Thunderbird's database */
 			param_autoconfig = moz_autoconfigure(context, url, param);
@@ -492,11 +492,11 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		}
 
 		/* C.  Do we have any result? */
-		if( param_autoconfig )
+		if (param_autoconfig)
 		{
 			{ char* r = dc_loginparam_get_readable(param_autoconfig); dc_log_info(context, 0, "Got autoconfig: %s", r); free(r); }
 
-			if( param_autoconfig->mail_user ) {
+			if (param_autoconfig->mail_user) {
 				free(param->mail_user);
 				param->mail_user= dc_strdup_keep_null(param_autoconfig->mail_user);
 			}
@@ -516,7 +516,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/* 3.  Internal specials (eg. for uploading to chats-folder etc.)
 	 **************************************************************************/
 
-	if( strcasecmp(param_domain, "gmail.com")==0 || strcasecmp(param_domain, "googlemail.com")==0 )
+	if (strcasecmp(param_domain, "gmail.com")==0 || strcasecmp(param_domain, "googlemail.com")==0)
 	{
 		/* NB: Checking GMa'l too often (<10 Minutes) may result in blocking, says https://github.com/itprojects/InboxPager/blob/HEAD/README.md#gmail-configuration
 		Also note https://www.google.com/settings/security/lesssecureapps */
@@ -534,60 +534,60 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	#define TYPICAL_SMTP_STARTTLS_PORT  587 /* also used very often, SSL:STARTTLS is maybe 50:50 */
 	#define TYPICAL_SMTP_PLAIN_PORT      25
 
-	if( param->mail_server == NULL ) {
+	if (param->mail_server == NULL) {
 		param->mail_server = dc_mprintf("imap.%s", param_domain);
 	}
 
-	if( param->mail_port == 0 ) {
+	if (param->mail_port == 0) {
 		param->mail_port = (param->server_flags&(DC_LP_IMAP_SOCKET_STARTTLS|DC_LP_IMAP_SOCKET_PLAIN))?  TYPICAL_IMAP_STARTTLS_PORT : TYPICAL_IMAP_SSL_PORT;
 	}
 
-	if( param->mail_user == NULL ) {
+	if (param->mail_user == NULL) {
 		param->mail_user = dc_strdup(param->addr);
 	}
 
-	if( param->send_server == NULL && param->mail_server ) {
+	if (param->send_server == NULL && param->mail_server) {
 		param->send_server = dc_strdup(param->mail_server);
-		if( strncmp(param->send_server, "imap.", 5)==0 ) {
+		if (strncmp(param->send_server, "imap.", 5)==0) {
 			memcpy(param->send_server, "smtp", 4);
 		}
 	}
 
-	if( param->send_port == 0 ) {
+	if (param->send_port == 0) {
 		param->send_port = (param->server_flags&DC_LP_SMTP_SOCKET_STARTTLS)?  TYPICAL_SMTP_STARTTLS_PORT :
 			((param->server_flags&DC_LP_SMTP_SOCKET_PLAIN)? TYPICAL_SMTP_PLAIN_PORT : TYPICAL_SMTP_SSL_PORT);
 	}
 
-	if( param->send_user == NULL && param->mail_user ) {
+	if (param->send_user == NULL && param->mail_user) {
 		param->send_user = dc_strdup(param->mail_user);
 	}
 
-	if( param->send_pw == NULL && param->mail_pw ) {
+	if (param->send_pw == NULL && param->mail_pw) {
 		param->send_pw = dc_strdup(param->mail_pw);
 	}
 
-	if( !dc_exactly_one_bit_set(param->server_flags&DC_LP_AUTH_FLAGS) )
+	if (!dc_exactly_one_bit_set(param->server_flags&DC_LP_AUTH_FLAGS))
 	{
 		param->server_flags &= ~DC_LP_AUTH_FLAGS;
 		param->server_flags |= DC_LP_AUTH_NORMAL;
 	}
 
-	if( !dc_exactly_one_bit_set(param->server_flags&DC_LP_IMAP_SOCKET_FLAGS) )
+	if (!dc_exactly_one_bit_set(param->server_flags&DC_LP_IMAP_SOCKET_FLAGS))
 	{
 		param->server_flags &= ~DC_LP_IMAP_SOCKET_FLAGS;
 		param->server_flags |= (param->send_port==TYPICAL_IMAP_STARTTLS_PORT?  DC_LP_IMAP_SOCKET_STARTTLS : DC_LP_IMAP_SOCKET_SSL);
 	}
 
-	if( !dc_exactly_one_bit_set(param->server_flags&DC_LP_SMTP_SOCKET_FLAGS) )
+	if (!dc_exactly_one_bit_set(param->server_flags&DC_LP_SMTP_SOCKET_FLAGS))
 	{
 		param->server_flags &= ~DC_LP_SMTP_SOCKET_FLAGS;
 		param->server_flags |= ( param->send_port==TYPICAL_SMTP_STARTTLS_PORT?  DC_LP_SMTP_SOCKET_STARTTLS :
-			(param->send_port==TYPICAL_SMTP_PLAIN_PORT? DC_LP_SMTP_SOCKET_PLAIN: DC_LP_SMTP_SOCKET_SSL) );
+			(param->send_port==TYPICAL_SMTP_PLAIN_PORT? DC_LP_SMTP_SOCKET_PLAIN: DC_LP_SMTP_SOCKET_SSL));
 	}
 
 
 	/* do we have a complete configuration? */
-	if( param->addr         == NULL
+	if (param->addr         == NULL
 	 || param->mail_server  == NULL
 	 || param->mail_port    == 0
 	 || param->mail_user    == NULL
@@ -596,7 +596,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	 || param->send_port    == 0
 	 || param->send_user    == NULL
 	 || param->send_pw      == NULL
-	 || param->server_flags == 0 )
+	 || param->server_flags == 0)
 	{
 		dc_log_error(context, 0, "Account settings incomplete.");
 		goto cleanup;
@@ -607,7 +607,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	/* try to connect to IMAP */
 	{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-	if( !dc_imap_connect(context->imap, param) ) {
+	if (!dc_imap_connect(context->imap, param)) {
 		goto cleanup;
 	}
 
@@ -616,8 +616,8 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 	PROGRESS(800)
 
 	/* try to connect to SMTP - if we did not got an autoconfig, the first try was SSL-465 and we do a second try with STARTTLS-587 */
-	if( !dc_smtp_connect(context->smtp, param) )  {
-		if( param_autoconfig ) {
+	if (!dc_smtp_connect(context->smtp, param))  {
+		if (param_autoconfig) {
 			goto cleanup;
 		}
 
@@ -628,7 +628,7 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 		param->send_port    =   TYPICAL_SMTP_STARTTLS_PORT;
 		{ char* r = dc_loginparam_get_readable(param); dc_log_info(context, 0, "Trying: %s", r); free(r); }
 
-		if( !dc_smtp_connect(context->smtp, param) ) {
+		if (!dc_smtp_connect(context->smtp, param)) {
 			goto cleanup;
 		}
 	}
@@ -657,16 +657,16 @@ void dc_job_do_DC_JOB_CONFIGURE_IMAP(dc_context_t* context, dc_job_t* job)
 cleanup:
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 950, 0);
 
-	if( imap_connected_here ) { dc_imap_disconnect(context->imap); }
+	if (imap_connected_here) { dc_imap_disconnect(context->imap); }
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 960, 0);
 
-	if( smtp_connected_here ) { dc_smtp_disconnect(context->smtp); }
+	if (smtp_connected_here) { dc_smtp_disconnect(context->smtp); }
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 970, 0);
 
 	dc_loginparam_unref(param);
 	dc_loginparam_unref(param_autoconfig);
 	free(param_addr_urlencoded);
-	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
+	if (ongoing_allocated_here) { dc_free_ongoing(context); }
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 980, 0);
 
 	context->cb(context, DC_EVENT_CONFIGURE_PROGRESS, 990, 0);
@@ -699,7 +699,7 @@ cleanup:
  * database and you can call use the connection directly:
  *
  * ```
- * if( !dc_is_configured(context) ) {
+ * if (!dc_is_configured(context)) {
  *     dc_configure(context);
  *     // wait for progress events
  * }
@@ -725,11 +725,11 @@ void dc_configure(dc_context_t* context)
  */
 int dc_is_configured(dc_context_t* context)
 {
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return 0;
 	}
 
-	if( dc_imap_is_connected(context->imap) ) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
+	if (dc_imap_is_connected(context->imap)) { /* if we're connected, we're also configured. this check will speed up the check as no database is involved */
 		return 1;
 	}
 
@@ -743,11 +743,11 @@ int dc_is_configured(dc_context_t* context)
  */
 int dc_alloc_ongoing(dc_context_t* context)
 {
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return 0;
 	}
 
-	if( context->ongoing_running || context->shall_stop_ongoing == 0 ) {
+	if (context->ongoing_running || context->shall_stop_ongoing == 0) {
 		dc_log_warning(context, 0, "There is already another ongoing process running.");
 		return 0;
 	}
@@ -764,7 +764,7 @@ int dc_alloc_ongoing(dc_context_t* context)
  */
 void dc_free_ongoing(dc_context_t* context)
 {
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return;
 	}
 
@@ -799,11 +799,11 @@ void dc_free_ongoing(dc_context_t* context)
  */
 void dc_stop_ongoing_process(dc_context_t* context)
 {
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return;
 	}
 
-	if( context->ongoing_running && context->shall_stop_ongoing==0 )
+	if (context->ongoing_running && context->shall_stop_ongoing==0)
 	{
 		dc_log_info(context, 0, "Signaling the ongoing process to stop ASAP.");
 		context->shall_stop_ongoing = 1;

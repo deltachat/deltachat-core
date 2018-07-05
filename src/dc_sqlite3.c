@@ -59,7 +59,7 @@ void dc_sqlite3_log_error(dc_sqlite3_t* sql, const char* msg_format, ...)
 	va_list     va;
 
 	va_start(va, msg_format);
-		msg = sqlite3_vmprintf(msg_format, va); if( msg == NULL ) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
+		msg = sqlite3_vmprintf(msg_format, va); if (msg == NULL) { dc_log_error(sql->context, 0, "Bad log format string \"%s\".", msg_format); }
 			dc_log_error(sql->context, 0, "%s SQLite says: %s", msg, sql->cobj? sqlite3_errmsg(sql->cobj) : notSetUp);
 		sqlite3_free(msg);
 	va_end(va);
@@ -70,14 +70,14 @@ sqlite3_stmt* dc_sqlite3_prepare(dc_sqlite3_t* sql, const char* querystr)
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if( sql == NULL || querystr == NULL || sql->cobj == NULL ) {
+	if (sql == NULL || querystr == NULL || sql->cobj == NULL) {
 		return NULL;
 	}
 
-	if( sqlite3_prepare_v2(sql->cobj,
+	if (sqlite3_prepare_v2(sql->cobj,
 	         querystr, -1 /*read `querystr` up to the first null-byte*/,
 	         &stmt,
-	         NULL /*tail not interesting, we use only single statements*/) != SQLITE_OK )
+	         NULL /*tail not interesting, we use only single statements*/) != SQLITE_OK)
 	{
 		dc_sqlite3_log_error(sql, "Query failed: %s", querystr);
 		return NULL;
@@ -95,12 +95,12 @@ int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 	int           sqlState;
 
 	stmt = dc_sqlite3_prepare(sql, querystr);
-	if( stmt == NULL ) {
+	if (stmt == NULL) {
 		goto cleanup;
 	}
 
 	sqlState = sqlite3_step(stmt);
-	if( sqlState != SQLITE_DONE && sqlState != SQLITE_ROW )  {
+	if (sqlState != SQLITE_DONE && sqlState != SQLITE_ROW)  {
 		dc_sqlite3_log_error(sql, "Cannot excecute \"%s\".", querystr);
 		goto cleanup;
 	}
@@ -108,7 +108,7 @@ int dc_sqlite3_execute(dc_sqlite3_t* sql, const char* querystr)
 	success = 1;
 
 cleanup:
-	if( stmt ) {
+	if (stmt) {
 		sqlite3_finalize(stmt);
 	}
 	return success;
@@ -138,7 +138,7 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 {
 	dc_sqlite3_t* sql = NULL;
 
-	if( (sql=calloc(1, sizeof(dc_sqlite3_t)))==NULL ) {
+	if ((sql=calloc(1, sizeof(dc_sqlite3_t)))==NULL) {
 		exit(24); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -150,11 +150,11 @@ dc_sqlite3_t* dc_sqlite3_new(dc_context_t* context)
 
 void dc_sqlite3_unref(dc_sqlite3_t* sql)
 {
-	if( sql == NULL ) {
+	if (sql == NULL) {
 		return;
 	}
 
-	if( sql->cobj ) {
+	if (sql->cobj) {
 		dc_sqlite3_close(sql);
 	}
 
@@ -164,16 +164,16 @@ void dc_sqlite3_unref(dc_sqlite3_t* sql)
 
 int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 {
-	if( sql == NULL || dbfile == NULL ) {
+	if (sql == NULL || dbfile == NULL) {
 		goto cleanup;
 	}
 
-	if( sqlite3_threadsafe() == 0 ) {
+	if (sqlite3_threadsafe() == 0) {
 		dc_log_error(sql->context, 0, "Sqlite3 compiled thread-unsafe; this is not supported.");
 		goto cleanup;
 	}
 
-	if( sql->cobj ) {
+	if (sql->cobj) {
 		dc_log_error(sql->context, 0, "Cannot open, database \"%s\" already opened.", dbfile);
 		goto cleanup;
 	}
@@ -187,9 +187,9 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// files, caching is not that important; we rely on the system defaults here
 	// (normally 2 MB cache, 1 KB page size on sqlite < 3.12.0, 4 KB for newer
 	// versions)
-	if( sqlite3_open_v2(dbfile, &sql->cobj,
+	if (sqlite3_open_v2(dbfile, &sql->cobj,
 			SQLITE_OPEN_FULLMUTEX | ((flags&DC_OPEN_READONLY)? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)),
-			NULL) != SQLITE_OK ) {
+			NULL) != SQLITE_OK) {
 		dc_sqlite3_log_error(sql, "Cannot open database \"%s\".", dbfile); /* ususally, even for errors, the pointer is set up (if not, this is also checked by dc_sqlite3_log_error()) */
 		goto cleanup;
 	}
@@ -201,12 +201,12 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 	// (without a busy_timeout, sqlite3_step() would return SQLITE_BUSY at once)
 	sqlite3_busy_timeout(sql->cobj, 10*1000);
 
-	if( !(flags&DC_OPEN_READONLY) )
+	if (!(flags&DC_OPEN_READONLY))
 	{
 		int dbversion_before_update = 0;
 
 		/* Init tables to dbversion=0 */
-		if( !dc_sqlite3_table_exists(sql, "config") )
+		if (!dc_sqlite3_table_exists(sql, "config"))
 		{
 			dc_log_info(sql->context, 0, "First time init: creating tables in \"%s\".", dbfile);
 
@@ -279,9 +279,9 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 						" param TEXT DEFAULT '');");
 			dc_sqlite3_execute(sql, "CREATE INDEX jobs_index1 ON jobs (desired_timestamp);");
 
-			if( !dc_sqlite3_table_exists(sql, "config") || !dc_sqlite3_table_exists(sql, "contacts")
+			if (!dc_sqlite3_table_exists(sql, "config") || !dc_sqlite3_table_exists(sql, "contacts")
 			 || !dc_sqlite3_table_exists(sql, "chats") || !dc_sqlite3_table_exists(sql, "chats_contacts")
-			 || !dc_sqlite3_table_exists(sql, "msgs") || !dc_sqlite3_table_exists(sql, "jobs") )
+			 || !dc_sqlite3_table_exists(sql, "msgs") || !dc_sqlite3_table_exists(sql, "jobs"))
 			{
 				dc_sqlite3_log_error(sql, "Cannot create tables in new database \"%s\".", dbfile);
 				goto cleanup; /* cannot create the tables - maybe we cannot write? */
@@ -300,7 +300,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		int recalc_fingerprints = 0;
 
 		#define NEW_DB_VERSION 1
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "CREATE TABLE leftgrps ("
 							" id INTEGER PRIMARY KEY,"
@@ -313,7 +313,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 2
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE contacts ADD COLUMN authname TEXT DEFAULT '';");
 
@@ -323,7 +323,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 7
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "CREATE TABLE keypairs ("
 							" id INTEGER PRIMARY KEY,"
@@ -339,7 +339,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 10
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "CREATE TABLE acpeerstates ("
 							" id INTEGER PRIMARY KEY,"
@@ -356,7 +356,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 12
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "CREATE TABLE msgs_mdns ("
 							" msg_id INTEGER, "
@@ -369,7 +369,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 17
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE chats ADD COLUMN archived INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "CREATE INDEX chats_index2 ON chats (archived);");
@@ -382,7 +382,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 18
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_timestamp INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN gossip_key;");
@@ -393,7 +393,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 27
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "DELETE FROM msgs WHERE chat_id=1 OR chat_id=2;"); /* chat.id=1 and chat.id=2 are the old deaddrops, the current ones are defined by chats.blocked=2 */
 				dc_sqlite3_execute(sql, "CREATE INDEX chats_contacts_index2 ON chats_contacts (contact_id);"); /* needed to find chat by contact list */
@@ -406,7 +406,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 34
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE msgs ADD COLUMN hidden INTEGER DEFAULT 0;");
 				dc_sqlite3_execute(sql, "ALTER TABLE msgs_mdns ADD COLUMN timestamp_sent INTEGER DEFAULT 0;");
@@ -422,7 +422,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 39
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "CREATE TABLE tokens ("
 							" id INTEGER PRIMARY KEY,"
@@ -434,7 +434,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 				dc_sqlite3_execute(sql, "ALTER TABLE acpeerstates ADD COLUMN verified_key_fingerprint TEXT DEFAULT '';"); /* do not add `COLLATE NOCASE` case-insensivity is not needed as we force uppercase on store - otoh case-sensivity may be neeed for other/upcoming fingerprint formats */
 				dc_sqlite3_execute(sql, "CREATE INDEX acpeerstates_index5 ON acpeerstates (verified_key_fingerprint);");
 
-				if( dbversion_before_update == 34 )
+				if (dbversion_before_update == 34)
 				{
 					// migrate database from the use of verified-flags to verified_key,
 					// _only_ version 34 (0.17.0) has the fields public_key_verified and gossip_key_verified
@@ -449,7 +449,7 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		#define NEW_DB_VERSION 40
-			if( dbversion < NEW_DB_VERSION )
+			if (dbversion < NEW_DB_VERSION)
 			{
 				dc_sqlite3_execute(sql, "ALTER TABLE jobs ADD COLUMN thread INTEGER DEFAULT 0;");
 
@@ -459,13 +459,13 @@ int dc_sqlite3_open(dc_sqlite3_t* sql, const char* dbfile, int flags)
 		#undef NEW_DB_VERSION
 
 		// (2) updates that require high-level objects (the structure is complete now and all objects are usable)
-		if( recalc_fingerprints )
+		if (recalc_fingerprints)
 		{
 			sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "SELECT addr FROM acpeerstates;");
-				while( sqlite3_step(stmt) == SQLITE_ROW ) {
+				while (sqlite3_step(stmt) == SQLITE_ROW) {
 					dc_apeerstate_t* peerstate = dc_apeerstate_new(sql->context);
-						if( dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
-						 && dc_apeerstate_recalc_fingerprint(peerstate) ) {
+						if (dc_apeerstate_load_by_addr(peerstate, sql, (const char*)sqlite3_column_text(stmt, 0))
+						 && dc_apeerstate_recalc_fingerprint(peerstate)) {
 							dc_apeerstate_save_to_db(peerstate, sql, 0/*don't create*/);
 						}
 					dc_apeerstate_unref(peerstate);
@@ -485,11 +485,11 @@ cleanup:
 
 void dc_sqlite3_close(dc_sqlite3_t* sql)
 {
-	if( sql == NULL ) {
+	if (sql == NULL) {
 		return;
 	}
 
-	if( sql->cobj )
+	if (sql->cobj)
 	{
 		sqlite3_close(sql->cobj);
 		sql->cobj = NULL;
@@ -501,7 +501,7 @@ void dc_sqlite3_close(dc_sqlite3_t* sql)
 
 int dc_sqlite3_is_open(const dc_sqlite3_t* sql)
 {
-	if( sql == NULL || sql->cobj == NULL ) {
+	if (sql == NULL || sql->cobj == NULL) {
 		return 0;
 	}
 	return 1;
@@ -515,17 +515,17 @@ int dc_sqlite3_table_exists(dc_sqlite3_t* sql, const char* name)
 	sqlite3_stmt* stmt = NULL;
 	int           sqlState;
 
-	if( (querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL ) { /* this statement cannot be used with binded variables */
+	if ((querystr=sqlite3_mprintf("PRAGMA table_info(%s)", name)) == NULL) { /* this statement cannot be used with binded variables */
 		dc_log_error(sql->context, 0, "dc_sqlite3_table_exists_(): Out of memory.");
 		goto cleanup;
 	}
 
-	if( (stmt=dc_sqlite3_prepare(sql, querystr)) == NULL ) {
+	if ((stmt=dc_sqlite3_prepare(sql, querystr)) == NULL) {
 		goto cleanup;
 	}
 
 	sqlState = sqlite3_step(stmt);
-	if( sqlState == SQLITE_ROW ) {
+	if (sqlState == SQLITE_ROW) {
 		ret = 1; /* the table exists. Other states are SQLITE_DONE or SQLITE_ERROR in both cases we return 0. */
 	}
 
@@ -534,11 +534,11 @@ int dc_sqlite3_table_exists(dc_sqlite3_t* sql, const char* name)
 
 	/* error/cleanup */
 cleanup:
-	if( stmt ) {
+	if (stmt) {
 		sqlite3_finalize(stmt);
 	}
 
-	if( querystr ) {
+	if (querystr) {
 		sqlite3_free(querystr);
 	}
 
@@ -556,17 +556,17 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 	int           state;
 	sqlite3_stmt* stmt;
 
-	if( key == NULL ) {
+	if (key == NULL) {
 		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Bad parameter.");
 		return 0;
 	}
 
-	if( !dc_sqlite3_is_open(sql) ) {
+	if (!dc_sqlite3_is_open(sql)) {
 		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Database not ready.");
 		return 0;
 	}
 
-	if( value )
+	if (value)
 	{
 		/* insert/update key=value */
 		#define SELECT_v_FROM_config_k_STATEMENT "SELECT value FROM config WHERE keyname=?;"
@@ -575,14 +575,14 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 		state = sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 
-		if( state == SQLITE_DONE ) {
+		if (state == SQLITE_DONE) {
 			stmt = dc_sqlite3_prepare(sql, "INSERT INTO config (keyname, value) VALUES (?, ?);");
 			sqlite3_bind_text (stmt, 1, key,   -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, value, -1, SQLITE_STATIC);
 			state = sqlite3_step(stmt);
 			sqlite3_finalize(stmt);
 		}
-		else if( state == SQLITE_ROW ) {
+		else if (state == SQLITE_ROW) {
 			stmt = dc_sqlite3_prepare(sql, "UPDATE config SET value=? WHERE keyname=?;");
 			sqlite3_bind_text (stmt, 1, value, -1, SQLITE_STATIC);
 			sqlite3_bind_text (stmt, 2, key,   -1, SQLITE_STATIC);
@@ -603,7 +603,7 @@ int dc_sqlite3_set_config(dc_sqlite3_t* sql, const char* key, const char* value)
 		sqlite3_finalize(stmt);
 	}
 
-	if( state != SQLITE_DONE )  {
+	if (state != SQLITE_DONE)  {
 		dc_log_error(sql->context, 0, "dc_sqlite3_set_config(): Cannot change value.");
 		return 0;
 	}
@@ -616,16 +616,16 @@ char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def)
 {
 	sqlite3_stmt* stmt;
 
-	if( !dc_sqlite3_is_open(sql) || key == NULL ) {
+	if (!dc_sqlite3_is_open(sql) || key == NULL) {
 		return dc_strdup_keep_null(def);
 	}
 
 	stmt = dc_sqlite3_prepare(sql, SELECT_v_FROM_config_k_STATEMENT);
 	sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
-	if( sqlite3_step(stmt) == SQLITE_ROW )
+	if (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		const unsigned char* ptr = sqlite3_column_text(stmt, 0); /* Do not pass the pointers returned from sqlite3_column_text(), etc. into sqlite3_free(). */
-		if( ptr )
+		if (ptr)
 		{
 			/* success, fall through below to free objects */
 			char* ret = dc_strdup((const char*)ptr);
@@ -643,7 +643,7 @@ char* dc_sqlite3_get_config(dc_sqlite3_t* sql, const char* key, const char* def)
 int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t def)
 {
     char* str = dc_sqlite3_get_config(sql, key, NULL);
-    if( str == NULL ) {
+    if (str == NULL) {
 		return def;
     }
     int32_t ret = atol(str);
@@ -655,7 +655,7 @@ int32_t dc_sqlite3_get_config_int(dc_sqlite3_t* sql, const char* key, int32_t de
 int dc_sqlite3_set_config_int(dc_sqlite3_t* sql, const char* key, int32_t value)
 {
     char* value_str = dc_mprintf("%i", (int)value);
-    if( value_str == NULL ) {
+    if (value_str == NULL) {
 		return 0;
     }
     int ret = dc_sqlite3_set_config(sql, key, value_str);
@@ -675,7 +675,7 @@ void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 	// all other calls to `BEGIN IMMEDIATE` will try over until sqlite3_busy_timeout() is reached.
 	// CAVE: This also implies that transactions MUST NOT be nested.
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "BEGIN IMMEDIATE;");
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		dc_sqlite3_log_error(sql, "Cannot begin transaction.");
 	}
 	sqlite3_finalize(stmt);
@@ -685,7 +685,7 @@ void dc_sqlite3_begin_transaction(dc_sqlite3_t* sql)
 void dc_sqlite3_rollback(dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "ROLLBACK;");
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		dc_sqlite3_log_error(sql, "Cannot rollback transaction.");
 	}
 	sqlite3_finalize(stmt);
@@ -695,7 +695,7 @@ void dc_sqlite3_rollback(dc_sqlite3_t* sql)
 void dc_sqlite3_commit(dc_sqlite3_t* sql)
 {
 	sqlite3_stmt* stmt = dc_sqlite3_prepare(sql, "COMMIT;");
-	if( sqlite3_step(stmt) != SQLITE_DONE ) {
+	if (sqlite3_step(stmt) != SQLITE_DONE) {
 		dc_sqlite3_log_error(sql, "Cannot commit transaction.");
 	}
 	sqlite3_finalize(stmt);

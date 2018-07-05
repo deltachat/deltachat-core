@@ -49,14 +49,14 @@ static int s_do_log_info = 1;
 
 static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1, uintptr_t data2)
 {
-	switch( event )
+	switch (event)
 	{
 		case DC_EVENT_GET_STRING:
 		case DC_EVENT_GET_QUANTITY_STRING:
 			break; /* do not show the event as this would fill the screen */
 
 		case DC_EVENT_INFO:
-			if( s_do_log_info ) {
+			if (s_do_log_info) {
 				printf("%s\n", (char*)data2);
 			}
 			break;
@@ -75,7 +75,7 @@ static uintptr_t receive_event(dc_context_t* context, int event, uintptr_t data1
 				char* tempFile = dc_get_fine_pathNfilename(context->blobdir, "curl.result");
 				char* cmd = dc_mprintf("curl --silent --location --fail --insecure %s > %s", (char*)data1, tempFile); /* --location = follow redirects */
 				int error = system(cmd);
-				if( error == 0 ) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
+				if (error == 0) { /* -1=system() error, !0=curl errors forced by -f, 0=curl success */
 					size_t bytes = 0;
 					dc_read_file(tempFile, (void**)&ret, &bytes, context);
 				}
@@ -131,12 +131,12 @@ static void* imap_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
-	while( 1 ) {
+	while (1) {
 		// perform_jobs(), fetch() and idle()
 		// MUST be called from the same single thread and MUST be called sequentially.
 		dc_perform_imap_jobs(context);
 		dc_perform_imap_fetch(context);
-		if( imap_foreground ) {
+		if (imap_foreground) {
 			dc_perform_imap_idle(context); // this may take hours ...
 		}
 		else {
@@ -154,9 +154,9 @@ static void* smtp_thread_entry_point (void* entry_arg)
 {
 	dc_context_t* context = (dc_context_t*)entry_arg;
 
-	while( 1 ) {
+	while (1) {
 		dc_perform_smtp_jobs(context);
-		if( imap_foreground ) {
+		if (imap_foreground) {
 			dc_perform_smtp_idle(context); // this may take hours ...
 		}
 		else {
@@ -171,11 +171,11 @@ static void* smtp_thread_entry_point (void* entry_arg)
 
 static void start_threads(dc_context_t* context)
 {
-	if( !imap_thread ) {
+	if (!imap_thread) {
 		pthread_create(&imap_thread, NULL, imap_thread_entry_point, context);
 	}
 
-	if( !smtp_thread ) {
+	if (!smtp_thread) {
 		pthread_create(&smtp_thread, NULL, smtp_thread_entry_point, context);
 	}
 }
@@ -188,7 +188,7 @@ static void stop_threads(dc_context_t* context)
 	dc_interrupt_smtp_idle(context);
 
 	// wait until the threads are finished
-	while( imap_thread || smtp_thread ) {
+	while (imap_thread || smtp_thread) {
 		usleep(100*1000);
 	}
 }
@@ -205,8 +205,8 @@ static char* read_cmd(void)
 	static char cmdbuffer[1024];
 	fgets(cmdbuffer, 1000, stdin);
 
-	while( strlen(cmdbuffer)>0
-	 && (cmdbuffer[strlen(cmdbuffer)-1]=='\n' || cmdbuffer[strlen(cmdbuffer)-1]==' ') )
+	while (strlen(cmdbuffer)>0
+	 && (cmdbuffer[strlen(cmdbuffer)-1]=='\n' || cmdbuffer[strlen(cmdbuffer)-1]==' '))
 	{
 		cmdbuffer[strlen(cmdbuffer)-1] = '\0';
 	}
@@ -223,12 +223,12 @@ int main(int argc, char ** argv)
 	dc_cmdline_skip_auth(context); /* disable the need to enter the command `auth <password>` for all mailboxes. */
 
 	/* open database from the commandline (if omitted, it can be opened using the `open`-command) */
-	if( argc == 2 ) {
-		if( !dc_open(context, argv[1], NULL) ) {
+	if (argc == 2) {
+		if (!dc_open(context, argv[1], NULL)) {
 			printf("ERROR: Cannot open %s.\n", argv[1]);
 		}
 	}
-	else if( argc != 1 ) {
+	else if (argc != 1) {
 		printf("ERROR: Bad arguments\n");
 	}
 
@@ -239,47 +239,47 @@ int main(int argc, char ** argv)
 	printf("Delta Chat Core is awaiting your commands.\n");
 
 	/* wait for command */
-	while(1)
+	while (1)
 	{
 		/* read command */
 		const char* cmdline = read_cmd();
 		free(cmd);
 		cmd = dc_strdup(cmdline);
 		char* arg1 = strchr(cmd, ' ');
-		if( arg1 ) { *arg1 = 0; arg1++; }
+		if (arg1) { *arg1 = 0; arg1++; }
 
-		if( strcmp(cmd, "connect")==0 )
+		if (strcmp(cmd, "connect")==0)
 		{
 			imap_foreground = 1;
 			start_threads(context);
 		}
-		else if( strcmp(cmd, "disconnect")==0 )
+		else if (strcmp(cmd, "disconnect")==0)
 		{
 			stop_threads(context);
 		}
-		else if( strcmp(cmd, "poll")==0 )
+		else if (strcmp(cmd, "poll")==0)
 		{
 			imap_foreground = 1;
 		}
-		else if( strcmp(cmd, "configure")==0 )
+		else if (strcmp(cmd, "configure")==0)
 		{
 			imap_foreground = 1;
 			start_threads(context);
 			dc_configure(context);
 		}
-		else if( strcmp(cmd, "clear")==0 )
+		else if (strcmp(cmd, "clear")==0)
 		{
 			printf("\n\n\n\n"); /* insert some blank lines to visualize the break in the buffer */
 			printf("\e[1;1H\e[2J"); /* should work on ANSI terminals and on Windows 10. If not, well, then not. */
 		}
-		else if( strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0 )
+		else if (strcmp(cmd, "getqr")==0 || strcmp(cmd, "getbadqr")==0)
 		{
 			imap_foreground = 1;
 			start_threads(context);
 			char* qrstr  = dc_get_securejoin_qr(context, arg1? atoi(arg1) : 0);
-			if( qrstr && qrstr[0] ) {
-				if( strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40 ) {
-					for( int i = 12; i < 22; i++ ) { qrstr[i] = '0'; }
+			if (qrstr && qrstr[0]) {
+				if (strcmp(cmd, "getbadqr")==0 && strlen(qrstr)>40) {
+					for (int i = 12; i < 22; i++) { qrstr[i] = '0'; }
 				}
 				printf("%s\n", qrstr);
 				char* syscmd = dc_mprintf("qrencode -t ansiutf8 \"%s\" -o -", qrstr); /* `-t ansiutf8`=use back/write, `-t utf8`=use terminal colors */
@@ -288,26 +288,26 @@ int main(int argc, char ** argv)
 			}
 			free(qrstr);
 		}
-		else if( strcmp(cmd, "joinqr")==0 )
+		else if (strcmp(cmd, "joinqr")==0)
 		{
 			imap_foreground = 1;
 			start_threads(context);
-			if( arg1 ) {
+			if (arg1) {
 				dc_join_securejoin(context, arg1);
 			}
 		}
-		else if( strcmp(cmd, "exit")==0 )
+		else if (strcmp(cmd, "exit")==0)
 		{
 			break;
 		}
-		else if( cmd[0] == 0 )
+		else if (cmd[0] == 0)
 		{
 			; /* nothing typed */
 		}
 		else
 		{
 			char* execute_result = dc_cmdline(context, cmdline);
-			if( execute_result ) {
+			if (execute_result) {
 				printf("%s\n", execute_result);
 				free(execute_result);
 			}

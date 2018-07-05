@@ -51,7 +51,7 @@ char* dc_uudecode_do(const char* text, char** ret_binary, size_t* ret_binary_byt
 {
 	// CAVE: This function may be called in a loop until it returns NULL, so make sure not to create an invinitive look.
 
-	if( text == NULL || ret_binary == NULL || ret_binary_bytes == NULL || ret_filename == NULL ) {
+	if (text == NULL || ret_binary == NULL || ret_binary_bytes == NULL || ret_filename == NULL) {
 		goto cleanup; // bad parameters
 	}
 

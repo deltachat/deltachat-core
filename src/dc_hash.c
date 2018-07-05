@@ -39,7 +39,7 @@
 */
 #define Addr(X)  ((uintptr_t)X)
 
-static void*    sjhashMalloc(long bytes) { void* p=malloc(bytes); if( p) memset(p, 0, bytes); return p; }
+static void*    sjhashMalloc(long bytes) { void* p=malloc(bytes); if (p) memset(p, 0, bytes); return p; }
 #define         sjhashMallocRaw(a) malloc((a))
 #define         sjhashFree(a) free((a))
 
@@ -76,7 +76,7 @@ static int sjhashStrNICmp(const char *zLeft, const char *zRight, int N)
 	register unsigned char *a, *b;
 	a = (unsigned char *)zLeft;
 	b = (unsigned char *)zRight;
-	while( N-- > 0 && *a!=0 && sjhashUpperToLower[*a]==sjhashUpperToLower[*b]) { a++; b++; }
+	while (N-- > 0 && *a!=0 && sjhashUpperToLower[*a]==sjhashUpperToLower[*b]) { a++; b++; }
 	return N<0 ? 0 : sjhashUpperToLower[*a] - sjhashUpperToLower[*b];
 }
 
@@ -88,8 +88,8 @@ static int sjhashStrNICmp(const char *zLeft, const char *zRight, int N)
 static int sjhashNoCase(const char *z, int n)
 {
 	int h = 0;
-	if( n<=0 ) n = strlen(z);
-	while( n > 0  ) {
+	if (n<=0) n = strlen(z);
+	while (n > 0) {
 		h = (h<<3) ^ h ^ sjhashUpperToLower[(unsigned char)*z++];
 		n--;
 	}
@@ -112,11 +112,11 @@ static int sjhashNoCase(const char *z, int n)
  */
 void dc_hash_init(dc_hash_t *pNew, int keyClass, int copyKey)
 {
-	assert( pNew!=0 );
-	assert( keyClass>=DC_HASH_INT && keyClass<=DC_HASH_BINARY );
+	assert( pNew!=0);
+	assert( keyClass>=DC_HASH_INT && keyClass<=DC_HASH_BINARY);
 	pNew->keyClass = keyClass;
 
-	if( keyClass==DC_HASH_POINTER || keyClass==DC_HASH_INT ) copyKey = 0;
+	if (keyClass==DC_HASH_POINTER || keyClass==DC_HASH_INT) copyKey = 0;
 
 	pNew->copyKey = copyKey;
 	pNew->first = 0;
@@ -135,19 +135,19 @@ void dc_hash_clear(dc_hash_t *pH)
 {
 	dc_hashelem_t *elem;         /* For looping over all elements of the table */
 
-	if( pH == NULL ) {
+	if (pH == NULL) {
 		return;
 	}
 
 	elem = pH->first;
 	pH->first = 0;
-	if( pH->ht ) sjhashFree(pH->ht);
+	if (pH->ht) sjhashFree(pH->ht);
 	pH->ht = 0;
 	pH->htsize = 0;
-	while( elem )
+	while (elem)
 	{
 		dc_hashelem_t *next_elem = elem->next;
-		if( pH->copyKey && elem->pKey )
+		if (pH->copyKey && elem->pKey)
 		{
 			sjhashFree(elem->pKey);
 		}
@@ -183,8 +183,8 @@ static int ptrHash(const void *pKey, int nKey)
 
 static int ptrCompare(const void *pKey1, int n1, const void *pKey2, int n2)
 {
-	if( pKey1==pKey2 ) return 0;
-	if( pKey1<pKey2 ) return -1;
+	if (pKey1==pKey2) return 0;
+	if (pKey1<pKey2) return -1;
 	return 1;
 }
 
@@ -199,7 +199,7 @@ static int strHash(const void *pKey, int nKey)
 
 static int strCompare(const void *pKey1, int n1, const void *pKey2, int n2)
 {
-	if( n1!=n2 ) return 1;
+	if (n1!=n2) return 1;
 	return sjhashStrNICmp((const char*)pKey1,(const char*)pKey2,n1);
 }
 
@@ -211,7 +211,7 @@ static int binHash(const void *pKey, int nKey)
 {
 	int h = 0;
 	const char *z = (const char *)pKey;
-	while( nKey-- > 0 )
+	while (nKey-- > 0)
 	{
 		h = (h<<3) ^ h ^ *(z++);
 	}
@@ -220,7 +220,7 @@ static int binHash(const void *pKey, int nKey)
 
 static int binCompare(const void *pKey1, int n1, const void *pKey2, int n2)
 {
-	if( n1!=n2 ) return 1;
+	if (n1!=n2) return 1;
 	return memcmp(pKey1,pKey2,n1);
 }
 
@@ -237,7 +237,7 @@ static int binCompare(const void *pKey1, int n1, const void *pKey2, int n2)
  */
 static int (*hashFunction(int keyClass))(const void*,int)
 {
-	switch( keyClass )
+	switch (keyClass)
 	{
 		case DC_HASH_INT:    return &intHash;
 		case DC_HASH_POINTER:return &ptrHash;
@@ -254,7 +254,7 @@ static int (*hashFunction(int keyClass))(const void*,int)
  */
 static int (*compareFunction(int keyClass))(const void*,int,const void*,int)
 {
-	switch( keyClass )
+	switch (keyClass)
 	{
 		case DC_HASH_INT:     return &intCompare;
 		case DC_HASH_POINTER: return &ptrCompare;
@@ -275,18 +275,18 @@ static void insertElement(dc_hash_t *pH,           /* The complete hash table */
 {
 	dc_hashelem_t *pHead; /* First element already in pEntry */
 	pHead = pEntry->chain;
-	if( pHead )
+	if (pHead)
 	{
 		pNew->next = pHead;
 		pNew->prev = pHead->prev;
-		if( pHead->prev ) { pHead->prev->next = pNew; }
+		if (pHead->prev) { pHead->prev->next = pNew; }
 		else             { pH->first = pNew; }
 		pHead->prev = pNew;
 	}
 	else
 	{
 		pNew->next = pH->first;
-		if( pH->first ) { pH->first->prev = pNew; }
+		if (pH->first) { pH->first->prev = pNew; }
 		pNew->prev = 0;
 		pH->first = pNew;
 	}
@@ -306,10 +306,10 @@ static void rehash(dc_hash_t *pH, int new_size)
 	dc_hashelem_t *elem, *next_elem;    /* For looping over existing elements */
 	int (*xHash)(const void*,int); /* The hash function */
 
-	assert( (new_size & (new_size-1))==0 );
-	new_ht = (struct _ht *)sjhashMalloc( new_size*sizeof(struct _ht) );
-	if( new_ht==0 ) return;
-	if( pH->ht ) sjhashFree(pH->ht);
+	assert( (new_size & (new_size-1))==0);
+	new_ht = (struct _ht *)sjhashMalloc( new_size*sizeof(struct _ht));
+	if (new_ht==0) return;
+	if (pH->ht) sjhashFree(pH->ht);
 	pH->ht = new_ht;
 	pH->htsize = new_size;
 	xHash = hashFunction(pH->keyClass);
@@ -336,15 +336,15 @@ static dc_hashelem_t *findElementGivenHash(const dc_hash_t *pH,   /* The pH to b
 	int count; /* Number of elements left to test */
 	int (*xCompare)(const void*,int,const void*,int);  /* comparison function */
 
-	if( pH->ht )
+	if (pH->ht)
 	{
 		struct _ht *pEntry = &pH->ht[h];
 		elem = pEntry->chain;
 		count = pEntry->count;
 		xCompare = compareFunction(pH->keyClass);
-		while( count-- && elem )
+		while (count-- && elem)
 		{
-			if( (*xCompare)(elem->pKey,elem->nKey,pKey,nKey)==0 )
+			if ((*xCompare)(elem->pKey,elem->nKey,pKey,nKey)==0)
 			{
 				return elem;
 			}
@@ -365,7 +365,7 @@ static void removeElementGivenHash(dc_hash_t *pH,         /* The pH containing "
 {
 	struct _ht *pEntry;
 
-	if( elem->prev )
+	if (elem->prev)
 	{
 		elem->prev->next = elem->next;
 	}
@@ -374,31 +374,31 @@ static void removeElementGivenHash(dc_hash_t *pH,         /* The pH containing "
 		pH->first = elem->next;
 	}
 
-	if( elem->next )
+	if (elem->next)
 	{
 		elem->next->prev = elem->prev;
 	}
 
 	pEntry = &pH->ht[h];
 
-	if( pEntry->chain==elem )
+	if (pEntry->chain==elem)
 	{
 		pEntry->chain = elem->next;
 	}
 
 	pEntry->count--;
 
-	if( pEntry->count<=0 )
+	if (pEntry->count<=0)
 	{
 		pEntry->chain = 0;
 	}
 
-	if( pH->copyKey && elem->pKey )
+	if (pH->copyKey && elem->pKey)
 	{
 		sjhashFree(elem->pKey);
 	}
 
-	sjhashFree( elem );
+	sjhashFree( elem);
 	pH->count--;
 }
 
@@ -414,11 +414,11 @@ void* dc_hash_find(const dc_hash_t *pH, const void *pKey, int nKey)
 	dc_hashelem_t *elem;    /* The element that matches key */
 	int (*xHash)(const void*,int);  /* The hash function */
 
-	if( pH==0 || pH->ht==0 ) return 0;
+	if (pH==0 || pH->ht==0) return 0;
 	xHash = hashFunction(pH->keyClass);
-	assert( xHash!=0 );
+	assert( xHash!=0);
 	h = (*xHash)(pKey,nKey);
-	assert( (pH->htsize & (pH->htsize-1))==0 );
+	assert( (pH->htsize & (pH->htsize-1))==0);
 	elem = findElementGivenHash(pH,pKey,nKey, h & (pH->htsize-1));
 	return elem ? elem->data : 0;
 }
@@ -448,18 +448,18 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 	dc_hashelem_t *new_elem;           /* New element added to the pH */
 	int (*xHash)(const void*,int);  /* The hash function */
 
-	assert( pH!=0 );
+	assert( pH!=0);
 	xHash = hashFunction(pH->keyClass);
-	assert( xHash!=0 );
+	assert( xHash!=0);
 	hraw = (*xHash)(pKey, nKey);
-	assert( (pH->htsize & (pH->htsize-1))==0 );
+	assert( (pH->htsize & (pH->htsize-1))==0);
 	h = hraw & (pH->htsize-1);
 	elem = findElementGivenHash(pH,pKey,nKey,h);
 
-	if( elem )
+	if (elem)
 	{
 		void *old_data = elem->data;
-		if( data==0 )
+		if (data==0)
 		{
 			removeElementGivenHash(pH,elem,h);
 		}
@@ -470,16 +470,16 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 		return old_data;
 	}
 
-	if( data==0 ) return 0;
+	if (data==0) return 0;
 
-	new_elem = (dc_hashelem_t*)sjhashMalloc( sizeof(dc_hashelem_t) );
+	new_elem = (dc_hashelem_t*)sjhashMalloc( sizeof(dc_hashelem_t));
 
-	if( new_elem==0 ) return data;
+	if (new_elem==0) return data;
 
-	if( pH->copyKey && pKey!=0 )
+	if (pH->copyKey && pKey!=0)
 	{
-		new_elem->pKey = sjhashMallocRaw( nKey );
-		if( new_elem->pKey==0 )
+		new_elem->pKey = sjhashMallocRaw( nKey);
+		if (new_elem->pKey==0)
 		{
 			sjhashFree(new_elem);
 			return data;
@@ -494,10 +494,10 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 	new_elem->nKey = nKey;
 	pH->count++;
 
-	if( pH->htsize==0 )
+	if (pH->htsize==0)
 	{
 		rehash(pH,8);
-		if( pH->htsize==0 )
+		if (pH->htsize==0)
 		{
 			pH->count = 0;
 			sjhashFree(new_elem);
@@ -505,13 +505,13 @@ void* dc_hash_insert(dc_hash_t *pH, const void *pKey, int nKey, void *data)
 		}
 	}
 
-	if( pH->count > pH->htsize )
+	if (pH->count > pH->htsize)
 	{
 		rehash(pH,pH->htsize*2);
 	}
 
-	assert( pH->htsize>0 );
-	assert( (pH->htsize & (pH->htsize-1))==0 );
+	assert( pH->htsize>0);
+	assert( (pH->htsize & (pH->htsize-1))==0);
 	h = hraw & (pH->htsize-1);
 	insertElement(pH, &pH->ht[h], new_elem);
 	new_elem->data = data;

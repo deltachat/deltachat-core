@@ -43,20 +43,20 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 {
 	char* msg = NULL;
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return;
 	}
 
 	/* format message from variable parameters or translate very comming errors */
-	if( code == DC_ERROR_SELF_NOT_IN_GROUP )
+	if (code == DC_ERROR_SELF_NOT_IN_GROUP)
 	{
 		msg = dc_stock_str(context, DC_STR_SELFNOTINGRP);
 	}
-	else if( code == DC_ERROR_NO_NETWORK )
+	else if (code == DC_ERROR_NO_NETWORK)
 	{
 		msg = dc_stock_str(context, DC_STR_NONETWORK);
 	}
-	else if( msg_format )
+	else if (msg_format)
 	{
 		#define BUFSIZE 1024
 		char tempbuf[BUFSIZE+1];
@@ -65,9 +65,9 @@ static void log_vprintf(dc_context_t* context, int event, int code, const char* 
 	}
 
 	/* if we have still no message, create one based upon  the code */
-	if( msg == NULL ) {
-		     if( event == DC_EVENT_INFO )    { msg = dc_mprintf("Info: %i",    (int)code); }
-		else if( event == DC_EVENT_WARNING ) { msg = dc_mprintf("Warning: %i", (int)code); }
+	if (msg == NULL) {
+		     if (event == DC_EVENT_INFO)    { msg = dc_mprintf("Info: %i",    (int)code); }
+		else if (event == DC_EVENT_WARNING) { msg = dc_mprintf("Warning: %i", (int)code); }
 		else                                 { msg = dc_mprintf("Error: %i",   (int)code); }
 	}
 
@@ -114,15 +114,15 @@ void dc_log_error(dc_context_t* context, int code, const char* msg, ...)
 
 void dc_log_error_if(int* condition, dc_context_t* context, int code, const char* msg, ...)
 {
-	if( condition == NULL || context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (condition == NULL || context==NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return;
 	}
 
 	va_list va;
 	va_start(va, msg);
-		if( *condition ) {
+		if (*condition) {
 			/* pop-up error, if we're offline, force a "not connected" error (the function is not used for other cases) */
-			if( context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+			if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
 				log_vprintf(context, DC_EVENT_ERROR, DC_ERROR_NO_NETWORK, NULL, va);
 			}
 			else {

@@ -28,7 +28,7 @@ void dc_token_save(dc_context_t* context, dc_tokennamespc_t namespc, uint32_t fo
 {
 	sqlite3_stmt* stmt = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || token == NULL ) { // foreign_id may be 0
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || token == NULL) { // foreign_id may be 0
 		goto cleanup;
 	}
 
@@ -50,7 +50,7 @@ char* dc_token_lookup(dc_context_t* context, dc_tokennamespc_t namespc, uint32_t
 	char*         token = NULL;
 	sqlite3_stmt* stmt  = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -73,7 +73,7 @@ int dc_token_exists(dc_context_t* context, dc_tokennamespc_t namespc, const char
 	int           exists = 0;
 	sqlite3_stmt* stmt   = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || token == NULL ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || token == NULL) {
 		goto cleanup;
 	}
 

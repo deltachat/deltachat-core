@@ -64,12 +64,12 @@ char* dc_urlencode(const char *to_encode)
 {
 	const char *pstr = to_encode;
 
-	if( to_encode == NULL ) {
+	if (to_encode == NULL) {
 		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_encode) * 3 + 1), *pbuf = buf;
-	if( buf == NULL ) {
+	if (buf == NULL) {
 		exit(46);
 	}
 
@@ -109,12 +109,12 @@ char* dc_urldecode(const char* to_decode)
 {
 	const char *pstr = to_decode;
 
-	if( to_decode == NULL ) {
+	if (to_decode == NULL) {
 		return dc_strdup("");
 	}
 
 	char *buf = malloc(strlen(to_decode) + 1), *pbuf = buf;
-	if( buf == NULL ) {
+	if (buf == NULL) {
 		exit(50);
 	}
 
@@ -157,9 +157,9 @@ static int to_be_quoted(const char * word, size_t size)
 	const char* cur = word;
 	size_t      i;
 
-	for( i = 0; i < size; i++ )
+	for (i = 0; i < size; i++)
 	{
-		switch( *cur )
+		switch (*cur)
 		{
 			case ',':
 			case ':':
@@ -183,7 +183,7 @@ static int to_be_quoted(const char * word, size_t size)
 				return 1;
 
 			default:
-				if( ((unsigned char)*cur) >= 128 ) {
+				if (((unsigned char)*cur) >= 128) {
 					return 1;
 				}
 				break;
@@ -258,7 +258,7 @@ static int quote_word(const char* display_charset, MMAPString* mmapstr, const ch
 		#endif
 
 		do_quote_char = 0;
-		switch( *cur )
+		switch (*cur)
 		{
 			case ',':
 			case ':':
@@ -364,7 +364,7 @@ char* dc_encode_header_words(const char* to_encode)
 	const char* cur = to_encode;
 	MMAPString* mmapstr = mmap_string_new("");
 
-	if( to_encode == NULL || mmapstr == NULL ) {
+	if (to_encode == NULL || mmapstr == NULL) {
 		goto cleanup;
 	}
 
@@ -398,7 +398,7 @@ char* dc_encode_header_words(const char* to_encode)
 
 		if (quote_words)
 		{
-			if ( !quote_word(DEF_DISPLAY_CHARSET, mmapstr, begin, end - begin) ) {
+			if ( !quote_word(DEF_DISPLAY_CHARSET, mmapstr, begin, end - begin)) {
 				goto cleanup;
 			}
 
@@ -433,7 +433,7 @@ char* dc_encode_header_words(const char* to_encode)
 	ret_str = strdup(mmapstr->str);
 
 cleanup:
-	if( mmapstr ) {
+	if (mmapstr) {
 		mmap_string_free(mmapstr);
 	}
 	return ret_str;
@@ -453,14 +453,14 @@ char* dc_decode_header_words(const char* in)
 	/* decode strings as. `=?UTF-8?Q?Bj=c3=b6rn_Petersen?=`)
 	if `in` is NULL, `out` is NULL as well; also returns NULL on errors */
 
-	if( in == NULL ) {
+	if (in == NULL) {
 		return NULL; /* no string given */
 	}
 
 	char* out = NULL;
 	size_t cur_token = 0;
 	int r = mailmime_encoded_phrase_parse(DEF_INCOMING_CHARSET, in, strlen(in), &cur_token, DEF_DISPLAY_CHARSET, &out);
-	if( r != MAILIMF_NO_ERROR || out == NULL ) {
+	if (r != MAILIMF_NO_ERROR || out == NULL) {
 		out = dc_strdup(in); /* error, make a copy of the original string (as we free it later) */
 	}
 
@@ -641,7 +641,7 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
 	const char    *src;
 	char          *dst, *res;
 
-	if( to_decode == NULL ) {
+	if (to_decode == NULL) {
 		return dc_strdup("");
 	}
 
@@ -753,10 +753,10 @@ char* dc_decode_modified_utf7(const char *to_decode, int change_spaces)
  */
 int dc_needs_ext_header(const char* to_check)
 {
-	if( to_check ) {
-		while( *to_check )
+	if (to_check) {
+		while (*to_check)
 		{
-			if( !isalnum(*to_check) && *to_check!='-' && *to_check!='_' && *to_check!='.' && *to_check!='~' ) {
+			if (!isalnum(*to_check) && *to_check!='-' && *to_check!='_' && *to_check!='.' && *to_check!='~') {
 				return 1;
 			}
 			to_check++;
@@ -783,12 +783,12 @@ char* dc_encode_ext_header(const char* to_encode)
 	#define PREFIX "utf-8''"
 	const char *pstr = to_encode;
 
-	if( to_encode == NULL ) {
+	if (to_encode == NULL) {
 		return dc_strdup(PREFIX);
 	}
 
 	char *buf = malloc(strlen(PREFIX) + strlen(to_encode) * 3 + 1);
-	if( buf == NULL ) {
+	if (buf == NULL) {
 		exit(46);
 	}
 
@@ -828,13 +828,13 @@ char* dc_decode_ext_header(const char* to_decode)
 	char       *decoded = NULL, *charset = NULL;
 	const char *p2 = NULL;
 
-	if( to_decode == NULL ) {
+	if (to_decode == NULL) {
 		goto cleanup;
 	}
 
 	// get char set
-	if( (p2=strchr(to_decode, '\'')) == NULL
-	 || (p2 == to_decode) /*no empty charset allowed*/ ) {
+	if ((p2=strchr(to_decode, '\'')) == NULL
+	 || (p2 == to_decode) /*no empty charset allowed*/) {
 		goto cleanup;
 	}
 
@@ -842,7 +842,7 @@ char* dc_decode_ext_header(const char* to_decode)
 	p2++;
 
 	// skip language
-	if( (p2=strchr(p2, '\'')) == NULL ) {
+	if ((p2=strchr(p2, '\'')) == NULL) {
 		goto cleanup;
 	}
 
@@ -851,10 +851,10 @@ char* dc_decode_ext_header(const char* to_decode)
 	// decode text
 	decoded = dc_urldecode(p2);
 
-	if( charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0 ) {
+	if (charset!=NULL && strcmp(charset, "utf-8")!=0 && strcmp(charset, "UTF-8")!=0) {
 		char* converted = NULL;
 		int r = charconv("utf-8", charset, decoded, strlen(decoded), &converted);
-		if( r == MAIL_CHARCONV_NO_ERROR && converted != NULL ) {
+		if (r == MAIL_CHARCONV_NO_ERROR && converted != NULL) {
 			free(decoded);
 			decoded = converted;
 		}

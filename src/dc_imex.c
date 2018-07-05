@@ -119,8 +119,8 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	char*                  ret_setupfilecontent = NULL;
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || passphrase==NULL
-	 || strlen(passphrase)<2 || curr_private_key==NULL ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || passphrase==NULL
+	 || strlen(passphrase)<2 || curr_private_key==NULL) {
 		goto cleanup;
 	}
 
@@ -129,7 +129,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	/* create the payload */
 
-	if( !dc_ensure_secret_key_exists(context) ) {
+	if (!dc_ensure_secret_key_exists(context)) {
 		goto cleanup;
 	}
 
@@ -138,7 +138,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 			dc_key_load_self_private(curr_private_key, self_addr, context->sql);
 
 			char* payload_key_asc = dc_key_render_asc(curr_private_key, context->e2ee_enabled? "Autocrypt-Prefer-Encrypt: mutual\r\n" : NULL);
-			if( payload_key_asc == NULL ) {
+			if (payload_key_asc == NULL) {
 				goto cleanup;
 			}
 
@@ -161,20 +161,20 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 
 	/* S2K */
 	#define SYMM_ALGO PGP_SA_AES_128
-	if( !pgp_crypt_any(&crypt_info, SYMM_ALGO) ) {
+	if (!pgp_crypt_any(&crypt_info, SYMM_ALGO)) {
 		goto cleanup;
 	}
 
 	int s2k_spec = PGP_S2KS_ITERATED_AND_SALTED; // 0=simple, 1=salted, 3=salted+iterated
 	int s2k_iter_id = 96; // 0=1024 iterations, 96=65536 iterations
 	#define HASH_ALG  PGP_HASH_SHA256
-	if( (key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id)) == NULL ) {
+	if ((key = pgp_s2k_do(passphrase, crypt_info.keysize, s2k_spec, HASH_ALG, salt, s2k_iter_id)) == NULL) {
 		goto cleanup;
 	}
 
 	/* encrypt the payload using the key using AES-128 and put it into
-	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3 ) followed by
-	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 18, https://tools.ietf.org/html/rfc4880#section-5.13 , better than Tag 9 ) */
+	OpenPGP's "Symmetric-Key Encrypted Session Key" (Tag 3, https://tools.ietf.org/html/rfc4880#section-5.3) followed by
+	OpenPGP's "Symmetrically Encrypted Data Packet" (Tag 18, https://tools.ietf.org/html/rfc4880#section-5.13 , better than Tag 9) */
 
 	pgp_setup_memory_write(&encr_output, &encr_mem, 128);
 	pgp_writer_push_armor_msg(encr_output);
@@ -186,17 +186,17 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	                               + 1/*s2k_spec*/
 	                               + 1/*S2 hash algo*/
 	                               + ((s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? PGP_SALT_SIZE : 0)/*the salt*/
-	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/ );
+	                               + ((s2k_spec==PGP_S2KS_ITERATED_AND_SALTED)? 1 : 0)/*number of iterations*/);
 
 	pgp_write_scalar   (encr_output, 4, 1);                  // 1 octet: version
 	pgp_write_scalar   (encr_output, SYMM_ALGO, 1);          // 1 octet: symm. algo
 
 	pgp_write_scalar   (encr_output, s2k_spec, 1);           // 1 octet: s2k_spec
 	pgp_write_scalar   (encr_output, HASH_ALG, 1);           // 1 octet: S2 hash algo
-	if( s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
+	if (s2k_spec==PGP_S2KS_SALTED || s2k_spec==PGP_S2KS_ITERATED_AND_SALTED) {
 	  pgp_write        (encr_output, salt, PGP_SALT_SIZE);   // 8 octets: the salt
 	}
-	if( s2k_spec==PGP_S2KS_ITERATED_AND_SALTED ) {
+	if (s2k_spec==PGP_S2KS_ITERATED_AND_SALTED) {
 	  pgp_write_scalar (encr_output, s2k_iter_id, 1);        // 1 octet: number of iterations
 	}
 
@@ -205,7 +205,7 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 	/* Tag 18 - PGP_PTAG_CT_SE_IP_DATA */
 	//pgp_write_symm_enc_data((const uint8_t*)payload_mem->buf, payload_mem->length, PGP_SA_AES_128, key, encr_output); //-- would generate Tag 9
 	{
-		uint8_t* iv = calloc(1, crypt_info.blocksize); if( iv == NULL) { goto cleanup; }
+		uint8_t* iv = calloc(1, crypt_info.blocksize); if (iv == NULL) { goto cleanup; }
 		crypt_info.set_iv(&crypt_info, iv);
 		free(iv);
 
@@ -270,11 +270,11 @@ char* dc_render_setup_file(dc_context_t* context, const char* passphrase)
 cleanup:
 	sqlite3_finalize(stmt);
 
-	if( payload_output ) { pgp_output_delete(payload_output); }
-	if( payload_mem ) { pgp_memory_free(payload_mem); }
+	if (payload_output) { pgp_output_delete(payload_output); }
+	if (payload_mem) { pgp_memory_free(payload_mem); }
 
-	if( encr_output ) { pgp_output_delete(encr_output); }
-	if( encr_mem ) { pgp_memory_free(encr_mem); }
+	if (encr_output) { pgp_output_delete(encr_output); }
+	if (encr_mem) { pgp_memory_free(encr_mem); }
 
 	dc_key_unref(curr_private_key);
 	free(encr_string);
@@ -312,14 +312,14 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 
 	/* extract base64 from filecontent */
 	fc_buf = dc_strdup(filecontent);
-	if( !dc_split_armored_data(fc_buf, &fc_headerline, NULL, NULL, &fc_base64)
-	 || fc_headerline==NULL || strcmp(fc_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || fc_base64==NULL ) {
+	if (!dc_split_armored_data(fc_buf, &fc_headerline, NULL, NULL, &fc_base64)
+	 || fc_headerline==NULL || strcmp(fc_headerline, "-----BEGIN PGP MESSAGE-----")!=0 || fc_base64==NULL) {
 		goto cleanup;
 	}
 
 	/* convert base64 to binary */
-	if( mailmime_base64_body_parse(fc_base64, strlen(fc_base64), &indx, &binary/*must be freed using mmap_string_unref()*/, &binary_bytes)!=MAILIMF_NO_ERROR
-	 || binary == NULL || binary_bytes == 0 ) {
+	if (mailmime_base64_body_parse(fc_base64, strlen(fc_base64), &indx, &binary/*must be freed using mmap_string_unref()*/, &binary_bytes)!=MAILIMF_NO_ERROR
+	 || binary == NULL || binary_bytes == 0) {
 		goto cleanup;
 	}
 
@@ -328,15 +328,15 @@ char* dc_decrypt_setup_file(dc_context_t* context, const char* passphrase, const
 	io.outs = stdout;
 	io.errs = stderr;
 	io.res  = stderr;
-	if( (outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase)) == NULL ) {
+	if ((outmem=pgp_decrypt_buf(&io, binary, binary_bytes, NULL, NULL, 0, 0, passphrase)) == NULL) {
 		goto cleanup;
 	}
 	payload = strndup((const char*)outmem->buf, outmem->length);
 
 cleanup:
 	free(fc_buf);
-	if( binary ) { mmap_string_unref(binary); }
-	if( outmem ) { pgp_memory_free(outmem); }
+	if (binary) { mmap_string_unref(binary); }
+	if (outmem) { pgp_memory_free(outmem); }
 	return payload;
 }
 
@@ -363,16 +363,16 @@ char* dc_create_setup_code(dc_context_t* context)
 
 	dc_strbuilder_init(&ret, 0);
 
-	for( i = 0; i < CODE_ELEMS; i++ )
+	for (i = 0; i < CODE_ELEMS; i++)
 	{
 		do
 		{
-			if( !RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t)) ) {
+			if (!RAND_bytes((unsigned char*)&random_val, sizeof(uint16_t))) {
 				dc_log_warning(context, 0, "Falling back to pseudo-number generation for the setup code.");
 				RAND_pseudo_bytes((unsigned char*)&random_val, sizeof(uint16_t));
 			}
 		}
-		while( random_val > 60000 ); /* make sure the modulo below does not reduce entropy (range is 0..65535, a module 10000 would make appearing values <=535 one time more often than other values) */
+		while (random_val > 60000); /* make sure the modulo below does not reduce entropy (range is 0..65535, a module 10000 would make appearing values <=535 one time more often than other values) */
 
 		random_val = random_val % 10000; /* force all blocks into the range 0..9999 */
 
@@ -386,7 +386,7 @@ char* dc_create_setup_code(dc_context_t* context)
 /* Function remove all special characters from the given code and brings it to the 9x4 form */
 char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 {
-	if( in == NULL ) {
+	if (in == NULL) {
 		return NULL;
 	}
 
@@ -395,11 +395,11 @@ char* dc_normalize_setup_code(dc_context_t* context, const char* in)
 	int   outlen;
 
 	const char* p1 = in;
-	while( *p1 ) {
-		if( *p1 >= '0' && *p1 <= '9' ) {
+	while (*p1) {
+		if (*p1 >= '0' && *p1 <= '9') {
 			dc_strbuilder_catf(&out, "%c", *p1);
 			outlen = strlen(out.buf);
-			if( outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39 ) {
+			if (outlen==4 || outlen==9 || outlen==14 || outlen==19 || outlen==24 || outlen == 29 || outlen == 34 || outlen == 39) {
 				dc_strbuilder_cat(&out, "-");
 			}
 		}
@@ -465,29 +465,29 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	dc_msg_t* msg = NULL;
 	uint32_t msg_id = 0;
 
-	if( !dc_alloc_ongoing(context) ) {
+	if (!dc_alloc_ongoing(context)) {
 		return 0; /* no cleanup as this would call dc_free_ongoing() */
 	}
-	#define CHECK_EXIT if( context->shall_stop_ongoing ) { goto cleanup; }
+	#define CHECK_EXIT if (context->shall_stop_ongoing) { goto cleanup; }
 
-	if( (setup_code=dc_create_setup_code(context)) == NULL ) { /* this may require a keypair to be created. this may take a second ... */
+	if ((setup_code=dc_create_setup_code(context)) == NULL) { /* this may require a keypair to be created. this may take a second ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( (setup_file_content=dc_render_setup_file(context, setup_code))==NULL ) { /* encrypting may also take a while ... */
+	if ((setup_file_content=dc_render_setup_file(context, setup_code))==NULL) { /* encrypting may also take a while ... */
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( (setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html")) == NULL
-	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context) ) {
+	if ((setup_file_name=dc_get_fine_pathNfilename(context->blobdir, "autocrypt-setup-message.html")) == NULL
+	 || !dc_write_file(setup_file_name, setup_file_content, strlen(setup_file_content), context)) {
 		goto cleanup;
 	}
 
-	if( (chat_id=dc_create_chat_by_contact_id(context, DC_CONTACT_ID_SELF))==0 ) {
+	if ((chat_id=dc_create_chat_by_contact_id(context, DC_CONTACT_ID_SELF))==0) {
 		goto cleanup;
 	}
 
@@ -500,7 +500,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 
 	CHECK_EXIT
 
-	if( (msg_id = dc_send_msg_object(context, chat_id, msg)) == 0 ) {
+	if ((msg_id = dc_send_msg_object(context, chat_id, msg)) == 0) {
 		goto cleanup;
 	}
 
@@ -510,14 +510,14 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	/* wait until the message is really sent */
 	dc_log_info(context, 0, "Wait for setup message being sent ...");
 
-	while( 1 )
+	while (1)
 	{
 		CHECK_EXIT
 
 		sleep(1);
 
 		msg = dc_get_msg(context, msg_id);
-		if( dc_msg_is_sent(msg) ) {
+		if (dc_msg_is_sent(msg)) {
 			break;
 		}
 		dc_msg_unref(msg);
@@ -529,7 +529,7 @@ char* dc_initiate_key_transfer(dc_context_t* context)
 	success = 1;
 
 cleanup:
-	if( !success ) { free(setup_code); setup_code = NULL; }
+	if (!success) { free(setup_code); setup_code = NULL; }
 	free(setup_file_name);
 	free(setup_file_content);
 	dc_msg_unref(msg);
@@ -549,15 +549,15 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	char*          self_addr    = NULL;
 
 	buf = dc_strdup(armored);
-	if( !dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
-	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL ) {
+	if (!dc_split_armored_data(buf, &buf_headerline, NULL, &buf_preferencrypt, &buf_base64)
+	 || strcmp(buf_headerline, "-----BEGIN PGP PRIVATE KEY BLOCK-----")!=0 || buf_base64 == NULL) {
 		dc_log_warning(context, 0, "File does not contain a private key."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
-	if( !dc_key_set_from_base64(private_key, buf_base64, DC_KEY_PRIVATE)
+	if (!dc_key_set_from_base64(private_key, buf_base64, DC_KEY_PRIVATE)
 	 || !dc_pgp_is_valid_key(context, private_key)
-	 || !dc_pgp_split_key(context, private_key, public_key) ) {
+	 || !dc_pgp_split_key(context, private_key, public_key)) {
 		dc_log_error(context, 0, "File does not contain a valid private key.");
 		goto cleanup;
 	}
@@ -570,22 +570,22 @@ static int set_self_key(dc_context_t* context, const char* armored, int set_defa
 	sqlite3_finalize(stmt);
 	stmt = NULL;
 
-	if( set_default ) {
+	if (set_default) {
 		dc_sqlite3_execute(context->sql, "UPDATE keypairs SET is_default=0;"); /* if the new key should be the default key, all other should not */
 	}
 
 	self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
-	if( !dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->sql) ) {
+	if (!dc_key_save_self_keypair(public_key, private_key, self_addr, set_default, context->sql)) {
 		dc_log_error(context, 0, "Cannot save keypair.");
 		goto cleanup;
 	}
 
 	/* if we also received an Autocrypt-Prefer-Encrypt header, handle this */
-	if( buf_preferencrypt ) {
-		if( strcmp(buf_preferencrypt, "nopreference")==0 ) {
+	if (buf_preferencrypt) {
+		if (strcmp(buf_preferencrypt, "nopreference")==0) {
 			dc_set_config_int(context, "e2ee_enabled", 0); /* use the top-level function as this also resets cached values */
 		}
-		else if( strcmp(buf_preferencrypt, "mutual")==0 ) {
+		else if (strcmp(buf_preferencrypt, "mutual")==0) {
 			dc_set_config_int(context, "e2ee_enabled", 1); /* use the top-level function as this also resets cached values */
 		}
 	}
@@ -632,32 +632,32 @@ int dc_continue_key_transfer(dc_context_t* context, uint32_t msg_id, const char*
 	char*    armored_key = NULL;
 	char*    norm_sc     = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || msg_id <= DC_MSG_ID_LAST_SPECIAL || setup_code == NULL) {
 		goto cleanup;
 	}
 
-	if( (msg=dc_get_msg(context, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
-	 || (filename=dc_msg_get_file(msg))==NULL || filename[0]==0 ) {
+	if ((msg=dc_get_msg(context, msg_id))==NULL || !dc_msg_is_setupmessage(msg)
+	 || (filename=dc_msg_get_file(msg))==NULL || filename[0]==0) {
 		dc_log_error(context, 0, "Message is no Autocrypt Setup Message.");
 		goto cleanup;
 	}
 
-	if( !dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent == NULL || filebytes <= 0 ) {
+	if (!dc_read_file(filename, (void**)&filecontent, &filebytes, msg->context) || filecontent == NULL || filebytes <= 0) {
 		dc_log_error(context, 0, "Cannot read Autocrypt Setup Message file.");
 		goto cleanup;
 	}
 
-	if( (norm_sc = dc_normalize_setup_code(context, setup_code))==NULL ) {
+	if ((norm_sc = dc_normalize_setup_code(context, setup_code))==NULL) {
 		dc_log_warning(context, 0, "Cannot normalize Setup Code.");
 		goto cleanup;
 	}
 
-	if( (armored_key=dc_decrypt_setup_file(context, norm_sc, filecontent)) == NULL ) {
+	if ((armored_key=dc_decrypt_setup_file(context, norm_sc, filecontent)) == NULL) {
 		dc_log_warning(context, 0, "Cannot decrypt Autocrypt Setup Message."); /* do not log as error - this is quite normal after entering the bad setup code */
 		goto cleanup;
 	}
 
-	if( !set_self_key(context, armored_key, 1/*set default*/) ) {
+	if (!set_self_key(context, armored_key, 1/*set default*/)) {
 		goto cleanup; /* error already logged */
 	}
 
@@ -681,7 +681,7 @@ cleanup:
 static void export_key_to_asc_file(dc_context_t* context, const char* dir, int id, const dc_key_t* key, int is_default)
 {
 	char* file_name;
-	if( is_default ) {
+	if (is_default) {
 		file_name = dc_mprintf("%s/%s-key-default.asc", dir, key->type==DC_KEY_PUBLIC? "public" : "private");
 	}
 	else {
@@ -689,7 +689,7 @@ static void export_key_to_asc_file(dc_context_t* context, const char* dir, int i
 	}
 	dc_log_info(context, 0, "Exporting key %s", file_name);
 	dc_delete_file(file_name, context);
-	if( dc_key_render_asc_to_file(key, file_name, context) ) {
+	if (dc_key_render_asc_to_file(key, file_name, context)) {
 		context->cb(context, DC_EVENT_IMEX_FILE_WRITTEN, (uintptr_t)file_name, 0);
 		dc_log_error(context, 0, "Cannot write key to %s", file_name);
 	}
@@ -705,15 +705,15 @@ static int export_self_keys(dc_context_t* context, const char* dir)
 	dc_key_t*      public_key = dc_key_new();
 	dc_key_t*      private_key = dc_key_new();
 
-		if( (stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL ) {
+		if ((stmt=dc_sqlite3_prepare(context->sql, "SELECT id, public_key, private_key, is_default FROM keypairs;"))==NULL) {
 			goto cleanup;
 		}
 
-		while( sqlite3_step(stmt)==SQLITE_ROW ) {
-			id = sqlite3_column_int(         stmt, 0  );
+		while (sqlite3_step(stmt)==SQLITE_ROW) {
+			id = sqlite3_column_int(         stmt, 0 );
 			dc_key_set_from_stmt(public_key,  stmt, 1, DC_KEY_PUBLIC);
 			dc_key_set_from_stmt(private_key, stmt, 2, DC_KEY_PRIVATE);
-			is_default = sqlite3_column_int( stmt, 3  );
+			is_default = sqlite3_column_int( stmt, 3 );
 			export_key_to_asc_file(context, dir, id, public_key,  is_default);
 			export_key_to_asc_file(context, dir, id, private_key, is_default);
 		}
@@ -754,19 +754,19 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 	char*          buf2 = NULL;
 	const char*    buf2_headerline; // a pointer inside buf2, MUST NOT be free()'d
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || dir_name==NULL ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || dir_name==NULL) {
 		goto cleanup;
 	}
-	if( (dir_handle=opendir(dir_name))==NULL ) {
+	if ((dir_handle=opendir(dir_name))==NULL) {
 		dc_log_error(context, 0, "Import: Cannot open directory \"%s\".", dir_name);
 		goto cleanup;
 	}
 
-	while( (dir_entry=readdir(dir_handle))!=NULL )
+	while ((dir_entry=readdir(dir_handle))!=NULL)
 	{
 		free(suffix);
 		suffix = dc_get_filesuffix_lc(dir_entry->d_name);
-		if( suffix==NULL || strcmp(suffix, "asc")!=0 ) {
+		if (suffix==NULL || strcmp(suffix, "asc")!=0) {
 			continue;
 		}
 
@@ -776,16 +776,16 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 
 		free(buf);
 		buf = NULL;
-		if( !dc_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
-		 || buf_bytes < 50 ) {
+		if (!dc_read_file(path_plus_name, (void**)&buf, &buf_bytes, context)
+		 || buf_bytes < 50) {
 			continue;
 		}
 		private_key = buf;
 
 		free(buf2);
 		buf2 = dc_strdup(buf);
-		if( dc_split_armored_data(buf2, &buf2_headerline, NULL, NULL, NULL)
-		 && strcmp(buf2_headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0 ) {
+		if (dc_split_armored_data(buf2, &buf2_headerline, NULL, NULL, NULL)
+		 && strcmp(buf2_headerline, "-----BEGIN PGP PUBLIC KEY BLOCK-----")==0) {
 			/* This file starts with a Public Key.
 			 * However some programs (Thunderbird/Enigmail) put public and private key
 			 * in the same file, so we check if there is a private key following */
@@ -796,25 +796,25 @@ static int import_self_keys(dc_context_t* context, const char* dir_name)
 		}
 
 		set_default = 1;
-		if( strstr(dir_entry->d_name, "legacy")!=NULL ) {
+		if (strstr(dir_entry->d_name, "legacy")!=NULL) {
 			dc_log_info(context, 0, "Treating \"%s\" as a legacy private key.", path_plus_name);
 			set_default = 0; /* a key with "legacy" in its name is not made default; this may result in a keychain with _no_ default, however, this is no problem, as this will create a default key later */
 		}
 
-		if( !set_self_key(context, private_key, set_default) ) {
+		if (!set_self_key(context, private_key, set_default)) {
 			continue;
 		}
 
 		imported_count++;
 	}
 
-	if( imported_count == 0 ) {
+	if (imported_count == 0) {
 		dc_log_error(context, 0, "No private keys found in \"%s\".", dir_name);
 		goto cleanup;
 	}
 
 cleanup:
-	if( dir_handle ) { closedir(dir_handle); }
+	if (dir_handle) { closedir(dir_handle); }
 	free(suffix);
 	free(path_plus_name);
 	free(buf);
@@ -833,8 +833,8 @@ The macro avoids weird values of 0% or 100% while still working. */
 #define FILE_PROGRESS \
 	processed_files_count++; \
 	int permille = (processed_files_count*1000)/total_files_count; \
-	if( permille <  10 ) { permille =  10; } \
-	if( permille > 990 ) { permille = 990; } \
+	if (permille <  10) { permille =  10; } \
+	if (permille > 990) { permille = 990; } \
 	context->cb(context, DC_EVENT_IMEX_PROGRESS, permille, 0);
 
 
@@ -862,7 +862,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 		char buffer[256];
 		timeinfo = localtime(&now);
 		strftime(buffer, 256, DC_BAK_PREFIX "-%Y-%m-%d." DC_BAK_SUFFIX, timeinfo);
-		if( (dest_pathNfilename=dc_get_fine_pathNfilename(dir, buffer))==NULL ) {
+		if ((dest_pathNfilename=dc_get_fine_pathNfilename(dir, buffer))==NULL) {
 			dc_log_error(context, 0, "Cannot get backup file name.");
 			goto cleanup;
 		}
@@ -873,7 +873,7 @@ static int export_backup(dc_context_t* context, const char* dir)
 	closed = 1;
 
 		dc_log_info(context, 0, "Backup \"%s\" to \"%s\".", context->dbfile, dest_pathNfilename);
-		if( !dc_copy_file(context->dbfile, dest_pathNfilename, context) ) {
+		if (!dc_copy_file(context->dbfile, dest_pathNfilename, context)) {
 			goto cleanup; /* error already logged */
 		}
 
@@ -881,43 +881,43 @@ static int export_backup(dc_context_t* context, const char* dir)
 	closed = 0;
 
 	/* add all files as blobs to the database copy (this does not require the source to be locked, neigher the destination as it is used only here) */
-	if( (dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
-	 || !dc_sqlite3_open(dest_sql, dest_pathNfilename, 0) ) {
+	if ((dest_sql=dc_sqlite3_new(context/*for logging only*/))==NULL
+	 || !dc_sqlite3_open(dest_sql, dest_pathNfilename, 0)) {
 		goto cleanup; /* error already logged */
 	}
 
-	if( !dc_sqlite3_table_exists(dest_sql, "backup_blobs") ) {
-		if( !dc_sqlite3_execute(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);") ) {
+	if (!dc_sqlite3_table_exists(dest_sql, "backup_blobs")) {
+		if (!dc_sqlite3_execute(dest_sql, "CREATE TABLE backup_blobs (id INTEGER PRIMARY KEY, file_name, file_content);")) {
 			goto cleanup; /* error already logged */
 		}
 	}
 
 	/* scan directory, pass 1: collect file info */
 	total_files_count = 0;
-	if( (dir_handle=opendir(context->blobdir))==NULL ) {
+	if ((dir_handle=opendir(context->blobdir))==NULL) {
 		dc_log_error(context, 0, "Backup: Cannot get info for blob-directory \"%s\".", context->blobdir);
 		goto cleanup;
 	}
 
-	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+	while ((dir_entry=readdir(dir_handle))!=NULL) {
 		total_files_count++;
 	}
 
 	closedir(dir_handle);
 	dir_handle = NULL;
 
-	if( total_files_count>0 )
+	if (total_files_count>0)
 	{
 		/* scan directory, pass 2: copy files */
-		if( (dir_handle=opendir(context->blobdir))==NULL ) {
+		if ((dir_handle=opendir(context->blobdir))==NULL) {
 			dc_log_error(context, 0, "Backup: Cannot copy from blob-directory \"%s\".", context->blobdir);
 			goto cleanup;
 		}
 
 		stmt = dc_sqlite3_prepare(dest_sql, "INSERT INTO backup_blobs (file_name, file_content) VALUES (?, ?);");
-		while( (dir_entry=readdir(dir_handle))!=NULL )
+		while ((dir_entry=readdir(dir_handle))!=NULL)
 		{
-			if( context->shall_stop_ongoing ) {
+			if (context->shall_stop_ongoing) {
 				delete_dest_file = 1;
 				goto cleanup;
 			}
@@ -926,9 +926,9 @@ static int export_backup(dc_context_t* context, const char* dir)
 
 			char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 			int name_len = strlen(name);
-			if( (name_len==1 && name[0]=='.')
+			if ((name_len==1 && name[0]=='.')
 			 || (name_len==2 && name[0]=='.' && name[1]=='.')
-			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0) ) {
+			 || (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0)) {
 				//dc_log_info(context, 0, "Backup: Skipping \"%s\".", name);
 				continue;
 			}
@@ -937,13 +937,13 @@ static int export_backup(dc_context_t* context, const char* dir)
 			free(curr_pathNfilename);
 			curr_pathNfilename = dc_mprintf("%s/%s", context->blobdir, name);
 			free(buf);
-			if( !dc_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0 ) {
+			if (!dc_read_file(curr_pathNfilename, &buf, &buf_bytes, context) || buf==NULL || buf_bytes<=0) {
 				continue;
 			}
 
 			sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 			sqlite3_bind_blob(stmt, 2, buf, buf_bytes, SQLITE_STATIC);
-			if( sqlite3_step(stmt)!=SQLITE_DONE ) {
+			if (sqlite3_step(stmt)!=SQLITE_DONE) {
 				dc_log_error(context, 0, "Disk full? Cannot add file \"%s\" to backup.", curr_pathNfilename);
 				goto cleanup; /* this is not recoverable! writing to the sqlite database should work! */
 			}
@@ -963,13 +963,13 @@ static int export_backup(dc_context_t* context, const char* dir)
 	success = 1;
 
 cleanup:
-	if( dir_handle ) { closedir(dir_handle); }
-	if( closed ) { dc_sqlite3_open(context->sql, context->dbfile, 0); }
+	if (dir_handle) { closedir(dir_handle); }
+	if (closed) { dc_sqlite3_open(context->sql, context->dbfile, 0); }
 
 	sqlite3_finalize(stmt);
 	dc_sqlite3_close(dest_sql);
 	dc_sqlite3_unref(dest_sql);
-	if( delete_dest_file ) { dc_delete_file(dest_pathNfilename, context); }
+	if (delete_dest_file) { dc_delete_file(dest_pathNfilename, context); }
 	free(dest_pathNfilename);
 
 	free(curr_pathNfilename);
@@ -986,9 +986,9 @@ cleanup:
 static void ensure_no_slash(char* path)
 {
 	int path_len = strlen(path);
-	if( path_len > 0 ) {
-		if( path[path_len-1] == '/'
-		 || path[path_len-1] == '\\' ) {
+	if (path_len > 0) {
+		if (path[path_len-1] == '/'
+		 || path[path_len-1] == '\\') {
 			path[path_len-1] = 0;
 		}
 	}
@@ -1010,7 +1010,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 	dc_log_info(context, 0, "Import \"%s\" to \"%s\".", backup_to_import, context->dbfile);
 
-	if( dc_is_configured(context) ) {
+	if (dc_is_configured(context)) {
 		dc_log_error(context, 0, "Cannot import backups to accounts in use.");
 		goto cleanup;
 	}
@@ -1020,24 +1020,24 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 //dc_sqlite3_lock(context->sql);  // TODO: check if this works while threads running
 //locked = 1;
 
-	if( dc_sqlite3_is_open(context->sql) ) {
+	if (dc_sqlite3_is_open(context->sql)) {
 		dc_sqlite3_close(context->sql);
 	}
 
 	dc_delete_file(context->dbfile, context);
 
-	if( dc_file_exist(context->dbfile) ) {
+	if (dc_file_exist(context->dbfile)) {
 		dc_log_error(context, 0, "Cannot import backups: Cannot delete the old file.");
 		goto cleanup;
 	}
 
 	/* copy the database file */
-	if( !dc_copy_file(backup_to_import, context->dbfile, context) ) {
+	if (!dc_copy_file(backup_to_import, context->dbfile, context)) {
 		goto cleanup; /* error already logged */
 	}
 
 	/* re-open copied database file */
-	if( !dc_sqlite3_open(context->sql, context->dbfile, 0) ) {
+	if (!dc_sqlite3_open(context->sql, context->dbfile, 0)) {
 		goto cleanup;
 	}
 
@@ -1049,9 +1049,9 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 	stmt = NULL;
 
 	stmt = dc_sqlite3_prepare(context->sql, "SELECT file_name, file_content FROM backup_blobs ORDER BY id;");
-	while( sqlite3_step(stmt) == SQLITE_ROW )
+	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
-		if( context->shall_stop_ongoing ) {
+		if (context->shall_stop_ongoing) {
 			goto cleanup;
 		}
 
@@ -1061,10 +1061,10 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
         int         file_bytes   = sqlite3_column_bytes(stmt, 1);
         const void* file_content = sqlite3_column_blob (stmt, 1);
 
-        if( file_bytes > 0 && file_content ) {
+        if (file_bytes > 0 && file_content) {
 			free(pathNfilename);
 			pathNfilename = dc_mprintf("%s/%s", context->blobdir, file_name);
-			if( !dc_write_file(pathNfilename, file_content, file_bytes, context) ) {
+			if (!dc_write_file(pathNfilename, file_content, file_bytes, context)) {
 				dc_log_error(context, 0, "Storage full? Cannot write file %s with %i bytes.", pathNfilename, file_bytes);
 				goto cleanup; /* otherwise the user may believe the stuff is imported correctly, but there are files missing ... */
 			}
@@ -1080,7 +1080,7 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 	/* rewrite references to the blobs */
 	repl_from = dc_sqlite3_get_config(context->sql, "backup_for", NULL);
-	if( repl_from && strlen(repl_from)>1 && context->blobdir && strlen(context->blobdir)>1 )
+	if (repl_from && strlen(repl_from)>1 && context->blobdir && strlen(context->blobdir)>1)
 	{
 		ensure_no_slash(repl_from);
 		repl_to = dc_strdup(context->blobdir);
@@ -1088,8 +1088,8 @@ static int import_backup(dc_context_t* context, const char* backup_to_import)
 
 		dc_log_info(context, 0, "Rewriting paths from '%s' to '%s' ...", repl_from, repl_to);
 
-		assert( 'f' == DC_PARAM_FILE );
-		assert( 'i' == DC_PARAM_PROFILE_IMAGE );
+		assert( 'f' == DC_PARAM_FILE);
+		assert( 'i' == DC_PARAM_PROFILE_IMAGE);
 
 		char* q3 = sqlite3_mprintf("UPDATE msgs SET param=replace(param, 'f=%q/', 'f=%q/');", repl_from, repl_to); /* cannot use dc_mprintf() because of "%q" */
 			dc_sqlite3_execute(context->sql, q3);
@@ -1112,7 +1112,7 @@ cleanup:
 	free(repl_to);
 	sqlite3_finalize(stmt);
 
-// if( locked ) { dc_sqlite3_unlock(context->sql); }  // TODO: check if this works while threads running
+// if (locked) { dc_sqlite3_unlock(context->sql); }  // TODO: check if this works while threads running
 
 	return success;
 }
@@ -1191,11 +1191,11 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	char* param1 = NULL;
 	char* param2 = NULL;
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || context->sql==NULL ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || context->sql==NULL) {
 		goto cleanup;
 	}
 
-	if( !dc_alloc_ongoing(context) ) {
+	if (!dc_alloc_ongoing(context)) {
 		goto cleanup;
 	}
 	ongoing_allocated_here = 1;
@@ -1204,7 +1204,7 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	param1 = dc_param_get    (job->param, DC_PARAM_CMD_ARG,  NULL);
 	param2 = dc_param_get    (job->param, DC_PARAM_CMD_ARG2, NULL);
 
-	if( param1 == NULL ) {
+	if (param1 == NULL) {
 		dc_log_error(context, 0, "No Import/export dir/file given.");
 		goto cleanup;
 	}
@@ -1212,14 +1212,14 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 	dc_log_info(context, 0, "Import/export process started.");
 	context->cb(context, DC_EVENT_IMEX_PROGRESS, 10, 0);
 
-	if( !dc_sqlite3_is_open(context->sql) ) {
+	if (!dc_sqlite3_is_open(context->sql)) {
 		dc_log_error(context, 0, "Import/export: Database not opened.");
 		goto cleanup;
 	}
 
-	if( what==DC_IMEX_EXPORT_SELF_KEYS || what==DC_IMEX_EXPORT_BACKUP ) {
+	if (what==DC_IMEX_EXPORT_SELF_KEYS || what==DC_IMEX_EXPORT_BACKUP) {
 		/* before we export anything, make sure the private key exists */
-		if( !dc_ensure_secret_key_exists(context) ) {
+		if (!dc_ensure_secret_key_exists(context)) {
 			dc_log_error(context, 0, "Import/export: Cannot create private key or private key not available.");
 			goto cleanup;
 		}
@@ -1227,28 +1227,28 @@ void dc_job_do_DC_JOB_IMEX_IMAP(dc_context_t* context, dc_job_t* job)
 		dc_create_folder(param1, context);
 	}
 
-	switch( what )
+	switch (what)
 	{
 		case DC_IMEX_EXPORT_SELF_KEYS:
-			if( !export_self_keys(context, param1) ) {
+			if (!export_self_keys(context, param1)) {
 				goto cleanup;
 			}
 			break;
 
 		case DC_IMEX_IMPORT_SELF_KEYS:
-			if( !import_self_keys(context, param1) ) {
+			if (!import_self_keys(context, param1)) {
 				goto cleanup;
 			}
 			break;
 
 		case DC_IMEX_EXPORT_BACKUP:
-			if( !export_backup(context, param1) ) {
+			if (!export_backup(context, param1)) {
 				goto cleanup;
 			}
 			break;
 
 		case DC_IMEX_IMPORT_BACKUP:
-			if( !import_backup(context, param1) ) {
+			if (!import_backup(context, param1)) {
 				goto cleanup;
 			}
 			break;
@@ -1265,7 +1265,7 @@ cleanup:
 	free(param1);
 	free(param2);
 
-	if( ongoing_allocated_here ) { dc_free_ongoing(context); }
+	if (ongoing_allocated_here) { dc_free_ongoing(context); }
 
 	context->cb(context, DC_EVENT_IMEX_PROGRESS, success? 1000 : 0, 0);
 }
@@ -1294,10 +1294,10 @@ cleanup:
  *     return 1;
  * }
  *
- * if( !dc_is_configured(context) )
+ * if (!dc_is_configured(context))
  * {
  *     char* file = NULL;
- *     if( (file=dc_imex_has_backup(context, dir))!=NULL && ask_user_whether_to_import() )
+ *     if ((file=dc_imex_has_backup(context, dir))!=NULL && ask_user_whether_to_import())
  *     {
  *         dc_imex(context, DC_IMEX_IMPORT_BACKUP, file, NULL);
  *         // connect
@@ -1307,7 +1307,7 @@ cleanup:
  *         do {
  *             ask_user_for_credentials();
  *         }
- *         while( !configure_succeeded() )
+ *         while (!configure_succeeded())
  *     }
  *     free(file);
  * }
@@ -1330,31 +1330,31 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	char*          curr_pathNfilename = NULL;
 	dc_sqlite3_t*  test_sql = NULL;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC) {
 		return NULL;
 	}
 
-	if( (dir_handle=opendir(dir_name))==NULL ) {
+	if ((dir_handle=opendir(dir_name))==NULL) {
 		dc_log_info(context, 0, "Backup check: Cannot open directory \"%s\".", dir_name); /* this is not an error - eg. the directory may not exist or the user has not given us access to read data from the storage */
 		goto cleanup;
 	}
 
-	while( (dir_entry=readdir(dir_handle))!=NULL ) {
+	while ((dir_entry=readdir(dir_handle))!=NULL) {
 		const char* name = dir_entry->d_name; /* name without path; may also be `.` or `..` */
 		int name_len = strlen(name);
-		if( name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0
-		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0 )
+		if (name_len > prefix_len && strncmp(name, DC_BAK_PREFIX, prefix_len)==0
+		 && name_len > suffix_len && strncmp(&name[name_len-suffix_len-1], "." DC_BAK_SUFFIX, suffix_len)==0)
 		{
 			free(curr_pathNfilename);
 			curr_pathNfilename = dc_mprintf("%s/%s", dir_name, name);
 
 			dc_sqlite3_unref(test_sql);
-			if( (test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
-			 && dc_sqlite3_open(test_sql, curr_pathNfilename, DC_OPEN_READONLY) )
+			if ((test_sql=dc_sqlite3_new(context/*for logging only*/))!=NULL
+			 && dc_sqlite3_open(test_sql, curr_pathNfilename, DC_OPEN_READONLY))
 			{
 				time_t curr_backup_time = dc_sqlite3_get_config_int(test_sql, "backup_time", 0); /* reading the backup time also checks if the database is readable and the table `config` exists */
-				if( curr_backup_time > 0
-				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/ )
+				if (curr_backup_time > 0
+				 && curr_backup_time > ret_backup_time/*use the newest if there are multiple backup*/)
 				{
 					/* set return value to the tested database name */
 					free(ret);
@@ -1367,7 +1367,7 @@ char* dc_imex_has_backup(dc_context_t* context, const char* dir_name)
 	}
 
 cleanup:
-	if( dir_handle ) { closedir(dir_handle); }
+	if (dir_handle) { closedir(dir_handle); }
 	free(curr_pathNfilename);
 	dc_sqlite3_unref(test_sql);
 	return ret;
@@ -1391,21 +1391,21 @@ int dc_check_password(dc_context_t* context, const char* test_pw)
 	dc_loginparam_t* loginparam = dc_loginparam_new();
 	int              success = 0;
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
 	dc_loginparam_read(loginparam, context->sql, "configured_");
 
-	if( (loginparam->mail_pw==NULL || loginparam->mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0) ) {
+	if ((loginparam->mail_pw==NULL || loginparam->mail_pw[0]==0) && (test_pw==NULL || test_pw[0]==0)) {
 		/* both empty or unset */
 		success = 1;
 	}
-	else if( loginparam->mail_pw==NULL || test_pw==NULL ) {
+	else if (loginparam->mail_pw==NULL || test_pw==NULL) {
 		/* one set, the other not */
 		success = 0;
 	}
-	else if( strcmp(loginparam->mail_pw, test_pw)==0 ) {
+	else if (strcmp(loginparam->mail_pw, test_pw)==0) {
 		/* string-compared passwords are equal */
 		success = 1;
 	}

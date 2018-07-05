@@ -42,7 +42,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 	uint32_t      contact_id      = 0;
 	uint32_t      contact_chat_id = 0;
 
-	if( context == NULL || peerstate == NULL ) {
+	if (context == NULL || peerstate == NULL) {
 		goto cleanup;
 	}
 
@@ -52,7 +52,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 	//   with things they cannot fix, so the user is just kicked from the verified group
 	//   (and he will know this and can fix this)
 
-	if( peerstate->degrade_event & DC_DE_FINGERPRINT_CHANGED )
+	if (peerstate->degrade_event & DC_DE_FINGERPRINT_CHANGED)
 	{
 		stmt = dc_sqlite3_prepare(context->sql, "SELECT id FROM contacts WHERE addr=?;");
 			sqlite3_bind_text(stmt, 1, peerstate->addr, -1, SQLITE_STATIC);
@@ -60,7 +60,7 @@ void dc_handle_degrade_event(dc_context_t* context, dc_apeerstate_t* peerstate)
 			contact_id = sqlite3_column_int(stmt, 0);
 		sqlite3_finalize(stmt);
 
-		if( contact_id == 0 ) {
+		if (contact_id == 0) {
 			goto cleanup;
 		}
 
@@ -84,22 +84,22 @@ cleanup:
 
 static int encrypted_and_signed(dc_mimeparser_t* mimeparser, const char* expected_fingerprint)
 {
-	if( !mimeparser->e2ee_helper->encrypted ) {
+	if (!mimeparser->e2ee_helper->encrypted) {
 		dc_log_warning(mimeparser->context, 0, "Message not encrypted.");
 		return 0;
 	}
 
-	if( dc_hash_count(mimeparser->e2ee_helper->signatures)<=0 ) {
+	if (dc_hash_count(mimeparser->e2ee_helper->signatures)<=0) {
 		dc_log_warning(mimeparser->context, 0, "Message not signed.");
 		return 0;
 	}
 
-	if( expected_fingerprint == NULL ) {
+	if (expected_fingerprint == NULL) {
 		dc_log_warning(mimeparser->context, 0, "Fingerprint for comparison missing.");
 		return 0;
 	}
 
-	if( dc_hash_find_str(mimeparser->e2ee_helper->signatures, expected_fingerprint) == NULL ) {
+	if (dc_hash_find_str(mimeparser->e2ee_helper->signatures, expected_fingerprint) == NULL) {
 		dc_log_warning(mimeparser->context, 0, "Message does not match expected fingerprint %s.", expected_fingerprint);
 		return 0;
 	}
@@ -114,12 +114,12 @@ static char* get_self_fingerprint(dc_context_t* context)
 	dc_key_t* self_key    = dc_key_new();
 	char*     fingerprint = NULL;
 
-	if( (self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL
-	 || !dc_key_load_self_public(self_key, self_addr, context->sql) ) {
+	if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL
+	 || !dc_key_load_self_public(self_key, self_addr, context->sql)) {
 		goto cleanup;
 	}
 
-	if( (fingerprint=dc_key_get_fingerprint(self_key)) == NULL ) {
+	if ((fingerprint=dc_key_get_fingerprint(self_key)) == NULL) {
 		goto cleanup;
 	}
 
@@ -135,7 +135,7 @@ static uint32_t chat_id_2_contact_id(dc_context_t* context, uint32_t contact_cha
 	uint32_t    contact_id = 0;
 	dc_array_t* contacts   = dc_get_chat_contacts(context, contact_chat_id);
 
-	if( dc_array_get_cnt(contacts) != 1 ) {
+	if (dc_array_get_cnt(contacts) != 1) {
 		goto cleanup;
 	}
 
@@ -155,18 +155,18 @@ static int fingerprint_equals_sender(dc_context_t* context, const char* fingerpr
 	dc_apeerstate_t* peerstate              = dc_apeerstate_new(context);
 	char*            fingerprint_normalized = NULL;
 
-	if( dc_array_get_cnt(contacts) != 1 ) {
+	if (dc_array_get_cnt(contacts) != 1) {
 		goto cleanup;
 	}
 
-	if( !dc_contact_load_from_db(contact, context->sql, dc_array_get_id(contacts, 0))
-	 || !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr) ) {
+	if (!dc_contact_load_from_db(contact, context->sql, dc_array_get_id(contacts, 0))
+	 || !dc_apeerstate_load_by_addr(peerstate, context->sql, contact->addr)) {
 		goto cleanup;
 	}
 
 	fingerprint_normalized = dc_normalize_fingerprint(fingerprint);
 
-	if( strcasecmp(fingerprint_normalized, peerstate->public_key_fingerprint) == 0 ) {
+	if (strcasecmp(fingerprint_normalized, peerstate->public_key_fingerprint) == 0) {
 		fingerprint_equal = 1;
 	}
 
@@ -183,11 +183,11 @@ static int mark_peer_as_verified(dc_context_t* context, const char* fingerprint)
 	int              success   = 0;
 	dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 
-	if( !dc_apeerstate_load_by_fingerprint(peerstate, context->sql, fingerprint) ) {
+	if (!dc_apeerstate_load_by_fingerprint(peerstate, context->sql, fingerprint)) {
 		goto cleanup;
 	}
 
-	if( !dc_apeerstate_set_verified(peerstate, DC_PS_PUBLIC_KEY, fingerprint, DC_BIDIRECT_VERIFIED) ) {
+	if (!dc_apeerstate_set_verified(peerstate, DC_PS_PUBLIC_KEY, fingerprint, DC_BIDIRECT_VERIFIED)) {
 		goto cleanup;
 	}
 
@@ -210,8 +210,8 @@ static const char* lookup_field(dc_mimeparser_t* mimeparser, const char* key)
 {
 	const char* value = NULL;
 	struct mailimf_field* field = dc_mimeparser_lookup_field(mimeparser, key);
-	if( field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
-	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL ) {
+	if (field == NULL || field->fld_type != MAILIMF_FIELD_OPTIONAL_FIELD
+	 || field->fld_data.fld_optional_field == NULL || (value=field->fld_data.fld_optional_field->fld_value) == NULL) {
 		return NULL;
 	}
 	return value;
@@ -228,19 +228,19 @@ static void send_handshake_msg(dc_context_t* context, uint32_t contact_chat_id, 
 	dc_param_set_int(msg->param, DC_PARAM_CMD,       DC_CMD_SECUREJOIN_MESSAGE);
 	dc_param_set    (msg->param, DC_PARAM_CMD_ARG, step);
 
-	if( param2 ) {
+	if (param2) {
 		dc_param_set(msg->param, DC_PARAM_CMD_ARG2, param2); // depening on step, this goes either to Secure-Join-Invitenumber or Secure-Join-Auth in mrmimefactory.c
 	}
 
-	if( fingerprint ) {
+	if (fingerprint) {
 		dc_param_set(msg->param, DC_PARAM_CMD_ARG3, fingerprint);
 	}
 
-	if( grpid ) {
+	if (grpid) {
 		dc_param_set(msg->param, DC_PARAM_CMD_ARG4, grpid);
 	}
 
-	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 ) {
+	if (strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0) {
 		dc_param_set_int(msg->param, DC_PARAM_FORCE_PLAINTEXT, DC_FP_ADD_AUTOCRYPT_HEADER); // the request message MUST NOT be encrypted - it may be that the key has changed and the message cannot be decrypted otherwise
 	}
 	else {
@@ -331,7 +331,7 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 	char*      group_name           = NULL;
 	char*      group_name_urlencoded= NULL;
 
-	if( context == NULL || context->magic!=DC_CONTEXT_MAGIC ) {
+	if (context == NULL || context->magic!=DC_CONTEXT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -339,36 +339,36 @@ char* dc_get_securejoin_qr(dc_context_t* context, uint32_t group_chat_id)
 
 		// invitenumber will be used to allow starting the handshake, auth will be used to verify the fingerprint
 		invitenumber = dc_token_lookup(context, DC_TOKEN_INVITENUMBER, group_chat_id);
-		if( invitenumber == NULL ) {
+		if (invitenumber == NULL) {
 			invitenumber = dc_create_id();
 			dc_token_save(context, DC_TOKEN_INVITENUMBER, group_chat_id, invitenumber);
 		}
 
 		auth = dc_token_lookup(context, DC_TOKEN_AUTH, group_chat_id);
-		if( auth == NULL ) {
+		if (auth == NULL) {
 			auth = dc_create_id();
 			dc_token_save(context, DC_TOKEN_AUTH, group_chat_id, auth);
 		}
 
-		if( (self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL ) {
+		if ((self_addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL)) == NULL) {
 			dc_log_error(context, 0, "Not configured, cannot generate QR code.");
 			goto cleanup;
 		}
 
 		self_name = dc_sqlite3_get_config(context->sql, "displayname", "");
 
-	if( (fingerprint=get_self_fingerprint(context)) == NULL ) {
+	if ((fingerprint=get_self_fingerprint(context)) == NULL) {
 		goto cleanup;
 	}
 
 	self_addr_urlencoded = dc_urlencode(self_addr);
 	self_name_urlencoded = dc_urlencode(self_name);
 
-	if( group_chat_id )
+	if (group_chat_id)
 	{
 		// parameters used: a=g=x=i=s=
 		chat = dc_get_chat(context, group_chat_id);
-		if( chat == NULL || chat->type != DC_CHAT_TYPE_VERIFIED_GROUP ) {
+		if (chat == NULL || chat->type != DC_CHAT_TYPE_VERIFIED_GROUP) {
 			dc_log_error(context, 0, "Secure join is only available for verified groups.");
 			goto cleanup;
 		}
@@ -436,24 +436,24 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 
 	dc_ensure_secret_key_exists(context);
 
-	if( (ongoing_allocated=dc_alloc_ongoing(context)) == 0 ) {
+	if ((ongoing_allocated=dc_alloc_ongoing(context)) == 0) {
 		goto cleanup;
 	}
 
-	if( ((qr_scan=dc_check_qr(context, qr))==NULL)
-	 || (qr_scan->state!=DC_QR_ASK_VERIFYCONTACT && qr_scan->state!=DC_QR_ASK_VERIFYGROUP) ) {
+	if (((qr_scan=dc_check_qr(context, qr))==NULL)
+	 || (qr_scan->state!=DC_QR_ASK_VERIFYCONTACT && qr_scan->state!=DC_QR_ASK_VERIFYGROUP)) {
 		dc_log_error(context, 0, "Unknown QR code.");
 		goto cleanup;
 	}
 
-	if( (contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->id)) == 0 ) {
+	if ((contact_chat_id=dc_create_chat_by_contact_id(context, qr_scan->id)) == 0) {
 		dc_log_error(context, 0, "Unknown contact.");
 		goto cleanup;
 	}
 
 	CHECK_EXIT
 
-	if( context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0 ) {
+	if (context->cb(context, DC_EVENT_IS_OFFLINE, 0, 0)!=0) {
 		dc_log_error(context, DC_ERROR_NO_NETWORK, NULL);
 		goto cleanup;
 	}
@@ -467,7 +467,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 		context->bobs_qr_scan = qr_scan;
 	UNLOCK_QR
 
-	if( fingerprint_equals_sender(context, qr_scan->fingerprint, contact_chat_id) ) {
+	if (fingerprint_equals_sender(context, qr_scan->fingerprint, contact_chat_id)) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
 		dc_log_info(context, 0, "Taking protocol shortcut.");
 		context->bob_expects = DC_VC_CONTACT_CONFIRM;
@@ -483,7 +483,7 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 			qr_scan->invitenumber, NULL, NULL); // Bob -> Alice
 	}
 
-	while( 1 ) {
+	while (1) {
 		CHECK_EXIT
 
 		usleep(300*1000); // 0.3 seconds
@@ -492,8 +492,8 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 cleanup:
 	context->bob_expects = 0;
 
-	if( context->bobs_status == DC_BOB_SUCCESS ) {
-		if( join_vg ) {
+	if (context->bobs_status == DC_BOB_SUCCESS) {
+		if (join_vg) {
 			ret_chat_id = dc_get_chat_id_by_grpid(context, qr_scan->text2, NULL, NULL);
 		}
 		else {
@@ -507,7 +507,7 @@ cleanup:
 
 	dc_lot_unref(qr_scan);
 
-	if( ongoing_allocated ) { dc_free_ongoing(context); }
+	if (ongoing_allocated) { dc_free_ongoing(context); }
 	return ret_chat_id;
 }
 
@@ -537,24 +537,24 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 	int           ret                          = 0;
 	dc_contact_t* contact                      = NULL;
 
-	if( context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
+	if (context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL) {
 		goto cleanup;
 	}
 
-	if( (step=lookup_field(mimeparser, "Secure-Join")) == NULL ) {
+	if ((step=lookup_field(mimeparser, "Secure-Join")) == NULL) {
 		goto cleanup;
 	}
 	dc_log_info(context, 0, ">>>>>>>>>>>>>>>>>>>>>>>>> secure-join message '%s' received", step);
 
 	join_vg = (strncmp(step, "vg-", 3)==0);
 	dc_create_or_lookup_nchat_by_contact_id(context, contact_id, DC_CHAT_NOT_BLOCKED, &contact_chat_id, &contact_chat_id_blocked);
-	if( contact_chat_id_blocked ) {
+	if (contact_chat_id_blocked) {
 		dc_unblock_chat(context, contact_chat_id);
 	}
 
 	ret = DC_HANDSHAKE_STOP_NORMAL_PROCESSING;
 
-	if( strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0 )
+	if (strcmp(step, "vg-request")==0 || strcmp(step, "vc-request")==0)
 	{
 		/* =========================================================
 		   ====             Alice - the inviter side            ====
@@ -568,12 +568,12 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that the `Secure-Join-Invitenumber:`-header matches invitenumber written to the QR code
 		const char* invitenumber = NULL;
-		if( (invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL ) {
+		if ((invitenumber=lookup_field(mimeparser, "Secure-Join-Invitenumber")) == NULL) {
 			dc_log_warning(context, 0, "Secure-join denied (invitenumber missing)."); // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
 
-		if( dc_token_exists(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0 ) {
+		if (dc_token_exists(context, DC_TOKEN_INVITENUMBER, invitenumber) == 0) {
 			dc_log_warning(context, 0, "Secure-join denied (bad invitenumber).");  // do not raise an error, this might just be spam or come from an old request
 			goto cleanup;
 		}
@@ -585,7 +585,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-auth-required" : "vc-auth-required",
 			NULL, NULL, NULL); // Alice -> Bob
 	}
-	else if( strcmp(step, "vg-auth-required")==0 || strcmp(step, "vc-auth-required")==0 )
+	else if (strcmp(step, "vg-auth-required")==0 || strcmp(step, "vc-auth-required")==0)
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
@@ -596,24 +596,24 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		LOCK_QR
 			if ( context->bobs_qr_scan==NULL
 			  || context->bob_expects!=DC_VC_AUTH_REQUIRED
-			  || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP) ) {
+			  || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP)) {
 				dc_log_warning(context, 0, "auth-required message out of sync.");
 				goto cleanup; // no error, just aborted somehow or a mail from another handshake
 			}
 			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
 			auth = dc_strdup(context->bobs_qr_scan->auth);
-			if( join_vg ) {
+			if (join_vg) {
 				grpid = dc_strdup(context->bobs_qr_scan->text2);
 			}
 		UNLOCK_QR
 
-		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
+		if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
 			could_not_establish_secure_connection(context, contact_chat_id, mimeparser->e2ee_helper->encrypted? "No valid signature." : "Not encrypted.");
 			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
 
-		if( !fingerprint_equals_sender(context, scanned_fingerprint_of_alice, contact_chat_id) ) {
+		if (!fingerprint_equals_sender(context, scanned_fingerprint_of_alice, contact_chat_id)) {
 			// MitM?
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side.");
 			end_bobs_joining(context, DC_BOB_ERROR);
@@ -630,7 +630,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		send_handshake_msg(context, contact_chat_id, join_vg? "vg-request-with-auth" : "vc-request-with-auth",
 			auth, own_fingerprint, grpid); // Bob -> Alice
 	}
-	else if( strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0 )
+	else if (strcmp(step, "vg-request-with-auth")==0 || strcmp(step, "vc-request-with-auth")==0)
 	{
 		/* ============================================================
 		   ====              Alice - the inviter side              ====
@@ -640,17 +640,17 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that Secure-Join-Fingerprint:-header matches the fingerprint of Bob
 		const char* fingerprint = NULL;
-		if( (fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL ) {
+		if ((fingerprint=lookup_field(mimeparser, "Secure-Join-Fingerprint")) == NULL) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint not provided.");
 			goto cleanup;
 		}
 
-		if( !encrypted_and_signed(mimeparser, fingerprint) ) {
+		if (!encrypted_and_signed(mimeparser, fingerprint)) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth not encrypted.");
 			goto cleanup;
 		}
 
-		if( !fingerprint_equals_sender(context, fingerprint, contact_chat_id) ) {
+		if (!fingerprint_equals_sender(context, fingerprint, contact_chat_id)) {
 			// MitM?
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side.");
 			goto cleanup;
@@ -660,17 +660,17 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 		// verify that the `Secure-Join-Auth:`-header matches the secret written to the QR code
 		const char* auth = NULL;
-		if( (auth=lookup_field(mimeparser, "Secure-Join-Auth")) == NULL ) {
+		if ((auth=lookup_field(mimeparser, "Secure-Join-Auth")) == NULL) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth not provided.");
 			goto cleanup;
 		}
 
-		if( dc_token_exists(context, DC_TOKEN_AUTH, auth) == 0 ) {
+		if (dc_token_exists(context, DC_TOKEN_AUTH, auth) == 0) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Auth invalid.");
 			goto cleanup;
 		}
 
-		if( !mark_peer_as_verified(context, fingerprint) ) {
+		if (!mark_peer_as_verified(context, fingerprint)) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on inviter-side."); // should not happen, we've compared the fingerprint some lines above
 			goto cleanup;
 		}
@@ -683,12 +683,12 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		context->cb(context, DC_EVENT_CONTACTS_CHANGED, contact_id/*selected contact*/, 0);
 		context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 600);
 
-		if( join_vg ) {
+		if (join_vg) {
 			// the vg-member-added message is special: this is a normal Chat-Group-Member-Added message with an additional Secure-Join header
 			grpid = dc_strdup(lookup_field(mimeparser, "Secure-Join-Group"));
 			int is_verified = 0;
 			uint32_t verified_chat_id = dc_get_chat_id_by_grpid(context, grpid, NULL, &is_verified);
-			if( verified_chat_id == 0 || !is_verified ) {
+			if (verified_chat_id == 0 || !is_verified) {
 				dc_log_error(context, 0, "Verified chat not found.");
 				goto cleanup;
 			}
@@ -701,14 +701,14 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			context->cb(context, DC_EVENT_SECUREJOIN_INVITER_PROGRESS, contact_id, 1000); // done contact joining
 		}
 	}
-	else if( strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0 )
+	else if (strcmp(step, "vg-member-added")==0 || strcmp(step, "vc-contact-confirm")==0)
 	{
 		/* ==========================================================
 		   ====             Bob - the joiner's side             =====
 		   ====   Step 7 in "Setup verified contact" protocol   =====
 		   ========================================================== */
 
-		if( join_vg ) {
+		if (join_vg) {
 			// vg-member-added is just part of a Chat-Group-Member-Added which should be kept in any way, eg. for multi-client
 			ret = DC_HANDSHAKE_CONTINUE_NORMAL_PROCESSING;
 		}
@@ -726,13 +726,13 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
 		UNLOCK_QR
 
-		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
+		if (!encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice)) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
 			end_bobs_joining(context, DC_BOB_ERROR);
 			goto cleanup;
 		}
 
-		if( !mark_peer_as_verified(context, scanned_fingerprint_of_alice) ) {
+		if (!mark_peer_as_verified(context, scanned_fingerprint_of_alice)) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Fingerprint mismatch on joiner-side."); // MitM? - key has changed since vc-auth-required message
 			goto cleanup;
 		}

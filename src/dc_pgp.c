@@ -51,7 +51,7 @@ static pgp_io_t s_io;
 
 void dc_pgp_init(void)
 {
-	if( s_io_initialized ) {
+	if (s_io_initialized) {
 		return;
 	}
 
@@ -71,7 +71,7 @@ void dc_pgp_exit(void)
 
 void dc_pgp_rand_seed(dc_context_t* context, const void* buf, size_t bytes)
 {
-	if( buf == NULL || bytes <= 0 ) {
+	if (buf == NULL || bytes <= 0) {
 		return;
 	}
 
@@ -93,36 +93,36 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 	char*  base64 = NULL;
 	#define PGP_WS "\t\r\n "
 
-	if( ret_headerline )     { *ret_headerline = NULL; }
-	if( ret_setupcodebegin ) { *ret_setupcodebegin = NULL; }
-	if( ret_preferencrypt )  { *ret_preferencrypt = NULL; }
-	if( ret_base64 )         { *ret_base64 = NULL; }
+	if (ret_headerline)     { *ret_headerline = NULL; }
+	if (ret_setupcodebegin) { *ret_setupcodebegin = NULL; }
+	if (ret_preferencrypt)  { *ret_preferencrypt = NULL; }
+	if (ret_base64)         { *ret_base64 = NULL; }
 
-	if( buf == NULL || ret_headerline == NULL ) {
+	if (buf == NULL || ret_headerline == NULL) {
 		goto cleanup;
 	}
 
 	dc_remove_cr_chars(buf);
-	while( *p1 ) {
-		if( *p1  == '\n' ) {
+	while (*p1) {
+		if (*p1  == '\n') {
 			/* line found ... */
 			line[line_chars] = 0;
-			if( headerline == NULL ) {
+			if (headerline == NULL) {
 				/* ... headerline */
 				dc_trim(line);
-				if( strncmp(line, "-----BEGIN ", 11)==0 && strncmp(&line[strlen(line)-5], "-----", 5)==0 ) {
+				if (strncmp(line, "-----BEGIN ", 11)==0 && strncmp(&line[strlen(line)-5], "-----", 5)==0) {
 					headerline = line;
-					if( ret_headerline ) {
+					if (ret_headerline) {
 						*ret_headerline = headerline;
 					}
 				}
 			}
-			else if( strspn(line, PGP_WS)==strlen(line) ) {
+			else if (strspn(line, PGP_WS)==strlen(line)) {
 				/* ... empty line: base64 starts on next line */
 				base64 = p1+1;
 				break;
 			}
-			else if( (p2=strchr(line, ':'))==NULL ) {
+			else if ((p2=strchr(line, ':'))==NULL) {
 				/* ... non-standard-header without empty line: base64 starts with this line */
 				line[line_chars] = '\n';
 				base64 = line;
@@ -132,17 +132,17 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 				/* header line */
 				*p2 = 0;
 				dc_trim(line);
-				if( strcasecmp(line, "Passphrase-Begin")==0 ) {
+				if (strcasecmp(line, "Passphrase-Begin")==0) {
 					p2++;
 					dc_trim(p2);
-					if( ret_setupcodebegin ) {
+					if (ret_setupcodebegin) {
 						*ret_setupcodebegin = p2;
 					}
 				}
-				else if( strcasecmp(line, "Autocrypt-Prefer-Encrypt")==0 ) {
+				else if (strcasecmp(line, "Autocrypt-Prefer-Encrypt")==0) {
 					p2++;
 					dc_trim(p2);
-					if( ret_preferencrypt ) {
+					if (ret_preferencrypt) {
 						*ret_preferencrypt = p2;
 					}
 				}
@@ -159,20 +159,20 @@ int dc_split_armored_data(char* buf, const char** ret_headerline, const char** r
 		}
 	}
 
-	if( headerline == NULL || base64 == NULL ) {
+	if (headerline == NULL || base64 == NULL) {
 		goto cleanup;
 	}
 
 	/* now, line points to beginning of base64 data, search end */
-	if( (p1=strstr(base64, "-----END "/*the trailing space makes sure, this is not a normal base64 sequence*/))==NULL
-	 || strncmp(p1+9, headerline+11, strlen(headerline+11))!=0 ) {
+	if ((p1=strstr(base64, "-----END "/*the trailing space makes sure, this is not a normal base64 sequence*/))==NULL
+	 || strncmp(p1+9, headerline+11, strlen(headerline+11))!=0) {
 		goto cleanup;
 	}
 
 	*p1 = 0;
 	dc_trim(base64);
 
-	if( ret_base64 ) {
+	if (ret_base64) {
 		*ret_base64 = base64;
 	}
 
@@ -303,8 +303,8 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 	memset(&pubkey, 0, sizeof(pgp_key_t));
 	memset(&subkey, 0, sizeof(pgp_key_t));
 
-	if( context==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
-	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL ) {
+	if (context==NULL || addr==NULL || ret_public_key==NULL || ret_private_key==NULL
+	 || pubmem==NULL || secmem==NULL || pubout==NULL || secout==NULL) {
 		goto cleanup;
 	}
 
@@ -325,8 +325,8 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 
 
 	/* generate two keypairs */
-	if( !pgp_rsa_generate_keypair(&seckey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
-	 || !pgp_rsa_generate_keypair(&subkey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0) ) {
+	if (!pgp_rsa_generate_keypair(&seckey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)
+	 || !pgp_rsa_generate_keypair(&subkey, 3072/*bits*/, 65537UL/*e*/, NULL, NULL, NULL, 0)) {
 		goto cleanup;
 	}
 
@@ -371,14 +371,14 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 	------------------------------------------------------------------------ */
 
 	pgp_writer_set_memory(pubout, pubmem);
-	if( !pgp_write_xfer_key(pubout, &pubkey, 0/*armored*/)
-	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
+	if (!pgp_write_xfer_key(pubout, &pubkey, 0/*armored*/)
+	 || pubmem->buf == NULL || pubmem->length <= 0) {
 		goto cleanup;
 	}
 
 	pgp_writer_set_memory(secout, secmem);
-	if( !pgp_write_xfer_key(secout, &seckey, 0/*armored*/)
-	 || secmem->buf == NULL || secmem->length <= 0 ) {
+	if (!pgp_write_xfer_key(secout, &seckey, 0/*armored*/)
+	 || secmem->buf == NULL || secmem->length <= 0) {
 		goto cleanup;
 	}
 
@@ -388,10 +388,10 @@ int dc_pgp_create_keypair(dc_context_t* context, const char* addr, dc_key_t* ret
 	success = 1;
 
 cleanup:
-	if( pubout ) { pgp_output_delete(pubout); }
-	if( secout ) { pgp_output_delete(secout); }
-	if( pubmem ) { pgp_memory_free(pubmem); }
-	if( secmem ) { pgp_memory_free(secmem); }
+	if (pubout) { pgp_output_delete(pubout); }
+	if (secout) { pgp_output_delete(secout); }
+	if (pubmem) { pgp_memory_free(pubmem); }
+	if (secmem) { pgp_memory_free(secmem); }
 	pgp_key_free(&seckey); /* not: pgp_keydata_free() which will also free the pointer itself (we created it on the stack) */
 	pgp_key_free(&pubkey);
 	pgp_key_free(&subkey);
@@ -412,26 +412,26 @@ int dc_pgp_is_valid_key(dc_context_t* context, const dc_key_t* raw_key)
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
-	if( context==NULL || raw_key==NULL
+	if (context==NULL || raw_key==NULL
 	 || raw_key->binary == NULL || raw_key->bytes <= 0
-	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL) {
 		goto cleanup;
 	}
 
 	pgp_memory_add(keysmem, raw_key->binary, raw_key->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem); /* function returns 0 on any error in any packet - this does not mean, we cannot use the key. We check the details below therefore. */
 
-	if( raw_key->type == DC_KEY_PUBLIC && public_keys->keyc >= 1 ) {
+	if (raw_key->type == DC_KEY_PUBLIC && public_keys->keyc >= 1) {
 		key_is_valid = 1;
 	}
-	else if( raw_key->type == DC_KEY_PRIVATE && private_keys->keyc >= 1 ) {
+	else if (raw_key->type == DC_KEY_PRIVATE && private_keys->keyc >= 1) {
 		key_is_valid = 1;
 	}
 
 cleanup:
-	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if (keysmem)      { pgp_memory_free(keysmem); }
+	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return key_is_valid;
 }
 
@@ -443,22 +443,22 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 	pgp_keyring_t*  private_keys = calloc(1, sizeof(pgp_keyring_t));
 	pgp_memory_t*   keysmem = pgp_memory_new();
 
-	if( raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
+	if (raw_key==NULL || ret_fingerprint==NULL || *ret_fingerprint!=NULL || ret_fingerprint_bytes==NULL || *ret_fingerprint_bytes!=0
 	 || raw_key->binary == NULL || raw_key->bytes <= 0
-	 || public_keys==NULL || private_keys==NULL || keysmem==NULL ) {
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL) {
 		goto cleanup;
 	}
 
 	pgp_memory_add(keysmem, raw_key->binary, raw_key->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( raw_key->type != DC_KEY_PUBLIC || public_keys->keyc <= 0 ) {
+	if (raw_key->type != DC_KEY_PUBLIC || public_keys->keyc <= 0) {
 		goto cleanup;
 	}
 
 	pgp_key_t* key0 = &public_keys->keys[0];
 	pgp_pubkey_t* pubkey0 = &key0->key.pubkey;
-	if( !pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0) ) {
+	if (!pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0)) {
 		goto cleanup;
 	}
 
@@ -469,9 +469,9 @@ int dc_pgp_calc_fingerprint(const dc_key_t* raw_key, uint8_t** ret_fingerprint, 
 	success = 1;
 
 cleanup:
-	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if (keysmem)      { pgp_memory_free(keysmem); }
+	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
 }
 
@@ -485,27 +485,27 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 	pgp_memory_t*   pubmem = pgp_memory_new();
 	pgp_output_t*   pubout = pgp_output_new();
 
-	if( context == NULL || private_in==NULL || ret_public_key==NULL
-	 || public_keys==NULL || private_keys==NULL || keysmem==NULL || pubmem==NULL || pubout==NULL ) {
+	if (context == NULL || private_in==NULL || ret_public_key==NULL
+	 || public_keys==NULL || private_keys==NULL || keysmem==NULL || pubmem==NULL || pubout==NULL) {
 		goto cleanup;
 	}
 
 	pgp_memory_add(keysmem, private_in->binary, private_in->bytes);
 	pgp_filter_keys_from_mem(&s_io, public_keys, private_keys, NULL, 0, keysmem);
 
-	if( private_in->type!=DC_KEY_PRIVATE || private_keys->keyc <= 0 ) {
+	if (private_in->type!=DC_KEY_PRIVATE || private_keys->keyc <= 0) {
 		dc_log_warning(context, 0, "Split key: Given key is no private key.");
 		goto cleanup;
 	}
 
-	if( public_keys->keyc <= 0 ) {
+	if (public_keys->keyc <= 0) {
 		dc_log_warning(context, 0, "Split key: Given key does not contain a public key.");
 		goto cleanup;
 	}
 
 	pgp_writer_set_memory(pubout, pubmem);
-	if( !pgp_write_xfer_key(pubout, &public_keys->keys[0], 0/*armored*/)
-	 || pubmem->buf == NULL || pubmem->length <= 0 ) {
+	if (!pgp_write_xfer_key(pubout, &public_keys->keys[0], 0/*armored*/)
+	 || pubmem->buf == NULL || pubmem->length <= 0) {
 		goto cleanup;
 	}
 
@@ -514,11 +514,11 @@ int dc_pgp_split_key(dc_context_t* context, const dc_key_t* private_in, dc_key_t
 	success = 1;
 
 cleanup:
-	if( pubout ) { pgp_output_delete(pubout); }
-	if( pubmem ) { pgp_memory_free(pubmem); }
-	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if (pubout) { pgp_output_delete(pubout); }
+	if (pubmem) { pgp_memory_free(pubmem); }
+	if (keysmem)      { pgp_memory_free(keysmem); }
+	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
 	return success;
 }
 
@@ -544,9 +544,9 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	pgp_memory_t*   signedmem = NULL;
 	int             i, success = 0;
 
-	if( context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
+	if (context==NULL || plain_text==NULL || plain_bytes==0 || ret_ctext==NULL || ret_ctext_bytes==NULL
 	 || raw_public_keys_for_encryption==NULL || raw_public_keys_for_encryption->count<=0
-	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL ) {
+	 || keysmem==NULL || public_keys==NULL || private_keys==NULL || dummy_keys==NULL) {
 		goto cleanup;
 	}
 
@@ -554,13 +554,13 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	*ret_ctext_bytes = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_public_keys_for_encryption->count; i++ ) {
+	for (i = 0; i < raw_public_keys_for_encryption->count; i++) {
 		pgp_memory_clear(keysmem);
 		pgp_memory_add(keysmem, raw_public_keys_for_encryption->keys[i]->binary, raw_public_keys_for_encryption->keys[i]->bytes);
 		pgp_filter_keys_from_mem(&s_io, public_keys, private_keys/*should stay empty*/, NULL, 0, keysmem);
 	}
 
-	if( public_keys->keyc <=0 || private_keys->keyc!=0 ) {
+	if (public_keys->keyc <=0 || private_keys->keyc!=0) {
 		dc_log_warning(context, 0, "Encryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
@@ -571,11 +571,11 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 		size_t      signed_bytes = 0;
 		int         encrypt_raw_packet = 0;
 
-		if( raw_private_key_for_signing ) {
+		if (raw_private_key_for_signing) {
 			pgp_memory_clear(keysmem);
 			pgp_memory_add(keysmem, raw_private_key_for_signing->binary, raw_private_key_for_signing->bytes);
 			pgp_filter_keys_from_mem(&s_io, dummy_keys, private_keys, NULL, 0, keysmem);
-			if( private_keys->keyc <= 0 ) {
+			if (private_keys->keyc <= 0) {
 				dc_log_warning(context, 0, "No key for signing found.");
 				goto cleanup;
 			}
@@ -583,7 +583,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 			pgp_key_t* sk0 = &private_keys->keys[0];
 			signedmem = pgp_sign_buf(&s_io, plain_text, plain_bytes, &sk0->key.seckey, time(NULL)/*birthtime*/, 0/*duration*/,
 				NULL/*hash, defaults to sha256*/, 0/*armored*/, 0/*cleartext*/);
-			if( signedmem == NULL ) {
+			if (signedmem == NULL) {
 				dc_log_warning(context, 0, "Signing failed.");
 				goto cleanup;
 			}
@@ -598,7 +598,7 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 		}
 
 		pgp_memory_t* outmem = pgp_encrypt_buf(&s_io, signed_text, signed_bytes, public_keys, use_armor, NULL/*cipher*/, encrypt_raw_packet);
-		if( outmem == NULL ) {
+		if (outmem == NULL) {
 			dc_log_warning(context, 0, "Encryption failed.");
 			goto cleanup;
 		}
@@ -610,11 +610,11 @@ int dc_pgp_pk_encrypt(  dc_context_t*       context,
 	success = 1;
 
 cleanup:
-	if( keysmem )      { pgp_memory_free(keysmem); }
-	if( signedmem )    { pgp_memory_free(signedmem); }
-	if( public_keys )  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys ) { pgp_keyring_purge(private_keys); free(private_keys); }
-	if( dummy_keys )   { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
+	if (keysmem)      { pgp_memory_free(keysmem); }
+	if (signedmem)    { pgp_memory_free(signedmem); }
+	if (public_keys)  { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if (private_keys) { pgp_keyring_purge(private_keys); free(private_keys); }
+	if (dummy_keys)   { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
 	return success;
 }
 
@@ -638,9 +638,9 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	pgp_memory_t*     keysmem = pgp_memory_new();
 	int               i, success = 0;
 
-	if( context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
+	if (context==NULL || ctext==NULL || ctext_bytes==0 || ret_plain==NULL || ret_plain_bytes==NULL
 	 || raw_private_keys_for_decryption==NULL || raw_private_keys_for_decryption->count<=0
-	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL ) {
+	 || vresult==NULL || keysmem==NULL || public_keys==NULL || private_keys==NULL) {
 		goto cleanup;
 	}
 
@@ -648,19 +648,19 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	*ret_plain_bytes       = 0;
 
 	/* setup keys (the keys may come from pgp_filter_keys_fileread(), see also pgp_keyring_add(rcpts, key)) */
-	for( i = 0; i < raw_private_keys_for_decryption->count; i++ ) {
+	for (i = 0; i < raw_private_keys_for_decryption->count; i++) {
 		pgp_memory_clear(keysmem); /* a simple concatenate of private binary keys fails (works for public keys, however, we don't do it there either) */
 		pgp_memory_add(keysmem, raw_private_keys_for_decryption->keys[i]->binary, raw_private_keys_for_decryption->keys[i]->bytes);
 		pgp_filter_keys_from_mem(&s_io, dummy_keys/*should stay empty*/, private_keys, NULL, 0, keysmem);
 	}
 
-	if( private_keys->keyc<=0 ) {
+	if (private_keys->keyc<=0) {
 		dc_log_warning(context, 0, "Decryption-keyring contains unexpected data (%i/%i)", public_keys->keyc, private_keys->keyc);
 		goto cleanup;
 	}
 
-	if( raw_public_keys_for_validation ) {
-		for( i = 0; i < raw_public_keys_for_validation->count; i++ ) {
+	if (raw_public_keys_for_validation) {
+		for (i = 0; i < raw_public_keys_for_validation->count; i++) {
 			pgp_memory_clear(keysmem);
 			pgp_memory_add(keysmem, raw_public_keys_for_validation->keys[i]->binary, raw_public_keys_for_validation->keys[i]->bytes);
 			pgp_filter_keys_from_mem(&s_io, public_keys, dummy_keys/*should stay empty*/, NULL, 0, keysmem);
@@ -671,7 +671,7 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	{
 		pgp_memory_t* outmem = pgp_decrypt_and_validate_buf(&s_io, vresult, ctext, ctext_bytes, private_keys, public_keys,
 			use_armor, &recipients_key_ids, &recipients_count);
-		if( outmem == NULL ) {
+		if (outmem == NULL) {
 			dc_log_warning(context, 0, "Decryption failed.");
 			goto cleanup;
 		}
@@ -680,20 +680,20 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 		free(outmem); /* do not use pgp_memory_free() as we took ownership of the buffer */
 
 		// collect the keys of the valid signatures
-		if( ret_signature_fingerprints )
+		if (ret_signature_fingerprints)
 		{
-			for( i = 0; i < vresult->validc; i++ )
+			for (i = 0; i < vresult->validc; i++)
 			{
 				unsigned from = 0;
 				pgp_key_t* key0 = pgp_getkeybyid(&s_io, public_keys, vresult->valid_sigs[i].signer_id, &from, NULL, NULL, 0, 0);
-				if( key0 ) {
+				if (key0) {
 					pgp_pubkey_t* pubkey0 = &key0->key.pubkey;
-					if( !pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0) ) {
+					if (!pgp_fingerprint(&key0->pubkeyfpr, pubkey0, 0)) {
 						goto cleanup;
 					}
 
 					char* fingerprint_hex = dc_binary_to_uc_hex(key0->pubkeyfpr.fingerprint, key0->pubkeyfpr.length);
-					if( fingerprint_hex ) {
+					if (fingerprint_hex) {
 						dc_hash_insert(ret_signature_fingerprints, fingerprint_hex, strlen(fingerprint_hex), (void*)1);
 					}
 					free(fingerprint_hex);
@@ -705,11 +705,11 @@ int dc_pgp_pk_decrypt(  dc_context_t*       context,
 	success = 1;
 
 cleanup:
-	if( keysmem )            { pgp_memory_free(keysmem); }
-	if( public_keys )        { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
-	if( private_keys )       { pgp_keyring_purge(private_keys); free(private_keys); }
-	if( dummy_keys )         { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
-	if( vresult )            { pgp_validate_result_free(vresult); }
-	if( recipients_key_ids ) { free(recipients_key_ids); }
+	if (keysmem)            { pgp_memory_free(keysmem); }
+	if (public_keys)        { pgp_keyring_purge(public_keys); free(public_keys); } /*pgp_keyring_free() frees the content, not the pointer itself*/
+	if (private_keys)       { pgp_keyring_purge(private_keys); free(private_keys); }
+	if (dummy_keys)         { pgp_keyring_purge(dummy_keys); free(dummy_keys); }
+	if (vresult)            { pgp_validate_result_free(vresult); }
+	if (recipients_key_ids) { free(recipients_key_ids); }
 	return success;
 }

@@ -506,12 +506,12 @@ void stress_functions(dc_context_t* context)
 		assert( dc_array_get_cnt(arr) == 0 );
 
 		int i;
-		for( i = 0; i < TEST_CNT; i++ ) {
+		for (i = 0; i < TEST_CNT; i++) {
 			dc_array_add_id(arr, i+1*2);
 		}
 		assert( dc_array_get_cnt(arr) == TEST_CNT );
 
-		for( i = 0; i< TEST_CNT; i++ ) {
+		for (i = 0; i< TEST_CNT; i++) {
 			assert( dc_array_get_id(arr, i) == i+1*2 );
 		}
 		assert( dc_array_get_id(arr, -1) == 0 ); /* test out-of-range access */
@@ -720,7 +720,7 @@ void stress_functions(dc_context_t* context)
 		free(buf);
 	}
 
-	if( dc_is_configured(context) )
+	if (dc_is_configured(context) )
 	{
 		char *setupcode = NULL, *setupfile = NULL;
 
@@ -902,7 +902,7 @@ void stress_functions(dc_context_t* context)
 		assert( strcmp(fingerprint, "1234567890ABCDABCDEFABCDEF") == 0 );
 	}
 
-	if( dc_is_configured(context) )
+	if (dc_is_configured(context))
 	{
 		char* qr = dc_get_securejoin_qr(context, 0);
 		assert( strlen(qr)>55 && strncmp(qr, "OPENPGP4FPR:", 12)==0 && strncmp(&qr[52], "#a=", 3)==0 );

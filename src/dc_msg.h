@@ -96,7 +96,7 @@ void            dc_msg_guess_msgtype_from_suffix      (const char* pathNfilename
 void            dc_msg_get_authorNtitle_from_filename (const char* pathNfilename, char** ret_author, char** ret_title);
 
 #define DC_MSG_NEEDS_ATTACHMENT(a)         ((a)==DC_MSG_IMAGE || (a)==DC_MSG_GIF || (a)==DC_MSG_AUDIO || (a)==DC_MSG_VOICE || (a)==DC_MSG_VIDEO || (a)==DC_MSG_FILE)
-#define DC_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==DC_MSG_AUDIO || (a)==DC_MSG_FILE || (a)==DC_MSG_VIDEO ) /* add filename.ext (without path) to text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
+#define DC_MSG_MAKE_FILENAME_SEARCHABLE(a) ((a)==DC_MSG_AUDIO || (a)==DC_MSG_FILE || (a)==DC_MSG_VIDEO) /* add filename.ext (without path) to text? this is needed for the fulltext search. The extension is useful to get all PDF, all MP3 etc. */
 #define DC_MSG_MAKE_SUFFIX_SEARCHABLE(a)   ((a)==DC_MSG_IMAGE || (a)==DC_MSG_GIF || (a)==DC_MSG_VOICE)
 
 #define DC_APPROX_SUBJECT_CHARS 32  /* as we do not cut inside words, this results in about 32-42 characters.

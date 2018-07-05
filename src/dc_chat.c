@@ -43,7 +43,7 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
 {
 	dc_chat_t* chat = NULL;
 
-	if( context == NULL || (chat=calloc(1, sizeof(dc_chat_t)))==NULL ) {
+	if (context == NULL || (chat=calloc(1, sizeof(dc_chat_t)))==NULL) {
 		exit(14); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -67,7 +67,7 @@ dc_chat_t* dc_chat_new(dc_context_t* context)
  */
 void dc_chat_unref(dc_chat_t* chat)
 {
-	if( chat==NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat==NULL || chat->magic != DC_CHAT_MAGIC) {
 		return;
 	}
 
@@ -89,7 +89,7 @@ void dc_chat_unref(dc_chat_t* chat)
  */
 void dc_chat_empty(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return;
 	}
 
@@ -136,7 +136,7 @@ void dc_chat_empty(dc_chat_t* chat)
  */
 uint32_t dc_chat_get_id(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 
@@ -167,7 +167,7 @@ uint32_t dc_chat_get_id(dc_chat_t* chat)
  */
 int dc_chat_get_type(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return DC_CHAT_TYPE_UNDEFINED;
 	}
 	return chat->type;
@@ -191,7 +191,7 @@ int dc_chat_get_type(dc_chat_t* chat)
  */
 char* dc_chat_get_name(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return dc_strdup("Err");
 	}
 
@@ -216,15 +216,15 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 	/* returns either the address or the number of chat members */
 	char*         ret = NULL;
 
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return dc_strdup("Err");
 	}
 
-	if( chat->type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->param, DC_PARAM_SELFTALK) )
+	if (chat->type == DC_CHAT_TYPE_SINGLE && dc_param_exists(chat->param, DC_PARAM_SELFTALK))
 	{
 		ret = dc_stock_str(chat->context, DC_STR_SELFTALK_SUBTITLE);
 	}
-	else if( chat->type == DC_CHAT_TYPE_SINGLE )
+	else if (chat->type == DC_CHAT_TYPE_SINGLE)
 	{
 		int r;
 		sqlite3_stmt* stmt = dc_sqlite3_prepare(chat->context->sql,
@@ -234,16 +234,16 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
 		sqlite3_bind_int(stmt, 1, chat->id);
 
 		r = sqlite3_step(stmt);
-		if( r == SQLITE_ROW ) {
+		if (r == SQLITE_ROW) {
 			ret = dc_strdup((const char*)sqlite3_column_text(stmt, 0));
 		}
 
 		sqlite3_finalize(stmt);
 	}
-	else if( DC_CHAT_TYPE_IS_MULTI(chat->type) )
+	else if (DC_CHAT_TYPE_IS_MULTI(chat->type))
 	{
 		int cnt = 0;
-		if( chat->id == DC_CHAT_ID_DEADDROP )
+		if (chat->id == DC_CHAT_ID_DEADDROP)
 		{
 			ret = dc_stock_str(chat->context, DC_STR_DEADDROP); /* typically, the subtitle for the deaddropn is not displayed at all */
 		}
@@ -272,7 +272,7 @@ char* dc_chat_get_subtitle(dc_chat_t* chat)
  */
 char* dc_chat_get_profile_image(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return NULL;
 	}
 
@@ -295,7 +295,7 @@ char* dc_chat_get_profile_image(dc_chat_t* chat)
  */
 char* dc_chat_get_draft(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return NULL;
 	}
 	return dc_strdup_keep_null(chat->draft_text); /* may be NULL */
@@ -316,7 +316,7 @@ char* dc_chat_get_draft(dc_chat_t* chat)
  */
 time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 	return chat->draft_timestamp;
@@ -342,7 +342,7 @@ time_t dc_chat_get_draft_timestamp(dc_chat_t* chat)
  */
 int dc_chat_get_archived(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 	return chat->archived;
@@ -366,7 +366,7 @@ int dc_chat_get_archived(dc_chat_t* chat)
  */
 int dc_chat_is_unpromoted(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 	return dc_param_get_int(chat->param, DC_PARAM_UNPROMOTED, 0);
@@ -386,7 +386,7 @@ int dc_chat_is_unpromoted(dc_chat_t* chat)
  */
 int dc_chat_is_verified(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 	return (chat->type==DC_CHAT_TYPE_VERIFIED_GROUP);
@@ -405,7 +405,7 @@ int dc_chat_is_verified(dc_chat_t* chat)
  */
 int dc_chat_is_self_talk(dc_chat_t* chat)
 {
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC) {
 		return 0;
 	}
 	return dc_param_exists(chat->param, DC_PARAM_SELFTALK);
@@ -435,7 +435,7 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	int         row_offset = 0;
 	const char* draft_text = NULL;
 
-	if( chat == NULL || chat->magic != DC_CHAT_MAGIC || row == NULL ) {
+	if (chat == NULL || chat->magic != DC_CHAT_MAGIC || row == NULL) {
 		return 0;
 	}
 
@@ -454,7 +454,7 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 
 	/* We leave a NULL-pointer for the very usual situation of "no draft".
 	Also make sure, draft_text and draft_timestamp are set together */
-	if( chat->draft_timestamp && draft_text && draft_text[0] ) {
+	if (chat->draft_timestamp && draft_text && draft_text[0]) {
 		chat->draft_text = dc_strdup(draft_text);
 	}
 	else {
@@ -462,21 +462,21 @@ static int dc_chat_set_from_stmt(dc_chat_t* chat, sqlite3_stmt* row)
 	}
 
 	/* correct the title of some special groups */
-	if( chat->id == DC_CHAT_ID_DEADDROP ) {
+	if (chat->id == DC_CHAT_ID_DEADDROP) {
 		free(chat->name);
 		chat->name = dc_stock_str(chat->context, DC_STR_DEADDROP);
 	}
-	else if( chat->id == DC_CHAT_ID_ARCHIVED_LINK ) {
+	else if (chat->id == DC_CHAT_ID_ARCHIVED_LINK) {
 		free(chat->name);
 		char* tempname = dc_stock_str(chat->context, DC_STR_ARCHIVEDCHATS);
 			chat->name = dc_mprintf("%s (%i)", tempname, dc_get_archived_count(chat->context));
 		free(tempname);
 	}
-	else if( chat->id == DC_CHAT_ID_STARRED ) {
+	else if (chat->id == DC_CHAT_ID_STARRED) {
 		free(chat->name);
 		chat->name = dc_stock_str(chat->context, DC_STR_STARREDMSGS);
 	}
-	else if( dc_param_exists(chat->param, DC_PARAM_SELFTALK) ) {
+	else if (dc_param_exists(chat->param, DC_PARAM_SELFTALK)) {
 		free(chat->name);
 		chat->name = dc_stock_str(chat->context, DC_STR_SELF);
 	}
@@ -504,7 +504,7 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 	int           success = 0;
 	sqlite3_stmt* stmt = NULL;
 
-	if( chat==NULL || chat->magic != DC_CHAT_MAGIC ) {
+	if (chat==NULL || chat->magic != DC_CHAT_MAGIC) {
 		goto cleanup;
 	}
 
@@ -514,11 +514,11 @@ int dc_chat_load_from_db(dc_chat_t* chat, uint32_t chat_id)
 		"SELECT " CHAT_FIELDS " FROM chats c WHERE c.id=?;");
 	sqlite3_bind_int(stmt, 1, chat_id);
 
-	if( sqlite3_step(stmt) != SQLITE_ROW ) {
+	if (sqlite3_step(stmt) != SQLITE_ROW) {
 		goto cleanup;
 	}
 
-	if( !dc_chat_set_from_stmt(chat, stmt) ) {
+	if (!dc_chat_set_from_stmt(chat, stmt)) {
 		goto cleanup;
 	}
 

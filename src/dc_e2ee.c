@@ -120,7 +120,7 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
       goto free_mime;
     }
   }*/
-  if( data!=NULL && data_bytes>0 && mime->mm_type == MAILMIME_SINGLE ) {
+  if (data!=NULL && data_bytes>0 && mime->mm_type == MAILMIME_SINGLE) {
 	mailmime_set_body_text(mime, data, data_bytes);
   }
 
@@ -161,24 +161,24 @@ static struct mailmime* new_data_part(void* data, size_t data_bytes, char* defau
  */
 static int contains_report(struct mailmime* mime)
 {
-	if( mime->mm_type == MAILMIME_MULTIPLE )
+	if (mime->mm_type == MAILMIME_MULTIPLE)
 	{
-		if( mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
+		if (mime->mm_content_type->ct_type->tp_type==MAILMIME_TYPE_COMPOSITE_TYPE
 		 && mime->mm_content_type->ct_type->tp_data.tp_composite_type->ct_type == MAILMIME_COMPOSITE_TYPE_MULTIPART
-		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0 ) {
+		 && strcmp(mime->mm_content_type->ct_subtype, "report")==0) {
 			return 1;
 		}
 
 		clistiter* cur;
-		for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-			if( contains_report((struct mailmime*)clist_content(cur)) ) {
+		for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+			if (contains_report((struct mailmime*)clist_content(cur))) {
 				return 1;
 			}
 		}
 	}
-	else if( mime->mm_type == MAILMIME_MESSAGE )
+	else if (mime->mm_type == MAILMIME_MESSAGE)
 	{
-		if( contains_report(mime->mm_data.mm_message.mm_msg_mime) ) {
+		if (contains_report(mime->mm_data.mm_message.mm_msg_mime)) {
 			return 1;
 		}
 	}
@@ -198,14 +198,14 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 	int        key_created = 0;
 	int        success = 0, key_creation_here = 0;
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || public_key == NULL ) {
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || public_key == NULL) {
 		goto cleanup;
 	}
 
-	if( !dc_key_load_self_public(public_key, self_addr, context->sql) )
+	if (!dc_key_load_self_public(public_key, self_addr, context->sql))
 	{
 		/* create the keypair - this may take a moment, however, as this is in a thread, this is no big deal */
-		if( s_in_key_creation ) { goto cleanup; }
+		if (s_in_key_creation) { goto cleanup; }
 		key_creation_here = 1;
 		s_in_key_creation = 1;
 
@@ -218,10 +218,10 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 			seed[3] = (uintptr_t)pthread_self(); /* thread ID */
 			dc_pgp_rand_seed(context, seed, sizeof(seed));
 
-			if( random_data_mime ) {
+			if (random_data_mime) {
 				MMAPString* random_data_mmap = NULL;
 				int col = 0;
-				if( (random_data_mmap=mmap_string_new(""))==NULL ) {
+				if ((random_data_mmap=mmap_string_new(""))==NULL) {
 					goto cleanup;
 				}
 				mailmime_write_mem(random_data_mmap, &col, random_data_mime);
@@ -241,21 +241,21 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 				- a self signature
 				- an encryption-capable subkey Ke
 				- a binding signature over Ke by Kp
-				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data )*/
+				(see https://autocrypt.readthedocs.io/en/latest/level0.html#type-p-openpgp-based-key-data)*/
 				key_created = dc_pgp_create_keypair(context, self_addr, public_key, private_key);
 
-			if( !key_created ) {
+			if (!key_created) {
 				dc_log_warning(context, 0, "Cannot create keypair.");
 				goto cleanup;
 			}
 
-			if( !dc_pgp_is_valid_key(context, public_key)
-			 || !dc_pgp_is_valid_key(context, private_key) ) {
+			if (!dc_pgp_is_valid_key(context, public_key)
+			 || !dc_pgp_is_valid_key(context, private_key)) {
 				dc_log_warning(context, 0, "Generated keys are not valid.");
 				goto cleanup;
 			}
 
-			if( !dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->sql) ) {
+			if (!dc_key_save_self_keypair(public_key, private_key, self_addr, 1/*set default*/, context->sql)) {
 				dc_log_warning(context, 0, "Cannot save keypair.");
 				goto cleanup;
 			}
@@ -269,7 +269,7 @@ static int load_or_generate_self_public_key(dc_context_t* context, dc_key_t* pub
 	success = 1;
 
 cleanup:
-	if( key_creation_here ) { s_in_key_creation = 0; }
+	if (key_creation_here) { s_in_key_creation = 0; }
 	return success;
 }
 
@@ -282,16 +282,16 @@ int dc_ensure_secret_key_exists(dc_context_t* context)
 	dc_key_t* public_key = dc_key_new();
 	char*    self_addr = NULL;
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || public_key==NULL ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || public_key==NULL) {
 		goto cleanup;
 	}
 
-		if( (self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL ) {
+		if ((self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL) {
 			dc_log_warning(context, 0, "Cannot ensure secret key if context is not configured.");
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key(context, public_key, self_addr, NULL/*no random text data for seeding available*/) ) {
+		if (!load_or_generate_self_public_key(context, public_key, self_addr, NULL/*no random text data for seeding available*/)) {
 			goto cleanup;
 		}
 
@@ -325,45 +325,45 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	size_t                 ctext_bytes = 0;
 	dc_array_t*             peerstates = dc_array_new(NULL, 10);
 
-	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
+	if (helper) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( context == NULL || context->magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
+	if (context == NULL || context->magic != DC_CONTEXT_MAGIC || recipients_addr == NULL || in_out_message == NULL
 	 || in_out_message->mm_parent /* libEtPan's pgp_encrypt_mime() takes the parent as the new root. We just expect the root as being given to this function. */
-	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL ) {
+	 || autocryptheader == NULL || keyring==NULL || sign_key==NULL || plain == NULL || helper == NULL) {
 		goto cleanup;
 	}
 
 		/* init autocrypt header from db */
 		autocryptheader->prefer_encrypt = DC_PE_NOPREFERENCE;
-		if( context->e2ee_enabled ) {
+		if (context->e2ee_enabled) {
 			autocryptheader->prefer_encrypt = DC_PE_MUTUAL;
 		}
 
 		autocryptheader->addr = dc_sqlite3_get_config(context->sql, "configured_addr", NULL);
-		if( autocryptheader->addr == NULL ) {
+		if (autocryptheader->addr == NULL) {
 			goto cleanup;
 		}
 
-		if( !load_or_generate_self_public_key(context, autocryptheader->public_key, autocryptheader->addr, in_out_message/*only for random-seed*/) ) {
+		if (!load_or_generate_self_public_key(context, autocryptheader->public_key, autocryptheader->addr, in_out_message/*only for random-seed*/)) {
 			goto cleanup;
 		}
 
 		/* load peerstate information etc. */
-		if( autocryptheader->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed )
+		if (autocryptheader->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed)
 		{
 			do_encrypt = 1;
 			clistiter*      iter1;
-			for( iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1) ) {
+			for (iter1 = clist_begin(recipients_addr); iter1!=NULL ; iter1=clist_next(iter1)) {
 				const char* recipient_addr = clist_content(iter1);
 				dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
 				dc_key_t* key_to_use = NULL;
-				if( strcasecmp(recipient_addr, autocryptheader->addr) == 0 )
+				if (strcasecmp(recipient_addr, autocryptheader->addr) == 0)
 				{
 					; // encrypt to SELF, this key is added below
 				}
-				else if( dc_apeerstate_load_by_addr(peerstate, context->sql, recipient_addr)
+				else if (dc_apeerstate_load_by_addr(peerstate, context->sql, recipient_addr)
 				      && (key_to_use=dc_apeerstate_peek_key(peerstate, min_verified)) != NULL
-				      && (peerstate->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed) )
+				      && (peerstate->prefer_encrypt==DC_PE_MUTUAL || e2ee_guaranteed))
 				{
 					dc_keyring_add(keyring, key_to_use); /* we always add all recipients (even on IMAP upload) as otherwise forwarding may fail */
 					dc_array_add_ptr(peerstates, peerstate);
@@ -377,23 +377,23 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 			}
 		}
 
-		if( do_encrypt ) {
+		if (do_encrypt) {
 			dc_keyring_add(keyring, autocryptheader->public_key); /* we always add ourself as otherwise forwarded messages are not readable */
-			if( !dc_key_load_self_private(sign_key, autocryptheader->addr, context->sql) ) {
+			if (!dc_key_load_self_private(sign_key, autocryptheader->addr, context->sql)) {
 				do_encrypt = 0;
 			}
 		}
 
-		if( force_unencrypted ) {
+		if (force_unencrypted) {
 			do_encrypt = 0;
 		}
 
-	if( (imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL ) {
+	if ((imffields_unprotected=mailmime_find_mailimf_fields(in_out_message))==NULL) {
 		goto cleanup;
 	}
 
 	/* encrypt message, if possible */
-	if( do_encrypt )
+	if (do_encrypt)
 	{
 		/* prepare part to encrypt */
 		mailprivacy_prepare_mime(in_out_message); /* encode quoted printable all text parts */
@@ -406,10 +406,10 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		/* gossip keys */
 		int iCnt = dc_array_get_cnt(peerstates);
-		if( iCnt > 1 ) {
-			for( int i = 0; i < iCnt; i++ ) {
+		if (iCnt > 1) {
+			for (int i = 0; i < iCnt; i++) {
 				char* p = dc_apeerstate_render_gossip_header((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i), min_verified);
-				if( p ) {
+				if (p) {
 					mailimf_fields_add(imffields_encrypted, mailimf_field_new_custom(strdup("Autocrypt-Gossip"), p/*takes ownership*/));
 				}
 			}
@@ -417,26 +417,26 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		/* memoryhole headers */
 		clistiter* cur = clist_begin(imffields_unprotected->fld_list);
-		while( cur!=NULL ) {
+		while (cur!=NULL) {
 			int move_to_encrypted = 0;
 
 			struct mailimf_field* field = (struct mailimf_field*)clist_content(cur);
-			if( field ) {
-				if( field->fld_type == MAILIMF_FIELD_SUBJECT ) {
+			if (field) {
+				if (field->fld_type == MAILIMF_FIELD_SUBJECT) {
 					move_to_encrypted = 1;
 				}
-				else if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD ) {
+				else if (field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD) {
 					struct mailimf_optional_field* opt_field = field->fld_data.fld_optional_field;
-					if( opt_field && opt_field->fld_name ) {
-						if(  strncmp(opt_field->fld_name, "Secure-Join", 11)==0
-						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering and is not added to the encrypted part, however, this is subject to change*/ ) {
+					if (opt_field && opt_field->fld_name) {
+						if ( strncmp(opt_field->fld_name, "Secure-Join", 11)==0
+						 || (strncmp(opt_field->fld_name, "Chat-", 5)==0 && strcmp(opt_field->fld_name, "Chat-Version")!=0)/*Chat-Version may be used for filtering and is not added to the encrypted part, however, this is subject to change*/) {
 							move_to_encrypted = 1;
 						}
 					}
 				}
 			}
 
-			if( move_to_encrypted ) {
+			if (move_to_encrypted) {
 				mailimf_fields_add(imffields_encrypted, field);
 				cur = clist_delete(imffields_unprotected->fld_list, cur);
 			}
@@ -454,12 +454,12 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 
 		/* convert part to encrypt to plain text */
 		mailmime_write_mem(plain, &col, message_to_encrypt);
-		if( plain->str == NULL || plain->len<=0 ) {
+		if (plain->str == NULL || plain->len<=0) {
 			goto cleanup;
 		}
 		//char* t1=dc_null_terminate(plain->str,plain->len);printf("PLAIN:\n%s\n",t1);free(t1); // DEBUG OUTPUT
 
-		if( !dc_pgp_pk_encrypt(context, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes) ) {
+		if (!dc_pgp_pk_encrypt(context, plain->str, plain->len, keyring, sign_key, 1/*use_armor*/, (void**)&ctext, &ctext_bytes)) {
 			goto cleanup;
 		}
 		helper->cdata_to_free = ctext;
@@ -488,7 +488,7 @@ void dc_e2ee_encrypt(dc_context_t* context, const clist* recipients_addr,
 	}
 
 	char* p = dc_aheader_render(autocryptheader);
-	if( p == NULL ) {
+	if (p == NULL) {
 		goto cleanup;
 	}
 	mailimf_fields_add(imffields_unprotected, mailimf_field_new_custom(strdup("Autocrypt"), p/*takes ownership of pointer*/));
@@ -497,30 +497,30 @@ cleanup:
 	dc_aheader_unref(autocryptheader);
 	dc_keyring_unref(keyring);
 	dc_key_unref(sign_key);
-	if( plain ) { mmap_string_free(plain); }
+	if (plain) { mmap_string_free(plain); }
 
-	for( int i=dc_array_get_cnt(peerstates)-1; i>=0; i-- ) { dc_apeerstate_unref((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i)); }
+	for (int i=dc_array_get_cnt(peerstates)-1; i>=0; i--) { dc_apeerstate_unref((dc_apeerstate_t*)dc_array_get_ptr(peerstates, i)); }
 	dc_array_unref(peerstates);
 }
 
 
 void dc_e2ee_thanks(dc_e2ee_helper_t* helper)
 {
-	if( helper == NULL ) {
+	if (helper == NULL) {
 		return;
 	}
 
 	free(helper->cdata_to_free);
 	helper->cdata_to_free = NULL;
 
-	if( helper->gossipped_addr )
+	if (helper->gossipped_addr)
 	{
 		dc_hash_clear(helper->gossipped_addr);
 		free(helper->gossipped_addr);
 		helper->gossipped_addr = NULL;
 	}
 
-	if( helper->signatures )
+	if (helper->signatures)
 	{
 		dc_hash_clear(helper->signatures);
 		free(helper->signatures);
@@ -537,14 +537,14 @@ void dc_e2ee_thanks(dc_e2ee_helper_t* helper)
 static int has_decrypted_pgp_armor(const char* str__, int str_bytes)
 {
 	const unsigned char *str_end = (const unsigned char*)str__+str_bytes, *p=(const unsigned char*)str__;
-	while( p < str_end ) {
-		if( *p > ' ' ) {
+	while (p < str_end) {
+		if (*p > ' ') {
 			break;
 		}
 		p++;
 		str_bytes--;
 	}
-	if( str_bytes>27 && strncmp((const char*)p, "-----BEGIN PGP MESSAGE-----", 27)==0 ) {
+	if (str_bytes>27 && strncmp((const char*)p, "-----BEGIN PGP MESSAGE-----", 27)==0) {
 		return 1;
 	}
 	return 0;
@@ -571,19 +571,19 @@ static int decrypt_part(dc_context_t*       context,
 
 	/* get data pointer from `mime` */
 	mime_data = mime->mm_data.mm_single;
-	if( mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
+	if (mime_data->dt_type != MAILMIME_DATA_TEXT   /* MAILMIME_DATA_FILE indicates, the data is in a file; AFAIK this is not used on parsing */
 	 || mime_data->dt_data.dt_text.dt_data == NULL
-	 || mime_data->dt_data.dt_text.dt_length <= 0 ) {
+	 || mime_data->dt_data.dt_text.dt_length <= 0) {
 		goto cleanup;
 	}
 
 	/* check headers in `mime` */
-	if( mime->mm_mime_fields != NULL ) {
+	if (mime->mm_mime_fields != NULL) {
 		clistiter* cur;
-		for( cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur) ) {
+		for (cur = clist_begin(mime->mm_mime_fields->fld_list); cur != NULL; cur = clist_next(cur)) {
 			struct mailmime_field* field = (struct mailmime_field*)clist_content(cur);
-			if( field ) {
-				if( field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding ) {
+			if (field) {
+				if (field->fld_type == MAILMIME_FIELD_TRANSFER_ENCODING && field->fld_data.fld_encoding) {
 					mime_transfer_encoding = field->fld_data.fld_encoding->enc_type;
 				}
 			}
@@ -591,13 +591,13 @@ static int decrypt_part(dc_context_t*       context,
 	}
 
 	/* regard `Content-Transfer-Encoding:` */
-	if( mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
+	if (mime_transfer_encoding == MAILMIME_MECHANISM_7BIT
 	 || mime_transfer_encoding == MAILMIME_MECHANISM_8BIT
-	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY )
+	 || mime_transfer_encoding == MAILMIME_MECHANISM_BINARY)
 	{
 		decoded_data       = mime_data->dt_data.dt_text.dt_data;
 		decoded_data_bytes = mime_data->dt_data.dt_text.dt_length;
-		if( decoded_data == NULL || decoded_data_bytes <= 0 ) {
+		if (decoded_data == NULL || decoded_data_bytes <= 0) {
 			goto cleanup; /* no error - but no data */
 		}
 	}
@@ -608,22 +608,22 @@ static int decrypt_part(dc_context_t*       context,
 		r = mailmime_part_parse(mime_data->dt_data.dt_text.dt_data, mime_data->dt_data.dt_text.dt_length,
 			&current_index, mime_transfer_encoding,
 			&transfer_decoding_buffer, &decoded_data_bytes);
-		if( r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0 ) {
+		if (r != MAILIMF_NO_ERROR || transfer_decoding_buffer == NULL || decoded_data_bytes <= 0) {
 			goto cleanup;
 		}
 		decoded_data = transfer_decoding_buffer;
 	}
 
 	/* encrypted, decoded data in decoded_data now ... */
-	if( !has_decrypted_pgp_armor(decoded_data, decoded_data_bytes) ) {
+	if (!has_decrypted_pgp_armor(decoded_data, decoded_data_bytes)) {
 		goto cleanup;
 	}
 
 	dc_hash_t* add_signatures = dc_hash_count(ret_valid_signatures)<=0?
 		ret_valid_signatures : NULL; /*if we already have fingerprints, do not add more; this ensures, only the fingerprints from the outer-most part are collected */
 
-	if( !dc_pgp_pk_decrypt(context, decoded_data, decoded_data_bytes, private_keyring, public_keyring_for_validate, 1, &plain_buf, &plain_bytes, add_signatures)
-	 || plain_buf==NULL || plain_bytes<=0 ) {
+	if (!dc_pgp_pk_decrypt(context, decoded_data, decoded_data_bytes, private_keyring, public_keyring_for_validate, 1, &plain_buf, &plain_bytes, add_signatures)
+	 || plain_buf==NULL || plain_bytes<=0) {
 		goto cleanup;
 	}
 
@@ -632,8 +632,8 @@ static int decrypt_part(dc_context_t*       context,
 	{
 		size_t index = 0;
 		struct mailmime* decrypted_mime = NULL;
-		if( mailmime_parse(plain_buf, plain_bytes, &index, &decrypted_mime)!=MAIL_NO_ERROR
-		 || decrypted_mime == NULL ) {
+		if (mailmime_parse(plain_buf, plain_bytes, &index, &decrypted_mime)!=MAIL_NO_ERROR
+		 || decrypted_mime == NULL) {
 			if(decrypted_mime) {mailmime_free(decrypted_mime);}
 			goto cleanup;
 		}
@@ -648,7 +648,7 @@ static int decrypt_part(dc_context_t*       context,
 	//s. mailprivacy_gnupg.c::pgp_decrypt()
 
 cleanup:
-	if( transfer_decoding_buffer ) {
+	if (transfer_decoding_buffer) {
 		mmap_string_unref(transfer_decoding_buffer);
 	}
 	return sth_decrypted;
@@ -661,33 +661,33 @@ static int decrypt_recursive(dc_context_t*           context,
                              const dc_keyring_t*     public_keyring_for_validate,
                              dc_hash_t*              ret_valid_signatures,
                              struct mailimf_fields** ret_gossip_headers,
-                             int*                    ret_has_unencrypted_parts )
+                             int*                    ret_has_unencrypted_parts)
 {
 	struct mailmime_content* ct;
 	clistiter*               cur;
 
-	if( context == NULL || mime == NULL ) {
+	if (context == NULL || mime == NULL) {
 		return 0;
 	}
 
-	if( mime->mm_type == MAILMIME_MULTIPLE )
+	if (mime->mm_type == MAILMIME_MULTIPLE)
 	{
 		ct = mime->mm_content_type;
-		if( ct && ct->ct_subtype && strcmp(ct->ct_subtype, "encrypted")==0 ) {
+		if (ct && ct->ct_subtype && strcmp(ct->ct_subtype, "encrypted")==0) {
 			/* decrypt "multipart/encrypted" -- child parts are eg. "application/pgp-encrypted" (uninteresting, version only),
 			"application/octet-stream" (the interesting data part) and optional, unencrypted help files */
-			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+			for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
 				struct mailmime* decrypted_mime = NULL;
-				if( decrypt_part(context, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, &decrypted_mime) )
+				if (decrypt_part(context, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, &decrypted_mime))
 				{
 					/* remember the header containing potentially Autocrypt-Gossip */
-					if( *ret_gossip_headers == NULL /* use the outermost decrypted part */
-					 && dc_hash_count(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */ )
+					if (*ret_gossip_headers == NULL /* use the outermost decrypted part */
+					 && dc_hash_count(ret_valid_signatures) > 0 /* do not trust the gossipped keys when the message cannot be validated eg. due to a bad signature */)
 					{
 						size_t dummy = 0;
 						struct mailimf_fields* test = NULL;
-						if( mailimf_envelope_and_optional_fields_parse(decrypted_mime->mm_mime_start, decrypted_mime->mm_length, &dummy, &test)==MAILIMF_NO_ERROR
-						 && test ) {
+						if (mailimf_envelope_and_optional_fields_parse(decrypted_mime->mm_mime_start, decrypted_mime->mm_length, &dummy, &test)==MAILIMF_NO_ERROR
+						 && test) {
 							*ret_gossip_headers = test;
 						}
 					}
@@ -701,16 +701,16 @@ static int decrypt_recursive(dc_context_t*           context,
 			*ret_has_unencrypted_parts = 1; // there is a part that could not be decrypted
 		}
 		else {
-			for( cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
-				if( decrypt_recursive(context, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts) ) {
+			for (cur=clist_begin(mime->mm_data.mm_multipart.mm_mp_list); cur!=NULL; cur=clist_next(cur)) {
+				if (decrypt_recursive(context, (struct mailmime*)clist_content(cur), private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts)) {
 					return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 				}
 			}
 		}
 	}
-	else if( mime->mm_type == MAILMIME_MESSAGE )
+	else if (mime->mm_type == MAILMIME_MESSAGE)
 	{
-		if( decrypt_recursive(context, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts) ) {
+		if (decrypt_recursive(context, mime->mm_data.mm_message.mm_msg_mime, private_keyring, public_keyring_for_validate, ret_valid_signatures, ret_gossip_headers, ret_has_unencrypted_parts)) {
 			return 1; /* sth. decrypted, start over from root searching for encrypted parts */
 		}
 	}
@@ -729,28 +729,28 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 	dc_hash_t*  recipients = NULL;
 	dc_hash_t*  gossipped_addr = NULL;
 
-	for( cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1) )
+	for (cur1 = clist_begin(gossip_headers->fld_list); cur1!=NULL ; cur1=clist_next(cur1))
 	{
 		struct mailimf_field* field = (struct mailimf_field*)clist_content(cur1);
-		if( field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD )
+		if (field->fld_type == MAILIMF_FIELD_OPTIONAL_FIELD)
 		{
 			const struct mailimf_optional_field* optional_field = field->fld_data.fld_optional_field;
-			if( optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt-Gossip")==0 )
+			if (optional_field && optional_field->fld_name && strcasecmp(optional_field->fld_name, "Autocrypt-Gossip")==0)
 			{
 				dc_aheader_t* gossip_header = dc_aheader_new();
-				if( dc_aheader_set_from_string(gossip_header, optional_field->fld_value)
-				 && dc_pgp_is_valid_key(context, gossip_header->public_key) )
+				if (dc_aheader_set_from_string(gossip_header, optional_field->fld_value)
+				 && dc_pgp_is_valid_key(context, gossip_header->public_key))
 				{
 					/* found an Autocrypt-Gossip entry, create recipents list and check if addr matches */
-					if( recipients == NULL ) {
+					if (recipients == NULL) {
 						recipients = mailimf_get_recipients(imffields);
 					}
 
-					if( dc_hash_find(recipients, gossip_header->addr, strlen(gossip_header->addr)) )
+					if (dc_hash_find(recipients, gossip_header->addr, strlen(gossip_header->addr)))
 					{
 						/* valid recipient: update peerstate */
 						dc_apeerstate_t* peerstate = dc_apeerstate_new(context);
-						if( !dc_apeerstate_load_by_addr(peerstate, context->sql, gossip_header->addr) ) {
+						if (!dc_apeerstate_load_by_addr(peerstate, context->sql, gossip_header->addr)) {
 							dc_apeerstate_init_from_gossip(peerstate, gossip_header, message_time);
 							dc_apeerstate_save_to_db(peerstate, context->sql, 1/*create*/);
 						}
@@ -759,7 +759,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 							dc_apeerstate_save_to_db(peerstate, context->sql, 0/*do not create*/);
 						}
 
-						if( peerstate->degrade_event ) {
+						if (peerstate->degrade_event) {
 							dc_handle_degrade_event(context, peerstate);
 						}
 
@@ -767,7 +767,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 
 						// collect all gossipped addresses; we need them later to mark them as being
 						// verified when used in a verified group by a verified sender
-						if( gossipped_addr == NULL ) {
+						if (gossipped_addr == NULL) {
 							gossipped_addr = malloc(sizeof(dc_hash_t));
 							dc_hash_init(gossipped_addr, DC_HASH_STRING, 1/*copy key*/);
 						}
@@ -783,7 +783,7 @@ static dc_hash_t* update_gossip_peerstates(dc_context_t* context, time_t message
 		}
 	}
 
-	if( recipients ) {
+	if (recipients) {
 		dc_hash_clear(recipients);
 		free(recipients);
 	}
@@ -806,10 +806,10 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	dc_keyring_t*          public_keyring_for_validate = dc_keyring_new();
 	struct mailimf_fields* gossip_headers = NULL;
 
-	if( helper ) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
+	if (helper) { memset(helper, 0, sizeof(dc_e2ee_helper_t)); }
 
-	if( context==NULL || context->magic != DC_CONTEXT_MAGIC || in_out_message==NULL
-	 || helper == NULL || imffields==NULL ) {
+	if (context==NULL || context->magic != DC_CONTEXT_MAGIC || in_out_message==NULL
+	 || helper == NULL || imffields==NULL) {
 		goto cleanup;
 	}
 
@@ -817,19 +817,19 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	- Set message_time and from (both may be unset)
 	- Get the autocrypt header, if any.
 	- Do not abort on errors - we should try at last the decyption below */
-	if( imffields )
+	if (imffields)
 	{
 		struct mailimf_field* field = mailimf_find_field(imffields, MAILIMF_FIELD_FROM);
-		if( field && field->fld_data.fld_from ) {
+		if (field && field->fld_data.fld_from) {
 			from = mailimf_find_first_addr(field->fld_data.fld_from->frm_mb_list);
 		}
 
 		field = mailimf_find_field(imffields, MAILIMF_FIELD_ORIG_DATE);
-		if( field && field->fld_data.fld_orig_date ) {
+		if (field && field->fld_data.fld_orig_date) {
 			struct mailimf_orig_date* orig_date = field->fld_data.fld_orig_date;
-			if( orig_date ) {
+			if (orig_date) {
 				message_time = dc_timestamp_from_date(orig_date->dt_date_time); /* is not yet checked against bad times! */
-				if( message_time != DC_INVALID_TIMESTAMP && message_time > time(NULL) ) {
+				if (message_time != DC_INVALID_TIMESTAMP && message_time > time(NULL)) {
 					message_time = time(NULL);
 				}
 			}
@@ -837,8 +837,8 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	}
 
 	autocryptheader = dc_aheader_new_from_imffields(from, imffields);
-	if( autocryptheader ) {
-		if( !dc_pgp_is_valid_key(context, autocryptheader->public_key) ) {
+	if (autocryptheader) {
+		if (!dc_pgp_is_valid_key(context, autocryptheader->public_key)) {
 			dc_aheader_unref(autocryptheader);
 			autocryptheader = NULL;
 		}
@@ -847,43 +847,43 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	/* modify the peerstate (eg. if there is a peer but not autocrypt header, stop encryption) */
 
 	/* apply Autocrypt:-header */
-	if( message_time > 0
-	 && from )
+	if (message_time > 0
+	 && from)
 	{
-		if( dc_apeerstate_load_by_addr(peerstate, context->sql, from) ) {
-			if( autocryptheader ) {
+		if (dc_apeerstate_load_by_addr(peerstate, context->sql, from)) {
+			if (autocryptheader) {
 				dc_apeerstate_apply_header(peerstate, autocryptheader, message_time);
 				dc_apeerstate_save_to_db(peerstate, context->sql, 0/*no not create*/);
 			}
 			else {
-				if( message_time > peerstate->last_seen_autocrypt
-				 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/ ){
+				if (message_time > peerstate->last_seen_autocrypt
+				 && !contains_report(in_out_message) /*reports are ususally not encrpyted; do not degrade decryption then*/){
 					dc_apeerstate_degrade_encryption(peerstate, message_time);
 					dc_apeerstate_save_to_db(peerstate, context->sql, 0/*no not create*/);
 				}
 			}
 		}
-		else if( autocryptheader ) {
+		else if (autocryptheader) {
 			dc_apeerstate_init_from_header(peerstate, autocryptheader, message_time);
 			dc_apeerstate_save_to_db(peerstate, context->sql, 1/*create*/);
 		}
 	}
 
 	/* load private key for decryption */
-	if( (self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL ) {
+	if ((self_addr=dc_sqlite3_get_config(context->sql, "configured_addr", NULL))==NULL) {
 		goto cleanup;
 	}
 
-	if( !dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->sql) ) {
+	if (!dc_keyring_load_self_private_for_decrypting(private_keyring, self_addr, context->sql)) {
 		goto cleanup;
 	}
 
 	/* if not yet done, load peer with public key for verification (should be last as the peer may be modified above) */
-	if( peerstate->last_seen == 0 ) {
+	if (peerstate->last_seen == 0) {
 		dc_apeerstate_load_by_addr(peerstate, context->sql, from);
 	}
 
-	if( peerstate->degrade_event ) {
+	if (peerstate->degrade_event) {
 		dc_handle_degrade_event(context, peerstate);
 	}
 
@@ -897,19 +897,19 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	dc_hash_init(helper->signatures, DC_HASH_STRING, 1/*copy key*/);
 
 	int iterations = 0;
-	while( iterations < 10 ) {
+	while (iterations < 10) {
 		int has_unencrypted_parts = 0;
-		if( !decrypt_recursive(context, in_out_message, private_keyring,
+		if (!decrypt_recursive(context, in_out_message, private_keyring,
 		        public_keyring_for_validate,
-		        helper->signatures, &gossip_headers, &has_unencrypted_parts) ) {
+		        helper->signatures, &gossip_headers, &has_unencrypted_parts)) {
 			break;
 		}
 
 		// if we're here, sth. was encrypted. if we're on top-level, and there are no
 		// additional unencrypted parts in the message the encryption was fine
 		// (signature is handled separately and returned as `signatures`)
-		if( iterations == 0
-		 && !has_unencrypted_parts ) {
+		if (iterations == 0
+		 && !has_unencrypted_parts) {
 			helper->encrypted = 1;
 		}
 
@@ -917,14 +917,14 @@ void dc_e2ee_decrypt(dc_context_t* context, struct mailmime* in_out_message,
 	}
 
 	/* check for Autocrypt-Gossip */
-	if( gossip_headers ) {
+	if (gossip_headers) {
 		helper->gossipped_addr = update_gossip_peerstates(context, message_time, imffields, gossip_headers);
 	}
 
 	//mailmime_print(in_out_message);
 
 cleanup:
-	if( gossip_headers ) { mailimf_fields_free(gossip_headers); }
+	if (gossip_headers) { mailimf_fields_free(gossip_headers); }
 	dc_aheader_unref(autocryptheader);
 	dc_apeerstate_unref(peerstate);
 	dc_keyring_unref(private_keyring);

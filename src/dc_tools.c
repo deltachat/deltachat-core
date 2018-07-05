@@ -52,13 +52,13 @@ int dc_exactly_one_bit_set(int v)
 char* dc_strdup(const char* s) /* strdup(NULL) is undefined, save_strdup(NULL) returns an empty string in this case */
 {
 	char* ret;
-	if( s ) {
-		if( (ret=strdup(s)) == NULL ) {
+	if (s) {
+		if ((ret=strdup(s)) == NULL) {
 			exit(16); /* cannot allocate (little) memory, unrecoverable error */
 		}
 	}
 	else {
-		if( (ret=(char*)calloc(1, 1)) == NULL ) {
+		if ((ret=(char*)calloc(1, 1)) == NULL) {
 			exit(17); /* cannot allocate little memory, unrecoverable error */
 		}
 	}
@@ -83,15 +83,15 @@ void dc_ltrim(char* buf)
 	size_t len;
 	const unsigned char* cur;
 
-	if( buf && *buf ) {
+	if (buf && *buf) {
 		len = strlen(buf);
 		cur = (const unsigned char*)buf;
 
-		while( *cur && isspace(*cur) ) {
+		while (*cur && isspace(*cur)) {
 			cur++; len--;
 		}
 
-		if( (const unsigned char*)buf != cur ) {
+		if ((const unsigned char*)buf != cur) {
 			memmove(buf, cur, len + 1);
 		}
 	}
@@ -103,11 +103,11 @@ void dc_rtrim(char* buf)
 	size_t len;
 	unsigned char* cur;
 
-	if( buf && *buf ) {
+	if (buf && *buf) {
 		len = strlen(buf);
 		cur = (unsigned char*)buf + len - 1;
 
-		while( cur != (unsigned char*)buf && isspace(*cur) ) {
+		while (cur != (unsigned char*)buf && isspace(*cur)) {
 			--cur, --len;
 		}
 
@@ -152,16 +152,16 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 {
 	int replacements = 0, start_search_pos = 0, needle_len, replacement_len;
 
-	if( haystack==NULL || *haystack==NULL || needle == NULL || needle[0]==0 ) {
+	if (haystack==NULL || *haystack==NULL || needle == NULL || needle[0]==0) {
 		return 0;
 	}
 
 	needle_len = strlen(needle);
 	replacement_len = replacement? strlen(replacement) : 0;
-	while( 1 )
+	while (1)
 	{
 		char* p2 = strstr((*haystack)+start_search_pos, needle);
-		if( p2==NULL ) { break; }
+		if (p2==NULL) { break; }
 		start_search_pos = (p2-(*haystack))+replacement_len; /* avoid recursion and skip the replaced part */
 
 		*p2 = 0;
@@ -179,11 +179,11 @@ int dc_str_replace(char** haystack, const char* needle, const char* replacement)
 int dc_str_contains(const char* haystack, const const char* needle)
 {
 	/* case-insensitive search of needle in haystack, return 1 if found, 0 if not */
-	if( haystack==NULL || needle == NULL ) {
+	if (haystack==NULL || needle == NULL) {
 		return 0;
 	}
 
-	if( strstr(haystack, needle)!=NULL ) {
+	if (strstr(haystack, needle)!=NULL) {
 		return 1;
 	}
 
@@ -213,11 +213,11 @@ int dc_str_contains(const char* haystack, const const char* needle)
 char* dc_null_terminate(const char* in, int bytes) /* the result must be free()'d */
 {
 	char* out = malloc(bytes+1);
-	if( out==NULL ) {
+	if (out==NULL) {
 		exit(45);
 	}
 
-	if( in && bytes > 0 ) {
+	if (in && bytes > 0) {
 		strncpy(out, in, bytes);
 	}
 	out[bytes] = 0;
@@ -244,15 +244,15 @@ char* dc_binary_to_uc_hex(const uint8_t* buf, size_t bytes)
 	char* hex = NULL;
 	int   i;
 
-	if( buf == NULL || bytes <= 0 ) {
+	if (buf == NULL || bytes <= 0) {
 		goto cleanup;
 	}
 
-	if( (hex=calloc(sizeof(char), bytes*2+1))==NULL ) {
+	if ((hex=calloc(sizeof(char), bytes*2+1))==NULL) {
 		goto cleanup;
 	}
 
-	for( i = 0; i < bytes; i++ ) {
+	for (i = 0; i < bytes; i++) {
 		snprintf(&hex[i*2], 3, "%02X", (int)buf[i]);
 	}
 
@@ -274,13 +274,13 @@ char* dc_mprintf(const char* format, ...)
 
 	char_cnt_without_zero = vsnprintf(testbuf, 0, format, argp);
 	va_end(argp);
-	if( char_cnt_without_zero < 0) {
+	if (char_cnt_without_zero < 0) {
 		va_end(argp_copy);
 		return dc_strdup("ErrFmt");
 	}
 
 	buf = malloc(char_cnt_without_zero+2 /* +1 would be enough, however, protect against off-by-one-errors */);
-	if( buf == NULL ) {
+	if (buf == NULL) {
 		va_end(argp_copy);
 		return dc_strdup("ErrMem");
 	}
@@ -297,7 +297,7 @@ char* dc_mprintf(const char* format, ...)
 		sqlite_str = sqlite3_vmprintf(format, argp);
 	va_end(argp);
 
-	if( sqlite_str == NULL ) {
+	if (sqlite_str == NULL) {
 		return dc_strdup("ErrFmt"); /* error - the result must be free()'d */
 	}
 
@@ -320,16 +320,16 @@ char* dc_mprintf(const char* format, ...)
 void dc_remove_cr_chars(char* buf)
 {
 	const char* p1 = buf; /* search for first `\r` */
-	while( *p1 ) {
-		if( *p1 == '\r' ) {
+	while (*p1) {
+		if (*p1 == '\r') {
 			break;
 		}
 		p1++;
 	}
 
 	char* p2 = (char*)p1; /* p1 is `\r` or null-byte; start removing `\r` */
-	while( *p1 ) {
-		if( *p1 != '\r' ) {
+	while (*p1) {
+		if (*p1 != '\r') {
 			*p2 = *p1;
 			p2++;
 		}
@@ -363,27 +363,27 @@ void dc_unify_lineends(char* buf)
 
 void dc_replace_bad_utf8_chars(char* buf)
 {
-	if( buf==NULL ) {
+	if (buf==NULL) {
 		return;
 	}
 
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
 	int            p1len = strlen(buf);
 	int            c, i, ix, n, j;
-	for( i=0, ix=p1len; i < ix; i++ )
+	for (i=0, ix=p1len; i < ix; i++)
 	{
 		c = p1[i];
-		     if( c > 0 && c <= 0x7f )                           { n=0; }        /* 0bbbbbbb */
-		else if( (c & 0xE0) == 0xC0 )                           { n=1; }        /* 110bbbbb */
-		else if( c==0xed && i<(ix-1) && (p1[i+1] & 0xa0)==0xa0) { goto error; } /* U+d800 to U+dfff */
-		else if( (c & 0xF0) == 0xE0 )                           { n=2; }        /* 1110bbbb */
-		else if( (c & 0xF8) == 0xF0)                            { n=3; }        /* 11110bbb */
-		//else if( (c & 0xFC) == 0xF8)                          { n=4; }        /* 111110bb - not valid in https://tools.ietf.org/html/rfc3629 */
-		//else if( (c & 0xFE) == 0xFC)                          { n=5; }        /* 1111110b - not valid in https://tools.ietf.org/html/rfc3629 */
+		     if (c > 0 && c <= 0x7f)                           { n=0; }        /* 0bbbbbbb */
+		else if ((c & 0xE0) == 0xC0)                           { n=1; }        /* 110bbbbb */
+		else if (c==0xed && i<(ix-1) && (p1[i+1] & 0xa0)==0xa0) { goto error; } /* U+d800 to U+dfff */
+		else if ((c & 0xF0) == 0xE0)                           { n=2; }        /* 1110bbbb */
+		else if ((c & 0xF8) == 0xF0)                            { n=3; }        /* 11110bbb */
+		//else if ((c & 0xFC) == 0xF8)                          { n=4; }        /* 111110bb - not valid in https://tools.ietf.org/html/rfc3629 */
+		//else if ((c & 0xFE) == 0xFC)                          { n=5; }        /* 1111110b - not valid in https://tools.ietf.org/html/rfc3629 */
 		else                                                    { goto error; }
 
-		for( j = 0; j < n && i < ix; j++ ) { /* n bytes matching 10bbbbbb follow ? */
-			if( (++i == ix) || (( p1[i] & 0xC0) != 0x80) ) {
+		for (j = 0; j < n && i < ix; j++) { /* n bytes matching 10bbbbbb follow ? */
+			if ((++i == ix) || (( p1[i] & 0xC0) != 0x80)) {
 				goto error;
 			}
 		}
@@ -395,8 +395,8 @@ void dc_replace_bad_utf8_chars(char* buf)
 error:
 	/* there are errors in the string -> replace potential errors by the character `_`
 	(to avoid problems in filenames, we do not use eg. `?`) */
-	while( *p1 ) {
-		if( *p1 > 0x7f ) {
+	while (*p1) {
+		if (*p1 > 0x7f) {
 			*p1 = '_';
 		}
 		p1++;
@@ -408,8 +408,8 @@ error:
 static size_t dc_utf8_strlen(const char* s)
 {
 	size_t i = 0, j = 0;
-	while( s[i] ) {
-		if( (s[i]&0xC0) != 0x80 )
+	while (s[i]) {
+		if ((s[i]&0xC0) != 0x80)
 			j++;
 		i++;
 	}
@@ -421,8 +421,8 @@ static size_t dc_utf8_strlen(const char* s)
 static size_t dc_utf8_strnlen(const char* s, size_t n)
 {
 	size_t i = 0, j = 0;
-	while( i < n ) {
-		if( (s[i]&0xC0) != 0x80 )
+	while (i < n) {
+		if ((s[i]&0xC0) != 0x80)
 			j++;
 		i++;
 	}
@@ -438,27 +438,27 @@ void dc_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 	const char* ellipse_utf8 = do_unwrap? " ..." : " " DC_EDITORIAL_ELLIPSE; /* a single line is truncated `...` instead of `[...]` (the former is typically also used by the UI to fit strings in a rectangle) */
 	int lastIsCharacter = 0;
 	unsigned char* p1 = (unsigned char*)buf; /* force unsigned - otherwise the `> ' '` comparison will fail */
-	while( *p1 ) {
-		if( *p1 > ' ' ) {
+	while (*p1) {
+		if (*p1 > ' ') {
 			lastIsCharacter = 1;
 		}
 		else {
-			if( lastIsCharacter ) {
+			if (lastIsCharacter) {
 				size_t used_bytes = (size_t)((uintptr_t)p1 - (uintptr_t)buf);
-				if( dc_utf8_strnlen(buf, used_bytes) >= approx_characters ) {
+				if (dc_utf8_strnlen(buf, used_bytes) >= approx_characters) {
 					size_t      buf_bytes = strlen(buf);
-					if( buf_bytes-used_bytes >= strlen(ellipse_utf8) /* check if we have room for the ellipse */ ) {
+					if (buf_bytes-used_bytes >= strlen(ellipse_utf8) /* check if we have room for the ellipse */) {
 						strcpy((char*)p1, ellipse_utf8);
 					}
 					break;
 				}
 				lastIsCharacter = 0;
-				if( do_unwrap ) {
+				if (do_unwrap) {
 					*p1 = ' ';
 				}
 			}
 			else {
-				if( do_unwrap ) {
+				if (do_unwrap) {
 					*p1 = '\r'; /* removed below */
 				}
 			}
@@ -467,7 +467,7 @@ void dc_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 		p1++;
 	}
 
-	if( do_unwrap ) {
+	if (do_unwrap) {
 		dc_remove_cr_chars(buf);
 	}
 }
@@ -475,13 +475,13 @@ void dc_truncate_n_unwrap_str(char* buf, int approx_characters, int do_unwrap)
 
 void dc_truncate_str(char* buf, int approx_chars)
 {
-	if( approx_chars > 0 && strlen(buf) > approx_chars+strlen(DC_EDITORIAL_ELLIPSE) )
+	if (approx_chars > 0 && strlen(buf) > approx_chars+strlen(DC_EDITORIAL_ELLIPSE))
 	{
 		char* p = &buf[approx_chars]; /* null-terminate string at the desired length */
 		*p = 0;
 
-		if( strchr(buf, ' ')!=NULL ) {
-			while( p[-1] != ' ' && p[-1] != '\n' ) { /* rewind to the previous space, avoid half utf-8 characters */
+		if (strchr(buf, ' ')!=NULL) {
+			while (p[-1] != ' ' && p[-1] != '\n') { /* rewind to the previous space, avoid half utf-8 characters */
 				p--;
 				*p = 0;
 			}
@@ -500,8 +500,8 @@ carray* dc_split_into_lines(const char* buf_terminated)
 	const char* p1 = buf_terminated;
 	const char* line_start = p1;
 	unsigned int l_indx;
-	while( *p1 ) {
-		if( *p1  == '\n' ) {
+	while (*p1) {
+		if (*p1  == '\n') {
 			carray_add(lines, (void*)strndup(line_start, line_chars), &l_indx);
 			p1++;
 			line_start = p1;
@@ -520,9 +520,9 @@ carray* dc_split_into_lines(const char* buf_terminated)
 
 void dc_free_splitted_lines(carray* lines)
 {
-	if( lines ) {
+	if (lines) {
 		int i, cnt = carray_count(lines);
-		for( i = 0; i < cnt; i++ ) {
+		for (i = 0; i < cnt; i++) {
 			free(carray_get(lines, i));
 		}
 		carray_free(lines);
@@ -535,7 +535,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 	/* insert a space every n characters, the return must be free()'d.
 	this is useful to allow lines being wrapped according to RFC 5322 (adds linebreaks before spaces) */
 
-	if( in == NULL || break_every <= 0 || break_chars == NULL ) {
+	if (in == NULL || break_every <= 0 || break_chars == NULL) {
 		return dc_strdup(in);
 	}
 
@@ -544,14 +544,14 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 	out_len += (out_len/break_every+1)*break_chars_len + 1/*nullbyte*/;
 
 	char* out = malloc(out_len);
-	if( out == NULL ) { return NULL; }
+	if (out == NULL) { return NULL; }
 
 	const char* i = in;
 	char* o = out;
-	while( *i ) {
+	while (*i) {
 		*o++ = *i++;
 		chars_added++;
-		if( chars_added==break_every && *i ) {
+		if (chars_added==break_every && *i) {
 			strcpy(o, break_chars);
 			o+=break_chars_len;
 			chars_added = 0;
@@ -570,7 +570,7 @@ char* dc_insert_breaks(const char* in, int break_every, const char* break_chars)
 void clist_free_content(const clist* haystack)
 {
 	clistiter* iter;
-	for( iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter) ) {
+	for (iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
 		free(iter->data);
 		iter->data = NULL;
 	}
@@ -580,8 +580,8 @@ void clist_free_content(const clist* haystack)
 int clist_search_string_nocase(const clist* haystack, const char* needle)
 {
 	clistiter* iter;
-	for( iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter) ) {
-		if( strcasecmp((const char*)iter->data, needle)==0 ) {
+	for (iter=clist_begin(haystack); iter!=NULL; iter=clist_next(iter)) {
+		if (strcasecmp((const char*)iter->data, needle)==0) {
 			return 1;
 		}
 	}
@@ -632,7 +632,7 @@ static time_t mkgmtime(struct tm * tmp) /* from mailcore2 */
      */
     if(bits > 40) bits = 40;
     t = (t < 0) ? 0 : ((time_t) 1 << bits);
-    for ( ; ; ) {
+    for ( ; ;) {
         gmtime_r(&t, &mytm);
         dir = tmcomp(&mytm, &yourtm);
         if (dir != 0) {
@@ -770,9 +770,9 @@ time_t dc_create_smeared_timestamp(dc_context_t* context)
 	time_t now = time(NULL);
 	time_t ret = now;
 	SMEAR_LOCK
-		if( ret <= context->last_smeared_timestamp ) {
+		if (ret <= context->last_smeared_timestamp) {
 			ret = context->last_smeared_timestamp+1;
-			if( (ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE ) {
+			if ((ret-now) > DC_MAX_SECONDS_TO_LEND_FROM_FUTURE) {
 				ret = now + DC_MAX_SECONDS_TO_LEND_FROM_FUTURE;
 			}
 		}
@@ -800,7 +800,7 @@ time_t dc_smeared_time(dc_context_t* context)
 	/* function returns a corrected time(NULL) */
 	time_t now = time(NULL);
 	SMEAR_LOCK
-		if( context->last_smeared_timestamp >= now ) {
+		if (context->last_smeared_timestamp >= now) {
 			now = context->last_smeared_timestamp+1;
 		}
 	SMEAR_UNLOCK
@@ -819,19 +819,19 @@ static char* encode_66bits_as_base64(uint32_t v1, uint32_t v2, uint32_t fill /*o
 	we save 5 character in each id compared to 64 bit hex encoding, for a typical group ID, these are 10 characters (grpid+msgid):
 	hex:    64 bit, 4 bits/character, length = 64/4 = 16 characters
 	base64: 64 bit, 6 bits/character, length = 64/6 = 11 characters (plus 2 additional bits) */
-	char* ret = malloc(12); if( ret==NULL ) { exit(34); }
+	char* ret = malloc(12); if (ret==NULL) { exit(34); }
 	static const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 	ret[ 0] = chars[   (v1>>26) & 0x3F  ];
 	ret[ 1] = chars[   (v1>>20) & 0x3F  ];
 	ret[ 2] = chars[   (v1>>14) & 0x3F  ];
 	ret[ 3] = chars[   (v1>> 8) & 0x3F  ];
 	ret[ 4] = chars[   (v1>> 2) & 0x3F  ];
-	ret[ 5] = chars[ ( (v1<< 4) & 0x30 ) | ( (v2>>28) & 0x0F ) ];
+	ret[ 5] = chars[ ( (v1<< 4) & 0x30) | ( (v2>>28) & 0x0F) ];
 	ret[ 6] = chars[                         (v2>>22) & 0x3F   ];
 	ret[ 7] = chars[                         (v2>>16) & 0x3F   ];
 	ret[ 8] = chars[                         (v2>>10) & 0x3F   ];
 	ret[ 9] = chars[                         (v2>> 4) & 0x3F   ];
-	ret[10] = chars[                       ( (v2<< 2) & 0x3C ) | (fill & 0x03) ];
+	ret[10] = chars[                       ( (v2<< 2) & 0x3C) | (fill & 0x03) ];
 	ret[11] = 0;
 	return ret;
 }
@@ -850,7 +850,7 @@ char* dc_create_id(void)
 	- for INCOMING messages, the ID is taken from the Chat-Group-ID-header or from the Message-ID in the In-Reply-To: or References:-Header
 	- the group-id should be a string with the characters [a-zA-Z0-9\-_] */
 	uint32_t buf[3];
-	if( !RAND_bytes((unsigned char*)&buf, sizeof(uint32_t)*3) ) {
+	if (!RAND_bytes((unsigned char*)&buf, sizeof(uint32_t)*3)) {
 		RAND_pseudo_bytes((unsigned char*)&buf, sizeof(uint32_t)*3);
 	}
 	return encode_66bits_as_base64(buf[0], buf[1], buf[2]/*only the lower 2 bits are taken from this value*/);
@@ -879,11 +879,11 @@ char* dc_create_outgoing_rfc724_mid(const char* grpid, const char* from_addr)
 	char*       ret = NULL;
 	const char* at_hostname = strchr(from_addr, '@');
 
-	if( at_hostname == NULL ) {
+	if (at_hostname == NULL) {
 		at_hostname = "@nohost";
 	}
 
-	if( grpid ) {
+	if (grpid) {
 		ret = dc_mprintf("Gr.%s.%s%s", grpid, rand2, at_hostname);
 		               /* ^^^ `Gr.` must never change as this is used to identify group messages in normal-clients-replies. The dot is choosen as this is normally not used for random ID creation. */
 	}
@@ -906,16 +906,16 @@ char* dc_create_incoming_rfc724_mid(time_t message_timestamp, uint32_t contact_i
 	- when fetching the same message again, this function should generate the same Message-ID
 	*/
 
-	if( message_timestamp == DC_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0 ) {
+	if (message_timestamp == DC_INVALID_TIMESTAMP || contact_ids_to == NULL || dc_array_get_cnt(contact_ids_to)==0) {
 		return NULL;
 	}
 
 	/* find out the largest receiver ID (we could also take the smallest, but it should be unique) */
 	size_t   i, icnt = dc_array_get_cnt(contact_ids_to);
 	uint32_t largest_id_to = 0;
-	for( i = 0; i < icnt; i++ ) {
+	for (i = 0; i < icnt; i++) {
 		uint32_t cur_id = dc_array_get_id(contact_ids_to, i);
-		if( cur_id > largest_id_to ) {
+		if (cur_id > largest_id_to) {
 			largest_id_to = cur_id;
 		}
 	}
@@ -933,28 +933,28 @@ char* dc_extract_grpid_from_rfc724_mid(const char* mid)
 	char* grpid = NULL, *p1;
 	int   grpid_len;
 
-	if( mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.' ) {
+	if (mid == NULL || strlen(mid)<8 || mid[0]!='G' || mid[1]!='r' || mid[2]!='.') {
 		goto cleanup;
 	}
 
 	grpid = dc_strdup(&mid[3]);
 
 	p1 = strchr(grpid, '.');
-	if( p1 == NULL ) {
+	if (p1 == NULL) {
 		goto cleanup;
 	}
 	*p1 = 0;
 
 	#define DC_ALSO_VALID_ID_LEN  16 /* length returned by create_adhoc_grp_id() */
 	grpid_len = strlen(grpid);
-	if( grpid_len!=DC_CREATE_ID_LEN && grpid_len!=DC_ALSO_VALID_ID_LEN ) { /* strict length comparison, the 'Gr.' magic is weak enough */
+	if (grpid_len!=DC_CREATE_ID_LEN && grpid_len!=DC_ALSO_VALID_ID_LEN) { /* strict length comparison, the 'Gr.' magic is weak enough */
 		goto cleanup;
 	}
 
 	success = 1;
 
 cleanup:
-	if( success == 0 ) { free(grpid); grpid = NULL; }
+	if (success == 0) { free(grpid); grpid = NULL; }
 	return success? grpid : NULL;
 }
 
@@ -962,11 +962,11 @@ cleanup:
 char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
 {
 	clistiter* cur;
-	if( list ) {
-		for( cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur) ) {
+	if (list) {
+		for (cur = clist_begin(list); cur!=NULL ; cur=clist_next(cur)) {
 			const char* mid = clist_content(cur);
 			char* grpid = dc_extract_grpid_from_rfc724_mid(mid);
-			if( grpid ) {
+			if (grpid) {
 				return grpid;
 			}
 		}
@@ -984,7 +984,7 @@ char* dc_extract_grpid_from_rfc724_mid_list(const clist* list)
 int dc_file_exist(const char* pathNfilename)
 {
 	struct stat st;
-	if( stat(pathNfilename, &st) == 0 ) {
+	if (stat(pathNfilename, &st) == 0) {
 		return 1; /* the size, however, may be 0 */
 	}
 	else {
@@ -996,7 +996,7 @@ int dc_file_exist(const char* pathNfilename)
 uint64_t dc_get_filebytes(const char* pathNfilename)
 {
 	struct stat st;
-	if( stat(pathNfilename, &st) == 0 ) {
+	if (stat(pathNfilename, &st) == 0) {
 		return (uint64_t)st.st_size;
 	}
 	else {
@@ -1008,11 +1008,11 @@ uint64_t dc_get_filebytes(const char* pathNfilename)
 char* dc_get_filename(const char* pathNfilename)
 {
 	const char* p = strrchr(pathNfilename, '/');
-	if( p==NULL ) {
+	if (p==NULL) {
 		p = strrchr(pathNfilename, '\\');
 	}
 
-	if( p ) {
+	if (p) {
 		p++;
 		return dc_strdup(p);
 	}
@@ -1024,11 +1024,11 @@ char* dc_get_filename(const char* pathNfilename)
 
 int dc_delete_file(const char* pathNfilename, dc_context_t* log/*may be NULL*/)
 {
-	if( pathNfilename==NULL ) {
+	if (pathNfilename==NULL) {
 		return 0;
 	}
 
-	if( remove(pathNfilename)!=0 ) {
+	if (remove(pathNfilename)!=0) {
 		dc_log_warning(log, 0, "Cannot delete \"%s\".", pathNfilename);
 		return 0;
 	}
@@ -1045,32 +1045,32 @@ int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NU
     size_t  bytes_read;
     int     anything_copied = 0;
 
-	if( src==NULL || dest==NULL ) {
+	if (src==NULL || dest==NULL) {
 		return 0;
 	}
 
-    if( (fd_src=open(src, O_RDONLY)) < 0 ) {
+    if ((fd_src=open(src, O_RDONLY)) < 0) {
 		dc_log_error(log, 0, "Cannot open source file \"%s\".", src);
         goto cleanup;
 	}
 
-    if( (fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0 ) {
+    if ((fd_dest=open(dest, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
 		dc_log_error(log, 0, "Cannot open destination file \"%s\".", dest);
         goto cleanup;
 	}
 
-    while( (bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0 ) {
+    while ((bytes_read=read(fd_src, buf, DC_COPY_BUF_SIZE)) > 0) {
         if (write(fd_dest, buf, bytes_read) != bytes_read) {
             dc_log_error(log, 0, "Cannot write %i bytes to \"%s\".", bytes_read, dest);
 		}
 		anything_copied = 1;
     }
 
-    if( !anything_copied ) {
+    if (!anything_copied) {
 		/* not a single byte copied -> check if the source is empty, too */
 		close(fd_src);
 		fd_src = -1;
-		if( dc_get_filebytes(src)!=0 ) {
+		if (dc_get_filebytes(src)!=0) {
 			dc_log_error(log, 0, "Different size information for \"%s\".", bytes_read, dest);
 			goto cleanup;
 		}
@@ -1079,8 +1079,8 @@ int dc_copy_file(const char* src, const char* dest, dc_context_t* log/*may be NU
     success = 1;
 
 cleanup:
-	if( fd_src >= 0 ) { close(fd_src); }
-	if( fd_dest >= 0 ) { close(fd_dest); }
+	if (fd_src >= 0) { close(fd_src); }
+	if (fd_dest >= 0) { close(fd_dest); }
 	return success;
 }
 
@@ -1089,7 +1089,7 @@ int dc_create_folder(const char* pathNfilename, dc_context_t* log)
 {
 	struct stat st;
 	if (stat(pathNfilename, &st) == -1) {
-		if( mkdir(pathNfilename, 0755) != 0 ) {
+		if (mkdir(pathNfilename, 0755) != 0) {
 			dc_log_warning(log, 0, "Cannot create directory \"%s\".", pathNfilename);
 			return 0;
 		}
@@ -1100,9 +1100,9 @@ int dc_create_folder(const char* pathNfilename, dc_context_t* log)
 
 char* dc_get_filesuffix_lc(const char* pathNfilename)
 {
-	if( pathNfilename ) {
+	if (pathNfilename) {
 		const char* p = strrchr(pathNfilename, '.'); /* use the last point, we're interesting the "main" type */
-		if( p ) {
+		if (p) {
 			p++;
 			return dc_strlower(p); /* in contrast to dc_split_filename() we return the lowercase suffix */
 		}
@@ -1120,7 +1120,7 @@ void dc_split_filename(const char* pathNfilename, char** ret_basename, char** re
 	- the case of the returned suffix is preserved; this is to allow reconstruction of (similar) names */
 	char* basename = dc_get_filename(pathNfilename), *suffix;
 	char* p1 = strrchr(basename, '.');
-	if( p1 ) {
+	if (p1) {
 		suffix = dc_strdup(p1);
 		*p1 = 0;
 	}
@@ -1129,8 +1129,8 @@ void dc_split_filename(const char* pathNfilename, char** ret_basename, char** re
 	}
 
 	/* return the given values */
-	if( ret_basename              ) { *ret_basename              = basename; } else { free(basename); }
-	if( ret_all_suffixes_incl_dot ) { *ret_all_suffixes_incl_dot = suffix;   } else { free(suffix);   }
+	if (ret_basename            ) { *ret_basename              = basename; } else { free(basename); }
+	if (ret_all_suffixes_incl_dot) { *ret_all_suffixes_incl_dot = suffix;   } else { free(suffix);   }
 }
 
 
@@ -1139,8 +1139,8 @@ void dc_validate_filename(char* filename)
 {
 	/* function modifies the given buffer and replaces all characters not valid in filenames by a "-" */
 	char* p1 = filename;
-	while( *p1 ) {
-		if( *p1=='/' || *p1=='\\' || *p1==':' ) {
+	while (*p1) {
+		if (*p1=='/' || *p1=='\\' || *p1==':') {
 			*p1 = '-';
 		}
 		p1++;
@@ -1159,8 +1159,8 @@ char* dc_get_fine_pathNfilename(const char* folder, const char* desired_filename
 	dc_validate_filename(filenameNsuffix);
 	dc_split_filename(filenameNsuffix, &basename, &dotNSuffix);
 
-	for( i = 0; i < 1000 /*no deadlocks, please*/; i++ ) {
-		if( i ) {
+	for (i = 0; i < 1000 /*no deadlocks, please*/; i++) {
+		if (i) {
 			time_t idx = i<100? i : now+i;
 			ret = dc_mprintf("%s/%s-%lu%s", folder, basename, (unsigned long)idx, dotNSuffix);
 		}
@@ -1187,8 +1187,8 @@ int dc_write_file(const char* pathNfilename, const void* buf, size_t buf_bytes, 
 	int success = 0;
 
 	FILE* f = fopen(pathNfilename, "wb");
-	if( f ) {
-		if( fwrite(buf, 1, buf_bytes, f) == buf_bytes ) {
+	if (f) {
+		if (fwrite(buf, 1, buf_bytes, f) == buf_bytes) {
 			success = 1;
 		}
 		else {
@@ -1208,34 +1208,34 @@ int dc_read_file(const char* pathNfilename, void** buf, size_t* buf_bytes, dc_co
 {
 	int success = 0;
 
-	if( pathNfilename==NULL || buf==NULL || buf_bytes==NULL ) {
+	if (pathNfilename==NULL || buf==NULL || buf_bytes==NULL) {
 		return 0; /* do not go to cleanup as this would dereference "buf" and "buf_bytes" */
 	}
 
 	*buf = NULL;
 	*buf_bytes = 0;
 	FILE* f = fopen(pathNfilename, "rb");
-	if( f==NULL ) { goto cleanup; }
+	if (f==NULL) { goto cleanup; }
 
 	fseek(f, 0, SEEK_END);
 	*buf_bytes = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	if( *buf_bytes <= 0 ) { goto cleanup; }
+	if (*buf_bytes <= 0) { goto cleanup; }
 
-	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */ );
-	if( *buf==NULL ) { goto cleanup; }
+	*buf = malloc( (*buf_bytes) + 1 /*be pragmatic and terminate all files by a null - fine for texts and does not hurt for the rest */);
+	if (*buf==NULL) { goto cleanup; }
 
 	((char*)*buf)[*buf_bytes /*we allocated one extra byte above*/] = 0;
 
-	if( fread(*buf, 1, *buf_bytes, f)!=*buf_bytes ) { goto cleanup; }
+	if (fread(*buf, 1, *buf_bytes, f)!=*buf_bytes) { goto cleanup; }
 
 	success = 1;
 
 cleanup:
-	if( f ) {
+	if (f) {
 		fclose(f);
 	}
-	if( success==0 ) {
+	if (success==0) {
 		free(*buf);
 		*buf = NULL;
 		*buf_bytes = 0;
@@ -1259,10 +1259,10 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 	}
 
 	/* For JPEGs, we need to check the first bytes of each DCT chunk. */
-	if( buf[0]==0xFF && buf[1]==0xD8 && buf[2]==0xFF )
+	if (buf[0]==0xFF && buf[1]==0xD8 && buf[2]==0xFF)
 	{
 		long pos = 2;
-		while( buf[pos]==0xFF )
+		while (buf[pos]==0xFF)
 		{
 			if (buf[pos+1]==0xC0 || buf[pos+1]==0xC1 || buf[pos+1]==0xC2 || buf[pos+1]==0xC3 || buf[pos+1]==0xC9 || buf[pos+1]==0xCA || buf[pos+1]==0xCB) {
 				*ret_height = (buf[pos+5]<<8) + buf[pos+6]; /* sic! height is first */
@@ -1275,7 +1275,7 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 	}
 
 	/* GIF: first three bytes say "GIF", next three give version number. Then dimensions */
-	if( buf[0]=='G' && buf[1]=='I' && buf[2]=='F' )
+	if (buf[0]=='G' && buf[1]=='I' && buf[2]=='F')
 	{
 		*ret_width  = buf[6] + (buf[7]<<8);
 		*ret_height = buf[8] + (buf[9]<<8);
@@ -1283,8 +1283,8 @@ int dc_get_filemeta(const void* buf_start, size_t buf_bytes, uint32_t* ret_width
 	}
 
 	/* PNG: the first frame is by definition an IHDR frame, which gives dimensions */
-	if( buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G' && buf[4]==0x0D && buf[5]==0x0A && buf[6]==0x1A && buf[7]==0x0A
-	 && buf[12]=='I' && buf[13]=='H' && buf[14]=='D' && buf[15]=='R' )
+	if (buf[0]==0x89 && buf[1]=='P' && buf[2]=='N' && buf[3]=='G' && buf[4]==0x0D && buf[5]==0x0A && buf[6]==0x1A && buf[7]==0x0A
+	 && buf[12]=='I' && buf[13]=='H' && buf[14]=='D' && buf[15]=='R')
 	{
 		*ret_width  = (buf[16]<<24) + (buf[17]<<16) + (buf[18]<<8) + (buf[19]<<0);
 		*ret_height = (buf[20]<<24) + (buf[21]<<16) + (buf[22]<<8) + (buf[23]<<0);

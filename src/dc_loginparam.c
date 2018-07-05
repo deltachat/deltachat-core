@@ -33,7 +33,7 @@ dc_loginparam_t* dc_loginparam_new()
 {
 	dc_loginparam_t* loginparam = NULL;
 
-	if( (loginparam=calloc(1, sizeof(dc_loginparam_t)))==NULL ) {
+	if ((loginparam=calloc(1, sizeof(dc_loginparam_t)))==NULL) {
 		exit(22); /* cannot allocate little memory, unrecoverable error */
 	}
 
@@ -43,7 +43,7 @@ dc_loginparam_t* dc_loginparam_new()
 
 void dc_loginparam_unref(dc_loginparam_t* loginparam)
 {
-	if( loginparam==NULL ) {
+	if (loginparam==NULL) {
 		return;
 	}
 
@@ -54,7 +54,7 @@ void dc_loginparam_unref(dc_loginparam_t* loginparam)
 
 void dc_loginparam_empty(dc_loginparam_t* loginparam)
 {
-	if( loginparam == NULL ) {
+	if (loginparam == NULL) {
 		return; /* ok, but nothing to do */
 	}
 
@@ -122,11 +122,11 @@ static char* get_readable_flags(int flags)
 {
 	dc_strbuilder_t strbuilder;
 	dc_strbuilder_init(&strbuilder, 0);
-	#define CAT_FLAG(f, s) if( (1<<bit)==(f) ) { dc_strbuilder_cat(&strbuilder, (s)); flag_added = 1; }
+	#define CAT_FLAG(f, s) if ((1<<bit)==(f)) { dc_strbuilder_cat(&strbuilder, (s)); flag_added = 1; }
 
-	for( int bit = 0; bit <= 30; bit++ )
+	for (int bit = 0; bit <= 30; bit++)
 	{
-		if( flags&(1<<bit) )
+		if (flags&(1<<bit))
 		{
 			int flag_added = 0;
 
@@ -144,13 +144,13 @@ static char* get_readable_flags(int flags)
 			CAT_FLAG(DC_NO_EXTRA_IMAP_UPLOAD, "NO_EXTRA_IMAP_UPLOAD ");
 			CAT_FLAG(DC_NO_MOVE_TO_CHATS,     "NO_MOVE_TO_CHATS ");
 
-			if( !flag_added ) {
+			if (!flag_added) {
 				char* temp = dc_mprintf("0x%x ", 1<<bit); dc_strbuilder_cat(&strbuilder, temp); free(temp);
 			}
 		}
 	}
 
-	if( strbuilder.buf[0]==0 ) { dc_strbuilder_cat(&strbuilder, "0"); }
+	if (strbuilder.buf[0]==0) { dc_strbuilder_cat(&strbuilder, "0"); }
 	dc_trim(strbuilder.buf);
 	return strbuilder.buf;
 }
@@ -161,7 +161,7 @@ char* dc_loginparam_get_readable(const dc_loginparam_t* loginparam)
 	const char* unset = "0";
 	const char* pw = "***";
 
-	if( loginparam==NULL ) {
+	if (loginparam==NULL) {
 		return dc_strdup(NULL);
 	}
 
