@@ -509,7 +509,7 @@ char* dc_get_info(dc_context_t* context)
 	temp = dc_mprintf(
 		"Chats: %i\n"
 		"Chat messages: %i\n"
-		"Messages in context requests: %i\n"
+		"Messages in contact requests: %i\n"
 		"Contacts: %i\n"
 		"Database=%s, dbversion=%i, Blobdir=%s\n"
 		"\n"
