@@ -31,10 +31,6 @@
 #include "dc_token.h"
 
 
-#define      LOCK                 { pthread_mutex_lock(&context->bobs_qr_critical); locked = 1; }
-#define      UNLOCK  if( locked ) { pthread_mutex_unlock(&context->bobs_qr_critical); locked = 0; }
-
-
 /*******************************************************************************
  * Tools: Handle degraded keys and lost verificaton
  ******************************************************************************/
@@ -431,13 +427,15 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	   ====   Step 2 in "Setup verified contact" protocol   =====
 	   ========================================================== */
 
-	int      ret_chat_id       = 0;
-	int      ongoing_allocated = 0;
-	#define  CHECK_EXIT        if( context->shall_stop_ongoing ) { goto cleanup; }
-	uint32_t contact_chat_id   = 0;
+	int       ret_chat_id       = 0;
+	int       ongoing_allocated = 0;
+	uint32_t  contact_chat_id   = 0;
+	int       join_vg           = 0;
 	dc_lot_t* qr_scan           = NULL;
-	int      join_vg           = 0;
-	int      locked = 0;
+	int       qr_locked         = 0;
+	#define   LOCK_QR           { pthread_mutex_lock(&context->bobs_qr_critical); qr_locked = 1; }
+	#define   UNLOCK_QR         if (qr_locked) { pthread_mutex_unlock(&context->bobs_qr_critical); qr_locked = 0; }
+	#define   CHECK_EXIT        if (context->shall_stop_ongoing) { goto cleanup; }
 
 	dc_log_info(context, 0, "Requesting secure-join ...");
 
@@ -470,9 +468,9 @@ uint32_t dc_join_securejoin(dc_context_t* context, const char* qr)
 	join_vg = (qr_scan->state==DC_QR_ASK_VERIFYGROUP);
 
 	context->bobs_status = 0;
-	LOCK
+	LOCK_QR
 		context->bobs_qr_scan = qr_scan;
-	UNLOCK
+	UNLOCK_QR
 
 	if( fingerprint_equals_sender(context, qr_scan->fingerprint, contact_chat_id) ) {
 		// the scanned fingerprint matches Alice's key, we can proceed to step 4b) directly and save two mails
@@ -508,9 +506,9 @@ cleanup:
 		}
 	}
 
-	LOCK
+	LOCK_QR
 		context->bobs_qr_scan = NULL;
-	UNLOCK
+	UNLOCK_QR
 
 	dc_lot_unref(qr_scan);
 
@@ -532,16 +530,16 @@ cleanup:
  */
 int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimeparser, uint32_t contact_id)
 {
-	int          locked = 0;
-	const char*  step   = NULL;
-	int          join_vg = 0;
+	int          qr_locked                    = 0;
+	const char*  step                         = NULL;
+	int          join_vg                      = 0;
 	char*        scanned_fingerprint_of_alice = NULL;
-	char*        auth = NULL;
-	char*        own_fingerprint = NULL;
-	uint32_t     contact_chat_id = 0;
-	int          contact_chat_id_blocked = 0;
-	char*        grpid = NULL;
-	int          ret = 0;
+	char*        auth                         = NULL;
+	char*        own_fingerprint              = NULL;
+	uint32_t     contact_chat_id              = 0;
+	int          contact_chat_id_blocked      = 0;
+	char*        grpid                        = NULL;
+	int          ret                          = 0;
 
 	if( context == NULL || mimeparser == NULL || contact_id <= DC_CONTACT_ID_LAST_SPECIAL ) {
 		goto cleanup;
@@ -599,7 +597,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 		   ========================================================== */
 
 		// verify that Alice's Autocrypt key and fingerprint matches the QR-code
-		LOCK
+		LOCK_QR
 			if ( context->bobs_qr_scan==NULL
 			  || context->bob_expects!=DC_VC_AUTH_REQUIRED
 			  || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP) ) {
@@ -611,7 +609,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			if( join_vg ) {
 				grpid = dc_strdup(context->bobs_qr_scan->text2);
 			}
-		UNLOCK
+		UNLOCK_QR
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(context, contact_chat_id, mimeparser->e2ee_helper->encrypted? "No valid signature." : "Not encrypted.");
@@ -729,13 +727,13 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 			goto cleanup;
 		}
 
-		LOCK
+		LOCK_QR
 			if (context->bobs_qr_scan==NULL || (join_vg && context->bobs_qr_scan->state!=DC_QR_ASK_VERIFYGROUP)) {
 				dc_log_warning(context, 0, "Message out of sync or belongs to a different handshake.");
 				goto cleanup;
 			}
 			scanned_fingerprint_of_alice = dc_strdup(context->bobs_qr_scan->fingerprint);
-		UNLOCK
+		UNLOCK_QR
 
 		if( !encrypted_and_signed(mimeparser, scanned_fingerprint_of_alice) ) {
 			could_not_establish_secure_connection(context, contact_chat_id, "Contact confirm message not encrypted.");
@@ -768,7 +766,7 @@ int dc_handle_securejoin_handshake(dc_context_t* context, dc_mimeparser_t* mimep
 
 cleanup:
 
-	UNLOCK
+	UNLOCK_QR
 
 	free(scanned_fingerprint_of_alice);
 	free(auth);
